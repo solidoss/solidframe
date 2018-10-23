@@ -4,6 +4,6 @@ target_link_libraries (example_frame_objects
     solid_frame
     solid_utility
     solid_system
-    ${SYS_BASIC_LIBS}
+    ${SYSTEM_BASIC_LIBRARIES}
 )
 

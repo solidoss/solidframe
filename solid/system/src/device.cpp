@@ -22,6 +22,8 @@
 #else
 #define _FILE_OFFSET_BITS 64
 #include <netinet/tcp.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #endif
 

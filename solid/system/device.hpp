@@ -12,32 +12,20 @@
 
 #include "solid/system/common.hpp"
 
-#ifdef SOLID_ON_WINDOWS
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <WinSock2.h>
-#include <Windows.h>
-#include <Ws2tcpip.h>
-#else
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-#endif
-
 namespace solid {
 
 //! A wrapper for what on POSIX is a descriptor
 class Device {
 public:
 #ifdef SOLID_ON_WINDOWS
-    typedef HANDLE DescriptorT;
+    typedef void* DescriptorT;
 #else
     typedef int DescriptorT;
 #endif
     static constexpr DescriptorT invalidDescriptor()
     {
 #ifdef SOLID_ON_WINDOWS
-        return INVALID_HANDLE_VALUE;
+        return reinterpret_cast<DescriptorT>(static_cast<ptrdiff_t>(-1));
 #else
         return -1;
 #endif

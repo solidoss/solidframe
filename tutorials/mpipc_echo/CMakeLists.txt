@@ -7,8 +7,8 @@ target_link_libraries (tutorial_mpipc_echo_server
     solid_serialization_v2
     solid_utility
     solid_system
-    ${SYS_BASIC_LIBS}
-    ${SYS_DYNAMIC_LOAD_LIB}
+    ${SYSTEM_BASIC_LIBRARIES}
+    ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
 )
 
 add_executable (tutorial_mpipc_echo_client mpipc_echo_client.cpp mpipc_echo_messages.hpp)
@@ -20,8 +20,8 @@ target_link_libraries (tutorial_mpipc_echo_client
     solid_serialization_v2
     solid_utility
     solid_system
-    ${SYS_BASIC_LIBS}
-    ${SYS_DYNAMIC_LOAD_LIB}
+    ${SYSTEM_BASIC_LIBRARIES}
+    ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
 )
 
 
@@ -34,6 +34,6 @@ target_link_libraries (tutorial_mpipc_echo_client_pool
     solid_serialization_v2
     solid_utility
     solid_system
-    ${SYS_BASIC_LIBS}
-    ${SYS_DYNAMIC_LOAD_LIB}
+    ${SYSTEM_BASIC_LIBRARIES}
+    ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
 )

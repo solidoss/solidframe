@@ -37,8 +37,8 @@ if(OPENSSL_FOUND)
         solid_system
         ${SNAPPY_LIB}
         ${OPENSSL_LIBRARIES}
-        ${SYS_BASIC_LIBS}
-        ${SYS_DYNAMIC_LOAD_LIB}
+        ${SYSTEM_BASIC_LIBRARIES}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (tutorial_mpipc_request_ssl_client mpipc_request_client.cpp mpipc_request_messages.hpp)
@@ -55,8 +55,8 @@ if(OPENSSL_FOUND)
         solid_system
         ${SNAPPY_LIB}
         ${OPENSSL_LIBRARIES}
-        ${SYS_BASIC_LIBS}
-        ${SYS_DYNAMIC_LOAD_LIB}
+        ${SYSTEM_BASIC_LIBRARIES}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 endif(OPENSSL_FOUND)
 

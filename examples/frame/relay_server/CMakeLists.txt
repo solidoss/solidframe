@@ -10,8 +10,8 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         solid_system
         ${Boost_PROGRAM_OPTIONS_LIBRARY}
         ${Boost_SYSTEM_LIBRARY}
-        ${SYS_BASIC_LIBS}
-        ${SYS_DYNAMIC_LOAD_LIB}
+        ${SYSTEM_BASIC_LIBRARIES}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (example_relay_server_bi example_relay_server_bi.cpp)
@@ -25,8 +25,8 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         solid_system
         ${Boost_PROGRAM_OPTIONS_LIBRARY}
         ${Boost_SYSTEM_LIBRARY}
-        ${SYS_BASIC_LIBS}
-        ${SYS_DYNAMIC_LOAD_LIB}
+        ${SYSTEM_BASIC_LIBRARIES}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (example_relay_server_bi_cp example_relay_server_bi_cp.cpp)
@@ -40,8 +40,8 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         solid_system
         ${Boost_PROGRAM_OPTIONS_LIBRARY}
         ${Boost_SYSTEM_LIBRARY}
-        ${SYS_BASIC_LIBS}
-        ${SYS_DYNAMIC_LOAD_LIB}
+        ${SYSTEM_BASIC_LIBRARIES}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (example_relay_server_bi_sh example_relay_server_bi_sh.cpp)
@@ -55,8 +55,8 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         solid_system
         ${Boost_PROGRAM_OPTIONS_LIBRARY}
         ${Boost_SYSTEM_LIBRARY}
-        ${SYS_BASIC_LIBS}
-        ${SYS_DYNAMIC_LOAD_LIB}
+        ${SYSTEM_BASIC_LIBRARIES}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (example_relay_server_bi_ex example_relay_server_bi_ex.cpp)
@@ -70,8 +70,8 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         solid_system
         ${Boost_PROGRAM_OPTIONS_LIBRARY}
         ${Boost_SYSTEM_LIBRARY}
-        ${SYS_BASIC_LIBS}
-        ${SYS_DYNAMIC_LOAD_LIB}
+        ${SYSTEM_BASIC_LIBRARIES}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
 endif()

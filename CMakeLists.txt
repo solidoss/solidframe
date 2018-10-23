@@ -21,11 +21,6 @@ if(NOT ${CMAKE_VERSION} VERSION_LESS "3.12.0")
 endif()
 
 #-----------------------------------------------------------------
-# Extra user definitions
-#-----------------------------------------------------------------
-set(EXTRA_DEFINITIONS "${EXTRA_DEFINITIONS}" CACHE STRING "Extra compiler definitions")
-add_definitions(${EXTRA_DEFINITIONS})
-#-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
 # Prepare the external path
@@ -46,6 +41,9 @@ endif()
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
 
+set(CMAKE_CONFIGURATION_TYPES "release" CACHE STRING "" FORCE)
+set(CONFIGURATION_TYPE "release")
+
 if(CMAKE_BUILD_TYPE STREQUAL "maintain")
     set(CMAKE_VERBOSE_MAKEFILE ON)
     set(SOLID_HAS_DEBUG TRUE)
@@ -54,6 +52,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "maintain")
 
     #force a single configuration type on Windows builds
     set(CMAKE_CONFIGURATION_TYPES "release" CACHE STRING "" FORCE)
+    set(CONFIGURATION_TYPE "release")
 endif(CMAKE_BUILD_TYPE STREQUAL "maintain")
 
 
@@ -65,35 +64,15 @@ if(CMAKE_BUILD_TYPE STREQUAL "debug")
     set(SOLID_HAS_ASSERT TRUE)
     #force a single configuration type on Windows builds
     set(CMAKE_CONFIGURATION_TYPES "debug" CACHE STRING "" FORCE)
+    set(CONFIGURATION_TYPE "debug")
 endif(CMAKE_BUILD_TYPE STREQUAL "debug")
-
-
-if(CMAKE_BUILD_TYPE STREQUAL "nolog")
-    set(CMAKE_VERBOSE_MAKEFILE ON)
-    set(SOLID_HAS_NO_INLINES TRUE)
-    set(SOLID_HAS_ASSERT TRUE)
-    #force a single configuration type on Windows builds
-    set(CMAKE_CONFIGURATION_TYPES "debug" CACHE STRING "" FORCE)
-endif(CMAKE_BUILD_TYPE STREQUAL "nolog")
 
 set(SOLID_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
 set(SOLID_VERSION_MINOR ${PROJECT_VERSION_MINOR})
 set(SOLID_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 
-set(SYS_DEBUG_FLAGS "")
-set(SYS_MAINTAIN_FLAGS "")
-set(SYS_OPTIMIZED_FLAGS "")
-set(SYS_NOLOG_FLAGS "")
-set(SYS_RELEASE_FLAGS "")
-
-set(SYS_DEBUG_LINKER_FLAGS "")
-set(SYS_MAINTAIN_LINKER_FLAGS "")
-set(SYS_OPTIMIZED_LINKER_FLAGS "")
-set(SYS_NOLOG_LINKER_FLAGS "")
-set(SYS_RELEASE_LINKER_FLAGS "")
-
-set(SYS_BASIC_LIBS "")
-set(SYS_DYNAMIC_LOAD_LIB "")
+set(SYSTEM_BASIC_LIBRARIES "")
+set(SYSTEM_DYNAMIC_LOAD_LIBRARY "")
 
 #-----------------------------------------------------------------
 # Per OS configuration
@@ -111,39 +90,19 @@ set(SOLID_ON_POSIX FALSE)
 set(SOLID_ON_SOLARIS FALSE)
 set(SOLID_ON_WINDOWS FALSE)
 
-if(CMAKE_SYSTEM MATCHES "SunOS*")
-    message("Detected system ON_SOLARIS")
-    set(ON_FOUND TRUE)
-    set(SOLID_ON_SOLARIS TRUE)
-    set(SOLID_ON_POSIX TRUE)
-    set(SYS_DEBUG_FLAGS "-features=extensions -library=stlport4 -mt -g")
-    set(SYS_MAINTAIN_FLAGS "-features=extensions -library=stlport4 -mt")
-    set(SYS_OPTIMIZED_FLAGS "-features=extensions -library=stlport4 -mt")
-    set(SYS_NOLOG_FLAGS "-features=extensions -library=stlport4 -mt")
-    set(SYS_RELEASE_FLAGS "-features=extensions -library=stlport4 -mt")
-
-    set(SYS_BASIC_LIBS pthread socket nsl)
-
-endif(CMAKE_SYSTEM MATCHES "SunOS*")
-
 if(CMAKE_SYSTEM MATCHES "FreeBSD*")
     message("Detected system ON_FREEBSD")
     set(ON_FOUND TRUE)
     set(SOLID_ON_FREEBSD TRUE)
     set(SOLID_ON_POSIX TRUE)
-    set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
-    set(SYS_MAINTAIN_FLAGS "-Wall -Wextra -Wabi -O3 -g3")
-    set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
-    set(SYS_NOLOG_FLAGS "-g3")
-    set(SYS_RELEASE_FLAGS "-O3")
+    
+    add_compile_options(
+        "$<$<CONFIG:RELASE>:-O3>"
+        "$<$<CONFIG:DEBUG>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
+        "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wabi;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
+    )
 
-    set(SYS_DEBUG_LINKER_FLAGS "")
-    set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once")
-    set(SYS_OPTIMIZED_LINKER_FLAGS "")
-    set(SYS_NOLOG_LINKER_FLAGS "")
-    set(SYS_RELEASE_LINKER_FLAGS "")
-
-    set(SYS_BASIC_LIBS pmc pthread rt)
+    set(SYSTEM_BASIC_LIBRARIES pmc pthread rt)
 endif(CMAKE_SYSTEM MATCHES "FreeBSD*")
 
 if(CMAKE_SYSTEM MATCHES "Darwin*")
@@ -151,19 +110,18 @@ if(CMAKE_SYSTEM MATCHES "Darwin*")
     set(ON_FOUND TRUE)
     set(SOLID_ON_DARWIN TRUE)
     set(SOLID_ON_POSIX TRUE)
-    set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
-    set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
-    set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
-    set(SYS_NOLOG_FLAGS "-g3")
-    set(SYS_RELEASE_FLAGS "-O3")
-
-    set(SYS_DEBUG_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
-    set(SYS_MAINTAIN_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
-    set(SYS_OPTIMIZED_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
-    set(SYS_NOLOG_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
-    set(SYS_RELEASE_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
-
-    set(SYS_BASIC_LIBS pthread)
+    
+    add_compile_options(
+        "$<$<CONFIG:RELASE>:-O3>"
+        "$<$<CONFIG:DEBUG>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
+        "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wabi;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
+    )
+    
+    #add_compile_options("SHELL: -framework ApplicationServices")
+    #add_compile_options("SHELL: -framework CoreFoundation")
+    string(APPEND CMAKE_EXE_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
+    
+    set(SYSTEM_BASIC_LIBRARIES pthread)
 endif(CMAKE_SYSTEM MATCHES "Darwin*")
 
 if(CMAKE_SYSTEM MATCHES "Linux*")
@@ -171,55 +129,48 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
     set(ON_FOUND TRUE)
     set(SOLID_ON_LINUX TRUE)
     set(SOLID_ON_POSIX TRUE)
-
+    
+    
 
     set(SYS_DEBUG_FLAGS " -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
     if(CMAKE_CXX_COMPILER MATCHES "clang")
-        set(SYS_DEBUG_FLAGS "-Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
-        set(SYS_MAINTAIN_FLAGS "-Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized -Wabi -O3 -g3")
+        add_compile_options(
+            "$<$<CONFIG:RELASE>:-O3>"
+            "$<$<CONFIG:DEBUG>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
+            "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wabi;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
+        )
     else()
-        set(SYS_DEBUG_FLAGS "-Wall -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
-        set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
-    endif()
-    set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
-    set(SYS_NOLOG_FLAGS "-g3")
-    set(SYS_RELEASE_FLAGS "-O3")
-
-    set(SYS_DEBUG_LINKER_FLAGS "")# -D_GLIBCXX_DEBUG
-    set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once")
-    set(SYS_OPTIMIZED_LINKER_FLAGS "")
-    set(SYS_NOLOG_LINKER_FLAGS "")
-    set(SYS_RELEASE_LINKER_FLAGS "-O3")
-    
-    set(SYS_BASIC_LIBS pthread rt)
-    
-    find_library(ATOMIC_LIB NAMES atomic atomic.so.1 libatomic.so.1)
-    
-    if(ATOMIC_LIB)
-        message("Atomic library found: ${ATOMIC_LIB}")
-        set(SYS_BASIC_LIBS ${SYS_BASIC_LIBS} atomic)
+        add_compile_options(
+            "$<$<CONFIG:RELASE>:-O3>"
+            "$<$<CONFIG:DEBUG>:-Wall;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
+            "$<$<CONFIG:MAINTAIN>:-Wall;-Wabi;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
+        )
     endif()
     
-    set(SYS_DYNAMIC_LOAD_LIB dl)
+    set(SYSTEM_BASIC_LIBRARIES pthread rt)
+    
+    find_library(ATOMIC_LIBRARY NAMES atomic atomic.so.1 libatomic.so.1)
+    
+    if(ATOMIC_LIBRARY)
+        message("Atomic library found: ${ATOMIC_LIBRARY}")
+        list(APPEND SYSTEM_BASIC_LIBRARIES atomic)
+    endif()
+    
+    set(SYSTEM_DYNAMIC_LOAD_LIBRARY dl)
 endif(CMAKE_SYSTEM MATCHES "Linux*")
 
 if(CMAKE_SYSTEM MATCHES "Windows*")
     message("Detected system ON_WINDOWS")
     set(ON_FOUND TRUE)
     set(SOLID_ON_WINDOWS TRUE)
-    set(SYS_DEBUG_FLAGS "-D_CRT_SECURE_NO_WARNINGS /Zi /Od")
-    set(SYS_MAINTAIN_FLAGS "-D_CRT_SECURE_NO_WARNINGS /Zi /Od")
-    set(SYS_OPTIMIZED_FLAGS "-D_CRT_SECURE_NO_WARNINGS /Ox  /Zi")
-    set(SYS_NOLOG_FLAGS "-D_CRT_SECURE_NO_WARNINGS /Zi /Od")
-    set(SYS_RELEASE_FLAGS "-D_CRT_SECURE_NO_WARNINGS /Ox")
-
-    set(SYS_DEBUG_LINKER_FLAGS "")
-    set(SYS_MAINTAIN_LINKER_FLAGS "")
-    set(SYS_OPTIMIZED_LINKER_FLAGS "")
-    set(SYS_NOLOG_LINKER_FLAGS "")
-    set(SYS_RELEASE_LINKER_FLAGS "")
-
-    add_definitions(-D_WIN32_WINNT=0x0601 -DWINVER=0x0601)
+    
+    add_compile_options(
+        "$<$<CONFIG:RELASE>:/D_CRT_SECURE_NO_WARNINGS;/Ox>"
+        "$<$<CONFIG:DEBUG>:/D_CRT_SECURE_NO_WARNINGS;/Zi;/Od>"
+        "$<$<CONFIG:MAINTAIN>:/D_CRT_SECURE_NO_WARNINGS;/Zi;/Od>"
+    )
+    
+    add_compile_options(-D_WIN32_WINNT=0x0601 -DWINVER=0x0601)
 endif(CMAKE_SYSTEM MATCHES "Windows*")
 
 
@@ -233,21 +184,14 @@ if(CMAKE_SYSTEM MATCHES "Android*")
     set(SOLID_USE_GCC_BSWAP TRUE)
     set(NO_EXTERNAL TRUE)
 
+    add_compile_options(
+        "$<$<CONFIG:RELASE>:-O3>"
+        "$<$<CONFIG:DEBUG>:-Wall;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
+        "$<$<CONFIG:MAINTAIN>:-Wall;-Wabi;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
+    )
 
-    set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")# -D_GLIBCXX_DEBUG
-    set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
-    set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
-    set(SYS_NOLOG_FLAGS "-g3")
-    set(SYS_RELEASE_FLAGS "-O3")
-
-    set(SYS_DEBUG_LINKER_FLAGS "")# -D_GLIBCXX_DEBUG
-    set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once")
-    set(SYS_OPTIMIZED_LINKER_FLAGS "")
-    set(SYS_NOLOG_LINKER_FLAGS "")
-    set(SYS_RELEASE_LINKER_FLAGS "-O3")
-
-    set(SYS_BASIC_LIBS pthread rt)
-    set(SYS_DYNAMIC_LOAD_LIB dl)
+    set(SYSTEM_BASIC_LIBRARIES pthread rt)
+    set(SYSTEM_DYNAMIC_LOAD_LIBRARY dl)
 endif(CMAKE_SYSTEM MATCHES "Android*")
 
 if(NOT ON_FOUND)
@@ -324,97 +268,6 @@ endif ()
 
 #-----------------------------------------------------------------
 
-#-----------------------------------------------------------------
-# Debug build
-#-----------------------------------------------------------------
-set(CMAKE_CXX_FLAGS_DEBUG
-    "${SYS_DEBUG_FLAGS}"
-    CACHE STRING "Flags used by the C++ compiler during debug builds."
-    FORCE
-)
-#-----------------------------------------------------------------
-
-#-----------------------------------------------------------------
-# Maintain build
-#-----------------------------------------------------------------
-set(CMAKE_CXX_FLAGS_MAINTAIN
-    "${SYS_MAINTAIN_FLAGS}"
-    CACHE STRING "Flags used by the C++ compiler during maintain builds."
-    FORCE
-)
-set(CMAKE_EXE_LINKER_FLAGS_MAINTAIN
-    "${SYS_MAINTAIN_LINKER_FLAGS}"
-    CACHE STRING "Flags used for linking binaries during maintain builds."
-    FORCE
-)
-set(CMAKE_SHARED_LINKER_FLAGS_MAINTAIN
-    "${SYS_MAINTAIN_LINKER_FLAGS}"
-    CACHE STRING "Flags used by the shared libraries linker during maintain builds."
-    FORCE
-)
-#-----------------------------------------------------------------
-
-#-----------------------------------------------------------------
-# Optimized build
-#-----------------------------------------------------------------
-set(CMAKE_CXX_FLAGS_OPTIMIZED
-    "${SYS_OPTIMIZED_FLAGS}"
-    CACHE STRING "Flags used by the C++ compiler during optimized builds."
-    FORCE
-)
-#-----------------------------------------------------------------
-
-#-----------------------------------------------------------------
-# Release build
-#-----------------------------------------------------------------
-set(CMAKE_CXX_FLAGS_RELEASE
-    "${SYS_RELEASE_FLAGS}"
-    CACHE STRING "Flags used by the C++ compiler during release builds."
-    FORCE
-)
-#-----------------------------------------------------------------
-
-#-----------------------------------------------------------------
-# Nolog build
-#-----------------------------------------------------------------
-set(CMAKE_CXX_FLAGS_NOLOG
-    "${SYS_NOLOG_FLAGS}"
-    CACHE STRING "Flags used by the C++ compiler during nolog builds."
-    FORCE
-)
-#-----------------------------------------------------------------
-
-#-----------------------------------------------------------------
-mark_as_advanced(
-    CMAKE_CXX_FLAGS_NOLOG
-    CMAKE_C_FLAGS_NOLOG
-    CMAKE_EXE_LINKER_FLAGS_NOLOG
-    CMAKE_SHARED_LINKER_FLAGS_NOLOG
-)
-#-----------------------------------------------------------------
-mark_as_advanced(
-    CMAKE_CXX_FLAGS_MAINTAIN
-    CMAKE_C_FLAGS_MAINTAIN
-    CMAKE_EXE_LINKER_FLAGS_MAINTAIN
-    CMAKE_SHARED_LINKER_FLAGS_MAINTAIN
-)
-#-----------------------------------------------------------------
-mark_as_advanced(
-    CMAKE_CXX_FLAGS_OPTIMIZED
-    CMAKE_C_FLAGS_OPTIMIZED
-    CMAKE_EXE_LINKER_FLAGS_OPTIMIZED
-    CMAKE_SHARED_LINKER_FLAGS_OPTIMIZED
-)
-#-----------------------------------------------------------------
-
-#-----------------------------------------------------------------
-# Update the documentation string of CMAKE_BUILD_TYPE for GUIs
-#-----------------------------------------------------------------
-set(CMAKE_BUILD_TYPE
-    "${CMAKE_BUILD_TYPE}"
-    CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel nolog maintain optimized:"
-    FORCE
-)
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------

@@ -46,8 +46,8 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
-        ${SYS_DYNAMIC_LOAD_LIB}
-        ${SYS_BASIC_LIBS}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
+        ${SYSTEM_BASIC_LIBRARIES}
     )
 
     add_test(NAME TestProtocolBasic     COMMAND  test_mpipc_protocol test_protocol_basic)
@@ -82,8 +82,8 @@ if(OPENSSL_FOUND)
         solid_system
         ${SNAPPY_LIB}
         ${OPENSSL_LIBRARIES}
-        ${SYS_DYNAMIC_LOAD_LIB}
-        ${SYS_BASIC_LIBS}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
+        ${SYSTEM_BASIC_LIBRARIES}
     )
 
     add_test(NAME TestClientServerBasic1        COMMAND  test_mpipc_clientserver test_clientserver_basic 1)
@@ -144,8 +144,8 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
-        ${SYS_DYNAMIC_LOAD_LIB}
-        ${SYS_BASIC_LIBS}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
+        ${SYSTEM_BASIC_LIBRARIES}
     )
 
     add_test(NAME TestKeepAliveFail1        COMMAND  test_mpipc_keepalive test_keepalive_fail "0")
@@ -174,8 +174,8 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
-        ${SYS_DYNAMIC_LOAD_LIB}
-        ${SYS_BASIC_LIBS}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
+        ${SYSTEM_BASIC_LIBRARIES}
     )
 
     add_test(NAME TestConnectionClose       COMMAND  test_mpipc_connection test_connection_close)
@@ -204,8 +204,8 @@ if(OPENSSL_FOUND)
         solid_system
         ${SNAPPY_LIB}
         ${OPENSSL_LIBRARIES}
-        ${SYS_DYNAMIC_LOAD_LIB}
-        ${SYS_BASIC_LIBS}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
+        ${SYSTEM_BASIC_LIBRARIES}
     )
 
     add_test(NAME TestPoolBasic1            COMMAND  test_mpipc_pool test_pool_basic 1)
@@ -247,8 +247,8 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
-        ${SYS_DYNAMIC_LOAD_LIB}
-        ${SYS_BASIC_LIBS}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
+        ${SYSTEM_BASIC_LIBRARIES}
     )
 
     add_test(NAME TestMultiProtocolBasic        COMMAND  test_mpipc_multiprotocol test_multiprotocol_basic)
@@ -275,8 +275,8 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
-        ${SYS_DYNAMIC_LOAD_LIB}
-        ${SYS_BASIC_LIBS}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
+        ${SYSTEM_BASIC_LIBRARIES}
     )
 
     add_test(NAME TestRawBasic      COMMAND  test_mpipc_raw test_raw_basic)
@@ -308,8 +308,8 @@ if(OPENSSL_FOUND)
         solid_system
         ${SNAPPY_LIB}
         ${OPENSSL_LIBRARIES}
-        ${SYS_DYNAMIC_LOAD_LIB}
-        ${SYS_BASIC_LIBS}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
+        ${SYSTEM_BASIC_LIBRARIES}
     )
 
     add_test(NAME TestRelayDisabled1        COMMAND  test_mpipc_relay test_relay_disabled 1)
@@ -339,8 +339,8 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
-        ${SYS_DYNAMIC_LOAD_LIB}
-        ${SYS_BASIC_LIBS}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
+        ${SYSTEM_BASIC_LIBRARIES}
     )
 
     add_test(NAME TestRelayEngineBasic     COMMAND  test_mpipc_relay_engine test_relay_engine_basic)

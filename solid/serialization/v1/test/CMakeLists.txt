@@ -17,7 +17,7 @@ target_link_libraries(test_serialization
     solid_serialization_v1
     solid_utility
     solid_system
-    ${SYS_BASIC_LIBS}
+    ${SYSTEM_BASIC_LIBRARIES}
 )
 
 add_test(NAME TestSerializationExtData      COMMAND  test_serialization test_extdata)

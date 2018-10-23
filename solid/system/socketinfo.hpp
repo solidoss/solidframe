@@ -11,12 +11,20 @@
 #pragma once
 
 #ifdef SOLID_ON_WINDOWS
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef VC_EXTRALEAN
+#define VC_EXTRALEAN
+#endif
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
+
 #include <WinSock2.h>
-#include <Windows.h>
 #include <Ws2tcpip.h>
-#undef min
-#undef max
+#include <windows.h>
 #else
 #include <netdb.h>
 #include <netinet/in.h>

@@ -41,8 +41,8 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
-        ${SYS_DYNAMIC_LOAD_LIB}
-        ${SYS_BASIC_LIBS}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
+        ${SYSTEM_BASIC_LIBRARIES}
     )
 
     add_test(NAME TestAioEchoTcpStress1        COMMAND  test_aio_echo test_echo_tcp_stress 1)

@@ -14,7 +14,7 @@ target_link_libraries(test_serialization_v2
     solid_serialization_v2
     solid_utility
     solid_system
-    ${SYS_BASIC_LIBS}
+    ${SYSTEM_BASIC_LIBRARIES}
 )
 
 add_test(NAME TestSerializationV2Binary       COMMAND  test_serialization_v2 test_binary)
