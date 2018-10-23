@@ -105,7 +105,7 @@ if(CMAKE_SYSTEM MATCHES "FreeBSD*")
     add_compile_options(
         "$<$<CONFIG:RELASE>:-O3>"
         "$<$<CONFIG:DEBUG>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
-        "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wabi;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
+        "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
     )
 
     set(SYSTEM_BASIC_LIBRARIES pmc pthread rt)
@@ -143,13 +143,13 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
         add_compile_options(
             "$<$<CONFIG:RELASE>:-O3>"
             "$<$<CONFIG:DEBUG>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
-            "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wabi;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
+            "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
         )
     else()
         add_compile_options(
             "$<$<CONFIG:RELASE>:-O3>"
             "$<$<CONFIG:DEBUG>:-Wall;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
-            "$<$<CONFIG:MAINTAIN>:-Wall;-Wabi;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
+            "$<$<CONFIG:MAINTAIN>:-Wall;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
         )
     endif()
     
@@ -193,7 +193,7 @@ if(CMAKE_SYSTEM MATCHES "Android*")
     add_compile_options(
         "$<$<CONFIG:RELASE>:-O3>"
         "$<$<CONFIG:DEBUG>:-Wall;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
-        "$<$<CONFIG:MAINTAIN>:-Wall;-Wabi;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
+        "$<$<CONFIG:MAINTAIN>:-Wall;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
     )
 
     set(SYSTEM_BASIC_LIBRARIES pthread rt)
