@@ -11,8 +11,8 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         solid_system
         ${Boost_PROGRAM_OPTIONS_LIBRARY}
         ${Boost_SYSTEM_LIBRARY}
-        ${SYS_BASIC_LIBS}
-        ${SYS_DYNAMIC_LOAD_LIB}
+        ${SYSTEM_BASIC_LIBRARIES}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     #if(SOLID_ON_WINDOWS)
@@ -52,8 +52,8 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         ${OPENSSL_LIBRARIES}
         ${Boost_PROGRAM_OPTIONS_LIBRARY}
         ${Boost_SYSTEM_LIBRARY}
-        ${SYS_BASIC_LIBS}
-        ${SYS_DYNAMIC_LOAD_LIB}
+        ${SYSTEM_BASIC_LIBRARIES}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (example_secure_echo_client example_secure_echo_client.cpp)
@@ -70,8 +70,8 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         ${OPENSSL_LIBRARIES}
         ${Boost_PROGRAM_OPTIONS_LIBRARY}
         ${Boost_SYSTEM_LIBRARY}
-        ${SYS_BASIC_LIBS}
-        ${SYS_DYNAMIC_LOAD_LIB}
+        ${SYSTEM_BASIC_LIBRARIES}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (example_echo_auto_client example_echo_auto_client.cpp)
@@ -85,7 +85,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         solid_system
         ${Boost_PROGRAM_OPTIONS_LIBRARY}
         ${Boost_SYSTEM_LIBRARY}
-        ${SYS_BASIC_LIBS}
+        ${SYSTEM_BASIC_LIBRARIES}
     )
 endif()
 

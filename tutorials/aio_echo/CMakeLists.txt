@@ -6,6 +6,6 @@ target_link_libraries (tutorial_aio_echo_server
     solid_serialization_v1
     solid_utility
     solid_system
-    ${SYS_BASIC_LIBS}
+    ${SYSTEM_BASIC_LIBRARIES}
 )
 

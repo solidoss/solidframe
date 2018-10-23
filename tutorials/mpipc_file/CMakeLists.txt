@@ -14,8 +14,8 @@ target_link_libraries (tutorial_mpipc_file_server
     solid_system
     ${Boost_FILESYSTEM_LIBRARY}
     ${Boost_SYSTEM_LIBRARY}
-    ${SYS_BASIC_LIBS}
-    ${SYS_DYNAMIC_LOAD_LIB}
+    ${SYSTEM_BASIC_LIBRARIES}
+    ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
 )
 
 add_executable (tutorial_mpipc_file_client mpipc_file_client.cpp mpipc_file_messages.hpp)
@@ -28,8 +28,8 @@ target_link_libraries (tutorial_mpipc_file_client
     solid_serialization_v2
     solid_utility
     solid_system
-    ${SYS_BASIC_LIBS}
-    ${SYS_DYNAMIC_LOAD_LIB}
+    ${SYSTEM_BASIC_LIBRARIES}
+    ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
 )
 
 endif()

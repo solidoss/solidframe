@@ -4,7 +4,7 @@ target_link_libraries (example_basic_timer
     solid_frame
     solid_utility
     solid_system
-    ${SYS_BASIC_LIBS}
+    ${SYSTEM_BASIC_LIBRARIES}
 )
 
 

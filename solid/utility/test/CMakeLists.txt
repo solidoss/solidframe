@@ -20,7 +20,7 @@ add_executable(test_utility ${UtilityTests})
 target_link_libraries(test_utility
     solid_utility
     solid_system
-    ${SYS_BASIC_LIBS}
+    ${SYSTEM_BASIC_LIBRARIES}
 )
 
 add_test(NAME TestUtilityWorkPoolContext    COMMAND  test_utility test_workpool_context)

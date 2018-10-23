@@ -75,20 +75,8 @@ set(SOLID_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
 set(SOLID_VERSION_MINOR ${PROJECT_VERSION_MINOR})
 set(SOLID_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 
-set(SYS_DEBUG_FLAGS "")
-set(SYS_MAINTAIN_FLAGS "")
-set(SYS_OPTIMIZED_FLAGS "")
-set(SYS_NOLOG_FLAGS "")
-set(SYS_RELEASE_FLAGS "")
-
-set(SYS_DEBUG_LINKER_FLAGS "")
-set(SYS_MAINTAIN_LINKER_FLAGS "")
-set(SYS_OPTIMIZED_LINKER_FLAGS "")
-set(SYS_NOLOG_LINKER_FLAGS "")
-set(SYS_RELEASE_LINKER_FLAGS "")
-
-set(SYS_BASIC_LIBS "")
-set(SYS_DYNAMIC_LOAD_LIB "")
+set(SYSTEM_BASIC_LIBRARIES "")
+set(SYSTEM_DYNAMIC_LOAD_LIBRARY "")
 
 #-----------------------------------------------------------------
 # Per OS configuration
@@ -106,39 +94,19 @@ set(SOLID_ON_POSIX FALSE)
 set(SOLID_ON_SOLARIS FALSE)
 set(SOLID_ON_WINDOWS FALSE)
 
-if(CMAKE_SYSTEM MATCHES "SunOS*")
-    message("Detected system ON_SOLARIS")
-    set(ON_FOUND TRUE)
-    set(SOLID_ON_SOLARIS TRUE)
-    set(SOLID_ON_POSIX TRUE)
-    set(SYS_DEBUG_FLAGS "-features=extensions -library=stlport4 -mt -g")
-    set(SYS_MAINTAIN_FLAGS "-features=extensions -library=stlport4 -mt")
-    set(SYS_OPTIMIZED_FLAGS "-features=extensions -library=stlport4 -mt")
-    set(SYS_NOLOG_FLAGS "-features=extensions -library=stlport4 -mt")
-    set(SYS_RELEASE_FLAGS "-features=extensions -library=stlport4 -mt")
-
-    set(SYS_BASIC_LIBS pthread socket nsl)
-
-endif(CMAKE_SYSTEM MATCHES "SunOS*")
-
 if(CMAKE_SYSTEM MATCHES "FreeBSD*")
     message("Detected system ON_FREEBSD")
     set(ON_FOUND TRUE)
     set(SOLID_ON_FREEBSD TRUE)
     set(SOLID_ON_POSIX TRUE)
-    set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
-    set(SYS_MAINTAIN_FLAGS "-Wall -Wextra -Wabi -O3 -g3")
-    set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
-    set(SYS_NOLOG_FLAGS "-g3")
-    set(SYS_RELEASE_FLAGS "-O3")
+    
+    add_compile_options(
+        "$<$<CONFIG:RELASE>:-O3>"
+        "$<$<CONFIG:DEBUG>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
+        "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wabi;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
+    )
 
-    set(SYS_DEBUG_LINKER_FLAGS "")
-    set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once")
-    set(SYS_OPTIMIZED_LINKER_FLAGS "")
-    set(SYS_NOLOG_LINKER_FLAGS "")
-    set(SYS_RELEASE_LINKER_FLAGS "")
-
-    set(SYS_BASIC_LIBS pmc pthread rt)
+    set(SYSTEM_BASIC_LIBRARIES pmc pthread rt)
 endif(CMAKE_SYSTEM MATCHES "FreeBSD*")
 
 if(CMAKE_SYSTEM MATCHES "Darwin*")
@@ -146,19 +114,15 @@ if(CMAKE_SYSTEM MATCHES "Darwin*")
     set(ON_FOUND TRUE)
     set(SOLID_ON_DARWIN TRUE)
     set(SOLID_ON_POSIX TRUE)
-    set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
-    set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
-    set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
-    set(SYS_NOLOG_FLAGS "-g3")
-    set(SYS_RELEASE_FLAGS "-O3")
-
-    set(SYS_DEBUG_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
-    set(SYS_MAINTAIN_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
-    set(SYS_OPTIMIZED_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
-    set(SYS_NOLOG_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
-    set(SYS_RELEASE_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
-
-    set(SYS_BASIC_LIBS pthread)
+    
+    add_compile_options(
+        "$<$<CONFIG:RELASE>:-O3>"
+        "$<$<CONFIG:DEBUG>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
+        "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wabi;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
+    )
+    add_compile_options(-framework ApplicationServices -framework CoreFoundation)
+    
+    set(SYSTEM_BASIC_LIBRARIES pthread)
 endif(CMAKE_SYSTEM MATCHES "Darwin*")
 
 if(CMAKE_SYSTEM MATCHES "Linux*")
@@ -173,46 +137,41 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
     if(CMAKE_CXX_COMPILER MATCHES "clang")
         add_compile_options(
             "$<$<CONFIG:RELASE>:-O3>"
-            "$<$<CONFIG:DEBUG>:-Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized -Wreorder -Wreturn-type -Wunused-variable -Winline -g3>"
-            "$<$<CONFIG:MAINTAIN>:-Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized -Wabi -O3 -g3>"
+            "$<$<CONFIG:DEBUG>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
+            "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wabi;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
         )
     else()
         add_compile_options(
             "$<$<CONFIG:RELASE>:-O3>"
             "$<$<CONFIG:DEBUG>:-Wall;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
-            "$<$<CONFIG:MAINTAIN>:-Wall;-Wabi;-O3;-g3>"
+            "$<$<CONFIG:MAINTAIN>:-Wall;-Wabi;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
         )
     endif()
     
-    set(SYS_BASIC_LIBS pthread rt)
+    set(SYSTEM_BASIC_LIBRARIES pthread rt)
     
-    find_library(ATOMIC_LIB NAMES atomic atomic.so.1 libatomic.so.1)
+    find_library(ATOMIC_LIBRARY NAMES atomic atomic.so.1 libatomic.so.1)
     
-    if(ATOMIC_LIB)
-        message("Atomic library found: ${ATOMIC_LIB}")
-        set(SYS_BASIC_LIBS ${SYS_BASIC_LIBS} atomic)
+    if(ATOMIC_LIBRARY)
+        message("Atomic library found: ${ATOMIC_LIBRARY}")
+        list(APPEND SYSTEM_BASIC_LIBRARIES atomic)
     endif()
     
-    set(SYS_DYNAMIC_LOAD_LIB dl)
+    set(SYSTEM_DYNAMIC_LOAD_LIBRARY dl)
 endif(CMAKE_SYSTEM MATCHES "Linux*")
 
 if(CMAKE_SYSTEM MATCHES "Windows*")
     message("Detected system ON_WINDOWS")
     set(ON_FOUND TRUE)
     set(SOLID_ON_WINDOWS TRUE)
-    set(SYS_DEBUG_FLAGS "-D_CRT_SECURE_NO_WARNINGS /Zi /Od")
-    set(SYS_MAINTAIN_FLAGS "-D_CRT_SECURE_NO_WARNINGS /Zi /Od")
-    set(SYS_OPTIMIZED_FLAGS "-D_CRT_SECURE_NO_WARNINGS /Ox  /Zi")
-    set(SYS_NOLOG_FLAGS "-D_CRT_SECURE_NO_WARNINGS /Zi /Od")
-    set(SYS_RELEASE_FLAGS "-D_CRT_SECURE_NO_WARNINGS /Ox")
-
-    set(SYS_DEBUG_LINKER_FLAGS "")
-    set(SYS_MAINTAIN_LINKER_FLAGS "")
-    set(SYS_OPTIMIZED_LINKER_FLAGS "")
-    set(SYS_NOLOG_LINKER_FLAGS "")
-    set(SYS_RELEASE_LINKER_FLAGS "")
-
-    add_definitions(-D_WIN32_WINNT=0x0601 -DWINVER=0x0601)
+    
+    add_compile_options(
+        "$<$<CONFIG:RELASE>:/D_CRT_SECURE_NO_WARNINGS;/Ox>"
+        "$<$<CONFIG:DEBUG>:/D_CRT_SECURE_NO_WARNINGS;/Zi;/Od>"
+        "$<$<CONFIG:MAINTAIN>:/D_CRT_SECURE_NO_WARNINGS;/Zi;/Od>"
+    )
+    
+    add_compile_options(-D_WIN32_WINNT=0x0601 -DWINVER=0x0601)
 endif(CMAKE_SYSTEM MATCHES "Windows*")
 
 
@@ -226,21 +185,14 @@ if(CMAKE_SYSTEM MATCHES "Android*")
     set(SOLID_USE_GCC_BSWAP TRUE)
     set(NO_EXTERNAL TRUE)
 
+    add_compile_options(
+        "$<$<CONFIG:RELASE>:-O3>"
+        "$<$<CONFIG:DEBUG>:-Wall;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
+        "$<$<CONFIG:MAINTAIN>:-Wall;-Wabi;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
+    )
 
-    set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")# -D_GLIBCXX_DEBUG
-    set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
-    set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
-    set(SYS_NOLOG_FLAGS "-g3")
-    set(SYS_RELEASE_FLAGS "-O3")
-
-    set(SYS_DEBUG_LINKER_FLAGS "")# -D_GLIBCXX_DEBUG
-    set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once")
-    set(SYS_OPTIMIZED_LINKER_FLAGS "")
-    set(SYS_NOLOG_LINKER_FLAGS "")
-    set(SYS_RELEASE_LINKER_FLAGS "-O3")
-
-    set(SYS_BASIC_LIBS pthread rt)
-    set(SYS_DYNAMIC_LOAD_LIB dl)
+    set(SYSTEM_BASIC_LIBRARIES pthread rt)
+    set(SYSTEM_DYNAMIC_LOAD_LIBRARY dl)
 endif(CMAKE_SYSTEM MATCHES "Android*")
 
 if(NOT ON_FOUND)
