@@ -20,7 +20,7 @@ int test_workpool_basic(int argc, char* argv [])
     using AtomicPWPT = std::atomic<WorkPoolT*>;
 
     const int           wait_seconds = 500;
-    int                 loop_cnt     = 10;
+    int                 loop_cnt     = 5;
     const size_t        cnt{5000000};
     const size_t        v = (((cnt - 1) * cnt)) / 2;
     std::atomic<size_t> val{0};
