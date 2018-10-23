@@ -41,6 +41,9 @@ endif()
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
 
+set(CMAKE_CONFIGURATION_TYPES "release" CACHE STRING "" FORCE)
+set(CONFIGURATION_TYPE "release")
+
 if(CMAKE_BUILD_TYPE STREQUAL "maintain")
     set(CMAKE_VERBOSE_MAKEFILE ON)
     set(SOLID_HAS_DEBUG TRUE)
@@ -49,6 +52,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "maintain")
 
     #force a single configuration type on Windows builds
     set(CMAKE_CONFIGURATION_TYPES "release" CACHE STRING "" FORCE)
+    set(CONFIGURATION_TYPE "release")
 endif(CMAKE_BUILD_TYPE STREQUAL "maintain")
 
 
@@ -60,16 +64,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "debug")
     set(SOLID_HAS_ASSERT TRUE)
     #force a single configuration type on Windows builds
     set(CMAKE_CONFIGURATION_TYPES "debug" CACHE STRING "" FORCE)
+    set(CONFIGURATION_TYPE "debug")
 endif(CMAKE_BUILD_TYPE STREQUAL "debug")
-
-
-if(CMAKE_BUILD_TYPE STREQUAL "nolog")
-    set(CMAKE_VERBOSE_MAKEFILE ON)
-    set(SOLID_HAS_NO_INLINES TRUE)
-    set(SOLID_HAS_ASSERT TRUE)
-    #force a single configuration type on Windows builds
-    set(CMAKE_CONFIGURATION_TYPES "debug" CACHE STRING "" FORCE)
-endif(CMAKE_BUILD_TYPE STREQUAL "nolog")
 
 set(SOLID_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
 set(SOLID_VERSION_MINOR ${PROJECT_VERSION_MINOR})
