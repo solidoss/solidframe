@@ -98,7 +98,7 @@ buildBoost()
     
     if		[ "$SYSTEM" = "FreeBSD" ] ; then
         sh bootstrap.sh --with-toolset=clang
-        ./b2 toolset=clang --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
+        ./b2 cxxstd=14 toolset=clang --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
     elif	[ "$SYSTEM" = "Darwin" ] ; then
         sh bootstrap.sh
         ./b2 cxxstd=14 --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
@@ -111,10 +111,10 @@ buildBoost()
         fi
         
         ./bootstrap.bat vc141
-        ./b2 --abbreviate-paths --hash address-model="$BOOST_ADDRESS_MODEL" variant="$VARIANT_BUILD" link=static threading=multi --prefix="$EXT_DIR" install
+        ./b2 cxxstd=14 --abbreviate-paths --hash address-model="$BOOST_ADDRESS_MODEL" variant="$VARIANT_BUILD" link=static threading=multi --prefix="$EXT_DIR" install
     else
         sh bootstrap.sh
-        ./b2 --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
+        ./b2 cxxstd=14 --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
         echo
     fi
     

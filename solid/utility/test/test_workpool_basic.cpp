@@ -50,7 +50,6 @@ int test_workpool_basic(int argc, char* argv[])
                     val += _v;
                 }};
             pwp = &wp;
-            solid_log(logger, Verbose, "before loop");
             for (size_t i = 0; i < cnt; ++i) {
                 wp.push(i);
             };
