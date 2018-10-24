@@ -2,6 +2,7 @@ branches:
   only:
     - master
     - work
+    - travis
 
 language: cpp
 matrix:
