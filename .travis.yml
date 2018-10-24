@@ -20,6 +20,8 @@ matrix:
           update-alternatives:
             - install /usr/bin/gcc gcc /usr/bin/gcc-6 50
             - install /usr/bin/g++ g++ /usr/bin/g++-6 50
+            - auto gcc
+            - auto g++
       env:
         - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
     - os: osx
@@ -30,10 +32,6 @@ matrix:
 before_install:
     - eval "${MATRIX_EVAL}"
 install:
-    - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-6 50; fi
-    - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-6 50; fi
-    - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo update-alternatives --config gcc; fi
-    - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo update-alternatives --config g++; fi
     - gcc --version
 script:
  - ./configure -b maintain -P -DSOLID_TEST_NONE=TRUE -P -DSOLID_TEST_UTILITY=TRUE && cd build/maintain/examples/utility/workpool/ && make -j4
