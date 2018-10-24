@@ -17,15 +17,9 @@ matrix:
             - g++-6
           sources:
             - ubuntu-toolchain-r-test
-      env:
-        - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      env:
-        - MATRIX_EVAL="CC=clang && CXX=clang++"
-before_install:
-    - eval "${MATRIX_EVAL}"
 install:
     - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-6 50; fi
     - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-6 50; fi
