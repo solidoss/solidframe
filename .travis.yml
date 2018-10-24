@@ -27,6 +27,6 @@ install:
     - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo update-alternatives --auto g++; fi
     - gcc --version
 script:
- - ./configure -b maintain -P -DSOLID_TEST_NONE=TRUE -P -DSOLID_TEST_UTILITY=TRUE && cd build/maintain/examples/utility/workpool/ && make -j4
+ - ./configure -b maintain -P -DSOLID_TEST_NONE=TRUE -P -DSOLID_TEST_UTILITY=TRUE && cd build/maintain && make -j4 Experimental
 
 
