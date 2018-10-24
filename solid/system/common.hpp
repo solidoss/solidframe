@@ -17,14 +17,12 @@
 
 namespace solid {
 
-typedef unsigned char uchar;
-typedef unsigned int  uint;
-
-typedef unsigned long  ulong;
-typedef unsigned short ushort;
-
-typedef long long          longlong;
-typedef unsigned long long ulonglong;
+using uchar = unsigned char;
+using uint = unsigned int;
+using ulong = unsigned long;
+using ushort = unsigned short;
+using longlong = long long;
+using ulonglong = unsigned long long;
 
 enum SeekRef {
     SeekBeg = 0,
@@ -34,55 +32,13 @@ enum SeekRef {
 
 struct EmptyType {
 };
+
 class NullType {
 };
 
 template <class T>
 struct TypeToType {
     using TypeT = T;
-};
-
-template <class T>
-struct UnsignedType;
-
-template <>
-struct UnsignedType<int8_t> {
-    typedef uint8_t Type;
-};
-
-template <>
-struct UnsignedType<int16_t> {
-    typedef uint16_t Type;
-};
-
-template <>
-struct UnsignedType<int32_t> {
-    typedef uint32_t Type;
-};
-
-template <>
-struct UnsignedType<int64_t> {
-    typedef uint64_t Type;
-};
-
-template <>
-struct UnsignedType<uint8_t> {
-    typedef uint8_t Type;
-};
-
-template <>
-struct UnsignedType<uint16_t> {
-    typedef uint16_t Type;
-};
-
-template <>
-struct UnsignedType<uint32_t> {
-    typedef uint32_t Type;
-};
-
-template <>
-struct UnsignedType<uint64_t> {
-    typedef uint64_t Type;
 };
 
 using ssize_t = std::make_signed<size_t>::type;
