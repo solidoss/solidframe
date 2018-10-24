@@ -20,8 +20,8 @@ matrix:
           update-alternatives:
             - install /usr/bin/gcc gcc /usr/bin/gcc-6 50
             - install /usr/bin/g++ g++ /usr/bin/g++-6 50
-            - auto gcc
-            - auto g++
+            - config gcc
+            - config g++
       env:
         - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
     - os: osx
