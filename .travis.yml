@@ -14,12 +14,12 @@ matrix:
           packages: ['g++-5']
           sources: &sources
             - ubuntu-toolchain-r-test
-      env: [ CXX_COMPILER=g++-5, C_COMPILER=gcc-5]
+      env:
         - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      env: [ CXX_COMPILER=clang++, C_COMPILER=clang]
+      env:
         - MATRIX_EVAL="CC=clang && CXX=clang++"
 before_install:
     - eval "${MATRIX_EVAL}"
