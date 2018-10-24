@@ -12,12 +12,14 @@ matrix:
       sudo: false
       addons:
         apt:
-          packages: ['g++-6']
+          packages:
+            - gcc-6
+            - g++-6
           sources:
             - ubuntu-toolchain-r-test
           update-alternatives:
-            - install /usr/bin/gcc gcc /usr/bin/gcc-6 1
-            - install /usr/bin/g++ g++ /usr/bin/g++-6 1
+            - install /usr/bin/gcc gcc /usr/bin/gcc-6 50
+            - install /usr/bin/g++ g++ /usr/bin/g++-6 50
       env:
         - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
     - os: osx
@@ -28,6 +30,6 @@ matrix:
 before_install:
     - eval "${MATRIX_EVAL}"
 script:
- - ./configure -b maintain -P -DSOLID_TEST_NONE=TRUE -P -DSOLID_TEST_UTILITY=TRUE && cd build/maintain && make Experimental
+ - ./configure -b maintain -P -DSOLID_TEST_NONE=TRUE -P -DSOLID_TEST_UTILITY=TRUE && cd build/maintain/examples/utility/workpool/ && make
 
 
