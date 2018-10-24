@@ -46,7 +46,7 @@ struct MessageHeader {
         const MessageHeader& _rmsgh)
         : sender_request_id_(_rmsgh.sender_request_id_)
         , recipient_request_id_(_rmsgh.recipient_request_id_)
-        , flags_(fetch_state_flags(_rmsgh.flags_).toUint32())
+        , flags_(fetch_state_flags(_rmsgh.flags_).toUnderlyingType())
     {
     }
 
@@ -87,7 +87,7 @@ struct MessageHeader {
             _rs.pushCross(_rctx.request_id.unique, "sender_request_unique");
             solid_check(_rctx.pmessage_url, "message url must not be null");
             _rs.push(*_rctx.pmessage_url, "url");
-            uint64_t tmp = _rctx.message_flags.toUint64(); //not nice but safe - better solution in future versions
+            uint64_t tmp = _rctx.message_flags.toUnderlyingType(); //not nice but safe - better solution in future versions
             _rs.pushCross(tmp, "flags");
         } else {
 
@@ -106,7 +106,7 @@ struct MessageHeader {
     void solidSerializeV2(S& _rs, frame::mpipc::ConnectionContext& _rctx, std::integral_constant<bool, true> _is_serializer, const char* _name)
     {
         solid_check(_rctx.pmessage_url, "message url must not be null");
-        const MessageFlagsValueT tmp = _rctx.message_flags.toUint64();
+        const MessageFlagsValueT tmp = _rctx.message_flags.toUnderlyingType();
         _rs.add(tmp, _rctx, "flags").add(*_rctx.pmessage_url, _rctx, "url");
         _rs.add(_rctx.request_id.index, _rctx, "sender_request_index");
         _rs.add(_rctx.request_id.unique, _rctx, "sender_request_unique");
@@ -279,7 +279,7 @@ struct Message : std::enable_shared_from_this<Message> {
 
     void clearStateFlags()
     {
-        header_.flags_ = clear_state_flags(header_.flags_).toUint32();
+        header_.flags_ = clear_state_flags(header_.flags_).toUnderlyingType();
     }
 
     void clearHeader()
