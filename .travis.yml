@@ -2,7 +2,6 @@ branches:
   only:
     - master
     - work
-    - travis
 
 language: cpp
 matrix:
@@ -15,14 +14,16 @@ matrix:
           packages: ['g++-5']
           sources: &sources
             - ubuntu-toolchain-r-test
-      env: [ CXX_COMPILER=g++-5, C_COMPILER=gcc-5]
-      
+      env:
+        - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      env: [ CXX_COMPILER=clang++, C_COMPILER=clang]
-
+      env:
+        - MATRIX_EVAL="CC=clang && CXX=clang++"
+before_install:
+    - eval "${MATRIX_EVAL}"
 script:
- - ./configure -b maintain -P -DCMAKE_C_COMPILER=$C_COMPILER -P -DCMAKE_CXX_COMPILER=$CXX_COMPILER -P -DSOLID_TEST_NONE=TRUE -P -DSOLID_TEST_UTILITY=TRUE && cd build/maintain && make Experimental
+ - ./configure -b maintain  && cd build/maintain && make Experimental
 
 

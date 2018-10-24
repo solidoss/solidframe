@@ -5,6 +5,7 @@ ExternalProject_Add(
     EXCLUDE_FROM_ALL 1
     PREFIX ${snappy_PREFIX}
     URL https://github.com/google/snappy/archive/1.1.7.tar.gz
+    DOWNLOAD_NO_PROGRESS ON
     CMAKE_ARGS
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/external -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=${CONFIGURATION_TYPE}
     BUILD_COMMAND ${CMAKE_COMMAND} --build . --config ${CONFIGURATION_TYPE}

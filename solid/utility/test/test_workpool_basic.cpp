@@ -13,7 +13,7 @@ namespace {
 const LoggerT logger("test_basic");
 }
 
-int test_workpool_basic(int argc, char* argv [])
+int test_workpool_basic(int argc, char* argv[])
 {
     solid::log_start(std::cerr, {".*:EWS", "test_basic:VIEW"});
     using WorkPoolT  = WorkPool<size_t>;
@@ -36,11 +36,11 @@ int test_workpool_basic(int argc, char* argv [])
             }
         },
         std::ref(prom), std::ref(pwp), wait_seconds);
-    
-    if(argc > 1){
+
+    if (argc > 1) {
         loop_cnt = atoi(argv[1]);
     }
-    
+
     for (int i = 0; i < loop_cnt; ++i) {
         {
             WorkPoolT wp{
@@ -50,7 +50,6 @@ int test_workpool_basic(int argc, char* argv [])
                     val += _v;
                 }};
             pwp = &wp;
-            solid_log(logger, Verbose, "before loop");
             for (size_t i = 0; i < cnt; ++i) {
                 wp.push(i);
             };

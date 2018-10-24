@@ -21,8 +21,8 @@ namespace solid {
     Basicaly it is a pair of seconds and nanoseconds.
 */
 struct NanoTime : public timespec {
-    typedef UnsignedConvertor<time_t>::UnsignedType TimeT;
-    static const NanoTime                           maximum;
+    typedef std::make_unsigned<time_t>::type TimeT;
+    static const NanoTime                    maximum;
 
     template <class Rep, class Period>
     NanoTime(const std::chrono::duration<Rep, Period>& _duration)

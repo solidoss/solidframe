@@ -101,29 +101,9 @@ public:
         return *this;
     }
 
-    ulong toULong() const
+    UTypeT toUnderlyingType() const
     {
-        return bits_.to_ulong();
-    }
-    unsigned long long toULLong() const
-    {
-        return bits_.to_ullong();
-    }
-    uint8_t toUint8() const
-    {
-        return static_cast<uint8_t>(bits_.to_ulong());
-    }
-    uint16_t toUint16() const
-    {
-        return static_cast<uint16_t>(bits_.to_ulong());
-    }
-    uint32_t toUint32() const
-    {
-        return static_cast<uint32_t>(bits_.to_ulong());
-    }
-    uint64_t toUint64() const
-    {
-        return static_cast<uint64_t>(bits_.to_ullong());
+        return static_cast<UTypeT>(bits_.to_ullong());
     }
 
     std::string toString(const char _zero = '0', const char _one = '1')
