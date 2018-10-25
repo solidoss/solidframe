@@ -42,10 +42,12 @@ using FunctionJobT = std::function<void(Context&)>;
 
 int test_workpool_context(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EWS", "test_context:VIEW"});
+    solid::log_start(std::cerr, {".*:EWS", "test_context:VIEWS"});
     using WorkPoolT  = WorkPool<FunctionJobT>;
     using AtomicPWPT = std::atomic<WorkPoolT*>;
-
+    
+    solid_log(logger, Statistic, "thread concurrency: "<<thread::hardware_concurrency());
+    
     int                 wait_seconds = 500;
     int                 loop_cnt     = 5;
     const size_t        cnt{5000000};
