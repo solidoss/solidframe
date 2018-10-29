@@ -257,7 +257,7 @@ The most notable component is the log engine which allows sending log records to
   * socket endpoint
 
 The log engine defines two macros for specify log lines:
-  * __solid_log__: allways log the given log line
+  * __solid_log__: always consider logging the given log line
   * __solid_dbg__: consider logging the line only on debug builds or when SOLID_HAS_DEBUG is defined (otherwise, the macros are empty - i.e. no code is generated)
 
 
@@ -279,7 +279,10 @@ namespace{
 ```
 
 Notes on the above two blocks of code:
- * The last parameter for log_start is a list of strings with the format [Regular Expression]:[V|I|E|W|S|v|i|e|w|s] - the regular expression is used for matching logger names while the flags part is used for enabling (upper letters) or disabling (lower letters) log levels. The meaning of letters is as follows:
+ * The last parameter for log_start is a list of strings with the format [Regular Expression]:[V|I|E|W|S|v|i|e|w|s]
+    * the regular expression is used for matching logger names
+    * the flag part is used for enabling (the upper letters) or disabling (the lower letters) log levels.
+ * The meaning of letters that can be used in the flag part, correnspond to log levels:
     * V|v: Verbose
     * I|i: Info
     * E|e: Error
