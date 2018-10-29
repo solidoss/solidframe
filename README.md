@@ -56,7 +56,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 * [__solid_system__](#solid_system):
     * Wrappers for socket/file devices, socket address, directory access
-    * Debug log engine
+    * Log engine
 * [__solid_utility__](#solid_utility):
     * _Any_ - similar to boost::any
     * _Event_ - Event class containing an ID a solid::Any object and a Category (similar to std::error_category)
@@ -204,17 +204,17 @@ _With CMake - the recommended way:_
 In CMakeLists.txt add something like:
 
 ```CMake
-set(SolidFrame_DIR "${EXTERNAL_PATH}/lib/cmake/SolidFrame" CACHE PATH "SolidFrame CMake configuration dir")
+set(SolidFrame_DIR "${EXTERNAL_DIR}/lib/cmake/SolidFrame" CACHE PATH "SolidFrame CMake configuration dir")
 find_package(SolidFrame)
 ```
 
-Where EXTERNAL_PATH points to where SolidFrame was installed (e.g. ~/work/external).
+Where EXTERNAL_DIR points to where SolidFrame was installed (e.g. ~/work/external).
 
 You can also directly use SolidFrame libraries from SolidFrame's build directory by specifying the SolidFrame_DIR when running cmake for your project:
 
 ```bash
 $ cd my_project/build
-$ cmake -DEXTERNAL_PATH=~/work/external -DSolidFrame_DIR=~/work/solidframe/build/release -DCMAKE_BUILD_TYPE=debug ..
+$ cmake -DEXTERNAL_DIR=~/work/external -DSolidFrame_DIR=~/work/solidframe/build/release -DCMAKE_BUILD_TYPE=debug ..
 ```
 
 _Without CMake:_
@@ -247,63 +247,44 @@ The library consists of wrappers around system calls for:
 
  * [__socketaddress.hpp__](solid/system/socketaddress.hpp): socket addresses, synchronous socket address resolver
  * [__nanotime.hpp__](solid/system/nanotime.hpp): high precision clock
- * [__debug.hpp__](solid/system/debug.hpp): debug log engine
+ * [__log.hpp__](solid/system/log.hpp): log engine
  * [_device.hpp_](solid/system/device.hpp), [_seekabledevice.hpp_](solid/system/seekabledevice.hpp), [_filedevice.hpp_](solid/system/filedevice.hpp), [_socketdevice.hpp_](solid/system/socketdevice.hpp): devices (aka descriptors/handles) for: files, sockets etc.
  * [_directory.hpp_](solid/system/directory.hpp): basic file-system directory operations
 
-The most notable component is the debug log engine which allows sending log records to different locations:
+The most notable component is the log engine which allows sending log records to different locations:
   * file (with support for rotation)
   * stderr/stdlog
   * socket endpoint
 
-The debug engine defines some macros for easily specify log lines. The macros are only active (do something) when SolidFrame is compiled with SOLID_HAS_DEBUG (e.g. maintain and debug builds).
-Also, the debug engine has support for registering modules and for specifying enabled log levels. Here is an example:
+The log engine defines two macros for specify log lines:
+  * __solid_log__: allways log the given log line
+  * __solid_dbg__: consider logging the line only on debug builds or when SOLID_HAS_DEBUG is defined (otherwise, the macros are empty - i.e. no code is generated)
+
 
 ```C++
-    Debug::the().levelMask("view");
-    Debug::the().moduleMask("frame_ipc:iew any:ew");
-    Debug::the().initStdErr();
+    solid::log_start(std::cerr, {".*:VIEWS"});
     //...
-    //a log line for module "any"
-    edbg("starting aio server scheduler: "<<err.message());
+    //a log line on the generic logger
+    solid_log(generic_logger, Info, "starting aio server scheduler: "<<err.message());
     //...
-    //a log line for a predefined module "frame_ipc" aka Debug::ipc
-    idbgx(Debug::ipc, this<<" enqueue message "<<_rpool_msg_id<<" to connection "<<this<<" retval = "<<success);
+    //a debug log line on a given logger:
+    solid_dbg(logger, Verbose, this<<" enqueue message "<<_rpool_msg_id<<" to connection "<<this<<" retval = "<<success);
 ```
 
-In the above code we:
- * Set the global levelMask to "view" (V = Verbose, I = Info, E = Error, W = Warning).
- * Enable logging for only two modules: "frame_mpipc" and "any" (the generic module used by [v/i/e/w]dbg() macros). For "frame_mpipc" restrict the level mask to {Info, Error, Warning} and for "any" restrict it to only {Error and Warning}.
- * Configure the debug log engine to send log records to stderr.
- * Send a log _error_ line for "any" module.
- * Send a log _info_ line for "frame_mpipc" module.
-
-The Debug engine allows for registering new modules like this:
-
+the "logger" in the above code is usually created like this:
 ```C++
-    static const auto my_module_id = Debug::the().registerModule("my_module");
-    //...
-    //enable the module
-    Debug::the().moduleMask("frame_mpipc:iew any:ew my_module:view");
-    //...
-    //log a INFO line for the module:
-    idbgx(my_module_id, "error starting engine: "<<error.mesage());
+namespace{
+    const LoggerT logger("solid::frame::aio::openssl");
+}
 ```
-or like this:
 
-```C++
-    static unsigned my_module_id(){
-        static const auto id = Debug::the().registerModule("my_module");
-        return id;
-    }
-
-    //...
-    //enable the module
-    Debug::the().moduleMask("frame_mpipc:iew any:ew my_module:view");
-    //...
-    //log a INFO line for the module:
-    idbgx(my_module_id(), "error starting engine: "<<error.mesage());
-```
+Notes on the above two blocks of code:
+ * The last parameter for log_start is a list of strings with the format [Regular Expression]:[V|I|E|W|S|v|i|e|w|s] - the regular expression is used for matching logger names while the flags part is used for enabling (upper letters) or disabling (lower letters) log levels. The meaning of letters is as follows:
+    * V|v: Verbose
+    * I|i: Info
+    * E|e: Error
+    * W|w: Warning
+    * S|s: Statistics
 
 
 ### <a id="solid_utility"></a>solid_utility
