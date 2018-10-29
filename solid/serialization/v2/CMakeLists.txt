@@ -15,6 +15,7 @@ set(Headers
     typemap.hpp
     serialization.hpp
     error.hpp
+    typetraits.hpp
 )
 
 set(Inlines

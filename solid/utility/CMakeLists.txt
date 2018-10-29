@@ -23,6 +23,12 @@ set(Headers
     stack.hpp
     string.hpp
     workpool.hpp
+    workpool_atomic.hpp
+    workpool_mutex.hpp
+    function.hpp
+    functiontraits.hpp
+    typetraits.hpp
+    delegate.hpp
 )
 
 set(Inlines

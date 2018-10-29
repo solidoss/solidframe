@@ -27,6 +27,8 @@ set(Headers
     nanotime.hpp
     pimpl.hpp
     flags.hpp
+    log.hpp
+    statistic.hpp
 )
 
 set(Inlines

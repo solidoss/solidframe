@@ -19,6 +19,7 @@ set(Headers
     mpipcmessage.hpp
     mpipcprotocol.hpp
     mpipcprotocol_serialization_v1.hpp
+    mpipcprotocol_serialization_v2.hpp
     mpipcservice.hpp
     mpipcsocketstub.hpp
     mpipcsocketstub_openssl.hpp
@@ -26,6 +27,7 @@ set(Headers
     mpipccompression_snappy.hpp
     mpipcrelayengine.hpp
     mpipcrelayengines.hpp
+    mpipcmessageflags.hpp
 )
 
 set(Inlines

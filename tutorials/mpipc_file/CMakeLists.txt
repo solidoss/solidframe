@@ -7,7 +7,6 @@ add_dependencies(tutorial_mpipc_file_server build_boost)
 target_link_libraries (tutorial_mpipc_file_server
     solid_frame_mpipc
     solid_frame_aio
-    solid_frame_aio_openssl
     solid_frame
     solid_serialization_v2
     solid_utility
@@ -23,7 +22,6 @@ add_executable (tutorial_mpipc_file_client mpipc_file_client.cpp mpipc_file_mess
 target_link_libraries (tutorial_mpipc_file_client
     solid_frame_mpipc
     solid_frame_aio
-    solid_frame_aio_openssl
     solid_frame
     solid_serialization_v2
     solid_utility
