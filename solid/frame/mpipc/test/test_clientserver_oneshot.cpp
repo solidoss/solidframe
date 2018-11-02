@@ -143,6 +143,7 @@ void client_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 void client_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
+    solid_check(false, "no connection should start");
 }
 
 void client_complete_message(
