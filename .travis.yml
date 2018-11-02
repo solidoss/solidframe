@@ -28,6 +28,5 @@ install:
     - gcc --version
 script:
  - ./configure -b maintain && cd build/maintain && make -j2 Experimental
- - cd ../../ && ./configure -b release && cd build/release && make -j2 Experimental
 
 
