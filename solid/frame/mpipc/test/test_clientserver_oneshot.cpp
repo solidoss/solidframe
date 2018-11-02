@@ -169,7 +169,7 @@ void client_complete_message(
 
 int test_clientserver_oneshot(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {".*:VIEW"});
 
     size_t max_per_pool_connection_count = 1;
 
@@ -285,7 +285,7 @@ int test_clientserver_oneshot(int argc, char* argv[])
 
         err = mpipcclient.cancelMessage(recipient_id, message_id);
 
-        solid_check(err, err.message());
+        solid_check(err, "the message " << message_id << " should not exist");
 
         unique_lock<mutex> lock(mtx);
 

@@ -18,9 +18,9 @@ int test_workpool_basic(int argc, char* argv[])
     solid::log_start(std::cerr, {".*:EWS", "test_basic:VIEWS"});
     using WorkPoolT  = WorkPool<size_t>;
     using AtomicPWPT = std::atomic<WorkPoolT*>;
-    
-    solid_log(logger, Statistic, "thread concurrency: "<<thread::hardware_concurrency());
-    
+
+    solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
+
     const int           wait_seconds = 500;
     int                 loop_cnt     = 5;
     const size_t        cnt{5000000};
