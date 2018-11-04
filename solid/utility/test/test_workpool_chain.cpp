@@ -59,7 +59,7 @@ int test_workpool_chain(int argc, char* argv[])
             WorkPoolT wp_f{
                 start_thr,
                 WorkPoolConfiguration(),
-                [&val, &wp_b](const size_t _v) {
+                [&wp_b](const size_t _v) {
                     wp_b.push(_v);
                 }};
 
