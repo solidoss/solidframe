@@ -8,6 +8,7 @@ set( UtilityTestSuite
     test_workpool_context.cpp
     test_workpool.cpp
     test_workpool_basic.cpp
+    test_workpool_chain.cpp
     test_ioformat.cpp
     test_function.cpp
     test_function_perf.cpp
@@ -25,6 +26,9 @@ target_link_libraries(test_utility
 
 add_test(NAME TestUtilityWorkPoolContext    COMMAND  test_utility test_workpool_context)
 add_test(NAME TestUtilityWorkPoolBasic      COMMAND  test_utility test_workpool_basic)
+add_test(NAME TestUtilityWorkPoolChain      COMMAND  test_utility test_workpool_chain)
+add_test(NAME TestUtilityWorkPoolChain1     COMMAND  test_utility test_workpool_chain 1)
+add_test(NAME TestUtilityWorkPoolChain2     COMMAND  test_utility test_workpool_chain 2)
 # test_workpool args: JOB_COUNT WAIT_SECONDS QUEUE_SIZE PRODUCER_COUNT CONSUMER_COUNT PUSH_SLEEP_MSECS JOB_SLEEP_MSECS
 add_test(NAME TestUtilityWorkPool           COMMAND  test_utility test_workpool)
 
