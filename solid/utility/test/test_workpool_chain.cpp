@@ -22,8 +22,8 @@ int test_workpool_chain(int argc, char* argv[])
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
 
     const int           wait_seconds = 500;
-    int                 loop_cnt     = 5;
-    size_t              start_thr  = 0;
+    int                 loop_cnt     = 2;
+    size_t              start_thr    = 0;
     const size_t        cnt{5000000};
     const size_t        v = (((cnt - 1) * cnt)) / 2;
     std::atomic<size_t> val{0};
@@ -39,11 +39,11 @@ int test_workpool_chain(int argc, char* argv[])
             }
         },
         std::ref(prom), std::ref(pwp), wait_seconds);
-    
+
     if (argc > 1) {
         start_thr = atoi(argv[1]);
     }
-    
+
     if (argc > 2) {
         loop_cnt = atoi(argv[2]);
     }
@@ -62,9 +62,9 @@ int test_workpool_chain(int argc, char* argv[])
                 [&val, &wp_b](const size_t _v) {
                     wp_b.push(_v);
                 }};
-            
+
             pwp = &wp_b;
-            
+
             for (size_t i = 0; i < cnt; ++i) {
                 wp_f.push(i);
             };
@@ -81,4 +81,3 @@ int test_workpool_chain(int argc, char* argv[])
 
     return 0;
 }
-
