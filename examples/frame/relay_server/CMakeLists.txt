@@ -1,7 +1,7 @@
 if(${Boost_FOUND} AND OPENSSL_FOUND)
     add_executable (example_relay_server example_relay_server.cpp)
 
-    add_dependencies(example_relay_server build_boost)
+    add_dependencies(example_relay_server build-boost)
 
     target_link_libraries (example_relay_server
         solid_frame
@@ -16,7 +16,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
 
     add_executable (example_relay_server_bi example_relay_server_bi.cpp)
 
-    add_dependencies(example_relay_server_bi build_boost)
+    add_dependencies(example_relay_server_bi build-boost)
 
     target_link_libraries (example_relay_server_bi
         solid_frame
@@ -31,7 +31,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
 
     add_executable (example_relay_server_bi_cp example_relay_server_bi_cp.cpp)
 
-    add_dependencies(example_relay_server_bi_cp build_boost)
+    add_dependencies(example_relay_server_bi_cp build-boost)
 
     target_link_libraries (example_relay_server_bi_cp
         solid_frame
@@ -46,7 +46,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
 
     add_executable (example_relay_server_bi_sh example_relay_server_bi_sh.cpp)
 
-    add_dependencies(example_relay_server_bi_sh build_boost)
+    add_dependencies(example_relay_server_bi_sh build-boost)
 
     target_link_libraries (example_relay_server_bi_sh
         solid_frame
@@ -61,7 +61,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
 
     add_executable (example_relay_server_bi_ex example_relay_server_bi_ex.cpp)
 
-    add_dependencies(example_relay_server_bi_ex build_boost)
+    add_dependencies(example_relay_server_bi_ex build-boost)
 
     target_link_libraries (example_relay_server_bi_ex
         solid_frame

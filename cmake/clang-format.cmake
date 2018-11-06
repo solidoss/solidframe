@@ -21,7 +21,7 @@ find_program(CLANG_FORMAT_BIN
 )
 
 add_custom_target(
-    clangformat
+    code-auto-format
     COMMAND ${CLANG_FORMAT_BIN}
     -style=file
     -i

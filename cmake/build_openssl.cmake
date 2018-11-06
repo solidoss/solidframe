@@ -1,6 +1,6 @@
 
 ExternalProject_Add(
-    build_openssl
+    build-openssl
     EXCLUDE_FROM_ALL 1
     PREFIX ${EXTERNAL_DIR}/openssl
     URL https://www.openssl.org/source/openssl-1.1.0i.tar.gz

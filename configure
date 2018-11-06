@@ -39,7 +39,7 @@ print_usage(){
     echo "[-F|--folder-path FolderPath]: Specify the build folder path - unlike the build folder-name wich creates a folder under build, this flag allows creating a build folder anywhere"
     echo "[-d|--documentation full/fast]: Build either fast or full documentation"
     echo "[-p|--param ParamName]: Extra compilation flags. E.g. -p \"-DUINDEX64 -DUSERVICEBITS=3\""
-    echo "[-P|--cmake-param]: Some parameters given to cmake like: -DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE"
+    echo "[-P|--cmake-param]: Some parameters given to cmake like: -DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE; \"-DCMake_RUN_CLANG_TIDY:BOOLEAN=true\""
     echo
     echo "Examples:"
     echo

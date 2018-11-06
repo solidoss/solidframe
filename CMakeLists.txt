@@ -222,8 +222,8 @@ if(NOT NO_EXTERNAL)
         include(cmake/build_openssl.cmake)
     else()
         #define dummy targets
-        add_custom_target(build_boost)
-        add_custom_target(build_openssl)
+        add_custom_target(build-boost)
+        add_custom_target(build-openssl)
 
         include(cmake/find_boost.cmake)
         include(cmake/find_openssl.cmake)

@@ -16,7 +16,7 @@ if(OPENSSL_FOUND)
     )
 
     if(NOT ON_CROSS)
-        add_dependencies(solid_frame_aio_openssl build_openssl)
+        add_dependencies(solid_frame_aio_openssl build-openssl)
     endif()
 
     target_link_libraries(solid_frame_aio_openssl solid_frame_aio ${OPENSSL_LIBRARIES})

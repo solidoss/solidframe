@@ -1,7 +1,7 @@
 if(${Boost_FOUND} AND OPENSSL_FOUND)
     add_executable (example_echo_server example_echo_server.cpp)
 
-    add_dependencies(example_echo_server build_boost)
+    add_dependencies(example_echo_server build-boost)
 
     target_link_libraries (example_echo_server
         solid_frame
@@ -40,7 +40,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
 
     add_executable (example_secure_echo_server example_secure_echo_server.cpp)
 
-    add_dependencies(example_secure_echo_server example_secure_certs build_boost build_openssl)
+    add_dependencies(example_secure_echo_server example_secure_certs build-boost build-openssl)
 
     target_link_libraries (example_secure_echo_server
         solid_frame
@@ -58,7 +58,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
 
     add_executable (example_secure_echo_client example_secure_echo_client.cpp)
 
-    add_dependencies(example_secure_echo_client example_secure_certs build_boost build_openssl)
+    add_dependencies(example_secure_echo_client example_secure_certs build-boost build-openssl)
 
     target_link_libraries (example_secure_echo_client
         solid_frame
@@ -76,7 +76,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
 
     add_executable (example_echo_auto_client example_echo_auto_client.cpp)
 
-    add_dependencies(example_echo_auto_client build_boost)
+    add_dependencies(example_echo_auto_client build-boost)
 
     target_link_libraries (example_echo_auto_client
         solid_frame

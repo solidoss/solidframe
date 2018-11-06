@@ -36,7 +36,7 @@ if(OPENSSL_FOUND)
 
     add_executable(test_mpipc_protocol ${mpipcProtocolTests})
 
-    add_dependencies(test_mpipc_protocol build_openssl)
+    add_dependencies(test_mpipc_protocol build-openssl)
 
     target_link_libraries(test_mpipc_protocol
         solid_frame_mpipc
@@ -70,7 +70,7 @@ if(OPENSSL_FOUND)
     create_test_sourcelist( mpipcClientServerTests test_mpipc_clientserver.cpp ${mpipcClientServerTestSuite})
 
     add_executable(test_mpipc_clientserver ${mpipcClientServerTests})
-    add_dependencies(test_mpipc_clientserver mpipc_test_copy_certs build_openssl build_snappy)
+    add_dependencies(test_mpipc_clientserver mpipc_test_copy_certs build-openssl build-snappy)
 
     target_link_libraries(test_mpipc_clientserver
         solid_frame_mpipc
@@ -133,7 +133,7 @@ if(OPENSSL_FOUND)
 
     add_executable(test_mpipc_keepalive ${mpipcKeepAliveTests})
 
-    add_dependencies(test_mpipc_keepalive build_openssl)
+    add_dependencies(test_mpipc_keepalive build-openssl)
 
     target_link_libraries(test_mpipc_keepalive
         solid_frame_mpipc
@@ -163,7 +163,7 @@ if(OPENSSL_FOUND)
 
     add_executable(test_mpipc_connection ${mpipcConnectionTests})
 
-    add_dependencies(test_mpipc_connection build_openssl)
+    add_dependencies(test_mpipc_connection build-openssl)
 
     target_link_libraries(test_mpipc_connection
         solid_frame_mpipc
@@ -192,7 +192,7 @@ if(OPENSSL_FOUND)
 
     add_executable(test_mpipc_pool ${mpipcPoolTests})
 
-    add_dependencies(test_mpipc_pool build_openssl)
+    add_dependencies(test_mpipc_pool build-openssl)
 
     target_link_libraries(test_mpipc_pool
         solid_frame_mpipc
@@ -230,7 +230,7 @@ if(OPENSSL_FOUND)
 
     add_executable(test_mpipc_multiprotocol ${mpipcMultiProtocolTests})
 
-    add_dependencies(test_mpipc_multiprotocol build_openssl)
+    add_dependencies(test_mpipc_multiprotocol build-openssl)
 
     target_link_libraries(test_mpipc_multiprotocol
         multiprotocol_alpha_client
@@ -264,7 +264,7 @@ if(OPENSSL_FOUND)
 
     add_executable(test_mpipc_raw ${mpipcRawTests})
 
-    add_dependencies(test_mpipc_raw build_openssl)
+    add_dependencies(test_mpipc_raw build-openssl)
 
     target_link_libraries(test_mpipc_raw
         solid_frame_mpipc
@@ -296,7 +296,7 @@ if(OPENSSL_FOUND)
     create_test_sourcelist( mpipcRelayTests test_mpipc_relay.cpp ${mpipcRelayTestSuite})
 
     add_executable(test_mpipc_relay ${mpipcRelayTests})
-    add_dependencies(test_mpipc_relay mpipc_test_copy_certs build_openssl build_snappy)
+    add_dependencies(test_mpipc_relay mpipc_test_copy_certs build-openssl build-snappy)
 
     target_link_libraries(test_mpipc_relay
         solid_frame_mpipc
@@ -329,7 +329,7 @@ if(OPENSSL_FOUND)
 
     add_executable(test_mpipc_relay_engine ${mpipcRelayEngineTests})
 
-    add_dependencies(test_mpipc_relay_engine build_openssl)
+    add_dependencies(test_mpipc_relay_engine build-openssl)
 
     target_link_libraries(test_mpipc_relay_engine
         solid_frame_mpipc

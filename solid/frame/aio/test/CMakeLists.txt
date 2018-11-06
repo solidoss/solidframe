@@ -32,7 +32,7 @@ if(OPENSSL_FOUND)
     create_test_sourcelist( aioEchoTests test_aio_echo.cpp ${aioEchoTestSuite})
 
     add_executable(test_aio_echo ${aioEchoTests})
-    add_dependencies(test_aio_echo aio_test_copy_certs build_openssl)
+    add_dependencies(test_aio_echo aio_test_copy_certs build-openssl)
 
     target_link_libraries(test_aio_echo
         solid_frame_aio

@@ -230,6 +230,30 @@ and the location for SolidFrame libraries:
 -L~/work/extern/lib
 ```
 
+## Maintainance
+
+SolidFrame's build system has built-in support for:
+ * code reformatting via __clang-format__
+ * code static analisys via __clang-tidy__
+
+### source reformating via clang-format
+
+For now the support is only available on Linux systems where "clang-format" package should be installed.
+
+There is a "__code-auto-format__" build target which will scan and reformat all source code files using clang-format, configured via [.clang-format](.clang-format) file.
+
+### static analisys via clang-tidy
+
+For now the support is only available on Linux systems where "clang-tidy" package should be installed.
+
+The static analisys via clang-tidy is intergrated into the cmake build system.
+I can be enabled by setting "CMake_RUN_CLANG_TIDY" boolean via __cmake-gui__ after a build configuration was created, or by specifing as parameter when creating a build configuration:
+
+```bash
+./configure -b debug -e ~/work/external -P "-DCMake_RUN_CLANG_TIDY:BOOLEAN=true"
+```
+__clang-tidy__ is controlled via [.clang-tidy](.clang-tidy) configuration file.
+
 ## Overview
 
 _SolidFrame_ is an experimental framework to be used for implementing cross-platform C++ network enabled applications or modules.

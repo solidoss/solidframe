@@ -3,7 +3,7 @@ if(SOLID_ON_FREEBSD)
 endif()
 
 ExternalProject_Add(
-    build_boost
+    build-boost
     EXCLUDE_FROM_ALL 1
     PREFIX ${EXTERNAL_DIR}/boost
     URL "http://sourceforge.net/projects/boost/files/boost/1.68.0/boost_1_68_0.tar.bz2"

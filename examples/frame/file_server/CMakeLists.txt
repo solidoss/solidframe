@@ -1,7 +1,7 @@
 if(${Boost_FOUND} AND OPENSSL_FOUND)
     add_executable (example_file_server example_file_server.cpp)
 
-    add_dependencies(example_file_server build_boost build_openssl)
+    add_dependencies(example_file_server build-boost build-openssl)
 
     target_link_libraries (example_file_server
         solid_frame_aio
