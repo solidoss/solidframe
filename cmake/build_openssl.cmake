@@ -6,7 +6,7 @@ ExternalProject_Add(
     URL https://www.openssl.org/source/openssl-1.1.0i.tar.gz
     DOWNLOAD_NO_PROGRESS ON
     #URL_MD5 "6f4571e7c5a66ccc3323da6c24be8f05"
-    CONFIGURE_COMMAND ${EXTERNAL_DIR}/openssl/src/build_openssl/config --prefix=${EXTERNAL_DIR} --openssldir=ssl_
+    CONFIGURE_COMMAND ${EXTERNAL_DIR}/openssl/src/build-openssl/config --prefix=${EXTERNAL_DIR} --openssldir=ssl_
     BUILD_COMMAND make
     INSTALL_COMMAND make install_sw
     BUILD_IN_SOURCE 1
