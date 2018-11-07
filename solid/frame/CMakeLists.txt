@@ -46,4 +46,4 @@ install (TARGETS solid_frame DESTINATION lib EXPORT SolidFrameConfig)
 
 add_subdirectory(aio)
 add_subdirectory(file)
-add_subdirectory(mpipc)
+add_subdirectory(mprpc)

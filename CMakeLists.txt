@@ -324,7 +324,7 @@ add_custom_target(libraries
     solid_frame_aio
     solid_frame_aio_openssl
     solid_frame_file
-    solid_frame_mpipc
+    solid_frame_mprpc
 )
 
 include(CMakePackageConfigHelpers)
