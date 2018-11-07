@@ -38,7 +38,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 **Focused:**
 
-* [__solid_frame_mprpc__](#solid_frame_mprpc): Message Passing Inter-Process Communication over secure/plain TCP ([MPRPC library](solid/frame/mprpc/README.md))
+* [__solid_frame_mprpc__](#solid_frame_mprpc): Message Passing - Remote Procedure Call over secure/plain TCP ([MPRPC library](solid/frame/mprpc/README.md))
     * _mprpc::Service_ - pass messages to/from multiple peers.
 * [__solid_frame_aio__](#solid_frame_aio): asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
     * _Object_ - reactive object with support for Asynchronous IO
@@ -86,7 +86,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 * [__solid_frame_aio_openssl__](#solid_frame_aio_openssl): SSL support via OpenSSL
 * [__solid_frame_file__](#solid_frame_file)
     * _file::Store_ - a shared store for files
-* [__solid_frame_mprpc__](#solid_frame_mprpc): Message Passing InterProcess Communication over TCP ([MPRPC library](solid/frame/mprpc/README.md))
+* [__solid_frame_mprpc__](#solid_frame_mprpc): Message Passing - Remote Procedure Call over TCP ([MPRPC library](solid/frame/mprpc/README.md))
     * _mprpc::Service_ - pass messages to/from multiple peers.
 
 ## <a id="installation"></a>Installation
@@ -597,7 +597,7 @@ Work in progress: The library extends solid_frame_aio with support for Secure So
 
 ### <a id="solid_frame_mprpc"></a>solid_frame_mprpc
 
-Message Passing - Inter Process Communication library:
+Message Passing - Remote Procedure Call library:
  * Pluggable - i.e. header only - protocol based on solid_serialization.
  * Pluggable - i.e. header only - support for secure communication via solid_frame_aio_openssl.
  * Pluggable - i.e. header only - support for communication compression via Snappy.

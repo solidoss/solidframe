@@ -524,5 +524,5 @@ In this tutorial you have learned about basic usage of the solid_frame and solid
 
 ## Next
 
-If you are interested on a higher level communication engine you can check out the echo tutorial which uses solid_frame_mprpc (Message Passing InterProcess Communication) library:
+If you are interested on a higher level communication engine you can check out the echo tutorial which uses solid_frame_mprpc (Message Passing - Remote Procedure Call) library:
  * [MPRPC Echo](../mprpc_echo)
