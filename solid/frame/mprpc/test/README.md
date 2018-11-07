@@ -1,4 +1,4 @@
-# SolidFrame MPIPC - Test Suite
+# SolidFrame MPRPC - Test Suite
 
 ### Basic protocol functionality
 

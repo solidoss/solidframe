@@ -1,22 +1,22 @@
-# solid::frame::mpipc request tutorial
+# solid::frame::mprpc request tutorial
 
-Exemplifies the use of solid_frame_mpipc, solid_frame_aio and solid_frame libraries
+Exemplifies the use of solid_frame_mprpc, solid_frame_aio and solid_frame libraries
 
 __Source files__
- * Message definitions: [mpipc_request_messages.hpp](mpipc_request_messages.hpp)
- * The server: [mpipc_request_server.cpp](mpipc_request_server.cpp)
- * The client: [mpipc_request_client.cpp](mpipc_request_client.cpp)
+ * Message definitions: [mprpc_request_messages.hpp](mprpc_request_messages.hpp)
+ * The server: [mprpc_request_server.cpp](mprpc_request_server.cpp)
+ * The client: [mprpc_request_client.cpp](mprpc_request_client.cpp)
 
 Before continuing with this tutorial, you should:
  * prepare a SolidFrame build as explained [here](../../README.md#installation).
  * read the [overview of the asynchronous active object model](../../solid/frame/README.md).
- * read the [informations about solid_frame_mpipc](../../solid/frame/mpipc/README.md)
- * follow the first ipc tutorial: [mpipc_echo](../mpipc_echo)
+ * read the [informations about solid_frame_mprpc](../../solid/frame/mprpc/README.md)
+ * follow the first ipc tutorial: [mprpc_echo](../mprpc_echo)
 
 ## Overview
 
-In this tutorial you will learn how to use solid_frame_mpipc library for a simple client-server application pair.
-While in previous mpipc tutorial the client and server exchanged a single message for the current tutorial we'll have two, slightly more complex messages to exchage:
+In this tutorial you will learn how to use solid_frame_mprpc library for a simple client-server application pair.
+While in previous mprpc tutorial the client and server exchanged a single message for the current tutorial we'll have two, slightly more complex messages to exchage:
  * a request from the client side
  * and a response from the server side
 
@@ -30,7 +30,7 @@ While in previous mpipc tutorial the client and server exchanged a single messag
  * extract payload - the regular expression
  * creates a Request with the regular expression string and sends it to the server at recipient endpoint
 
-Notable for the client is the fact that for sending the request, we're using a variant of mpipc::Service::sendRequest with a Lambda parameter as the completion callback.
+Notable for the client is the fact that for sending the request, we're using a variant of mprpc::Service::sendRequest with a Lambda parameter as the completion callback.
 
 Remember that the message completion callback is called when:
  * A message failed to be sent.
@@ -38,27 +38,27 @@ Remember that the message completion callback is called when:
  * A response was received (for a message waiting for it).
 
 You will need three source files:
- * _mpipc_request_messages.hpp_: the protocol messages.
- * _mpipc_request_client.cpp_: the client implementation.
- * _mpipc_request_server.cpp_: the server implementation.
+ * _mprpc_request_messages.hpp_: the protocol messages.
+ * _mprpc_request_client.cpp_: the client implementation.
+ * _mprpc_request_server.cpp_: the server implementation.
 
 ## Protocol definition
 
-As you've seen in the mpipc_echo tutorial, the protocol - i.e. the exchanged messages - is defined in a single header file.
+As you've seen in the mprpc_echo tutorial, the protocol - i.e. the exchanged messages - is defined in a single header file.
 We'll be looking at the header file by splitting it into pieces:
 
 The first piece consists of includes and the definition for the Request message:
 
 ```C++
-#include "solid/frame/mpipc/mpipcmessage.hpp"
-#include "solid/frame/mpipc/mpipccontext.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
+#include "solid/frame/mprpc/mprpcmessage.hpp"
+#include "solid/frame/mprpc/mprpccontext.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v2.hpp"
 #include <vector>
 #include <map>
 
 namespace ipc_request{
 
-struct Request: solid::frame::mpipc::Message{
+struct Request: solid::frame::mprpc::Message{
     std::string         userid_regex;
 
     Request(){}
@@ -100,14 +100,14 @@ struct UserData{
     }
 };
 
-struct Response: solid::frame::mpipc::Message{
+struct Response: solid::frame::mprpc::Message{
     using UserDataMapT = std::map<std::string, UserData>;
 
     UserDataMapT    user_data_map;
 
     Response(){}
 
-    Response(const solid::frame::mpipc::Message &_rmsg):solid::frame::mpipc::Message(_rmsg){}
+    Response(const solid::frame::mprpc::Message &_rmsg):solid::frame::mprpc::Message(_rmsg){}
 
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
@@ -121,7 +121,7 @@ On the above code, please note that we're using a std::map for storing the recor
 The last block of code for the protocol definition is the declaration of protocol_setup:
 
 ```C++
-using ProtocolT = solid::frame::mpipc::serialization_v2::Protocol<uint8_t>;
+using ProtocolT = solid::frame::mprpc::serialization_v2::Protocol<uint8_t>;
 
 template <class R>
 inline void protocol_setup(R _r, ProtocolT& _rproto)
@@ -154,7 +154,7 @@ AioSchedulerT           scheduler;
 
 
 frame::Manager          manager;
-frame::mpipc::ServiceT  ipcservice(manager);
+frame::mprpc::ServiceT  ipcservice(manager);
 
 frame::aio::Resolver    resolver;
 
@@ -179,13 +179,13 @@ Next, configure the ipcservice:
 ```C++
 {
     auto                        proto = ipc_request::ProtocolT::create();
-    frame::mpipc::Configuration cfg(scheduler, proto);
+    frame::mprpc::Configuration cfg(scheduler, proto);
 
     ipc_request::protocol_setup(ipc_request_client::MessageSetup(), *proto);
 
-    cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
+    cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, p.port.c_str());
 
-    cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
+    cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
 
     err = ipcservice.reconfigure(std::move(cfg));
 
@@ -203,7 +203,7 @@ namespace ipc_request_client{
 
 template <class M>
 void complete_message(
-    frame::mpipc::ConnectionContext& _rctx,
+    frame::mprpc::ConnectionContext& _rctx,
     std::shared_ptr<M>&              _rsent_msg_ptr,
     std::shared_ptr<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
@@ -245,7 +245,7 @@ while(true){
             recipient = line.substr(0, offset);
 
             auto  lambda = [](
-                frame::mpipc::ConnectionContext &_rctx,
+                frame::mprpc::ConnectionContext &_rctx,
                 std::shared_ptr<ipc_request::Request> &_rsent_msg_ptr,
                 std::shared_ptr<ipc_request::Response> &_rrecv_msg_ptr,
                 ErrorConditionT const &_rerror
@@ -287,8 +287,8 @@ On the lambda, we display to standard out how many user records that matched the
 ### Compile
 
 ```bash
-$ cd solid_frame_tutorials/mpipc_request
-$ c++ -o mpipc_request_client mpipc_request_client.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
+$ cd solid_frame_tutorials/mprpc_request
+$ c++ -o mprpc_request_client mprpc_request_client.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mprpc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
 ```
 Now that we have a client application, we need a server to connect to. Let's move one on implementing the server.
 
@@ -299,7 +299,7 @@ We will skip the the initialization of the ipcservice and its prerequisites as i
 ```C++
 {
     auto                        proto = ipc_request::ProtocolT::create();
-    frame::mpipc::Configuration cfg(scheduler, proto);
+    frame::mprpc::Configuration cfg(scheduler, proto);
 
     ipc_request::protocol_setup(ipc_request_server::MessageSetup(), *proto);
 
@@ -307,7 +307,7 @@ We will skip the the initialization of the ipcservice and its prerequisites as i
     cfg.server.listener_address_str += ':';
     cfg.server.listener_address_str += p.listener_port;
 
-    cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
+    cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 
     err = ipcservice.reconfigure(std::move(cfg));
 
@@ -337,14 +337,14 @@ namespace ipc_request_server{
 
 template <class M>
 void complete_message(
-    frame::mpipc::ConnectionContext& _rctx,
+    frame::mprpc::ConnectionContext& _rctx,
     std::shared_ptr<M>&              _rsent_msg_ptr,
     std::shared_ptr<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror);
 
 template <>
 void complete_message<ipc_request::Request>(
-    frame::mpipc::ConnectionContext&       _rctx,
+    frame::mprpc::ConnectionContext&       _rctx,
     std::shared_ptr<ipc_request::Request>& _rsent_msg_ptr,
     std::shared_ptr<ipc_request::Request>& _rrecv_msg_ptr,
     ErrorConditionT const&                 _rerror)
@@ -368,7 +368,7 @@ void complete_message<ipc_request::Request>(
 
 template <>
 void complete_message<ipc_request::Response>(
-    frame::mpipc::ConnectionContext&        _rctx,
+    frame::mprpc::ConnectionContext&        _rctx,
     std::shared_ptr<ipc_request::Response>& _rsent_msg_ptr,
     std::shared_ptr<ipc_request::Response>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
@@ -452,7 +452,7 @@ auto msgptr = std::make_shared<ipc_request::Response>(*_rrecv_msg_ptr);
 ```
 So, a response message MUST be constructed from the request one. This is because some data from the Request message is needed to be passed to the Response. That data will be transparently serialized along with the response when sent back to the client and used on the client to identify the request message waiting for the response.
 
-As an idea, for a message that moves back and forth from client to server, because of mpipc::Message internal data, one can always know on which side a message is, by using the following methods from mpipc::Message:
+As an idea, for a message that moves back and forth from client to server, because of mprpc::Message internal data, one can always know on which side a message is, by using the following methods from mprpc::Message:
 
 ```C++
 bool isOnSender()const
@@ -470,8 +470,8 @@ cin.ignore();;
 ### Compile
 
 ```bash
-$ cd solid_frame_tutorials/mpipc_request
-$ c++ -o mpipc_request_server mpipc_request_server.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
+$ cd solid_frame_tutorials/mprpc_request
+$ c++ -o mprpc_request_server mprpc_request_server.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mprpc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
 ```
 
 ## Test
@@ -480,27 +480,27 @@ Now that we have two applications a client and a server let us test it in a litt
 
 **Console-1**:
 ```BASH
-$ ./mpipc_request_server 0.0.0.0:3333
+$ ./mprpc_request_server 0.0.0.0:3333
 ```
 **Console-2**:
 ```BASH
-$ ./mpipc_request_client
+$ ./mprpc_request_client
 localhost:3333 [a-z]+_man
 127.0.0.1:4444 user\d*
 ```
 **Console-3**:
 ```BASH
 #wait for a while
-$ ./mpipc_request_server 0.0.0.0:4444
+$ ./mprpc_request_server 0.0.0.0:4444
 ```
 
-On the client you will see that the records list is immediately received back from :3333 server while the second response is received back only after the second server is started. This is because, normally, the ipcservice will try re-sending the message until the recipient side becomes available. Use **mpipc::MessageFlags::OneShotSend** to change the behavior and only try once to send the message and immediately fail if the server is offline.
+On the client you will see that the records list is immediately received back from :3333 server while the second response is received back only after the second server is started. This is because, normally, the ipcservice will try re-sending the message until the recipient side becomes available. Use **mprpc::MessageFlags::OneShotSend** to change the behavior and only try once to send the message and immediately fail if the server is offline.
 
 ## Next
 
 In the next tutorial:
 
- * [MPIPC Request SSL](../mpipc_request_ssl)
+ * [MPRPC Request SSL](../mprpc_request_ssl)
 
 we will extend the current example by:
  * adding SSL support for end-to-end encryption

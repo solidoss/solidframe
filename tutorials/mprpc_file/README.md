@@ -1,21 +1,21 @@
-# solid::frame::mpipc file transfer tutorial
+# solid::frame::mprpc file transfer tutorial
 
-Exemplifies the use of solid_frame_mpipc, solid_frame_aio and solid_frame libraries
+Exemplifies the use of solid_frame_mprpc, solid_frame_aio and solid_frame libraries
 
 __Source files__
- * Message definitions: [mpipc_file_messages.hpp](mpipc_file_messages.hpp)
- * The server: [mpipc_file_server.cpp](mpipc_file_server.cpp)
- * The client: [mpipc_file_client.cpp](mpipc_file_client.cpp)
+ * Message definitions: [mprpc_file_messages.hpp](mprpc_file_messages.hpp)
+ * The server: [mprpc_file_server.cpp](mprpc_file_server.cpp)
+ * The client: [mprpc_file_client.cpp](mprpc_file_client.cpp)
 
 Before continuing with this tutorial, you should:
  * prepare a SolidFrame build as explained [here](../../README.md#installation).
  * read the [overview of the asynchronous active object model](../../solid/frame/README.md).
- * read the [informations about solid_frame_mpipc](../../solid/frame/mpipc/README.md)
- * follow the first ipc tutorial: [mpipc_echo](../mpipc_echo)
+ * read the [informations about solid_frame_mprpc](../../solid/frame/mprpc/README.md)
+ * follow the first ipc tutorial: [mprpc_echo](../mprpc_echo)
 
 ## Overview
 
-In this tutorial you will learn how to use solid_frame_mpipc library for a simple remote file access client-server application pair.
+In this tutorial you will learn how to use solid_frame_mprpc library for a simple remote file access client-server application pair.
 Using the pair of applications we're going to implement, you will be able to list the remote file-system nodes and copy files from remote host to localhost.
 
 
@@ -34,7 +34,7 @@ Using the pair of applications we're going to implement, you will be able to lis
    * extract the remote path and the local path
    * creates a FileRequest message and send it to recipient endpoint
 
-Notable for the client is the fact that for sending the requests, we're using a variant of mpipc::Service::sendRequest with a Lambda parameter as the completion callback.
+Notable for the client is the fact that for sending the requests, we're using a variant of mprpc::Service::sendRequest with a Lambda parameter as the completion callback.
 
 Remember that the message completion callback is called when:
  * A message failed to be sent.
@@ -42,9 +42,9 @@ Remember that the message completion callback is called when:
  * A response was received (for a message waiting for it).
 
 You will need three source files:
- * _mpipc_file_messages.hpp_: the protocol messages.
- * _mpipc_file_client.cpp_: the client implementation.
- * _mpipc_file_server.cpp_: the server implementation.
+ * _mprpc_file_messages.hpp_: the protocol messages.
+ * _mprpc_file_client.cpp_: the client implementation.
+ * _mprpc_file_server.cpp_: the server implementation.
 
 ## Protocol definition
 
@@ -52,9 +52,9 @@ The protocol will consist of two request and two response messages.
 First enter the list messages:
 
 ```C++
-#include "solid/frame/mpipc/mpipcmessage.hpp"
-#include "solid/frame/mpipc/mpipccontext.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
+#include "solid/frame/mprpc/mprpcmessage.hpp"
+#include "solid/frame/mprpc/mprpccontext.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v2.hpp"
 #include <vector>
 #include <deque>
 #include <fstream>
@@ -62,7 +62,7 @@ First enter the list messages:
 
 namespace ipc_file{
 
-struct ListRequest: solid::frame::mpipc::Message{
+struct ListRequest: solid::frame::mprpc::Message{
     std::string         path;
 
     ListRequest(){}
@@ -75,12 +75,12 @@ struct ListRequest: solid::frame::mpipc::Message{
     }
 };
 
-struct ListResponse: solid::frame::mpipc::Message{
+struct ListResponse: solid::frame::mprpc::Message{
     std::deque<std::pair<std::string, uint8_t> >    node_dq;
 
     ListResponse(){}
 
-    ListResponse(const ListRequest &_rmsg):solid::frame::mpipc::Message(_rmsg){}
+    ListResponse(const ListRequest &_rmsg):solid::frame::mprpc::Message(_rmsg){}
 
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
@@ -95,7 +95,7 @@ The ListResponse message contains a std::deque of file-system node names along w
 Next is the FileRequest message:
 
 ```C++
-struct FileRequest: solid::frame::mpipc::Message{
+struct FileRequest: solid::frame::mprpc::Message{
     std::string         remote_path;
     std::string         local_path;
 
@@ -117,7 +117,7 @@ which consists of two strings - the remote path and the local path. The interest
 Last is the FileResponse message with its little more complicated serialization method:
 
 ```C++
-struct FileResponse : solid::frame::mpipc::Message {
+struct FileResponse : solid::frame::mprpc::Message {
     std::string remote_path;
     int64_t     remote_file_size;
 
@@ -125,14 +125,14 @@ struct FileResponse : solid::frame::mpipc::Message {
 
     FileResponse(
         const FileRequest& _rmsg)
-        : solid::frame::mpipc::Message(_rmsg)
+        : solid::frame::mprpc::Message(_rmsg)
         , remote_path(_rmsg.remote_path)
         , remote_file_size(solid::InvalidSize())
     {
     }
 
     template <class S>
-    void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) const
+    void solidSerializeV2(S& _s, solid::frame::mprpc::ConnectionContext& _rctx, const char* _name) const
     {
         std::ifstream ifs;
         ifs.open(remote_path);
@@ -144,8 +144,8 @@ struct FileResponse : solid::frame::mpipc::Message {
             const int64_t file_size = endpos;
             _s.add(file_size, _rctx, "remote_file_size");
 
-            _s.push([ifs = std::move(ifs)](S & _s, solid::frame::mpipc::ConnectionContext & _rctx, const char* _name) mutable {
-                _s.add(ifs, [](std::istream& _ris, uint64_t _len, const bool _done, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) {
+            _s.push([ifs = std::move(ifs)](S & _s, solid::frame::mprpc::ConnectionContext & _rctx, const char* _name) mutable {
+                _s.add(ifs, [](std::istream& _ris, uint64_t _len, const bool _done, solid::frame::mprpc::ConnectionContext& _rctx, const char* _name) {
                     //idbg("Progress(" << _name << "): " << _len << " done = " << _done);
                 },
                     _rctx, _name);
@@ -158,18 +158,18 @@ struct FileResponse : solid::frame::mpipc::Message {
         }
     }
     template <class S>
-    void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name)
+    void solidSerializeV2(S& _s, solid::frame::mprpc::ConnectionContext& _rctx, const char* _name)
     {
         _s.add(remote_file_size, _rctx, "remote_file_size");
-        _s.add([this](S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) {
+        _s.add([this](S& _s, solid::frame::mprpc::ConnectionContext& _rctx, const char* _name) {
             if (remote_file_size != solid::InvalidIndex()) {
                 std::ofstream      ofs;
                 const std::string* plocal_path = localPath(_rctx);
                 if (plocal_path != nullptr) {
                     ofs.open(*plocal_path);
                 }
-                _s.push([ this, ofs = std::move(ofs) ](S & _s, solid::frame::mpipc::ConnectionContext & _rctx, const char* _name) mutable {
-                    _s.add(ofs, [this](std::ostream& _ros, uint64_t _len, const bool _done, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) {
+                _s.push([ this, ofs = std::move(ofs) ](S & _s, solid::frame::mprpc::ConnectionContext & _rctx, const char* _name) mutable {
+                    _s.add(ofs, [this](std::ostream& _ros, uint64_t _len, const bool _done, solid::frame::mprpc::ConnectionContext& _rctx, const char* _name) {
 
                         //idbg("Progress(" << _name << "): " << _len << " done = " << _done);
                     },
@@ -183,7 +183,7 @@ struct FileResponse : solid::frame::mpipc::Message {
     }
 
 private:
-    const std::string* localPath(solid::frame::mpipc::ConnectionContext& _rctx) const
+    const std::string* localPath(solid::frame::mprpc::ConnectionContext& _rctx) const
     {
         auto req_ptr = std::dynamic_pointer_cast<FileRequest>(_rctx.fetchRequest(*this));
         if (req_ptr) {
@@ -198,7 +198,7 @@ Lets delve a little into the _solidSerializeV2_ methods.
 
 **First, some background**
 
-The serialization engine used by the mpipc protocol, is asynchronus, which means that serialization/deserialization of an item might not happen inplace but at a later mement when more buffer space is available (in case of serialization) or more data is available (in case of deserialization). In this situations the serialization item is pushed in a completion queue to be handled later.
+The serialization engine used by the mprpc protocol, is asynchronus, which means that serialization/deserialization of an item might not happen inplace but at a later mement when more buffer space is available (in case of serialization) or more data is available (in case of deserialization). In this situations the serialization item is pushed in a completion queue to be handled later.
 
 FileResponse has two solidSerializeV2 methods:
  * a const one used by serilizers
@@ -231,12 +231,12 @@ This is why [solid::Function](../../solid/utility/function.hpp) was created and 
 
 FileResponse and FileRequest are also examples of how and when to access the Request Message that is waiting for the response from within the response's serialization method. This is an effective way to store data that is needed by the response during the deserialization. Another way would have been to use Connection's "any" data (_rctx.any()) but it would have not been such a clean solution.
 
-Another thing worth mentioning about the above messages is that every response message has a constructor needing a reference to the request message. This is because the mpipc library keeps some data onto the base mpipc::Message which must be passed from the request to the response (it needs the data to identify the request message waiting the currently received message).
+Another thing worth mentioning about the above messages is that every response message has a constructor needing a reference to the request message. This is because the mprpc library keeps some data onto the base mprpc::Message which must be passed from the request to the response (it needs the data to identify the request message waiting the currently received message).
 
 One last thing is needed to finish with the protocol definition - define the ProtoSpec type:
 
 ```C++
-using ProtocolT = solid::frame::mpipc::serialization_v2::Protocol<uint8_t>;
+using ProtocolT = solid::frame::mprpc::serialization_v2::Protocol<uint8_t>;
 
 template <class R>
 inline void protocol_setup(R _r, ProtocolT& _rproto)
@@ -260,7 +260,7 @@ AioSchedulerT           scheduler;
 
 
 frame::Manager          manager;
-frame::mpipc::ServiceT  ipcservice(manager);
+frame::mprpc::ServiceT  ipcservice(manager);
 
 frame::aio::Resolver    resolver;
 
@@ -285,13 +285,13 @@ Next, configure the ipcservice:
 ```C++
 {
     auto                        proto = ProtocolT::create();
-    frame::mpipc::Configuration cfg(scheduler, proto);
+    frame::mprpc::Configuration cfg(scheduler, proto);
 
     ipc_file::protocol_setup(ipc_file_client::MessageSetup(), *proto);
 
-    cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
+    cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, p.port.c_str());
 
-    cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
+    cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
 
     err = ipcservice.reconfigure(std::move(cfg));
 
@@ -309,7 +309,7 @@ namespace ipc_file_client{
 
 template <class M>
 void complete_message(
-    frame::mpipc::ConnectionContext& _rctx,
+    frame::mprpc::ConnectionContext& _rctx,
     std::shared_ptr<M>&              _rsent_msg_ptr,
     std::shared_ptr<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
@@ -365,7 +365,7 @@ while(true){
                     ipcservice.sendRequest(
                         recipient.c_str(), make_shared<ipc_file::ListRequest>(std::move(path)),
                         [](
-                            frame::mpipc::ConnectionContext &_rctx,
+                            frame::mprpc::ConnectionContext &_rctx,
                             std::shared_ptr<ipc_file::ListRequest> &_rsent_msg_ptr,
                             std::shared_ptr<ipc_file::ListResponse> &_rrecv_msg_ptr,
                             ErrorConditionT const &_rerror
@@ -399,7 +399,7 @@ while(true){
                     ipcservice.sendRequest(
                         recipient.c_str(), make_shared<ipc_file::FileRequest>(std::move(remote_path), std::move(local_path)),
                         [](
-                            frame::mpipc::ConnectionContext &_rctx,
+                            frame::mprpc::ConnectionContext &_rctx,
                             std::shared_ptr<ipc_file::FileRequest> &_rsent_msg_ptr,
                             std::shared_ptr<ipc_file::FileResponse> &_rrecv_msg_ptr,
                             ErrorConditionT const &_rerror
@@ -456,8 +456,8 @@ So, in the above loop, for every line we read from the standard input:
 ### Compile
 
 ```bash
-$ cd solid_frame_tutorials/mpipc_file
-$ c++ -o mpipc_file_client mpipc_file_client.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
+$ cd solid_frame_tutorials/mprpc_file
+$ c++ -o mprpc_file_client mprpc_file_client.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mprpc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
 ```
 Now that we have a client application, we need a server to connect to. Let's move one on implementing the server.
 
@@ -468,7 +468,7 @@ We will skip the the initialization of the ipcservice and its prerequisites as i
 ```C++
 {
     auto                        proto = ProtocolT::create();
-    frame::mpipc::Configuration cfg(scheduler, proto);
+    frame::mprpc::Configuration cfg(scheduler, proto);
 
     ipc_file::protocol_setup(ipc_file_server::MessageSetup(), *proto);
 
@@ -476,7 +476,7 @@ We will skip the the initialization of the ipcservice and its prerequisites as i
     cfg.server.listener_address_str += ':';
     cfg.server.listener_address_str += p.listener_port;
 
-    cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
+    cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 
     err = ipcservice.reconfigure(std::move(cfg));
 
@@ -506,14 +506,14 @@ namespace ipc_file_server{
 
 template <class M>
 void complete_message(
-    frame::mpipc::ConnectionContext& _rctx,
+    frame::mprpc::ConnectionContext& _rctx,
     std::shared_ptr<M>&              _rsent_msg_ptr,
     std::shared_ptr<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror);
 
 template <>
 void complete_message<ipc_file::ListRequest>(
-    frame::mpipc::ConnectionContext&        _rctx,
+    frame::mprpc::ConnectionContext&        _rctx,
     std::shared_ptr<ipc_file::ListRequest>& _rsent_msg_ptr,
     std::shared_ptr<ipc_file::ListRequest>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
@@ -545,7 +545,7 @@ void complete_message<ipc_file::ListRequest>(
 
 template <>
 void complete_message<ipc_file::ListResponse>(
-    frame::mpipc::ConnectionContext&         _rctx,
+    frame::mprpc::ConnectionContext&         _rctx,
     std::shared_ptr<ipc_file::ListResponse>& _rsent_msg_ptr,
     std::shared_ptr<ipc_file::ListResponse>& _rrecv_msg_ptr,
     ErrorConditionT const&                   _rerror)
@@ -557,7 +557,7 @@ void complete_message<ipc_file::ListResponse>(
 
 template <>
 void complete_message<ipc_file::FileRequest>(
-    frame::mpipc::ConnectionContext&        _rctx,
+    frame::mprpc::ConnectionContext&        _rctx,
     std::shared_ptr<ipc_file::FileRequest>& _rsent_msg_ptr,
     std::shared_ptr<ipc_file::FileRequest>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
@@ -579,7 +579,7 @@ void complete_message<ipc_file::FileRequest>(
 
 template <>
 void complete_message<ipc_file::FileResponse>(
-    frame::mpipc::ConnectionContext&         _rctx,
+    frame::mprpc::ConnectionContext&         _rctx,
     std::shared_ptr<ipc_file::FileResponse>& _rsent_msg_ptr,
     std::shared_ptr<ipc_file::FileResponse>& _rrecv_msg_ptr,
     ErrorConditionT const&                   _rerror)
@@ -606,11 +606,11 @@ On the other hand, the callbacks associated to the request messages received fro
 So, when receiving a ListRequest we do:
  * create a new ListResponse message from the ListRequest.
  * using boost_filesystem API we iterate through the child nodes under the given path and populate the ListResponse message node_dq.
- * then send back the response message on the same mpipc connection the request was received.
+ * then send back the response message on the same mprpc connection the request was received.
 
 For the FileRequest, things are simpler:
  * create a FileResponse message from the request (the remote_path and local_path entries will be copied to response)
- * then send back the response message on the same mpipc connection the request was received.
+ * then send back the response message on the same mprpc connection the request was received.
 
 Finally returning to our server's main function, the last code block is one which keeps the server alive until user input:
 
@@ -621,25 +621,25 @@ cin.ignore();
 ### Compile
 
 ```bash
-$ cd solid_frame_tutorials/mpipc_file
-$ c++ -o mpipc_file_server mpipc_file_server.cpp -I~/work/extern/include/ -L~/work/extern/lib -lboost_filesystem -lboost_system -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
+$ cd solid_frame_tutorials/mprpc_file
+$ c++ -o mprpc_file_server mprpc_file_server.cpp -I~/work/extern/include/ -L~/work/extern/lib -lboost_filesystem -lboost_system -lsolid_frame_mprpc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
 ```
 
 ## Test
 **Console-1**:
 ```BASH
-$ ./mpipc_file_server 0.0.0.0:3333
+$ ./mprpc_file_server 0.0.0.0:3333
 ```
 
 **Console-2**:
 ```BASH
-$ ./mpipc_file_client
+$ ./mprpc_file_client
 localhost:3333 l /home/
 localhost:3333 c /home/user/file.txt ./file.txt
 ```
 ## Next
 
-Next you can learn how to use the relay support from the solid_frame_mpipc library:
+Next you can learn how to use the relay support from the solid_frame_mprpc library:
 
- * [MPIPC Relay Echo](../mpipc_echo_relay)
+ * [MPRPC Relay Echo](../mprpc_echo_relay)
 

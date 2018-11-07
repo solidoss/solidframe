@@ -15,7 +15,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 ## Resources
  * [Tutorials](tutorials/README.md)
  * [Release Notes](RELEASES.md)
- * [MPIPC library](solid/frame/mpipc/README.md)
+ * [MPRPC library](solid/frame/mprpc/README.md)
  * [API Reference](solid/API.md) - __TODO__
  * [Wiki](https://github.com/vipalade/solidframe/wiki) - __TODO__
 
@@ -38,8 +38,8 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 **Focused:**
 
-* [__solid_frame_mpipc__](#solid_frame_mpipc): Message Passing Inter-Process Communication over secure/plain TCP ([MPIPC library](solid/frame/mpipc/README.md))
-    * _mpipc::Service_ - pass messages to/from multiple peers.
+* [__solid_frame_mprpc__](#solid_frame_mprpc): Message Passing Inter-Process Communication over secure/plain TCP ([MPRPC library](solid/frame/mprpc/README.md))
+    * _mprpc::Service_ - pass messages to/from multiple peers.
 * [__solid_frame_aio__](#solid_frame_aio): asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
     * _Object_ - reactive object with support for Asynchronous IO
     * _Reactor_ - reactor with support for Asynchronous IO
@@ -86,8 +86,8 @@ Boost Software License - Version 1.0 - August 17th, 2003
 * [__solid_frame_aio_openssl__](#solid_frame_aio_openssl): SSL support via OpenSSL
 * [__solid_frame_file__](#solid_frame_file)
     * _file::Store_ - a shared store for files
-* [__solid_frame_mpipc__](#solid_frame_mpipc): Message Passing InterProcess Communication over TCP ([MPIPC library](solid/frame/mpipc/README.md))
-    * _mpipc::Service_ - pass messages to/from multiple peers.
+* [__solid_frame_mprpc__](#solid_frame_mprpc): Message Passing InterProcess Communication over TCP ([MPRPC library](solid/frame/mprpc/README.md))
+    * _mprpc::Service_ - pass messages to/from multiple peers.
 
 ## <a id="installation"></a>Installation
 
@@ -156,7 +156,7 @@ The [CMakeLists.txt](https://github.com/vipalade/bubbles/blob/master/client/andr
 **SolidFrame** can be integrated into any iOS (Swift) project as an [Cocoa Pod](https://cocoapods.org/) by adding lines as the following, to the project's Podfile:
 
 ```Podfile
-  pod 'SolidFrame/frame_mpipc', :configuration => 'Debug', :git => 'https://github.com/vipalade/solidframe.git', :branch => 'master'
+  pod 'SolidFrame/frame_mprpc', :configuration => 'Debug', :git => 'https://github.com/vipalade/solidframe.git', :branch => 'master'
   pod 'SolidFrame/serialization_v2', :configuration => 'Debug', :git => 'https://github.com/vipalade/solidframe.git', :branch => 'master'
   pod 'SolidFrame/frame_aio_openssl', :configuration => 'Debug', :git => 'https://github.com/vipalade/solidframe.git', :branch => 'master'
 ```
@@ -470,7 +470,7 @@ The first version of the solid serialization library had two distinct steps for 
 In order to improve speed, the second version of the library tries to overlap the above two steps - i.e. the items are scheduled only if the serialization/deserialization cannot be done inplace - e.g. the buffer is either full or empty. 
 
 Notable are two other abilities of the serialization engine:
- * The support serializing streams - see [ipc file tutorial](tutorials/mpipc_file) especially [messages definition](tutorials/mpipc_file/mpipc_file_messages.hpp)
+ * The support serializing streams - see [ipc file tutorial](tutorials/mprpc_file) especially [messages definition](tutorials/mprpc_file/mprpc_file_messages.hpp)
  * The support for imposing limits on items: string, container, stream - i.e. serialization/deserialization terminates with an error if an item exceeds the limit set for the item category (either string, container, stream). This is very important when usend in an online protocol.
 
 
@@ -595,30 +595,30 @@ Work in progress: The library extends solid_frame_aio with support for Secure So
  * [__aiosecurecontext.hpp__](solid/frame/aio/openssl/aiosecurecontext.hpp): OpenSSL context wrapper.
 
 
-### <a id="solid_frame_mpipc"></a>solid_frame_mpipc
+### <a id="solid_frame_mprpc"></a>solid_frame_mprpc
 
 Message Passing - Inter Process Communication library:
  * Pluggable - i.e. header only - protocol based on solid_serialization.
  * Pluggable - i.e. header only - support for secure communication via solid_frame_aio_openssl.
  * Pluggable - i.e. header only - support for communication compression via Snappy.
 
-The header only plugins ensure that solid_frame_mpipc itself does not depend on the libraries the plugins depend on.
+The header only plugins ensure that solid_frame_mprpc itself does not depend on the libraries the plugins depend on.
 
 
- * [__mpipcservice.hpp__](solid/frame/mpipc/mpipcservice.hpp): Main interface of the library. Sends mpipc::Messages to different recipients and receives mpipc::Messages.
- * [__mpipcmessage.hpp__](solid/frame/mpipc/mpipcmessage.hpp): Base class for all messages sent through mpipc::Service.
- * [__mpipccontext.hpp__](solid/frame/mpipc/mpipccontext.hpp): A context class given to all callbacks called by the mpipc library.
- * [__mpipcconfiguration.hpp__](solid/frame/mpipc/mpipcconfiguration.hpp): Configuration data for mpipc::Service.
+ * [__mprpcservice.hpp__](solid/frame/mprpc/mprpcservice.hpp): Main interface of the library. Sends mprpc::Messages to different recipients and receives mprpc::Messages.
+ * [__mprpcmessage.hpp__](solid/frame/mprpc/mprpcmessage.hpp): Base class for all messages sent through mprpc::Service.
+ * [__mprpccontext.hpp__](solid/frame/mprpc/mprpccontext.hpp): A context class given to all callbacks called by the mprpc library.
+ * [__mprpcconfiguration.hpp__](solid/frame/mprpc/mprpcconfiguration.hpp): Configuration data for mprpc::Service.
 
 __Usefull links__
- * [MPIPC README](solid/frame/mpipc/README.md)
- * [MPIPC Relay](solid/frame/mpipc/README.md#relay_engine)
+ * [MPRPC README](solid/frame/mprpc/README.md)
+ * [MPRPC Relay](solid/frame/mprpc/README.md#relay_engine)
  * [Tutorial: aio_echo](tutorials/aio_echo/README.md)
- * [Tutorial: mpipc_echo](tutorials/mpipc_echo/README.md)
- * [Tutorial: mpipc_request](tutorials/mpipc_request/README.md)
- * [Tutorial: mpipc_request_ssl](tutorials/mpipc_request_ssl/README.md)
- * [Tutorial: mpipc_file](tutorials/mpipc_file/README.md)
- * [Tutorial: mpipc_echo_relay](tutorials/mpipc_echo_relay/README.md)
+ * [Tutorial: mprpc_echo](tutorials/mprpc_echo/README.md)
+ * [Tutorial: mprpc_request](tutorials/mprpc_request/README.md)
+ * [Tutorial: mprpc_request_ssl](tutorials/mprpc_request_ssl/README.md)
+ * [Tutorial: mprpc_file](tutorials/mprpc_file/README.md)
+ * [Tutorial: mprpc_echo_relay](tutorials/mprpc_echo_relay/README.md)
 
 ### <a id="solid_frame_file"></a>solid_frame_file
 

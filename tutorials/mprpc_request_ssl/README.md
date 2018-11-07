@@ -1,18 +1,18 @@
-# solid::frame::mpipc SSL request tutorial
+# solid::frame::mprpc SSL request tutorial
 
-Exemplifies the use of solid_frame_mpipc, solid_frame_aio, solid_frame_aio_openssl and solid_frame libraries
+Exemplifies the use of solid_frame_mprpc, solid_frame_aio, solid_frame_aio_openssl and solid_frame libraries
 
 __Source files__
- * Message definitions: [mpipc_request_messages.hpp](mpipc_request_messages.hpp)
- * The server: [mpipc_request_server.cpp](mpipc_request_server.cpp)
- * The client: [mpipc_request_client.cpp](mpipc_request_client.cpp)
+ * Message definitions: [mprpc_request_messages.hpp](mprpc_request_messages.hpp)
+ * The server: [mprpc_request_server.cpp](mprpc_request_server.cpp)
+ * The client: [mprpc_request_client.cpp](mprpc_request_client.cpp)
 
 Before continuing with this tutorial, you should:
  * prepare a SolidFrame build as explained [here](../../README.md#installation).
  * read the [overview of the asynchronous active object model](../../solid/frame/README.md).
- * read the [informations about solid_frame_mpipc](../../solid/frame/mpipc/README.md)
- * follow the first mpipc tutorial: [mpipc_echo](../mpipc_echo)
- * __follow the mpipc request tutorial__: [mpipc_request](../mpipc_request)
+ * read the [informations about solid_frame_mprpc](../../solid/frame/mprpc/README.md)
+ * follow the first mprpc tutorial: [mprpc_echo](../mprpc_echo)
+ * __follow the mprpc request tutorial__: [mprpc_request](../mprpc_request)
 
 ## Overview
 
@@ -26,10 +26,10 @@ We will further delve into the differences from the previous tutorial.
 ## Protocol definition
 
 As you recall, the Request from the previous tutorial only contained a string "userid_regex" used for filtering the server records.
-Now we will use a more powerful command message with support for polymorphic keys. Here is its declarations from mpipc_request_messages.hpp:
+Now we will use a more powerful command message with support for polymorphic keys. Here is its declarations from mprpc_request_messages.hpp:
 
 ```C++
-struct Request: solid::frame::mpipc::Message{
+struct Request: solid::frame::mprpc::Message{
     std::shared_ptr<RequestKey> key;
 
     Request(){}
@@ -284,7 +284,7 @@ Next on the protocol header contains the declarations for the Response message w
 The last thing that differs is the protocol definition - which now will contain the RequestKeys too:
 
 ```C++
-using ProtocolT = solid::frame::mpipc::serialization_v2::Protocol<uint8_t>;
+using ProtocolT = solid::frame::mprpc::serialization_v2::Protocol<uint8_t>;
 
 template <class R>
 inline void protocol_setup(R _r, ProtocolT& _rproto)
@@ -314,7 +314,7 @@ using namespace ipc_request;
 
 template <class M>
 void complete_message(
-    frame::mpipc::ConnectionContext& _rctx,
+    frame::mprpc::ConnectionContext& _rctx,
     std::shared_ptr<M>&              _rsent_msg_ptr,
     std::shared_ptr<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
@@ -370,10 +370,10 @@ struct MessageSetup {
 
 The above code will register onto the serialization engine both the message types and the key types.
 
-Next let configure the mpipc::Service with OpenSSL support:
+Next let configure the mprpc::Service with OpenSSL support:
 
 ```C++
-frame::mpipc::openssl::setup_client(
+frame::mprpc::openssl::setup_client(
     cfg,
     [](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
         _rctx.addVerifyAuthority(loadFile("echo-ca-cert.pem"));
@@ -381,7 +381,7 @@ frame::mpipc::openssl::setup_client(
         _rctx.loadPrivateKey(loadFile("echo-client-key.pem"));
         return ErrorCodeT();
     },
-    frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
+    frame::mprpc::openssl::NameCheckSecureStart{"echo-server"}
 );
 ```
 
@@ -390,7 +390,7 @@ Note that the _pem_ self-signed certificates files above must be on the same dir
 To add Snappy communication compress we just need the following line:
 
 ```C++
-frame::mpipc::snappy::setup(cfg);
+frame::mprpc::snappy::setup(cfg);
 ```
 
 Both code snippets above must be added just before:
@@ -430,8 +430,8 @@ before sending the message command to the server.
 ### Compile
 
 ```bash
-$ cd solid_frame_tutorials/mpipc_request
-$ c++ -o mpipc_request_client mpipc_request_client.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame_aio_openssl -lsolid_frame -lsolid_utility -lsolid_system -lssl -lcrypto -lsnappy -lpthread
+$ cd solid_frame_tutorials/mprpc_request
+$ c++ -o mprpc_request_client mprpc_request_client.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mprpc -lsolid_frame_aio -lsolid_frame_aio_openssl -lsolid_frame -lsolid_utility -lsolid_system -lssl -lcrypto -lsnappy -lpthread
 ```
 
 ## The server implementation
@@ -441,7 +441,7 @@ So the differences from the server implementation on the previous tutorial are r
  * Request command
    * the way that the serialization engine must be configured
    * the way the command is handled - using RequestKeyVisitors
- * mpipc::Service configuration
+ * mprpc::Service configuration
    * with support for OpenSSL
    * with support for communication compression via Snappy
 
@@ -518,7 +518,7 @@ The complete_message<Response> is same as in previous tutorial, but complete_mes
 ```C++
 template <>
 void complete_message<ipc_request::Request>(
-    frame::mpipc::ConnectionContext &_rctx,
+    frame::mprpc::ConnectionContext &_rctx,
     std::shared_ptr<ipc_request::Request> &_rsent_msg_ptr,
     std::shared_ptr<ipc_request::Request> &_rrecv_msg_ptr,
     ErrorConditionT const &_rerror
@@ -696,7 +696,7 @@ I will not delve into the details for every visit function as I believe they are
 Moving on with the changes on server code next is the code that enables SSL support:
 
 ```C++
-frame::mpipc::openssl::setup_server(
+frame::mprpc::openssl::setup_server(
     cfg,
     [](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
         _rctx.loadVerifyFile("echo-ca-cert.pem");
@@ -704,14 +704,14 @@ frame::mpipc::openssl::setup_server(
         _rctx.loadPrivateKeyFile("echo-server-key.pem");
         return ErrorCodeT();
     },
-    frame::mpipc::openssl::NameCheckSecureStart{"echo-client"}//does nothing - OpenSSL does not check for hostname on SSL_accept
+    frame::mprpc::openssl::NameCheckSecureStart{"echo-client"}//does nothing - OpenSSL does not check for hostname on SSL_accept
 );
 ```
 
 along with the code that enables Snappy communication compression:
 
 ```C++
-frame::mpipc::snappy::setup(cfg);
+frame::mprpc::snappy::setup(cfg);
 ```
 
 Both the above snippets of code should be put just above the following line:
@@ -723,8 +723,8 @@ err = ipcservice.reconfigure(std::move(cfg));
 ### Compile
 
 ```bash
-$ cd solid_frame_tutorials/mpipc_request
-$ c++ -o mpipc_request_server mpipc_request_server.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame_aio_openssl -lsolid_frame -lsolid_utility -lsolid_system -lssl -lcrypto -lsnappy -lpthread
+$ cd solid_frame_tutorials/mprpc_request
+$ c++ -o mprpc_request_server mprpc_request_server.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mprpc -lsolid_frame_aio -lsolid_frame_aio_openssl -lsolid_frame -lsolid_utility -lsolid_system -lssl -lcrypto -lsnappy -lpthread
 ```
 
 ## Test
@@ -733,26 +733,26 @@ Now that we have two applications a client and a server let us test it in a litt
 
 **Console-1**:
 ```BASH
-$ ./mpipc_request_server 0.0.0.0:3333
+$ ./mprpc_request_server 0.0.0.0:3333
 ```
 **Console-2**:
 ```BASH
-$ ./mpipc_request_client
+$ ./mprpc_request_client
 localhost:3333 [a-z]+_man
 127.0.0.1:4444 user\d*
 ```
 **Console-3**:
 ```BASH
 #wait for a while
-$ ./mpipc_request_server 0.0.0.0:4444
+$ ./mprpc_request_server 0.0.0.0:4444
 ```
 
-On the client you will see that the records list is immediately received back from :3333 server while the second response is received back only after the second server is started. This is because, normally, the ipcservice will try re-sending the message until the recipient side becomes available. Use **mpipc::MessageFlags::OneShotSend** to change the behavior and only try once to send the message and immediately fail if the server is offline.
+On the client you will see that the records list is immediately received back from :3333 server while the second response is received back only after the second server is started. This is because, normally, the ipcservice will try re-sending the message until the recipient side becomes available. Use **mprpc::MessageFlags::OneShotSend** to change the behavior and only try once to send the message and immediately fail if the server is offline.
 
 ## Next
 
-If you are still interested what solid_frame_mpipc library has to offer, check-out the next tutorial
+If you are still interested what solid_frame_mprpc library has to offer, check-out the next tutorial
 
- * [MPIPC File](../mpipc_file)
+ * [MPRPC File](../mprpc_file)
 
 in which you will learn how to implement a very basic remote file access protocol.

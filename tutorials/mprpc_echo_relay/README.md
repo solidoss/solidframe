@@ -1,21 +1,21 @@
-# solid::frame::mpipc relay echo tutorial
+# solid::frame::mprpc relay echo tutorial
 
-Exemplifies the use of solid_frame_mpipc for relaying messages between connections.
+Exemplifies the use of solid_frame_mprpc for relaying messages between connections.
 
 __Source files__
- * Register message definition: [mpipc_echo_relay_register.hpp](mpipc_echo_relay_register.hpp)
- * The relay server: [mpipc_echo_relay_server.cpp](mpipc_echo_relay_server.cpp)
- * The client: [mpipc_echo_relay_client.cpp](mpipc_echo_relay_client.cpp)
+ * Register message definition: [mprpc_echo_relay_register.hpp](mprpc_echo_relay_register.hpp)
+ * The relay server: [mprpc_echo_relay_server.cpp](mprpc_echo_relay_server.cpp)
+ * The client: [mprpc_echo_relay_client.cpp](mprpc_echo_relay_client.cpp)
 
 Before continuing with this tutorial, you should:
  * prepare a SolidFrame build as explained [here](../../README.md#installation).
  * read the [overview of the asynchronous active object model](../../solid/frame/README.md).
- * read the [informations about solid_frame_mpipc](../../solid/frame/mpipc/README.md)
- * read the [informations about solid_frame_mpipc relay engine](../../solid/frame/mpipc/README.md#relay_engine)
+ * read the [informations about solid_frame_mprpc](../../solid/frame/mprpc/README.md)
+ * read the [informations about solid_frame_mprpc relay engine](../../solid/frame/mprpc/README.md#relay_engine)
 
 ## Overview
 
-In this tutorial you will learn how to use solid_frame_mpipc library for peer-to-peer message passing through a relay server.
+In this tutorial you will learn how to use solid_frame_mprpc library for peer-to-peer message passing through a relay server.
 The client will send a message to a peer specified by its relay name. 
 
 **The client**:
@@ -30,9 +30,9 @@ The client will send a message to a peer specified by its relay name.
  * relays messages from registered connections.
 
 You will need three source files:
- * _mpipc_echo_relay_register.hpp_: connection register protocol message.
- * _mpipc_echo_relay_client.cpp_: the client implementation.
- * _mpipc_echo_relay_relay.cpp_: the relay server implementation.
+ * _mprpc_echo_relay_register.hpp_: connection register protocol message.
+ * _mprpc_echo_relay_client.cpp_: the client implementation.
+ * _mprpc_echo_relay_relay.cpp_: the relay server implementation.
 
 
 ## Protocol definition
@@ -41,15 +41,15 @@ There are two protocols involved in this tutorial environment:
  * the one between clients and the relay server, used for registering connections onto relay server: Register message
  * the one between clients themselves: Message.
 
-We put the definition of the Register message in a separate header(mpipc_echo_relay_register.hpp) used by both the client and server code:
+We put the definition of the Register message in a separate header(mprpc_echo_relay_register.hpp) used by both the client and server code:
 ```C++
 #pragma once
 
-#include "solid/frame/mpipc/mpipccontext.hpp"
-#include "solid/frame/mpipc/mpipcmessage.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
+#include "solid/frame/mprpc/mprpccontext.hpp"
+#include "solid/frame/mprpc/mprpcmessage.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v2.hpp"
 
-struct Register : solid::frame::mpipc::Message {
+struct Register : solid::frame::mprpc::Message {
     std::string name;
 
     Register() {}
@@ -82,15 +82,15 @@ struct hash<TypeIdT> {
 };
 } //namespace std
 
-using ProtocolT = solid::frame::mpipc::serialization_v2::Protocol<TypeIdT>;
+using ProtocolT = solid::frame::mprpc::serialization_v2::Protocol<TypeIdT>;
 
 constexpr TypeIdT null_type_id{0, 0};
 constexpr TypeIdT register_type_id{0, 1};
 ```
 
-The Message is only used by the client so it will be defined in the mpipc_echo_relay_client.cpp as follows:
+The Message is only used by the client so it will be defined in the mprpc_echo_relay_client.cpp as follows:
 ```C++
-struct Message : solid::frame::mpipc::Message {
+struct Message : solid::frame::mprpc::Message {
     std::string name;
     std::string data;
 
@@ -112,12 +112,12 @@ struct Message : solid::frame::mpipc::Message {
 
 ## The client implementation
 
-We will skip the instantiation of needed objects (Manager, mpipc::Service, Scheduler, Resolver) as they were presented in previous tutorials. Now we will continue with the configuration of mpipc::Service.
+We will skip the instantiation of needed objects (Manager, mprpc::Service, Scheduler, Resolver) as they were presented in previous tutorials. Now we will continue with the configuration of mprpc::Service.
 
 First initializing the protocol:
 ```C++
             auto   proto = ProtocolT::create();
-            frame::mpipc::Configuration cfg(scheduler, proto);
+            frame::mprpc::Configuration cfg(scheduler, proto);
 
             proto->registerType<Register>(con_register, 0, 10);
             proto->registerType<Message>(on_message, 1, 10);
@@ -126,16 +126,16 @@ First initializing the protocol:
 where con_register is a lambda defined as follows:
 ```C++
             auto con_register = [](
-                frame::mpipc::ConnectionContext& _rctx,
+                frame::mprpc::ConnectionContext& _rctx,
                 std::shared_ptr<Register>&       _rsent_msg_ptr,
                 std::shared_ptr<Register>&       _rrecv_msg_ptr,
                 ErrorConditionT const&           _rerror) {
                 SOLID_CHECK(!_rerror);
 
                 if (_rrecv_msg_ptr and _rrecv_msg_ptr->name.empty()) {
-                    auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
+                    auto lambda = [](frame::mprpc::ConnectionContext&, ErrorConditionT const& _rerror) {
                         idbg("peerb --- enter active error: " << _rerror.message());
-                        return frame::mpipc::MessagePointerT();
+                        return frame::mprpc::MessagePointerT();
                     };
                     cout << "Connection registered" << endl;
                     _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
@@ -149,7 +149,7 @@ The "on_message" in protocol initialization code snippet is also a lambda, defin
 
 ```C++
             auto on_message = [&p](
-                frame::mpipc::ConnectionContext& _rctx,
+                frame::mprpc::ConnectionContext& _rctx,
                 std::shared_ptr<Message>&        _rsent_msg_ptr,
                 std::shared_ptr<Message>&        _rrecv_msg_ptr,
                 ErrorConditionT const&           _rerror) {
@@ -182,7 +182,7 @@ In order to be able to receive messages from other peers, a client must always s
  * register the connection after it was established
  * create a connection pool with active connections
 
-To register connection after it was established we need to configure mpipc::Service with a callback for connection start event:
+To register connection after it was established we need to configure mprpc::Service with a callback for connection start event:
 
 ```C++
     cfg.client.connection_start_fnc = on_connection_start;
@@ -190,17 +190,17 @@ To register connection after it was established we need to configure mpipc::Serv
 where, _on_connection_start_ is a lambda:
 
 ```C++
-            auto on_connection_start = [&p](frame::mpipc::ConnectionContext& _rctx) {
+            auto on_connection_start = [&p](frame::mprpc::ConnectionContext& _rctx) {
                 idbg(_rctx.recipientId());
 
                 auto            msgptr = std::make_shared<Register>(p.name);
-                ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mpipc::MessageFlagsE::WaitResponse});
+                ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mprpc::MessageFlagsE::WaitResponse});
                 SOLID_CHECK(not err, "failed send Register");
             };
 ```
 which instantiates a Register request message and sends it to the server.
 
-To activate a connection pool directed to the server, we need to call the following method after having successfully configured the mpipc::Service:
+To activate a connection pool directed to the server, we need to call the following method after having successfully configured the mprpc::Service:
 
 ```C++
     ipcservice.createConnectionPool(p.server_addr.c_str());
@@ -221,7 +221,7 @@ Next we have the loop for reading user input, construct the Message and send it 
                 size_t offset = line.find(' ');
                 if (offset != string::npos) {
                     recipient = p.server_addr + '/' + line.substr(0, offset);
-                    ipcservice.sendMessage(recipient.c_str(), make_shared<Message>(p.name, line.substr(offset + 1)), {frame::mpipc::MessageFlagsE::WaitResponse});
+                    ipcservice.sendMessage(recipient.c_str(), make_shared<Message>(p.name, line.substr(offset + 1)), {frame::mprpc::MessageFlagsE::WaitResponse});
                 } else {
                     cout << "No recipient name specified. E.g:" << endl
                          << "alpha Some text to send" << endl;
@@ -235,8 +235,8 @@ Notable is that now we specify the recipient name of the form "relay_host_addr/p
 ### Compile
 
 ```bash
-$ cd solid_frame_tutorials/mpipc_echo_relay
-$ c++ -o mpipc_echo_relay_client mpipc_echo_relay_client.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
+$ cd solid_frame_tutorials/mprpc_echo_relay
+$ c++ -o mprpc_echo_relay_client mprpc_echo_relay_client.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mprpc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
 ```
 Now that we have a client application, we need a server to connect to. Let's move one on implementing the server.
 
@@ -276,8 +276,8 @@ then, (preferable in a new block), instantiate the needed objects (notable being
     {
         AioSchedulerT                         scheduler;
         frame::Manager                        manager;
-        frame::mpipc::relay::SingleNameEngine relay_engine(manager); //before relay service because it must outlive it
-        frame::mpipc::ServiceT                ipcservice(manager);
+        frame::mprpc::relay::SingleNameEngine relay_engine(manager); //before relay service because it must outlive it
+        frame::mprpc::ServiceT                ipcservice(manager);
         ErrorConditionT                       err;
 
         err = scheduler.start(1);
@@ -288,12 +288,12 @@ then, (preferable in a new block), instantiate the needed objects (notable being
         }
 ```
 
-next follows a new block for configuring the mpipc::Service:
+next follows a new block for configuring the mprpc::Service:
 
 ```C++
         {
             auto con_register = [&relay_engine](
-                frame::mpipc::ConnectionContext& _rctx,
+                frame::mprpc::ConnectionContext& _rctx,
                 std::shared_ptr<Register>&       _rsent_msg_ptr,
                 std::shared_ptr<Register>&       _rrecv_msg_ptr,
                 ErrorConditionT const&           _rerror) {
@@ -315,7 +315,7 @@ next follows a new block for configuring the mpipc::Service:
             };
 
             auto                        proto = ProtocolT::create();
-            frame::mpipc::Configuration cfg(scheduler, relay_engine, proto);
+            frame::mprpc::Configuration cfg(scheduler, relay_engine, proto);
 
             proto->null(null_type_id);
             proto->registerMessage<Register>(con_register, register_type_id);
@@ -325,7 +325,7 @@ next follows a new block for configuring the mpipc::Service:
             cfg.server.listener_address_str += p.listener_port;
             cfg.relay_enabled = true;
 
-            cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
+            cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 
             err = ipcservice.reconfigure(std::move(cfg));
 
@@ -372,7 +372,7 @@ going back to the configuration code, after configuring the listener, we enable 
 and set Active as the start state for connections:
 
 ```C++
-    cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
+    cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 ```
 
 the last part of the configuration block handles the service _reconfigure_ call and, in case of success, it prints the port on which the server is listening on.
@@ -390,8 +390,8 @@ If everything was Ok, the server awaits for the user to press ENTER, and then ex
 ### Compile
 
 ```bash
-$ cd solid_frame_tutorials/mpipc_echo_relay
-$ c++ -o mpipc_echo_relay_relay mpipc_echo_relay_server.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
+$ cd solid_frame_tutorials/mprpc_echo_relay
+$ c++ -o mprpc_echo_relay_relay mprpc_echo_relay_server.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mprpc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
 ```
 
 ## Test
@@ -400,17 +400,17 @@ Now that we have both the client and the relay server applications, let us test 
 
 **Console-1**:
 ```BASH
-$ ./mpipc_echo_relay_server
+$ ./mprpc_echo_relay_server
 ```
 **Console-2**:
 ```BASH
-$ ./mpipc_echo_relay_client alpha
+$ ./mprpc_echo_relay_client alpha
 beta Some text sent from alpha to beta
 beta Some other text sent from alpha to beta
 ```
 **Console-3**:
 ```BASH
-$ ./mpipc_echo_relay_client beta
+$ ./mprpc_echo_relay_client beta
 alpha Some text sent from beta to alpha
 alpha Some other text sent from beta to alpha
 ```
@@ -418,5 +418,5 @@ alpha Some other text sent from beta to alpha
 ## Next
 
 Well, this is the last tutorial for now.
-If solid_frame_mpipc library or solid_frame has captured your attention, start using it and/or give feedback.
+If solid_frame_mprpc library or solid_frame has captured your attention, start using it and/or give feedback.
 
