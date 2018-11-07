@@ -48,7 +48,7 @@ Pod::Spec.new do |s|
 
   # ――― Source Code ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
 
-  s.preserve_paths = "solid", "solid/*.hpp", "solid/system", "solid/system/*.{hpp,ipp}", "solid/utility", "solid/utility/*.hpp", "solid/serialization", "solid/serialization/*.hpp", "solid/frame", "solid/frame/*.hpp", "solid/frame/aio", "solid/frame/aio/*.hpp", "solid/frame/aio/openssl", "solid/frame/aio/openssl/*.hpp", "solid/frame/mpipc", "solid/frame/mpipc/*.hpp"
+  s.preserve_paths = "solid", "solid/*.hpp", "solid/system", "solid/system/*.{hpp,ipp}", "solid/utility", "solid/utility/*.hpp", "solid/serialization", "solid/serialization/*.hpp", "solid/frame", "solid/frame/*.hpp", "solid/frame/aio", "solid/frame/aio/*.hpp", "solid/frame/aio/openssl", "solid/frame/aio/openssl/*.hpp", "solid/frame/mprpc", "solid/frame/mprpc/*.hpp"
 
   s.subspec 'system' do |sp|
     sp.name = 'system'
@@ -104,12 +104,12 @@ Pod::Spec.new do |s|
     sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
   end
 
-  s.subspec 'frame_mpipc' do |sp|
-    sp.name = 'frame_mpipc'
+  s.subspec 'frame_mprpc' do |sp|
+    sp.name = 'frame_mprpc'
     sp.dependency 'SolidFrame/frame_aio'
-    sp.preserve_paths = "solid/frame/mpipc", "solid/frame/frame/mpipc/*.hpp"
-    sp.public_header_files = 'solid/frame/mpipc/*.hpp'
-    sp.source_files = 'solid/frame/mpipc/src/*.{cpp,hpp}', 'solid/frame/mpipc/*.hpp'
+    sp.preserve_paths = "solid/frame/mprpc", "solid/frame/frame/mprpc/*.hpp"
+    sp.public_header_files = 'solid/frame/mprpc/*.hpp'
+    sp.source_files = 'solid/frame/mprpc/src/*.{cpp,hpp}', 'solid/frame/mprpc/*.hpp'
     sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
   end
   

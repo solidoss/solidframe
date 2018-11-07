@@ -192,7 +192,7 @@ if(OPENSSL_FOUND)
 
     add_executable(test_mprpc_pool ${mprpcPoolTests})
 
-    add_dependencies(test_mprpc_pool build-openssl)
+    add_dependencies(test_mprpc_pool build-openssl build-snappy)
 
     target_link_libraries(test_mprpc_pool
         solid_frame_mprpc
