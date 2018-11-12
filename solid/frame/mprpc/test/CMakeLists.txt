@@ -65,6 +65,7 @@ if(OPENSSL_FOUND)
         test_clientserver_oneshot.cpp
         test_clientserver_delayed.cpp
         test_clientserver_idempotent.cpp
+        test_clientserver_split.cpp
     )
     #
     create_test_sourcelist( mprpcClientServerTests test_mprpc_clientserver.cpp ${mprpcClientServerTestSuite})
@@ -120,6 +121,8 @@ if(OPENSSL_FOUND)
     add_test(NAME TestClientServerDelayedS      COMMAND  test_mprpc_clientserver test_clientserver_delayed 1 s)
     add_test(NAME TestClientServerIdempontent   COMMAND  test_mprpc_clientserver test_clientserver_idempotent)
     add_test(NAME TestClientServerIdempontentS  COMMAND  test_mprpc_clientserver test_clientserver_idempotent 1 s)
+    
+    add_test(NAME TestClientServerSplit1        COMMAND  test_mprpc_clientserver test_clientserver_split 1)
 
 
     #==============================================================================
@@ -291,6 +294,7 @@ if(OPENSSL_FOUND)
         test_relay_cancel_response.cpp
         test_relay_close_request.cpp
         test_relay_close_response.cpp
+        test_relay_split.cpp
     )
     #
     create_test_sourcelist( mprpcRelayTests test_mprpc_relay.cpp ${mprpcRelayTestSuite})
