@@ -80,10 +80,10 @@ size_t real_size(size_t _sz)
 }
 
 struct Message : frame::mprpc::Message {
-    uint32_t     idx;
-    std::string  str;
-    mutable bool serialized;
-    mutable size_t response_count;//not serialized
+    uint32_t       idx;
+    std::string    str;
+    mutable bool   serialized;
+    mutable size_t response_count; //not serialized
 
     Message(uint32_t _idx)
         : idx(_idx)
@@ -99,23 +99,29 @@ struct Message : frame::mprpc::Message {
     {
         solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
-    
+
     Message(
-        const Message &_rmsg
-    ): frame::mprpc::Message(_rmsg), idx(_rmsg.idx), str(_rmsg.str), serialized(false), response_count(0){}
-    
-    
+        const Message& _rmsg)
+        : frame::mprpc::Message(_rmsg)
+        , idx(_rmsg.idx)
+        , str(_rmsg.str)
+        , serialized(false)
+        , response_count(0)
+    {
+    }
+
     ~Message() override
     {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
 
         solid_assert(serialized || this->isBackOnSender());
     }
-    
-    size_t splitCount()const{
+
+    size_t splitCount() const
+    {
         return idx % 4;
     }
-    
+
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, /*_name*/)
     {
         _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
@@ -206,21 +212,29 @@ void client_complete_message(
         }
     }
     if (_rrecv_msg_ptr) {
-        if (!_rrecv_msg_ptr->check()) {
-            solid_throw("Message check failed.");
-        }
+        solid_check(_rrecv_msg_ptr->check(), "Message check failed.");
 
-        //cout<< _rmsgptr->str.size()<<'\n';
+        size_t  cnt  = -1;
+        bool done = false;
+        if (_rsent_msg_ptr) {
+            cnt = _rsent_msg_ptr->response_count;
+            ++_rsent_msg_ptr->response_count;
+            done = cnt == _rsent_msg_ptr->splitCount();
+        }
+        const bool is_response      = _rrecv_msg_ptr->isResponse();
+        const bool is_response_part = _rrecv_msg_ptr->isResponsePart();
+        const bool is_response_last = _rrecv_msg_ptr->isResponseLast();
+
+        solid_dbg(generic_logger, Info, "response_cout = " << cnt << " is_rsp = " << is_response << " is_rsp_part = " << is_response_part << " is_rsp_last = " << is_response_last);
+
         transfered_size += _rrecv_msg_ptr->str.size();
         ++transfered_count;
 
-        if (!_rrecv_msg_ptr->isBackOnSender()) {
-            solid_throw("Message not back on sender!.");
-        }
+        solid_check(_rrecv_msg_ptr->isBackOnSender(), "Message not back on sender!.");
 
         ++crtbackidx;
 
-        if (crtbackidx == writecount) {
+        if (crtbackidx == writecount && done) {
             lock_guard<mutex> lock(mtx);
             running = false;
             cnd.notify_one();
@@ -247,18 +261,19 @@ void server_complete_message(
         //send message back
 
         solid_check(_rctx.recipientId().isValidConnection(), "Connection id should not be invalid!");
-        
+
         ErrorConditionT err;
-        
-        for(size_t i = 0; i < _rrecv_msg_ptr->splitCount(); ++i){
+
+        for (size_t i = 0; i < _rrecv_msg_ptr->splitCount(); ++i) {
             err = _rctx.service().sendResponse(
                 _rctx.recipientId(), std::make_shared<Message>(*_rrecv_msg_ptr),
-                {frame::mprpc::MessageFlagsE::WaitResponse});
+                {frame::mprpc::MessageFlagsE::ResponsePart});
 
             solid_check(!err, "Connection id should not be invalid: " << err.message());
         }
 
-        err = _rctx.service().sendResponse(_rctx.recipientId(), _rrecv_msg_ptr);
+        err = _rctx.service().sendResponse(_rctx.recipientId(), _rrecv_msg_ptr,
+            {frame::mprpc::MessageFlagsE::ResponseLast});
 
         solid_check(!err, "Connection id should not be invalid: " << err.message());
 
@@ -281,7 +296,7 @@ void server_complete_message(
 int test_clientserver_split(int argc, char* argv[])
 {
 
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {".*:IEW"});
 
     size_t max_per_pool_connection_count = 1;
 
@@ -448,14 +463,14 @@ int test_clientserver_split(int argc, char* argv[])
 
         pmprpcclient = &mprpcclient;
 
-        const size_t start_count = 10;
+        const size_t start_count = 1;
 
-        writecount = initarraysize * 10; //start_count;//
+        writecount = start_count; //initarraysize * 10; //
 
         for (; crtwriteidx < start_count;) {
+            crtwriteidx++;
             mprpcclient.sendMessage(
-                "localhost", std::make_shared<Message>(crtwriteidx++),
-                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::WaitResponse);
+                "localhost", std::make_shared<Message>(2 /*crtwriteidx++*/), {frame::mprpc::MessageFlagsE::WaitResponse});
         }
 
         unique_lock<mutex> lock(mtx);
@@ -479,4 +494,3 @@ int test_clientserver_split(int argc, char* argv[])
 
     return 0;
 }
-

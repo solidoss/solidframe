@@ -609,4 +609,3 @@ int test_relay_split(int argc, char* argv[])
 
     return 0;
 }
-

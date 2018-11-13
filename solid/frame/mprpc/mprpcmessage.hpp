@@ -184,6 +184,16 @@ struct Message : std::enable_shared_from_this<Message> {
         return _flags.has(MessageFlagsE::Response);
     }
 
+    static bool is_response_part(const MessageFlagsT& _flags)
+    {
+        return _flags.has(MessageFlagsE::ResponsePart);
+    }
+
+    static bool is_response_last(const MessageFlagsT& _flags)
+    {
+        return _flags.has(MessageFlagsE::ResponseLast);
+    }
+
     static bool is_on_sender(const MessageFlagsT& _flags)
     {
         return !is_on_peer(_flags) && !is_back_on_sender(_flags);
@@ -270,6 +280,21 @@ struct Message : std::enable_shared_from_this<Message> {
     bool isRelayed() const
     {
         return is_relayed(flags());
+    }
+
+    bool isResponse() const
+    {
+        return is_response(flags());
+    }
+
+    bool isResponsePart() const
+    {
+        return is_response_part(flags());
+    }
+
+    bool isResponseLast() const
+    {
+        return is_response_last(flags());
     }
 
     const std::string& url() const

@@ -27,6 +27,8 @@ enum struct MessageFlagsE : MessageFlagsValueT {
     DoneSend,
     Canceled,
     Response,
+    ResponsePart,
+    ResponseLast,
     OnPeer,
     BackOnSender,
     Relayed,
