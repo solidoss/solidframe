@@ -32,6 +32,8 @@ std::ostream& operator<<(std::ostream& _ros, const LogLineBase& _line)
     return _line.writeTo(_ros);
 }
 
+LogLineBase::~LogLineBase() {}
+
 LogRecorder::~LogRecorder() {}
 
 void LogRecorder::recordLine(const solid::LogLineBase& /*_rlog_line*/) {}

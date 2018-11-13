@@ -136,18 +136,17 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
     
     
 
-    set(SYS_DEBUG_FLAGS " -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
     if(CMAKE_CXX_COMPILER MATCHES "clang")
         add_compile_options(
             "$<$<CONFIG:RELASE>:-O3>"
-            "$<$<CONFIG:DEBUG>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
-            "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-O3;-g3>"
+            "$<$<CONFIG:DEBUG>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-Wdelete-non-virtual-dtor;-Wnon-virtual-dtor;-g3>"
+            "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wdelete-non-virtual-dtor;-Wnon-virtual-dtor;-O3;-g3>"
         )
     else()
         add_compile_options(
             "$<$<CONFIG:RELASE>:-O3>"
-            "$<$<CONFIG:DEBUG>:-Wall;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
-            "$<$<CONFIG:MAINTAIN>:-Wall;-O3;-g3>"
+            "$<$<CONFIG:DEBUG>:-Wall;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-Wdelete-non-virtual-dtor;-Wnon-virtual-dtor;-g3>"
+            "$<$<CONFIG:MAINTAIN>:-Wall;-Wdelete-non-virtual-dtor;-Wnon-virtual-dtor;-O3;-g3>"
         )
     endif()
     

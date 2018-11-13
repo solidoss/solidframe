@@ -68,6 +68,7 @@ private:
 };
 
 struct LogLineBase {
+    virtual ~LogLineBase();
     virtual std::ostream& writeTo(std::ostream&) const = 0;
     virtual size_t        size() const                 = 0;
 };

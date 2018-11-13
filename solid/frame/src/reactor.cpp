@@ -806,5 +806,7 @@ void ReactorBase::unprepareThread()
     scheduler().unprepareThread(idInScheduler(), *this);
 }
 
+ReactorBase::~ReactorBase() {}
+
 } //namespace frame
 } //namespace solid

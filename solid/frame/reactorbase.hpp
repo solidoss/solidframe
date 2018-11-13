@@ -27,6 +27,7 @@ class SchedulerBase;
  */
 class ReactorBase {
 public:
+    virtual ~ReactorBase();
     virtual bool raise(UniqueId const& _robjuid, Event const& _re) = 0;
     virtual bool raise(UniqueId const& _robjuid, Event&& _ue)      = 0;
     virtual void stop()                                            = 0;
