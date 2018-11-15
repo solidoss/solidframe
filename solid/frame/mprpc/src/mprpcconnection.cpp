@@ -577,9 +577,10 @@ struct Connection::Sender : MessageWriter::Sender {
         rcon_.doCompleteRelayed(rctx_, _prelay_data, _rmsgid);
     }
 
-    void cancelMessage(MessageBundle& _rmsg_bundle, MessageId const& _rpool_msg_id) override
+    bool cancelMessage(MessageBundle& _rmsg_bundle, MessageId const& _rpool_msg_id) override
     {
         rcon_.doCompleteMessage(rctx_, _rpool_msg_id, _rmsg_bundle, err_);
+        return true;
     }
     void cancelRelayed(RelayData* _prelay_data, MessageId const& _rmsgid) override
     {
@@ -1563,9 +1564,9 @@ struct Connection::Receiver : MessageReader::Receiver {
         rcon_.doCancelRelayed(rctx_, nullptr, _rrelay_id);
     }
 
-    ResponseStateE checkResponseState(const MessageHeader& _rmsghdr, MessageId& _rrelay_id) const override
+    ResponseStateE checkResponseState(const MessageHeader& _rmsghdr, MessageId& _rrelay_id, const bool _erase_request) const override
     {
-        return rcon_.doCheckResponseState(rctx_, _rmsghdr, _rrelay_id);
+        return rcon_.doCheckResponseState(rctx_, _rmsghdr, _rrelay_id, _erase_request);
     }
 
     bool isRelayDisabled() const override
@@ -1812,12 +1813,14 @@ struct Connection::SenderResponse : Connection::Sender {
     {
     }
 
-    void cancelMessage(MessageBundle& _rmsg_bundle, MessageId const& _rpool_msg_id) override
+    bool cancelMessage(MessageBundle& _rmsg_bundle, MessageId const& _rpool_msg_id) override
     {
 
         context().message_flags = _rmsg_bundle.message_flags;
         context().request_id    = rresponse_ptr_->requestId();
         context().message_id    = _rpool_msg_id;
+
+        bool must_clear_request = !rresponse_ptr_->isResponsePart(); //do not clear the request if the response is a partial one
 
         if (!solid_function_empty(_rmsg_bundle.complete_fnc)) {
             solid_dbg(logger, Info, this);
@@ -1828,6 +1831,8 @@ struct Connection::SenderResponse : Connection::Sender {
             rproto_.complete(_rmsg_bundle.message_type_id, context(), _rmsg_bundle.message_ptr, rresponse_ptr_, err_);
             request_found_ = true;
         }
+
+        return must_clear_request;
     }
 };
 
@@ -2042,9 +2047,9 @@ bool Connection::doReceiveRelayResponse(
     return config.relayEngine().relayResponse(relay_id_, _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
 }
 //-----------------------------------------------------------------------------
-ResponseStateE Connection::doCheckResponseState(frame::aio::ReactorContext& _rctx, const MessageHeader& _rmsghdr, MessageId& _rrelay_id)
+ResponseStateE Connection::doCheckResponseState(frame::aio::ReactorContext& _rctx, const MessageHeader& _rmsghdr, MessageId& _rrelay_id, const bool _erase_request)
 {
-    ResponseStateE rv = msg_writer_.checkResponseState(_rmsghdr.recipient_request_id_, _rrelay_id);
+    ResponseStateE rv = msg_writer_.checkResponseState(_rmsghdr.recipient_request_id_, _rrelay_id, _erase_request);
     if (rv == ResponseStateE::Invalid) {
         this->post(
             _rctx,

@@ -1071,7 +1071,7 @@ ErrorConditionT Service::doSendMessageToConnection(
     const size_t              _msg_type_idx,
     MessageCompleteFunctionT& _rcomplete_fnc,
     MessageId*                _pmsgid_out,
-    const MessageFlagsT&      _flags,
+    MessageFlagsT             _flags,
     std::string&              _msg_url)
 {
     //d.mtx must be locked
@@ -1089,6 +1089,12 @@ ErrorConditionT Service::doSendMessageToConnection(
         return error_service_unknown_connection;
     }
 
+    _flags |= MessageFlagsE::OneShotSend;
+
+    if (Message::is_response_part(_flags) || Message::is_response_last(_flags)) {
+        _flags |= MessageFlagsE::Synchronous;
+    }
+
     lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
     ConnectionPoolStub&    rpool = impl_->pooldq[pool_index];
     solid::ErrorConditionT error;
@@ -1101,12 +1107,12 @@ ErrorConditionT Service::doSendMessageToConnection(
     if (is_server_side_pool) {
         //for a server pool we want to enque messages in the pool
         //
-        msgid   = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags | MessageFlagsE::OneShotSend, _msg_url);
+        msgid   = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, _msg_url);
         success = manager().notify(
             _rrecipient_id_in.connectionId(),
             Connection::eventNewMessage());
     } else {
-        msgid   = rpool.insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags | MessageFlagsE::OneShotSend, _msg_url);
+        msgid   = rpool.insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, _msg_url);
         success = manager().notify(
             _rrecipient_id_in.connectionId(),
             Connection::eventNewMessage(msgid));

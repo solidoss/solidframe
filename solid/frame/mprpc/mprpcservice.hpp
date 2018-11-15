@@ -452,7 +452,7 @@ private:
         const size_t              _msg_type_idx,
         MessageCompleteFunctionT& _rcomplete_fnc,
         MessageId*                _pmsg_id_out,
-        const MessageFlagsT&      _flags,
+        MessageFlagsT             _flags,
         std::string&              _msg_url);
 
     bool doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorConditionT& _rerror);

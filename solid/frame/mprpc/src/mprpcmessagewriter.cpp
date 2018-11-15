@@ -193,7 +193,7 @@ MessagePointerT MessageWriter::fetchRequest(MessageId const& _rmsguid) const
     return MessagePointerT();
 }
 //-----------------------------------------------------------------------------
-ResponseStateE MessageWriter::checkResponseState(MessageId const& _rmsguid, MessageId& _rrelay_id)
+ResponseStateE MessageWriter::checkResponseState(MessageId const& _rmsguid, MessageId& _rrelay_id, const bool _erase_request)
 {
     if (_rmsguid.isValid() && _rmsguid.index < message_vec_.size() && _rmsguid.unique == message_vec_[_rmsguid.index].unique_) {
         MessageStub& rmsgstub = message_vec_[_rmsguid.index];
@@ -202,8 +202,10 @@ ResponseStateE MessageWriter::checkResponseState(MessageId const& _rmsguid, Mess
             return ResponseStateE::Wait;
         case MessageStub::StateE::RelayedWait:
             _rrelay_id = rmsgstub.pool_msg_id_;
-            order_inner_list_.erase(_rmsguid.index);
-            doUnprepareMessageStub(_rmsguid.index);
+            if(_erase_request){
+                order_inner_list_.erase(_rmsguid.index);
+                doUnprepareMessageStub(_rmsguid.index);
+            }
             return ResponseStateE::RelayedWait;
         case MessageStub::StateE::WriteCanceled:
             solid_assert(write_inner_list_.size());
@@ -266,24 +268,26 @@ void MessageWriter::doCancel(
     if (rmsgstub.msgbundle_.message_ptr) {
         //called on explicit user request or on peer request (via reader) or on response received
         rmsgstub.msgbundle_.message_flags.set(MessageFlagsE::Canceled);
-        _rsender.cancelMessage(rmsgstub.msgbundle_, rmsgstub.pool_msg_id_);
-
-        if (rmsgstub.serializer_ptr_) {
-            //the message is being sent
-            rmsgstub.serializer_ptr_->clear();
-            rmsgstub.state_ = MessageStub::StateE::WriteCanceled;
-        } else if (!_force && rmsgstub.state_ == MessageStub::StateE::WriteWait) {
-            //message is waiting response
-            rmsgstub.state_ = MessageStub::StateE::WriteWaitCanceled;
-        } else if (rmsgstub.state_ == MessageStub::StateE::WriteWait || rmsgstub.state_ == MessageStub::StateE::WriteWaitCanceled) {
-            order_inner_list_.erase(_msgidx);
-            doUnprepareMessageStub(_msgidx);
+        if (_rsender.cancelMessage(rmsgstub.msgbundle_, rmsgstub.pool_msg_id_)) {
+            if (rmsgstub.serializer_ptr_) {
+                //the message is being sent
+                rmsgstub.serializer_ptr_->clear();
+                rmsgstub.state_ = MessageStub::StateE::WriteCanceled;
+            } else if (!_force && rmsgstub.state_ == MessageStub::StateE::WriteWait) {
+                //message is waiting response
+                rmsgstub.state_ = MessageStub::StateE::WriteWaitCanceled;
+            } else if (rmsgstub.state_ == MessageStub::StateE::WriteWait || rmsgstub.state_ == MessageStub::StateE::WriteWaitCanceled) {
+                order_inner_list_.erase(_msgidx);
+                doUnprepareMessageStub(_msgidx);
+            } else {
+                //message is waiting to be sent
+                solid_assert(write_inner_list_.size());
+                order_inner_list_.erase(_msgidx);
+                write_inner_list_.erase(_msgidx);
+                doUnprepareMessageStub(_msgidx);
+            }
         } else {
-            //message is waiting to be sent
-            solid_assert(write_inner_list_.size());
-            order_inner_list_.erase(_msgidx);
-            write_inner_list_.erase(_msgidx);
-            doUnprepareMessageStub(_msgidx);
+            rmsgstub.msgbundle_.message_flags.reset(MessageFlagsE::Canceled);
         }
     } else {
         //usually called when reader receives a cancel request
@@ -1016,8 +1020,9 @@ Serializer::PointerT MessageWriter::createSerializer(Sender& _sender)
 /*virtual*/ void MessageWriter::Sender::completeRelayed(RelayData* /*_relay_data*/, MessageId const& /*_rmsgid*/)
 {
 }
-/*virtual*/ void MessageWriter::Sender::cancelMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/)
+/*virtual*/ bool MessageWriter::Sender::cancelMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/)
 {
+    return true;
 }
 /*virtual*/ void MessageWriter::Sender::cancelRelayed(RelayData* /*_relay_data*/, MessageId const& /*_rmsgid*/)
 {

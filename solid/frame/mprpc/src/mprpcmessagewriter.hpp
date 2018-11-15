@@ -77,7 +77,7 @@ public:
 
         virtual ErrorConditionT completeMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/);
         virtual void            completeRelayed(RelayData* _relay_data, MessageId const& _rmsgid);
-        virtual void            cancelMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/);
+        virtual bool            cancelMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/);
         virtual void            cancelRelayed(RelayData* _relay_data, MessageId const& _rmsgid);
     };
 
@@ -123,7 +123,7 @@ public:
 
     MessagePointerT fetchRequest(MessageId const& _rmsguid) const;
 
-    ResponseStateE checkResponseState(MessageId const& _rmsguid, MessageId& _rrelay_id);
+    ResponseStateE checkResponseState(MessageId const& _rmsguid, MessageId& _rrelay_id, const bool _erase_request);
 
     void cancelOldest(Sender& _rsender);
 

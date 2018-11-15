@@ -243,8 +243,10 @@ const char* MessageReader::doConsumeMessage(
 
                         if (rmsgstub.deserializer_ptr_->empty()) {
                             solid_dbg(logger, Verbose, "message_size = " << message_size << " recipient_req_id = " << rmsgstub.message_header_.recipient_request_id_ << " sender_req_id = " << rmsgstub.message_header_.sender_request_id_ << " url = " << rmsgstub.message_header_.url_);
-
-                            const ResponseStateE rsp_state = rmsgstub.message_header_.recipient_request_id_.isValid() ? _receiver.checkResponseState(rmsgstub.message_header_, rmsgstub.relay_id) : ResponseStateE::None;
+                            
+                            const bool valid_recipient_request_id = rmsgstub.message_header_.recipient_request_id_.isValid();
+                            const bool erase_awaiting_request = !Message::is_response_part(rmsgstub.message_header_.flags_);
+                            const ResponseStateE rsp_state = valid_recipient_request_id ? _receiver.checkResponseState(rmsgstub.message_header_, rmsgstub.relay_id, erase_awaiting_request) : ResponseStateE::None;
 
                             if (rsp_state == ResponseStateE::Cancel) {
                                 solid_dbg(logger, Info, "Canceled response");
@@ -515,7 +517,7 @@ Deserializer::PointerT MessageReader::createDeserializer(Receiver& _receiver)
 {
     return false;
 }
-/*virtual*/ ResponseStateE MessageReader::Receiver::checkResponseState(const MessageHeader& /*_rmsghdr*/, MessageId& /*_rrelay_id*/) const
+/*virtual*/ ResponseStateE MessageReader::Receiver::checkResponseState(const MessageHeader& /*_rmsghdr*/, MessageId& /*_rrelay_id*/, const bool /*_erase_request*/) const
 {
     return ResponseStateE::None;
 }

@@ -654,12 +654,13 @@ bool EngineCore::doRelayResponse(
 
             const size_t rcv_conidx = static_cast<size_t>(rmsg.receiver_con_id_.index);
             const size_t snd_conidx = static_cast<size_t>(rmsg.sender_con_id_.index);
+
             solid_assert(rcv_conidx < impl_->con_dq_.size() && impl_->con_dq_[rcv_conidx].unique_ == rmsg.receiver_con_id_.unique);
             solid_assert(snd_conidx < impl_->con_dq_.size() && impl_->con_dq_[snd_conidx].unique_ == rmsg.sender_con_id_.unique);
 
             ConnectionStub& rrcvcon                  = impl_->con_dq_[rcv_conidx];
             ConnectionStub& rsndcon                  = impl_->con_dq_[snd_conidx];
-            bool            should_notify_connection = rrcvcon.recv_msg_list_.empty() || !rrcvcon.recv_msg_list_.back().hasData();
+            const bool      should_notify_connection = rrcvcon.recv_msg_list_.empty() || !rrcvcon.recv_msg_list_.back().hasData();
 
             rsndcon.recv_msg_list_.erase(msgidx); //
             rrcvcon.send_msg_list_.erase(msgidx); //MUST do the erase before push!!!
@@ -840,7 +841,10 @@ void EngineCore::doComplete(
                     rrcvcon.recv_msg_list_.erase(msgidx);
                     rrcvcon.recv_msg_list_.pushFront(msgidx);
                     solid_dbg(logger, Info, _rrelay_con_uid << " waitresponse " << msgidx << " rcv_lst = " << rsndcon.send_msg_list_);
-                } else {
+                } else if(rmsg.state_ == MessageStateE::Relay && Message::is_response_part(_prelay_data->pmessage_header_->flags_)){
+                    //do nothing
+                    solid_dbg(logger, Info, _rrelay_con_uid << " do not erase partial response message " << msgidx << " rcv_lst = " << rsndcon.send_msg_list_);
+                }else{
                     rrcvcon.recv_msg_list_.erase(msgidx);
                     rsndcon.send_msg_list_.erase(msgidx);
                     solid_assert(rsndcon.send_msg_list_.check());
