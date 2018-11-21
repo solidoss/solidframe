@@ -371,7 +371,7 @@ void broadcast_message(frame::mprpc::Service& _rsvc, std::shared_ptr<frame::mprp
     solid_log(generic_logger, Verbose, "done stop===============================");
 
     for (Params::StringVectorT::const_iterator it(params.connectstringvec.begin()); it != params.connectstringvec.end(); ++it) {
-        _rsvc.sendMessage(it->c_str(), _rmsgptr, {frame::mprpc::MessageFlagsE::WaitResponse});
+        _rsvc.sendMessage(it->c_str(), _rmsgptr, {frame::mprpc::MessageFlagsE::AwaitResponse});
     }
 }
 

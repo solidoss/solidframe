@@ -243,10 +243,10 @@ const char* MessageReader::doConsumeMessage(
 
                         if (rmsgstub.deserializer_ptr_->empty()) {
                             solid_dbg(logger, Verbose, "message_size = " << message_size << " recipient_req_id = " << rmsgstub.message_header_.recipient_request_id_ << " sender_req_id = " << rmsgstub.message_header_.sender_request_id_ << " url = " << rmsgstub.message_header_.url_);
-                            
-                            const bool valid_recipient_request_id = rmsgstub.message_header_.recipient_request_id_.isValid();
-                            const bool erase_awaiting_request = !Message::is_response_part(rmsgstub.message_header_.flags_);
-                            const ResponseStateE rsp_state = valid_recipient_request_id ? _receiver.checkResponseState(rmsgstub.message_header_, rmsgstub.relay_id, erase_awaiting_request) : ResponseStateE::None;
+
+                            const bool           valid_recipient_request_id = rmsgstub.message_header_.recipient_request_id_.isValid();
+                            const bool           erase_the_awaiting_request = !Message::is_response_part(rmsgstub.message_header_.flags_);
+                            const ResponseStateE rsp_state                  = valid_recipient_request_id ? _receiver.checkResponseState(rmsgstub.message_header_, rmsgstub.relay_id, erase_the_awaiting_request) : ResponseStateE::None;
 
                             if (rsp_state == ResponseStateE::Cancel) {
                                 solid_dbg(logger, Info, "Canceled response");
@@ -261,7 +261,6 @@ const char* MessageReader::doConsumeMessage(
                                 solid_dbg(logger, Info, "Read Body");
                                 rmsgstub.state_ = MessageStub::StateE::ReadBodyStart;
                                 rmsgstub.deserializer_ptr_->clear();
-                                //rmsgstub.deserializer_ptr_->push(rmsgstub.message_ptr_);
                             } else {
                                 solid_dbg(logger, Info, "Relay message");
                                 rmsgstub.state_ = MessageStub::StateE::RelayStart;

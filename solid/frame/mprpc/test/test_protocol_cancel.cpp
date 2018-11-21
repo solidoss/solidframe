@@ -156,9 +156,10 @@ struct Sender : frame::mprpc::MessageWriter::Sender {
         return ErrorConditionT();
     }
 
-    void cancelMessage(frame::mprpc::MessageBundle& _rmsgbundle, frame::mprpc::MessageId const& /*_rmsgid*/) override
+    bool cancelMessage(frame::mprpc::MessageBundle& _rmsgbundle, frame::mprpc::MessageId const& /*_rmsgid*/) override
     {
         solid_dbg(generic_logger, Info, "Cancel message " << static_cast<Message&>(*_rmsgbundle.message_ptr).str.size());
+        return true;
     }
 };
 

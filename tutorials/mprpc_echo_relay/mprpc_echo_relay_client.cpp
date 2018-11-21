@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
                 solid_log(generic_logger, Info, _rctx.recipientId());
 
                 auto            msgptr = std::make_shared<Register>(p.name);
-                ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mprpc::MessageFlagsE::WaitResponse});
+                ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mprpc::MessageFlagsE::AwaitResponse});
                 solid_check(!err, "failed send Register");
             };
 
@@ -160,7 +160,7 @@ int main(int argc, char* argv[])
                 size_t offset = line.find(' ');
                 if (offset != string::npos) {
                     recipient = p.server_addr + '/' + line.substr(0, offset);
-                    ipcservice.sendMessage(recipient.c_str(), make_shared<Message>(p.name, line.substr(offset + 1)), {frame::mprpc::MessageFlagsE::WaitResponse});
+                    ipcservice.sendMessage(recipient.c_str(), make_shared<Message>(p.name, line.substr(offset + 1)), {frame::mprpc::MessageFlagsE::AwaitResponse});
                 } else {
                     cout << "No recipient name specified. E.g:" << endl
                          << "alpha Some text to send" << endl;

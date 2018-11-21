@@ -69,7 +69,7 @@ bool MessageWriter::enqueue(
 
     //see if we have too many messages waiting for responses
     if (
-        Message::is_waiting_response(_rmsgbundle.message_flags) && ((order_inner_list_.size() - write_inner_list_.size()) >= _rconfig.max_message_count_response_wait)) {
+        Message::is_awaiting_response(_rmsgbundle.message_flags) && ((order_inner_list_.size() - write_inner_list_.size()) >= _rconfig.max_message_count_response_wait)) {
         return false;
     }
 
@@ -114,7 +114,7 @@ bool MessageWriter::enqueue(
             return false;
         }
         if (
-            Message::is_waiting_response(_rprelay_data->pmessage_header_->flags_) && ((order_inner_list_.size() - write_inner_list_.size()) >= _rconfig.max_message_count_response_wait)) {
+            _rprelay_data->isRequest() && ((order_inner_list_.size() - write_inner_list_.size()) >= _rconfig.max_message_count_response_wait)) {
             return false;
         }
 
@@ -126,6 +126,8 @@ bool MessageWriter::enqueue(
         msgidx = _rconn_msg_id.index;
         solid_assert(message_vec_[msgidx].unique_ == _rconn_msg_id.unique);
         if (message_vec_[msgidx].unique_ != _rconn_msg_id.unique || message_vec_[msgidx].prelay_data_ != nullptr) {
+            solid_dbg(logger, Warning, "Relay Data not accepted msgidx = " << msgidx);
+            solid_assert(false);
             return false;
         }
     }
@@ -134,9 +136,13 @@ bool MessageWriter::enqueue(
 
     MessageStub& rmsgstub(message_vec_[msgidx]);
 
+    //     if(_rprelay_data->isMessageFront()){
+    //         rmsgstub.prelay_data_
+    //     }
+
     if (_rprelay_data->pdata_ != nullptr) {
 
-        solid_dbg(logger, Verbose, msgidx << " relay_data.is_last " << _rprelay_data->is_last_ << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
+        solid_dbg(logger, Verbose, msgidx << " relay_data.status " << _rprelay_data->status_ << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
 
         write_inner_list_.pushBack(msgidx);
         rmsgstub.prelay_data_ = _rprelay_data;
@@ -202,7 +208,7 @@ ResponseStateE MessageWriter::checkResponseState(MessageId const& _rmsguid, Mess
             return ResponseStateE::Wait;
         case MessageStub::StateE::RelayedWait:
             _rrelay_id = rmsgstub.pool_msg_id_;
-            if(_erase_request){
+            if (_erase_request) {
                 order_inner_list_.erase(_rmsguid.index);
                 doUnprepareMessageStub(_rmsguid.index);
             }
@@ -763,21 +769,25 @@ char* MessageWriter::doWriteRelayedBody(
     rmsgstub.relay_size_ -= towrite;
 
     solid_dbg(logger, Verbose, "storing " << towrite << " bytes"
-                                          << " for msg " << _msgidx << " cmd = " << (int)cmd << " is_last = " << rmsgstub.prelay_data_->is_last_ << " relaydata = " << rmsgstub.prelay_data_);
+                                          << " for msg " << _msgidx << " cmd = " << (int)cmd << " status = " << rmsgstub.prelay_data_->status_ << " relaydata = " << rmsgstub.prelay_data_);
 
     if (rmsgstub.relay_size_ == 0) {
         solid_assert(write_inner_list_.size());
         write_inner_list_.erase(_msgidx); //call before _rsender.pollRelayEngine
 
-        const bool is_last                 = rmsgstub.prelay_data_->is_last_;
-        const bool is_waiting_for_response = Message::is_waiting_response(rmsgstub.prelay_data_->pmessage_header_->flags_);
+        const bool is_message_end  = rmsgstub.prelay_data_->isMessageEnd();
+        const bool is_message_last = rmsgstub.prelay_data_->isMessageLast();
+        const bool is_request      = rmsgstub.prelay_data_->isRequest(); //Message::is_waiting_response(rmsgstub.prelay_data_->pmessage_header_->flags_);
 
         _rsender.completeRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
         rmsgstub.prelay_data_ = nullptr; //when prelay_data_ is null we consider the message not in write_inner_list_
 
-        if (is_last) {
+        if (is_message_end) {
             cmd |= static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag);
-            if (is_waiting_for_response) {
+        }
+
+        if (is_message_last) {
+            if (is_request) {
                 rmsgstub.state_ = MessageStub::StateE::RelayedWait;
             } else {
                 order_inner_list_.erase(_msgidx);
@@ -906,7 +916,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 
     solid_dbg(logger, Verbose, MessageWriterPrintPairT(*this, PrintInnerListsE));
 
-    if (!Message::is_waiting_response(rmsgstub.msgbundle_.message_flags)) {
+    if (!Message::is_awaiting_response(rmsgstub.msgbundle_.message_flags)) {
         //no wait response for the message - complete
         MessageBundle tmp_msg_bundle(std::move(rmsgstub.msgbundle_));
         MessageId     tmp_pool_msg_id(rmsgstub.pool_msg_id_);

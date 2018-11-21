@@ -100,19 +100,28 @@ using RecvBufferPointerT = std::shared_ptr<BufferBase>;
 
 RecvBufferPointerT make_recv_buffer(const size_t _cp);
 
+enum struct RelayDataStatusE : uint8_t {
+    Data,
+    Last,
+};
+
+std::ostream& operator<<(std::ostream& _ros, const RelayDataStatusE _status);
+
 struct RelayData {
-    RecvBufferPointerT bufptr_;
-    const char*        pdata_;
-    size_t             data_size_;
-    RelayData*         pnext_;
-    bool               is_last_;
-    MessageHeader*     pmessage_header_;
+    RecvBufferPointerT    bufptr_;
+    const char*           pdata_;
+    size_t                data_size_;
+    RelayData*            pnext_;
+    RelayDataStatusE      status_;
+    MessageHeader::FlagsT message_flags_;
+    MessageHeader*        pmessage_header_;
 
     RelayData()
         : pdata_(nullptr)
         , data_size_(0)
         , pnext_(nullptr)
-        , is_last_(false)
+        , status_(RelayDataStatusE::Data)
+        , message_flags_(0)
         , pmessage_header_(nullptr)
     {
     }
@@ -122,8 +131,9 @@ struct RelayData {
         , pdata_(_rrelmsg.pdata_)
         , data_size_(_rrelmsg.data_size_)
         , pnext_(nullptr)
-        , is_last_(_rrelmsg.is_last_)
-        , pmessage_header_(nullptr)
+        , status_(_rrelmsg.status_)
+        , message_flags_(_rrelmsg.message_flags_)
+        , pmessage_header_(_rrelmsg.pmessage_header_)
     {
     }
 
@@ -133,7 +143,8 @@ struct RelayData {
         pdata_           = _rrelmsg.pdata_;
         data_size_       = _rrelmsg.data_size_;
         pnext_           = _rrelmsg.pnext_;
-        is_last_         = _rrelmsg.is_last_;
+        status_          = _rrelmsg.status_;
+        message_flags_   = _rrelmsg.message_flags_;
         pmessage_header_ = _rrelmsg.pmessage_header_;
         return *this;
     }
@@ -148,8 +159,21 @@ struct RelayData {
         //connection_id_.clear();
         bufptr_.reset();
         pnext_           = nullptr;
-        is_last_         = false;
+        status_          = RelayDataStatusE::Data;
+        message_flags_   = 0;
         pmessage_header_ = nullptr;
+    }
+    bool isMessageEnd() const
+    {
+        return status_ == RelayDataStatusE::Last;
+    }
+    bool isMessageLast() const
+    {
+        return isMessageEnd() && !Message::is_response_part(pmessage_header_->flags_);
+    }
+    bool isRequest() const
+    {
+        return Message::is_awaiting_response(pmessage_header_->flags_);
     }
 
 private:
@@ -163,7 +187,8 @@ private:
         , pdata_(_pdata)
         , data_size_(_data_size)
         , pnext_(nullptr)
-        , is_last_(_is_last)
+        , status_(_is_last ? RelayDataStatusE::Last : RelayDataStatusE::Data)
+        , message_flags_(0)
         , pmessage_header_(nullptr)
     {
     }

@@ -35,62 +35,49 @@ namespace solid {
 #endif
 #endif
 
-struct LogicError : std::logic_error {
+class RuntimeError : public std::runtime_error {
+    const ErrorConditionT err_;
+
+public:
     template <typename F>
-    LogicError(const F& _rf, const char* _file, int _line, const char* _fnc)
-        : std::logic_error(_rf(_file, _line, _fnc))
+    RuntimeError(const F& _rf, const char* const _file, const int _line, const char* const _fnc)
+        : std::runtime_error(_rf(_file, _line, _fnc))
     {
     }
-};
 
-struct RuntimeErrorCondition : std::runtime_error {
     template <typename F>
-    RuntimeErrorCondition(const ErrorConditionT& _err, const F& _rf, const char* _file, int _line, const char* _fnc)
+    RuntimeError(const ErrorConditionT& _err, const F& _rf, const char* const _file, const int _line, const char* const _fnc)
         : std::runtime_error(_rf(_file, _line, _fnc, _err))
         , err_(_err)
     {
     }
 
-    virtual ~RuntimeErrorCondition() noexcept;
-
     const ErrorConditionT& error() const noexcept
     {
         return err_;
     }
-
-private:
-    ErrorConditionT err_;
 };
 
-#define solid_throw(x)                                                        \
-    throw solid::LogicError(                                                  \
-        [&](const char* _file, int _line, const char* _fnc) {                 \
-            std::ostringstream os;                                            \
-            os << '[' << _file << '(' << _line << ")][" << _fnc << "] " << x; \
-            return os.str();                                                  \
-        },                                                                    \
+#define solid_throw(x)                                                          \
+    throw solid::RuntimeError(                                                  \
+        [&](const char* const _file, const int _line, const char* const _fnc) { \
+            std::ostringstream os;                                              \
+            os << '[' << _file << '(' << _line << ")][" << _fnc << "] " << x;   \
+            return os.str();                                                    \
+        },                                                                      \
         __FILE__, __LINE__, static_cast<const char*>((SOLID_FUNCTION_NAME)))
 
-#define solid_throw_condition(c)                                                                  \
-    throw solid::RuntimeErrorCondition((c),                                                       \
-        [&](const char* _file, int _line, const char* _fnc, const solid::ErrorConditionT& _err) { \
-            std::ostringstream os;                                                                \
-            os << '[' << _file << '(' << _line << ")][" << _fnc << "]: " << _err.message();       \
-            return os.str();                                                                      \
-        },                                                                                        \
+#define solid_throw_error(c)                                                                                        \
+    throw solid::RuntimeError((c),                                                                                  \
+        [&](const char* const _file, const int _line, const char* const _fnc, const solid::ErrorConditionT& _err) { \
+            std::ostringstream os;                                                                                  \
+            os << '[' << _file << '(' << _line << ")][" << _fnc << "] " #c ":" << _err.message();                   \
+            return os.str();                                                                                        \
+        },                                                                                                          \
         __FILE__, __LINE__, SOLID_FUNCTION_NAME)
 
-#define solid_try_throw_condition(c)                                                                  \
-    if ((c)) {                                                                                        \
-        throw solid::RuntimeErrorCondition((c),                                                       \
-            [&](const char* _file, int _line, const char* _fnc, const solid::ErrorConditionT& _err) { \
-                std::ostringstream os;                                                                \
-                os << '[' << _file << '(' << _line << ")][" << _fnc << "]: " << _err.message();       \
-                return os.str();                                                                      \
-            },                                                                                        \
-            __FILE__, __LINE__, SOLID_FUNCTION_NAME);                                                 \
-    } else {                                                                                          \
-    }
+#define solid_check_error(a, c) \
+    (solid_likely(a) ? static_cast<void>(0) : solid_throw_error(c));
 
 //adapted from https://github.com/Microsoft/GSL/blob/master/include/gsl/gsl_assert
 #if defined(__clang__) || defined(__GNUC__)
@@ -120,7 +107,5 @@ private:
 #define solid_check(...) \
     solid_check_MACRO_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 #endif
-#define solid_check_CONDITION(a, c) \
-    (solid_likely(a) ? static_cast<void>(0) : solid_throw_condition(c));
 
 } //namespace solid

@@ -276,7 +276,7 @@ int test_clientserver_noserver(int argc, char* argv[])
             err = mprpcclient.sendMessage(
                 "localhost", msgptr,
                 recipient_id, message_id,
-                {frame::mprpc::MessageFlagsE::WaitResponse});
+                {frame::mprpc::MessageFlagsE::AwaitResponse});
             solid_check(!err);
         }
 

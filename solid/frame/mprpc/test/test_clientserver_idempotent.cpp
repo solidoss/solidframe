@@ -436,14 +436,14 @@ int test_clientserver_idempotent(int argc, char* argv[])
             ++crtwriteidx;
             mprpcclient.sendMessage(
                 "localhost", msg_vec[0],
-                {frame::mprpc::MessageFlagsE::WaitResponse, frame::mprpc::MessageFlagsE::OneShotSend});
+                {frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::OneShotSend});
         }
 
         {
             ++crtwriteidx;
             mprpcclient.sendMessage(
                 "localhost", msg_vec[1],
-                {frame::mprpc::MessageFlagsE::WaitResponse, frame::mprpc::MessageFlagsE::Idempotent});
+                {frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::Idempotent});
         }
 
         {
@@ -457,14 +457,14 @@ int test_clientserver_idempotent(int argc, char* argv[])
             ++crtwriteidx;
             mprpcclient.sendMessage(
                 "localhost", msg_vec[3],
-                {frame::mprpc::MessageFlagsE::WaitResponse, frame::mprpc::MessageFlagsE::Idempotent, frame::mprpc::MessageFlagsE::Synchronous});
+                {frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::Idempotent, frame::mprpc::MessageFlagsE::Synchronous});
         }
 
         {
             ++crtwriteidx;
             mprpcclient.sendMessage(
                 "localhost", msg_vec[4],
-                {frame::mprpc::MessageFlagsE::WaitResponse, frame::mprpc::MessageFlagsE::Synchronous});
+                {frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::Synchronous});
         }
 
         writecount = 3;

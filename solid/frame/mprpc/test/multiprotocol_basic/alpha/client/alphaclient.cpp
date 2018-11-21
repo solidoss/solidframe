@@ -148,19 +148,19 @@ ErrorConditionT start(
 
         err = mprpcclient_ptr->sendMessage(
             "localhost", std::make_shared<alpha_protocol::FirstMessage>(100000, make_string(100000)),
-            {frame::mprpc::MessageFlagsE::WaitResponse});
+            {frame::mprpc::MessageFlagsE::AwaitResponse});
         if (err) {
             return err;
         }
         err = mprpcclient_ptr->sendMessage(
             "localhost", std::make_shared<alpha_protocol::SecondMessage>(200000, make_string(200000)),
-            {frame::mprpc::MessageFlagsE::WaitResponse});
+            {frame::mprpc::MessageFlagsE::AwaitResponse});
         if (err) {
             return err;
         }
         err = mprpcclient_ptr->sendMessage(
             "localhost", std::make_shared<alpha_protocol::ThirdMessage>(30000, make_string(30000)),
-            {frame::mprpc::MessageFlagsE::WaitResponse});
+            {frame::mprpc::MessageFlagsE::AwaitResponse});
         if (err) {
             return err;
         }

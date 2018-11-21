@@ -245,7 +245,7 @@ void server_complete_message(
         if (crtwriteidx < writecount) {
             err = pmprpcclient->sendMessage(
                 client_id, std::make_shared<Message>(crtwriteidx++),
-                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::WaitResponse);
+                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
             solid_check(!err, "Connection id should not be invalid! " << err.message());
         }
     }
@@ -439,7 +439,7 @@ int test_pool_basic(int argc, char* argv[])
         for (; crtwriteidx < start_count;) {
             mprpcclient.sendMessage(
                 client_id, std::make_shared<Message>(crtwriteidx++),
-                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::WaitResponse);
+                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 
         unique_lock<mutex> lock(mtx);

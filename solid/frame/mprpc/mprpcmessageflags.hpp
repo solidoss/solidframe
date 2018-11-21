@@ -19,7 +19,7 @@ namespace mprpc {
 using MessageFlagsValueT = uint32_t;
 
 enum struct MessageFlagsE : MessageFlagsValueT {
-    WaitResponse,
+    AwaitResponse,
     Synchronous,
     Idempotent,
     OneShotSend,

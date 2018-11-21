@@ -30,6 +30,10 @@ class Connection;
 
 struct MessageHeader {
     using FlagsT = MessageFlagsValueT;
+    RequestId   sender_request_id_;
+    RequestId   recipient_request_id_;
+    FlagsT      flags_;
+    std::string url_;
 
     static MessageFlagsT fetch_state_flags(const MessageFlagsT& _flags)
     {
@@ -58,11 +62,6 @@ struct MessageHeader {
         url_                  = std::move(_umh.url_);
         return *this;
     }
-
-    RequestId   sender_request_id_;
-    RequestId   recipient_request_id_;
-    FlagsT      flags_;
-    std::string url_;
 
     void clear()
     {
@@ -144,14 +143,14 @@ struct Message : std::enable_shared_from_this<Message> {
         return !is_synchronous(_flags);
     }
 
-    static bool is_waiting_response(const MessageFlagsT& _flags)
+    static bool is_awaiting_response(const MessageFlagsT& _flags)
     {
-        return _flags.has(MessageFlagsE::WaitResponse);
+        return _flags.has(MessageFlagsE::AwaitResponse);
     }
 
     static bool is_request(const MessageFlagsT& _flags)
     {
-        return is_waiting_response(_flags);
+        return is_awaiting_response(_flags);
     }
 
     static bool is_idempotent(const MessageFlagsT& _flags)

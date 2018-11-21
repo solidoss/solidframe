@@ -383,7 +383,7 @@ int test_pool_delay_close(int argc, char* argv[])
                 {
                     ++crtwriteidx;
                     mprpcclient.sendMessage(
-                        "localhost", *it, recipinet_id, {frame::mprpc::MessageFlagsE::WaitResponse});
+                        "localhost", *it, recipinet_id, {frame::mprpc::MessageFlagsE::AwaitResponse});
                 }
 
                 ++it;
@@ -391,7 +391,7 @@ int test_pool_delay_close(int argc, char* argv[])
                 for (; crtwriteidx < start_count; ++it) {
                     ++crtwriteidx;
                     mprpcclient.sendMessage(
-                        recipinet_id, *it, {frame::mprpc::MessageFlagsE::WaitResponse});
+                        recipinet_id, *it, {frame::mprpc::MessageFlagsE::AwaitResponse});
                 }
             }
         }
@@ -417,7 +417,7 @@ int test_pool_delay_close(int argc, char* argv[])
                 frame::mprpc::MessagePointerT msgptr(new Message(0));
                 ErrorConditionT               err = pmprpcclient->sendMessage(
                     recipinet_id, msgptr,
-                    {frame::mprpc::MessageFlagsE::WaitResponse});
+                    {frame::mprpc::MessageFlagsE::AwaitResponse});
                 solid_dbg(generic_logger, Info, "send message error message: " << err.message());
                 solid_check(err);
             }

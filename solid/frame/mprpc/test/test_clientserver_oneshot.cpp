@@ -278,7 +278,7 @@ int test_clientserver_oneshot(int argc, char* argv[])
             err = mprpcclient.sendMessage(
                 "localhost", msgptr,
                 recipient_id, message_id,
-                {frame::mprpc::MessageFlagsE::WaitResponse, frame::mprpc::MessageFlagsE::OneShotSend});
+                {frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::OneShotSend});
             solid_check(!err, "" << err.message());
         }
 

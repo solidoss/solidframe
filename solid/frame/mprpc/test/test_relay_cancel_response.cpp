@@ -290,7 +290,7 @@ void peerb_connection_start(frame::mprpc::ConnectionContext& _rctx)
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 
     auto            msgptr = std::make_shared<Register>("b");
-    ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mprpc::MessageFlagsE::WaitResponse});
+    ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mprpc::MessageFlagsE::AwaitResponse});
     solid_check(!err, "failed send Register");
 }
 
@@ -361,7 +361,7 @@ void peerb_complete_message(
                 "localhost/b", std::make_shared<Message>(crtwriteidx++),
                 back_msg_id.first,
                 back_msg_id.second,
-                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::WaitResponse);
+                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
 
             solid_check(!err, "Connection id should not be invalid! " << err.message());
         }
@@ -638,7 +638,7 @@ int test_relay_cancel_response(int argc, char* argv[])
                 "localhost/b", std::make_shared<Message>(crtwriteidx++),
                 back_msg_id.first,
                 back_msg_id.second,
-                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::WaitResponse);
+                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 
         unique_lock<mutex> lock(mtx);

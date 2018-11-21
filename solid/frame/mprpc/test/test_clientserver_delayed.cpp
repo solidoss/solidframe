@@ -378,7 +378,7 @@ int test_clientserver_delayed(int argc, char* argv[])
         {
             frame::mprpc::MessagePointerT msgptr(new Message(2));
             err = mprpcclient.sendMessage(
-                "localhost", msgptr, {frame::mprpc::MessageFlagsE::WaitResponse});
+                "localhost", msgptr, {frame::mprpc::MessageFlagsE::AwaitResponse});
             ++writecount;
         }
 

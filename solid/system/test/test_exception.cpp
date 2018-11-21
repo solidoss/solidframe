@@ -68,8 +68,8 @@ int test_exception(int argc, char* argv[])
     }
 
     try {
-        solid_check_CONDITION(argc == 0, error_test);
-    } catch (solid::RuntimeErrorCondition& _rerr) {
+        solid_check_error(argc == 0, error_test);
+    } catch (solid::RuntimeError& _rerr) {
         //cout<<_rerr.what()<<endl;
         //cout<<check_condition_str<<endl;
         solid_assert(check_condition_str == _rerr.what());

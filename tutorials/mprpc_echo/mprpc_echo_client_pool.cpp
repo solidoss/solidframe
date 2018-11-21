@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
             if (line == "q" || line == "Q" || line == "quit") {
                 break;
             }
-            ipcservice.sendMessage(recipient_id, make_shared<ipc_echo::Message>(std::move(line)), {frame::mprpc::MessageFlagsE::WaitResponse});
+            ipcservice.sendMessage(recipient_id, make_shared<ipc_echo::Message>(std::move(line)), {frame::mprpc::MessageFlagsE::AwaitResponse});
         }
     }
     return 0;

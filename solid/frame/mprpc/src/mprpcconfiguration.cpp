@@ -22,6 +22,19 @@ namespace frame {
 namespace mprpc {
 //-----------------------------------------------------------------------------
 
+std::ostream& operator<<(std::ostream& _ros, const RelayDataStatusE _status)
+{
+    switch (_status) {
+    case RelayDataStatusE::Data:
+        _ros << "Data";
+        break;
+    case RelayDataStatusE::Last:
+        _ros << "Last";
+        break;
+    }
+    return _ros;
+}
+
 /*virtual*/ BufferBase::~BufferBase()
 {
 }

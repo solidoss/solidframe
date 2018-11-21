@@ -202,7 +202,7 @@ void client_complete_message(
 
             pmprpcclient->sendMessage(
                 _rctx.recipientId(), msgptr,
-                {frame::mprpc::MessageFlagsE::WaitResponse});
+                {frame::mprpc::MessageFlagsE::AwaitResponse});
         }
 
         client_received_message = true;
@@ -402,7 +402,7 @@ int test_connection_close(int argc, char* argv[])
             frame::mprpc::MessagePointerT msgptr(new Message(0));
             mprpcclient.sendMessage(
                 "localhost", msgptr,
-                initarray[0].flags | frame::mprpc::MessageFlagsE::WaitResponse);
+                initarray[0].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 
         unique_lock<mutex> lock(mtx);

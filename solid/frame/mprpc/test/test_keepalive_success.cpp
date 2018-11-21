@@ -231,7 +231,7 @@ void server_receive_message(frame::mprpc::ConnectionContext& _rctx, std::shared_
         ++crtwriteidx;
         pmprpcclient->sendMessage(
             "localhost:6666", msgptr,
-            initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlags::WaitResponse
+            initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlags::AwaitResponse
         );
     }*/
 }
@@ -384,7 +384,7 @@ int test_keepalive_success(int argc, char* argv[])
             ++crtwriteidx;
             mprpcclient.sendMessage(
                 "localhost", msgptr,
-                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::WaitResponse);
+                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
         solid_dbg(generic_logger, Info, "before sleep");
 
@@ -396,7 +396,7 @@ int test_keepalive_success(int argc, char* argv[])
             ++crtwriteidx;
             mprpcclient.sendMessage(
                 "localhost", msgptr,
-                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::WaitResponse);
+                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 
         unique_lock<mutex> lock(mtx);

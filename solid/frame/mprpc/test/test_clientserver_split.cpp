@@ -215,7 +215,7 @@ void client_complete_message(
         const bool is_response      = _rrecv_msg_ptr->isResponse();
         const bool is_response_part = _rrecv_msg_ptr->isResponsePart();
         const bool is_response_last = _rrecv_msg_ptr->isResponseLast();
-        
+
         solid_check(_rsent_msg_ptr, "Request not found");
         solid_check(_rrecv_msg_ptr->isBackOnSender(), "Message not back on sender!.");
         solid_check(is_response_last || _rrecv_msg_ptr->check(), "Message check failed.");
@@ -249,13 +249,13 @@ void server_complete_message(
 {
     if (_rrecv_msg_ptr) {
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId());
-        
+
         solid_check(_rrecv_msg_ptr->check(), "Message check failed.");
         solid_check(_rrecv_msg_ptr->isOnPeer(), "Message not on peer!.");
         solid_check(_rctx.recipientId().isValidConnection(), "Connection id should not be invalid!");
 
         //send message back
-        
+
         ErrorConditionT err;
 
         for (size_t i = 1; i < _rrecv_msg_ptr->splitCount(); ++i) {
@@ -280,7 +280,7 @@ void server_complete_message(
         if (crtwriteidx < writecount) {
             err = pmprpcclient->sendMessage(
                 "localhost", std::make_shared<Message>(crtwriteidx++),
-                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::WaitResponse);
+                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
             solid_check(!err, "Connection id should not be invalid! " << err.message());
         }
     }
@@ -467,7 +467,7 @@ int test_clientserver_split(int argc, char* argv[])
 
         for (; crtwriteidx < start_count;) {
             mprpcclient.sendMessage(
-                "localhost", std::make_shared<Message>(crtwriteidx++), {frame::mprpc::MessageFlagsE::WaitResponse});
+                "localhost", std::make_shared<Message>(crtwriteidx++), {frame::mprpc::MessageFlagsE::AwaitResponse});
         }
 
         unique_lock<mutex> lock(mtx);

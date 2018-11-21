@@ -115,9 +115,9 @@ struct Register : frame::mprpc::Message {
 };
 
 struct Message : frame::mprpc::Message {
-    uint32_t     idx;
-    std::string  str;
-    mutable bool serialized;
+    uint32_t       idx;
+    std::string    str;
+    mutable bool   serialized;
     mutable size_t response_count; //not serialized
 
     Message(uint32_t _idx)
@@ -132,7 +132,7 @@ struct Message : frame::mprpc::Message {
     {
         solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
-    
+
     Message(
         const Message& _rmsg)
         : frame::mprpc::Message(_rmsg)
@@ -142,14 +142,14 @@ struct Message : frame::mprpc::Message {
         , response_count(0)
     {
     }
-    
+
     ~Message()
     {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
 
         solid_assert(serialized || this->isBackOnSender());
     }
-    
+
     size_t splitCount() const
     {
         return (idx % 4) + 1; //at least one response should be received
@@ -231,7 +231,7 @@ void peera_complete_message(
         const bool is_response      = _rrecv_msg_ptr->isResponse();
         const bool is_response_part = _rrecv_msg_ptr->isResponsePart();
         const bool is_response_last = _rrecv_msg_ptr->isResponseLast();
-        
+
         solid_check(_rsent_msg_ptr, "Request not found");
         solid_check(_rrecv_msg_ptr->isBackOnSender(), "Message not back on sender!.");
         solid_check(is_response_last || _rrecv_msg_ptr->check(), "Message check failed.");
@@ -240,13 +240,11 @@ void peera_complete_message(
         const auto cnt = _rsent_msg_ptr->response_count;
 
         solid_dbg(generic_logger, Info, "response_cout = " << cnt << "/" << _rsent_msg_ptr->splitCount() << " is_rsp = " << is_response << " is_rsp_part = " << is_response_part << " is_rsp_last = " << is_response_last);
-        
+
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
-        
 
         transfered_size += _rrecv_msg_ptr->str.size();
         ++transfered_count;
-
 
         if (is_response_last) {
             solid_check(cnt == _rsent_msg_ptr->splitCount(), cnt << " != " << _rsent_msg_ptr->splitCount());
@@ -271,7 +269,7 @@ void peerb_connection_start(frame::mprpc::ConnectionContext& _rctx)
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 
     auto            msgptr = std::make_shared<Register>("b");
-    ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mprpc::MessageFlagsE::WaitResponse});
+    ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mprpc::MessageFlagsE::AwaitResponse});
     solid_check(!err, "failed send Register");
 }
 
@@ -306,15 +304,13 @@ void peerb_complete_message(
 {
     if (_rrecv_msg_ptr) {
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
-        
+
         solid_check(_rrecv_msg_ptr->check(), "Message check failed.");
-        
+
         solid_check(_rrecv_msg_ptr->isOnPeer(), "Message not on peer!.");
         solid_check(_rrecv_msg_ptr->isRelayed(), "Message not relayed!.");
         solid_check(!_rctx.recipientId().isInvalidConnection(), "Connection id should not be invalid!");
 
-       
-        
         ErrorConditionT err;
 
         for (size_t i = 1; i < _rrecv_msg_ptr->splitCount(); ++i) {
@@ -339,7 +335,7 @@ void peerb_complete_message(
         if (crtwriteidx < writecount) {
             err = pmprpcpeera->sendMessage(
                 "localhost/b", std::make_shared<Message>(crtwriteidx++),
-                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::WaitResponse);
+                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
 
             solid_check(!err, "Connection id should not be invalid! " << err.message());
         }
@@ -606,7 +602,7 @@ int test_relay_split(int argc, char* argv[])
 
         const size_t start_count = 1;
 
-        writecount = start_count;//initarraysize * 2; //
+        writecount = start_count; //initarraysize * 2; //
 
         //ensure we have provisioned connections on peerb
         err = mprpcpeerb.createConnectionPool("localhost");
@@ -615,8 +611,8 @@ int test_relay_split(int argc, char* argv[])
         for (; crtwriteidx < start_count;) {
             ++crtwriteidx;
             mprpcpeera.sendMessage(
-                "localhost/b", std::make_shared<Message>(3/*crtwriteidx++*/),
-                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::WaitResponse);
+                "localhost/b", std::make_shared<Message>(3 /*crtwriteidx++*/),
+                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 
         unique_lock<mutex> lock(mtx);

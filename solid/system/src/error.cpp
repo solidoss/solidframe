@@ -75,10 +75,6 @@ std::string ErrorCategory::message(int _ev) const
 
 } //namespace
 
-/*virtual*/ RuntimeErrorCondition::~RuntimeErrorCondition() noexcept
-{
-}
-
 /*extern*/ const ErrorCodeT error_not_implemented(ErrorNotImplementedE, category);
 /*extern*/ const ErrorCodeT error_system(ErrorSystemE, category);
 /*extern*/ const ErrorCodeT error_thread_started(ErrorThreadStartedE, category);
