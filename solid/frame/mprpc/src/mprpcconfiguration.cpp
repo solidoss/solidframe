@@ -22,15 +22,18 @@ namespace frame {
 namespace mprpc {
 //-----------------------------------------------------------------------------
 
-std::ostream& operator<<(std::ostream& _ros, const RelayDataStatusE _status)
+std::ostream& operator<<(std::ostream& _ros, const RelayDataFlagsT& _flags)
 {
-    switch (_status) {
-    case RelayDataStatusE::Data:
-        _ros << "Data";
-        break;
-    case RelayDataStatusE::Last:
+    bool b = false;
+    if (_flags.has(RelayDataFlagsE::First)) {
+        _ros << "First";
+        b = true;
+    }
+    if (_flags.has(RelayDataFlagsE::Last)) {
+        if (b)
+            _ros << "|";
         _ros << "Last";
-        break;
+        b = true;
     }
     return _ros;
 }

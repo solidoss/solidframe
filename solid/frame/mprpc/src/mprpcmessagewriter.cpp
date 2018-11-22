@@ -118,16 +118,15 @@ bool MessageWriter::enqueue(
             return false;
         }
 
-        msgidx                      = cache_inner_list_.popFront();
-        _rconn_msg_id               = MessageId(msgidx, message_vec_[msgidx].unique_);
-        message_vec_[msgidx].state_ = MessageStub::StateE::RelayedStart;
+        msgidx        = cache_inner_list_.popFront();
+        _rconn_msg_id = MessageId(msgidx, message_vec_[msgidx].unique_);
         order_inner_list_.pushBack(msgidx);
     } else {
         msgidx = _rconn_msg_id.index;
         solid_assert(message_vec_[msgidx].unique_ == _rconn_msg_id.unique);
         if (message_vec_[msgidx].unique_ != _rconn_msg_id.unique || message_vec_[msgidx].prelay_data_ != nullptr) {
-            solid_dbg(logger, Warning, "Relay Data not accepted msgidx = " << msgidx);
-            solid_assert(false);
+            solid_dbg(logger, Info, "Relay Data cannot be accepted righ now for msgidx = " << msgidx);
+            //the relay data cannot be accepted right now - will be tried later
             return false;
         }
     }
@@ -136,13 +135,14 @@ bool MessageWriter::enqueue(
 
     MessageStub& rmsgstub(message_vec_[msgidx]);
 
-    //     if(_rprelay_data->isMessageFront()){
-    //         rmsgstub.prelay_data_
-    //     }
-
     if (_rprelay_data->pdata_ != nullptr) {
 
-        solid_dbg(logger, Verbose, msgidx << " relay_data.status " << _rprelay_data->status_ << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
+        solid_dbg(logger, Verbose, msgidx << " relay_data.flags " << _rprelay_data->flags_ << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
+
+        if (_rprelay_data->isMessageBegin()) {
+            rmsgstub.state_                         = MessageStub::StateE::RelayedStart;
+            _rprelay_data->pmessage_header_->flags_ = _rprelay_data->message_flags_;
+        }
 
         write_inner_list_.pushBack(msgidx);
         rmsgstub.prelay_data_ = _rprelay_data;
@@ -769,7 +769,7 @@ char* MessageWriter::doWriteRelayedBody(
     rmsgstub.relay_size_ -= towrite;
 
     solid_dbg(logger, Verbose, "storing " << towrite << " bytes"
-                                          << " for msg " << _msgidx << " cmd = " << (int)cmd << " status = " << rmsgstub.prelay_data_->status_ << " relaydata = " << rmsgstub.prelay_data_);
+                                          << " for msg " << _msgidx << " cmd = " << (int)cmd << " flags = " << rmsgstub.prelay_data_->flags_ << " relaydata = " << rmsgstub.prelay_data_);
 
     if (rmsgstub.relay_size_ == 0) {
         solid_assert(write_inner_list_.size());

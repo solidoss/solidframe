@@ -349,7 +349,7 @@ void peerb_complete_message(
 
 int test_relay_split(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:VIEW", "\\*:VIEW"});
+    solid::log_start(std::cerr, {"solid::frame::mprpc.*:VIEW", "\\*:VIEW"});
 
     size_t max_per_pool_connection_count = 1;
 
@@ -602,16 +602,16 @@ int test_relay_split(int argc, char* argv[])
 
         const size_t start_count = 1;
 
-        writecount = start_count; //initarraysize * 2; //
+        writecount = 1; //initarraysize * 2; //
 
         //ensure we have provisioned connections on peerb
         err = mprpcpeerb.createConnectionPool("localhost");
         solid_check(!err, "failed create connection from peerb: " << err.message());
 
         for (; crtwriteidx < start_count;) {
-            ++crtwriteidx;
+            crtwriteidx++;
             mprpcpeera.sendMessage(
-                "localhost/b", std::make_shared<Message>(3 /*crtwriteidx++*/),
+                "localhost/b", std::make_shared<Message>(10),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 
@@ -620,12 +620,6 @@ int test_relay_split(int argc, char* argv[])
         if (!cnd.wait_for(lock, std::chrono::seconds(220), []() { return !running; })) {
             solid_throw("Process is taking too long.");
         }
-
-        if (crtwriteidx != crtackidx) {
-            solid_throw("Not all messages were completed");
-        }
-
-        //m.stop();
     }
 
     //exiting

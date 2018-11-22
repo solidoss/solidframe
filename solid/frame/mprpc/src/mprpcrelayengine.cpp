@@ -81,6 +81,8 @@ enum struct MessageStateE {
 };
 
 struct MessageStub : inner::Node<InnerLinkCount> {
+    using FlagsT = MessageFlagsValueT;
+
     MessageStateE state_;
     RelayData*    pfront_;
     RelayData*    pback_;
@@ -89,12 +91,14 @@ struct MessageStub : inner::Node<InnerLinkCount> {
     UniqueId      receiver_con_id_;
     MessageId     receiver_msg_id_;
     MessageHeader header_;
+    FlagsT        last_message_flags_;
 
     MessageStub()
         : state_(MessageStateE::Relay)
         , pfront_(nullptr)
         , pback_(nullptr)
         , unique_(0)
+        , last_message_flags_(0)
     {
     }
     void clear()
@@ -107,6 +111,7 @@ struct MessageStub : inner::Node<InnerLinkCount> {
         sender_con_id_.clear();
         receiver_con_id_.clear();
         receiver_msg_id_.clear();
+        last_message_flags_ = 0;
     }
 
     void push(RelayData* _prd)
@@ -269,7 +274,7 @@ struct EngineCore::Data {
             prd = &reldata_dq_.back();
         }
 
-        prd->status_ = RelayDataStatusE::Last;
+        prd->flags_.set(RelayDataFlagsE::Last);
         return prd;
     }
     void eraseRelayData(RelayData*& _prd)
@@ -520,8 +525,9 @@ bool EngineCore::doRelayStart(
     msgidx            = impl_->createMessage();
     MessageStub& rmsg = impl_->msg_dq_[msgidx];
 
-    rmsg.header_ = std::move(_rmsghdr);
-    rmsg.state_  = MessageStateE::Relay;
+    rmsg.header_             = std::move(_rmsghdr);
+    rmsg.state_              = MessageStateE::Relay;
+    rmsg.last_message_flags_ = rmsg.header_.flags_;
 
     //the request_ids are already swapped on deserialization
     std::swap(rmsg.header_.recipient_request_id_, rmsg.header_.sender_request_id_);
@@ -539,7 +545,10 @@ bool EngineCore::doRelayStart(
     //register message onto sender connection:
     rsndcon.send_msg_list_.pushBack(msgidx);
 
-    solid_dbg(logger, Info, _rrelay_con_uid << " msgid = " << _rrelay_id << " size = " << _rrelmsg.data_size_ << " receiver_conidx " << rmsg.receiver_con_id_.index << " sender_conidx " << rmsg.sender_con_id_.index << " status = " << _rrelmsg.status_);
+    _rrelmsg.flags_.set(RelayDataFlagsE::First);
+    _rrelmsg.message_flags_ = rmsg.header_.flags_;
+
+    solid_dbg(logger, Info, _rrelay_con_uid << " msgid = " << _rrelay_id << " size = " << _rrelmsg.data_size_ << " receiver_conidx " << rmsg.receiver_con_id_.index << " sender_conidx " << rmsg.sender_con_id_.index << " flags = " << _rrelmsg.flags_);
 
     solid_assert(rmsg.pfront_ == nullptr);
 
@@ -574,13 +583,15 @@ bool EngineCore::doRelay(
         MessageStub& rmsg                          = impl_->msg_dq_[msgidx];
         bool         is_msg_relay_data_queue_empty = (rmsg.pfront_ == nullptr);
         size_t       data_size                     = _rrelmsg.data_size_;
-        auto         status                        = _rrelmsg.status_;
+        auto         flags                         = rmsg.last_message_flags_;
+
+        _rrelmsg.message_flags_ = rmsg.last_message_flags_;
 
         rmsg.push(impl_->createRelayData(std::move(_rrelmsg)));
 
         if (rmsg.state_ == MessageStateE::Relay) {
 
-            solid_dbg(logger, Info, _rrelay_con_uid << " msgid = " << _rrelay_id << " rcv_conidx " << rmsg.receiver_con_id_.index << " snd_conidx " << rmsg.sender_con_id_.index << " status = " << status << " is_mrq_empty = " << is_msg_relay_data_queue_empty << " dsz = " << data_size);
+            solid_dbg(logger, Info, _rrelay_con_uid << " msgid = " << _rrelay_id << " rcv_conidx " << rmsg.receiver_con_id_.index << " snd_conidx " << rmsg.sender_con_id_.index << " flags = " << flags << " is_mrq_empty = " << is_msg_relay_data_queue_empty << " dsz = " << data_size);
 
             if (is_msg_relay_data_queue_empty) {
                 ConnectionStub& rrcvcon                  = impl_->con_dq_[static_cast<size_t>(rmsg.receiver_con_id_.index)];
@@ -631,9 +642,12 @@ bool EngineCore::doRelayResponse(
         const size_t msgidx            = _rrelay_id.index;
         MessageStub& rmsg              = impl_->msg_dq_[msgidx];
         RequestId    sender_request_id = rmsg.header_.recipient_request_id_; //the request ids were swapped on doRelayStart
-        auto         status            = _rrelmsg.status_;
 
-        solid_dbg(logger, Info, _rrelay_con_uid << " msgid = " << _rrelay_id << " receiver_conidx " << rmsg.receiver_con_id_ << " sender_conidx " << rmsg.sender_con_id_ << " status = " << status);
+        _rrelmsg.flags_.set(RelayDataFlagsE::First);
+        _rrelmsg.message_flags_  = _rmsghdr.flags_;
+        rmsg.last_message_flags_ = _rmsghdr.flags_;
+
+        solid_dbg(logger, Info, _rrelay_con_uid << " msgid = " << _rrelay_id << " receiver_conidx " << rmsg.receiver_con_id_ << " sender_conidx " << rmsg.sender_con_id_ << " flags = " << _rrelmsg.flags_);
 
         if (rmsg.state_ == MessageStateE::WaitResponse) {
             solid_assert(rmsg.sender_con_id_.isValid());
@@ -681,9 +695,9 @@ bool EngineCore::doRelayResponse(
             bool   is_msg_relay_data_queue_empty = (rmsg.pfront_ == nullptr);
             size_t data_size                     = _rrelmsg.data_size_;
 
-            rmsg.push(impl_->createRelayData(std::move(_rrelmsg)));
+            solid_dbg(logger, Info, _rrelay_con_uid << " msgid = " << _rrelay_id << " rcv_conidx " << rmsg.receiver_con_id_.index << " snd_conidx " << rmsg.sender_con_id_.index << " flags = " << _rrelmsg.flags_ << " is_mrq_empty = " << is_msg_relay_data_queue_empty << " dsz = " << data_size);
 
-            solid_dbg(logger, Info, _rrelay_con_uid << " msgid = " << _rrelay_id << " rcv_conidx " << rmsg.receiver_con_id_.index << " snd_conidx " << rmsg.sender_con_id_.index << " status = " << status << " is_mrq_empty = " << is_msg_relay_data_queue_empty << " dsz = " << data_size);
+            rmsg.push(impl_->createRelayData(std::move(_rrelmsg)));
 
             if (is_msg_relay_data_queue_empty) {
                 ConnectionStub& rrcvcon                  = impl_->con_dq_[static_cast<size_t>(rmsg.receiver_con_id_.index)];

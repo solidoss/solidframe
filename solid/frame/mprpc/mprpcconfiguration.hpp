@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include "solid/system/flags.hpp"
+
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aioreactorcontext.hpp"
 
@@ -100,19 +102,22 @@ using RecvBufferPointerT = std::shared_ptr<BufferBase>;
 
 RecvBufferPointerT make_recv_buffer(const size_t _cp);
 
-enum struct RelayDataStatusE : uint8_t {
-    Data,
+enum struct RelayDataFlagsE : uint8_t {
+    First,
     Last,
+    LastFlag,
 };
 
-std::ostream& operator<<(std::ostream& _ros, const RelayDataStatusE _status);
+using RelayDataFlagsT = Flags<RelayDataFlagsE>;
+
+std::ostream& operator<<(std::ostream& _ros, const RelayDataFlagsT& _flags);
 
 struct RelayData {
     RecvBufferPointerT    bufptr_;
     const char*           pdata_;
     size_t                data_size_;
     RelayData*            pnext_;
-    RelayDataStatusE      status_;
+    RelayDataFlagsT       flags_;
     MessageHeader::FlagsT message_flags_;
     MessageHeader*        pmessage_header_;
 
@@ -120,7 +125,6 @@ struct RelayData {
         : pdata_(nullptr)
         , data_size_(0)
         , pnext_(nullptr)
-        , status_(RelayDataStatusE::Data)
         , message_flags_(0)
         , pmessage_header_(nullptr)
     {
@@ -131,7 +135,7 @@ struct RelayData {
         , pdata_(_rrelmsg.pdata_)
         , data_size_(_rrelmsg.data_size_)
         , pnext_(nullptr)
-        , status_(_rrelmsg.status_)
+        , flags_(_rrelmsg.flags_)
         , message_flags_(_rrelmsg.message_flags_)
         , pmessage_header_(_rrelmsg.pmessage_header_)
     {
@@ -143,7 +147,7 @@ struct RelayData {
         pdata_           = _rrelmsg.pdata_;
         data_size_       = _rrelmsg.data_size_;
         pnext_           = _rrelmsg.pnext_;
-        status_          = _rrelmsg.status_;
+        flags_           = _rrelmsg.flags_;
         message_flags_   = _rrelmsg.message_flags_;
         pmessage_header_ = _rrelmsg.pmessage_header_;
         return *this;
@@ -158,22 +162,28 @@ struct RelayData {
         data_size_ = 0;
         //connection_id_.clear();
         bufptr_.reset();
-        pnext_           = nullptr;
-        status_          = RelayDataStatusE::Data;
+        pnext_ = nullptr;
+        flags_.reset();
         message_flags_   = 0;
         pmessage_header_ = nullptr;
     }
+
+    bool isMessageBegin() const
+    {
+        return flags_.has(RelayDataFlagsE::First);
+    }
+
     bool isMessageEnd() const
     {
-        return status_ == RelayDataStatusE::Last;
+        return flags_.has(RelayDataFlagsE::Last);
     }
     bool isMessageLast() const
     {
-        return isMessageEnd() && !Message::is_response_part(pmessage_header_->flags_);
+        return isMessageEnd() && !Message::is_response_part(this->message_flags_);
     }
     bool isRequest() const
     {
-        return Message::is_awaiting_response(pmessage_header_->flags_);
+        return Message::is_awaiting_response(this->message_flags_);
     }
 
 private:
@@ -187,10 +197,12 @@ private:
         , pdata_(_pdata)
         , data_size_(_data_size)
         , pnext_(nullptr)
-        , status_(_is_last ? RelayDataStatusE::Last : RelayDataStatusE::Data)
         , message_flags_(0)
         , pmessage_header_(nullptr)
     {
+        if (_is_last) {
+            flags_.set(RelayDataFlagsE::Last);
+        }
     }
 };
 
