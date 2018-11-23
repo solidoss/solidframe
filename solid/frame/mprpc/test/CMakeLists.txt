@@ -322,6 +322,7 @@ if(OPENSSL_FOUND)
     add_test(NAME TestRelayCancelResponse1  COMMAND  test_mprpc_relay test_relay_cancel_response 1)
     add_test(NAME TestRelayCloseRequest1    COMMAND  test_mprpc_relay test_relay_close_request 1)
     add_test(NAME TestRelayCloseResponse1   COMMAND  test_mprpc_relay test_relay_close_response 1)
+    add_test(NAME TestRelaySplit1           COMMAND  test_mprpc_relay test_relay_split 1)
 
     #==============================================================================
 

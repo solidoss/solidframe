@@ -429,12 +429,15 @@ bool MessageWriter::doFindEligibleMessage(const bool _can_send_relay, const size
         const size_t msgidx   = write_inner_list_.frontIndex();
         MessageStub& rmsgstub = message_vec_[msgidx];
 
+        solid_dbg(logger, Verbose, "msgidx = " << msgidx << " isHeadState = " << rmsgstub.isHeadState() << " isSynchronous = " << rmsgstub.isSynchronous() << " crt_sync_idx = " << current_synchronous_message_idx_);
+
         if (rmsgstub.isHeadState()) {
             return true; //prevent splitting the header
         }
 
         if (rmsgstub.isSynchronous()) {
             if (current_synchronous_message_idx_ == InvalidIndex() || msgidx == current_synchronous_message_idx_) {
+                current_synchronous_message_idx_ = msgidx;
             } else {
                 write_inner_list_.pushBack(write_inner_list_.popFront());
                 continue;
@@ -660,9 +663,9 @@ char* MessageWriter::doWriteMessageBody(
             ++rmsgstub.packet_count_;
 
             if (rmsgstub.packet_count_ >= _rsender.configuration().max_message_continuous_packet_count) {
-                if (rmsgstub.isSynchronous()) {
-                    current_synchronous_message_idx_ = _msgidx;
-                }
+                //                 if (rmsgstub.isSynchronous()) {
+                //                     current_synchronous_message_idx_ = _msgidx;
+                //                 }
 
                 rmsgstub.packet_count_ = 0;
                 write_inner_list_.popFront();

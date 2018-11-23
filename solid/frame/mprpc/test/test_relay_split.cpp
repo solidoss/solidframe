@@ -123,12 +123,14 @@ struct Message : frame::mprpc::Message {
     Message(uint32_t _idx)
         : idx(_idx)
         , serialized(false)
+        , response_count(0)
     {
         solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
         init();
     }
     Message()
         : serialized(false)
+        , response_count(0)
     {
         solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
@@ -349,7 +351,7 @@ void peerb_complete_message(
 
 int test_relay_split(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {"solid::frame::mprpc.*:VIEW", "\\*:VIEW"});
+    solid::log_start(std::cerr, {"solid::frame::mprpc.*:EW", "\\*:VIEW"});
 
     size_t max_per_pool_connection_count = 1;
 
@@ -602,16 +604,15 @@ int test_relay_split(int argc, char* argv[])
 
         const size_t start_count = 1;
 
-        writecount = 1; //initarraysize * 2; //
+        writecount = initarraysize; //initarraysize * 2; //
 
         //ensure we have provisioned connections on peerb
         err = mprpcpeerb.createConnectionPool("localhost");
         solid_check(!err, "failed create connection from peerb: " << err.message());
 
         for (; crtwriteidx < start_count;) {
-            crtwriteidx++;
             mprpcpeera.sendMessage(
-                "localhost/b", std::make_shared<Message>(10),
+                "localhost/b", std::make_shared<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 

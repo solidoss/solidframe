@@ -124,6 +124,7 @@ struct MessageStub : inner::Node<InnerLinkCount> {
             pback_->pnext_   = nullptr;
         }
         pback_->pmessage_header_ = &header_;
+        solid_dbg(logger, Verbose, "pushed relay_data " << pback_ << " size = " << pback_->data_size_ << " is_begin = " << pback_->isMessageBegin() << " is_end = " << pback_->isMessageEnd() << " is_last = " << pback_->isMessageLast());
     }
 
     RelayData* pop()
