@@ -301,7 +301,7 @@ private:
     bool isAsynchronousInPendingQueue() const;
     bool isDelayedCloseInPendingQueue() const;
 
-    bool doFindEligibleMessage(const bool _can_send_relay, const size_t _size);
+    bool doFindEligibleMessage(Sender& _rsender, const bool _can_send_relay, const size_t _size);
 
     void doTryMoveMessageFromPendingToWriteQueue(mprpc::Configuration const& _rconfig);
 
@@ -366,6 +366,8 @@ private:
         ErrorConditionT& _rerror);
 
     void doUnprepareMessageStub(const size_t _msgidx);
+    void doWriteQueuePushBack(const size_t _msgidx);
+    void doWriteQueueErase(const size_t _msgidx);
 
     void                 cache(Serializer::PointerT& _ser);
     Serializer::PointerT createSerializer(Sender& _sender);
@@ -373,11 +375,14 @@ private:
 private:
     MessageVectorT          message_vec_;
     uint32_t                current_message_type_id_;
-    size_t                  current_synchronous_message_idx_;
+    size_t                  write_queue_sync_index_;
+    size_t                  write_queue_back_index_;
+    size_t                  write_queue_async_count_;
+    size_t                  write_queue_direct_count_;
     MessageOrderInnerListT  order_inner_list_;
     MessageStatusInnerListT write_inner_list_;
     MessageStatusInnerListT cache_inner_list_;
-    Serializer::PointerT    ser_top_;
+    Serializer::PointerT    serializer_stack_top_;
 };
 
 typedef std::pair<MessageWriter const&, MessageWriter::PrintWhat> MessageWriterPrintPairT;

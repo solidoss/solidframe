@@ -25,7 +25,10 @@ extern const LoggerT logger;
 //-----------------------------------------------------------------------------
 MessageWriter::MessageWriter()
     : current_message_type_id_(InvalidIndex())
-    , current_synchronous_message_idx_(InvalidIndex())
+    , write_queue_sync_index_(InvalidIndex())
+    , write_queue_back_index_(InvalidIndex())
+    , write_queue_async_count_(0)
+    , write_queue_direct_count_(0)
     , order_inner_list_(message_vec_)
     , write_inner_list_(message_vec_)
     , cache_inner_list_(message_vec_)
@@ -55,6 +58,47 @@ bool MessageWriter::full(WriterConfiguration const& _rconfig) const
     return write_inner_list_.size() >= _rconfig.max_message_count_multiplex;
 }
 //-----------------------------------------------------------------------------
+
+void MessageWriter::doWriteQueuePushBack(const size_t _msgidx)
+{
+    if (write_inner_list_.empty()) {
+        write_inner_list_.pushBack(_msgidx);
+        write_queue_back_index_ = _msgidx;
+    } else {
+        write_inner_list_.insertAfter(write_queue_back_index_, _msgidx);
+        write_queue_back_index_ = _msgidx;
+    }
+    MessageStub& rmsgstub(message_vec_[_msgidx]);
+    if (!rmsgstub.isRelay()) {
+        ++write_queue_direct_count_;
+    }
+    if (!rmsgstub.isSynchronous()) {
+        ++write_queue_async_count_;
+    }
+}
+//-----------------------------------------------------------------------------
+void MessageWriter::doWriteQueueErase(const size_t _msgidx)
+{
+    MessageStub& rmsgstub(message_vec_[_msgidx]);
+    if (!rmsgstub.isRelay()) {
+        --write_queue_direct_count_;
+    }
+    if (!rmsgstub.isSynchronous()) {
+        --write_queue_async_count_;
+    }
+
+    if (_msgidx == write_queue_sync_index_) {
+        write_queue_sync_index_ = InvalidIndex();
+    }
+
+    if (_msgidx == write_queue_back_index_) {
+        write_queue_back_index_ = write_inner_list_.nextIndex(_msgidx);
+    }
+
+    write_inner_list_.erase(_msgidx);
+}
+//-----------------------------------------------------------------------------
+
 bool MessageWriter::enqueue(
     WriterConfiguration const& _rconfig,
     MessageBundle&             _rmsgbundle,
@@ -87,7 +131,8 @@ bool MessageWriter::enqueue(
     _rconn_msg_id = MessageId(idx, rmsgstub.unique_);
 
     order_inner_list_.pushBack(idx);
-    write_inner_list_.pushBack(idx);
+    ///write_inner_list_.pushBack(idx);
+    doWriteQueuePushBack(idx);
     solid_dbg(logger, Verbose, "is_relayed = " << Message::is_relayed(rmsgstub.msgbundle_.message_ptr->flags()) << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
 
     return true;
@@ -144,7 +189,9 @@ bool MessageWriter::enqueue(
             _rprelay_data->pmessage_header_->flags_ = _rprelay_data->message_flags_;
         }
 
-        write_inner_list_.pushBack(msgidx);
+        ///write_inner_list_.pushBack(msgidx);
+        doWriteQueuePushBack(msgidx);
+
         rmsgstub.prelay_data_ = _rprelay_data;
         rmsgstub.prelay_pos_  = rmsgstub.prelay_data_->pdata_;
         rmsgstub.relay_size_  = rmsgstub.prelay_data_->data_size_;
@@ -422,22 +469,29 @@ ErrorConditionT MessageWriter::write(
 // - be fast
 // - try to fill up the package
 // - be fair with all messages
-bool MessageWriter::doFindEligibleMessage(const bool _can_send_relay, const size_t /*_size*/)
+bool MessageWriter::doFindEligibleMessage(Sender& _rsender, const bool _can_send_relay, const size_t /*_size*/)
 {
+    solid_dbg(logger, Verbose, "wq_back_index_ = " << write_queue_back_index_ << " wq_sync_index_ = " << write_queue_sync_index_ << " wq_async_count_ = " << write_queue_async_count_ << " wq_direct_count_ = " << write_queue_direct_count_ << " wq.size = " << write_inner_list_.size() << " _can_send_relay = " << _can_send_relay);
+    //fail fast
+    if (!_can_send_relay && write_queue_direct_count_ == 0) {
+        return false;
+    }
     size_t qsz = write_inner_list_.size();
-    while ((qsz--) != 0u) {
+    while (qsz != 0u) {
+        --qsz;
         const size_t msgidx   = write_inner_list_.frontIndex();
         MessageStub& rmsgstub = message_vec_[msgidx];
 
-        solid_dbg(logger, Verbose, "msgidx = " << msgidx << " isHeadState = " << rmsgstub.isHeadState() << " isSynchronous = " << rmsgstub.isSynchronous() << " crt_sync_idx = " << current_synchronous_message_idx_);
+        solid_dbg(logger, Verbose, "msgidx = " << msgidx << " isHeadState = " << rmsgstub.isHeadState() << " isSynchronous = " << rmsgstub.isSynchronous() << " isRelay = " << rmsgstub.isRelay());
 
         if (rmsgstub.isHeadState()) {
             return true; //prevent splitting the header
         }
 
         if (rmsgstub.isSynchronous()) {
-            if (current_synchronous_message_idx_ == InvalidIndex() || msgidx == current_synchronous_message_idx_) {
-                current_synchronous_message_idx_ = msgidx;
+            if (write_queue_sync_index_ == InvalidIndex()) {
+                write_queue_sync_index_ = msgidx;
+            } else if (write_queue_sync_index_ == msgidx) {
             } else {
                 write_inner_list_.pushBack(write_inner_list_.popFront());
                 continue;
@@ -453,7 +507,18 @@ bool MessageWriter::doFindEligibleMessage(const bool _can_send_relay, const size
                 continue;
             }
         }
-        solid_dbg(logger, Verbose, "FOUND eligible message");
+        if (rmsgstub.packet_count_ < _rsender.configuration().max_message_continuous_packet_count) {
+
+        } else {
+            rmsgstub.packet_count_ = 0;
+            if (rmsgstub.isSynchronous() && write_queue_async_count_ == 0) {
+                //no async message in queue - continue with the current synchronous message
+            } else if (write_queue_async_count_ != 1) {
+                write_inner_list_.pushBack(write_inner_list_.popFront());
+                continue;
+            }
+        }
+        solid_dbg(logger, Verbose, "FOUND eligible message - " << msgidx);
         return true;
     }
     solid_dbg(logger, Verbose, "NO eligible message in a queue of " << write_inner_list_.size());
@@ -497,7 +562,7 @@ size_t MessageWriter::doWritePacketData(
     }
 
     while (
-        !_rerror && static_cast<size_t>(_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize() && doFindEligibleMessage(_relay_free_count != 0, _pbufend - pbufpos)) {
+        !_rerror && static_cast<size_t>(_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize() && doFindEligibleMessage(_rsender, _relay_free_count != 0, _pbufend - pbufpos)) {
         const size_t msgidx = write_inner_list_.frontIndex();
 
         PacketHeader::CommandE cmd = PacketHeader::CommandE::Message;
@@ -662,17 +727,17 @@ char* MessageWriter::doWriteMessageBody(
             //try reschedule message - so we can multiplex multiple messages on the same stream
             ++rmsgstub.packet_count_;
 
-            if (rmsgstub.packet_count_ >= _rsender.configuration().max_message_continuous_packet_count) {
-                //                 if (rmsgstub.isSynchronous()) {
-                //                     current_synchronous_message_idx_ = _msgidx;
-                //                 }
-
-                rmsgstub.packet_count_ = 0;
-                write_inner_list_.popFront();
-                write_inner_list_.pushBack(_msgidx);
-
-                solid_dbg(logger, Verbose, MessageWriterPrintPairT(*this, PrintInnerListsE));
-            }
+            //             if (rmsgstub.packet_count_ >= _rsender.configuration().max_message_continuous_packet_count) {
+            //                 if (rmsgstub.isSynchronous()) {
+            //                     current_synchronous_message_idx_ = _msgidx;
+            //                 }
+            //
+            //                 rmsgstub.packet_count_ = 0;
+            //                 write_inner_list_.popFront();
+            //                 write_inner_list_.pushBack(_msgidx);
+            //
+            //                 solid_dbg(logger, Verbose, MessageWriterPrintPairT(*this, PrintInnerListsE));
+            //             }
         }
 
         _rsender.protocol().storeValue(pcmdpos, cmd);
@@ -776,7 +841,8 @@ char* MessageWriter::doWriteRelayedBody(
 
     if (rmsgstub.relay_size_ == 0) {
         solid_assert(write_inner_list_.size());
-        write_inner_list_.erase(_msgidx); //call before _rsender.pollRelayEngine
+        ///write_inner_list_.erase(_msgidx); //call before _rsender.pollRelayEngine
+        doWriteQueueErase(_msgidx);
 
         const bool is_message_end  = rmsgstub.prelay_data_->isMessageEnd();
         const bool is_message_last = rmsgstub.prelay_data_->isMessageLast();
@@ -824,11 +890,12 @@ char* MessageWriter::doWriteMessageCancel(
     solid_check(_pbufpos != nullptr, "fail store cross value");
 
     solid_assert(write_inner_list_.size());
-    write_inner_list_.erase(_msgidx);
+    ///write_inner_list_.erase(_msgidx);
+    doWriteQueueErase(_msgidx);
     order_inner_list_.erase(_msgidx);
     doUnprepareMessageStub(_msgidx);
-    if (current_synchronous_message_idx_ == _msgidx) {
-        current_synchronous_message_idx_ = InvalidIndex();
+    if (write_queue_sync_index_ == _msgidx) {
+        write_queue_sync_index_ = InvalidIndex();
     }
     return _pbufpos;
 }
@@ -855,11 +922,12 @@ char* MessageWriter::doWriteRelayedCancel(
     //rmsgstub.prelay_data_ = nullptr;
 
     solid_assert(write_inner_list_.size());
-    write_inner_list_.erase(_msgidx);
+    ///write_inner_list_.erase(_msgidx);
+    doWriteQueueErase(_msgidx);
     order_inner_list_.erase(_msgidx);
     doUnprepareMessageStub(_msgidx);
-    if (current_synchronous_message_idx_ == _msgidx) {
-        current_synchronous_message_idx_ = InvalidIndex();
+    if (write_queue_sync_index_ == _msgidx) {
+        write_queue_sync_index_ = InvalidIndex();
     }
     return _pbufpos;
 }
@@ -882,11 +950,12 @@ char* MessageWriter::doWriteRelayedCancelRequest(
     solid_check(_pbufpos != nullptr, "fail store cross value");
 
     solid_assert(write_inner_list_.size());
-    write_inner_list_.erase(_msgidx);
+    ///write_inner_list_.erase(_msgidx);
+    doWriteQueueErase(_msgidx);
     order_inner_list_.erase(_msgidx);
     doUnprepareMessageStub(_msgidx);
-    if (current_synchronous_message_idx_ == _msgidx) {
-        current_synchronous_message_idx_ = InvalidIndex();
+    if (write_queue_sync_index_ == _msgidx) {
+        write_queue_sync_index_ = InvalidIndex();
     }
     return _pbufpos;
 }
@@ -905,10 +974,11 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
     cache(rmsgstub.serializer_ptr_);
 
     solid_assert(write_inner_list_.size());
-    write_inner_list_.popFront();
+    ///write_inner_list_.popFront();
+    doWriteQueueErase(write_inner_list_.frontIndex());
 
-    if (current_synchronous_message_idx_ == _msgidx) {
-        current_synchronous_message_idx_ = InvalidIndex();
+    if (write_queue_sync_index_ == _msgidx) {
+        write_queue_sync_index_ = InvalidIndex();
     }
 
     rmsgstub.msgbundle_.message_flags.reset(MessageFlagsE::StartedSend);
@@ -1003,8 +1073,8 @@ void MessageWriter::cache(Serializer::PointerT& _ser)
 {
     if (_ser) {
         _ser->clear();
-        _ser->link(ser_top_);
-        ser_top_ = std::move(_ser);
+        _ser->link(serializer_stack_top_);
+        serializer_stack_top_ = std::move(_ser);
     }
 }
 
@@ -1012,9 +1082,9 @@ void MessageWriter::cache(Serializer::PointerT& _ser)
 
 Serializer::PointerT MessageWriter::createSerializer(Sender& _sender)
 {
-    if (ser_top_) {
-        Serializer::PointerT ser{std::move(ser_top_)};
-        ser_top_ = std::move(ser->link());
+    if (serializer_stack_top_) {
+        Serializer::PointerT ser{std::move(serializer_stack_top_)};
+        serializer_stack_top_ = std::move(ser->link());
         _sender.protocol().reconfigure(*ser, _sender.configuration());
         return ser;
     }
