@@ -246,7 +246,7 @@ const char* MessageReader::doConsumeMessage(
                             const bool           erase_the_awaiting_request = !Message::is_response_part(rmsgstub.message_header_.flags_);
                             const ResponseStateE rsp_state                  = valid_recipient_request_id ? _receiver.checkResponseState(rmsgstub.message_header_, rmsgstub.relay_id, erase_the_awaiting_request) : ResponseStateE::None;
 
-                            solid_dbg(logger, Verbose, "msgidx = " << _msgidx << "message_size = " << message_size << " recipient_req_id = " << rmsgstub.message_header_.recipient_request_id_ << " sender_req_id = " << rmsgstub.message_header_.sender_request_id_ << " url = " << rmsgstub.message_header_.url_ << "rsp_state = " << static_cast<int>(rsp_state));
+                            solid_dbg(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << message_size << " recipient_req_id = " << rmsgstub.message_header_.recipient_request_id_ << " sender_req_id = " << rmsgstub.message_header_.sender_request_id_ << " url = " << rmsgstub.message_header_.url_ << "rsp_state = " << static_cast<int>(rsp_state));
 
                             if (rsp_state == ResponseStateE::Cancel) {
                                 solid_dbg(logger, Info, "Canceled response");

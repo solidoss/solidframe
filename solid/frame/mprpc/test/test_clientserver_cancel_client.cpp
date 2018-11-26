@@ -260,7 +260,7 @@ void server_complete_message(
 
 int test_clientserver_cancel_client(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {"solid::frame::mprpc.*:EW", "\\*:VIEW"});
 
     size_t max_per_pool_connection_count = 1;
 
