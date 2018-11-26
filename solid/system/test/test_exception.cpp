@@ -55,14 +55,14 @@ int test_exception(int argc, char* argv[])
     {
         ostringstream oss;
         const int     line = 71;
-        oss << '[' << __FILE__ << '(' << line << ")][" << SOLID_FUNCTION_NAME << "]: " << error_test.message();
+        oss << '[' << __FILE__ << '(' << line << ")][" << SOLID_FUNCTION_NAME << "] error_test:" << error_test.message();
         check_condition_str = oss.str();
     }
     try {
         solid_check(argc == 0, "some error: " << argc << " " << argv[0] << " " << argv[1]);
-    } catch (std::logic_error& _rerr) {
+    } catch (std::runtime_error& _rerr) {
         is_ok = true;
-        //cout<<check_str<<endl;
+        cout<<check_str<<endl;
         cout << _rerr.what() << endl;
         solid_assert(check_str == _rerr.what());
     }
@@ -70,8 +70,8 @@ int test_exception(int argc, char* argv[])
     try {
         solid_check_error(argc == 0, error_test);
     } catch (solid::RuntimeError& _rerr) {
-        //cout<<_rerr.what()<<endl;
-        //cout<<check_condition_str<<endl;
+        cout<<_rerr.what()<<endl;
+        cout<<check_condition_str<<endl;
         solid_assert(check_condition_str == _rerr.what());
         solid_assert(_rerr.error() == error_test);
     }
