@@ -6,7 +6,7 @@ using namespace std;
 
 using namespace solid;
 
-int test_invalid_index(int /*argc*/, char* /*argv*/ [])
+int test_invalid_index(int /*argc*/, char* /*argv*/[])
 {
 
     size_t sz = InvalidIndex();

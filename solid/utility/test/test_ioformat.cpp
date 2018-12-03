@@ -6,7 +6,7 @@
 using namespace std;
 using namespace solid;
 
-int test_ioformat(int /*argc*/, char* /*argv*/ [])
+int test_ioformat(int /*argc*/, char* /*argv*/[])
 {
     {
         ostringstream oss;

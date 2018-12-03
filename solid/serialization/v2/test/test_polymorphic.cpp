@@ -142,7 +142,7 @@ struct Command {
     }
 };
 
-int test_polymorphic(int /*argc*/, char* /*argv*/ [])
+int test_polymorphic(int /*argc*/, char* /*argv*/[])
 {
 
     solid::log_start(std::cerr, {".*:EW"});
