@@ -44,7 +44,9 @@ int test_workpool(int argc, char* argv[])
     solid::log_start(std::cerr, {".*:EWS"});
 
     cout << "usage: " << argv[0] << " JOB_COUNT WAIT_SECONDS QUEUE_SIZE PRODUCER_COUNT CONSUMER_COUNT PUSH_SLEEP_MSECS JOB_SLEEP_MSECS" << endl;
-
+    using WorkPoolT  = WorkPool<size_t>;
+    using AtomicPWPT = std::atomic<WorkPoolT*>;
+    
     size_t        job_count        = 5000000;
     int           wait_seconds     = 100;
     int           queue_size       = -1;
@@ -54,6 +56,7 @@ int test_workpool(int argc, char* argv[])
     int           job_sleep_msecs  = 0;
     deque<size_t> gdq;
     std::mutex    gmtx;
+    AtomicPWPT          pwp{nullptr};
 
     if (argc > 1) {
         job_count = atoi(argv[1]);
@@ -98,6 +101,8 @@ int test_workpool(int argc, char* argv[])
 #endif
             },
             std::ref(gdq), std::ref(gmtx)};
+            
+        pwp = &wp;
 
         auto producer_lambda = [job_count, push_sleep_msecs, &wp]() {
             for (size_t i = 0; i < job_count; ++i) {
@@ -120,9 +125,15 @@ int test_workpool(int argc, char* argv[])
         } else {
             producer_lambda();
         }
+        pwp = nullptr;
     };
 
-    solid_check(async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) == future_status::ready, " Test is taking too long - waited " << wait_seconds << " secs");
+    if(async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) != future_status::ready){
+        if (pwp != nullptr) {
+            pwp.load()->dumpStatistics();
+        }
+        solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
+    }
     const size_t v = (((job_count - 1) * job_count) / 2) * (producer_count == 0 ? 1 : producer_count);
 
     solid_log(generic_logger, Warning, "val = " << val << " expected val = " << v);

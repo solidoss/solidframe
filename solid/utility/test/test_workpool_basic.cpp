@@ -53,8 +53,12 @@ int test_workpool_basic(int argc, char* argv[])
             val = 0;
         }
     };
-
-    solid_check(async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) == future_status::ready, " Test is taking too long - waited " << wait_seconds << " secs");
+    if(async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) != future_status::ready){
+        if (pwp != nullptr) {
+            pwp.load()->dumpStatistics();
+        }
+        solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
+    }
     solid_log(logger, Verbose, "after async wait");
 
     return 0;
