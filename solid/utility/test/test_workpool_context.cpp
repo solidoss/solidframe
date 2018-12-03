@@ -52,53 +52,43 @@ int test_workpool_context(int argc, char* argv[])
     int                 loop_cnt     = 5;
     const size_t        cnt{5000000};
     std::atomic<size_t> val{0};
-    promise<void>       prom;
     AtomicPWPT          pwp{nullptr};
     const size_t        v = ((cnt - 1) * cnt) / 2;
-    thread              wait_thread(
-        [](promise<void>& _rprom, AtomicPWPT& _rpwp, const int _wait_time_seconds) {
-            if (_rprom.get_future().wait_for(chrono::seconds(_wait_time_seconds)) != future_status::ready) {
-                if (_rpwp != nullptr) {
-                    _rpwp.load()->dumpStatistics();
-                }
-                solid_throw(" Test is taking too long - waited " << _wait_time_seconds << " secs");
-            }
-        },
-        std::ref(prom), std::ref(pwp), wait_seconds);
 
     if (argc > 1) {
         loop_cnt = atoi(argv[1]);
     }
-    for (int i = 0; i < loop_cnt; ++i) {
-        {
-            WorkPoolT wp{
-                WorkPoolConfiguration(),
-                [](FunctionJobT& _rj, Context& _rctx) {
-                    _rj(_rctx);
-                },
-                "simple text",
-                0UL};
 
-            solid_log(generic_logger, Verbose, "wp started");
-            pwp = &wp;
-            for (size_t i = 0; i < cnt; ++i) {
-                auto l = [i, &val](Context& _rctx) {
-                    //this_thread::sleep_for(std::chrono::seconds(2));
-                    ++_rctx.count_;
-                    val += i;
+    auto lambda = [&]() {
+        for (int i = 0; i < loop_cnt; ++i) {
+            {
+                WorkPoolT wp{
+                    WorkPoolConfiguration(),
+                    [](FunctionJobT& _rj, Context& _rctx) {
+                        _rj(_rctx);
+                    },
+                    "simple text",
+                    0UL};
+
+                solid_log(generic_logger, Verbose, "wp started");
+                pwp = &wp;
+                for (size_t i = 0; i < cnt; ++i) {
+                    auto l = [i, &val](Context& _rctx) {
+                        //this_thread::sleep_for(std::chrono::seconds(2));
+                        ++_rctx.count_;
+                        val += i;
+                    };
+                    wp.push(l);
                 };
-                wp.push(l);
-            };
-            pwp = nullptr;
+                pwp = nullptr;
+            }
+            solid_log(logger, Verbose, "after loop");
+            solid_check(v == val, "val = " << val << " v = " << v);
+            val = 0;
         }
-        solid_log(logger, Verbose, "after loop");
-        solid_check(v == val, "val = " << val << " v = " << v);
-        val = 0;
-    }
+    };
+    solid_check(async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) == future_status::ready, " Test is taking too long - waited " << wait_seconds << " secs");
+    solid_log(logger, Verbose, "after async wait");
 
-    prom.set_value();
-    solid_log(logger, Verbose, "after promise set value - before join");
-    wait_thread.join();
-    solid_log(logger, Verbose, "after join");
     return 0;
 }

@@ -51,7 +51,6 @@ int test_workpool(int argc, char* argv[])
     int           job_sleep_msecs  = 0;
     deque<size_t> gdq;
     std::mutex    gmtx;
-    promise<void> prom;
 
     if (argc > 1) {
         job_count = atoi(argv[1]);
@@ -81,13 +80,7 @@ int test_workpool(int argc, char* argv[])
         job_sleep_msecs = atoi(argv[7]);
     }
 
-    thread wait_thread(
-        [](promise<void>& _rprom, const int _wait_time_seconds) {
-            solid_check(_rprom.get_future().wait_for(chrono::seconds(_wait_time_seconds)) == future_status::ready, " Test is taking too long - waited " << _wait_time_seconds << " secs");
-        },
-        std::ref(prom), wait_seconds);
-
-    {
+    auto lambda = [&]() {
         WorkPool<size_t> wp{
             1,
             WorkPoolConfiguration(consumer_count, queue_size <= 0 ? std::numeric_limits<size_t>::max() : queue_size),
@@ -124,11 +117,9 @@ int test_workpool(int argc, char* argv[])
         } else {
             producer_lambda();
         }
-    }
+    };
 
-    prom.set_value();
-    wait_thread.join();
-
+    solid_check(async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) == future_status::ready, " Test is taking too long - waited " << wait_seconds << " secs");
     const size_t v = (((job_count - 1) * job_count) / 2) * (producer_count == 0 ? 1 : producer_count);
 
     solid_log(generic_logger, Warning, "val = " << val << " expected val = " << v);
