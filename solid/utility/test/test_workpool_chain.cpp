@@ -1,4 +1,5 @@
 #include "solid/system/exception.hpp"
+#include "solid/system/crashhandler.hpp"
 #include "solid/utility/workpool.hpp"
 #include <atomic>
 #include <functional>
@@ -15,6 +16,7 @@ const LoggerT logger("test_basic");
 
 int test_workpool_chain(int argc, char* argv[])
 {
+    install_crash_handler();
     solid::log_start(std::cerr, {".*:EWS", "test_basic:VIEWS"});
     using WorkPoolT  = WorkPool<size_t>;
     using AtomicPWPT = std::atomic<WorkPoolT*>;

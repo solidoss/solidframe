@@ -7,6 +7,7 @@ set( MyTests
     test_log_file.cpp
     test_log_socket.cpp
     test_log_recorder.cpp
+    test_crashhandler.cpp
 )
 
 create_test_sourcelist( Tests test_system.cpp ${MyTests})

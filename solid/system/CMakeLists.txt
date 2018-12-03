@@ -29,12 +29,22 @@ set(Headers
     flags.hpp
     log.hpp
     statistic.hpp
+    crashhandler.hpp
 )
 
 set(Inlines
     socketaddress.ipp
     nanotime.ipp
 )
+
+
+if(SOLID_ON_WINDOWS)
+    list(APPEND Sources src/crashhandler_windows.cpp)
+    list(APPEND Sources src/stacktrace_windows.cpp)
+    list(APPEND Headers src/stacktrace_windows.hpp)
+else()
+    list(APPEND Sources src/crashhandler_unix.cpp)
+endif()
 
 add_library (solid_system STATIC
     ${Sources} ${Headers} ${Inlines}

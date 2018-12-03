@@ -1,4 +1,5 @@
 #include "solid/system/exception.hpp"
+#include "solid/system/crashhandler.hpp"
 #include "solid/utility/workpool.hpp"
 #include <algorithm>
 #include <atomic>
@@ -38,6 +39,8 @@ struct Context {
 
 int test_workpool(int argc, char* argv[])
 {
+    install_crash_handler();
+    
     solid::log_start(std::cerr, {".*:EWS"});
 
     cout << "usage: " << argv[0] << " JOB_COUNT WAIT_SECONDS QUEUE_SIZE PRODUCER_COUNT CONSUMER_COUNT PUSH_SLEEP_MSECS JOB_SLEEP_MSECS" << endl;

@@ -1,4 +1,5 @@
 #include "solid/system/exception.hpp"
+#include "solid/system/crashhandler.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/workpool.hpp"
 #include <atomic>
@@ -42,6 +43,7 @@ using FunctionJobT = std::function<void(Context&)>;
 
 int test_workpool_context(int argc, char* argv[])
 {
+    install_crash_handler();
     solid::log_start(std::cerr, {".*:EWS", "test_context:VIEWS"});
     using WorkPoolT  = WorkPool<FunctionJobT>;
     using AtomicPWPT = std::atomic<WorkPoolT*>;
