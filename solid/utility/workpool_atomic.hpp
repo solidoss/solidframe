@@ -635,7 +635,7 @@ public:
     template <class JT>
     void push(JT&& _jb);
 
-    void dumpStatistics() const;
+    void dumpStatistics(const bool _dump_queue_too = true) const;
 
 private:
     bool pop(Job& _rjob);
@@ -741,7 +741,7 @@ void WorkPool<Job, QNBits>::doStop()
         }
         thr_vec_.clear();
     }
-    dumpStatistics();
+    dumpStatistics(false);//the queue statistic will be dumped on its destructor
     {
 #ifdef SOLID_HAS_STATISTICS
         const size_t max_jobs_in_queue = config_.max_job_queue_size_ == static_cast<size_t>(-1) ? config_.max_job_queue_size_ : config_.max_job_queue_size_ + JobQueueT::nodeSize();
@@ -814,10 +814,12 @@ void WorkPool<Job, QNBits>::doStart(
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits>
-void WorkPool<Job, QNBits>::dumpStatistics() const
+void WorkPool<Job, QNBits>::dumpStatistics(const bool _dump_queue_too) const
 {
 #ifdef SOLID_HAS_STATISTICS
-    job_q_.dumpStatistics();
+    if(_dump_queue_too){
+        job_q_.dumpStatistics();
+    }
     solid_log(workpool_logger, Statistic, "Workpool " << this << " statistic:" << this->statistic_);
 #endif
 }

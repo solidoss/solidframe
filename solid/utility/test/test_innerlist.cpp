@@ -29,7 +29,7 @@ typedef std::vector<Node> NodeVectorT;
 
 typedef inner::List<NodeVectorT, InnerLinkOrder> InnerOrderListT;
 
-int test_innerlist(int /*argc*/, char* /*argv*/[])
+int test_innerlist(int /*argc*/, char* /*argv*/ [])
 {
     NodeVectorT     node_vec;
     InnerOrderListT order_list(node_vec);

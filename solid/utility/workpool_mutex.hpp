@@ -153,7 +153,8 @@ public:
 
     template <class JT>
     void push(JT&& _jb);
-
+    
+    void dumpStatistics()const;
 private:
     bool doWaitJob(std::unique_lock<std::mutex>& _lock);
 
@@ -317,11 +318,7 @@ void WorkPool<Job, QNBits>::doStop()
         }
         thr_vec_.clear();
     }
-    {
-#ifdef SOLID_HAS_STATISTICS
-        solid_dbg(workpool_logger, Verbose, "Workpool " << this << " statistic:" << this->statistic_);
-#endif
-    }
+    dumpStatistics();
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits>
@@ -384,6 +381,15 @@ void WorkPool<Job, QNBits>::doStart(
     };
 
     doStart(_start_wkr_cnt, std::move(worker_factory_fnc));
+}
+
+//-----------------------------------------------------------------------------
+template <typename Job, size_t QNBits>
+void WorkPool<Job, QNBits>::dumpStatistics() const
+{
+#ifdef SOLID_HAS_STATISTICS
+    solid_log(workpool_logger, Statistic, "Workpool " << this << " statistic:" << this->statistic_);
+#endif
 }
 
 //-----------------------------------------------------------------------------
