@@ -25,10 +25,9 @@ namespace solid {
 namespace frame {
 namespace mprpc {
 namespace relay {
-
-const LoggerT logger("solid::frame::mprpc::relay");
 //-----------------------------------------------------------------------------
 namespace {
+const LoggerT logger("solid::frame::mprpc::relay");
 
 enum struct ConnectionStateE {
     Active,
@@ -489,7 +488,7 @@ size_t EngineCore::doRegisterUnnamedConnection(const ObjectIdT& _rcon_uid, Uniqu
     _rrelay_con_uid.index  = conidx;
     _rrelay_con_uid.unique = rcon.unique_;
 
-    solid_dbg(logger, Verbose, _rrelay_con_uid << ' ' << plot(rcon));
+    solid_dbg(logger, Info, _rrelay_con_uid << ' ' << plot(rcon));
     return conidx;
 }
 //-----------------------------------------------------------------------------
@@ -592,7 +591,7 @@ bool EngineCore::doRelay(
 
         if (rmsg.state_ == MessageStateE::Relay) {
 
-            solid_dbg(logger, Info, _rrelay_con_uid << " msgid = " << _rrelay_id << " rcv_conidx " << rmsg.receiver_con_id_.index << " snd_conidx " << rmsg.sender_con_id_.index << " flags = " << flags << " is_mrq_empty = " << is_msg_relay_data_queue_empty << " dsz = " << data_size);
+            solid_dbg(logger, Verbose, _rrelay_con_uid << " msgid = " << _rrelay_id << " rcv_conidx " << rmsg.receiver_con_id_.index << " snd_conidx " << rmsg.sender_con_id_.index << " flags = " << flags << " is_mrq_empty = " << is_msg_relay_data_queue_empty << " dsz = " << data_size);
 
             if (is_msg_relay_data_queue_empty) {
                 ConnectionStub& rrcvcon                  = impl_->con_dq_[static_cast<size_t>(rmsg.receiver_con_id_.index)];
@@ -604,10 +603,10 @@ bool EngineCore::doRelay(
                 //but this way we can keep using a single list for send messages
                 rrcvcon.recv_msg_list_.erase(msgidx);
                 rrcvcon.recv_msg_list_.pushBack(msgidx);
-                solid_dbg(logger, Info, "rcv_lst = " << rrcvcon.recv_msg_list_ << " notify_conn = " << should_notify_connection);
+                solid_dbg(logger, Verbose, "rcv_lst = " << rrcvcon.recv_msg_list_ << " notify_conn = " << should_notify_connection);
 
                 if (should_notify_connection) {
-                    //solid_dbg(logger, Info, _rrelay_con_uid <<" notify receiver connection");
+                    //solid_dbg(logger, Verbose, _rrelay_con_uid <<" notify receiver connection");
                     solid_check(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
                 }
             }
@@ -737,7 +736,7 @@ void EngineCore::doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_
 
     solid_assert(rcon.id_.unique == _rrelay_con_uid.unique);
 
-    solid_dbg(logger, Info, _rrelay_con_uid << ' ' << plot(rcon));
+    solid_dbg(logger, Verbose, _rrelay_con_uid << ' ' << plot(rcon));
 
     bool   can_retry = true;
     size_t msgidx    = rcon.recv_msg_list_.backIndex();
@@ -791,7 +790,7 @@ void EngineCore::doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_
     } //while
 
     _rmore = !rcon.recv_msg_list_.empty() && rcon.recv_msg_list_.back().hasData();
-    solid_dbg(logger, Info, _rrelay_con_uid << " more = " << _rmore << " rcv_lst = " << rcon.recv_msg_list_);
+    solid_dbg(logger, Verbose, _rrelay_con_uid << " more = " << _rmore << " rcv_lst = " << rcon.recv_msg_list_);
 }
 //-----------------------------------------------------------------------------
 // called by sender connection when either
@@ -807,7 +806,7 @@ void EngineCore::doPollDone(const UniqueId& _rrelay_con_uid, DoneFunctionT& _don
     const size_t    conidx = static_cast<size_t>(_rrelay_con_uid.index);
     ConnectionStub& rcon   = impl_->con_dq_[conidx];
 
-    solid_dbg(logger, Info, _rrelay_con_uid << ' ' << plot(rcon));
+    solid_dbg(logger, Verbose, _rrelay_con_uid << ' ' << plot(rcon));
 
     RelayData* prd = rcon.pdone_relay_data_top_;
 
@@ -819,7 +818,7 @@ void EngineCore::doPollDone(const UniqueId& _rrelay_con_uid, DoneFunctionT& _don
         prd = ptmprd;
     }
     rcon.pdone_relay_data_top_ = nullptr;
-    solid_dbg(logger, Info, _rrelay_con_uid << " send_msg_list.size = " << rcon.send_msg_list_.size() << " front idx = " << rcon.send_msg_list_.frontIndex());
+    solid_dbg(logger, Verbose, _rrelay_con_uid << " send_msg_list.size = " << rcon.send_msg_list_.size() << " front idx = " << rcon.send_msg_list_.frontIndex());
 
     solid_assert(rcon.send_msg_list_.check());
 
@@ -853,7 +852,7 @@ void EngineCore::doComplete(
     solid_assert(_rrelay_con_uid.isValid());
     solid_assert(impl_->isValid(_rrelay_con_uid));
 
-    solid_dbg(logger, Info, _rrelay_con_uid << " try complete msg " << _rengine_msg_id);
+    solid_dbg(logger, Verbose, _rrelay_con_uid << " try complete msg " << _rengine_msg_id);
     solid_assert(_prelay_data);
 
     if (_rengine_msg_id.index < impl_->msg_dq_.size() && impl_->msg_dq_[_rengine_msg_id.index].unique_ == _rengine_msg_id.unique) {
@@ -894,16 +893,16 @@ void EngineCore::doComplete(
             }
 
             _rmore = !rrcvcon.recv_msg_list_.empty() && rrcvcon.recv_msg_list_.back().hasData();
-            solid_dbg(logger, Info, _rrelay_con_uid << " " << _rengine_msg_id << " more " << _rmore << " rcv_lst = " << rrcvcon.recv_msg_list_);
+            solid_dbg(logger, Info, _rrelay_con_uid << " " << _rengine_msg_id << " more " << _rmore << " rcv_lst = " << rrcvcon.recv_msg_list_ << " sender conn notified: " << should_notify_connection);
             return;
         }
         _rmore = !rrcvcon.recv_msg_list_.empty() && rrcvcon.recv_msg_list_.back().hasData();
-        solid_dbg(logger, Info, _rrelay_con_uid << " " << _rengine_msg_id << " more " << _rmore << " rcv_lst = " << rrcvcon.recv_msg_list_);
+        solid_dbg(logger, Verbose, _rrelay_con_uid << " " << _rengine_msg_id << " more " << _rmore << " rcv_lst = " << rrcvcon.recv_msg_list_);
     }
     //it happens for canceled relayed messages - see MessageWriter::doWriteRelayedCancelRequest
     _prelay_data->clear();
     impl_->eraseRelayData(_prelay_data);
-    solid_dbg(logger, Info, _rrelay_con_uid << " message not found " << _rengine_msg_id);
+    solid_dbg(logger, Error, _rrelay_con_uid << " message not found " << _rengine_msg_id);
 }
 //-----------------------------------------------------------------------------
 // called by any of connection when either:

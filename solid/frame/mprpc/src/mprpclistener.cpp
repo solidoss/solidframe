@@ -16,6 +16,9 @@
 namespace solid {
 namespace frame {
 namespace mprpc {
+namespace {
+const LoggerT logger("solid::frame::mprpc::listener");
+}
 
 Listener::Listener(
     SocketDevice& _rsd)

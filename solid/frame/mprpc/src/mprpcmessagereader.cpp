@@ -19,7 +19,9 @@
 namespace solid {
 namespace frame {
 namespace mprpc {
-extern const LoggerT logger;
+namespace {
+const LoggerT logger("solid::frame::mprpc::reader");
+}
 //-----------------------------------------------------------------------------
 MessageReader::MessageReader()
     : current_message_type_id_(InvalidIndex())

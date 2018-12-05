@@ -99,7 +99,7 @@ void Object::handleEvent(Event&& _revt)
     event_handler.handle(_revt, *this);
 }
 
-int test_event(int /*argc*/, char* /*argv*/ [])
+int test_event(int /*argc*/, char* /*argv*/[])
 {
 
     cout << "Event::any_size = " << Event::any_size << endl;

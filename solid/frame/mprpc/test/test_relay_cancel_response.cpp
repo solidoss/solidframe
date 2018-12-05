@@ -375,7 +375,7 @@ void peerb_complete_message(
 
 int test_relay_cancel_response(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {".*:EWS", "solid::frame::mprpc::connection:IEWS", "solid::frame::mprpc::relay:IEWS"});
 
     size_t max_per_pool_connection_count = 1;
 
@@ -643,7 +643,7 @@ int test_relay_cancel_response(int argc, char* argv[])
 
         unique_lock<mutex> lock(mtx);
 
-        if (!cnd.wait_for(lock, std::chrono::seconds(60 * 4), []() { return !running; })) {
+        if (!cnd.wait_for(lock, std::chrono::seconds(60 * 1), []() { return !running; })) {
             relay_engine.debugDump();
             solid_throw("Process is taking too long.");
         }

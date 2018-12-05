@@ -32,8 +32,6 @@ struct ReactorContext;
 
 namespace mprpc {
 
-extern const LoggerT logger;
-
 extern const Event pool_event_connect;
 extern const Event pool_event_disconnect;
 

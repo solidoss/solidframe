@@ -49,9 +49,10 @@ using namespace std;
 namespace solid {
 namespace frame {
 namespace mprpc {
-
-const LoggerT logger("solid::frame::mprpc");
 namespace {
+
+const LoggerT logger("solid::frame::mprpc::service");
+
 enum class PoolEvents {
     ConnectionStart,
     ConnectionActivate,

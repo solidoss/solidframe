@@ -20,6 +20,8 @@ namespace frame {
 namespace mprpc {
 namespace {
 
+const LoggerT logger("solid::frame::mprpc::connection");
+
 enum class ConnectionEvents {
     Resolve,
     NewPoolMessage,
@@ -1282,8 +1284,9 @@ void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event
     };
 
     config.relayEngine().pollDone(relay_id_, done_lambda, cancel_lambda);
-
+    
     if (ack_buf_cnt != 0u || !cancel_remote_msg_vec_.empty()) {
+        solid_dbg(logger, Info, this << " ack_buf_cnt = "<<ack_buf_cnt<<" cancel_remote_msg_vec_size = "<<cancel_remote_msg_vec_.size());
         ackd_buf_count_ += static_cast<uint8_t>(ack_buf_cnt);
         doSend(_rctx);
     }

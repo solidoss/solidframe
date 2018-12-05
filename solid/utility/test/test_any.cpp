@@ -140,7 +140,7 @@ struct Test {
     }
 };
 
-int test_any(int /*argc*/, char* /*argv*/ [])
+int test_any(int /*argc*/, char* /*argv*/[])
 {
 #ifdef TEST_BOOST_ANY
     {
