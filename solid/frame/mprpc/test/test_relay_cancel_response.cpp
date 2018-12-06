@@ -92,7 +92,7 @@ bool try_stop()
     //cancelable_created_count were realy canceld on peera
     //2xcancelable_created_count == cancelable_deleted_count
     //
-    solid_dbg(generic_logger, Error, "writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " cancelable_created_cnt = " << cancelable_created_count << " cancelable_deleted_cnt = " << cancelable_deleted_count << " response_cnt = " << response_count);
+    solid_dbg(generic_logger, Info, "writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " cancelable_created_cnt = " << cancelable_created_count << " cancelable_deleted_cnt = " << cancelable_deleted_count << " response_cnt = " << response_count);
     if (
         crtwriteidx >= writecount && canceled_count == cancelable_created_count && 3 * cancelable_created_count == cancelable_deleted_count && response_count == (writecount - canceled_count)) {
         lock_guard<mutex> lock(mtx);
@@ -375,7 +375,7 @@ void peerb_complete_message(
 
 int test_relay_cancel_response(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EWS", "solid::frame::mprpc::connection:IEWS", "solid::frame::mprpc::relay:IEWS"});
+    solid::log_start(std::cerr, {".*:EWS", "solid::frame::mprpc::writer:IEWS", "solid::frame::mprpc::relay:EWS"});
 
     size_t max_per_pool_connection_count = 1;
 

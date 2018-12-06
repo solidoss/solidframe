@@ -1058,7 +1058,7 @@ ErrorConditionT Service::doSendMessage(
     }
 
     if (!success) {
-        solid_dbg(logger, Warning, this << " no connection notified about the new message");
+        solid_dbg(logger, Info, this << " no connection notified about the new message");
     }
 
     return error;

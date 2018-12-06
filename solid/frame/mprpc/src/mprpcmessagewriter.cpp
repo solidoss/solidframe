@@ -170,7 +170,7 @@ bool MessageWriter::enqueue(
         msgidx = _rconn_msg_id.index;
         solid_assert(message_vec_[msgidx].unique_ == _rconn_msg_id.unique);
         if (message_vec_[msgidx].unique_ != _rconn_msg_id.unique || message_vec_[msgidx].prelay_data_ != nullptr) {
-            solid_dbg(logger, Info, "Relay Data cannot be accepted righ now for msgidx = " << msgidx);
+            solid_dbg(logger, Verbose, "Relay Data cannot be accepted righ now for msgidx = " << msgidx);
             //the relay data cannot be accepted right now - will be tried later
             return false;
         }
@@ -542,7 +542,7 @@ size_t MessageWriter::doWritePacketData(
     char* pbufpos = _pbufbeg;
 
     if (_rackd_buf_count != 0u) {
-        solid_dbg(logger, Verbose, this << " stored ackd_buf_count = " << (int)_rackd_buf_count);
+        solid_dbg(logger, Info, this << " stored ackd_buf_count = " << (int)_rackd_buf_count);
         uint8_t cmd      = static_cast<uint8_t>(PacketHeader::CommandE::AckdCount);
         pbufpos          = _rsender.protocol().storeValue(pbufpos, cmd);
         pbufpos          = _rsender.protocol().storeValue(pbufpos, _rackd_buf_count);
@@ -667,7 +667,7 @@ char* MessageWriter::doWriteMessageHead(
 
     if (rv >= 0) {
         _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(rv));
-        solid_dbg(logger, Verbose, "stored message header with index = " << _msgidx << " and size = " << rv);
+        solid_dbg(logger, Info, this<<" stored message header with index = " << _msgidx << " and size = " << rv);
 
         if (rmsgstub.serializer_ptr_->empty()) {
             //we've just finished serializing header
@@ -720,7 +720,7 @@ char* MessageWriter::doWriteMessageBody(
         if (rmsgstub.serializer_ptr_->empty()) {
             //we've just finished serializing body
             cmd |= static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag);
-
+            solid_dbg(logger, Info, this<<" stored message body with index = " << _msgidx << " and size = " << rv << " cmd = " << (int)cmd);
             doTryCompleteMessageAfterSerialization(_msgidx, _rsender, _rerror);
         } else {
             ++rmsgstub.packet_count_;
@@ -730,7 +730,6 @@ char* MessageWriter::doWriteMessageBody(
 
         //store the data size
         _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(rv));
-        solid_dbg(logger, Verbose, "stored message body with index = " << _msgidx << " and size = " << rv << " cmd = " << (int)cmd);
 
         _pbufpos += rv;
     } else {

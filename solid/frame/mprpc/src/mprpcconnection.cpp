@@ -799,7 +799,7 @@ void Connection::onStopped(
                     }},
             }};
 
-    solid_dbg(logger, Info, this << ' ' << this->id() << " " << _uevent);
+    solid_dbg(logger, Verbose, this << ' ' << this->id() << " " << _uevent);
     event_handler.handle(_uevent, *this, _rctx);
 }
 //-----------------------------------------------------------------------------
@@ -1679,7 +1679,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             if (!more) {
                 flags_.reset(FlagsE::PollRelayEngine); //reset flag
             }
-            solid_dbg(logger, Info, this << ' ' << id() << " shouldPollRelayEngine = " << shouldPollRelayEngine());
+            solid_dbg(logger, Verbose, this << ' ' << id() << " shouldPollRelayEngine = " << shouldPollRelayEngine());
         }
 
         if (!this->hasPendingSend()) {
@@ -1706,7 +1706,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                     if (!more) {
                         flags_.reset(FlagsE::PollRelayEngine); //reset flag
                     }
-                    solid_dbg(logger, Info, this << ' ' << id() << " shouldPollRelayEngine = " << shouldPollRelayEngine());
+                    solid_dbg(logger, Verbose, this << ' ' << id() << " shouldPollRelayEngine = " << shouldPollRelayEngine());
                 }
 
                 write_flags.reset();
@@ -1752,6 +1752,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             }
 
             if (sent_something) {
+                solid_dbg(logger, Info, this<<" sent_something");
                 doResetTimerSend(_rctx);
             }
 
@@ -1761,7 +1762,9 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             }
             //solid_dbg(logger, Info, this<<" done-doSend "<<this->sendmsgvec[0].size()<<" "<<this->sendmsgvec[1].size());
 
-        } //if(!this->hasPendingSend())
+        } else{
+            solid_dbg(logger, Info, this<<" hasPendingSend");
+        }//if(!this->hasPendingSend())
 
     } //if(!this->isStopping())
 }
