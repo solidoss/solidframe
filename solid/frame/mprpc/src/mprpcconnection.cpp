@@ -1284,9 +1284,9 @@ void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event
     };
 
     config.relayEngine().pollDone(relay_id_, done_lambda, cancel_lambda);
-    
+
     if (ack_buf_cnt != 0u || !cancel_remote_msg_vec_.empty()) {
-        solid_dbg(logger, Info, this << " ack_buf_cnt = "<<ack_buf_cnt<<" cancel_remote_msg_vec_size = "<<cancel_remote_msg_vec_.size());
+        solid_dbg(logger, Info, this << " ack_buf_cnt = " << ack_buf_cnt << " cancel_remote_msg_vec_size = " << cancel_remote_msg_vec_.size());
         ackd_buf_count_ += static_cast<uint8_t>(ack_buf_cnt);
         doSend(_rctx);
     }
@@ -1752,7 +1752,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             }
 
             if (sent_something) {
-                solid_dbg(logger, Info, this<<" sent_something");
+                solid_dbg(logger, Info, this << " sent_something");
                 doResetTimerSend(_rctx);
             }
 
@@ -1762,9 +1762,9 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             }
             //solid_dbg(logger, Info, this<<" done-doSend "<<this->sendmsgvec[0].size()<<" "<<this->sendmsgvec[1].size());
 
-        } else{
-            solid_dbg(logger, Info, this<<" hasPendingSend");
-        }//if(!this->hasPendingSend())
+        } else {
+            solid_dbg(logger, Info, this << " hasPendingSend");
+        } //if(!this->hasPendingSend())
 
     } //if(!this->isStopping())
 }
@@ -1984,7 +1984,7 @@ void Connection::doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _
 
         this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { this->doSend(_rctx); });
     } else {
-        solid_dbg(logger, Verbose, this << " count = " << (int)_count << " sentinel = " << (int)send_relay_free_count_);
+        solid_dbg(logger, Error, this << " count = " << (int)_count << " sentinel = " << (int)send_relay_free_count_);
         this->post(
             _rctx,
             [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) {

@@ -366,8 +366,8 @@ private:
         ErrorConditionT& _rerror);
 
     void doUnprepareMessageStub(const size_t _msgidx);
-    void doWriteQueuePushBack(const size_t _msgidx);
-    void doWriteQueueErase(const size_t _msgidx);
+    void doWriteQueuePushBack(const size_t _msgidx, const int _line);
+    void doWriteQueueErase(const size_t _msgidx, const int _line);
 
     void                 cache(Serializer::PointerT& _ser);
     Serializer::PointerT createSerializer(Sender& _sender);

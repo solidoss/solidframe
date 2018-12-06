@@ -153,8 +153,9 @@ public:
 
     template <class JT>
     void push(JT&& _jb);
-    
-    void dumpStatistics()const;
+
+    void dumpStatistics() const;
+
 private:
     bool doWaitJob(std::unique_lock<std::mutex>& _lock);
 
