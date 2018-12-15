@@ -199,11 +199,11 @@ public:
     }
 };
 
-} //namespace impl
-
 namespace {
 class Engine;
 } //namespace
+
+} //namespace impl
 
 std::ostream& operator<<(std::ostream& _ros, const LogLineBase& _line);
 
