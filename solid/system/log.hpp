@@ -199,16 +199,12 @@ public:
     }
 };
 
-namespace {
-class Engine;
-} //namespace
-
 } //namespace impl
 
 std::ostream& operator<<(std::ostream& _ros, const LogLineBase& _line);
 
 class LoggerBase {
-    friend class Engine;
+    //friend class Engine;
 
     const std::string name_;
     LogAtomicFlagsT   flags_;
