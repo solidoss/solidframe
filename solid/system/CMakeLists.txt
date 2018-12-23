@@ -30,6 +30,7 @@ set(Headers
     log.hpp
     statistic.hpp
     crashhandler.hpp
+    chunkedstream.hpp
 )
 
 set(Inlines

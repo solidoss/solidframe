@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "solid/system/chunkedstream.hpp"
 #include "solid/system/common.hpp"
 #include "solid/system/error.hpp"
 #include <atomic>
@@ -76,126 +77,17 @@ struct LogLineBase {
 namespace impl {
 
 template <size_t Size>
-class LogLineBuffer : public std::streambuf {
-    struct BufNode {
-        static constexpr const size_t buffer_capacity = Size - sizeof(std::unique_ptr<BufNode>);
-
-        char buf_[buffer_capacity];
-
-        const char* begin() const
-        {
-            return &buf_[0];
-        }
-        const char* end() const
-        {
-            return &buf_[buffer_capacity];
-        }
-
-        std::unique_ptr<BufNode> pnext_;
-
-        BufNode()
-            : pnext_(nullptr)
-        {
-        }
-
-    } first_;
-    BufNode*        plast_;
-    char*           pcrt_;
-    const char*     pend_;
-    std::streamsize size_;
-
-private:
-    void allocate()
-    {
-        plast_->pnext_.reset(new BufNode);
-        plast_ = plast_->pnext_.get();
-        pcrt_  = plast_->buf_;
-        pend_  = plast_->end();
-    }
-
-    // write one character
-    int_type overflow(int_type c) override
-    {
-        if (c != EOF) {
-            if (pcrt_ == pend_) {
-                allocate();
-            }
-            *pcrt_ = c;
-            ++pcrt_;
-            ++size_;
-        }
-        return c;
-    }
-
-    // write multiple characters
-    std::streamsize xsputn(const char* s, std::streamsize num) override
-    {
-        std::streamsize sz = num;
-        while (sz) {
-            if (pcrt_ == pend_) {
-                allocate();
-            }
-            std::streamsize towrite = pend_ - pcrt_;
-            if (towrite > sz)
-                towrite = sz;
-            memcpy(pcrt_, s, towrite);
-            s += towrite;
-            sz -= towrite;
-            pcrt_ += towrite;
-        }
-        size_ += num;
-        return num;
-    }
+class LogLineStream : public OChunkedStream<Size>, public LogLineBase {
+    using BaseStream = OChunkedStream<Size>;
 
 public:
-    LogLineBuffer()
-        : plast_(&first_)
-        , pcrt_(first_.buf_)
-        , pend_(first_.end())
-        , size_(0)
-    {
-        static_assert(sizeof(BufNode) == Size, "sizeof(BufNode) not equal to Size");
-    }
-
-    std::ostream& writeTo(std::ostream& _ros) const
-    {
-        const BufNode* pbn = &first_;
-        do {
-            if (pbn == plast_) {
-                _ros.write(pbn->buf_, pcrt_ - pbn->begin());
-            } else {
-                _ros.write(pbn->buf_, BufNode::buffer_capacity);
-            }
-            pbn = pbn->pnext_.get();
-        } while (pbn);
-        return _ros;
-    }
-
-    std::streamsize size() const
-    {
-        return size_;
-    }
-};
-
-template <size_t Size>
-class LogLineStream : public std::ostream, public LogLineBase {
-protected:
-    LogLineBuffer<Size> buf_;
-
-public:
-    LogLineStream()
-        : std::ostream(nullptr)
-    {
-        rdbuf(&buf_);
-    }
-
     std::ostream& writeTo(std::ostream& _ros) const override
     {
-        return buf_.writeTo(_ros);
+        return BaseStream::writeTo(_ros);
     }
     size_t size() const override
     {
-        return buf_.size();
+        return BaseStream::size();
     }
 };
 
