@@ -17,6 +17,8 @@ class Directory {
 public:
     //! Create a new directory
     static bool create(const char*);
+    //! Create a new path of directories
+    static bool create_all(const char*);
     //! Erase a file
     static bool eraseFile(const char*);
     //! Rename a file

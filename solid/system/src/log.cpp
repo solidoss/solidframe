@@ -840,7 +840,7 @@ ErrorConditionT log_start(
             path = "log";
             path += path_separator;
         }
-        Directory::create(path.c_str());
+        Directory::create_all(path.c_str());
         string fpath;
 
         filePath(fpath, 0, path, name);

@@ -325,6 +325,27 @@ bool FileDevice::canRetryOpen() const
 #endif
 }
 
+/*static*/ bool Directory::create_all(const char* _fname)
+{
+#ifdef SOLID_ON_WINDOWS
+    static constexpr const char sep = '\\';
+#else
+    static constexpr const char sep = '/';
+#endif
+    string path(_fname);
+
+    size_t sep_pos = path.find(sep, 0);
+
+    while (sep_pos != string::npos) {
+        path[sep_pos] = 0;
+        create(path.c_str());
+        path[sep_pos] = sep;
+        sep_pos       = path.find(sep, sep_pos + 1);
+    }
+    create(_fname);
+    return true;
+}
+
 /*static*/ bool Directory::eraseFile(const char* _fname)
 {
 #ifdef SOLID_ON_WINDOWS

@@ -670,7 +670,7 @@ bool prepare_temp_file_path(std::string& _rpath, const char* _prefix, const uint
         std::snprintf(filebuf, bufsz, "/%4.4x.tmp", static_cast<unsigned int>(fileid));
     }
     _rpath.append(fldrbuf);
-    Directory::create(_rpath.c_str());
+    Directory::create_all(_rpath.c_str());
     _rpath.append(filebuf);
     return true;
 }
