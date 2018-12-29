@@ -63,6 +63,15 @@ struct MessageHeader {
         return *this;
     }
 
+    MessageHeader& operator=(const MessageHeader& _rmh)
+    {
+        sender_request_id_    = _rmh.sender_request_id_;
+        recipient_request_id_ = _rmh.recipient_request_id_;
+        flags_                = fetch_state_flags(_rmh.flags_).toUnderlyingType();
+        url_                  = _rmh.url_;
+        return *this;
+    }
+
     void clear()
     {
         sender_request_id_.clear();
@@ -256,6 +265,16 @@ struct Message : std::enable_shared_from_this<Message> {
     void header(MessageHeader&& _umh)
     {
         header_ = std::move(_umh);
+    }
+
+    void header(const MessageHeader& _umh)
+    {
+        header_ = std::move(_umh);
+    }
+
+    const MessageHeader& header() const
+    {
+        return header_;
     }
 
     bool isOnSender() const

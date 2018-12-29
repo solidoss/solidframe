@@ -349,5 +349,35 @@ if(OPENSSL_FOUND)
     )
 
     add_test(NAME TestRelayEngineBasic     COMMAND  test_mprpc_relay_engine test_relay_engine_basic)
+    
     #==============================================================================
+
+    set( mprpcClientFrontBackTestSuite
+        test_clientfrontback_upload.cpp
+        #test_clientfrontback_download.cpp
+    )
+    #
+    create_test_sourcelist( mprpcClientFrontBackTests test_mprpc_clientfrontback.cpp ${mprpcClientFrontBackTestSuite})
+
+    add_executable(test_mprpc_cleintfrontback ${mprpcClientFrontBackTests})
+    add_dependencies(test_mprpc_cleintfrontback mprpc_test_copy_certs build-openssl build-snappy)
+
+    target_link_libraries(test_mprpc_cleintfrontback
+        solid_frame_mprpc
+        solid_frame_aio
+        solid_frame_aio_openssl
+        solid_frame
+        solid_serialization_v2
+        solid_utility
+        solid_system
+        ${SNAPPY_LIB}
+        ${OPENSSL_LIBRARIES}
+        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
+        ${SYSTEM_BASIC_LIBRARIES}
+    )
+
+    add_test(NAME TestClientFrontBackUpload        COMMAND  test_mprpc_cleintfrontback test_clientfrontback_upload)
+    #add_test(NAME TestClientFrontBackDownload      COMMAND  test_mprpc_cleintfrontback test_clientfrontback_dowload)
+    #==============================================================================
+    
 endif(OPENSSL_FOUND)
