@@ -243,7 +243,7 @@ struct Message : std::enable_shared_from_this<Message> {
         if (is_on_sender(_flags)) {
             return _flags | MessageFlagsE::OnPeer;
         } else if (is_back_on_peer(_flags)) {
-            return clear_state_flags(_flags);
+            return (_flags | MessageFlagsE::BackOnSender).reset(MessageFlagsE::OnPeer);
         } else if (is_on_peer(_flags)) {
             return (_flags | MessageFlagsE::BackOnSender).reset(MessageFlagsE::OnPeer);
         } else /* if(is_back_on_sender(_flags))*/ {

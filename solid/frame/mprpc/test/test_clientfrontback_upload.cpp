@@ -58,6 +58,11 @@ struct UploadRequest : frame::mprpc::Message {
     {
     }
 
+    UploadRequest(const string& _name)
+        : name_(_name)
+    {
+    }
+
     ~UploadRequest() override
     {
     }
@@ -309,7 +314,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
             cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 
             if (secure) {
-                solid_dbg(generic_logger, Info, "Configure SSL server -------------------------------------");
+                solid_dbg(logger, Info, "Configure SSL server -------------------------------------");
                 frame::mprpc::openssl::setup_server(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
@@ -351,7 +356,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
             cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
 
             if (secure) {
-                solid_dbg(generic_logger, Info, "Configure SSL client ------------------------------------");
+                solid_dbg(logger, Info, "Configure SSL client ------------------------------------");
                 frame::mprpc::openssl::setup_client(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
@@ -387,7 +392,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
             cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 
             if (secure) {
-                solid_dbg(generic_logger, Info, "Configure SSL server -------------------------------------");
+                solid_dbg(logger, Info, "Configure SSL server -------------------------------------");
                 frame::mprpc::openssl::setup_server(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
@@ -429,7 +434,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
             cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
 
             if (secure) {
-                solid_dbg(generic_logger, Info, "Configure SSL client ------------------------------------");
+                solid_dbg(logger, Info, "Configure SSL client ------------------------------------");
                 frame::mprpc::openssl::setup_client(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
@@ -521,7 +526,7 @@ void on_front_client_response(
     if (!req_ptr) {
         req_ptr                = make_shared<back::UploadRequest>();
         req_ptr->recipient_id_ = _rctx.recipientId();
-        req_ptr->res_ptr_      = make_shared<front::UploadResponse>(_rrecv_msg_ptr);
+        req_ptr->res_ptr_      = make_shared<front::UploadResponse>(*_rrecv_msg_ptr);
     } else {
     }
     req_ptr->name_ = std::move(_rrecv_msg_ptr->name_);
@@ -557,7 +562,7 @@ void on_server_request(
     req_ptr->name_ = std::move(_rrecv_msg_ptr->name_);
     req_ptr->iss_.str(_rrecv_msg_ptr->oss_.str());
     req_ptr->recipient_id_ = _rctx.recipientId();
-    req_ptr->res_ptr_      = make_shared<front::UploadResponse>(_rrecv_msg_ptr);
+    req_ptr->res_ptr_      = make_shared<front::UploadResponse>(*_rrecv_msg_ptr);
 
     pmprpc_back_client->sendRequest("localhost", req_ptr, on_back_client_response);
 }

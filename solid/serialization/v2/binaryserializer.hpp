@@ -1008,7 +1008,7 @@ public:
     template <typename F>
     ThisT& add(std::istream& _ris, const uint64_t _sz, F _f, Ctx& _rctx, const char* _name)
     {
-        addStream(_ris, _sz, _f, _name);
+        addStream(_ris, _sz, _f, _rctx, _name);
         return *this;
     }
     template <typename F>

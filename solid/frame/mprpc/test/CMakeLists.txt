@@ -66,6 +66,7 @@ if(OPENSSL_FOUND)
         test_clientserver_delayed.cpp
         test_clientserver_idempotent.cpp
         test_clientserver_split.cpp
+        test_clientserver_upload.cpp
     )
     #
     create_test_sourcelist( mprpcClientServerTests test_mprpc_clientserver.cpp ${mprpcClientServerTestSuite})
@@ -121,8 +122,8 @@ if(OPENSSL_FOUND)
     add_test(NAME TestClientServerDelayedS      COMMAND  test_mprpc_clientserver test_clientserver_delayed 1 s)
     add_test(NAME TestClientServerIdempontent   COMMAND  test_mprpc_clientserver test_clientserver_idempotent)
     add_test(NAME TestClientServerIdempontentS  COMMAND  test_mprpc_clientserver test_clientserver_idempotent 1 s)
-    
     add_test(NAME TestClientServerSplit1        COMMAND  test_mprpc_clientserver test_clientserver_split 1)
+    add_test(NAME TestClientServerUpload        COMMAND  test_mprpc_clientserver test_clientserver_upload)
 
 
     #==============================================================================
@@ -359,10 +360,10 @@ if(OPENSSL_FOUND)
     #
     create_test_sourcelist( mprpcClientFrontBackTests test_mprpc_clientfrontback.cpp ${mprpcClientFrontBackTestSuite})
 
-    add_executable(test_mprpc_cleintfrontback ${mprpcClientFrontBackTests})
-    add_dependencies(test_mprpc_cleintfrontback mprpc_test_copy_certs build-openssl build-snappy)
+    add_executable(test_mprpc_clientfrontback ${mprpcClientFrontBackTests})
+    add_dependencies(test_mprpc_clientfrontback mprpc_test_copy_certs build-openssl build-snappy)
 
-    target_link_libraries(test_mprpc_cleintfrontback
+    target_link_libraries(test_mprpc_clientfrontback
         solid_frame_mprpc
         solid_frame_aio
         solid_frame_aio_openssl
@@ -376,8 +377,8 @@ if(OPENSSL_FOUND)
         ${SYSTEM_BASIC_LIBRARIES}
     )
 
-    add_test(NAME TestClientFrontBackUpload        COMMAND  test_mprpc_cleintfrontback test_clientfrontback_upload)
-    #add_test(NAME TestClientFrontBackDownload      COMMAND  test_mprpc_cleintfrontback test_clientfrontback_dowload)
+    #add_test(NAME TestClientFrontBackUpload        COMMAND  test_mprpc_clientfrontback test_clientfrontback_upload)
+    #add_test(NAME TestClientFrontBackDownload      COMMAND  test_mprpc_clientfrontback test_clientfrontback_dowload)
     #==============================================================================
     
 endif(OPENSSL_FOUND)

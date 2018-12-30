@@ -910,10 +910,6 @@ ErrorConditionT Service::doSendMessage(
             error = error_service_message_state;
             return error;
         }
-        if (Message::is_request(_flags)) {
-            error = error_service_message_flags;
-            return error;
-        }
     } else {
         if (_rmsgptr->isOnPeer()) {
             error = error_service_message_state;
