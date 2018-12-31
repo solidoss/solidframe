@@ -248,7 +248,9 @@ Base::ReturnE SerializerBase::store_stream(SerializerBase& _rs, Runnable& _rr, v
         }
 
         if (!done) {
-            _rr.fnc_(_rs, _rr, _pctx);
+            if (_rr.size_ != 0) {
+                _rr.fnc_(_rs, _rr, _pctx);
+            }
             return ReturnE::Wait;
         }
         _rr.size_ = 0;

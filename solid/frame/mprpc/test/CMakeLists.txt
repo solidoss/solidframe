@@ -67,6 +67,8 @@ if(OPENSSL_FOUND)
         test_clientserver_idempotent.cpp
         test_clientserver_split.cpp
         test_clientserver_upload.cpp
+        test_clientserver_upload_single.cpp
+        test_clientserver_download.cpp
     )
     #
     create_test_sourcelist( mprpcClientServerTests test_mprpc_clientserver.cpp ${mprpcClientServerTestSuite})
@@ -124,6 +126,8 @@ if(OPENSSL_FOUND)
     add_test(NAME TestClientServerIdempontentS  COMMAND  test_mprpc_clientserver test_clientserver_idempotent 1 s)
     add_test(NAME TestClientServerSplit1        COMMAND  test_mprpc_clientserver test_clientserver_split 1)
     add_test(NAME TestClientServerUpload        COMMAND  test_mprpc_clientserver test_clientserver_upload)
+    add_test(NAME TestClientServerUploadSingle  COMMAND  test_mprpc_clientserver test_clientserver_upload_single)
+    add_test(NAME TestClientServerDownload      COMMAND  test_mprpc_clientserver test_clientserver_download)
 
 
     #==============================================================================

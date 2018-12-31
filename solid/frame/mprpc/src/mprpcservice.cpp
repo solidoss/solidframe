@@ -904,19 +904,6 @@ ErrorConditionT Service::doSendMessage(
         return error;
     }
 
-    if (Message::is_response(_flags)) {
-        //message state should be isOnPeer
-        if (!_rmsgptr->isOnPeer()) {
-            error = error_service_message_state;
-            return error;
-        }
-    } else {
-        if (_rmsgptr->isOnPeer()) {
-            error = error_service_message_state;
-            return error;
-        }
-    }
-
     const size_t msg_type_idx = configuration().protocol().typeIndex(_rmsgptr.get());
 
     if (msg_type_idx == 0) {

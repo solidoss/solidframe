@@ -71,7 +71,7 @@ struct UploadRequest : frame::mprpc::Message {
         _s.add(name_, _rctx, "name");
         auto progress_lambda = [](std::istream& _ris, uint64_t _len, const bool _done, frame::mprpc::ConnectionContext& _rctx, const char* _name) {
             if (_done) {
-                solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
+                solid_dbg(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
             }
         };
         _s.add(ifs_, 100 * 1024, progress_lambda, _rctx, "file");
@@ -83,7 +83,7 @@ struct UploadRequest : frame::mprpc::Message {
         _s.add(name_, _rctx, "name");
         auto progress_lambda = [](std::ostream& _ros, uint64_t _len, const bool _done, frame::mprpc::ConnectionContext& _rctx, const char* _name) {
             if (_done) {
-                solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
+                solid_dbg(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
             }
         };
         _s.add(oss_, progress_lambda, _rctx, _name);
@@ -107,8 +107,7 @@ struct UploadResponse : frame::mprpc::Message {
     UploadResponse(std::shared_ptr<UploadRequest>&& _req_ptr)
         : frame::mprpc::Message(*_req_ptr)
         , req_ptr_(std::move(_req_ptr))
-
-        , send_response_(true)
+        , send_response_(false)
     {
     }
 
@@ -166,7 +165,7 @@ void check_files(const vector<string>& _file_vec, const char* _path_prefix_clien
 
 } //namespace
 
-int test_clientserver_upload(int argc, char* argv[])
+int test_clientserver_upload_single(int argc, char* argv[])
 {
     solid::log_start(std::cerr, {".*:EW", "test:IEW", "solid::frame::mprpc::.*:EW"});
 
@@ -434,6 +433,33 @@ void on_client_continue_response(
     frame::mprpc::ConnectionContext& _rctx,
     std::shared_ptr<UploadRequest>&  _rsent_msg_ptr,
     std::shared_ptr<UploadResponse>& _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror);
+
+void on_client_continue(
+    frame::mprpc::ConnectionContext& _rctx,
+    std::shared_ptr<UploadRequest>&  _rsent_msg_ptr,
+    std::shared_ptr<UploadResponse>& _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror)
+{
+
+    frame::mprpc::MessageFlagsT flags;
+
+    if (!_rsent_msg_ptr->ifs_.eof()) {
+        solid_log(logger, Verbose, "Sending data to " << _rctx.recipientId() << " expect response");
+        flags.set(frame::mprpc::MessageFlagsE::ResponsePart);
+        flags.set(frame::mprpc::MessageFlagsE::AwaitResponse);
+        _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, on_client_continue_response, flags);
+    } else {
+        solid_log(logger, Verbose, "Sending data to " << _rctx.recipientId() << " expect response");
+        flags.set(frame::mprpc::MessageFlagsE::ResponseLast);
+        _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, flags);
+    }
+}
+
+void on_client_continue_response(
+    frame::mprpc::ConnectionContext& _rctx,
+    std::shared_ptr<UploadRequest>&  _rsent_msg_ptr,
+    std::shared_ptr<UploadResponse>& _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_check(_rrecv_msg_ptr);
@@ -442,12 +468,9 @@ void on_client_continue_response(
     frame::mprpc::MessageFlagsT flags;
 
     if (!_rsent_msg_ptr->ifs_.eof()) {
-        solid_log(logger, Verbose, "Sending " << _rsent_msg_ptr->name_ << " to " << _rctx.recipientId());
+        solid_log(logger, Verbose, "Sending " << _rsent_msg_ptr->name_ << " to " << _rctx.recipientId() << " expect no response");
         flags.set(frame::mprpc::MessageFlagsE::ResponsePart);
-        flags.set(frame::mprpc::MessageFlagsE::AwaitResponse);
-        _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, on_client_continue_response, flags);
-        flags.reset(frame::mprpc::MessageFlagsE::AwaitResponse);
-        _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, flags);
+        _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, on_client_continue, flags);
     } else {
         solid_log(logger, Verbose, "Sending " << _rsent_msg_ptr->name_ << " to " << _rctx.recipientId() << " last");
         flags.set(frame::mprpc::MessageFlagsE::ResponseLast);
@@ -471,12 +494,9 @@ void on_client_first_response(
     frame::mprpc::MessageFlagsT flags;
 
     if (!_rsent_msg_ptr->ifs_.eof()) {
-        solid_log(logger, Verbose, "Sending " << _rsent_msg_ptr->name_ << " to " << _rctx.recipientId());
+        solid_log(logger, Verbose, "Sending " << _rsent_msg_ptr->name_ << " to " << _rctx.recipientId() << " expect no response");
         flags.set(frame::mprpc::MessageFlagsE::ResponsePart);
-        flags.set(frame::mprpc::MessageFlagsE::AwaitResponse);
-        _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, on_client_continue_response, flags);
-        flags.reset(frame::mprpc::MessageFlagsE::AwaitResponse);
-        _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, flags);
+        _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, on_client_continue, flags);
     } else {
         solid_log(logger, Verbose, "Sending " << _rsent_msg_ptr->name_ << " to " << _rctx.recipientId() << " last");
         flags.set(frame::mprpc::MessageFlagsE::ResponseLast);
@@ -532,8 +552,7 @@ void on_server_request(
     _rrecv_msg_ptr->ofs_.write(s.data(), s.size());
     auto res_ptr    = make_shared<UploadResponse>(std::move(_rrecv_msg_ptr));
     res_ptr->error_ = 0;
-    const frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::Response};
-    _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, on_server_chunk, flags);
+    _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, on_server_chunk, {frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::Response});
 }
 
 } //namespace
