@@ -121,7 +121,7 @@ struct UploadResponse : frame::mprpc::Message {
     }
 };
 
-void on_client_requset(
+void on_client_request(
     frame::mprpc::ConnectionContext& _rctx,
     std::shared_ptr<UploadRequest>&  _rsent_msg_ptr,
     std::shared_ptr<UploadRequest>&  _rrecv_msg_ptr,
@@ -287,7 +287,7 @@ int test_clientserver_upload_single(int argc, char* argv[])
             frame::mprpc::Configuration cfg(sch_client, proto);
 
             proto->null(0);
-            proto->registerMessage<UploadRequest>(on_client_requset, 1);
+            proto->registerMessage<UploadRequest>(on_client_request, 1);
             proto->registerMessage<UploadResponse>(on_client_response, 2);
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
