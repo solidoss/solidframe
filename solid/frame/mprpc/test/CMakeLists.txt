@@ -359,7 +359,7 @@ if(OPENSSL_FOUND)
 
     set( mprpcClientFrontBackTestSuite
         test_clientfrontback_upload.cpp
-        #test_clientfrontback_download.cpp
+        test_clientfrontback_download.cpp
     )
     #
     create_test_sourcelist( mprpcClientFrontBackTests test_mprpc_clientfrontback.cpp ${mprpcClientFrontBackTestSuite})
@@ -381,8 +381,8 @@ if(OPENSSL_FOUND)
         ${SYSTEM_BASIC_LIBRARIES}
     )
 
-    #add_test(NAME TestClientFrontBackUpload        COMMAND  test_mprpc_clientfrontback test_clientfrontback_upload)
-    #add_test(NAME TestClientFrontBackDownload      COMMAND  test_mprpc_clientfrontback test_clientfrontback_dowload)
+    add_test(NAME TestClientFrontBackUpload        COMMAND  test_mprpc_clientfrontback test_clientfrontback_upload)
+    add_test(NAME TestClientFrontBackDownload      COMMAND  test_mprpc_clientfrontback test_clientfrontback_download)
     #==============================================================================
     
 endif(OPENSSL_FOUND)

@@ -45,27 +45,27 @@ LoggerT logger("test");
 atomic<size_t> expect_count(0);
 promise<void>  prom;
 
-struct DownloadResponse;
+struct Response;
 
-struct DownloadRequest : frame::mprpc::Message {
+struct Request : frame::mprpc::Message {
     string   name_;
     ofstream ofs_;
     bool     send_request_;
 
-    DownloadRequest(DownloadResponse& _rmsg);
+    Request(Response& _rmsg);
 
-    DownloadRequest()
+    Request()
         : send_request_(true)
     {
     }
 
-    DownloadRequest(const string& _name)
+    Request(const string& _name)
         : name_(_name)
         , send_request_(true)
     {
     }
 
-    ~DownloadRequest() override
+    ~Request() override
     {
     }
 
@@ -75,21 +75,21 @@ struct DownloadRequest : frame::mprpc::Message {
     }
 };
 
-struct DownloadResponse : frame::mprpc::Message {
+struct Response : frame::mprpc::Message {
     uint32_t         error_;
     ostringstream    oss_;
     mutable ifstream ifs_;
 
-    DownloadResponse()
+    Response()
     {
     }
 
-    DownloadResponse(DownloadRequest& _rmsg)
+    Response(Request& _rmsg)
         : frame::mprpc::Message(_rmsg)
     {
     }
 
-    ~DownloadResponse() override
+    ~Response() override
     {
     }
 
@@ -118,47 +118,47 @@ struct DownloadResponse : frame::mprpc::Message {
     }
 };
 
-DownloadRequest::DownloadRequest(DownloadResponse& _rmsg)
+Request::Request(Response& _rmsg)
     : frame::mprpc::Message(_rmsg)
     , send_request_(true)
 {
 }
 
 void on_client_request(
-    frame::mprpc::ConnectionContext&  _rctx,
-    std::shared_ptr<DownloadRequest>& _rsent_msg_ptr,
-    std::shared_ptr<DownloadRequest>& _rrecv_msg_ptr,
-    ErrorConditionT const&            _rerror)
+    frame::mprpc::ConnectionContext& _rctx,
+    std::shared_ptr<Request>&        _rsent_msg_ptr,
+    std::shared_ptr<Request>&        _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "on message");
 }
 
 void on_client_response(
-    frame::mprpc::ConnectionContext&   _rctx,
-    std::shared_ptr<DownloadResponse>& _rsent_msg_ptr,
-    std::shared_ptr<DownloadResponse>& _rrecv_msg_ptr,
-    ErrorConditionT const&             _rerror)
+    frame::mprpc::ConnectionContext& _rctx,
+    std::shared_ptr<Response>&       _rsent_msg_ptr,
+    std::shared_ptr<Response>&       _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "on message");
 }
 
-void on_client_response_part(
-    frame::mprpc::ConnectionContext&   _rctx,
-    std::shared_ptr<DownloadRequest>&  _rsent_msg_ptr,
-    std::shared_ptr<DownloadResponse>& _rrecv_msg_ptr,
-    ErrorConditionT const&             _rerror);
+void on_client_receive_response(
+    frame::mprpc::ConnectionContext& _rctx,
+    std::shared_ptr<Request>&        _rsent_msg_ptr,
+    std::shared_ptr<Response>&       _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror);
 
-void on_server_request(
-    frame::mprpc::ConnectionContext&  _rctx,
-    std::shared_ptr<DownloadRequest>& _rsent_msg_ptr,
-    std::shared_ptr<DownloadRequest>& _rrecv_msg_ptr,
-    ErrorConditionT const&            _rerror);
+void on_server_receive_first_request(
+    frame::mprpc::ConnectionContext& _rctx,
+    std::shared_ptr<Request>&        _rsent_msg_ptr,
+    std::shared_ptr<Request>&        _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror);
 
 void on_server_response(
-    frame::mprpc::ConnectionContext&   _rctx,
-    std::shared_ptr<DownloadResponse>& _rsent_msg_ptr,
-    std::shared_ptr<DownloadResponse>& _rrecv_msg_ptr,
-    ErrorConditionT const&             _rerror)
+    frame::mprpc::ConnectionContext& _rctx,
+    std::shared_ptr<Response>&       _rsent_msg_ptr,
+    std::shared_ptr<Response>&       _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "on message");
 }
@@ -247,8 +247,8 @@ int test_clientserver_download(int argc, char* argv[])
             frame::mprpc::Configuration cfg(sch_server, proto);
 
             proto->null(0);
-            proto->registerMessage<DownloadRequest>(on_server_request, 1);
-            proto->registerMessage<DownloadResponse>(on_server_response, 2);
+            proto->registerMessage<Request>(on_server_receive_first_request, 1);
+            proto->registerMessage<Response>(on_server_response, 2);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
@@ -290,8 +290,8 @@ int test_clientserver_download(int argc, char* argv[])
             frame::mprpc::Configuration cfg(sch_client, proto);
 
             proto->null(0);
-            proto->registerMessage<DownloadRequest>(on_client_request, 1);
-            proto->registerMessage<DownloadResponse>(on_client_response, 2);
+            proto->registerMessage<Request>(on_client_request, 1);
+            proto->registerMessage<Response>(on_client_response, 2);
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 
@@ -322,10 +322,10 @@ int test_clientserver_download(int argc, char* argv[])
 
         expect_count = file_vec.size();
         for (const auto& f : file_vec) {
-            auto msg_ptr = make_shared<DownloadRequest>(f);
+            auto msg_ptr = make_shared<Request>(f);
             msg_ptr->ofs_.open(string("client_storage/") + f);
 
-            mprpc_client.sendRequest("localhost", msg_ptr, on_client_response_part);
+            mprpc_client.sendRequest("localhost", msg_ptr, on_client_receive_response);
         }
 
         solid_check(prom.get_future().wait_for(chrono::seconds(150)) == future_status::ready, "Taking too long - waited 150 secs");
@@ -433,11 +433,11 @@ void check_files(const vector<string>& _file_vec, const char* _path_prefix_clien
 // client
 //-----------------------------------------------------------------------------
 
-void on_client_response_part(
-    frame::mprpc::ConnectionContext&   _rctx,
-    std::shared_ptr<DownloadRequest>&  _rsent_msg_ptr,
-    std::shared_ptr<DownloadResponse>& _rrecv_msg_ptr,
-    ErrorConditionT const&             _rerror)
+void on_client_receive_response(
+    frame::mprpc::ConnectionContext& _rctx,
+    std::shared_ptr<Request>&        _rsent_msg_ptr,
+    std::shared_ptr<Response>&       _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror)
 {
     solid_check(_rrecv_msg_ptr);
 
@@ -453,7 +453,7 @@ void on_client_response_part(
     if (!_rrecv_msg_ptr->isResponseLast()) {
         if (_rsent_msg_ptr->send_request_) {
             _rsent_msg_ptr->send_request_ = false;
-            auto res_ptr                  = make_shared<DownloadRequest>(*_rrecv_msg_ptr);
+            auto res_ptr                  = make_shared<Request>(*_rrecv_msg_ptr);
             auto err                      = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, {frame::mprpc::MessageFlagsE::Response});
             solid_log(logger, Verbose, "send response to: " << _rctx.recipientId() << " err: " << err.message());
         } else {
@@ -470,58 +470,52 @@ void on_client_response_part(
 // server
 //-----------------------------------------------------------------------------
 
-void on_server_continue_response(
-    frame::mprpc::ConnectionContext&   _rctx,
-    std::shared_ptr<DownloadResponse>& _rsent_msg_ptr,
-    std::shared_ptr<DownloadRequest>&  _rrecv_msg_ptr,
-    ErrorConditionT const&             _rerror)
+void on_server_receive_request(
+    frame::mprpc::ConnectionContext& _rctx,
+    std::shared_ptr<Response>&       _rsent_msg_ptr,
+    std::shared_ptr<Request>&        _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror)
 {
     solid_check(_rrecv_msg_ptr);
 
-    frame::mprpc::MessageFlagsT flags;
-
     if (!_rsent_msg_ptr->ifs_.eof()) {
         solid_log(logger, Verbose, "Sending " << _rrecv_msg_ptr->name_ << " to " << _rctx.recipientId());
-        flags.set(frame::mprpc::MessageFlagsE::ResponsePart);
-        flags.set(frame::mprpc::MessageFlagsE::AwaitResponse);
-        _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, on_server_continue_response, flags);
+        frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::ResponsePart, frame::mprpc::MessageFlagsE::AwaitResponse};
+        _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, on_server_receive_request, flags);
         flags.reset(frame::mprpc::MessageFlagsE::AwaitResponse);
         _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, flags);
     } else {
         solid_log(logger, Verbose, "Sending to " << _rctx.recipientId() << " last");
-        flags.set(frame::mprpc::MessageFlagsE::ResponseLast);
+        frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::ResponseLast};
         _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, flags);
     }
 }
 
-void on_server_request(
-    frame::mprpc::ConnectionContext&  _rctx,
-    std::shared_ptr<DownloadRequest>& _rsent_msg_ptr,
-    std::shared_ptr<DownloadRequest>& _rrecv_msg_ptr,
-    ErrorConditionT const&            _rerror)
+void on_server_receive_first_request(
+    frame::mprpc::ConnectionContext& _rctx,
+    std::shared_ptr<Request>&        _rsent_msg_ptr,
+    std::shared_ptr<Request>&        _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror)
 {
     string path = string("server_storage") + '/' + _rrecv_msg_ptr->name_;
 
-    auto res_ptr = make_shared<DownloadResponse>(*_rrecv_msg_ptr);
+    auto res_ptr = make_shared<Response>(*_rrecv_msg_ptr);
 
     res_ptr->ifs_.open(path);
 
     solid_check(res_ptr->ifs_, "failed open file: " << path);
 
-    frame::mprpc::MessageFlagsT flags;
-
     if (!res_ptr->ifs_.eof()) {
         solid_log(logger, Verbose, "Sending " << _rrecv_msg_ptr->name_ << " to " << _rctx.recipientId());
-        flags.set(frame::mprpc::MessageFlagsE::ResponsePart);
-        flags.set(frame::mprpc::MessageFlagsE::AwaitResponse);
-        auto error = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, on_server_continue_response, flags);
+        frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::ResponsePart, frame::mprpc::MessageFlagsE::AwaitResponse};
+        auto                        error = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, on_server_receive_request, flags);
         solid_check(!error, "failed send message: " << error.message());
         flags.reset(frame::mprpc::MessageFlagsE::AwaitResponse);
         error = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, flags);
         solid_check(!error, "failed send message: " << error.message());
     } else {
         solid_log(logger, Verbose, "Sending " << _rsent_msg_ptr->name_ << " to " << _rctx.recipientId() << " last");
-        flags.set(frame::mprpc::MessageFlagsE::ResponseLast);
+        frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::ResponseLast};
         _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, flags);
     }
 }
