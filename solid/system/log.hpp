@@ -77,8 +77,8 @@ struct LogLineBase {
 namespace impl {
 
 template <size_t Size>
-class LogLineStream : public OChunkedStream<Size>, public LogLineBase {
-    using BaseStream = OChunkedStream<Size>;
+class LogLineStream : public OChunkedStream<Size, Size>, public LogLineBase {
+    using BaseStream = OChunkedStream<Size, Size>;
 
 public:
     std::ostream& writeTo(std::ostream& _ros) const override
