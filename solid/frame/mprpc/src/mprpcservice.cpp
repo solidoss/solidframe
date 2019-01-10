@@ -1349,37 +1349,37 @@ ErrorConditionT Service::pollPoolForUpdates(
             _rconnection.pendingMessageVectorEraseFirst(count);
         }
     }
+    if (_rconnection.isServer() || _rconnection.isActiveState()) {
+        if (connection_can_handle_synchronous_messages) {
+            //use the order inner queue
+            while (!rpool.msgorder_inner_list.empty() && connection_may_handle_more_messages) {
+                connection_may_handle_more_messages = doTryPushMessageToConnection(
+                    _rconnection,
+                    _robjuid,
+                    pool_index,
+                    rpool.msgorder_inner_list.frontIndex());
+            }
 
-    if (connection_can_handle_synchronous_messages) {
-        //use the order inner queue
-        while (!rpool.msgorder_inner_list.empty() && connection_may_handle_more_messages) {
-            connection_may_handle_more_messages = doTryPushMessageToConnection(
-                _rconnection,
-                _robjuid,
-                pool_index,
-                rpool.msgorder_inner_list.frontIndex());
+        } else {
+
+            //use the async inner queue
+            while (!rpool.msgasync_inner_list.empty() && connection_may_handle_more_messages) {
+                connection_may_handle_more_messages = doTryPushMessageToConnection(
+                    _rconnection,
+                    _robjuid,
+                    pool_index,
+                    rpool.msgasync_inner_list.frontIndex());
+            }
         }
-
-    } else {
-
-        //use the async inner queue
-        while (!rpool.msgasync_inner_list.empty() && connection_may_handle_more_messages) {
-            connection_may_handle_more_messages = doTryPushMessageToConnection(
-                _rconnection,
-                _robjuid,
-                pool_index,
-                rpool.msgasync_inner_list.frontIndex());
+        //a connection will either be in conn_waitingq
+        //or it will call pollPoolForUpdates asap.
+        //this is because we need to be able to notify connection about
+        //pool force close imeditely
+        if (!_rconnection.isInPoolWaitingQueue()) {
+            rpool.conn_waitingq.push(_robjuid);
+            _rconnection.setInPoolWaitingQueue();
         }
-    }
-    //a connection will either be in conn_waitingq
-    //or it will call pollPoolForUpdates asap.
-    //this is because we need to be able to notify connection about
-    //pool force close imeditely
-    if (!_rconnection.isInPoolWaitingQueue()) {
-        rpool.conn_waitingq.push(_robjuid);
-        _rconnection.setInPoolWaitingQueue();
-    }
-
+    } //if active state
     return error;
 }
 //-----------------------------------------------------------------------------
