@@ -92,7 +92,6 @@ int main(int argc, char* argv[])
                 if (_rrecv_msg_ptr && _rrecv_msg_ptr->name.empty()) {
                     auto lambda = [](frame::mprpc::ConnectionContext&, ErrorConditionT const& _rerror) {
                         solid_log(generic_logger, Info, "peerb --- enter active error: " << _rerror.message());
-                        return frame::mprpc::MessagePointerT();
                     };
                     cout << "Connection registered" << endl;
                     _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);

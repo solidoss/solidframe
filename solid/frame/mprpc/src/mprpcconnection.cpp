@@ -966,12 +966,7 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Eve
             flags_.set(FlagsE::Active);
 
             if (pdata != nullptr) {
-
-                MessagePointerT msg_ptr = pdata->complete_fnc(conctx, error);
-
-                if (msg_ptr) {
-                    //TODO: push message to writer
-                }
+                pdata->complete_fnc(conctx, error);
             }
 
             if (!isServer()) {
@@ -993,13 +988,7 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Eve
         } else {
 
             if (pdata != nullptr) {
-
-                MessagePointerT msg_ptr = pdata->complete_fnc(conctx, error);
-
-                if (msg_ptr) {
-                    //TODO: push message to writer
-                    //then push nullptr message - delayed closing
-                }
+                pdata->complete_fnc(conctx, error);
             }
 
             doStop(_rctx, error);

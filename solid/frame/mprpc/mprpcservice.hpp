@@ -822,7 +822,7 @@ inline ErrorConditionT Service::connectionNotifyEnterActiveState(
     const size_t       _send_buffer_capacity //0 means: leave as it is
 )
 {
-    ConnectionEnterActiveCompleteFunctionT complete_fnc([](ConnectionContext&, ErrorConditionT const&) { return MessagePointerT(); });
+    ConnectionEnterActiveCompleteFunctionT complete_fnc([](ConnectionContext&, ErrorConditionT const&) {});
     return doConnectionNotifyEnterActiveState(_rrecipient_id, std::move(complete_fnc), _send_buffer_capacity);
 }
 //-------------------------------------------------------------------------

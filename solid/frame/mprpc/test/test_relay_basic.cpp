@@ -263,7 +263,6 @@ void peerb_complete_register(
     if (_rrecv_msg_ptr && _rrecv_msg_ptr->err == 0) {
         auto lambda = [](frame::mprpc::ConnectionContext&, ErrorConditionT const& _rerror) {
             solid_dbg(generic_logger, Info, "peerb --- enter active error: " << _rerror.message());
-            return frame::mprpc::MessagePointerT();
         };
         _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
     } else {

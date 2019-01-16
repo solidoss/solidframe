@@ -163,7 +163,6 @@ void client_connection_start(frame::mprpc::ConnectionContext& _rctx)
     solid_dbg(generic_logger, Info, _rctx.recipientId());
     auto lambda = [](frame::mprpc::ConnectionContext&, ErrorConditionT const& _rerror) {
         solid_dbg(generic_logger, Info, "enter active error: " << _rerror.message());
-        return frame::mprpc::MessagePointerT();
     };
     _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
 }
@@ -178,7 +177,6 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
     solid_dbg(generic_logger, Info, _rctx.recipientId());
     auto lambda = [](frame::mprpc::ConnectionContext&, ErrorConditionT const& _rerror) {
         solid_dbg(generic_logger, Info, "enter active error: " << _rerror.message());
-        return frame::mprpc::MessagePointerT();
     };
     _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
 }
