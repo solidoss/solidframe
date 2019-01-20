@@ -81,11 +81,13 @@ struct Response : frame::mprpc::Message {
     mutable ifstream ifs_;
 
     Response()
+        : error_(0)
     {
     }
 
     Response(Request& _rmsg)
         : frame::mprpc::Message(_rmsg)
+        , error_(0)
     {
     }
 

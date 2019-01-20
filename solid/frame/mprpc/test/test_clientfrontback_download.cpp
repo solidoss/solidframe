@@ -86,11 +86,13 @@ struct Response : frame::mprpc::Message {
     frame::mprpc::RecipientId      recipient_id_;
 
     Response()
+        : error_(0)
     {
     }
 
     Response(Request& _req)
         : frame::mprpc::Message(_req)
+        , error_(0)
     {
     }
 
@@ -202,11 +204,13 @@ struct Response : frame::mprpc::Message {
     mutable ifstream ifs_;
 
     Response()
+        : error_(0)
     {
     }
 
     Response(Request& _req)
         : frame::mprpc::Message(_req)
+        , error_(0)
     {
     }
 

@@ -28,6 +28,10 @@ endif()
 set(EXTRA_COMPILE_OPTIONS "" CACHE STRING "Extra compiler definitions")
 add_definitions(${EXTRA_COMPILE_OPTIONS})
 
+
+set(EXTRA_LINK_OPTIONS "" CACHE STRING "Extra compiler definitions")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${EXTRA_LINK_OPTIONS}")
+
 #-----------------------------------------------------------------
 # Prepare the external path
 #-----------------------------------------------------------------
