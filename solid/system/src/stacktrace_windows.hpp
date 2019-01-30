@@ -16,18 +16,18 @@
 #error "stacktrace_win.cpp used but not on a windows system"
 #endif
 
-#include "system/crashhandler.hpp"
+#include "solid/system/crashhandler.hpp"
 
 #include <string>
 #include <windows.h>
 
 namespace stacktrace {
 /// return the text description of a Windows exception code
-std::string exceptionIdToText(g3::SignalType id);
+std::string exceptionIdToText(solid::SignalType id);
 
 /// return whether or not the exception is a known exception, i.e.
 /// an exception that we should treat as a fatal event
-bool isKnownException(g3::SignalType id);
+bool isKnownException(solid::SignalType id);
 
 /// helper function: retrieve stackdump from no excisting exception pointer
 std::string stackdump();
