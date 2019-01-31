@@ -281,27 +281,27 @@ while [ "$#" -gt 0 ]; do
     HELP=
     case "$1" in
     --all)
-        BUILD_BOOST_FULL="yes"
-        BUILD_OPENSSL="yes"
-        BUILD_SOMETHING="yes"
+        BUILD_BOOST_FULL=true
+        BUILD_OPENSSL=true
+        BUILD_SOMETHING=true
         ;;
     --boost)
-        BUILD_BOOST_FULL="yes"
-        BUILD_SOMETHING="yes"
+        BUILD_BOOST_FULL=true
+        BUILD_SOMETHING=true
         ;;
     --openssl)
-        BUILD_OPENSSL="yes"
-        BUILD_SOMETHING="yes"
+        BUILD_OPENSSL=true
+        BUILD_SOMETHING=true
         ;;
     --boringssl)
-        BUILD_BORINGSSL="yes"
-        BUILD_SOMETHING="yes"
+        BUILD_BORINGSSL=true
+        BUILD_SOMETHING=true
         ;;
     --debug)
-        DEBUG="yes"
+        DEBUG=true
         ;;
     --force-download)
-        DOWNLOAD="yes"
+        DOWNLOAD=true
         ;;
     --system)
         shift
@@ -310,23 +310,25 @@ while [ "$#" -gt 0 ]; do
     --64bit)
         BIT64=true
         ;;
+    --no-cleanup)
+        NOCLEANUP=true
+        ;;
     -h|--help)
-        HELP="yes"
-        BUILD_SOMETHING="yes"
+        HELP=true
         ;;
     *)
-        HELP="yes"
+        HELP=true
         ;;
     esac
     shift
 done
 
-if [ "$HELP" = "yes" ]; then
+if [ $HELP ]; then
     printUsage
     exit
 fi
 
-if [[ -z "${SYSTEM}" ]]; then
+if [[ -z ${SYSTEM} ]]; then
     SYSTEM=$(uname)
 fi
 
@@ -334,9 +336,9 @@ fi
 echo "Extern folder: $EXT_DIR"
 echo "System: $SYSTEM"
 
-if [[ -z "${BUILD_SOMETHING}" ]]; then
-    BUILD_BOOST_FULL="yes"
-    BUILD_OPENSSL="yes"
+if [[ ! $BUILD_SOMETHING ]]; then
+    BUILD_BOOST_FULL=true
+    BUILD_OPENSSL=true
 fi
 
 if [ $BUILD_OPENSSL ]; then

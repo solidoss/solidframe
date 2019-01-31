@@ -272,7 +272,7 @@ int test_clientserver_idempotent(int argc, char* argv[])
     signal(SIGPIPE, SIG_IGN);
 #endif
 
-    solid::log_start(std::cerr, {".*:VIEW"});
+    solid::log_start(std::cerr, {".*:EW"});
 
     size_t max_per_pool_connection_count = 1;
 
