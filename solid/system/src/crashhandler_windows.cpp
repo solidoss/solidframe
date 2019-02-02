@@ -14,9 +14,9 @@
 #include "stacktrace_windows.hpp"
 #include <atomic>
 #include <csignal>
+#include <iostream>
 #include <process.h> // getpid
 #include <sstream>
-#include <iostream>
 #include <windows.h>
 
 #define getpid _getpid
@@ -65,7 +65,7 @@ void signalHandler(int signal_number)
 {
     using namespace solid::internal;
     {
-        std::string dump = stacktrace::stackdump();
+        std::string        dump = stacktrace::stackdump();
         std::ostringstream fatal_stream;
         const auto         fatal_reason = exit_reason_name("FATAL_SIGNAL", signal_number);
         fatal_stream << "Received fatal signal: " << fatal_reason;
@@ -92,7 +92,7 @@ LONG WINAPI exceptionHandling(EXCEPTION_POINTERS* info, const std::string& handl
     using namespace solid::internal;
     std::string dump = stacktrace::stackdump(info);
 
-    std::ostringstream   fatal_stream;
+    std::ostringstream      fatal_stream;
     const solid::SignalType exception_code = info->ExceptionRecord->ExceptionCode;
     fatal_stream << "\n***** " << handler << ": Received fatal exception " << exit_reason_name("FATAL SIGNAL", exception_code);
     fatal_stream << "\tPID: " << getpid() << std::endl;
@@ -181,7 +181,7 @@ std::string exit_reason_name(const char* _text, solid::SignalType fatal_id)
         break;
     default:
         std::ostringstream oss;
-        oss << "UNKNOWN SIGNAL(" << fatal_id << ") for "<<_text;
+        oss << "UNKNOWN SIGNAL(" << fatal_id << ") for " << _text;
         return oss.str();
     }
 }
