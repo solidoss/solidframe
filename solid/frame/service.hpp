@@ -73,10 +73,7 @@ public:
     void notifyAll(Event const& _e);
 
     template <class F>
-    bool forEach(F& _rf)
-    {
-        return rm.forEachServiceActor(*this, _rf);
-    }
+    bool forEach(F& _rf);
 
     void stop(const bool _wait = true);
 
@@ -115,17 +112,60 @@ private:
     std::atomic<bool>   running;
 };
 
+template <class F>
+inline bool Service::forEach(F& _rf)
+{
+    return rm.forEachServiceActor(*this, _rf);
+}
+
 inline Manager& Service::manager()
 {
     return rm;
 }
+
 inline bool Service::isRegistered() const
 {
     return idx.load(/*std::memory_order_seq_cst*/) != InvalidIndex();
 }
+
 inline bool Service::isRunning() const
 {
     return running;
+}
+
+inline void Service::notifyAll(Event const& _revt)
+{
+    rm.notifyAll(*this, _revt);
+}
+
+inline bool Service::start()
+{
+    return rm.startService(*this);
+}
+
+inline void Service::stop(const bool _wait)
+{
+    rm.stopService(*this, _wait);
+}
+
+inline std::mutex& Service::mutex(const ActorBase& _robj) const
+{
+    return rm.mutex(_robj);
+}
+
+inline ActorIdT Service::id(const ActorBase& _robj) const
+{
+    return rm.id(_robj);
+}
+
+inline std::mutex& Service::mutex() const
+{
+    return rm.mutex(*this);
+}
+
+inline ActorIdT Service::registerObject(ActorBase& _robj, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr)
+{
+    return rm.registerObject(*this, _robj, _rr, _rfct, _rerr);
 }
 
 //! A Shell class for every Service

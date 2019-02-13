@@ -39,51 +39,10 @@ Service::Service(
 
 Service::~Service()
 {
-    solid_dbg(logger, Verbose, "" << this);
     stop(true);
     rm.unregisterService(*this);
     solid_dbg(logger, Verbose, "" << this);
 }
-
-void Service::notifyAll(Event const& _revt)
-{
-    rm.notifyAll(*this, _revt);
-}
-
-bool Service::start()
-{
-    return rm.startService(*this);
-}
-
-void Service::stop(const bool _wait)
-{
-    rm.stopService(*this, _wait);
-}
-
-std::mutex& Service::mutex(const ActorBase& _robj) const
-{
-    return rm.mutex(_robj);
-}
-
-ActorIdT Service::id(const ActorBase& _robj) const
-{
-    return rm.id(_robj);
-}
-
-std::mutex& Service::mutex() const
-{
-    return rm.mutex(*this);
-}
-
-ActorIdT Service::registerObject(ActorBase& _robj, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr)
-{
-    return rm.registerObject(*this, _robj, _rr, _rfct, _rerr);
-}
-
-// void Service::unsafeStop(Locker<Mutex> &_rlock, bool _wait){
-//  const size_t    svcidx = idx.load(/*std::memory_order_seq_cst*/);
-//  rm.doWaitStopService(svcidx, _rlock, true);
-// }
 
 } //namespace frame
 } //namespace solid
