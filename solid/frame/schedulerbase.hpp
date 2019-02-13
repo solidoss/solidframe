@@ -22,7 +22,7 @@ namespace frame {
 
 class Service;
 class ReactorBase;
-class ObjectBase;
+class ActorBase;
 
 //typedef FunctorReference<bool, ReactorBase&>  ScheduleFunctorT;
 typedef solid_function_t(bool(ReactorBase&)) ScheduleFunctionT;
@@ -44,7 +44,7 @@ protected:
 
     void doStop(const bool _wait = true);
 
-    ObjectIdT doStartObject(ObjectBase& _robj, Service& _rsvc, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
+    ActorIdT doStartObject(ActorBase& _robj, Service& _rsvc, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
 
 protected:
     SchedulerBase();

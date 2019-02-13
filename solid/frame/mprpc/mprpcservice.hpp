@@ -240,7 +240,7 @@ public:
         MessageId&                _rmsguid,
         const MessageFlagsT&      _flags);
     //-------------------------------------------------------------------------
-    ErrorConditionT sendRelay(const ObjectIdT& _rconid, RelayData&& _urelmsg);
+    ErrorConditionT sendRelay(const ActorIdT& _rconid, RelayData&& _urelmsg);
     ErrorConditionT sendRelayCancel(RelayData&& _urelmsg);
     //-------------------------------------------------------------------------
     template <typename F>
@@ -323,13 +323,13 @@ private:
 
     void acceptIncomingConnection(SocketDevice& _rsd);
 
-    ErrorConditionT activateConnection(ConnectionContext& _rconctx, ObjectIdT const& _robjui);
+    ErrorConditionT activateConnection(ConnectionContext& _rconctx, ActorIdT const& _robjui);
 
     void connectionStop(ConnectionContext& _rconctx);
 
     bool connectionStopping(
         ConnectionContext& _rconctx,
-        ObjectIdT const&   _robjuid,
+        ActorIdT const&    _ractuid,
         ulong&             _rseconds_to_wait,
         MessageId&         _rmsg_id,
         MessageBundle*     _pmsg_bundle,
@@ -337,7 +337,7 @@ private:
         ErrorConditionT&   _rerror);
 
     bool doNonMainConnectionStopping(
-        Connection& _rcon, ObjectIdT const& _robjuid,
+        Connection& _rcon, ActorIdT const& _ractuid,
         ulong&           _rseconds_to_wait,
         MessageId&       _rmsg_id,
         MessageBundle*   _pmsg_bundle,
@@ -345,7 +345,7 @@ private:
         ErrorConditionT& _rerror);
 
     bool doMainConnectionStoppingNotLast(
-        Connection& _rcon, ObjectIdT const& /*_robjuid*/,
+        Connection& _rcon, ActorIdT const& /*_ractuid*/,
         ulong&      _rseconds_to_wait,
         MessageId& /*_rmsg_id*/,
         MessageBundle* /*_pmsg_bundle*/,
@@ -353,7 +353,7 @@ private:
         ErrorConditionT& _rerror);
 
     bool doMainConnectionStoppingCleanOneShot(
-        Connection& _rcon, ObjectIdT const& _robjuid,
+        Connection& _rcon, ActorIdT const& _ractuid,
         ulong&           _rseconds_to_wait,
         MessageId&       _rmsg_id,
         MessageBundle*   _rmsg_bundle,
@@ -361,7 +361,7 @@ private:
         ErrorConditionT& _rerror);
 
     bool doMainConnectionStoppingCleanAll(
-        Connection& _rcon, ObjectIdT const& _robjuid,
+        Connection& _rcon, ActorIdT const& _ractuid,
         ulong&           _rseconds_to_wait,
         MessageId&       _rmsg_id,
         MessageBundle*   _rmsg_bundle,
@@ -369,7 +369,7 @@ private:
         ErrorConditionT& _rerror);
 
     bool doMainConnectionStoppingPrepareCleanOneShot(
-        Connection& _rcon, ObjectIdT const& /*_robjuid*/,
+        Connection& _rcon, ActorIdT const& /*_ractuid*/,
         ulong& /*_rseconds_to_wait*/,
         MessageId& /*_rmsg_id*/,
         MessageBundle* /*_rmsg_bundle*/,
@@ -377,7 +377,7 @@ private:
         ErrorConditionT& /*_rerror*/);
 
     bool doMainConnectionStoppingPrepareCleanAll(
-        Connection& _rcon, ObjectIdT const& /*_robjuid*/,
+        Connection& _rcon, ActorIdT const& /*_ractuid*/,
         ulong& /*_rseconds_to_wait*/,
         MessageId& /*_rmsg_id*/,
         MessageBundle* /*_rmsg_bundle*/,
@@ -385,7 +385,7 @@ private:
         ErrorConditionT& _rerror);
 
     bool doMainConnectionRestarting(
-        Connection& _rcon, ObjectIdT const& /*_robjuid*/,
+        Connection& _rcon, ActorIdT const& /*_ractuid*/,
         ulong& /*_rseconds_to_wait*/,
         MessageId& /*_rmsg_id*/,
         MessageBundle* /*_rmsg_bundle*/,
@@ -397,24 +397,24 @@ private:
 
     ErrorConditionT pollPoolForUpdates(
         Connection&      _rcon,
-        ObjectIdT const& _robjuid,
+        ActorIdT const&  _ractuid,
         MessageId const& _rmsgid);
 
     void rejectNewPoolMessage(Connection const& _rcon);
 
-    bool fetchMessage(Connection& _rcon, ObjectIdT const& _robjuid, MessageId const& _rmsg_id);
+    bool fetchMessage(Connection& _rcon, ActorIdT const& _ractuid, MessageId const& _rmsg_id);
 
     bool fetchCanceledMessage(Connection const& _rcon, MessageId const& _rmsg_id, MessageBundle& _rmsg_bundle);
 
     bool doTryPushMessageToConnection(
-        Connection&      _rcon,
-        ObjectIdT const& _robjuid,
-        const size_t     _pool_idx,
-        const size_t     msg_idx);
+        Connection&     _rcon,
+        ActorIdT const& _ractuid,
+        const size_t    _pool_idx,
+        const size_t    msg_idx);
 
     bool doTryPushMessageToConnection(
         Connection&      _rcon,
-        ObjectIdT const& _robjuid,
+        ActorIdT const&  _ractuid,
         const size_t     _pool_idx,
         const MessageId& _rmsg_id);
 

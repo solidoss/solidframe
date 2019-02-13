@@ -1,4 +1,4 @@
-// solid/frame/aio/aioobject.hpp
+// solid/frame/aio/aioactor.hpp
 //
 // Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
@@ -12,11 +12,11 @@
 
 #include "solid/utility/event.hpp"
 
+#include "solid/frame/actorbase.hpp"
 #include "solid/frame/aio/aiocommon.hpp"
 #include "solid/frame/aio/aioforwardcompletion.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aioreactorcontext.hpp"
-#include "solid/frame/objectbase.hpp"
 
 namespace solid {
 
@@ -25,41 +25,41 @@ namespace aio {
 
 class CompletionHandler;
 
-class Object;
+class Actor;
 
-struct ObjectProxy {
-    Object& object() const
+struct ActorProxy {
+    Actor& actor() const
     {
-        return robj;
+        return ract_;
     }
 
 private:
-    friend class Object;
-    ObjectProxy(Object& _robj)
-        : robj(_robj)
+    friend class Actor;
+    ActorProxy(Actor& _ract)
+        : ract_(_ract)
     {
     }
-    ObjectProxy(ObjectProxy const& _rd)
-        : robj(_rd.robj)
+    ActorProxy(ActorProxy const& _rd)
+        : ract_(_rd.ract_)
     {
     }
-    ObjectProxy& operator=(ObjectProxy const& _rd);
+    ActorProxy& operator=(ActorProxy const& _rd);
 
 private:
-    Object& robj;
+    Actor& ract_;
 };
 
-class Object : public Dynamic<Object, ObjectBase>, ForwardCompletionHandler {
+class Actor : public Dynamic<Actor, ActorBase>, ForwardCompletionHandler {
 protected:
     friend class CompletionHandler;
     friend class Reactor;
 
     //! Constructor
-    Object();
+    Actor();
 
-    ObjectProxy proxy()
+    ActorProxy proxy()
     {
-        return ObjectProxy(*this);
+        return ActorProxy(*this);
     }
 
     bool registerCompletionHandler(CompletionHandler& _rch);
@@ -71,7 +71,7 @@ protected:
     void postStop(ReactorContext& _rctx)
     {
         if (doPrepareStop(_rctx)) {
-            _rctx.reactor().postObjectStop(_rctx);
+            _rctx.reactor().postActorStop(_rctx);
         }
     }
 
@@ -79,7 +79,7 @@ protected:
     void postStop(ReactorContext& _rctx, F _f, Event&& _uevent = Event())
     {
         if (doPrepareStop(_rctx)) {
-            _rctx.reactor().postObjectStop(_rctx, std::move(_f), std::move(_uevent));
+            _rctx.reactor().postActorStop(_rctx, std::move(_f), std::move(_uevent));
         }
     }
 

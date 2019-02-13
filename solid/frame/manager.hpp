@@ -14,8 +14,8 @@
 #include <typeindex>
 #include <typeinfo>
 
+#include "solid/frame/actorbase.hpp"
 #include "solid/frame/common.hpp"
-#include "solid/frame/objectbase.hpp"
 #include "solid/frame/schedulerbase.hpp"
 #include "solid/system/error.hpp"
 #include "solid/system/log.hpp"
@@ -34,7 +34,7 @@ extern const LoggerT logger;
 
 class Manager;
 class Service;
-class ObjectBase;
+class ActorBase;
 class SchedulerBase;
 class ReactorBase;
 
@@ -46,12 +46,12 @@ public:
         friend class Manager;
         Manager&     rm_;
         ReactorBase& rr_;
-        ObjectBase&  ro_;
+        ActorBase&   ra_;
 
-        VisitContext(Manager& _rm, ReactorBase& _rr, ObjectBase& _ro)
+        VisitContext(Manager& _rm, ReactorBase& _rr, ActorBase& _ra)
             : rm_(_rm)
             , rr_(_rr)
-            , ro_(_ro)
+            , ra_(_ra)
         {
         }
 
@@ -59,9 +59,9 @@ public:
         VisitContext& operator=(const VisitContext&);
 
     public:
-        ObjectBase& object() const
+        ActorBase& actor() const
         {
-            return ro_;
+            return ra_;
         }
 
         bool raiseObject(Event const& _revt) const;
@@ -84,89 +84,89 @@ public:
 
     void start();
 
-    bool notify(ObjectIdT const& _ruid, Event&& _uevt);
+    bool notify(ActorIdT const& _ruid, Event&& _uevt);
 
     //bool notifyAll(Event const &_revt, const size_t _sigmsk = 0);
 
     template <class F>
-    bool visit(ObjectIdT const& _ruid, F _f)
+    bool visit(ActorIdT const& _ruid, F _f)
     {
-        //ObjectVisitFunctionT fct(std::cref(_f));
-        return doVisit(_ruid, ObjectVisitFunctionT{_f});
+        //ActorVisitFunctionT fct(std::cref(_f));
+        return doVisit(_ruid, ActorVisitFunctionT{_f});
     }
 
     template <class T, class F>
-    bool visitDynamicCast(ObjectIdT const& _ruid, F _f)
+    bool visitDynamicCast(ActorIdT const& _ruid, F _f)
     {
         auto l = [&_f](VisitContext& _rctx) {
-            T* pt = dynamic_cast<T*>(&_rctx.object());
+            T* pt = dynamic_cast<T*>(&_rctx.actor());
             if (pt) {
                 return _f(_rctx, *pt);
             }
             return false;
         };
-        ObjectVisitFunctionT fct(std::cref(l));
+        ActorVisitFunctionT fct(std::cref(l));
         return doVisit(_ruid, fct);
     }
 
     template <class T, class F>
-    bool visitExplicitCast(ObjectIdT const& _ruid, F _f)
+    bool visitExplicitCast(ActorIdT const& _ruid, F _f)
     {
         auto visit_lambda = [&_f](VisitContext& _rctx) {
             const std::type_info& req_type = typeid(T);
-            const std::type_info& val_type = doGetTypeId(*(&_rctx.object()));
+            const std::type_info& val_type = doGetTypeId(*(&_rctx.actor()));
 
             if (std::type_index(req_type) == std::type_index(val_type)) {
-                return _f(_rctx, static_cast<T&>(_rctx.object()));
+                return _f(_rctx, static_cast<T&>(_rctx.actor()));
             }
             return false;
         };
-        //ObjectVisitFunctionT fct(std::cref(l));
-        return doVisit(_ruid, ObjectVisitFunctionT{visit_lambda});
+        //ActorVisitFunctionT fct(std::cref(l));
+        return doVisit(_ruid, ActorVisitFunctionT{visit_lambda});
     }
 
-    ObjectIdT id(const ObjectBase& _robj) const;
+    ActorIdT id(const ActorBase& _ract) const;
 
-    Service& service(const ObjectBase& _robj) const;
+    Service& service(const ActorBase& _ract) const;
 
 private:
     friend class Service;
-    friend class ObjectBase;
+    friend class ActorBase;
     friend class ReactorBase;
     friend class SchedulerBase;
     friend class Manager::VisitContext;
 
-    using ObjectVisitFunctionT = Delegate<bool(VisitContext&)>;
+    using ActorVisitFunctionT = Delegate<bool(VisitContext&)>;
 
     size_t serviceCount() const;
 
-    static const std::type_info& doGetTypeId(const ObjectBase& _robj)
+    static const std::type_info& doGetTypeId(const ActorBase& _ract)
     {
-        return typeid(_robj);
+        return typeid(_ract);
     }
 
-    static bool notify_object(
-        ObjectBase& _robj, ReactorBase& _rreact,
+    static bool notify_actor(
+        ActorBase& _ract, ReactorBase& _rreact,
         Event const& _revt, const size_t _sigmsk);
 
     static bool notify_object(
-        ObjectBase& _robj, ReactorBase& _rreact,
+        ActorBase& _ract, ReactorBase& _rreact,
         Event&& _uevt, const size_t _sigmsk);
 
     bool registerService(Service& _rsvc);
     void unregisterService(Service& _rsvc);
 
-    void unregisterObject(ObjectBase& _robj);
-    bool disableObjectVisits(ObjectBase& _robj);
+    void unregisterActor(ActorBase& _ract);
+    bool disableActorVisits(ActorBase& _ract);
 
-    ObjectIdT unsafeId(const ObjectBase& _robj) const;
+    ActorIdT unsafeId(const ActorBase& _ract) const;
 
     std::mutex& mutex(const Service& _rsvc) const;
-    std::mutex& mutex(const ObjectBase& _robj) const;
+    std::mutex& mutex(const ActorBase& _ract) const;
 
-    ObjectIdT registerObject(
+    ActorIdT registerObject(
         const Service&     _rsvc,
-        ObjectBase&        _robj,
+        ActorBase&         _ract,
         ReactorBase&       _rr,
         ScheduleFunctionT& _rfct,
         ErrorConditionT&   _rerr);
@@ -174,20 +174,20 @@ private:
     size_t notifyAll(const Service& _rsvc, Event const& _revt);
 
     template <typename F>
-    size_t forEachServiceObject(const Service& _rsvc, F _f)
+    size_t forEachServiceActor(const Service& _rsvc, F _f)
     {
-        ObjectVisitFunctionT fct(_f);
-        return doForEachServiceObject(_rsvc, fct);
+        ActorVisitFunctionT fct(_f);
+        return doForEachServiceActor(_rsvc, fct);
     }
 
-    bool raise(const ObjectBase& _robj, Event const& _re);
+    bool raise(const ActorBase& _ract, Event const& _re);
 
     void stopService(Service& _rsvc, bool _wait);
     bool startService(Service& _rsvc);
 
-    size_t doForEachServiceObject(const Service& _rsvc, const ObjectVisitFunctionT _rfct);
-    size_t doForEachServiceObject(const size_t _chkidx, const ObjectVisitFunctionT _rfct);
-    bool   doVisit(ObjectIdT const& _ruid, const ObjectVisitFunctionT _fctor);
+    size_t doForEachServiceActor(const Service& _rsvc, const ActorVisitFunctionT _rfct);
+    size_t doForEachServiceActor(const size_t _chkidx, const ActorVisitFunctionT _rfct);
+    bool   doVisit(ActorIdT const& _ruid, const ActorVisitFunctionT _fctor);
     void   doUnregisterService(ServiceStub& _rss);
 
 private:

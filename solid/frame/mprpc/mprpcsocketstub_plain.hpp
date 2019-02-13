@@ -25,11 +25,11 @@ namespace plain {
 
 class SocketStub final : public mprpc::SocketStub {
 public:
-    SocketStub(frame::aio::ObjectProxy const& _rproxy)
+    SocketStub(frame::aio::ActorProxy const& _rproxy)
         : sock(_rproxy)
     {
     }
-    SocketStub(frame::aio::ObjectProxy const& _rproxy, SocketDevice&& _usd)
+    SocketStub(frame::aio::ActorProxy const& _rproxy, SocketDevice&& _usd)
         : sock(_rproxy, std::move(_usd))
     {
     }
@@ -144,7 +144,7 @@ private:
     StreamSocketT sock;
 };
 
-inline SocketStubPtrT create_client_socket(Configuration const& /*_rcfg*/, frame::aio::ObjectProxy const& _rproxy, char* _emplace_buf)
+inline SocketStubPtrT create_client_socket(Configuration const& /*_rcfg*/, frame::aio::ActorProxy const& _rproxy, char* _emplace_buf)
 {
     if (sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)) {
         return SocketStubPtrT(new SocketStub(_rproxy), SocketStub::delete_deleter);
@@ -153,7 +153,7 @@ inline SocketStubPtrT create_client_socket(Configuration const& /*_rcfg*/, frame
     }
 }
 
-inline SocketStubPtrT create_server_socket(Configuration const& /*_rcfg*/, frame::aio::ObjectProxy const& _rproxy, SocketDevice&& _usd, char* _emplace_buf)
+inline SocketStubPtrT create_server_socket(Configuration const& /*_rcfg*/, frame::aio::ActorProxy const& _rproxy, SocketDevice&& _usd, char* _emplace_buf)
 {
 
     if (sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)) {

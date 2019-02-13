@@ -1,5 +1,5 @@
+#include "solid/frame/actor.hpp"
 #include "solid/frame/manager.hpp"
-#include "solid/frame/object.hpp"
 #include "solid/frame/reactor.hpp"
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
@@ -37,7 +37,7 @@ struct GlobalId {
     uint16_t group_unique;
 };
 
-class BasicObject : public Dynamic<BasicObject, frame::Object> {
+class BasicActor : public Dynamic<BasicActor, frame::Actor> {
     enum Status : uint8_t {
         StatusInMemory,
         StatusCompressed,
@@ -45,7 +45,7 @@ class BasicObject : public Dynamic<BasicObject, frame::Object> {
     };
 
 public:
-    BasicObject()
+    BasicActor()
         : timer_(proxy())
         , status_(StatusInMemory)
         , active_(false)
@@ -64,7 +64,7 @@ private:
     GlobalId           id_;
 };
 
-using ObjectDequeT = std::deque<BasicObject>;
+using ObjectDequeT = std::deque<BasicActor>;
 
 namespace {
 ObjectDequeT       objdq;
@@ -97,14 +97,14 @@ int main(int argc, char* argv[])
 
                 objdq.emplace_back();
 
-                DynamicPointer<frame::Object> objptr(&objdq.back());
-                solid::frame::ObjectIdT       objuid;
+                DynamicPointer<frame::Actor> actptr(&objdq.back());
+                solid::frame::ActorIdT       objuid;
                 {
                     lock_guard<mutex> lock(mtx);
 
-                    objuid = s.startObject(objptr, svc, make_event(GenericEvents::Start), err);
+                    objuid = s.startActor(actptr, svc, make_event(GenericEvents::Start), err);
 
-                    solid_log(generic_logger, Info, "Started BasicObject: " << objuid.index << ',' << objuid.unique);
+                    solid_log(generic_logger, Info, "Started BasicActor: " << objuid.index << ',' << objuid.unique);
 
                     if (err) {
                         cout << "Error starting object " << i << ": " << err.message() << endl;
@@ -154,7 +154,7 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-/*virtual*/ void BasicObject::onEvent(frame::ReactorContext& _rctx, Event&& _uevent)
+/*virtual*/ void BasicActor::onEvent(frame::ReactorContext& _rctx, Event&& _uevent)
 {
     solid_log(generic_logger, Info, "event = " << _uevent);
     if (_uevent == generic_event_start) {
@@ -183,7 +183,7 @@ int main(int argc, char* argv[])
     }
 }
 
-void BasicObject::onTimer(frame::ReactorContext& _rctx)
+void BasicActor::onTimer(frame::ReactorContext& _rctx)
 {
     solid_log(generic_logger, Info, "");
 

@@ -2,8 +2,8 @@
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
 
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiolistener.hpp"
-#include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aioresolver.hpp"
 #include "solid/frame/aio/aiosocket.hpp"
@@ -111,7 +111,7 @@ frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr)
 
 } //namespace
 
-class Connection : public Dynamic<Connection, frame::aio::Object> {
+class Connection : public Dynamic<Connection, frame::aio::Actor> {
 public:
     Connection(const size_t _idx)
         : sock(this->proxy())
@@ -208,16 +208,16 @@ int main(int argc, char* argv[])
             cout << "Error starting scheduler" << endl;
         } else {
             for (size_t i = 0; i < params.connection_count; ++i) {
-                DynamicPointer<frame::aio::Object> objptr(new Connection(i));
-                solid::ErrorConditionT             err;
-                solid::frame::ObjectIdT            objuid;
+                DynamicPointer<frame::aio::Actor> actptr(new Connection(i));
+                solid::ErrorConditionT            err;
+                solid::frame::ActorIdT            actuid;
 
                 ++concnt;
-                objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
-                if (objuid.isInvalid()) {
+                actuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                if (actuid.isInvalid()) {
                     --concnt;
                 }
-                solid_log(generic_logger, Info, "Started Connection Object: " << objuid.index << ',' << objuid.unique);
+                solid_log(generic_logger, Info, "Started Connection Object: " << actuid.index << ',' << actuid.unique);
             }
         }
 
@@ -304,12 +304,12 @@ void prepareSendData()
 
 //-----------------------------------------------------------------------------
 struct ResolvFunc {
-    frame::Manager&  rm;
-    frame::ObjectIdT objuid;
+    frame::Manager& rm;
+    frame::ActorIdT actuid;
 
-    ResolvFunc(frame::Manager& _rm, frame::ObjectIdT const& _robjuid)
+    ResolvFunc(frame::Manager& _rm, frame::ActorIdT const& _ractuid)
         : rm(_rm)
-        , objuid(_robjuid)
+        , actuid(_ractuid)
     {
     }
 
@@ -320,7 +320,7 @@ struct ResolvFunc {
         ev.any() = std::move(_rrd);
 
         solid_log(generic_logger, Info, this << " send resolv_message");
-        rm.notify(objuid, std::move(ev));
+        rm.notify(actuid, std::move(ev));
     }
 };
 
@@ -368,7 +368,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
 /*static*/ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 {
     --stats.connectcnt;
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, &rthis << " SUCCESS");
         ++stats.connectedcnt;
@@ -384,7 +384,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
 
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
 
     if (!_rctx.error()) {
         rthis.recvcnt += _sz;
@@ -414,7 +414,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
 
 /*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
 
     if (!_rctx.error()) {
     } else {

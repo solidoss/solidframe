@@ -1,4 +1,4 @@
-// solid/frame/objectbase.hpp
+// solid/frame/actorbase.hpp
 //
 // Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
@@ -23,16 +23,16 @@ namespace frame {
 class Manager;
 class Service;
 class ReactorBase;
-class Object;
+class Actor;
 class CompletionHandler;
 
-class ObjectBase : public Dynamic<ObjectBase> {
+class ActorBase : public Dynamic<ActorBase> {
 public:
     //! Get the id of the object
     IndexT id() const;
 
     //! Virtual destructor
-    virtual ~ObjectBase();
+    virtual ~ActorBase();
 
     UniqueId const& runId() const;
 
@@ -42,7 +42,7 @@ protected:
     friend class ReactorBase;
 
     //! Constructor
-    ObjectBase();
+    ActorBase();
 
     void unregister(Manager& _rm);
     bool isRegistered() const;
@@ -64,37 +64,37 @@ private:
     UniqueId            runid;
 };
 
-inline IndexT ObjectBase::id() const
+inline IndexT ActorBase::id() const
 {
     return fullid.load(/*std::memory_order_relaxed*/);
 }
 
-inline bool ObjectBase::isRegistered() const
+inline bool ActorBase::isRegistered() const
 {
     return fullid.load(/*std::memory_order_relaxed*/) != InvalidIndex();
 }
 
-inline void ObjectBase::id(IndexT const& _fullid)
+inline void ActorBase::id(IndexT const& _fullid)
 {
     fullid.store(_fullid /*, std::memory_order_relaxed*/);
 }
 
-inline UniqueId const& ObjectBase::runId() const
+inline UniqueId const& ActorBase::runId() const
 {
     return runid;
 }
 
-inline void ObjectBase::runId(UniqueId const& _runid)
+inline void ActorBase::runId(UniqueId const& _runid)
 {
     runid = _runid;
 }
 
-// inline size_t ObjectBase::grabSignalMask(const size_t _leave /* = 0*/)
+// inline size_t ActorBase::grabSignalMask(const size_t _leave /* = 0*/)
 // {
 //     return smask.fetch_and(_leave /*, std::memory_order_seq_cst*/);
 // }
 //
-// inline bool ObjectBase::notify(const size_t _smask)
+// inline bool ActorBase::notify(const size_t _smask)
 // {
 //     const size_t osm = smask.fetch_or(_smask /*, std::memory_order_seq_cst*/);
 //     return (_smask | osm) != osm;

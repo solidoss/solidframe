@@ -10,8 +10,8 @@
 
 #pragma once
 
+#include "solid/frame/actor.hpp"
 #include "solid/frame/common.hpp"
-#include "solid/frame/object.hpp"
 #include "solid/system/error.hpp"
 #include "solid/system/pimpl.hpp"
 #include "solid/utility/dynamictype.hpp"
@@ -31,7 +31,7 @@ struct PointerBase;
 
 typedef std::vector<UniqueId> UidVectorT;
 
-class StoreBase : public Dynamic<StoreBase, Object> {
+class StoreBase : public Dynamic<StoreBase, Actor> {
 public:
     typedef shared::UidVectorT UidVectorT;
     struct Accessor {

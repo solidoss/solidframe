@@ -11,7 +11,7 @@ public:
     {
     }
 
-    bool notifyConnection(Manager& _rm, const ObjectIdT& _rconuid, const mprpc::RelayEngineNotification _what) override
+    bool notifyConnection(Manager& _rm, const ActorIdT& _rconuid, const mprpc::RelayEngineNotification _what) override
     {
         return true;
     }

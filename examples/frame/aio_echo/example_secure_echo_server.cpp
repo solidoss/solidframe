@@ -14,8 +14,8 @@ $ openssl x509 -req -in server-req.pem -days 1000 -CA ca-cert.pem -CAkey ca-key.
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
 
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiolistener.hpp"
-#include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aiotimer.hpp"
 
@@ -79,7 +79,7 @@ SecureContextT secure_ctx(SecureContextT::create());
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-class Listener : public Dynamic<Listener, frame::aio::Object> {
+class Listener : public Dynamic<Listener, frame::aio::Actor> {
 public:
     // We will use the this backlog_size
     // both as parameter to listen and as max
@@ -123,7 +123,7 @@ private:
 #include "solid/frame/aio/aiosocket.hpp"
 #include "solid/frame/aio/aiostream.hpp"
 
-class Connection : public Dynamic<Connection, frame::aio::Object> {
+class Connection : public Dynamic<Connection, frame::aio::Actor> {
 public:
     Connection(SocketDevice&& _rsd, SecureContextT& _rctx)
         : sock(this->proxy(), std::move(_rsd), _rctx)
@@ -208,11 +208,11 @@ int main(int argc, char* argv[])
             sd.prepareAccept(rd.begin(), Listener::backlog_size());
 
             if (sd) {
-                DynamicPointer<frame::aio::Object> objptr(new Listener(svc, sch, std::move(sd)));
-                solid::ErrorConditionT             err;
-                solid::frame::ObjectIdT            objuid;
+                DynamicPointer<frame::aio::Actor> actptr(new Listener(svc, sch, std::move(sd)));
+                solid::ErrorConditionT            err;
+                solid::frame::ActorIdT            objuid;
 
-                objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
+                objuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
                 solid_log(generic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
@@ -291,10 +291,10 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             sz = 10224 * 32;
             _rsd.sendBufferSize(sz);
             solid_log(generic_logger, Error, "new_connection");
-            DynamicPointer<frame::aio::Object> objptr(new Connection(std::move(_rsd), secure_ctx));
-            solid::ErrorConditionT             err;
+            DynamicPointer<frame::aio::Actor> actptr(new Connection(std::move(_rsd), secure_ctx));
+            solid::ErrorConditionT            err;
 
-            rsch.startObject(objptr, rsvc, make_event(GenericEvents::Start), err);
+            rsch.startActor(actptr, rsvc, make_event(GenericEvents::Start), err);
 
 #else
             cout << "Accepted connection: " << _rsd.descriptor() << endl;
@@ -342,7 +342,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
     unsigned    repeatcnt = 2;
-    Connection& rthis     = static_cast<Connection&>(_rctx.object());
+    Connection& rthis     = static_cast<Connection&>(_rctx.actor());
     solid_log(generic_logger, Info, &rthis << " " << _sz);
     do {
         if (!_rctx.error()) {
@@ -378,7 +378,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
 /*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, &rthis << " postRecvSome");
         rthis.sendcnt += rthis.sendcrt;
@@ -391,7 +391,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
 /*static*/ void Connection::onSecureAccept(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, &rthis << " postRecvSome");
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
@@ -403,7 +403,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
 /*static*/ bool Connection::onSecureVerify(frame::aio::ReactorContext& _rctx, bool _preverified, frame::aio::openssl::VerifyContext& _rverify_ctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     solid_log(generic_logger, Info, &rthis << " " << _preverified);
     return _preverified;
 }

@@ -65,7 +65,7 @@ struct RecipientId {
     }
 
     explicit RecipientId(
-        const ObjectIdT& _rconid)
+        const ActorIdT& _rconid)
         : connectionid(_rconid)
     {
     }
@@ -100,7 +100,7 @@ struct RecipientId {
         return poolid;
     }
 
-    ObjectIdT const& connectionId() const
+    ActorIdT const& connectionId() const
     {
         return connectionid;
     }
@@ -118,14 +118,14 @@ private:
 
     RecipientId(
         const ConnectionPoolId& _rpoolid,
-        const ObjectIdT&        _rconid)
+        const ActorIdT&         _rconid)
         : poolid(_rpoolid)
         , connectionid(_rconid)
     {
     }
 
     ConnectionPoolId poolid;
-    ObjectIdT        connectionid;
+    ActorIdT         connectionid;
 };
 
 inline bool operator==(RecipientId const& _rec_id1, RecipientId const& _rec_id2)
@@ -266,7 +266,7 @@ struct ConnectionContext {
 
     Configuration const& configuration() const;
 
-    ObjectIdT connectionId() const;
+    ActorIdT connectionId() const;
 
     const UniqueId& relayId() const;
 

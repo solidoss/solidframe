@@ -26,7 +26,7 @@ class Manager;
 
 namespace aio {
 
-class Object;
+class Actor;
 class Reactor;
 class CompletionHandler;
 
@@ -55,11 +55,11 @@ struct ReactorContext {
         return error_;
     }
 
-    Object&  object() const;
+    Actor&   actor() const;
     Service& service() const;
     Manager& manager() const;
 
-    UniqueId objectUid() const;
+    UniqueId actorUid() const;
 
     std::mutex& objectMutex() const;
 
@@ -72,7 +72,7 @@ struct ReactorContext {
 private:
     friend class CompletionHandler;
     friend class Reactor;
-    friend class Object;
+    friend class Actor;
     friend class SocketBase;
 
     Reactor& reactor()
@@ -105,8 +105,8 @@ private:
         const NanoTime& _rcurrent_time)
         : rreactor_(_rreactor)
         , rcurrent_time_(_rcurrent_time)
-        , channel_index_(-1)
-        , object_index_(-1)
+        , channel_index_(InvalidIndex())
+        , actor_index_(InvalidIndex())
         , reactor_event_(ReactorEventNone)
     {
     }
@@ -114,7 +114,7 @@ private:
     Reactor&        rreactor_;
     const NanoTime& rcurrent_time_;
     size_t          channel_index_;
-    size_t          object_index_;
+    size_t          actor_index_;
     ReactorEventsE  reactor_event_;
     ErrorCodeT      system_error_;
     ErrorConditionT error_;

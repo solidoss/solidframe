@@ -67,13 +67,13 @@ struct ServerConfiguration {
 
 class SocketStub final : public mprpc::SocketStub {
 public:
-    SocketStub(frame::aio::ObjectProxy const& _rproxy, ContextT& _rsecure_ctx)
+    SocketStub(frame::aio::ActorProxy const& _rproxy, ContextT& _rsecure_ctx)
         : sock(_rproxy, _rsecure_ctx)
     {
     }
 
     SocketStub(
-        frame::aio::ObjectProxy const& _rproxy, SocketDevice&& _usd, ContextT& _rsecure_ctx)
+        frame::aio::ActorProxy const& _rproxy, SocketDevice&& _usd, ContextT& _rsecure_ctx)
         : sock(_rproxy, std::move(_usd), _rsecure_ctx)
     {
     }
@@ -237,7 +237,7 @@ private:
     StreamSocketT sock;
 };
 
-inline SocketStubPtrT create_client_socket(mprpc::Configuration const& _rcfg, frame::aio::ObjectProxy const& _rproxy, char* _emplace_buf)
+inline SocketStubPtrT create_client_socket(mprpc::Configuration const& _rcfg, frame::aio::ActorProxy const& _rproxy, char* _emplace_buf)
 {
 
     if (sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)) {
@@ -247,7 +247,7 @@ inline SocketStubPtrT create_client_socket(mprpc::Configuration const& _rcfg, fr
     }
 }
 
-inline SocketStubPtrT create_server_socket(mprpc::Configuration const& _rcfg, frame::aio::ObjectProxy const& _rproxy, SocketDevice&& _usd, char* _emplace_buf)
+inline SocketStubPtrT create_server_socket(mprpc::Configuration const& _rcfg, frame::aio::ActorProxy const& _rproxy, SocketDevice&& _usd, char* _emplace_buf)
 {
 
     if (sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)) {

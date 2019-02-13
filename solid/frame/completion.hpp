@@ -19,9 +19,9 @@ namespace solid {
 struct NanoTime;
 namespace frame {
 
-class Object;
+class Actor;
 class Reactor;
-struct ObjectProxy;
+struct ActorProxy;
 struct ReactorContext;
 struct ReactorEvent;
 
@@ -35,8 +35,8 @@ protected:
 
 public:
     CompletionHandler(
-        ObjectProxy const& _rop,
-        CallbackT          _pcall = &on_init_completion);
+        ActorProxy const& _rop,
+        CallbackT         _pcall = &on_init_completion);
 
     ~CompletionHandler();
 
@@ -48,7 +48,7 @@ public:
     {
         return pprev != nullptr;
     }
-    bool activate(Object const& _robj);
+    bool activate(Actor const& _ract);
     void deactivate();
     void unregister();
 
@@ -73,7 +73,7 @@ private:
     }
 
 private:
-    friend class Object;
+    friend class Actor;
 
 private:
     ForwardCompletionHandler* pprev;

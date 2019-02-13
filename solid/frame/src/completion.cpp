@@ -8,7 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "solid/frame/completion.hpp"
-#include "solid/frame/object.hpp"
+#include "solid/frame/actor.hpp"
 #include "solid/frame/reactor.hpp"
 #include "solid/frame/reactorcontext.hpp"
 #include "solid/system/cassert.hpp"
@@ -22,15 +22,15 @@ namespace frame {
 //---------------------------------------------------------------------
 
 CompletionHandler::CompletionHandler(
-    ObjectProxy const& _rop,
-    CallbackT          _pcall /* = &on_init_completion*/
+    ActorProxy const& _rop,
+    CallbackT         _pcall /* = &on_init_completion*/
     )
     : pprev(nullptr)
     , idxreactor(InvalidIndex())
     , call(_pcall)
 {
-    if (_rop.object().registerCompletionHandler(*this)) {
-        this->activate(_rop.object());
+    if (_rop.actor().registerCompletionHandler(*this)) {
+        this->activate(_rop.actor());
     }
 }
 
@@ -80,11 +80,11 @@ void CompletionHandler::systemError(ReactorContext& _rctx, ErrorCodeT const& _er
     _rctx.systemError(_err);
 }
 
-bool CompletionHandler::activate(Object const& _robj)
+bool CompletionHandler::activate(Actor const& _ract)
 {
     Reactor* preactor = nullptr;
     if (!isActive() && (preactor = Reactor::safeSpecific()) != nullptr) {
-        preactor->registerCompletionHandler(*this, _robj);
+        preactor->registerCompletionHandler(*this, _ract);
     }
     return isActive();
 }

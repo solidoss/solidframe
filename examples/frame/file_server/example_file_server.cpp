@@ -2,8 +2,8 @@
 #include "solid/frame/reactor.hpp"
 #include "solid/frame/scheduler.hpp"
 
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiolistener.hpp"
-#include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aioreactorcontext.hpp"
 #include "solid/frame/aio/aiosocket.hpp"
@@ -87,7 +87,7 @@ FileStoreSharedPointerT filestoreptr;
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-class Listener : public Dynamic<Listener, frame::aio::Object> {
+class Listener : public Dynamic<Listener, frame::aio::Actor> {
 public:
     Listener(
         frame::Service& _rsvc,
@@ -118,7 +118,7 @@ private:
 
 struct FilePointerMessage;
 
-class Connection : public Dynamic<Connection, frame::aio::Object> {
+class Connection : public Dynamic<Connection, frame::aio::Actor> {
     typedef std::vector<solid::DynamicPointer<>>   DynamicPointerVectorT;
     typedef frame::file::FileIOStream<1024>        IOFileStreamT;
     typedef frame::aio::Stream<frame::aio::Socket> StreamSocketT;
@@ -234,12 +234,12 @@ int main(int argc, char* argv[])
                 filestoreptr = new frame::file::Store<>(m, utf8cfg, tempcfg);
             }
 
-            solid::ErrorConditionT  err;
-            solid::frame::ObjectIdT objuid;
+            solid::ErrorConditionT err;
+            solid::frame::ActorIdT objuid;
 
             {
-                SchedulerT::ObjectPointerT objptr(filestoreptr);
-                objuid = sched.startObject(objptr, svc, make_event(GenericEvents::Start), err);
+                SchedulerT::ActorPointerT actptr(filestoreptr);
+                objuid = sched.startActor(actptr, svc, make_event(GenericEvents::Start), err);
             }
 
             {
@@ -251,11 +251,11 @@ int main(int argc, char* argv[])
                 sd.prepareAccept(rd.begin(), 2000);
 
                 if (sd) {
-                    DynamicPointer<frame::aio::Object> objptr(new Listener(svc, aiosched, sd));
-                    solid::ErrorConditionT             err;
-                    solid::frame::ObjectIdT            objuid;
+                    DynamicPointer<frame::aio::Actor> actptr(new Listener(svc, aiosched, sd));
+                    solid::ErrorConditionT            err;
+                    solid::frame::ActorIdT            objuid;
 
-                    objuid = aiosched.startObject(objptr, svc, make_event(GenericEvents::Start), err);
+                    objuid = aiosched.startActor(actptr, svc, make_event(GenericEvents::Start), err);
                     solid_log(generic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
                 } else {
                     cout << "Error creating listener socket" << endl;
@@ -339,10 +339,10 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
     do {
         if (!_rctx.error()) {
-            DynamicPointer<frame::aio::Object> objptr(new Connection(_rsd));
-            solid::ErrorConditionT             err;
+            DynamicPointer<frame::aio::Actor> actptr(new Connection(_rsd));
+            solid::ErrorConditionT            err;
 
-            rsch.startObject(objptr, rsvc, make_event(GenericEvents::Start), err);
+            rsch.startActor(actptr, rsvc, make_event(GenericEvents::Start), err);
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
@@ -427,7 +427,7 @@ const char* Connection::findEnd(const char* _p)
 
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         rthis.bend   = rthis.bbeg + _sz + (rthis.crtpat - patt);
         rthis.crtpat = patt;
@@ -501,12 +501,12 @@ void Connection::doRun(frame::aio::ReactorContext& _rctx)
     }
 }
 struct OpenCbk {
-    frame::Manager&  rm;
-    frame::ObjectIdT uid;
+    frame::Manager& rm;
+    frame::ActorIdT uid;
 
     OpenCbk(
-        frame::Manager&         _rm,
-        const frame::ObjectIdT& _robjuid)
+        frame::Manager&        _rm,
+        const frame::ActorIdT& _robjuid)
         : rm(_rm)
         , uid(_robjuid)
     {
@@ -606,7 +606,7 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext& _rctx)
 
 /*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         rthis.doRun(_rctx);
     } else {

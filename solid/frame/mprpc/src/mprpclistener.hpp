@@ -10,8 +10,8 @@
 
 #pragma once
 
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiolistener.hpp"
-#include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aiotimer.hpp"
 
 #include "solid/system/socketdevice.hpp"
@@ -29,7 +29,7 @@ namespace mprpc {
 
 class Service;
 
-class Listener final : public Dynamic<Listener, frame::aio::Object> {
+class Listener final : public Dynamic<Listener, frame::aio::Actor> {
 public:
     static size_t backlog_size()
     {

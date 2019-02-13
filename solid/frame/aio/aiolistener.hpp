@@ -22,7 +22,7 @@ struct Event;
 namespace frame {
 namespace aio {
 
-struct ObjectProxy;
+struct ActorProxy;
 struct ReactorContext;
 
 class Listener : public CompletionHandler {
@@ -33,8 +33,8 @@ class Listener : public CompletionHandler {
 
 public:
     Listener(
-        ObjectProxy const& _robj,
-        SocketDevice&&     _rsd)
+        ActorProxy const& _robj,
+        SocketDevice&&    _rsd)
         : CompletionHandler(_robj, Listener::on_init_completion)
         , s(std::move(_rsd))
     {

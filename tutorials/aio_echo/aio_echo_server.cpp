@@ -2,9 +2,9 @@
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
 
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiodatagram.hpp"
 #include "solid/frame/aio/aiolistener.hpp"
-#include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aiosocket.hpp"
 #include "solid/frame/aio/aiostream.hpp"
@@ -36,7 +36,7 @@ struct Params {
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-class Listener : public frame::aio::Object {
+class Listener : public frame::aio::Actor {
 public:
     // We will use the this backlog_size
     // both as parameter to listen and as max
@@ -72,7 +72,7 @@ private:
     TimerT          timer;
 };
 
-class Connection : public frame::aio::Object {
+class Connection : public frame::aio::Actor {
 public:
     Connection(SocketDevice&& _rsd)
         : sock(this->proxy(), std::move(_rsd))
@@ -92,7 +92,7 @@ private:
     StreamSocketT sock;
 };
 
-class Talker : public frame::aio::Object {
+class Talker : public frame::aio::Actor {
 public:
     Talker(SocketDevice&& _rsd)
         : sock(this->proxy(), std::move(_rsd))
@@ -148,11 +148,11 @@ int main(int argc, char* argv[])
                 cout << "Listening for TCP connections on port: " << sa << endl;
             }
 
-            DynamicPointer<frame::aio::Object> objptr(new Listener(service, scheduler, std::move(sd)));
-            solid::ErrorConditionT             error;
-            solid::frame::ObjectIdT            objuid;
+            DynamicPointer<frame::aio::Actor> actptr(new Listener(service, scheduler, std::move(sd)));
+            solid::ErrorConditionT            error;
+            solid::frame::ActorIdT            objuid;
 
-            objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start), error);
+            objuid = scheduler.startActor(actptr, service, make_event(GenericEvents::Start), error);
             (void)objuid;
         } else {
             cout << "Error creating listener socket" << endl;
@@ -175,12 +175,12 @@ int main(int argc, char* argv[])
                 cout << "Listening for UDP datagrams on port: " << sa << endl;
             }
 
-            DynamicPointer<frame::aio::Object> objptr(new Talker(std::move(sd)));
+            DynamicPointer<frame::aio::Actor> actptr(new Talker(std::move(sd)));
 
-            solid::ErrorConditionT  error;
-            solid::frame::ObjectIdT objuid;
+            solid::ErrorConditionT error;
+            solid::frame::ActorIdT objuid;
 
-            objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start), error);
+            objuid = scheduler.startActor(actptr, service, make_event(GenericEvents::Start), error);
 
             (void)objuid;
 
@@ -234,10 +234,10 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
     do {
         if (!_rctx.error()) {
-            DynamicPointer<frame::aio::Object> objptr(new Connection(std::move(_rsd)));
-            solid::ErrorConditionT             err;
+            DynamicPointer<frame::aio::Actor> actptr(new Connection(std::move(_rsd)));
+            solid::ErrorConditionT            err;
 
-            rscheduler.startObject(objptr, rservice, make_event(GenericEvents::Start), err);
+            rscheduler.startActor(actptr, rservice, make_event(GenericEvents::Start), err);
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             timer.waitFor(
@@ -274,7 +274,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
     unsigned    repeatcnt = 2;
-    Connection& rthis     = static_cast<Connection&>(_rctx.object());
+    Connection& rthis     = static_cast<Connection&>(_rctx.actor());
     do {
         if (!_rctx.error()) {
             if (rthis.sock.sendAll(_rctx, rthis.buf, _sz, Connection::onSend)) {
@@ -300,7 +300,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
 /*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
     } else {

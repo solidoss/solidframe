@@ -22,8 +22,8 @@ class Service;
 template <class R>
 class Scheduler : private SchedulerBase {
 public:
-    typedef typename R::ObjectT     ObjectT;
-    typedef DynamicPointer<ObjectT> ObjectPointerT;
+    typedef typename R::ActorT     ActorT;
+    typedef DynamicPointer<ActorT> ActorPointerT;
 
 private:
     typedef R ReactorT;
@@ -53,12 +53,12 @@ private:
     };
 
     struct ScheduleCommand {
-        ObjectPointerT& robjptr;
-        Service&        rsvc;
-        Event&&         revt;
+        ActorPointerT& ractptr;
+        Service&       rsvc;
+        Event&&        revt;
 
-        ScheduleCommand(ObjectPointerT& _robjptr, Service& _rsvc, Event&& _revt)
-            : robjptr(_robjptr)
+        ScheduleCommand(ActorPointerT& _ractptr, Service& _rsvc, Event&& _revt)
+            : ractptr(_ractptr)
             , rsvc(_rsvc)
             , revt(std::move(_revt))
         {
@@ -66,7 +66,7 @@ private:
 
         bool operator()(ReactorBase& _rreactor)
         {
-            return static_cast<ReactorT&>(_rreactor).push(robjptr, rsvc, std::move(revt));
+            return static_cast<ReactorT&>(_rreactor).push(ractptr, rsvc, std::move(revt));
         }
     };
 
@@ -93,14 +93,14 @@ public:
         SchedulerBase::doStop(_wait);
     }
 
-    ObjectIdT startObject(
-        ObjectPointerT& _robjptr, Service& _rsvc,
+    ActorIdT startActor(
+        ActorPointerT& _ractptr, Service& _rsvc,
         Event&& _revt, ErrorConditionT& _rerr)
     {
-        ScheduleCommand   cmd(_robjptr, _rsvc, std::move(_revt));
+        ScheduleCommand   cmd(_ractptr, _rsvc, std::move(_revt));
         ScheduleFunctionT fct([&cmd](ReactorBase& _rreactor) { return cmd(_rreactor); });
 
-        return doStartObject(*_robjptr, _rsvc, fct, _rerr);
+        return doStartObject(*_ractptr, _rsvc, fct, _rerr);
     }
 };
 

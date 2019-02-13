@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "solid/frame/objectbase.hpp"
+#include "solid/frame/actorbase.hpp"
 #include "solid/utility/stack.hpp"
 
 namespace solid {
@@ -28,8 +28,8 @@ class SchedulerBase;
 class ReactorBase {
 public:
     virtual ~ReactorBase();
-    virtual bool raise(UniqueId const& _robjuid, Event const& _re) = 0;
-    virtual bool raise(UniqueId const& _robjuid, Event&& _ue)      = 0;
+    virtual bool raise(UniqueId const& _ractuid, Event const& _re) = 0;
+    virtual bool raise(UniqueId const& _ractuid, Event&& _ue)      = 0;
     virtual void stop()                                            = 0;
 
     bool   prepareThread(const bool _success);
@@ -48,14 +48,14 @@ protected:
     {
     }
 
-    void           stopObject(ObjectBase& _robj, Manager& _rm);
+    void           stopActor(ActorBase& _ract, Manager& _rm);
     SchedulerBase& scheduler();
-    UniqueId       popUid(ObjectBase& _robj);
+    UniqueId       popUid(ActorBase& _ract);
     void           pushUid(UniqueId const& _ruid);
 
     AtomicSizeT crtload;
 
-    size_t runIndex(ObjectBase& _robj) const;
+    size_t runIndex(ActorBase& _robj) const;
 
 private:
     friend class SchedulerBase;
@@ -75,9 +75,9 @@ inline SchedulerBase& ReactorBase::scheduler()
     return rsch;
 }
 
-inline void ReactorBase::stopObject(ObjectBase& _robj, Manager& _rm)
+inline void ReactorBase::stopActor(ActorBase& _ract, Manager& _rm)
 {
-    _robj.stop(_rm);
+    _ract.stop(_rm);
 }
 
 inline size_t ReactorBase::idInScheduler() const
@@ -95,9 +95,9 @@ inline void ReactorBase::pushUid(UniqueId const& _ruid)
     uidstk.push(_ruid);
 }
 
-inline size_t ReactorBase::runIndex(ObjectBase& _robj) const
+inline size_t ReactorBase::runIndex(ActorBase& _ract) const
 {
-    return static_cast<const size_t>(_robj.runId().index);
+    return static_cast<const size_t>(_ract.runId().index);
 }
 
 } //namespace frame

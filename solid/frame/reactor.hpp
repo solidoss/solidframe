@@ -21,13 +21,13 @@ struct NanoTime;
 namespace frame {
 
 class Service;
-class Object;
+class Actor;
 struct ReactorContext;
 class CompletionHandler;
 struct ChangeTimerIndexCallback;
 struct TimerCallback;
 
-typedef DynamicPointer<Object> ObjectPointerT;
+typedef DynamicPointer<Actor> ActorPointerT;
 
 //!
 /*!
@@ -36,11 +36,11 @@ typedef DynamicPointer<Object> ObjectPointerT;
 class Reactor : public frame::ReactorBase {
     typedef solid_function_t(void(ReactorContext&, Event&&)) EventFunctionT;
     template <class Function>
-    struct StopObjectF {
+    struct StopActorF {
         Function function;
         bool     repost;
 
-        explicit StopObjectF(Function& _function)
+        explicit StopActorF(Function& _function)
             : repost(true)
         {
             std::swap(function, _function);
@@ -54,14 +54,14 @@ class Reactor : public frame::ReactorBase {
                 _rctx.reactor().doPost(_rctx, eventfnc, std::move(_revent));
             } else {
                 function(_rctx, _revent);
-                _rctx.reactor().doStopObject(_rctx);
+                _rctx.reactor().doStopActor(_rctx);
             }
         }
     };
 
 public:
-    typedef ObjectPointerT TaskT;
-    typedef Object         ObjectT;
+    typedef ActorPointerT TaskT;
+    typedef Actor         ActorT;
 
     Reactor(SchedulerBase& _rsched, const size_t _schedidx);
     ~Reactor();
@@ -80,13 +80,13 @@ public:
         doPost(_rctx, eventfnc, std::move(_uev), _rch);
     }
 
-    void postObjectStop(ReactorContext& _rctx);
+    void postActorStop(ReactorContext& _rctx);
 
     template <typename Function>
-    void postObjectStop(ReactorContext& _rctx, Function _f, Event&& _uev)
+    void postActorStop(ReactorContext& _rctx, Function _f, Event&& _uev)
     {
-        StopObjectF<Function> stopfnc(_f);
-        EventFunctionT        eventfnc(stopfnc);
+        StopActorF<Function> stopfnc(_f);
+        EventFunctionT       eventfnc(stopfnc);
         doPost(_rctx, eventfnc, std::move(_uev));
     }
 
@@ -95,11 +95,11 @@ public:
 
     bool start();
 
-    bool raise(UniqueId const& _robjuid, Event const& _revt) override;
-    bool raise(UniqueId const& _robjuid, Event&& _uevt) override;
+    bool raise(UniqueId const& _ractuid, Event const& _revt) override;
+    bool raise(UniqueId const& _ractuid, Event&& _uevt) override;
     void stop() override;
 
-    void registerCompletionHandler(CompletionHandler& _rch, Object const& _robj);
+    void registerCompletionHandler(CompletionHandler& _rch, Actor const& _ract);
     void unregisterCompletionHandler(CompletionHandler& _rch);
 
     void run();
@@ -107,8 +107,8 @@ public:
 
     Service& service(ReactorContext const& _rctx) const;
 
-    Object&  object(ReactorContext const& _rctx) const;
-    UniqueId objectUid(ReactorContext const& _rctx) const;
+    Actor&   actor(ReactorContext const& _rctx) const;
+    UniqueId actorUid(ReactorContext const& _rctx) const;
 
     CompletionHandler* completionHandler(ReactorContext const& _rctx) const;
 
@@ -133,12 +133,12 @@ private:
     void doPost(ReactorContext& _rctx, EventFunctionT& _revfn, Event&& _uev);
     void doPost(ReactorContext& _rctx, EventFunctionT& _revfn, Event&& _uev, CompletionHandler const& _rch);
 
-    void doStopObject(ReactorContext& _rctx);
+    void doStopActor(ReactorContext& _rctx);
 
     void        onTimer(ReactorContext& _rctx, const size_t _tidx, const size_t _chidx);
-    static void call_object_on_event(ReactorContext& _rctx, Event&& _uevent);
-    static void stop_object_repost(ReactorContext& _rctx, Event&& _uevent);
-    static void stop_object(ReactorContext& _rctx, Event&& _uevent);
+    static void call_actor_on_event(ReactorContext& _rctx, Event&& _uevent);
+    static void stop_actor_repost(ReactorContext& _rctx, Event&& _uevent);
+    static void stop_actor(ReactorContext& _rctx, Event&& _uevent);
 
 private: //data
     struct Data;

@@ -19,7 +19,7 @@
 namespace solid {
 namespace frame {
 
-struct ObjectProxy;
+struct ActorProxy;
 struct ReactorContext;
 
 class SteadyTimer : public CompletionHandler {
@@ -53,7 +53,7 @@ class SteadyTimer : public CompletionHandler {
 
 public:
     SteadyTimer(
-        ObjectProxy const& _robj)
+        ActorProxy const& _robj)
         : CompletionHandler(_robj, SteadyTimer::on_init_completion)
         , storeidx(InvalidIndex())
     {

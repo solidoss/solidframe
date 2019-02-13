@@ -22,7 +22,7 @@ namespace solid {
 namespace frame {
 
 class Service;
-class Object;
+class Actor;
 class Reactor;
 class CompletionHandler;
 
@@ -51,11 +51,11 @@ struct ReactorContext {
         return err;
     }
 
-    Object&  object() const;
+    Actor&   actor() const;
     Service& service() const;
     Manager& manager() const;
 
-    UniqueId    objectUid() const;
+    UniqueId    actorUid() const;
     std::mutex& objectMutex() const;
 
     void clearError()
@@ -67,7 +67,7 @@ struct ReactorContext {
 private:
     friend class CompletionHandler;
     friend class Reactor;
-    friend class Object;
+    friend class Actor;
 
     Reactor& reactor()
     {
@@ -99,8 +99,8 @@ private:
         const NanoTime& _rcrttm)
         : rreactor(_rreactor)
         , rcrttm(_rcrttm)
-        , chnidx(-1)
-        , objidx(-1)
+        , chnidx(InvalidIndex())
+        , actidx(InvalidIndex())
         , reactevn(ReactorEventNone)
     {
     }
@@ -108,7 +108,7 @@ private:
     Reactor&        rreactor;
     const NanoTime& rcrttm;
     size_t          chnidx;
-    size_t          objidx;
+    size_t          actidx;
     ReactorEventsE  reactevn;
     ErrorCodeT      syserr;
     ErrorConditionT err;

@@ -310,10 +310,10 @@ void SchedulerBase::doStop(bool _wait /* = true*/)
     }
 }
 
-ObjectIdT SchedulerBase::doStartObject(ObjectBase& _robj, Service& _rsvc, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr)
+ActorIdT SchedulerBase::doStartObject(ActorBase& _robj, Service& _rsvc, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr)
 {
     ++impl_->usecnt;
-    ObjectIdT rv;
+    ActorIdT rv;
     if (impl_->status == StatusRunningE) {
         ReactorStub& rrs = impl_->reactorvec[doComputeScheduleReactorIndex()];
 

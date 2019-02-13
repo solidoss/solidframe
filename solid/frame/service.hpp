@@ -22,7 +22,7 @@ namespace solid {
 struct Event;
 namespace frame {
 
-class ObjectBase;
+class ActorBase;
 
 class Service;
 
@@ -75,7 +75,7 @@ public:
     template <class F>
     bool forEach(F& _rf)
     {
-        return rm.forEachServiceObject(*this, _rf);
+        return rm.forEachServiceActor(*this, _rf);
     }
 
     void stop(const bool _wait = true);
@@ -84,11 +84,11 @@ public:
 
     Manager& manager();
 
-    std::mutex& mutex(const ObjectBase& _robj) const;
+    std::mutex& mutex(const ActorBase& _robj) const;
 
     bool isRunning() const;
 
-    ObjectIdT id(const ObjectBase& _robj) const;
+    ActorIdT id(const ActorBase& _robj) const;
 
 protected:
     std::mutex& mutex() const;
@@ -107,7 +107,7 @@ private:
         running = false;
     }
 
-    ObjectIdT registerObject(ObjectBase& _robj, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
+    ActorIdT registerObject(ActorBase& _robj, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
 
 private:
     Manager&            rm;

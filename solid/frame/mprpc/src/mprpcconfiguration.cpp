@@ -98,12 +98,12 @@ size_t default_decompress(char*, const char*, size_t, ErrorConditionT& _rerror)
     return 0;
 }
 
-SocketStubPtrT default_create_client_socket(Configuration const& _rcfg, frame::aio::ObjectProxy const& _rproxy, char* _emplace_buf)
+SocketStubPtrT default_create_client_socket(Configuration const& _rcfg, frame::aio::ActorProxy const& _rproxy, char* _emplace_buf)
 {
     return plain::create_client_socket(_rcfg, _rproxy, _emplace_buf);
 }
 
-SocketStubPtrT default_create_server_socket(Configuration const& _rcfg, frame::aio::ObjectProxy const& _rproxy, SocketDevice&& _usd, char* _emplace_buf)
+SocketStubPtrT default_create_server_socket(Configuration const& _rcfg, frame::aio::ActorProxy const& _rproxy, SocketDevice&& _usd, char* _emplace_buf)
 {
     return plain::create_server_socket(_rcfg, _rproxy, std::move(_usd), _emplace_buf);
 }
@@ -170,7 +170,7 @@ WriterConfiguration::WriterConfiguration()
     return eng;
 }
 //-----------------------------------------------------------------------------
-bool RelayEngine::notifyConnection(Manager& _rm, const ObjectIdT& _rrelay_uid, const RelayEngineNotification _what)
+bool RelayEngine::notifyConnection(Manager& _rm, const ActorIdT& _rrelay_uid, const RelayEngineNotification _what)
 {
     return Connection::notify(_rm, _rrelay_uid, _what);
 }
@@ -184,7 +184,7 @@ bool RelayEngine::notifyConnection(Manager& _rm, const ObjectIdT& _rrelay_uid, c
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool RelayEngine::doRelayStart(
-    const ObjectIdT& /*_rcon_uid*/,
+    const ActorIdT& /*_rcon_uid*/,
     UniqueId& /*_rrelay_uid*/,
     MessageHeader& /*_rmsghdr*/,
     RelayData&& /*_urelay_data*/,

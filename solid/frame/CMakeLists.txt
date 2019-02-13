@@ -1,7 +1,7 @@
 # the frame libraries:
 set(Sources
     src/manager.cpp
-    src/object.cpp
+    src/actor.cpp
     src/service.cpp
     src/schedulerbase.cpp
     src/reactor.cpp
@@ -14,8 +14,8 @@ set(Headers
     completion.hpp
     forwardcompletion.hpp
     manager.hpp
-    objectbase.hpp
-    object.hpp
+    actorbase.hpp
+    actor.hpp
     reactorbase.hpp
     reactorcontext.hpp
     reactor.hpp

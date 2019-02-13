@@ -10,8 +10,8 @@
 #include "solid/system/cassert.hpp"
 #include "solid/system/log.hpp"
 
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiocompletion.hpp"
-#include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aioreactorcontext.hpp"
 
@@ -22,21 +22,21 @@ namespace frame {
 namespace aio {
 
 //---------------------------------------------------------------------
-//----  Object  ----
+//----  Actor  ----
 //---------------------------------------------------------------------
 
-Object::Object() {}
+Actor::Actor() {}
 
-/*virtual*/ void Object::onEvent(ReactorContext& /*_rctx*/, Event&& /*_uevent*/)
+/*virtual*/ void Actor::onEvent(ReactorContext& /*_rctx*/, Event&& /*_uevent*/)
 {
 }
 
-bool Object::isRunning() const
+bool Actor::isRunning() const
 {
     return runId().isValid();
 }
 
-bool Object::registerCompletionHandler(CompletionHandler& _rch)
+bool Actor::registerCompletionHandler(CompletionHandler& _rch)
 {
     solid_dbg(logger, Info, "" << &_rch);
     _rch.pnext = this->pnext;
@@ -48,7 +48,7 @@ bool Object::registerCompletionHandler(CompletionHandler& _rch)
     return isRunning();
 }
 
-void Object::registerCompletionHandlers()
+void Actor::registerCompletionHandlers()
 {
     solid_dbg(logger, Info, "");
     CompletionHandler* pch = this->pnext;
@@ -59,7 +59,7 @@ void Object::registerCompletionHandlers()
     }
 }
 
-bool Object::doPrepareStop(ReactorContext& _rctx)
+bool Actor::doPrepareStop(ReactorContext& _rctx)
 {
     if (this->disableVisits(_rctx.service().manager())) {
         CompletionHandler* pch = this->pnext;

@@ -1,5 +1,5 @@
+#include "solid/frame/actor.hpp"
 #include "solid/frame/manager.hpp"
-#include "solid/frame/object.hpp"
 #include "solid/frame/reactor.hpp"
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
@@ -32,9 +32,9 @@ mutex              mtx;
 
 typedef frame::Scheduler<frame::Reactor> SchedulerT;
 
-class BasicObject : public Dynamic<BasicObject, frame::Object> {
+class BasicActor : public Dynamic<BasicActor, frame::Actor> {
 public:
-    BasicObject(size_t _repeat = 10)
+    BasicActor(size_t _repeat = 10)
         : repeat(_repeat)
         , t1(proxy())
         , t2(proxy())
@@ -65,12 +65,12 @@ int main(int argc, char* argv[])
             const size_t cnt = argc == 2 ? atoi(argv[1]) : 1;
 
             for (size_t i = 0; i < cnt; ++i) {
-                DynamicPointer<frame::Object> objptr(new BasicObject(10));
-                solid::ErrorConditionT        err;
-                solid::frame::ObjectIdT       objuid;
+                DynamicPointer<frame::Actor> actptr(new BasicActor(10));
+                solid::ErrorConditionT       err;
+                solid::frame::ActorIdT       actuid;
 
-                objuid = s.startObject(objptr, svc, make_event(GenericEvents::Start), err);
-                solid_log(generic_logger, Info, "Started BasicObject: " << objuid.index << ',' << objuid.unique);
+                actuid = s.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                solid_log(generic_logger, Info, "Started BasicActor: " << actuid.index << ',' << actuid.unique);
             }
 
             {
@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-/*virtual*/ void BasicObject::onEvent(frame::ReactorContext& _rctx, Event&& _uevent)
+/*virtual*/ void BasicActor::onEvent(frame::ReactorContext& _rctx, Event&& _uevent)
 {
     solid_log(generic_logger, Info, "event = " << _uevent);
     if (_uevent == generic_event_start) {
@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
     }
 }
 
-void BasicObject::onTimer(frame::ReactorContext& _rctx, size_t _idx)
+void BasicActor::onTimer(frame::ReactorContext& _rctx, size_t _idx)
 {
     solid_log(generic_logger, Info, "timer = " << _idx);
     if (_idx == 0) {
@@ -124,7 +124,7 @@ void BasicObject::onTimer(frame::ReactorContext& _rctx, size_t _idx)
     }
 }
 
-/*virtual*/ /*void BasicObject::execute(frame::ExecuteContext &_rexectx){
+/*virtual*/ /*void BasicActor::execute(frame::ExecuteContext &_rexectx){
     switch(_rexectx.event().id){
         case frame::EventInit:
             cout<<"EventInit("<<_rexectx.event().index<<") at "<<_rexectx.time()<<endl;

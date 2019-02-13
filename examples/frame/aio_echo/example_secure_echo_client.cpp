@@ -5,7 +5,7 @@
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
 
-#include "solid/frame/aio/aioobject.hpp"
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aiosocket.hpp"
 #include "solid/frame/aio/aiostream.hpp"
@@ -69,7 +69,7 @@ struct ConnectStub {
 
 struct ConnectFunction;
 
-class Connection : public Dynamic<Connection, frame::aio::Object> {
+class Connection : public Dynamic<Connection, frame::aio::Actor> {
 public:
     Connection(SecureContextT& _secure_ctx)
         : sock(this->proxy(), _secure_ctx)
@@ -167,9 +167,9 @@ int main(int argc, char* argv[])
 
         AioSchedulerT scheduler;
 
-        frame::Manager   manager;
-        frame::ServiceT  service(manager);
-        frame::ObjectIdT objuid;
+        frame::Manager  manager;
+        frame::ServiceT service(manager);
+        frame::ActorIdT objuid;
 
         FunctionWorkPool     fwp{WorkPoolConfiguration()};
         frame::aio::Resolver resolver(fwp);
@@ -184,10 +184,10 @@ int main(int argc, char* argv[])
 
         {
 
-            DynamicPointer<frame::aio::Object> objptr(new Connection(secure_ctx));
-            solid::ErrorConditionT             err;
+            DynamicPointer<frame::aio::Actor> actptr(new Connection(secure_ctx));
+            solid::ErrorConditionT            err;
 
-            objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start, ConnectStub(resolver, params.connect_addr, params.connect_port)), err);
+            objuid = scheduler.startActor(actptr, service, make_event(GenericEvents::Start, ConnectStub(resolver, params.connect_addr, params.connect_port)), err);
 
             solid_log(generic_logger, Info, "Started Client Connection object: " << objuid.index << ',' << objuid.unique);
         }
@@ -291,8 +291,8 @@ struct ConnectFunction {
         solid_check(pconnect_stub != nullptr);
         solid_log(generic_logger, Info, "Resolving: " << pconnect_stub->connect_addr << ':' << pconnect_stub->connect_port);
 
-        frame::Manager&  manager = _rctx.service().manager();
-        frame::ObjectIdT objuid  = _rctx.service().manager().id(*this);
+        frame::Manager& manager = _rctx.service().manager();
+        frame::ActorIdT objuid  = _rctx.service().manager().id(*this);
 
         pconnect_stub->resolver.requestResolve(
             [&manager, objuid](ResolveData& _rrd, ErrorCodeT const& /*_rerr*/) {
@@ -330,7 +330,7 @@ struct ConnectFunction {
 
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     solid_log(generic_logger, Info, &rthis << " " << _sz);
     cout.write(rthis.buf, _sz);
     //cout<<endl;
@@ -344,7 +344,7 @@ struct ConnectFunction {
 
 /*static*/ void Connection::onSent(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, &rthis << " postRecvSome");
 
@@ -363,7 +363,7 @@ struct ConnectFunction {
 
 /*static*/ void Connection::onSecureConnect(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, &rthis << "");
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
@@ -381,7 +381,7 @@ struct ConnectFunction {
 
 /*static*/ void Connection::onConnect(frame::aio::ReactorContext& _rctx, ConnectFunction& _rcf)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
 
     solid_log(generic_logger, Info, &rthis << "");
 
@@ -413,7 +413,7 @@ struct ConnectFunction {
 
 /*static*/ bool Connection::onSecureVerify(frame::aio::ReactorContext& _rctx, bool _preverified, frame::aio::openssl::VerifyContext& _rverify_ctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     solid_log(generic_logger, Info, &rthis << " " << _preverified);
     return _preverified;
 }

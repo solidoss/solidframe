@@ -30,14 +30,14 @@ class Service;
 
 namespace aio {
 
-class Object;
+class Actor;
 class CompletionHandler;
 struct ChangeTimerIndexCallback;
 struct TimerCallback;
 struct EventHandler;
 struct ExecStub;
 
-typedef DynamicPointer<Object> ObjectPointerT;
+typedef DynamicPointer<Actor> ActorPointerT;
 
 //!
 /*!
@@ -65,14 +65,14 @@ class Reactor : public frame::ReactorBase {
                 _rctx.reactor().doPost(_rctx, eventfnc, std::move(_uevent));
             } else {
                 function(_rctx, std::move(_uevent));
-                _rctx.reactor().doStopObject(_rctx);
+                _rctx.reactor().doStopActor(_rctx);
             }
         }
     };
 
 public:
-    typedef ObjectPointerT TaskT;
-    typedef Object         ObjectT;
+    typedef ActorPointerT TaskT;
+    typedef Actor         ActorT;
 
     Reactor(SchedulerBase& _rsched, const size_t _schedidx);
     ~Reactor();
@@ -91,10 +91,10 @@ public:
         doPost(_rctx, eventfnc, std::move(_uev), _rch);
     }
 
-    void postObjectStop(ReactorContext& _rctx);
+    void postActorStop(ReactorContext& _rctx);
 
     template <typename Function>
-    void postObjectStop(ReactorContext& _rctx, Function _f, Event&& _uev)
+    void postActorStop(ReactorContext& _rctx, Function _f, Event&& _uev)
     {
         StopObjectF<Function> stopfnc(_f);
         EventFunctionT        eventfnc(std::move(stopfnc));
@@ -115,11 +115,11 @@ public:
 
     bool start();
 
-    bool raise(UniqueId const& _robjuid, Event const& _revt) override;
-    bool raise(UniqueId const& _robjuid, Event&& _uevt) override;
+    bool raise(UniqueId const& _ractuid, Event const& _revt) override;
+    bool raise(UniqueId const& _ractuid, Event&& _uevt) override;
     void stop() override;
 
-    void registerCompletionHandler(CompletionHandler& _rch, Object const& _robj);
+    void registerCompletionHandler(CompletionHandler& _rch, Actor const& _ract);
     void unregisterCompletionHandler(CompletionHandler& _rch);
 
     void run();
@@ -127,7 +127,7 @@ public:
 
     Service& service(ReactorContext const& _rctx) const;
 
-    Object& object(ReactorContext const& _rctx) const;
+    Actor& actor(ReactorContext const& _rctx) const;
 
     CompletionHandler* completionHandler(ReactorContext const& _rctx) const;
 
@@ -154,15 +154,15 @@ private:
     void doPost(ReactorContext& _rctx, EventFunctionT& _revfn, Event&& _uev);
     void doPost(ReactorContext& _rctx, EventFunctionT& _revfn, Event&& _uev, CompletionHandler const& _rch);
 
-    void doStopObject(ReactorContext& _rctx);
+    void doStopActor(ReactorContext& _rctx);
 
     void        onTimer(ReactorContext& _rctx, const size_t _tidx, const size_t _chidx);
-    static void call_object_on_event(ReactorContext& _rctx, Event&& _uev);
+    static void call_actor_on_event(ReactorContext& _rctx, Event&& _uev);
     static void increase_event_vector_size(ReactorContext& _rctx, Event&& _uev);
-    static void stop_object(ReactorContext& _rctx, Event&& _uevent);
-    static void stop_object_repost(ReactorContext& _rctx, Event&& _uevent);
+    static void stop_actor(ReactorContext& _rctx, Event&& _uevent);
+    static void stop_actor_repost(ReactorContext& _rctx, Event&& _uevent);
 
-    UniqueId objectUid(ReactorContext const& _rctx) const;
+    UniqueId actorUid(ReactorContext const& _rctx) const;
 
 private: //data
     struct Data;

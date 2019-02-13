@@ -40,7 +40,7 @@ struct ConnectionStubBase {
         prev_ = InvalidIndex();
     }
 
-    ObjectIdT   id_;
+    ActorIdT    id_;
     std::string name_;
     size_t      next_;
     size_t      prev_;
@@ -65,7 +65,7 @@ public:
     struct Proxy {
         size_t              createConnection();
         ConnectionStubBase& connection(const size_t _idx);
-        bool                notifyConnection(const ObjectIdT& _rrelay_con_uid, const RelayEngineNotification _what);
+        bool                notifyConnection(const ActorIdT& _rrelay_con_uid, const RelayEngineNotification _what);
         void                stopConnection(const size_t _idx);
         void                registerConnectionId(const ConnectionContext& _rconctx, const size_t _idx);
 
@@ -117,7 +117,7 @@ private:
     void doStopConnection(const size_t _conidx);
 
     bool doRelayStart(
-        const ObjectIdT& _rcon_uid,
+        const ActorIdT&  _rcon_uid,
         UniqueId&        _rrelay_con_uid,
         MessageHeader&   _rmsghdr,
         RelayData&&      _rrelmsg,
@@ -153,7 +153,7 @@ private:
     void doPollDone(const UniqueId& _rrelay_con_uid, DoneFunctionT& _done_fnc, CancelFunctionT& _cancel_fnc) final;
 
     size_t doRegisterNamedConnection(std::string&& _uname);
-    size_t doRegisterUnnamedConnection(const ObjectIdT& _rcon_uid, UniqueId& _rrelay_con_uid);
+    size_t doRegisterUnnamedConnection(const ActorIdT& _rcon_uid, UniqueId& _rrelay_con_uid);
 
     void doRegisterConnectionId(const ConnectionContext& _rconctx, const size_t _idx);
 

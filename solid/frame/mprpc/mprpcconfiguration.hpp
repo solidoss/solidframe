@@ -32,7 +32,7 @@ namespace frame {
 
 namespace aio {
 class Resolver;
-struct ObjectProxy;
+struct ActorProxy;
 } // namespace aio
 
 namespace mprpc {
@@ -221,7 +221,7 @@ protected:
     RelayEngine() {}
     virtual ~RelayEngine();
 
-    virtual bool notifyConnection(Manager& _rm, const ObjectIdT& _rrelay_uid, const RelayEngineNotification _what);
+    virtual bool notifyConnection(Manager& _rm, const ActorIdT& _rrelay_uid, const RelayEngineNotification _what);
 
 private:
     friend class Connection;
@@ -236,7 +236,7 @@ private:
     // will know if it can move it into _rrelay_data.message_header_ (for unicasts)
     // or copy it in case of multicasts
     virtual bool doRelayStart(
-        const ObjectIdT& _rcon_uid,
+        const ActorIdT&  _rcon_uid,
         UniqueId&        _rrelay_uid,
         MessageHeader&   _rmsghdr,
         RelayData&&      _urelay_data,
@@ -300,7 +300,7 @@ private:
     }
 
     bool relayStart(
-        const ObjectIdT& _rcon_uid,
+        const ActorIdT&  _rcon_uid,
         UniqueId&        _rrelay_uid,
         MessageHeader&   _rmsghdr,
         RelayData&&      _urelay_data,
@@ -493,7 +493,7 @@ public:
     WriterConfiguration writer;
 
     struct Server {
-        using ConnectionCreateSocketFunctionT    = solid_function_t(SocketStubPtrT(Configuration const&, frame::aio::ObjectProxy const&, SocketDevice&&, char*));
+        using ConnectionCreateSocketFunctionT    = solid_function_t(SocketStubPtrT(Configuration const&, frame::aio::ActorProxy const&, SocketDevice&&, char*));
         using ConnectionSecureHandshakeFunctionT = solid_function_t(void(ConnectionContext&));
 
         Server()
@@ -528,7 +528,7 @@ public:
     } server;
 
     struct Client {
-        using ConnectionCreateSocketFunctionT    = solid_function_t(SocketStubPtrT(Configuration const&, frame::aio::ObjectProxy const&, char*));
+        using ConnectionCreateSocketFunctionT    = solid_function_t(SocketStubPtrT(Configuration const&, frame::aio::ActorProxy const&, char*));
         using AsyncResolveFunctionT              = solid_function_t(void(const std::string&, ResolveCompleteFunctionT&));
         using ConnectionSecureHandshakeFunctionT = solid_function_t(void(ConnectionContext&));
 

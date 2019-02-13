@@ -20,7 +20,7 @@ namespace solid {
 namespace frame {
 namespace aio {
 
-struct ObjectProxy;
+struct ActorProxy;
 struct ReactorContext;
 
 template <class Sock>
@@ -263,7 +263,7 @@ class Stream : public CompletionHandler {
 
 public:
     explicit Stream(
-        ObjectProxy const& _robj, SocketDevice&& _rsd)
+        ActorProxy const& _robj, SocketDevice&& _rsd)
         : CompletionHandler(_robj, on_init_completion)
         , s(std::move(_rsd))
         , recv_buf(nullptr)
@@ -279,7 +279,7 @@ public:
 
     template <class Ctx>
     Stream(
-        ObjectProxy const& _robj, SocketDevice&& _rsd, const Ctx& _rctx)
+        ActorProxy const& _robj, SocketDevice&& _rsd, const Ctx& _rctx)
         : CompletionHandler(_robj, on_init_completion)
         , s(_rctx, std::move(_rsd))
         , recv_buf(nullptr)
@@ -294,7 +294,7 @@ public:
     }
 
     Stream(
-        ObjectProxy const& _robj)
+        ActorProxy const& _robj)
         : CompletionHandler(_robj, on_dummy_completion)
         , recv_buf(nullptr)
         , recv_buf_sz(0)
@@ -309,7 +309,7 @@ public:
 
     template <class Ctx>
     explicit Stream(
-        ObjectProxy const& _robj, const Ctx& _rctx)
+        ActorProxy const& _robj, const Ctx& _rctx)
         : CompletionHandler(_robj, on_dummy_completion)
         , s(_rctx)
         , recv_buf(nullptr)

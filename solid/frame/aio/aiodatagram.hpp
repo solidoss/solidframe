@@ -21,7 +21,7 @@ namespace solid {
 namespace frame {
 namespace aio {
 
-struct ObjectProxy;
+struct ActorProxy;
 struct ReactorContex;
 
 template <class Sock>
@@ -258,7 +258,7 @@ class Datagram : public CompletionHandler {
 
 public:
     Datagram(
-        ObjectProxy const& _robj, SocketDevice&& _rsd)
+        ActorProxy const& _robj, SocketDevice&& _rsd)
         : CompletionHandler(_robj, on_init_completion)
         , s(std::move(_rsd))
         , recv_buf(nullptr)
@@ -271,7 +271,7 @@ public:
     }
 
     Datagram(
-        ObjectProxy const& _robj)
+        ActorProxy const& _robj)
         : CompletionHandler(_robj, on_dummy_completion)
         , recv_buf(nullptr)
         , recv_buf_cp(0)

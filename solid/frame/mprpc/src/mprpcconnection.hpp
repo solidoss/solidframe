@@ -17,7 +17,7 @@
 #include "solid/utility/event.hpp"
 #include "solid/utility/queue.hpp"
 
-#include "solid/frame/aio/aioobject.hpp"
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiotimer.hpp"
 
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
@@ -74,7 +74,7 @@ struct ResolveMessage {
 
 using MessageIdVectorT = std::vector<MessageId>;
 
-class Connection final : public Dynamic<Connection, frame::aio::Object> {
+class Connection final : public Dynamic<Connection, frame::aio::Actor> {
 public:
     static Event eventResolve();
     static Event eventNewMessage();
@@ -196,10 +196,10 @@ private:
     friend class RelayEngine;
     friend class Service;
 
-    static bool notify(Manager& _rm, const ObjectIdT&, const RelayEngineNotification);
+    static bool notify(Manager& _rm, const ActorIdT&, const RelayEngineNotification);
 
-    Service&  service(frame::aio::ReactorContext& _rctx) const;
-    ObjectIdT uid(frame::aio::ReactorContext& _rctx) const;
+    Service& service(frame::aio::ReactorContext& _rctx) const;
+    ActorIdT uid(frame::aio::ReactorContext& _rctx) const;
 
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _uevent) override;
 

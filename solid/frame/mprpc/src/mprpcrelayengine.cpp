@@ -475,7 +475,7 @@ void EngineCore::doExecute(ExecuteFunctionT& _rfnc)
     _rfnc(proxy);
 }
 //-----------------------------------------------------------------------------
-size_t EngineCore::doRegisterUnnamedConnection(const ObjectIdT& _rcon_uid, UniqueId& _rrelay_con_uid)
+size_t EngineCore::doRegisterUnnamedConnection(const ActorIdT& _rcon_uid, UniqueId& _rrelay_con_uid)
 {
     if (_rrelay_con_uid.isValid()) {
         solid_assert(impl_->isValid(_rrelay_con_uid));
@@ -502,11 +502,11 @@ size_t EngineCore::doRegisterNamedConnection(std::string&& _uname)
 //-----------------------------------------------------------------------------
 // called by sending connection on new relayed message
 bool EngineCore::doRelayStart(
-    const ObjectIdT& _rcon_uid,
-    UniqueId&        _rrelay_con_uid,
-    MessageHeader&   _rmsghdr,
-    RelayData&&      _rrelmsg,
-    MessageId&       _rrelay_id,
+    const ActorIdT& _rcon_uid,
+    UniqueId&       _rrelay_con_uid,
+    MessageHeader&  _rmsghdr,
+    RelayData&&     _rrelmsg,
+    MessageId&      _rrelay_id,
     ErrorConditionT& /*_rerror*/)
 {
     size_t            msgidx;
@@ -539,8 +539,8 @@ bool EngineCore::doRelayStart(
     ConnectionStub& rsndcon    = impl_->con_dq_[snd_conidx];
 
     //also hold the in-engine connection id into msg
-    rmsg.sender_con_id_   = ObjectIdT(snd_conidx, impl_->con_dq_[snd_conidx].unique_);
-    rmsg.receiver_con_id_ = ObjectIdT(rcv_conidx, rrcvcon.unique_);
+    rmsg.sender_con_id_   = ActorIdT(snd_conidx, impl_->con_dq_[snd_conidx].unique_);
+    rmsg.receiver_con_id_ = ActorIdT(rcv_conidx, rrcvcon.unique_);
 
     //register message onto sender connection:
     rsndcon.send_msg_list_.pushBack(msgidx);
@@ -1074,7 +1074,7 @@ ConnectionStubBase& EngineCore::Proxy::connection(const size_t _idx)
     return re_.impl_->con_dq_[_idx];
 }
 //-----------------------------------------------------------------------------
-bool EngineCore::Proxy::notifyConnection(const ObjectIdT& _rrelay_con_uid, const RelayEngineNotification _what)
+bool EngineCore::Proxy::notifyConnection(const ActorIdT& _rrelay_con_uid, const RelayEngineNotification _what)
 {
     return re_.notifyConnection(re_.manager(), _rrelay_con_uid, _what);
 }

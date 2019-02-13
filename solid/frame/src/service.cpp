@@ -19,9 +19,9 @@
 #include "solid/utility/queue.hpp"
 #include "solid/utility/stack.hpp"
 
+#include "solid/frame/actor.hpp"
 #include "solid/frame/common.hpp"
 #include "solid/frame/manager.hpp"
-#include "solid/frame/object.hpp"
 #include "solid/frame/service.hpp"
 
 namespace solid {
@@ -60,12 +60,12 @@ void Service::stop(const bool _wait)
     rm.stopService(*this, _wait);
 }
 
-std::mutex& Service::mutex(const ObjectBase& _robj) const
+std::mutex& Service::mutex(const ActorBase& _robj) const
 {
     return rm.mutex(_robj);
 }
 
-ObjectIdT Service::id(const ObjectBase& _robj) const
+ActorIdT Service::id(const ActorBase& _robj) const
 {
     return rm.id(_robj);
 }
@@ -75,7 +75,7 @@ std::mutex& Service::mutex() const
     return rm.mutex(*this);
 }
 
-ObjectIdT Service::registerObject(ObjectBase& _robj, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr)
+ActorIdT Service::registerObject(ActorBase& _robj, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr)
 {
     return rm.registerObject(*this, _robj, _rr, _rfct, _rerr);
 }

@@ -5,7 +5,7 @@ set(Sources
     src/aiocompletion.cpp
     src/aioreactor.cpp
     src/aiolistener.cpp
-    src/aioobject.cpp
+    src/aioactor.cpp
     src/aioerror.cpp
 )
 
@@ -16,7 +16,7 @@ set(Headers
     aioerror.hpp
     aioforwardcompletion.hpp
     aiolistener.hpp
-    aioobject.hpp
+    aioactor.hpp
     aioreactorcontext.hpp
     aioreactor.hpp
     aioresolver.hpp

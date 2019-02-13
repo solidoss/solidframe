@@ -2,8 +2,8 @@
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
 
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiolistener.hpp"
-#include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aioresolver.hpp"
 #include "solid/frame/aio/aiosocket.hpp"
@@ -33,7 +33,7 @@ using namespace std::placeholders;
 typedef frame::Scheduler<frame::aio::Reactor> AioSchedulerT;
 typedef std::atomic<uint32_t>                 AtomicUint32_tT;
 typedef std::unordered_map<uint32_t,
-    solid::frame::ObjectIdT>
+    solid::frame::ActorIdT>
     UniqueMapT;
 enum Events {
     EventStartE = 0,
@@ -91,15 +91,15 @@ frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr)
     return r;
 }
 
-void connection_register(uint32_t _id, frame::ObjectIdT const& _ruid)
+void connection_register(uint32_t _id, frame::ActorIdT const& _ruid)
 {
     umap[_id] = _ruid;
 }
 
-frame::ObjectIdT connection_uid(uint32_t _id)
+frame::ActorIdT connection_uid(uint32_t _id)
 {
-    frame::ObjectIdT rv;
-    auto             it = umap.find(_id);
+    frame::ActorIdT rv;
+    auto            it = umap.find(_id);
     if (it != umap.end()) {
         rv = it->second;
         umap.erase(it);
@@ -117,7 +117,7 @@ void connection_unregister(uint32_t _id)
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-class Listener : public Dynamic<Listener, frame::aio::Object> {
+class Listener : public Dynamic<Listener, frame::aio::Actor> {
 public:
     Listener(
         frame::Service& _rsvc,
@@ -146,7 +146,7 @@ private:
     ListenerSocketT sock;
 };
 
-class Connection : public Dynamic<Connection, frame::aio::Object> {
+class Connection : public Dynamic<Connection, frame::aio::Actor> {
 public:
     Connection(SocketDevice&& _rsd)
         : sock1(this->proxy(), std::move(_rsd))
@@ -239,11 +239,11 @@ int main(int argc, char* argv[])
             sd.prepareAccept(rd.begin(), SocketInfo::max_listen_backlog_size());
 
             if (sd) {
-                DynamicPointer<frame::aio::Object> objptr(new Listener(svc, sch, std::move(sd)));
-                solid::ErrorConditionT             err;
-                solid::frame::ObjectIdT            objuid;
+                DynamicPointer<frame::aio::Actor> actptr(new Listener(svc, sch, std::move(sd)));
+                solid::ErrorConditionT            err;
+                solid::frame::ActorIdT            objuid;
 
-                objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
+                objuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
                 solid_log(generic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
@@ -337,10 +337,10 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             _rsd.sendBufferSize(sz);
 #endif
             _rsd.enableNoDelay();
-            DynamicPointer<frame::aio::Object> objptr(new Connection(std::move(_rsd)));
-            solid::ErrorConditionT             err;
+            DynamicPointer<frame::aio::Actor> actptr(new Connection(std::move(_rsd)));
+            solid::ErrorConditionT            err;
 
-            rsch.startObject(objptr, rsvc, make_event(GenericEvents::Start), err);
+            rsch.startActor(actptr, rsvc, make_event(GenericEvents::Start), err);
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
@@ -361,10 +361,10 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 //-----------------------------------------------------------------------------
 
 struct ResolvFunc {
-    frame::Manager&  rm;
-    frame::ObjectIdT objuid;
+    frame::Manager& rm;
+    frame::ActorIdT objuid;
 
-    ResolvFunc(frame::Manager& _rm, frame::ObjectIdT const& _robjuid)
+    ResolvFunc(frame::Manager& _rm, frame::ActorIdT const& _robjuid)
         : rm(_rm)
         , objuid(_robjuid)
     {
@@ -477,7 +477,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 /*static*/ void Connection::onRecvSock1(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
     unsigned    repeatcnt = 4;
-    Connection& rthis     = static_cast<Connection&>(_rctx.object());
+    Connection& rthis     = static_cast<Connection&>(_rctx.actor());
     solid_log(generic_logger, Info, &rthis << " " << _sz);
     do {
         if (!_rctx.error()) {
@@ -508,7 +508,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 /*static*/ void Connection::onRecvSock2(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
     unsigned    repeatcnt = 4;
-    Connection& rthis     = static_cast<Connection&>(_rctx.object());
+    Connection& rthis     = static_cast<Connection&>(_rctx.actor());
     solid_log(generic_logger, Info, &rthis << " " << _sz);
     do {
         if (!_rctx.error()) {
@@ -538,7 +538,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 
 /*static*/ void Connection::onSendSock1(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         rthis.sock2.postRecvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2);
     } else {
@@ -549,7 +549,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 
 /*static*/ void Connection::onSendSock2(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         rthis.sock1.postRecvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1);
     } else {
@@ -594,9 +594,9 @@ void Connection::onRecvId(frame::aio::ReactorContext& _rctx, size_t _off, size_t
             connection_register(crtid, _rctx.manager().id(*this));
         } else {
             //move to a peer connection
-            frame::ObjectIdT objid = connection_uid(idx);
-            Event            ev(make_event(GenericEvents::Message));
-            SocketDevice     sd(sock1.reset(_rctx));
+            frame::ActorIdT objid = connection_uid(idx);
+            Event           ev(make_event(GenericEvents::Message));
+            SocketDevice    sd(sock1.reset(_rctx));
             ev.any() = MoveMessage(std::move(sd), buf2 + i, _sz - i);
             solid_log(generic_logger, Info, this << " send move_message with size = " << (_sz - i));
             _rctx.manager().notify(objid, std::move(ev));
@@ -617,7 +617,7 @@ void Connection::onRecvId(frame::aio::ReactorContext& _rctx, size_t _off, size_t
 
 /*static*/ void Connection::onSendId(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, &rthis << "");
     } else {

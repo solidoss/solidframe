@@ -2,8 +2,8 @@
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
 
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiolistener.hpp"
-#include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aiotimer.hpp"
 
@@ -66,7 +66,7 @@ static void term_handler(int signum)
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-class Listener : public Dynamic<Listener, frame::aio::Object> {
+class Listener : public Dynamic<Listener, frame::aio::Actor> {
 public:
     static size_t backlog_size()
     {
@@ -112,7 +112,7 @@ private:
 #include "solid/frame/aio/aiosocket.hpp"
 #include "solid/frame/aio/aiostream.hpp"
 
-class Connection : public Dynamic<Connection, frame::aio::Object> {
+class Connection : public Dynamic<Connection, frame::aio::Actor> {
 protected:
     Connection()
         : sock(this->proxy())
@@ -170,7 +170,7 @@ public:
 #include "solid/frame/aio/aiodatagram.hpp"
 #include "solid/frame/aio/aiosocket.hpp"
 
-class Talker : public Dynamic<Talker, frame::aio::Object> {
+class Talker : public Dynamic<Talker, frame::aio::Actor> {
 public:
     Talker(SocketDevice&& _rsd)
         : sock(this->proxy(), std::move(_rsd))
@@ -241,11 +241,11 @@ int main(int argc, char* argv[])
             sd.prepareAccept(rd.begin(), Listener::backlog_size());
 
             if (sd) {
-                DynamicPointer<frame::aio::Object> objptr(new Listener(svc, sch, std::move(sd)));
-                solid::ErrorConditionT             err;
-                solid::frame::ObjectIdT            objuid;
+                DynamicPointer<frame::aio::Actor> actptr(new Listener(svc, sch, std::move(sd)));
+                solid::ErrorConditionT            err;
+                solid::frame::ActorIdT            objuid;
 
-                objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
+                objuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
                 solid_log(generic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
@@ -255,11 +255,11 @@ int main(int argc, char* argv[])
             {
                 rd = synchronous_resolve("127.0.0.1", params.connect_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 
-                DynamicPointer<frame::aio::Object> objptr(new ClientConnection(rd));
-                solid::ErrorConditionT             err;
-                solid::frame::ObjectIdT            objuid;
+                DynamicPointer<frame::aio::Actor> actptr(new ClientConnection(rd));
+                solid::ErrorConditionT            err;
+                solid::frame::ActorIdT            objuid;
 
-                objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
+                objuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
 
                 solid_log(generic_logger, Info, "Started Client Connection object: " << objuid.index << ',' << objuid.unique);
             }
@@ -271,12 +271,12 @@ int main(int argc, char* argv[])
             sd.bind(rd.begin());
 
             if (sd) {
-                DynamicPointer<frame::aio::Object> objptr(new Talker(std::move(sd)));
+                DynamicPointer<frame::aio::Actor> actptr(new Talker(std::move(sd)));
 
-                solid::ErrorConditionT  err;
-                solid::frame::ObjectIdT objuid;
+                solid::ErrorConditionT err;
+                solid::frame::ActorIdT objuid;
 
-                objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
+                objuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
 
                 solid_log(generic_logger, Info, "Started Talker object: " << objuid.index << ',' << objuid.unique);
             } else {
@@ -368,10 +368,10 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
         if (!_rctx.error()) {
 #ifdef USE_CONNECTION
             _rsd.enableNoDelay();
-            DynamicPointer<frame::aio::Object> objptr(new Connection(std::move(_rsd)));
-            solid::ErrorConditionT             err;
+            DynamicPointer<frame::aio::Actor> actptr(new Connection(std::move(_rsd)));
+            solid::ErrorConditionT            err;
 
-            rsch.startObject(objptr, rsvc, make_event(GenericEvents::Start), err);
+            rsch.startActor(actptr, rsvc, make_event(GenericEvents::Start), err);
 #else
             cout << "Accepted connection: " << _rsd.descriptor() << endl;
 #endif
@@ -409,7 +409,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
     unsigned    repeatcnt = 2;
-    Connection& rthis     = static_cast<Connection&>(_rctx.object());
+    Connection& rthis     = static_cast<Connection&>(_rctx.actor());
     solid_log(generic_logger, Info, &rthis << " " << _sz);
     do {
         if (!_rctx.error()) {
@@ -445,7 +445,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
 /*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, &rthis << " postRecvSome");
         rthis.sendcnt += rthis.sendcrt;

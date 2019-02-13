@@ -2,8 +2,8 @@
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
 
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiolistener.hpp"
-#include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aioresolver.hpp"
 #include "solid/frame/aio/aiosocket.hpp"
@@ -63,7 +63,7 @@ frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr)
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-class Listener final : public Dynamic<Listener, frame::aio::Object> {
+class Listener final : public Dynamic<Listener, frame::aio::Actor> {
 public:
     Listener(
         frame::Service& _rsvc,
@@ -172,17 +172,17 @@ struct EventData;
 using EventDataPtrT = std::unique_ptr<EventData>;
 
 struct EventData {
-    EventDataPtrT    nextptr_;
-    frame::ObjectIdT senderid_;
-    BufferPtrT       bufptr_;
-    size_t           bufsz_;
+    EventDataPtrT   nextptr_;
+    frame::ActorIdT senderid_;
+    BufferPtrT      bufptr_;
+    size_t          bufsz_;
 
     EventData()
         : bufsz_(-1)
     {
     }
 
-    EventData(const frame::ObjectIdT& _objid, BufferPtrT&& _ubufptr, const size_t _bufsz)
+    EventData(const frame::ActorIdT& _objid, BufferPtrT&& _ubufptr, const size_t _bufsz)
         : senderid_(_objid)
         , bufptr_(std::move(_ubufptr))
         , bufsz_(_bufsz)
@@ -190,7 +190,7 @@ struct EventData {
     }
 };
 
-class Connection final : public Dynamic<Connection, frame::aio::Object> {
+class Connection final : public Dynamic<Connection, frame::aio::Actor> {
 public:
     Connection(SocketDevice&& _rsd)
         : sock_(this->proxy(), std::move(_rsd))
@@ -199,7 +199,7 @@ public:
         init();
     }
 
-    Connection(const frame::ObjectIdT& _peer_obduid)
+    Connection(const frame::ActorIdT& _peer_obduid)
         : sock_(this->proxy())
         , peer_objuid_(_peer_obduid)
         , wcan_swap(false)
@@ -325,7 +325,7 @@ protected:
     EventDataVectorT wpop_ed_vec;
     size_t           wpop_ed_vec_off;
     StreamSocketT    sock_;
-    frame::ObjectIdT peer_objuid_;
+    frame::ActorIdT  peer_objuid_;
     atomic<bool>     wcan_swap;
 };
 
@@ -400,11 +400,11 @@ int main(int argc, char* argv[])
             sd.prepareAccept(rd.begin(), 2000);
 
             if (sd) {
-                DynamicPointer<frame::aio::Object> objptr(new Listener(svc, sch, std::move(sd)));
-                solid::ErrorConditionT             err;
-                solid::frame::ObjectIdT            objuid;
+                DynamicPointer<frame::aio::Actor> actptr(new Listener(svc, sch, std::move(sd)));
+                solid::ErrorConditionT            err;
+                solid::frame::ActorIdT            objuid;
 
-                objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
+                objuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
                 solid_log(generic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
@@ -491,19 +491,19 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 #endif
             _rsd.enableNoDelay();
 
-            frame::ObjectIdT objuid;
+            frame::ActorIdT objuid;
             {
-                DynamicPointer<frame::aio::Object> objptr(new Connection(std::move(_rsd)));
-                solid::ErrorConditionT             err;
+                DynamicPointer<frame::aio::Actor> actptr(new Connection(std::move(_rsd)));
+                solid::ErrorConditionT            err;
 
-                objuid = rsch_.startObject(objptr, rsvc_, make_event(GenericEvents::Start), err);
+                objuid = rsch_.startActor(actptr, rsvc_, make_event(GenericEvents::Start), err);
             }
 
             {
-                DynamicPointer<frame::aio::Object> objptr(new Connection(objuid));
-                solid::ErrorConditionT             err;
+                DynamicPointer<frame::aio::Actor> actptr(new Connection(objuid));
+                solid::ErrorConditionT            err;
 
-                rsch_.startObject(objptr, rsvc_, make_event(GenericEvents::Start), err);
+                rsch_.startActor(actptr, rsvc_, make_event(GenericEvents::Start), err);
             }
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
@@ -525,10 +525,10 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 //-----------------------------------------------------------------------------
 
 struct ResolvFunc {
-    frame::Manager&  rm;
-    frame::ObjectIdT objuid;
+    frame::Manager& rm;
+    frame::ActorIdT objuid;
 
-    ResolvFunc(frame::Manager& _rm, frame::ObjectIdT const& _robjuid)
+    ResolvFunc(frame::Manager& _rm, frame::ActorIdT const& _robjuid)
         : rm(_rm)
         , objuid(_robjuid)
     {
@@ -603,7 +603,7 @@ struct ResolvFunc {
             }
         }
 
-        frame::ObjectIdT* ppeer_objuid = _revent.any().cast<frame::ObjectIdT>();
+        frame::ActorIdT* ppeer_objuid = _revent.any().cast<frame::ActorIdT>();
         if (ppeer_objuid) {
             //peer connection established
             peer_objuid_ = *ppeer_objuid;
@@ -615,7 +615,7 @@ struct ResolvFunc {
 
 /*static*/ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
 
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, &rthis << " SUCCESS");
@@ -641,7 +641,7 @@ struct ResolvFunc {
 
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
 
     solid_log(generic_logger, Info, &rthis << " " << _sz);
 
@@ -663,7 +663,7 @@ struct ResolvFunc {
 
 /*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
 
     if (!_rctx.error()) {
         rthis.notifyPeerOnSend(_rctx);
