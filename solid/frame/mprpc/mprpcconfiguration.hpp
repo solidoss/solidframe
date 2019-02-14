@@ -577,7 +577,7 @@ public:
 private:
     void init();
     void prepare();
-
+    ErrorConditionT prepare(SocketDevice &_rsd);
 private:
     AioSchedulerT* pscheduler;
     RelayEngine*   prelayengine;

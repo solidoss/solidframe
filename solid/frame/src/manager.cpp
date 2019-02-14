@@ -738,8 +738,7 @@ bool Manager::notify(ActorIdT const& _ruid, Event&& _uevt)
     const auto do_notify_fnc = [&_uevt](VisitContext& _rctx) {
         return _rctx.raiseActor(std::move(_uevt));
     };
-    //ActorVisitFunctionT f(std::cref(do_notify_fnc));
-
+    
     return doVisit(_ruid, ActorVisitFunctionT{do_notify_fnc});
 }
 #else
@@ -928,9 +927,8 @@ Service& Manager::service(const ActorBase& _ract) const
 
 bool Manager::startService(Service& _rsvc)
 {
-    if (!_rsvc.isRegistered()) {
-        return false;
-    }
+    solid_check(_rsvc.isRegistered(), "Service not registered");
+    
     const size_t                svcidx      = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
     const size_t                svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
     ServiceStub&                rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
@@ -946,11 +944,9 @@ bool Manager::startService(Service& _rsvc)
     return false;
 }
 
-void Manager::stopService(Service& _rsvc, const bool _wait)
+bool Manager::stopService(Service& _rsvc, const bool _wait)
 {
-    if (!_rsvc.isRegistered()) {
-        return;
-    }
+    solid_check(_rsvc.isRegistered(), "Service not registered");
 
     const size_t svcidx      = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
     const size_t svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
@@ -964,14 +960,13 @@ void Manager::stopService(Service& _rsvc, const bool _wait)
 
     if (rss.state == StateStoppedE) {
         solid_dbg(logger, Verbose, "" << svcidx);
-        return;
+        return false;
     }
     if (rss.state == StateRunningE) {
         const auto raise_lambda = [](VisitContext& _rctx) {
             return _rctx.raiseActor(make_event(GenericEvents::Kill));
         };
-        //ActorVisitFunctionT fctor(std::cref(l));
-
+        
         rss.psvc->resetRunning();
 
         const size_t cnt = doForEachServiceActor(rss.firstchk, ActorVisitFunctionT{raise_lambda});
@@ -979,7 +974,7 @@ void Manager::stopService(Service& _rsvc, const bool _wait)
         if (cnt == 0 && rss.actcnt == 0) {
             rss.state = StateStoppedE;
             solid_dbg(logger, Verbose, "StateStoppedE on " << svcidx);
-            return;
+            return false;
         }
         rss.state = StateStoppingE;
     }
@@ -992,6 +987,7 @@ void Manager::stopService(Service& _rsvc, const bool _wait)
         solid_dbg(logger, Verbose, "StateStoppedE on " << svcidx);
         rss.state = StateStoppedE;
     }
+    return false;
 }
 
 void Manager::start()

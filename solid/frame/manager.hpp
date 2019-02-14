@@ -182,7 +182,7 @@ private:
 
     bool raise(const ActorBase& _ract, Event const& _re);
 
-    void stopService(Service& _rsvc, bool _wait);
+    bool stopService(Service& _rsvc, bool _wait);
     bool startService(Service& _rsvc);
 
     size_t doForEachServiceActor(const Service& _rsvc, const ActorVisitFunctionT _rfct);

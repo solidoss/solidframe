@@ -14,6 +14,7 @@
 #include "solid/frame/manager.hpp"
 #include "solid/frame/schedulerbase.hpp"
 #include "solid/utility/dynamictype.hpp"
+#include "solid/utility/any.hpp"
 #include <atomic>
 #include <mutex>
 #include <vector>
@@ -59,6 +60,10 @@ class Service {
 protected:
     explicit Service(
         UseServiceShell _force_shell);
+    
+    template <typename A>
+    Service(
+        UseServiceShell _force_shell, A _a);
 
 public:
     Service(const Service&) = delete;
@@ -75,9 +80,7 @@ public:
     template <class F>
     bool forEach(F& _rf);
 
-    void stop(const bool _wait = true);
-
-    bool start();
+    bool stop(const bool _wait = true);
 
     Manager& manager();
 
@@ -89,38 +92,74 @@ public:
 
 protected:
     std::mutex& mutex() const;
-
+    
+    bool doStart(){
+        return rm_.startService(*this);
+    }
+    
+    template <typename A>
+    bool doStart(A _a){
+        
+    }
 private:
     friend class Manager;
     friend class SchedulerBase;
 
     void setRunning()
     {
-        running = true;
+        running_ = true;
     }
 
     void resetRunning()
     {
-        running = false;
+        running_ = false;
     }
 
     ActorIdT registerActor(ActorBase& _ract, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
 
 private:
-    Manager&            rm;
-    std::atomic<size_t> idx;
-    std::atomic<bool>   running;
+    Manager&            rm_;
+    std::atomic<size_t> idx_;
+    std::atomic<bool>   running_;
+    Any<>               any_;
 };
+
+
+inline Service::Service(
+    UseServiceShell _force_shell)
+    : rm_(_force_shell.rmanager)
+    , idx_(static_cast<size_t>(InvalidIndex()))
+    , running_(false)
+{
+    rm_.registerService(*this);
+}
+
+template <typename A>
+inline Service::Service(
+        UseServiceShell _force_shell, A _a)
+    : rm_(_force_shell.rmanager)
+    , idx_(static_cast<size_t>(InvalidIndex()))
+    , running_(false)
+    , any_(std::forward<A>(_a))
+{
+    rm_.registerService(*this);
+}
+
+inline Service::~Service()
+{
+    stop(true);
+    rm_.unregisterService(*this);
+}
 
 template <class F>
 inline bool Service::forEach(F& _rf)
 {
-    return rm.forEachServiceActor(*this, _rf);
+    return rm_.forEachServiceActor(*this, _rf);
 }
 
 inline Manager& Service::manager()
 {
-    return rm;
+    return rm_;
 }
 
 inline bool Service::isRegistered() const
@@ -130,42 +169,42 @@ inline bool Service::isRegistered() const
 
 inline bool Service::isRunning() const
 {
-    return running;
+    return running_;
 }
 
 inline void Service::notifyAll(Event const& _revt)
 {
-    rm.notifyAll(*this, _revt);
+    rm_.notifyAll(*this, _revt);
 }
 
 inline bool Service::start()
 {
-    return rm.startService(*this);
+    return rm_.startService(*this);
 }
 
-inline void Service::stop(const bool _wait)
+inline bool Service::stop(const bool _wait)
 {
-    rm.stopService(*this, _wait);
+    return rm_.stopService(*this, _wait);
 }
 
 inline std::mutex& Service::mutex(const ActorBase& _ract) const
 {
-    return rm.mutex(_ract);
+    return rm_.mutex(_ract);
 }
 
 inline ActorIdT Service::id(const ActorBase& _ract) const
 {
-    return rm.id(_ract);
+    return rm_.id(_ract);
 }
 
 inline std::mutex& Service::mutex() const
 {
-    return rm.mutex(*this);
+    return rm_.mutex(*this);
 }
 
 inline ActorIdT Service::registerActor(ActorBase& _ract, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr)
 {
-    return rm.registerActor(*this, _ract, _rr, _rfct, _rerr);
+    return rm_.registerActor(*this, _ract, _rr, _rfct, _rerr);
 }
 
 //! A Shell class for every Service
@@ -195,6 +234,11 @@ public:
     ~ServiceShell()
     {
         Service::stop(true);
+    }
+    
+    template <typename... Args>
+    ErrorConditionT start(Args&&... _args){
+        return typename S::doStart(std::forward<Args>(_args)...);
     }
 };
 

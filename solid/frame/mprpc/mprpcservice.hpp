@@ -73,8 +73,8 @@ struct MessageBundle;
         m3_10MB, m4_1MB, m1_500MB, m2_100MB
 
 */
-class Service : public frame::Service {
 
+class Service : public frame::Service {
 public:
     typedef frame::Service BaseT;
 
@@ -88,10 +88,6 @@ public:
 
     //! Destructor
     ~Service();
-
-    ErrorConditionT start();
-
-    ErrorConditionT reconfigure(Configuration&& _ucfg);
 
     Configuration const& configuration() const;
 
@@ -292,7 +288,27 @@ public:
     ErrorConditionT cancelMessage(RecipientId const& _rrecipient_id, MessageId const& _rmsg_id);
 
     bool closeConnection(RecipientId const& _rrecipient_id);
-
+protected:
+    ErrorConditionT doStart(Configuration &&_ucfg){
+        
+        
+    }
+    
+    template <typename A>
+    ErrorConditionT doStart(Configuration &&_ucfg, A _a){
+        auto err = _ucfg.check();
+        if(err) return err;
+        SocketDevice sd;
+        err = _ucfg.prepare(sd);
+        if(err) return err;
+        
+        if(frame::Service::stop(false)){
+            
+        }else{
+            
+        }
+    }
+    
 private:
     ErrorConditionT doConnectionNotifyEnterActiveState(
         RecipientId const&                       _rrecipient_id,

@@ -27,22 +27,7 @@
 namespace solid {
 namespace frame {
 
-Service::Service(
-    UseServiceShell _force_shell)
-    : rm(_force_shell.rmanager)
-    , idx(static_cast<size_t>(InvalidIndex()))
-    , running(false)
-{
-    rm.registerService(*this);
-    solid_dbg(logger, Verbose, "" << this);
-}
 
-Service::~Service()
-{
-    stop(true);
-    rm.unregisterService(*this);
-    solid_dbg(logger, Verbose, "" << this);
-}
 
 } //namespace frame
 } //namespace solid
