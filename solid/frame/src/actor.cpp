@@ -90,14 +90,14 @@ void ActorBase::unregister(Manager& _rm)
 
 /*NOTE:
     Disable visit i.e. ensures that after this call, the manager will
-    not permit any visits (and  implicitly no event notification) on the object.
-    If the manager’s visit method manages to acquire object’s lock after
+    not permit any visits (and  implicitly no event notification) on the actor.
+    If the manager’s visit method manages to acquire actor’s lock after
     disableVisit terminates, the visit will not take place.
-    If the visit happens before disableVisit acquires Lock on the object,
-    and an event is delivered to object, the reactor handling the object,
-    must ensure that the object receives the event before stopping
-    the object:
-        it does that by not stopping the object right away,
+    If the visit happens before disableVisit acquires Lock on the actor,
+    and an event is delivered to actor, the reactor handling the actor,
+    must ensure that the actor receives the event before stopping
+    the actor:
+        it does that by not stopping the actor right away,
         and instead reposting the stop to ensure that all incoming events
         are fetched and delivered.
         This works because disableVisits is only called on the Reactor thread.

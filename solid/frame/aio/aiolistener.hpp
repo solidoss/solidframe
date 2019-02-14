@@ -33,9 +33,9 @@ class Listener : public CompletionHandler {
 
 public:
     Listener(
-        ActorProxy const& _robj,
+        ActorProxy const& _ract,
         SocketDevice&&    _rsd)
-        : CompletionHandler(_robj, Listener::on_init_completion)
+        : CompletionHandler(_ract, Listener::on_init_completion)
         , s(std::move(_rsd))
     {
     }

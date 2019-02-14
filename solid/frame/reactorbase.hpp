@@ -22,7 +22,7 @@ class SchedulerBase;
 
 //! The base for every selector
 /*!
- * The manager will call raise when an object needs processor
+ * The manager will call raise when an actor needs processor
  * time, e.g. because of an event.
  */
 class ReactorBase {
@@ -55,7 +55,7 @@ protected:
 
     AtomicSizeT crtload;
 
-    size_t runIndex(ActorBase& _robj) const;
+    size_t runIndex(ActorBase& _ract) const;
 
 private:
     friend class SchedulerBase;

@@ -100,7 +100,7 @@ public:
         ScheduleCommand   cmd(_ractptr, _rsvc, std::move(_revt));
         ScheduleFunctionT fct([&cmd](ReactorBase& _rreactor) { return cmd(_rreactor); });
 
-        return doStartObject(*_ractptr, _rsvc, fct, _rerr);
+        return doStartActor(*_ractptr, _rsvc, fct, _rerr);
     }
 };
 

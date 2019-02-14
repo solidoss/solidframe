@@ -53,8 +53,8 @@ class SteadyTimer : public CompletionHandler {
 
 public:
     SteadyTimer(
-        ActorProxy const& _robj)
-        : CompletionHandler(_robj, SteadyTimer::on_init_completion)
+        ActorProxy const& _ract)
+        : CompletionHandler(_ract, SteadyTimer::on_init_completion)
         , storeidx(InvalidIndex())
     {
     }

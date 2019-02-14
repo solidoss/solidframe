@@ -105,7 +105,7 @@ protected:
     void*  doTryAllocateWait();
     void   pointerId(PointerBase& _rpb, UniqueId const& _ruid);
     void   doExecuteCache();
-    void   doCacheObjectIndex(const size_t _idx);
+    void   doCacheActorIndex(const size_t _idx);
     size_t atomicMaxCount() const;
 
     UidVectorT& consumeEraseVector() const;
@@ -114,16 +114,16 @@ protected:
     SizeVectorT&     indexVector() const;
     ExecWaitVectorT& executeWaitVector() const;
     Accessor         accessor();
-    void             notifyObject(UniqueId const& _ruid);
+    void             notifyActor(UniqueId const& _ruid);
     void             raise();
 
 private:
     friend struct PointerBase;
     void         erasePointer(UniqueId const& _ruid, const bool _isalive);
-    virtual bool doDecrementObjectUseCount(UniqueId const& _uid, const bool _isalive) = 0;
-    virtual bool doExecute()                                                          = 0;
-    virtual void doResizeObjectVector(const size_t _newsz)                            = 0;
-    virtual void doExecuteOnSignal(ulong _sm)                                         = 0;
+    virtual bool doDecrementActorUseCount(UniqueId const& _uid, const bool _isalive) = 0;
+    virtual bool doExecute()                                                         = 0;
+    virtual void doResizeActorVector(const size_t _newsz)                            = 0;
+    virtual void doExecuteOnSignal(ulong _sm)                                        = 0;
 
     /*virtual*/ void onEvent(frame::ReactorContext& _rctx, Event&& _revent) override;
 
@@ -280,7 +280,7 @@ public:
         {
             std::lock_guard<std::mutex> lock2(this->mutex(idx));
             Stub&                       rs = stubvec[idx];
-            rs.obj                         = _rt;
+            rs.act                         = _rt;
             ptr                            = doTryGetAlive(idx);
         }
         return ptr;
@@ -294,7 +294,7 @@ public:
         {
             std::lock_guard<std::mutex> lock2(this->mutex(idx));
             Stub&                       rs = stubvec[idx];
-            rs.obj                         = _rt;
+            rs.act                         = _rt;
             ptr                            = doTryGetShared(idx);
         }
         return ptr;
@@ -308,7 +308,7 @@ public:
         {
             std::lock_guard<std::mutex> lock2(this->mutex(idx));
             Stub&                       rs = stubvec[idx];
-            rs.obj                         = _rt;
+            rs.act                         = _rt;
             ptr                            = doTryGetUnique(idx);
         }
         return ptr;
@@ -415,7 +415,7 @@ public:
             }
         }
         if (do_notify) {
-            StoreBase::notifyObject(_rptr.id());
+            StoreBase::notifyActor(_rptr.id());
         }
         return rv;
     }
@@ -508,7 +508,7 @@ public:
         return false;
     }
     //! Return true if the _f was called within the current thread
-    //_f will be called uniquely when object's alive count is zero
+    //_f will be called uniquely when actor's alive count is zero
     template <typename F>
     bool requestReinit(F _f, UniqueId const& _ruid, const size_t _flags = 0)
     {
@@ -575,7 +575,7 @@ private:
             return usecnt == 0 && alivecnt == 0 && pwaitfirst == nullptr;
         }
 
-        T         obj;
+        T         act;
         uint32_t  uid;
         size_t    alivecnt;
         size_t    usecnt;
@@ -587,7 +587,7 @@ private:
     typedef std::deque<Stub>     StubVectorT;
     typedef std::deque<WaitStub> WaitDequeT;
 
-    /*virtual*/ void doResizeObjectVector(const size_t _newsz)
+    /*virtual*/ void doResizeActorVector(const size_t _newsz)
     {
         stubvec.resize(_newsz);
     }
@@ -605,7 +605,7 @@ private:
         Stub& rs = stubvec[_idx];
         if (rs.state == StoreBase::SharedLockStateE && rs.pwaitfirst == nullptr) {
             ++rs.usecnt;
-            return PointerT(&rs.obj, this, UniqueId(_idx, rs.uid));
+            return PointerT(&rs.act, this, UniqueId(_idx, rs.uid));
         }
         return PointerT();
     }
@@ -617,7 +617,7 @@ private:
             solid_assert(rs.pwaitfirst == nullptr);
             ++rs.usecnt;
             rs.state = StoreBase::UniqueLockStateE;
-            return PointerT(&rs.obj, this, UniqueId(_idx, rs.uid));
+            return PointerT(&rs.act, this, UniqueId(_idx, rs.uid));
         }
         return PointerT();
     }
@@ -627,7 +627,7 @@ private:
         if (rs.usecnt == 0 && rs.alivecnt == 0 && rs.pwaitfirst == nullptr) {
             ++rs.usecnt;
             rs.state = StoreBase::UniqueLockStateE;
-            return PointerT(&rs.obj, this, UniqueId(_idx, rs.uid));
+            return PointerT(&rs.act, this, UniqueId(_idx, rs.uid));
         }
         return PointerT();
     }
@@ -663,7 +663,7 @@ private:
         }
     }
 
-    /*virtual*/ bool doDecrementObjectUseCount(UniqueId const& _uid, const bool _isalive)
+    /*virtual*/ bool doDecrementActorUseCount(UniqueId const& _uid, const bool _isalive)
     {
         //the coresponding mutex is already locked
         Stub& rs = stubvec[_uid.index];
@@ -743,8 +743,8 @@ private:
                     Stub& rs = stubvec[*it];
                     if (rs.canClear()) {
                         rs.clear();
-                        must_reschedule = controller().clear(acc, rs.obj, *it) || must_reschedule;
-                        StoreBase::doCacheObjectIndex(*it);
+                        must_reschedule = controller().clear(acc, rs.act, *it) || must_reschedule;
+                        StoreBase::doCacheActorIndex(*it);
                     }
                 }
                 pmtx->unlock();
@@ -791,7 +791,7 @@ private:
                 return;
             }
             ++rs.usecnt;
-            rexewaitvec.push_back(StoreBase::ExecWaitStub(UniqueId(_idx, rs.uid), &rs.obj, pwait));
+            rexewaitvec.push_back(StoreBase::ExecWaitStub(UniqueId(_idx, rs.uid), &rs.act, pwait));
             if (pwait != rs.pwaitlast) {
                 rs.pwaitfirst = pwait->pnext;
             } else {

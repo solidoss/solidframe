@@ -517,7 +517,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
                 solid::frame::ActorIdT            actuid;
 
                 actuid = srv_sch.startActor(actptr, srv_svc, make_event(GenericEvents::Start), err);
-                solid_dbg(generic_logger, Info, "Started Listener object: " << actuid.index << ',' << actuid.unique);
+                solid_dbg(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
                 running = false;
@@ -556,7 +556,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
                     solid::frame::ActorIdT            actuid;
 
                     actuid = rly_sch.startActor(actptr, rly_svc, make_event(GenericEvents::Start), err);
-                    solid_dbg(generic_logger, Info, "Started Listener object: " << actuid.index << ',' << actuid.unique);
+                    solid_dbg(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
                 } else {
                     cout << "Error creating listener socket" << endl;
                     running = false;
@@ -599,7 +599,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
                 if (actuid.isInvalid()) {
                     --concnt;
                 }
-                solid_dbg(generic_logger, Info, "Started Connection Object: " << actuid.index << ',' << actuid.unique);
+                solid_dbg(generic_logger, Info, "Started Connection Actor: " << actuid.index << ',' << actuid.unique);
             }
         }
         {

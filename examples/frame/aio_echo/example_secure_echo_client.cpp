@@ -169,7 +169,7 @@ int main(int argc, char* argv[])
 
         frame::Manager  manager;
         frame::ServiceT service(manager);
-        frame::ActorIdT objuid;
+        frame::ActorIdT actuid;
 
         FunctionWorkPool     fwp{WorkPoolConfiguration()};
         frame::aio::Resolver resolver(fwp);
@@ -187,9 +187,9 @@ int main(int argc, char* argv[])
             DynamicPointer<frame::aio::Actor> actptr(new Connection(secure_ctx));
             solid::ErrorConditionT            err;
 
-            objuid = scheduler.startActor(actptr, service, make_event(GenericEvents::Start, ConnectStub(resolver, params.connect_addr, params.connect_port)), err);
+            actuid = scheduler.startActor(actptr, service, make_event(GenericEvents::Start, ConnectStub(resolver, params.connect_addr, params.connect_port)), err);
 
-            solid_log(generic_logger, Info, "Started Client Connection object: " << objuid.index << ',' << objuid.unique);
+            solid_log(generic_logger, Info, "Started Client Connection actor: " << actuid.index << ',' << actuid.unique);
         }
 
         while (true) {
@@ -201,7 +201,7 @@ int main(int argc, char* argv[])
                 break;
             }
             line += "\r\n";
-            if (manager.notify(objuid, make_event(GenericEvents::Message, std::move(line)))) {
+            if (manager.notify(actuid, make_event(GenericEvents::Message, std::move(line)))) {
             } else
                 break;
         }
@@ -292,12 +292,12 @@ struct ConnectFunction {
         solid_log(generic_logger, Info, "Resolving: " << pconnect_stub->connect_addr << ':' << pconnect_stub->connect_port);
 
         frame::Manager& manager = _rctx.service().manager();
-        frame::ActorIdT objuid  = _rctx.service().manager().id(*this);
+        frame::ActorIdT actuid  = _rctx.service().manager().id(*this);
 
         pconnect_stub->resolver.requestResolve(
-            [&manager, objuid](ResolveData& _rrd, ErrorCodeT const& /*_rerr*/) {
+            [&manager, actuid](ResolveData& _rrd, ErrorCodeT const& /*_rerr*/) {
                 solid_log(generic_logger, Info, "send resolv_message");
-                manager.notify(objuid, make_event(GenericEvents::Raise, std::move(_rrd)));
+                manager.notify(actuid, make_event(GenericEvents::Raise, std::move(_rrd)));
             },
             pconnect_stub->connect_addr.c_str(),
             pconnect_stub->connect_port.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);

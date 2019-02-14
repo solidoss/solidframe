@@ -323,7 +323,7 @@ private:
 
     void acceptIncomingConnection(SocketDevice& _rsd);
 
-    ErrorConditionT activateConnection(ConnectionContext& _rconctx, ActorIdT const& _robjui);
+    ErrorConditionT activateConnection(ConnectionContext& _rconctx, ActorIdT const& _ractui);
 
     void connectionStop(ConnectionContext& _rconctx);
 

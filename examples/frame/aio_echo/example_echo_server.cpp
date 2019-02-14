@@ -243,10 +243,10 @@ int main(int argc, char* argv[])
             if (sd) {
                 DynamicPointer<frame::aio::Actor> actptr(new Listener(svc, sch, std::move(sd)));
                 solid::ErrorConditionT            err;
-                solid::frame::ActorIdT            objuid;
+                solid::frame::ActorIdT            actuid;
 
-                objuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
-                solid_log(generic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
+                actuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
                 running = false;
@@ -257,11 +257,11 @@ int main(int argc, char* argv[])
 
                 DynamicPointer<frame::aio::Actor> actptr(new ClientConnection(rd));
                 solid::ErrorConditionT            err;
-                solid::frame::ActorIdT            objuid;
+                solid::frame::ActorIdT            actuid;
 
-                objuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                actuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
 
-                solid_log(generic_logger, Info, "Started Client Connection object: " << objuid.index << ',' << objuid.unique);
+                solid_log(generic_logger, Info, "Started Client Connection actor: " << actuid.index << ',' << actuid.unique);
             }
 #endif
 #ifdef USE_TALKER
@@ -274,11 +274,11 @@ int main(int argc, char* argv[])
                 DynamicPointer<frame::aio::Actor> actptr(new Talker(std::move(sd)));
 
                 solid::ErrorConditionT err;
-                solid::frame::ActorIdT objuid;
+                solid::frame::ActorIdT actuid;
 
-                objuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                actuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
 
-                solid_log(generic_logger, Info, "Started Talker object: " << objuid.index << ',' << objuid.unique);
+                solid_log(generic_logger, Info, "Started Talker actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating talker socket" << endl;
                 running = false;

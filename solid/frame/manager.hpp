@@ -64,14 +64,14 @@ public:
             return ra_;
         }
 
-        bool raiseObject(Event const& _revt) const;
-        bool raiseObject(Event&& _uevt) const;
+        bool raiseActor(Event const& _revt) const;
+        bool raiseActor(Event&& _uevt) const;
     };
 
     Manager(
         const size_t _svcmtxcnt     = 0,
-        const size_t _objmtxcnt     = 0,
-        const size_t _objbucketsize = 0);
+        const size_t _actmtxcnt     = 0,
+        const size_t _actbucketsize = 0);
 
     Manager(const Manager&) = delete;
     Manager(Manager&&)      = delete;
@@ -149,7 +149,7 @@ private:
         ActorBase& _ract, ReactorBase& _rreact,
         Event const& _revt, const size_t _sigmsk);
 
-    static bool notify_object(
+    static bool notify_actor(
         ActorBase& _ract, ReactorBase& _rreact,
         Event&& _uevt, const size_t _sigmsk);
 
@@ -164,7 +164,7 @@ private:
     std::mutex& mutex(const Service& _rsvc) const;
     std::mutex& mutex(const ActorBase& _ract) const;
 
-    ActorIdT registerObject(
+    ActorIdT registerActor(
         const Service&     _rsvc,
         ActorBase&         _ract,
         ReactorBase&       _rr,

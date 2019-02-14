@@ -1,4 +1,4 @@
-// solid/frame/aio/src/aioobject.cpp
+// solid/frame/aio/src/aioactor.cpp
 //
 // Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //

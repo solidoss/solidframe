@@ -210,10 +210,10 @@ int main(int argc, char* argv[])
             if (sd) {
                 DynamicPointer<frame::aio::Actor> actptr(new Listener(svc, sch, std::move(sd)));
                 solid::ErrorConditionT            err;
-                solid::frame::ActorIdT            objuid;
+                solid::frame::ActorIdT            actuid;
 
-                objuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
-                solid_log(generic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
+                actuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
                 running = false;

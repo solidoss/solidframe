@@ -103,7 +103,7 @@ public:
 
     Connection(const frame::ActorIdT& _peer_obduid)
         : sock(this->proxy())
-        , peer_objuid(_peer_obduid)
+        , peer_actuid(_peer_obduid)
     {
         init();
     }
@@ -123,7 +123,7 @@ protected:
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
     void onStop(frame::Manager& _rm) override
     {
-        _rm.notify(peer_objuid, Event(generic_event_kill));
+        _rm.notify(peer_actuid, Event(generic_event_kill));
     }
 
     static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
@@ -144,7 +144,7 @@ protected:
     uint8_t         buf_push_sending;
     BufferPairT     buf_sending[BufferCount];
     StreamSocketT   sock;
-    frame::ActorIdT peer_objuid;
+    frame::ActorIdT peer_actuid;
 };
 
 bool parseArguments(Params& _par, int argc, char* argv[]);
@@ -201,10 +201,10 @@ int main(int argc, char* argv[])
             if (sd) {
                 DynamicPointer<frame::aio::Actor> actptr(new Listener(svc, sch, std::move(sd)));
                 solid::ErrorConditionT            err;
-                solid::frame::ActorIdT            objuid;
+                solid::frame::ActorIdT            actuid;
 
-                objuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
-                solid_log(generic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
+                actuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
             }
@@ -290,16 +290,16 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 #endif
             _rsd.enableNoDelay();
 
-            frame::ActorIdT objuid;
+            frame::ActorIdT actuid;
             {
                 DynamicPointer<frame::aio::Actor> actptr(new Connection(std::move(_rsd)));
                 solid::ErrorConditionT            err;
 
-                objuid = rsch.startActor(actptr, rsvc, make_event(GenericEvents::Start), err);
+                actuid = rsch.startActor(actptr, rsvc, make_event(GenericEvents::Start), err);
             }
 
             {
-                DynamicPointer<frame::aio::Actor> actptr(new Connection(objuid));
+                DynamicPointer<frame::aio::Actor> actptr(new Connection(actuid));
                 solid::ErrorConditionT            err;
 
                 rsch.startActor(actptr, rsvc, make_event(GenericEvents::Start), err);
@@ -325,11 +325,11 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
 struct ResolvFunc {
     frame::Manager& rm;
-    frame::ActorIdT objuid;
+    frame::ActorIdT actuid;
 
-    ResolvFunc(frame::Manager& _rm, frame::ActorIdT const& _robjuid)
+    ResolvFunc(frame::Manager& _rm, frame::ActorIdT const& _ractuid)
         : rm(_rm)
-        , objuid(_robjuid)
+        , actuid(_ractuid)
     {
     }
 
@@ -340,7 +340,7 @@ struct ResolvFunc {
         ev.any() = std::move(_rrd);
 
         solid_log(generic_logger, Info, this << " send resolv_message");
-        rm.notify(objuid, std::move(ev));
+        rm.notify(actuid, std::move(ev));
     }
 };
 
@@ -404,10 +404,10 @@ struct ResolvFunc {
             }
         }
 
-        frame::ActorIdT* ppeer_objuid = _revent.any().cast<frame::ActorIdT>();
-        if (ppeer_objuid) {
+        frame::ActorIdT* ppeer_actuid = _revent.any().cast<frame::ActorIdT>();
+        if (ppeer_actuid) {
             //peer connection established
-            peer_objuid = *ppeer_objuid;
+            peer_actuid = *ppeer_actuid;
             //do the first read
             sock.postRecvSome(_rctx, buf[buf_crt_recv], BufferCapacity, Connection::onRecv);
         }
@@ -424,7 +424,7 @@ struct ResolvFunc {
         Event ev(make_event(GenericEvents::Message, _rctx.manager().id(rthis)));
 
         solid_log(generic_logger, Info, &rthis << " send resolv_message");
-        if (_rctx.manager().notify(rthis.peer_objuid, std::move(ev))) {
+        if (_rctx.manager().notify(rthis.peer_actuid, std::move(ev))) {
 
             rthis.sock.device().enableNoDelay();
             //do the first read
@@ -450,7 +450,7 @@ struct ResolvFunc {
 
         Event ev(make_event(GenericEvents::Raise, BufferPairT(rthis.buf[rthis.buf_crt_recv], _sz)));
 
-        _rctx.manager().notify(rthis.peer_objuid, std::move(ev));
+        _rctx.manager().notify(rthis.peer_actuid, std::move(ev));
 
         rthis.buf_crt_recv = (rthis.buf_crt_recv + 1) % BufferCount;
 
@@ -471,7 +471,7 @@ struct ResolvFunc {
     Connection& rthis = static_cast<Connection&>(_rctx.actor());
 
     if (!_rctx.error()) {
-        _rctx.manager().notify(rthis.peer_objuid, make_event(GenericEvents::Raise));
+        _rctx.manager().notify(rthis.peer_actuid, make_event(GenericEvents::Raise));
 
         solid_log(generic_logger, Info, &rthis << " " << (int)rthis.buf_pop_sending << ' ' << (int)rthis.buf_push_sending);
 

@@ -47,11 +47,11 @@ class Reactor : public frame::ReactorBase {
     typedef solid_function_t(void(ReactorContext&, Event&&)) EventFunctionT;
 
     template <class Function>
-    struct StopObjectF {
+    struct StopActorF {
         Function function;
         bool     repost;
 
-        explicit StopObjectF(Function& _function)
+        explicit StopActorF(Function& _function)
             : function(std::move(_function))
             , repost(true)
         {
@@ -96,8 +96,8 @@ public:
     template <typename Function>
     void postActorStop(ReactorContext& _rctx, Function _f, Event&& _uev)
     {
-        StopObjectF<Function> stopfnc(_f);
-        EventFunctionT        eventfnc(std::move(stopfnc));
+        StopActorF<Function> stopfnc(_f);
+        EventFunctionT       eventfnc(std::move(stopfnc));
         doPost(_rctx, eventfnc, std::move(_uev));
     }
 
@@ -123,7 +123,7 @@ public:
     void unregisterCompletionHandler(CompletionHandler& _rch);
 
     void run();
-    bool push(TaskT& _robj, Service& _rsvc, Event&& _revt);
+    bool push(TaskT& _ract, Service& _rsvc, Event&& _revt);
 
     Service& service(ReactorContext const& _rctx) const;
 

@@ -473,7 +473,7 @@ public:
 
     size_t connectionReconnectTimeoutSeconds(
         const uint8_t _retry_count,
-        const bool    _failed_create_connection_object,
+        const bool    _failed_create_connection_actor,
         const bool    _last_connection_was_connected,
         const bool    _last_connection_was_active,
         const bool    _last_connection_was_secured) const;

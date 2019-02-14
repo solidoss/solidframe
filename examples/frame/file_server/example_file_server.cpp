@@ -235,11 +235,11 @@ int main(int argc, char* argv[])
             }
 
             solid::ErrorConditionT err;
-            solid::frame::ActorIdT objuid;
+            solid::frame::ActorIdT actuid;
 
             {
                 SchedulerT::ActorPointerT actptr(filestoreptr);
-                objuid = sched.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                actuid = sched.startActor(actptr, svc, make_event(GenericEvents::Start), err);
             }
 
             {
@@ -253,10 +253,10 @@ int main(int argc, char* argv[])
                 if (sd) {
                     DynamicPointer<frame::aio::Actor> actptr(new Listener(svc, aiosched, sd));
                     solid::ErrorConditionT            err;
-                    solid::frame::ActorIdT            objuid;
+                    solid::frame::ActorIdT            actuid;
 
-                    objuid = aiosched.startActor(actptr, svc, make_event(GenericEvents::Start), err);
-                    solid_log(generic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
+                    actuid = aiosched.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                    solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
                 } else {
                     cout << "Error creating listener socket" << endl;
                     run = false;
@@ -506,9 +506,9 @@ struct OpenCbk {
 
     OpenCbk(
         frame::Manager&        _rm,
-        const frame::ActorIdT& _robjuid)
+        const frame::ActorIdT& _ractuid)
         : rm(_rm)
-        , uid(_robjuid)
+        , uid(_ractuid)
     {
     }
 

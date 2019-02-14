@@ -61,7 +61,7 @@ struct ReactorContext {
 
     UniqueId actorUid() const;
 
-    std::mutex& objectMutex() const;
+    std::mutex& actorMutex() const;
 
     void clearError()
     {

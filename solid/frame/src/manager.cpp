@@ -74,7 +74,7 @@ std::string ErrorCategory::message(int _ev) const
         oss << "Service not running";
         break;
     case ErrorActorScheduleE:
-        oss << "Object scheduling";
+        oss << "Actor scheduling";
         break;
     default:
         oss << "Unknown";
@@ -172,8 +172,8 @@ struct ServiceStub {
         , firstchk(InvalidIndex())
         , lastchk(InvalidIndex())
         , state(StateStoppedE)
-        , crtobjidx(InvalidIndex())
-        , endobjidx(InvalidIndex())
+        , crtactidx(InvalidIndex())
+        , endactidx(InvalidIndex())
         , actcnt(0)
     {
     }
@@ -183,12 +183,12 @@ struct ServiceStub {
         psvc      = _psvc;
         firstchk  = InvalidIndex();
         lastchk   = InvalidIndex();
-        crtobjidx = InvalidIndex();
-        endobjidx = InvalidIndex();
+        crtactidx = InvalidIndex();
+        endactidx = InvalidIndex();
         actcnt    = 0;
         state     = StateRunningE;
-        while (!objcache.empty()) {
-            objcache.pop();
+        while (!actcache.empty()) {
+            actcache.pop();
         }
     }
 
@@ -198,12 +198,12 @@ struct ServiceStub {
         psvc      = nullptr;
         firstchk  = InvalidIndex();
         lastchk   = InvalidIndex();
-        crtobjidx = InvalidIndex();
-        endobjidx = InvalidIndex();
+        crtactidx = InvalidIndex();
+        endactidx = InvalidIndex();
         actcnt    = 0;
         state     = StateStoppedE;
-        while (!objcache.empty()) {
-            objcache.pop();
+        while (!actcache.empty()) {
+            actcache.pop();
         }
     }
 
@@ -212,10 +212,10 @@ struct ServiceStub {
     size_t      firstchk;
     size_t      lastchk;
     State       state;
-    size_t      crtobjidx;
-    size_t      endobjidx;
+    size_t      crtactidx;
+    size_t      endactidx;
     size_t      actcnt;
-    SizeStackT  objcache;
+    SizeStackT  actcache;
 };
 
 typedef std::deque<ActorChunk*>   ChunkDequeT;
@@ -255,8 +255,8 @@ struct Manager::Data {
     AtomicSizeT             crtsvcidx;
     size_t                  svccnt;
     SizeStackT              svccache;
-    std::mutex*             pobjmtxarr;
-    size_t                  objmtxcnt;
+    std::mutex*             pactmtxarr;
+    size_t                  actmtxcnt;
     std::mutex*             psvcmtxarr;
     size_t                  svcmtxcnt;
     AtomicSizeT             crtactstoreidx;
@@ -398,29 +398,29 @@ Manager::Data::~Data()
     }
 }
 
-bool Manager::VisitContext::raiseObject(Event const& _revt) const
+bool Manager::VisitContext::raiseActor(Event const& _revt) const
 {
     return rr_.raise(ra_.runId(), _revt);
 }
 
-bool Manager::VisitContext::raiseObject(Event&& _uevt) const
+bool Manager::VisitContext::raiseActor(Event&& _uevt) const
 {
     return rr_.raise(ra_.runId(), std::move(_uevt));
 }
 
 Manager::Manager(
     const size_t _svcmtxcnt /* = 0*/,
-    const size_t _objmtxcnt /* = 0*/,
-    const size_t _objbucketsize /* = 0*/
+    const size_t _actmtxcnt /* = 0*/,
+    const size_t _actbucketsize /* = 0*/
     )
     : impl_(make_pimpl<Data>(*this))
 {
     solid_dbg(logger, Verbose, "" << this);
 
-    if (_objmtxcnt == 0) {
-        impl_->objmtxcnt = memory_page_size() / sizeof(std::mutex);
+    if (_actmtxcnt == 0) {
+        impl_->actmtxcnt = memory_page_size() / sizeof(std::mutex);
     } else {
-        impl_->objmtxcnt = _objmtxcnt;
+        impl_->actmtxcnt = _actmtxcnt;
     }
 
     if (_svcmtxcnt == 0) {
@@ -429,14 +429,14 @@ Manager::Manager(
         impl_->svcmtxcnt = _svcmtxcnt;
     }
 
-    impl_->pobjmtxarr = new std::mutex[impl_->objmtxcnt];
+    impl_->pactmtxarr = new std::mutex[impl_->actmtxcnt];
 
     impl_->psvcmtxarr = new std::mutex[impl_->svcmtxcnt];
 
-    if (_objbucketsize == 0) {
+    if (_actbucketsize == 0) {
         impl_->actchkcnt = (memory_page_size() - sizeof(ActorChunk)) / sizeof(ActorStub);
     } else {
-        impl_->actchkcnt = _objbucketsize;
+        impl_->actchkcnt = _actbucketsize;
     }
 }
 
@@ -445,7 +445,7 @@ Manager::Manager(
     solid_dbg(logger, Verbose, "" << this);
     stop();
     solid_dbg(logger, Verbose, "" << this);
-    delete[] impl_->pobjmtxarr; //TODO: get rid of delete
+    delete[] impl_->pactmtxarr; //TODO: get rid of delete
     delete[] impl_->psvcmtxarr;
 }
 
@@ -526,7 +526,7 @@ void Manager::doUnregisterService(ServiceStub& _rss)
 {
     std::lock_guard<std::mutex> lock2(impl_->mtx);
 
-    const size_t objvecidx = impl_->crtactstoreidx; //inside lock, so crtactstoreidx will not change
+    const size_t actvecidx = impl_->crtactstoreidx; //inside lock, so crtactstoreidx will not change
 
     impl_->svccache.push(_rss.psvc->idx);
 
@@ -535,7 +535,7 @@ void Manager::doUnregisterService(ServiceStub& _rss)
     size_t chkidx = _rss.firstchk;
 
     while (chkidx != InvalidIndex()) {
-        ActorChunk* pchk = impl_->actstore[objvecidx].vec[chkidx];
+        ActorChunk* pchk = impl_->actstore[actvecidx].vec[chkidx];
         chkidx           = pchk->nextchk;
         pchk->clear();
         impl_->chkcache.push(chkidx);
@@ -549,7 +549,7 @@ void Manager::doUnregisterService(ServiceStub& _rss)
     }
 }
 
-ActorIdT Manager::registerObject(
+ActorIdT Manager::registerActor(
     const Service&     _rsvc,
     ActorBase&         _ract,
     ReactorBase&       _rr,
@@ -565,7 +565,7 @@ ActorIdT Manager::registerObject(
         return retval;
     }
 
-    size_t                      objidx      = InvalidIndex();
+    size_t                      actidx      = InvalidIndex();
     const size_t                svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
     ServiceStub&                rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
     std::lock_guard<std::mutex> lock(rss.rmtx);
@@ -577,15 +577,15 @@ ActorIdT Manager::registerObject(
         return retval;
     }
 
-    if (!rss.objcache.empty()) {
+    if (!rss.actcache.empty()) {
 
-        objidx = rss.objcache.top();
-        rss.objcache.pop();
+        actidx = rss.actcache.top();
+        rss.actcache.pop();
 
-    } else if (rss.crtobjidx < rss.endobjidx) {
+    } else if (rss.crtactidx < rss.endactidx) {
 
-        objidx = rss.crtobjidx;
-        ++rss.crtobjidx;
+        actidx = rss.crtactidx;
+        ++rss.crtactidx;
 
     } else {
 
@@ -605,17 +605,17 @@ ActorIdT Manager::registerObject(
                 impl_->actstore[oldactstoreidx].vec.begin() + rnewactstore.vec.size(),
                 impl_->actstore[oldactstoreidx].vec.end());
             chkidx = rnewactstore.vec.size();
-            rnewactstore.vec.push_back(impl_->allocateChunk(impl_->pobjmtxarr[chkidx % impl_->objmtxcnt]));
+            rnewactstore.vec.push_back(impl_->allocateChunk(impl_->pactmtxarr[chkidx % impl_->actmtxcnt]));
 
             impl_->releaseWriteActorStore(newactstoreidx);
         }
 
-        objidx        = chkidx * impl_->actchkcnt;
-        rss.crtobjidx = objidx + 1;
-        rss.endobjidx = objidx + impl_->actchkcnt;
+        actidx        = chkidx * impl_->actchkcnt;
+        rss.crtactidx = actidx + 1;
+        rss.endactidx = actidx + impl_->actchkcnt;
 
-        if (impl_->maxactcnt < rss.endobjidx) {
-            impl_->maxactcnt = rss.endobjidx;
+        if (impl_->maxactcnt < rss.endactidx) {
+            impl_->maxactcnt = rss.endactidx;
         }
 
         if (rss.firstchk == InvalidIndex()) {
@@ -635,37 +635,37 @@ ActorIdT Manager::registerObject(
     }
     {
         const size_t                actstoreidx = impl_->aquireReadActorStore();
-        ActorChunk&                 robjchk(*impl_->chunk(actstoreidx, objidx));
-        std::lock_guard<std::mutex> lock2(robjchk.rmtx);
+        ActorChunk&                 ractchk(*impl_->chunk(actstoreidx, actidx));
+        std::lock_guard<std::mutex> lock2(ractchk.rmtx);
 
         impl_->releaseReadActorStore(actstoreidx);
 
-        if (robjchk.svcidx == InvalidIndex()) {
-            robjchk.svcidx = _rsvc.idx;
+        if (ractchk.svcidx == InvalidIndex()) {
+            ractchk.svcidx = _rsvc.idx;
         }
 
-        solid_assert(robjchk.svcidx == _rsvc.idx);
+        solid_assert(ractchk.svcidx == _rsvc.idx);
 
-        _ract.id(objidx);
+        _ract.id(actidx);
 
         if (_rfct(_rr)) {
-            //the object is scheduled
-            //NOTE: a scheduler's reactor must ensure that the object is fully
-            //registered onto manager by locking the object's mutex before calling
-            //any the object's code
+            //the actor is scheduled
+            //NOTE: a scheduler's reactor must ensure that the actor is fully
+            //registered onto manager by locking the actor's mutex before calling
+            //any the actor's code
 
-            ActorStub& ros = robjchk.actor(objidx % impl_->actchkcnt);
+            ActorStub& ros = ractchk.actor(actidx % impl_->actchkcnt);
 
             ros.pactor    = &_ract;
             ros.preactor  = &_rr;
-            retval.index  = objidx;
+            retval.index  = actidx;
             retval.unique = ros.unique;
-            ++robjchk.actcnt;
+            ++ractchk.actcnt;
             ++rss.actcnt;
         } else {
             _ract.id(InvalidIndex());
-            //the object was not scheduled
-            rss.objcache.push(objidx);
+            //the actor was not scheduled
+            rss.actcache.push(actidx);
             _rerr.assign(-3, _rerr.category()); //TODO: proper error
             _rerr = error_actor_schedule;
         }
@@ -676,17 +676,17 @@ ActorIdT Manager::registerObject(
 void Manager::unregisterActor(ActorBase& _ract)
 {
     size_t svcidx = InvalidIndex();
-    size_t objidx = InvalidIndex();
+    size_t actidx = InvalidIndex();
     {
         const size_t                actstoreidx = impl_->aquireReadActorStore();
-        ActorChunk&                 robjchk(*impl_->chunk(actstoreidx, static_cast<size_t>(_ract.id())));
-        std::lock_guard<std::mutex> lock2(robjchk.rmtx);
+        ActorChunk&                 ractchk(*impl_->chunk(actstoreidx, static_cast<size_t>(_ract.id())));
+        std::lock_guard<std::mutex> lock2(ractchk.rmtx);
 
-        objidx = static_cast<size_t>(_ract.id());
+        actidx = static_cast<size_t>(_ract.id());
 
         impl_->releaseReadActorStore(actstoreidx);
 
-        ActorStub& ros = robjchk.actor(_ract.id() % impl_->actchkcnt);
+        ActorStub& ros = ractchk.actor(_ract.id() % impl_->actchkcnt);
 
         ros.pactor   = nullptr;
         ros.preactor = nullptr;
@@ -694,12 +694,12 @@ void Manager::unregisterActor(ActorBase& _ract)
 
         _ract.id(InvalidIndex());
 
-        --robjchk.actcnt;
-        svcidx = robjchk.svcidx;
+        --ractchk.actcnt;
+        svcidx = ractchk.svcidx;
         solid_assert(svcidx != InvalidIndex());
     }
     {
-        solid_assert(objidx != InvalidIndex());
+        solid_assert(actidx != InvalidIndex());
 
         const size_t                svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
         ServiceStub&                rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
@@ -707,7 +707,7 @@ void Manager::unregisterActor(ActorBase& _ract)
 
         impl_->releaseReadServiceStore(svcstoreidx);
 
-        rss.objcache.push(objidx);
+        rss.actcache.push(actidx);
         --rss.actcnt;
         solid_dbg(logger, Verbose, "" << this << " serviceid = " << svcidx << " actcnt = " << rss.actcnt);
         if (rss.actcnt == 0 && rss.state == StateStoppingE) {
@@ -721,12 +721,12 @@ bool Manager::disableActorVisits(ActorBase& _ract)
     bool retval = false;
     if (_ract.isRegistered()) {
         const size_t                actstoreidx = impl_->aquireReadActorStore();
-        ActorChunk&                 robjchk(*impl_->chunk(actstoreidx, static_cast<size_t>(_ract.id())));
-        std::lock_guard<std::mutex> lock(robjchk.rmtx);
+        ActorChunk&                 ractchk(*impl_->chunk(actstoreidx, static_cast<size_t>(_ract.id())));
+        std::lock_guard<std::mutex> lock(ractchk.rmtx);
 
         impl_->releaseReadActorStore(actstoreidx);
 
-        ActorStub& ros = robjchk.actor(_ract.id() % impl_->actchkcnt);
+        ActorStub& ros = ractchk.actor(_ract.id() % impl_->actchkcnt);
         retval         = (ros.preactor != nullptr);
         ros.preactor   = nullptr;
     }
@@ -736,7 +736,7 @@ bool Manager::disableActorVisits(ActorBase& _ract)
 bool Manager::notify(ActorIdT const& _ruid, Event&& _uevt)
 {
     const auto do_notify_fnc = [&_uevt](VisitContext& _rctx) {
-        return _rctx.raiseObject(std::move(_uevt));
+        return _rctx.raiseActor(std::move(_uevt));
     };
     //ActorVisitFunctionT f(std::cref(do_notify_fnc));
 
@@ -754,7 +754,7 @@ bool Manager::notify(ActorIdT const& _ruid, Event&& _uevt, const size_t _sigmsk 
             ActorStub const&            ros(impl_->actor(actstoreidx, _ruid.index));
 
             if (ros.unique == _ruid.unique && ros.pactor && ros.preactor) {
-                retval = notify_object(*ros.pactor, *ros.preactor, std::move(_uevt), _sigmsk);
+                retval = notify_actor(*ros.pactor, *ros.preactor, std::move(_uevt), _sigmsk);
             }
         }
         impl_->releaseReadActorStore(actstoreidx);
@@ -766,7 +766,7 @@ bool Manager::notify(ActorIdT const& _ruid, Event&& _uevt, const size_t _sigmsk 
 size_t Manager::notifyAll(const Service& _rsvc, Event const& _revt)
 {
     const auto do_notify_fnc = [_revt](VisitContext& _rctx) {
-        return _rctx.raiseObject(_revt);
+        return _rctx.raiseActor(_revt);
     };
     //ActorVisitFunctionT f(std::cref(do_notify_fnc));
     return doForEachServiceActor(_rsvc, ActorVisitFunctionT{do_notify_fnc});
@@ -821,15 +821,15 @@ std::mutex& Manager::mutex(const ActorBase& _ract) const
 
 ActorIdT Manager::id(const ActorBase& _ract) const
 {
-    const IndexT objidx = _ract.id();
+    const IndexT actidx = _ract.id();
     ActorIdT     retval;
 
-    if (objidx != InvalidIndex()) {
+    if (actidx != InvalidIndex()) {
         const size_t     actstoreidx = impl_->aquireReadActorStore();
-        ActorStub const& ros(impl_->actor(actstoreidx, static_cast<size_t>(objidx)));
-        ActorBase*       pobj = ros.pactor;
-        solid_assert(pobj == &_ract);
-        retval = ActorIdT(objidx, ros.unique);
+        ActorStub const& ros(impl_->actor(actstoreidx, static_cast<size_t>(actidx)));
+        ActorBase*       pact = ros.pactor;
+        solid_assert(pact == &_ract);
+        retval = ActorIdT(actidx, ros.unique);
         impl_->releaseReadActorStore(actstoreidx);
     }
     return retval;
@@ -968,7 +968,7 @@ void Manager::stopService(Service& _rsvc, const bool _wait)
     }
     if (rss.state == StateRunningE) {
         const auto raise_lambda = [](VisitContext& _rctx) {
-            return _rctx.raiseObject(make_event(GenericEvents::Kill));
+            return _rctx.raiseActor(make_event(GenericEvents::Kill));
         };
         //ActorVisitFunctionT fctor(std::cref(l));
 
@@ -1042,7 +1042,7 @@ void Manager::stop()
     ServiceStoreStub& rsvcstore = impl_->svcstore[svcstoreidx];
 
     const auto raise_lambda = [](VisitContext& _rctx) {
-        return _rctx.raiseObject(make_event(GenericEvents::Kill));
+        return _rctx.raiseActor(make_event(GenericEvents::Kill));
     };
 
     //broadcast to all actors to stop

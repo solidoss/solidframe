@@ -28,7 +28,7 @@ class CompletionHandler;
 
 class ActorBase : public Dynamic<ActorBase> {
 public:
-    //! Get the id of the object
+    //! Get the id of the actor
     IndexT id() const;
 
     //! Virtual destructor

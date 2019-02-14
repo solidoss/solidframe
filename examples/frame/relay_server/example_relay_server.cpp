@@ -241,10 +241,10 @@ int main(int argc, char* argv[])
             if (sd) {
                 DynamicPointer<frame::aio::Actor> actptr(new Listener(svc, sch, std::move(sd)));
                 solid::ErrorConditionT            err;
-                solid::frame::ActorIdT            objuid;
+                solid::frame::ActorIdT            actuid;
 
-                objuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
-                solid_log(generic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
+                actuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
                 running = false;
@@ -362,11 +362,11 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
 struct ResolvFunc {
     frame::Manager& rm;
-    frame::ActorIdT objuid;
+    frame::ActorIdT actuid;
 
-    ResolvFunc(frame::Manager& _rm, frame::ActorIdT const& _robjuid)
+    ResolvFunc(frame::Manager& _rm, frame::ActorIdT const& _ractuid)
         : rm(_rm)
-        , objuid(_robjuid)
+        , actuid(_ractuid)
     {
     }
 
@@ -377,7 +377,7 @@ struct ResolvFunc {
         ev.any() = std::move(_rrd);
 
         solid_log(generic_logger, Info, this << " send resolv_message");
-        rm.notify(objuid, std::move(ev));
+        rm.notify(actuid, std::move(ev));
     }
 };
 
@@ -594,12 +594,12 @@ void Connection::onRecvId(frame::aio::ReactorContext& _rctx, size_t _off, size_t
             connection_register(crtid, _rctx.manager().id(*this));
         } else {
             //move to a peer connection
-            frame::ActorIdT objid = connection_uid(idx);
+            frame::ActorIdT actid = connection_uid(idx);
             Event           ev(make_event(GenericEvents::Message));
             SocketDevice    sd(sock1.reset(_rctx));
             ev.any() = MoveMessage(std::move(sd), buf2 + i, _sz - i);
             solid_log(generic_logger, Info, this << " send move_message with size = " << (_sz - i));
-            _rctx.manager().notify(objid, std::move(ev));
+            _rctx.manager().notify(actid, std::move(ev));
             solid_log(generic_logger, Error, this << " postStop");
             postStop(_rctx);
         }

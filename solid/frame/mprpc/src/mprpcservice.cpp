@@ -81,8 +81,8 @@ const EventCategory<PoolEvents> pool_event_category{
     }};
 } //namespace
 //=============================================================================
-using NameMapT       = std::unordered_map<const char*, size_t, CStringHash, CStringEqual>;
-using ObjectIdQueueT = Queue<ActorIdT>;
+using NameMapT      = std::unordered_map<const char*, size_t, CStringHash, CStringEqual>;
+using ActorIdQueueT = Queue<ActorIdT>;
 
 /*extern*/ const Event pool_event_connection_start    = pool_event_category.event(PoolEvents::ConnectionStart);
 /*extern*/ const Event pool_event_connection_activate = pool_event_category.event(PoolEvents::ConnectionActivate);
@@ -121,7 +121,7 @@ struct MessageStub : inner::Node<InnerLinkCount> {
         : inner::Node<InnerLinkCount>(std::move(_rmsg))
         , msgbundle(std::move(_rmsg.msgbundle))
         , msgid(_rmsg.msgid)
-        , objid(_rmsg.objid)
+        , actid(_rmsg.actid)
         , unique(_rmsg.unique)
         , flags(_rmsg.flags)
     {
@@ -147,14 +147,14 @@ struct MessageStub : inner::Node<InnerLinkCount> {
     {
         msgbundle.clear();
         msgid = MessageId();
-        objid = ActorIdT();
+        actid = ActorIdT();
         ++unique;
         flags = 0;
     }
 
     MessageBundle msgbundle;
     MessageId     msgid;
-    ActorIdT      objid;
+    ActorIdT      actid;
     uint32_t      unique;
     uint          flags;
 };
@@ -217,7 +217,7 @@ struct ConnectionPoolStub {
     MessageOrderInnerListT msgorder_inner_list;
     MessageCacheInnerListT msgcache_inner_list;
     MessageAsyncInnerListT msgasync_inner_list;
-    ObjectIdQueueT         conn_waitingq;
+    ActorIdQueueT          conn_waitingq;
     uint8_t                flags;
     uint8_t                retry_connect_count;
     AddressVectorT         connect_addr_vec;
@@ -759,7 +759,7 @@ ErrorConditionT Service::reconfigure(Configuration&& _ucfg)
 
     solid_dbg(logger, Verbose, this);
 
-    BaseT::stop(true); //block until all objects are destroyed
+    BaseT::stop(true); //block until all actors are destroyed
 
     lock_guard<std::mutex> lock(impl_->mtx);
 
@@ -923,7 +923,7 @@ ErrorConditionT Service::doSendMessage(
 
     if (_rrecipient_id_in.isValidConnection()) {
         solid_assert(_precipient_id_out == nullptr);
-        //directly send the message to a connection object
+        //directly send the message to a connection actor
         return doSendMessageToConnection(
             _rrecipient_id_in,
             _rmsgptr,
@@ -1205,7 +1205,7 @@ bool Service::doTryPushMessageToConnection(
 
         if (success && !message_is_null) {
 
-            rmsgstub.objid = _ractuid;
+            rmsgstub.actid = _ractuid;
 
             rpool.eraseMessageOrder(_msg_idx);
 
@@ -1257,7 +1257,7 @@ bool Service::doTryPushMessageToConnection(
         success = _rcon.tryPushMessage(configuration(), rmsgstub.msgbundle, rmsgstub.msgid, _rmsg_id);
 
         if (success) {
-            rmsgstub.objid = _ractuid;
+            rmsgstub.actid = _ractuid;
         }
     } else {
 
@@ -1535,16 +1535,16 @@ ErrorConditionT Service::cancelMessage(RecipientId const& _rrecipient_id, Messag
             error = error_service_message_already_canceled;
         } else {
 
-            if (rmsgstub.objid.isValid()) { //message handled by a connection
+            if (rmsgstub.actid.isValid()) { //message handled by a connection
 
-                solid_dbg(logger, Verbose, this << " message " << _rmsg_id << " from pool " << pool_index << " is handled by connection " << rmsgstub.objid);
+                solid_dbg(logger, Verbose, this << " message " << _rmsg_id << " from pool " << pool_index << " is handled by connection " << rmsgstub.actid);
 
                 solid_assert(!rmsgstub.msgbundle.message_ptr);
 
                 rmsgstub.msgbundle.message_flags.set(MessageFlagsE::Canceled);
 
                 success = manager().notify(
-                    rmsgstub.objid,
+                    rmsgstub.actid,
                     Connection::eventCancelConnMessage(rmsgstub.msgid));
 
                 if (success) {
@@ -1552,7 +1552,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const& _rrecipient_id, Messag
                     rpool.msgcache_inner_list.pushBack(_rmsg_id.index);
                 } else {
                     rmsgstub.msgid = MessageId();
-                    rmsgstub.objid = ActorIdT();
+                    rmsgstub.actid = ActorIdT();
                     error          = error_service_message_lost;
                     solid_throw("Lost message");
                 }
@@ -2195,7 +2195,7 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
 
         if (!_rerror) {
 
-            solid_dbg(logger, Info, this << " Success starting Connection Pool object: " << conuid.index << ',' << conuid.unique);
+            solid_dbg(logger, Info, this << " Success starting Connection Pool actor: " << conuid.index << ',' << conuid.unique);
 
             ++rpool.pending_connection_count;
 

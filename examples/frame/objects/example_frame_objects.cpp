@@ -64,15 +64,15 @@ private:
     GlobalId           id_;
 };
 
-using ObjectDequeT = std::deque<BasicActor>;
+using ActorDequeT = std::deque<BasicActor>;
 
 namespace {
-ObjectDequeT       objdq;
+ActorDequeT        actdq;
 condition_variable cnd;
 mutex              mtx;
-size_t             running_objcnt = 0;
-size_t             started_objcnt = 0;
-size_t             ondisk_objcnt  = 0;
+size_t             running_actcnt = 0;
+size_t             started_actcnt = 0;
+size_t             ondisk_actcnt  = 0;
 } // namespace
 
 int main(int argc, char* argv[])
@@ -91,26 +91,26 @@ int main(int argc, char* argv[])
         if (!err) {
             const size_t cnt = argc == 2 ? atoi(argv[1]) : 1000;
 
-            cout << "Creating " << cnt << " objects:" << endl;
+            cout << "Creating " << cnt << " actors:" << endl;
 
             for (size_t i = 0; i < cnt; ++i) {
 
-                objdq.emplace_back();
+                actdq.emplace_back();
 
-                DynamicPointer<frame::Actor> actptr(&objdq.back());
-                solid::frame::ActorIdT       objuid;
+                DynamicPointer<frame::Actor> actptr(&actdq.back());
+                solid::frame::ActorIdT       actuid;
                 {
                     lock_guard<mutex> lock(mtx);
 
-                    objuid = s.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                    actuid = s.startActor(actptr, svc, make_event(GenericEvents::Start), err);
 
-                    solid_log(generic_logger, Info, "Started BasicActor: " << objuid.index << ',' << objuid.unique);
+                    solid_log(generic_logger, Info, "Started BasicActor: " << actuid.index << ',' << actuid.unique);
 
                     if (err) {
-                        cout << "Error starting object " << i << ": " << err.message() << endl;
+                        cout << "Error starting actor " << i << ": " << err.message() << endl;
                         break;
                     }
-                    ++running_objcnt;
+                    ++running_actcnt;
                 }
             }
         } else {
@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
         if (!err) {
             {
                 unique_lock<mutex> lock(mtx);
-                while (started_objcnt != running_objcnt) {
+                while (started_actcnt != running_actcnt) {
                     cnd.wait(lock);
                 }
             }
@@ -143,11 +143,11 @@ int main(int argc, char* argv[])
             cout << "Notify all raise: DONE. " << duration.count() << "ms" << endl;
             {
                 unique_lock<mutex> lock(mtx);
-                while (ondisk_objcnt != running_objcnt) {
+                while (ondisk_actcnt != running_actcnt) {
                     cnd.wait(lock);
                 }
             }
-            cout << "All objects on disk" << endl;
+            cout << "All actors on disk" << endl;
         }
     }
     cout << "DONE!" << endl;
@@ -160,8 +160,8 @@ int main(int argc, char* argv[])
     if (_uevent == generic_event_start) {
         {
             lock_guard<mutex> lock(mtx);
-            ++started_objcnt;
-            if (started_objcnt == running_objcnt) {
+            ++started_actcnt;
+            if (started_actcnt == running_actcnt) {
                 cnd.notify_one();
             }
         }
@@ -172,8 +172,8 @@ int main(int argc, char* argv[])
             status_ = StatusOnDisk;
             timer_.cancel(_rctx);
             lock_guard<mutex> lock(mtx);
-            ++ondisk_objcnt;
-            if (ondisk_objcnt == running_objcnt) {
+            ++ondisk_actcnt;
+            if (ondisk_actcnt == running_actcnt) {
                 cnd.notify_one();
             }
         }
@@ -193,8 +193,8 @@ void BasicActor::onTimer(frame::ReactorContext& _rctx)
     } else if (status_ == StatusCompressed) {
         status_ = StatusOnDisk;
         lock_guard<mutex> lock(mtx);
-        ++ondisk_objcnt;
-        if (ondisk_objcnt == running_objcnt) {
+        ++ondisk_actcnt;
+        if (ondisk_actcnt == running_actcnt) {
             cnd.notify_one();
         }
     }

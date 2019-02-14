@@ -101,12 +101,12 @@ void CompletionHandler::deactivate()
 {
     Reactor* preactor = nullptr;
     if (isActive() && (preactor = Reactor::safeSpecific()) != nullptr) {
-        //the object has entered the reactor
+        //the actor has entered the reactor
         preactor->unregisterCompletionHandler(*this);
         idxreactor = InvalidIndex();
     }
     if (isActive()) {
-        solid_throw("FATAL: CompletionHandler deleted/deactivated outside object's reactor!");
+        solid_throw("FATAL: CompletionHandler deleted/deactivated outside actor's reactor!");
     }
 }
 

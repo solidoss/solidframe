@@ -258,8 +258,8 @@ class Datagram : public CompletionHandler {
 
 public:
     Datagram(
-        ActorProxy const& _robj, SocketDevice&& _rsd)
-        : CompletionHandler(_robj, on_init_completion)
+        ActorProxy const& _ract, SocketDevice&& _rsd)
+        : CompletionHandler(_ract, on_init_completion)
         , s(std::move(_rsd))
         , recv_buf(nullptr)
         , recv_buf_cp(0)
@@ -271,8 +271,8 @@ public:
     }
 
     Datagram(
-        ActorProxy const& _robj)
-        : CompletionHandler(_robj, on_dummy_completion)
+        ActorProxy const& _ract)
+        : CompletionHandler(_ract, on_dummy_completion)
         , recv_buf(nullptr)
         , recv_buf_cp(0)
         , recv_is_posted(false)

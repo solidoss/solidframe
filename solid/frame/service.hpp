@@ -81,11 +81,11 @@ public:
 
     Manager& manager();
 
-    std::mutex& mutex(const ActorBase& _robj) const;
+    std::mutex& mutex(const ActorBase& _ract) const;
 
     bool isRunning() const;
 
-    ActorIdT id(const ActorBase& _robj) const;
+    ActorIdT id(const ActorBase& _ract) const;
 
 protected:
     std::mutex& mutex() const;
@@ -104,7 +104,7 @@ private:
         running = false;
     }
 
-    ActorIdT registerObject(ActorBase& _robj, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
+    ActorIdT registerActor(ActorBase& _ract, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
 
 private:
     Manager&            rm;
@@ -148,14 +148,14 @@ inline void Service::stop(const bool _wait)
     rm.stopService(*this, _wait);
 }
 
-inline std::mutex& Service::mutex(const ActorBase& _robj) const
+inline std::mutex& Service::mutex(const ActorBase& _ract) const
 {
-    return rm.mutex(_robj);
+    return rm.mutex(_ract);
 }
 
-inline ActorIdT Service::id(const ActorBase& _robj) const
+inline ActorIdT Service::id(const ActorBase& _ract) const
 {
-    return rm.id(_robj);
+    return rm.id(_ract);
 }
 
 inline std::mutex& Service::mutex() const
@@ -163,22 +163,22 @@ inline std::mutex& Service::mutex() const
     return rm.mutex(*this);
 }
 
-inline ActorIdT Service::registerObject(ActorBase& _robj, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr)
+inline ActorIdT Service::registerActor(ActorBase& _ract, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr)
 {
-    return rm.registerObject(*this, _robj, _rr, _rfct, _rerr);
+    return rm.registerActor(*this, _ract, _rr, _rfct, _rerr);
 }
 
 //! A Shell class for every Service
 /*!
  * This class is provided for defensive C++ programming.
- * Objects from a Service use reference to their service.
- * Situation: we have ServiceA: public Service. Objects from ServiceA use reference to ServiceA.
+ * Actors from a Service use reference to their service.
+ * Situation: we have ServiceA: public Service. Actors from ServiceA use reference to ServiceA.
  * If we only call Service::stop() from within frame::Service::~Service, when ServiceA gets destroyed,
- * existing objects (at the moment we call Service::stop) might be still accessing ServiceA object layer
+ * existing actors (at the moment we call Service::stop) might be still accessing ServiceA actor layer
  * which was destroyed.
  * That is why we've introduce the ServiceShell which will stand as an upper layer for all Service
  * instantiations which will call Service::stop on its destructor, so that when the lower layer Service
- * gets destroyed no object will exist.
+ * gets destroyed no actor will exist.
  * ServiceShell is final to prevent inheriting from it.
  * More over, we introduce the UseServiceShell stub to force all Service instantiations to happen through
  * a ServiceShell.

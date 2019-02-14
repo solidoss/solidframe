@@ -150,10 +150,10 @@ int main(int argc, char* argv[])
 
             DynamicPointer<frame::aio::Actor> actptr(new Listener(service, scheduler, std::move(sd)));
             solid::ErrorConditionT            error;
-            solid::frame::ActorIdT            objuid;
+            solid::frame::ActorIdT            actuid;
 
-            objuid = scheduler.startActor(actptr, service, make_event(GenericEvents::Start), error);
-            (void)objuid;
+            actuid = scheduler.startActor(actptr, service, make_event(GenericEvents::Start), error);
+            (void)actuid;
         } else {
             cout << "Error creating listener socket" << endl;
             return 0;
@@ -178,11 +178,11 @@ int main(int argc, char* argv[])
             DynamicPointer<frame::aio::Actor> actptr(new Talker(std::move(sd)));
 
             solid::ErrorConditionT error;
-            solid::frame::ActorIdT objuid;
+            solid::frame::ActorIdT actuid;
 
-            objuid = scheduler.startActor(actptr, service, make_event(GenericEvents::Start), error);
+            actuid = scheduler.startActor(actptr, service, make_event(GenericEvents::Start), error);
 
-            (void)objuid;
+            (void)actuid;
 
         } else {
             cout << "Error creating talker socket" << endl;

@@ -217,7 +217,7 @@ int main(int argc, char* argv[])
                 if (actuid.isInvalid()) {
                     --concnt;
                 }
-                solid_log(generic_logger, Info, "Started Connection Object: " << actuid.index << ',' << actuid.unique);
+                solid_log(generic_logger, Info, "Started Connection Actor: " << actuid.index << ',' << actuid.unique);
             }
         }
 

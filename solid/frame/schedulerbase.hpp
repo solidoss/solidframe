@@ -44,7 +44,7 @@ protected:
 
     void doStop(const bool _wait = true);
 
-    ActorIdT doStartObject(ActorBase& _robj, Service& _rsvc, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
+    ActorIdT doStartActor(ActorBase& _ract, Service& _rsvc, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
 
 protected:
     SchedulerBase();

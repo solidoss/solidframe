@@ -221,7 +221,7 @@ struct Reactor::Data {
         , crtraisevecidx(0)
         , crtpushvecsz(0)
         , crtraisevecsz(0)
-        , objcnt(0)
+        , actcnt(0)
         , timestore(MinEventCapacity)
     {
         pcrtpushtskvec = &pushtskvec[1];
@@ -268,7 +268,7 @@ struct Reactor::Data {
     size_t                  crtraisevecidx;
     size_t                  crtpushvecsz;
     size_t                  crtraisevecsz;
-    size_t                  objcnt;
+    size_t                  actcnt;
     TimeStoreT              timestore;
     NewTaskVectorT*         pcrtpushtskvec;
     RaiseEventVectorT*      pcrtraisevec;
@@ -360,18 +360,18 @@ bool Reactor::start()
 }
 
 //Called from outside reactor's thread
-bool Reactor::push(TaskT& _robj, Service& _rsvc, Event const& _revent)
+bool Reactor::push(TaskT& _ract, Service& _rsvc, Event const& _revent)
 {
     solid_dbg(logger, Verbose, (void*)this);
     bool   rv        = true;
     size_t pushvecsz = 0;
     {
         lock_guard<mutex> lock(impl_->mtx);
-        const UniqueId    uid = this->popUid(*_robj);
+        const UniqueId    uid = this->popUid(*_ract);
 
         solid_dbg(logger, Verbose, (void*)this << " uid = " << uid.index << ',' << uid.unique << " event = " << _revent);
 
-        impl_->pushtskvec[impl_->crtpushtskvecidx].push_back(NewTaskStub(uid, _robj, _rsvc, _revent));
+        impl_->pushtskvec[impl_->crtpushtskvecidx].push_back(NewTaskStub(uid, _ract, _rsvc, _revent));
         pushvecsz           = impl_->pushtskvec[impl_->crtpushtskvecidx].size();
         impl_->crtpushvecsz = pushvecsz;
         if (pushvecsz == 1) {
@@ -390,7 +390,7 @@ void Reactor::run()
 
     while (running) {
 
-        crtload = impl_->objcnt + impl_->exeq.size();
+        crtload = impl_->actcnt + impl_->exeq.size();
 
         if (doWaitEvent(crttime)) {
             crttime = std::chrono::steady_clock::now();
@@ -402,7 +402,7 @@ void Reactor::run()
         crttime = std::chrono::steady_clock::now();
         doCompleteExec(crttime);
 
-        running = impl_->running || (impl_->objcnt != 0) || !impl_->exeq.empty();
+        running = impl_->running || (impl_->actcnt != 0) || !impl_->exeq.empty();
     }
     impl_->eventact.stop();
     doClearSpecific();
@@ -460,8 +460,8 @@ void Reactor::doPost(ReactorContext& _rctx, EventFunctionT& _revfn, Event&& _uev
 }
 
 /*NOTE:
-    We do not stop the object rightaway - we make sure that any
-    pending Events are delivered to the object before we stop
+    We do not stop the actor rightaway - we make sure that any
+    pending Events are delivered to the actor before we stop
 */
 void Reactor::postActorStop(ReactorContext& _rctx)
 {
@@ -479,7 +479,7 @@ void Reactor::doStopActor(ReactorContext& _rctx)
     ros.actptr.clear();
     ros.psvc = nullptr;
     ++ros.unique;
-    --this->impl_->objcnt;
+    --this->impl_->actcnt;
     this->impl_->freeuidvec.push_back(UniqueId(_rctx.actidx, ros.unique));
 }
 
@@ -599,7 +599,7 @@ void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
 
     if (!crtpushvec.empty()) {
 
-        impl_->objcnt += crtpushvec.size();
+        impl_->actcnt += crtpushvec.size();
 
         for (auto& rnewact : crtpushvec) {
 
@@ -611,8 +611,8 @@ void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
             solid_assert(ros.unique == rnewact.uid.unique);
 
             {
-                //NOTE: we must lock the mutex of the object
-                //in order to ensure that object is fully registered onto the manager
+                //NOTE: we must lock the mutex of the actor
+                //in order to ensure that actor is fully registered onto the manager
 
                 lock_guard<std::mutex> lock(rnewact.rsvc.mutex(*rnewact.actptr));
             }
@@ -769,7 +769,7 @@ UniqueId ReactorContext::actorUid() const
 
 //-----------------------------------------------------------------------------
 
-std::mutex& ReactorContext::objectMutex() const
+std::mutex& ReactorContext::actorMutex() const
 {
     return reactor().service(*this).mutex(reactor().actor(*this));
 }
@@ -784,7 +784,7 @@ CompletionHandler* ReactorContext::completionHandler() const
 //=============================================================================
 //      ReactorBase
 //=============================================================================
-UniqueId ReactorBase::popUid(ActorBase& _robj)
+UniqueId ReactorBase::popUid(ActorBase& _ract)
 {
     UniqueId rv(crtidx, 0);
     if (!uidstk.empty()) {
@@ -793,7 +793,7 @@ UniqueId ReactorBase::popUid(ActorBase& _robj)
     } else {
         ++crtidx;
     }
-    _robj.runId(rv);
+    _ract.runId(rv);
     return rv;
 }
 

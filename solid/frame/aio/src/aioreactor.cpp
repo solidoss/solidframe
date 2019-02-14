@@ -717,12 +717,12 @@ bool Reactor::push(TaskT& _ract, Service& _rsvc, Event&& _uevent)
 
     We MUST call doCompleteEvents before doCompleteExec
     because we must ensure that on successful Event notification from
-    frame::Manager, the Object actually receives the Event before stopping.
+    frame::Manager, the Actor actually receives the Event before stopping.
 
-    For that, on Object::postStop, we mark the Object as “unable to
+    For that, on Actor::postStop, we mark the Actor as “unable to
     receive any notifications” (we do not unregister it, because the
-    Object may want access to it’s mutex on events already waiting
-    to be delivered to the object.
+    Actor may want access to it’s mutex on events already waiting
+    to be delivered to the actor.
 
 */
 void Reactor::run()
@@ -1007,8 +1007,8 @@ void Reactor::doPost(ReactorContext& _rctx, Reactor::EventFunctionT& _revfn, Eve
 //-----------------------------------------------------------------------------
 
 /*NOTE:
-    We do not stop the object rightaway - we make sure that any
-    pending Events are delivered to the object before we stop
+    We do not stop the actor rightaway - we make sure that any
+    pending Events are delivered to the actor before we stop
 */
 void Reactor::postActorStop(ReactorContext& _rctx)
 {
@@ -1248,8 +1248,8 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
             solid_assert(ras.unique == rnewact.uid.unique);
 
             {
-                //NOTE: we must lock the mutex of the object
-                //in order to ensure that object is fully registered onto the manager
+                //NOTE: we must lock the mutex of the actor
+                //in order to ensure that actor is fully registered onto the manager
 
                 lock_guard<std::mutex> lock(rnewact.rsvc.mutex(*rnewact.actptr));
             }
@@ -1661,7 +1661,7 @@ Manager& ReactorContext::manager() const
 
 //-----------------------------------------------------------------------------
 
-std::mutex& ReactorContext::objectMutex() const
+std::mutex& ReactorContext::actorMutex() const
 {
     return reactor().service(*this).mutex(reactor().actor(*this));
 }
