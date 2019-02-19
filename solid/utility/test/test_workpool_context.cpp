@@ -1,98 +1,65 @@
-#include "solid/system/crashhandler.hpp"
 #include "solid/system/exception.hpp"
+#include "solid/system/log.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/workpool.hpp"
 #include <atomic>
-#include <functional>
 #include <future>
 #include <iostream>
-#include <mutex>
-#include <thread>
 
 using namespace solid;
 using namespace std;
-
-using thread_t      = std::thread;
-using mutex_t       = std::mutex;
-using unique_lock_t = std::unique_lock<mutex_t>;
-
 namespace {
-
-mutex_t       mtx;
 const LoggerT logger("test_context");
 
 struct Context {
-    string text_;
-    size_t count_;
+    string         s_;
+    atomic<size_t> v_;
+    const size_t   c_;
 
-    Context(const std::string& _txt, size_t _count)
-        : text_(_txt)
-        , count_(_count)
+    Context(const string& _s, const size_t _v, const size_t _c)
+        : s_(_s)
+        , v_(_v)
+        , c_(_c)
     {
     }
+
     ~Context()
     {
-        solid_log(generic_logger, Verbose, this << " count = " << count_);
     }
 };
 
-using FunctionJobT = std::function<void(Context&)>;
-//using FunctionJobT = solid::Function<32, void(Context&)>;
-
-} // namespace
+} //namespace
 
 int test_workpool_context(int argc, char* argv[])
 {
-    install_crash_handler();
     solid::log_start(std::cerr, {".*:EWS", "test_context:VIEWS"});
-    using WorkPoolT  = WorkPool<FunctionJobT>;
-    using AtomicPWPT = std::atomic<WorkPoolT*>;
 
-    solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
-
-    int                 wait_seconds = 500;
-    int                 loop_cnt     = 5;
-    const size_t        cnt{5000000};
-    std::atomic<size_t> val{0};
-    AtomicPWPT          pwp{nullptr};
-    const size_t        v = ((cnt - 1) * cnt) / 2;
-
-    if (argc > 1) {
-        loop_cnt = atoi(argv[1]);
-    }
+    int          wait_seconds = 500;
+    int          loop_cnt     = 5;
+    const size_t cnt{50000};
 
     auto lambda = [&]() {
         for (int i = 0; i < loop_cnt; ++i) {
+            Context ctx{"test", 1, cnt + 1};
             {
-                WorkPoolT wp{
+                FunctionWorkPool<Context> wp{
+                    2,
                     WorkPoolConfiguration(),
-                    [](FunctionJobT& _rj, Context& _rctx) {
-                        _rj(_rctx);
-                    },
-                    "simple text",
-                    0UL};
+                    ctx};
 
                 solid_log(generic_logger, Verbose, "wp started");
-                pwp = &wp;
                 for (size_t i = 0; i < cnt; ++i) {
-                    auto l = [i, &val](Context& _rctx) {
-                        //this_thread::sleep_for(std::chrono::seconds(2));
-                        ++_rctx.count_;
-                        val += i;
+                    auto l = [](Context& _rctx) {
+                        ++_rctx.v_;
                     };
                     wp.push(l);
                 };
-                pwp = nullptr;
             }
+            solid_check(ctx.v_ == ctx.c_, ctx.v_ << " != " << ctx.c_);
             solid_log(logger, Verbose, "after loop");
-            solid_check(v == val, "val = " << val << " v = " << v);
-            val = 0;
         }
     };
     if (async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
-        if (pwp != nullptr) {
-            pwp.load()->dumpStatistics();
-        }
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }
     solid_log(logger, Verbose, "after async wait");

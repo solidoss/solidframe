@@ -313,7 +313,7 @@ int test_connection_close(int argc, char* argv[])
 
         frame::Manager m;
 
-        FunctionWorkPool       fwp{WorkPoolConfiguration()};
+        FunctionWorkPool<>     fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
         frame::mprpc::ServiceT mprpcserver(m);
         frame::mprpc::ServiceT mprpcclient(m);

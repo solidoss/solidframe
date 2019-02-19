@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
         AioSchedulerT          scheduler;
         frame::Manager         manager;
         frame::mprpc::ServiceT ipcservice(manager);
-        FunctionWorkPool       fwp{WorkPoolConfiguration()};
+        FunctionWorkPool<>     fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
         ErrorConditionT        err;
 

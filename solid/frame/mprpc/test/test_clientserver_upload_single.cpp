@@ -226,7 +226,7 @@ int test_clientserver_upload_single(int argc, char* argv[])
         frame::mprpc::ServiceT mprpc_client(m);
         frame::mprpc::ServiceT mprpc_server(m);
         ErrorConditionT        err;
-        FunctionWorkPool       fwp{WorkPoolConfiguration()};
+        FunctionWorkPool<>     fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
 
         sch_client.start(1);

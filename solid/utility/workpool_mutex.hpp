@@ -396,30 +396,4 @@ void WorkPool<Job, QNBits>::dumpStatistics() const
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-struct FunctionWorkPool : WorkPool<std::function<void()>> {
-    using WorkPoolT = WorkPool<std::function<void()>>;
-    FunctionWorkPool(
-        const size_t                 _start_wkr_cnt,
-        const WorkPoolConfiguration& _cfg)
-        : WorkPoolT(
-              _start_wkr_cnt,
-              _cfg,
-              [](std::function<void()>& _rfnc) {
-                  _rfnc();
-              })
-    {
-    }
-
-    FunctionWorkPool(
-        const WorkPoolConfiguration& _cfg)
-        : WorkPoolT(
-              0,
-              _cfg,
-              [](std::function<void()>& _rfnc) {
-                  _rfnc();
-              })
-    {
-    }
-};
-
 } //namespace solid

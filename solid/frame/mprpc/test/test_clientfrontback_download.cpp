@@ -352,7 +352,7 @@ int test_clientfrontback_download(int argc, char* argv[])
         frame::mprpc::ServiceT mprpc_back_client(m);
         frame::mprpc::ServiceT mprpc_back_server(m);
         ErrorConditionT        err;
-        FunctionWorkPool       fwp{WorkPoolConfiguration()};
+        FunctionWorkPool<>     fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
 
         sch_client.start(1);

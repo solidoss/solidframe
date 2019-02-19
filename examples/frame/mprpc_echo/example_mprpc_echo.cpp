@@ -185,7 +185,7 @@ int main(int argc, char* argv[])
         frame::Manager         m;
         frame::mprpc::ServiceT ipcsvc(m);
         ErrorConditionT        err;
-        FunctionWorkPool       fwp{WorkPoolConfiguration()};
+        FunctionWorkPool<>     fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
 
         if (!restart(ipcsvc, resolver, sch)) {

@@ -84,7 +84,7 @@ int test_multiprotocol_basic(int argc, char* argv[])
         frame::Manager         m;
         frame::mprpc::ServiceT mprpcserver(m);
         ErrorConditionT        err;
-        FunctionWorkPool       fwp{WorkPoolConfiguration()};
+        FunctionWorkPool<>     fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
 
         sch_client.start(1);

@@ -284,7 +284,7 @@ int test_keepalive_success(int argc, char* argv[])
         frame::mprpc::ServiceT mprpcserver(m);
         frame::mprpc::ServiceT mprpcclient(m);
         ErrorConditionT        err;
-        FunctionWorkPool       fwp{WorkPoolConfiguration()};
+        FunctionWorkPool<>     fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
 
         sch_client.start(1);

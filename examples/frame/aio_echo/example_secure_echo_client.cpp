@@ -171,7 +171,7 @@ int main(int argc, char* argv[])
         frame::ServiceT service(manager);
         frame::ActorIdT actuid;
 
-        FunctionWorkPool     fwp{WorkPoolConfiguration()};
+        FunctionWorkPool<>   fwp{WorkPoolConfiguration()};
         frame::aio::Resolver resolver(fwp);
         ErrorConditionT      err;
 

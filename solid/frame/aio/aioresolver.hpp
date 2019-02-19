@@ -124,7 +124,7 @@ struct ReverseResolveCbk : ReverseResolve {
 
 class Resolver {
 public:
-    Resolver(FunctionWorkPool& _rfwp)
+    Resolver(FunctionWorkPool<>& _rfwp)
         : rfwp_(_rfwp)
     {
     }
@@ -153,7 +153,7 @@ public:
     }
 
 private:
-    FunctionWorkPool& rfwp_;
+    FunctionWorkPool<>& rfwp_;
 };
 
 } //namespace aio
