@@ -218,12 +218,7 @@ int test_clientserver_oneshot(int argc, char* argv[])
         FunctionWorkPool       fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
 
-        err = sch_client.start(1);
-
-        if (err) {
-            solid_dbg(generic_logger, Error, "starting aio client scheduler: " << err.message());
-            return 1;
-        }
+        sch_client.start(1);
 
         std::string server_port = "60432";
 
@@ -259,13 +254,7 @@ int test_clientserver_oneshot(int argc, char* argv[])
                     frame::mprpc::openssl::NameCheckSecureStart{"echo-server"});
             }
 
-            err = mprpcclient.reconfigure(std::move(cfg));
-
-            if (err) {
-                solid_dbg(generic_logger, Error, "starting client mprpcservice: " << err.message());
-                //exiting
-                return 1;
-            }
+            mprpcclient.start(std::move(cfg));
         }
 
         pmprpcclient = &mprpcclient;

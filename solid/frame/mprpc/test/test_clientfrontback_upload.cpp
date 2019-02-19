@@ -346,17 +346,9 @@ int test_clientfrontback_upload(int argc, char* argv[])
         FunctionWorkPool       fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
 
-        err = sch_client.start(1);
-
-        solid_check(!err, "starting aio client scheduler: " << err.message());
-
-        err = sch_front.start(1);
-
-        solid_check(!err, "starting aio front scheduler: " << err.message());
-
-        err = sch_back.start(1);
-
-        solid_check(!err, "starting aio back scheduler: " << err.message());
+        sch_client.start(1);
+        sch_front.start(1);
+        sch_back.start(1);
 
         std::string back_port;
         std::string front_port;
@@ -392,7 +384,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
                 frame::mprpc::snappy::setup(cfg);
             }
 
-            err = mprpc_back_server.reconfigure(std::move(cfg));
+            mprpc_back_server.start(std::move(cfg));
 
             solid_check(!err, "starting back_server mprpcservice: " << err.message());
 
@@ -434,9 +426,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
                 frame::mprpc::snappy::setup(cfg);
             }
 
-            err = mprpc_back_client.reconfigure(std::move(cfg));
-
-            solid_check(!err, "starting back_client mprpcservice: " << err.message());
+            mprpc_back_client.start(std::move(cfg));
             pmprpc_back_client = &mprpc_back_client;
         }
 
@@ -471,9 +461,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
                 frame::mprpc::snappy::setup(cfg);
             }
 
-            err = mprpc_front_server.reconfigure(std::move(cfg));
-
-            solid_check(!err, "starting back_server mprpcservice: " << err.message());
+            mprpc_front_server.start(std::move(cfg));
 
             {
                 std::ostringstream oss;
@@ -514,9 +502,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
                 frame::mprpc::snappy::setup(cfg);
             }
 
-            err = mprpc_front_client.reconfigure(std::move(cfg));
-
-            solid_check(!err, "starting front_client mprpcservice: " << err.message());
+            mprpc_front_client.start(std::move(cfg));
         }
 
         expect_count = file_vec.size();

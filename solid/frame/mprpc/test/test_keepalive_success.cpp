@@ -287,19 +287,8 @@ int test_keepalive_success(int argc, char* argv[])
         FunctionWorkPool       fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
 
-        err = sch_client.start(1);
-
-        if (err) {
-            solid_dbg(generic_logger, Error, "starting aio client scheduler: " << err.message());
-            return 1;
-        }
-
-        err = sch_server.start(1);
-
-        if (err) {
-            solid_dbg(generic_logger, Error, "starting aio server scheduler: " << err.message());
-            return 1;
-        }
+        sch_client.start(1);
+        sch_server.start(1);
 
         std::string server_port;
 
@@ -326,7 +315,7 @@ int test_keepalive_success(int argc, char* argv[])
 
             cfg.writer.max_message_count_multiplex = 6;
 
-            err = mprpcserver.reconfigure(std::move(cfg));
+            mprpcserver.start(std::move(cfg));
 
             if (err) {
                 solid_dbg(generic_logger, Error, "starting server mprpcservice: " << err.message());
@@ -366,13 +355,7 @@ int test_keepalive_success(int argc, char* argv[])
 
             cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/);
 
-            err = mprpcclient.reconfigure(std::move(cfg));
-
-            if (err) {
-                solid_dbg(generic_logger, Error, "starting client mprpcservice: " << err.message());
-                //exiting
-                return 1;
-            }
+            mprpcclient.start(std::move(cfg));
         }
 
         pmprpcclient = &mprpcclient;

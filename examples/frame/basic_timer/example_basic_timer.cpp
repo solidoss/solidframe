@@ -61,7 +61,9 @@ int main(int argc, char* argv[])
         frame::Manager  m;
         frame::ServiceT svc(m);
 
-        if (!s.start(1)) {
+        s.start(1);
+
+        {
             const size_t cnt = argc == 2 ? atoi(argv[1]) : 1;
 
             for (size_t i = 0; i < cnt; ++i) {
@@ -79,8 +81,6 @@ int main(int argc, char* argv[])
                     cnd.wait(lock);
                 }
             }
-        } else {
-            cout << "Error starting scheduler" << endl;
         }
         m.stop();
     }

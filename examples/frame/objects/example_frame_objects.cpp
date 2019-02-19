@@ -86,9 +86,9 @@ int main(int argc, char* argv[])
         frame::ServiceT        svc(m);
         solid::ErrorConditionT err;
 
-        err = s.start(1);
+        s.start(1);
 
-        if (!err) {
+        {
             const size_t cnt = argc == 2 ? atoi(argv[1]) : 1000;
 
             cout << "Creating " << cnt << " actors:" << endl;
@@ -113,8 +113,6 @@ int main(int argc, char* argv[])
                     ++running_actcnt;
                 }
             }
-        } else {
-            cout << "Error starting scheduler: " << err.message() << endl;
         }
 
         if (!err) {

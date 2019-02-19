@@ -74,12 +74,7 @@ int main(int argc, char* argv[])
 
         (WorkPoolConfiguration());
 
-        err = scheduler.start(1);
-
-        if (err) {
-            cout << "Error starting aio scheduler: " << err.message() << endl;
-            return 1;
-        }
+        scheduler.start(1);
 
         {
             auto con_register = [](
@@ -137,12 +132,7 @@ int main(int argc, char* argv[])
 
             cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, p.server_port.c_str());
 
-            err = ipcservice.reconfigure(std::move(cfg));
-
-            if (err) {
-                cout << "Error starting ipcservice: " << err.message() << endl;
-                return 1;
-            }
+            ipcservice.start(std::move(cfg));
         }
 
         ipcservice.createConnectionPool(p.server_addr.c_str());

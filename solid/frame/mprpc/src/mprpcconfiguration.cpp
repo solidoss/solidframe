@@ -13,6 +13,7 @@
 #include "solid/frame/mprpc/mprpcsocketstub_plain.hpp"
 
 #include "solid/system/cassert.hpp"
+#include "solid/system/exception.hpp"
 #include "solid/system/memory.hpp"
 
 #include <cstring>
@@ -312,10 +313,8 @@ size_t Configuration::connectionReconnectTimeoutSeconds(
     return sleep_seconds; //TODO: add entropy - improve algorithm
 }
 //-----------------------------------------------------------------------------
-ErrorConditionT Configuration::check() const
+void Configuration::check() const
 {
-    //TODO:
-    return ErrorConditionT();
 }
 //-----------------------------------------------------------------------------
 void Configuration::prepare()
@@ -351,6 +350,48 @@ void Configuration::prepare()
         client.connection_start_secure = false;
     }
 }
+
+//-----------------------------------------------------------------------------
+
+void Configuration::prepare(SocketDevice& _rsd)
+{
+
+    prepare();
+
+    if (!server.listener_address_str.empty()) {
+        std::string tmp;
+        const char* hst_name;
+        const char* svc_name;
+
+        size_t off = server.listener_address_str.rfind(':');
+        if (off != std::string::npos) {
+            tmp      = server.listener_address_str.substr(0, off);
+            hst_name = tmp.c_str();
+            svc_name = server.listener_address_str.c_str() + off + 1;
+            if (svc_name[0] == 0) {
+                svc_name = server.listener_service_str.c_str();
+            }
+        } else {
+            hst_name = server.listener_address_str.c_str();
+            svc_name = server.listener_service_str.c_str();
+        }
+
+        ResolveData rd = synchronous_resolve(hst_name, svc_name, 0, -1, SocketInfo::Stream);
+
+        for (auto it = rd.begin(); it != rd.end(); ++it) {
+            SocketDevice sd;
+            sd.create(it);
+            const auto err = sd.prepareAccept(it, SocketInfo::max_listen_backlog_size());
+            if (!err) {
+                _rsd = std::move(sd);
+                return; //SUCCESS
+            }
+        }
+
+        solid_throw("failed to create listener socket device");
+    }
+}
+
 //-----------------------------------------------------------------------------
 RecvBufferPointerT Configuration::allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) const
 {

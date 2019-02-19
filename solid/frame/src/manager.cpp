@@ -37,6 +37,12 @@ const LoggerT logger("solid::frame");
 
 namespace {
 
+enum struct StatusE {
+    Stopped,
+    Running,
+    Stopping,
+};
+
 enum {
     ErrorServiceUnknownE = 1,
     ErrorServiceNotRunningE,
@@ -157,13 +163,6 @@ struct ActorChunk {
     }
 };
 
-enum State {
-    StateStartingE = 1,
-    StateRunningE,
-    StateStoppingE,
-    StateStoppedE
-};
-
 struct ServiceStub {
     ServiceStub(
         std::mutex& _rmtx)
@@ -171,14 +170,14 @@ struct ServiceStub {
         , rmtx(_rmtx)
         , firstchk(InvalidIndex())
         , lastchk(InvalidIndex())
-        , state(StateStoppedE)
         , crtactidx(InvalidIndex())
         , endactidx(InvalidIndex())
         , actcnt(0)
+        , status(StatusE::Stopped)
     {
     }
 
-    void reset(Service* _psvc)
+    void reset(Service* _psvc, const bool _start)
     {
         psvc      = _psvc;
         firstchk  = InvalidIndex();
@@ -186,7 +185,7 @@ struct ServiceStub {
         crtactidx = InvalidIndex();
         endactidx = InvalidIndex();
         actcnt    = 0;
-        state     = StateRunningE;
+        status    = _start ? StatusE::Running : StatusE::Stopped;
         while (!actcache.empty()) {
             actcache.pop();
         }
@@ -201,7 +200,7 @@ struct ServiceStub {
         crtactidx = InvalidIndex();
         endactidx = InvalidIndex();
         actcnt    = 0;
-        state     = StateStoppedE;
+        status    = StatusE::Stopped;
         while (!actcache.empty()) {
             actcache.pop();
         }
@@ -211,10 +210,10 @@ struct ServiceStub {
     std::mutex& rmtx;
     size_t      firstchk;
     size_t      lastchk;
-    State       state;
     size_t      crtactidx;
     size_t      endactidx;
     size_t      actcnt;
+    StatusE     status;
     SizeStackT  actcache;
 };
 
@@ -244,7 +243,7 @@ struct ActorStoreStub {
     ChunkDequeT vec;
 };
 
-typedef std::atomic<State> AtomicStateT;
+typedef std::atomic<StatusE> AtomicStatusT;
 
 //---------------------------------------------------------
 struct Manager::Data {
@@ -264,7 +263,7 @@ struct Manager::Data {
     size_t                  actchkcnt;
     AtomicSizeT             maxactcnt;
     SizeStackT              chkcache;
-    AtomicStateT            state;
+    AtomicStatusT           status;
     std::mutex              mtx;
     std::condition_variable cnd;
 
@@ -382,7 +381,7 @@ Manager::Data::Data(
     , svccnt(0)
     , crtactstoreidx(0)
     , maxactcnt(0)
-    , state(StateRunningE)
+    , status(StatusE::Running)
 {
 }
 
@@ -449,16 +448,15 @@ Manager::Manager(
     delete[] impl_->psvcmtxarr;
 }
 
-bool Manager::registerService(
-    Service& _rs)
+bool Manager::registerService(Service& _rs, const bool _start)
 {
     std::lock_guard<std::mutex> lock(impl_->mtx);
 
-    if (_rs.isRegistered()) {
+    if (_rs.registered()) {
         return false;
     }
 
-    if (impl_->state != StateRunningE) {
+    if (impl_->status.load() != StatusE::Running) {
         return false;
     }
 
@@ -494,15 +492,15 @@ bool Manager::registerService(
         crtsvcstoreidx = impl_->releaseWriteServiceStore(newsvcvecidx);
         ++impl_->crtsvcidx;
     }
-    _rs.idx = svcidx;
+    _rs.index(svcidx);
     ++impl_->svccnt;
-    impl_->svcstore[crtsvcstoreidx].vec[svcidx]->reset(&_rs);
+    impl_->svcstore[crtsvcstoreidx].vec[svcidx]->reset(&_rs, _start);
     return true;
 }
 
 void Manager::unregisterService(Service& _rsvc)
 {
-    const size_t svcidx = _rsvc.idx;
+    const size_t svcidx = _rsvc.index();
 
     if (svcidx == InvalidIndex()) {
         return;
@@ -525,12 +523,11 @@ void Manager::unregisterService(Service& _rsvc)
 void Manager::doUnregisterService(ServiceStub& _rss)
 {
     std::lock_guard<std::mutex> lock2(impl_->mtx);
+    const size_t                actvecidx = impl_->crtactstoreidx; //inside lock, so crtactstoreidx will not change
 
-    const size_t actvecidx = impl_->crtactstoreidx; //inside lock, so crtactstoreidx will not change
+    impl_->svccache.push(_rss.psvc->index());
 
-    impl_->svccache.push(_rss.psvc->idx);
-
-    _rss.psvc->idx.store(InvalidIndex());
+    _rss.psvc->index(InvalidIndex());
 
     size_t chkidx = _rss.firstchk;
 
@@ -544,7 +541,7 @@ void Manager::doUnregisterService(ServiceStub& _rss)
     _rss.reset();
     --impl_->svccnt;
 
-    if (impl_->svccnt == 0 && impl_->state == StateStoppingE) {
+    if (impl_->svccnt == 0 && impl_->status.load() == StatusE::Stopping) {
         impl_->cnd.notify_all();
     }
 }
@@ -556,9 +553,8 @@ ActorIdT Manager::registerActor(
     ScheduleFunctionT& _rfct,
     ErrorConditionT&   _rerr)
 {
-    ActorIdT retval;
-
-    const size_t svcidx = _rsvc.idx;
+    ActorIdT     retval;
+    const size_t svcidx = _rsvc.index();
 
     if (svcidx == InvalidIndex()) {
         _rerr = error_service_unknown;
@@ -572,7 +568,7 @@ ActorIdT Manager::registerActor(
 
     impl_->releaseReadServiceStore(svcstoreidx);
 
-    if (rss.psvc != &_rsvc || rss.state != StateRunningE) {
+    if (rss.psvc != &_rsvc || rss.status != StatusE::Running) {
         _rerr = error_service_not_running;
         return retval;
     }
@@ -641,10 +637,10 @@ ActorIdT Manager::registerActor(
         impl_->releaseReadActorStore(actstoreidx);
 
         if (ractchk.svcidx == InvalidIndex()) {
-            ractchk.svcidx = _rsvc.idx;
+            ractchk.svcidx = _rsvc.index();
         }
 
-        solid_assert(ractchk.svcidx == _rsvc.idx);
+        solid_assert(ractchk.svcidx == _rsvc.index());
 
         _ract.id(actidx);
 
@@ -710,7 +706,7 @@ void Manager::unregisterActor(ActorBase& _ract)
         rss.actcache.push(actidx);
         --rss.actcnt;
         solid_dbg(logger, Verbose, "" << this << " serviceid = " << svcidx << " actcnt = " << rss.actcnt);
-        if (rss.actcnt == 0 && rss.state == StateStoppingE) {
+        if (rss.actcnt == 0 && rss.status == StatusE::Stopping) {
             impl_->cnd.notify_all();
         }
     }
@@ -738,7 +734,7 @@ bool Manager::notify(ActorIdT const& _ruid, Event&& _uevt)
     const auto do_notify_fnc = [&_uevt](VisitContext& _rctx) {
         return _rctx.raiseActor(std::move(_uevt));
     };
-    
+
     return doVisit(_ruid, ActorVisitFunctionT{do_notify_fnc});
 }
 #else
@@ -837,7 +833,7 @@ ActorIdT Manager::id(const ActorBase& _ract) const
 std::mutex& Manager::mutex(const Service& _rsvc) const
 {
     std::mutex*  pmtx        = nullptr;
-    const size_t svcidx      = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
+    const size_t svcidx      = _rsvc.index();
     const size_t svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
     ServiceStub& rsvc        = *impl_->svcstore[svcstoreidx].vec[svcidx];
 
@@ -850,10 +846,10 @@ std::mutex& Manager::mutex(const Service& _rsvc) const
 
 size_t Manager::doForEachServiceActor(const Service& _rsvc, const ActorVisitFunctionT _rfct)
 {
-    if (!_rsvc.isRegistered()) {
+    if (!_rsvc.registered()) {
         return 0u;
     }
-    const size_t svcidx = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
+    const size_t svcidx = _rsvc.index();
     size_t       chkidx = InvalidIndex();
     {
         const size_t svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
@@ -925,69 +921,81 @@ Service& Manager::service(const ActorBase& _ract) const
     return *psvc;
 }
 
-bool Manager::startService(Service& _rsvc)
+void Manager::doStartService(Service& _rsvc, LockedFunctionT& _locked_fnc, UnlockedFunctionT& _unlocked_fnc)
 {
-    solid_check(_rsvc.isRegistered(), "Service not registered");
-    
-    const size_t                svcidx      = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
-    const size_t                svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
-    ServiceStub&                rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
-    std::lock_guard<std::mutex> lock(rss.rmtx);
+    solid_check(_rsvc.registered(), "Service not registered");
 
-    impl_->releaseReadServiceStore(svcstoreidx);
-
-    if (rss.state == StateStoppedE) {
-        rss.psvc->setRunning();
-        rss.state = StateRunningE;
-        return true;
-    }
-    return false;
-}
-
-bool Manager::stopService(Service& _rsvc, const bool _wait)
-{
-    solid_check(_rsvc.isRegistered(), "Service not registered");
-
-    const size_t svcidx      = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
+    const size_t svcidx      = _rsvc.index();
     const size_t svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
     ServiceStub& rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
+    {
+        std::unique_lock<std::mutex> lock(rss.rmtx);
 
+        impl_->releaseReadServiceStore(svcstoreidx);
+
+        solid_check(rss.status == StatusE::Stopped, "Service not stopped");
+
+        rss.status = StatusE::Running;
+
+        try {
+            _locked_fnc();
+        } catch (...) {
+            rss.status = StatusE::Stopped;
+            throw;
+        }
+    }
+
+    try {
+        _unlocked_fnc();
+    } catch (...) {
+        stopService(_rsvc, true);
+        throw;
+    }
+    _rsvc.statusSetRunning();
+}
+
+void Manager::stopService(Service& _rsvc, const bool _wait)
+{
+    solid_check(_rsvc.registered(), "Service not registered");
+
+    const size_t                 svcidx      = _rsvc.index();
+    const size_t                 svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
+    ServiceStub&                 rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
     std::unique_lock<std::mutex> lock(rss.rmtx);
 
     solid_dbg(logger, Verbose, "" << svcidx << " actcnt = " << rss.actcnt);
 
     impl_->releaseReadServiceStore(svcstoreidx);
 
-    if (rss.state == StateStoppedE) {
-        solid_dbg(logger, Verbose, "" << svcidx);
-        return false;
-    }
-    if (rss.state == StateRunningE) {
+    _rsvc.statusSetStopping();
+
+    if (rss.status == StatusE::Running) {
+        rss.status              = StatusE::Stopping;
         const auto raise_lambda = [](VisitContext& _rctx) {
             return _rctx.raiseActor(make_event(GenericEvents::Kill));
         };
-        
-        rss.psvc->resetRunning();
-
         const size_t cnt = doForEachServiceActor(rss.firstchk, ActorVisitFunctionT{raise_lambda});
 
         if (cnt == 0 && rss.actcnt == 0) {
-            rss.state = StateStoppedE;
             solid_dbg(logger, Verbose, "StateStoppedE on " << svcidx);
-            return false;
+            rss.status = StatusE::Stopped;
+            _rsvc.statusSetStopped();
+            return;
         }
-        rss.state = StateStoppingE;
     }
 
-    if (rss.state == StateStoppingE && _wait) {
+    if (rss.status == StatusE::Stopped) {
         solid_dbg(logger, Verbose, "" << svcidx);
+        return;
+    }
+
+    if (rss.status == StatusE::Stopping && _wait) {
         while (rss.actcnt != 0u) {
             impl_->cnd.wait(lock);
         }
-        solid_dbg(logger, Verbose, "StateStoppedE on " << svcidx);
-        rss.state = StateStoppedE;
+        rss.status = StatusE::Stopped;
+        _rsvc.statusSetStopped();
     }
-    return false;
 }
 
 void Manager::start()
@@ -995,17 +1003,17 @@ void Manager::start()
     {
         std::unique_lock<std::mutex> lock(impl_->mtx);
 
-        while (impl_->state != StateRunningE) {
-            if (impl_->state == StateStoppedE) {
-                impl_->state = StateRunningE;
+        while (impl_->status != StatusE::Running) {
+            if (impl_->status == StatusE::Stopped) {
+                impl_->status = StatusE::Running;
                 continue;
             }
-            if (impl_->state == StateRunningE) {
+            if (impl_->status == StatusE::Running) {
                 continue;
             }
 
-            if (impl_->state == StateStoppingE) {
-                while (impl_->state == StateStoppingE) {
+            if (impl_->status == StatusE::Stopping) {
+                while (impl_->status == StatusE::Stopping) {
                     impl_->cnd.wait(lock);
                 }
             } else {
@@ -1019,12 +1027,12 @@ void Manager::stop()
 {
     {
         std::unique_lock<std::mutex> lock(impl_->mtx);
-        if (impl_->state == StateStoppedE) {
+        if (impl_->status == StatusE::Stopped) {
             return;
         }
-        if (impl_->state == StateRunningE) {
-            impl_->state = StateStoppingE;
-        } else if (impl_->state == StateStoppingE) {
+        if (impl_->status == StatusE::Running) {
+            impl_->status = StatusE::Stopping;
+        } else if (impl_->status == StatusE::Stopping) {
             while (impl_->svccnt != 0u) {
                 impl_->cnd.wait(lock);
             }
@@ -1048,12 +1056,15 @@ void Manager::stop()
 
             std::lock_guard<std::mutex> lock(rss.rmtx);
 
-            if (rss.psvc != nullptr && rss.state == StateRunningE) {
-                rss.psvc->resetRunning();
-
+            if (rss.psvc != nullptr && rss.status == StatusE::Running) {
+                rss.status       = StatusE::Stopping;
                 const size_t cnt = doForEachServiceActor(rss.firstchk, ActorVisitFunctionT{raise_lambda});
                 (void)cnt;
-                rss.state = (rss.actcnt != 0) ? StateStoppingE : StateStoppedE;
+
+                if (rss.actcnt == 0) {
+                    rss.status = StatusE::Stopped;
+                    rss.psvc->statusSetStopped();
+                }
                 solid_dbg(logger, Verbose, "StateStoppedE on " << (it - rsvcstore.vec.begin()));
             }
         }
@@ -1066,16 +1077,16 @@ void Manager::stop()
 
             std::unique_lock<std::mutex> lock(rss.rmtx);
 
-            if (rss.psvc != nullptr && rss.state == StateStoppingE) {
+            if (rss.psvc != nullptr && rss.status == StatusE::Stopping) {
                 solid_dbg(logger, Verbose, "wait stop service: " << (it - rsvcstore.vec.begin()));
                 while (rss.actcnt != 0u) {
                     impl_->cnd.wait(lock);
                 }
-                rss.state = StateStoppedE;
+                rss.status = StatusE::Stopped;
+                rss.psvc->statusSetStopped();
                 solid_dbg(logger, Verbose, "StateStoppedE on " << (it - rsvcstore.vec.begin()));
             } else if (rss.psvc != nullptr) {
-                solid_dbg(logger, Verbose, "unregister already stopped service: " << (it - rsvcstore.vec.begin()) << " " << rss.psvc << " " << rss.state);
-                solid_assert(rss.state == StateStoppedE);
+                solid_dbg(logger, Verbose, "unregister already stopped service: " << (it - rsvcstore.vec.begin()) << " " << rss.psvc);
             }
         }
     }
@@ -1084,7 +1095,7 @@ void Manager::stop()
 
     {
         std::lock_guard<std::mutex> lock(impl_->mtx);
-        impl_->state = StateStoppedE;
+        impl_->status = StatusE::Stopped;
         impl_->cnd.notify_all();
     }
 }

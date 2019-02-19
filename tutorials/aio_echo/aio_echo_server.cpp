@@ -128,10 +128,7 @@ int main(int argc, char* argv[])
     frame::Manager  manager;
     frame::ServiceT service(manager);
 
-    if (scheduler.start(thread::hardware_concurrency())) {
-        cout << "Error starting scheduler" << endl;
-        return 0;
-    }
+    scheduler.start(thread::hardware_concurrency());
 
     {
         ResolveData  rd = synchronous_resolve("0.0.0.0", p.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);

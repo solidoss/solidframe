@@ -434,26 +434,9 @@ int test_relay_cancel_response(int argc, char* argv[])
         FunctionWorkPool                      fwp{WorkPoolConfiguration()};
         frame::aio::Resolver                  resolver(fwp);
 
-        err = sch_peera.start(1);
-
-        if (err) {
-            solid_dbg(generic_logger, Error, "starting aio peera scheduler: " << err.message());
-            return 1;
-        }
-
-        err = sch_peerb.start(1);
-
-        if (err) {
-            solid_dbg(generic_logger, Error, "starting aio peerb scheduler: " << err.message());
-            return 1;
-        }
-
-        err = sch_relay.start(1);
-
-        if (err) {
-            solid_dbg(generic_logger, Error, "starting aio relay scheduler: " << err.message());
-            return 1;
-        }
+        sch_peera.start(1);
+        sch_peerb.start(1);
+        sch_relay.start(1);
 
         std::string relay_port;
 
@@ -519,13 +502,7 @@ int test_relay_cancel_response(int argc, char* argv[])
                 frame::mprpc::snappy::setup(cfg);
             }
 
-            err = mprpcrelay.reconfigure(std::move(cfg));
-
-            if (err) {
-                solid_dbg(generic_logger, Error, "starting server mprpcservice: " << err.message());
-                //exiting
-                return 1;
-            }
+            mprpcrelay.start(std::move(cfg));
 
             {
                 std::ostringstream oss;
@@ -570,13 +547,7 @@ int test_relay_cancel_response(int argc, char* argv[])
                 frame::mprpc::snappy::setup(cfg);
             }
 
-            err = mprpcpeera.reconfigure(std::move(cfg));
-
-            if (err) {
-                solid_dbg(generic_logger, Error, "starting peera mprpcservice: " << err.message());
-                //exiting
-                return 1;
-            }
+            mprpcpeera.start(std::move(cfg));
         }
 
         { //mprpc peerb initialization
@@ -611,13 +582,7 @@ int test_relay_cancel_response(int argc, char* argv[])
                 frame::mprpc::snappy::setup(cfg);
             }
 
-            err = mprpcpeerb.reconfigure(std::move(cfg));
-
-            if (err) {
-                solid_dbg(generic_logger, Error, "starting peerb mprpcservice: " << err.message());
-                //exiting
-                return 1;
-            }
+            mprpcpeerb.start(std::move(cfg));
         }
 
         const size_t start_count = 4;

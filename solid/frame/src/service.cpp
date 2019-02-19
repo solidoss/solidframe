@@ -27,7 +27,5 @@
 namespace solid {
 namespace frame {
 
-
-
 } //namespace frame
 } //namespace solid

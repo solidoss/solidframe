@@ -87,11 +87,7 @@ ErrorConditionT start(
         cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(_rctx.rresolver, _rctx.rserver_port.c_str() /*, SocketInfo::Inet4*/);
 
         mprpcclient_ptr = std::make_shared<frame::mprpc::ServiceT>(_rctx.rm);
-        err             = mprpcclient_ptr->reconfigure(std::move(cfg));
-
-        if (err) {
-            return err;
-        }
+        mprpcclient_ptr->start(std::move(cfg));
 
         _rctx.rwait_count += 3;
 

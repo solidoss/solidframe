@@ -36,7 +36,7 @@ protected:
     typedef solid_function_t(bool()) ThreadEnterFunctionT;
     typedef solid_function_t(void()) ThreadExitFunctionT;
 
-    ErrorConditionT doStart(
+    void doStart(
         CreateWorkerF         _pf,
         ThreadEnterFunctionT& _renf,
         ThreadExitFunctionT&  _rexf,

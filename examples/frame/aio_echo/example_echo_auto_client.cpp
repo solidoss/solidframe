@@ -204,9 +204,9 @@ int main(int argc, char* argv[])
         frame::Manager  m;
         frame::ServiceT svc(m);
 
-        if (sch.start(thread::hardware_concurrency())) {
-            cout << "Error starting scheduler" << endl;
-        } else {
+        sch.start(thread::hardware_concurrency());
+
+        {
             for (size_t i = 0; i < params.connection_count; ++i) {
                 DynamicPointer<frame::aio::Actor> actptr(new Connection(i));
                 solid::ErrorConditionT            err;

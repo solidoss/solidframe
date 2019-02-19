@@ -13,8 +13,8 @@
 #include "solid/frame/common.hpp"
 #include "solid/frame/manager.hpp"
 #include "solid/frame/schedulerbase.hpp"
-#include "solid/utility/dynamictype.hpp"
 #include "solid/utility/any.hpp"
+#include "solid/utility/dynamictype.hpp"
 #include <atomic>
 #include <mutex>
 #include <vector>
@@ -57,13 +57,19 @@ private:
 };
 
 class Service {
+    enum struct StatusE {
+        Stopped,
+        Running,
+        Stopping,
+    };
+
 protected:
     explicit Service(
-        UseServiceShell _force_shell);
-    
+        UseServiceShell _force_shell, const bool _start = true);
+
     template <typename A>
     Service(
-        UseServiceShell _force_shell, A _a);
+        UseServiceShell _force_shell, A&& _a, const bool _start = true);
 
 public:
     Service(const Service&) = delete;
@@ -73,76 +79,78 @@ public:
 
     virtual ~Service();
 
-    bool isRegistered() const;
+    bool registered() const;
 
     void notifyAll(Event const& _e);
 
     template <class F>
     bool forEach(F& _rf);
 
-    bool stop(const bool _wait = true);
+    void stop(const bool _wait = true);
 
     Manager& manager();
 
     std::mutex& mutex(const ActorBase& _ract) const;
 
-    bool isRunning() const;
-
     ActorIdT id(const ActorBase& _ract) const;
+
+    bool running() const;
+
+    bool stopping() const;
+
+    bool stopped() const;
 
 protected:
     std::mutex& mutex() const;
-    
-    bool doStart(){
-        return rm_.startService(*this);
-    }
-    
+
+    void doStart();
+
     template <typename A>
-    bool doStart(A _a){
-        
-    }
+    void doStart(A&& _a);
+
+    template <typename A, typename F>
+    void doStartWithAny(A&& _a, F&& _f);
+
+    template <typename F>
+    void doStartWithoutAny(F&& _f);
+
 private:
     friend class Manager;
     friend class SchedulerBase;
 
-    void setRunning()
-    {
-        running_ = true;
-    }
-
-    void resetRunning()
-    {
-        running_ = false;
-    }
-
     ActorIdT registerActor(ActorBase& _ract, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
+    //called by manager to set status
+
+    bool statusSetStopping();
+    void statusSetStopped();
+    void statusSetRunning();
+
+    size_t index() const;
+    void   index(const size_t _idx);
 
 private:
-    Manager&            rm_;
-    std::atomic<size_t> idx_;
-    std::atomic<bool>   running_;
-    Any<>               any_;
+    Manager&             rm_;
+    std::atomic<size_t>  idx_;
+    std::atomic<StatusE> status_;
+    Any<>                any_;
 };
 
-
 inline Service::Service(
-    UseServiceShell _force_shell)
+    UseServiceShell _force_shell, const bool _start)
     : rm_(_force_shell.rmanager)
     , idx_(static_cast<size_t>(InvalidIndex()))
-    , running_(false)
 {
-    rm_.registerService(*this);
+    rm_.registerService(*this, _start);
 }
 
 template <typename A>
 inline Service::Service(
-        UseServiceShell _force_shell, A _a)
+    UseServiceShell _force_shell, A&& _a, const bool _start)
     : rm_(_force_shell.rmanager)
     , idx_(static_cast<size_t>(InvalidIndex()))
-    , running_(false)
     , any_(std::forward<A>(_a))
 {
-    rm_.registerService(*this);
+    rm_.registerService(*this, _start);
 }
 
 inline Service::~Service()
@@ -162,14 +170,50 @@ inline Manager& Service::manager()
     return rm_;
 }
 
-inline bool Service::isRegistered() const
+inline bool Service::registered() const
 {
-    return idx.load(/*std::memory_order_seq_cst*/) != InvalidIndex();
+    return idx_.load(/*std::memory_order_seq_cst*/) != InvalidIndex();
 }
 
-inline bool Service::isRunning() const
+inline bool Service::running() const
 {
-    return running_;
+    return status_.load(std::memory_order_relaxed) == StatusE::Running;
+}
+
+inline bool Service::stopping() const
+{
+    return status_.load(std::memory_order_relaxed) == StatusE::Stopping;
+}
+
+inline bool Service::stopped() const
+{
+    return status_.load(std::memory_order_relaxed) == StatusE::Stopped;
+}
+
+inline size_t Service::index() const
+{
+    return idx_.load();
+}
+
+inline void Service::index(const size_t _idx)
+{
+    idx_.store(_idx);
+}
+
+inline bool Service::statusSetStopping()
+{
+    StatusE expect{StatusE::Running};
+    return status_.compare_exchange_strong(expect, StatusE::Stopping);
+}
+
+inline void Service::statusSetStopped()
+{
+    status_.store(StatusE::Stopped);
+}
+
+inline void Service::statusSetRunning()
+{
+    status_.store(StatusE::Running);
 }
 
 inline void Service::notifyAll(Event const& _revt)
@@ -177,14 +221,34 @@ inline void Service::notifyAll(Event const& _revt)
     rm_.notifyAll(*this, _revt);
 }
 
-inline bool Service::start()
+inline void Service::doStart()
 {
-    return rm_.startService(*this);
+    rm_.startService(*this, []() {}, []() {});
 }
 
-inline bool Service::stop(const bool _wait)
+template <typename A>
+inline void Service::doStart(A&& _a)
 {
-    return rm_.stopService(*this, _wait);
+    Any<> a{std::forward<A>(_a)};
+    rm_.startService(*this, [this, &a]() { any_ = std::move(a); }, []() {});
+}
+
+template <typename A, typename F>
+inline void Service::doStartWithAny(A&& _a, F&& _f)
+{
+    Any<> a{std::forward<A>(_a)};
+    rm_.startService(*this, [this, &a]() { any_ = std::move(a); }, std::forward<F>(_f));
+}
+
+template <typename F>
+inline void Service::doStartWithoutAny(F&& _f)
+{
+    rm_.startService(*this, []() {}, std::forward<F>(_f));
+}
+
+inline void Service::stop(const bool _wait)
+{
+    rm_.stopService(*this, _wait);
 }
 
 inline std::mutex& Service::mutex(const ActorBase& _ract) const
@@ -235,10 +299,11 @@ public:
     {
         Service::stop(true);
     }
-    
+
     template <typename... Args>
-    ErrorConditionT start(Args&&... _args){
-        return typename S::doStart(std::forward<Args>(_args)...);
+    void start(Args&&... _args)
+    {
+        S::doStart(std::forward<Args>(_args)...);
     }
 };
 

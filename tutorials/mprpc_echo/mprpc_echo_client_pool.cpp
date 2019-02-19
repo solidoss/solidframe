@@ -86,12 +86,7 @@ int main(int argc, char* argv[])
         frame::aio::Resolver   resolver(fwp);
         ErrorConditionT        err;
 
-        err = scheduler.start(1);
-
-        if (err) {
-            cout << "Error starting aio scheduler: " << err.message() << endl;
-            return 1;
-        }
+        scheduler.start(1);
 
         {
             auto                        proto = ipc_echo::ProtocolT::create();
@@ -103,12 +98,7 @@ int main(int argc, char* argv[])
 
             cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
 
-            err = ipcservice.reconfigure(std::move(cfg));
-
-            if (err) {
-                cout << "Error starting ipcservice: " << err.message() << endl;
-                return 1;
-            }
+            ipcservice.start(std::move(cfg));
         }
 
         frame::mprpc::RecipientId recipient_id;

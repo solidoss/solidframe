@@ -371,12 +371,7 @@ int main(int argc, char* argv[])
         frame::mprpc::ServiceT ipcservice(manager);
         ErrorConditionT        err;
 
-        err = scheduler.start(1);
-
-        if (err) {
-            cout << "Error starting aio scheduler: " << err.message() << endl;
-            return 1;
-        }
+        scheduler.start(1);
 
         {
             auto                        proto = ipc_request::ProtocolT::create();
@@ -403,13 +398,8 @@ int main(int argc, char* argv[])
 
             frame::mprpc::snappy::setup(cfg);
 
-            err = ipcservice.reconfigure(std::move(cfg));
+            ipcservice.start(std::move(cfg));
 
-            if (err) {
-                cout << "Error starting ipcservice: " << err.message() << endl;
-                manager.stop();
-                return 1;
-            }
             {
                 std::ostringstream oss;
                 oss << ipcservice.configuration().server.listenerPort();

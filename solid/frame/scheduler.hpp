@@ -73,19 +73,19 @@ private:
 public:
     Scheduler() {}
 
-    ErrorConditionT start(const size_t _reactorcnt = 1)
+    void start(const size_t _reactorcnt = 1)
     {
         ThreadEnterFunctionT enf;
         ThreadExitFunctionT  exf;
-        return SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt);
+        SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt);
     }
 
     template <class EnterFct, class ExitFct>
-    ErrorConditionT start(EnterFct _enf, ExitFct _exf, const size_t _reactorcnt = 1)
+    void start(EnterFct _enf, ExitFct _exf, const size_t _reactorcnt = 1)
     {
         ThreadEnterFunctionT enf(std::move(_enf));
         ThreadExitFunctionT  exf(std::move(_exf)); //we don't want to copy _exf
-        return SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt);
+        SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt);
     }
 
     void stop(const bool _wait = true)

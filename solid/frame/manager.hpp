@@ -41,6 +41,9 @@ class ReactorBase;
 struct ServiceStub;
 
 class Manager final {
+    using LockedFunctionT   = std::function<void()>;
+    using UnlockedFunctionT = std::function<void()>;
+
 public:
     class VisitContext {
         friend class Manager;
@@ -153,7 +156,7 @@ private:
         ActorBase& _ract, ReactorBase& _rreact,
         Event&& _uevt, const size_t _sigmsk);
 
-    bool registerService(Service& _rsvc);
+    bool registerService(Service& _rsvc, const bool _start);
     void unregisterService(Service& _rsvc);
 
     void unregisterActor(ActorBase& _ract);
@@ -182,13 +185,22 @@ private:
 
     bool raise(const ActorBase& _ract, Event const& _re);
 
-    bool stopService(Service& _rsvc, bool _wait);
-    bool startService(Service& _rsvc);
+    void stopService(Service& _rsvc, bool _wait);
+
+    template <typename LockedFnc, typename UnlockedFnc>
+    void startService(Service& _rsvc, LockedFnc&& _lf, UnlockedFnc&& _uf)
+    {
+        LockedFunctionT   lf{std::forward<LockedFnc>(_lf)};
+        UnlockedFunctionT uf{std::forward<UnlockedFnc>(_uf)};
+
+        doStartService(_rsvc, lf, uf);
+    }
 
     size_t doForEachServiceActor(const Service& _rsvc, const ActorVisitFunctionT _rfct);
     size_t doForEachServiceActor(const size_t _chkidx, const ActorVisitFunctionT _rfct);
     bool   doVisit(ActorIdT const& _ruid, const ActorVisitFunctionT _fctor);
     void   doUnregisterService(ServiceStub& _rss);
+    void   doStartService(Service& _rsvc, LockedFunctionT& _locked_fnc, UnlockedFunctionT& _unlocked_fnc);
 
 private:
     struct Data;

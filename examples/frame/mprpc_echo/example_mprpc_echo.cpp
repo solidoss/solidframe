@@ -228,12 +228,7 @@ bool restart(
 
     rm.start();
 
-    err = _sch.start(thread::hardware_concurrency());
-
-    if (err) {
-        cout << "Error starting aio scheduler: " << err.message() << endl;
-        return 1;
-    }
+    _sch.start(thread::hardware_concurrency());
 
     frame::mprpc::Configuration cfg(_sch, proto);
 
@@ -283,12 +278,8 @@ bool restart(
         );
     }
 #endif
-    err = _ipcsvc.reconfigure(std::move(cfg));
 
-    if (err) {
-        cout << "Error starting ipcservice: " << err.message() << endl;
-        return false;
-    }
+    _ipcsvc.start(std::move(cfg));
 
     {
         std::ostringstream oss;

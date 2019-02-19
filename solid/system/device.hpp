@@ -69,6 +69,7 @@ private:
 inline Device::DescriptorT Device::descriptor() const { return desc; }
 inline void                Device::descriptor(DescriptorT _desc)
 {
+    close();
     desc = _desc;
 }
 

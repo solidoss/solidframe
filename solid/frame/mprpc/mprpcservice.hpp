@@ -288,27 +288,28 @@ public:
     ErrorConditionT cancelMessage(RecipientId const& _rrecipient_id, MessageId const& _rmsg_id);
 
     bool closeConnection(RecipientId const& _rrecipient_id);
+
 protected:
-    ErrorConditionT doStart(Configuration &&_ucfg){
-        
-        
-    }
-    
+    void doStart(Configuration&& _ucfg);
+    void doStart();
+
     template <typename A>
-    ErrorConditionT doStart(Configuration &&_ucfg, A _a){
-        auto err = _ucfg.check();
-        if(err) return err;
-        SocketDevice sd;
-        err = _ucfg.prepare(sd);
-        if(err) return err;
-        
-        if(frame::Service::stop(false)){
-            
-        }else{
-            
-        }
+    void doStart(Configuration&& _ucfg, A&& _a)
+    {
+        Configuration cfg;
+        SocketDevice  sd;
+
+        cfg.reset(std::move(_ucfg));
+        cfg.check();
+        cfg.prepare(sd);
+
+        Service::doStartWithAny(
+            std::forward<A>(_a),
+            [this, &cfg, &sd]() {
+                doFinalizeStart(std::move(cfg), std::move(sd));
+            });
     }
-    
+
 private:
     ErrorConditionT doConnectionNotifyEnterActiveState(
         RecipientId const&                       _rrecipient_id,
@@ -335,7 +336,8 @@ private:
 
     //void doStop();
 
-    ErrorConditionT doStart();
+    void doFinalizeStart(Configuration&& _ucfg, SocketDevice&& _usd);
+    void doFinalizeStart();
 
     void acceptIncomingConnection(SocketDevice& _rsd);
 

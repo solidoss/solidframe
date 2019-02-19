@@ -189,10 +189,9 @@ int main(int argc, char* argv[])
 
         frame::Manager  m;
         frame::ServiceT svc(m);
+        sch.start(thread::hardware_concurrency());
 
-        if (sch.start(thread::hardware_concurrency())) {
-            cout << "Error starting scheduler" << endl;
-        } else {
+        {
             ResolveData rd = synchronous_resolve("0.0.0.0", params.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 
             SocketDevice sd;

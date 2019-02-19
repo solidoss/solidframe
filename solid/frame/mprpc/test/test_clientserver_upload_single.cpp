@@ -229,13 +229,8 @@ int test_clientserver_upload_single(int argc, char* argv[])
         FunctionWorkPool       fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
 
-        err = sch_client.start(1);
-
-        solid_check(!err, "starting aio client scheduler: " << err.message());
-
-        err = sch_server.start(1);
-
-        solid_check(!err, "starting aio server scheduler: " << err.message());
+        sch_client.start(1);
+        sch_server.start(1);
 
         std::string server_port;
 
@@ -270,9 +265,7 @@ int test_clientserver_upload_single(int argc, char* argv[])
                 frame::mprpc::snappy::setup(cfg);
             }
 
-            err = mprpc_server.reconfigure(std::move(cfg));
-
-            solid_check(!err, "starting back_server mprpcservice: " << err.message());
+            mprpc_server.start(std::move(cfg));
 
             {
                 std::ostringstream oss;
@@ -312,9 +305,7 @@ int test_clientserver_upload_single(int argc, char* argv[])
                 frame::mprpc::snappy::setup(cfg);
             }
 
-            err = mprpc_client.reconfigure(std::move(cfg));
-
-            solid_check(!err, "starting front_client mprpcservice: " << err.message());
+            mprpc_client.start(std::move(cfg));
         }
 
         expect_count = file_vec.size();

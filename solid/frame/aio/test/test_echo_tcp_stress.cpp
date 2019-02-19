@@ -490,10 +490,9 @@ int test_echo_tcp_stress(int argc, char* argv[])
             solid_check(!err, "failed loadPrivateKeyFile " << err.message());
         }
 
-        if (srv_sch.start(thread::hardware_concurrency())) {
-            running = false;
-            cout << "Error starting server scheduler" << endl;
-        } else {
+        srv_sch.start(thread::hardware_concurrency());
+
+        {
             ResolveData rd = synchronous_resolve("0.0.0.0", "0", 0, SocketInfo::Inet4, SocketInfo::Stream);
 
             SocketDevice sd;
@@ -529,10 +528,8 @@ int test_echo_tcp_stress(int argc, char* argv[])
         frame::ServiceT rly_svc{rly_mgr};
 
         if (use_relay) {
-            if (rly_sch.start(thread::hardware_concurrency())) {
-                running = false;
-                cout << "Error starting scheduler" << endl;
-            } else {
+            rly_sch.start(thread::hardware_concurrency());
+            {
                 ResolveData rd = synchronous_resolve("0.0.0.0", "0", 0, SocketInfo::Inet4, SocketInfo::Stream);
 
                 SocketDevice sd;
@@ -578,10 +575,8 @@ int test_echo_tcp_stress(int argc, char* argv[])
             solid_check(!err, "failed loadPrivateKeyFile " << err.message());
         }
 
-        if (clt_sch.start(thread::hardware_concurrency())) {
-            running = false;
-            cout << "Error starting client scheduler" << endl;
-        } else {
+        clt_sch.start(thread::hardware_concurrency());
+        {
             client::prepareSendData();
 
             for (size_t i = 0; i < connection_count; ++i) {

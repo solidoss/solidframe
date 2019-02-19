@@ -478,7 +478,7 @@ public:
         const bool    _last_connection_was_active,
         const bool    _last_connection_was_secured) const;
 
-    ErrorConditionT check() const;
+    void check() const;
 
     size_t connetionReconnectTimeoutSeconds() const;
 
@@ -577,7 +577,8 @@ public:
 private:
     void init();
     void prepare();
-    ErrorConditionT prepare(SocketDevice &_rsd);
+    void prepare(SocketDevice& _rsd);
+
 private:
     AioSchedulerT* pscheduler;
     RelayEngine*   prelayengine;

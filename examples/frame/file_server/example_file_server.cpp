@@ -201,7 +201,10 @@ int main(int argc, char* argv[])
         frame::Manager  m;
         frame::ServiceT svc(m);
 
-        if (!sched.start(1) && !aiosched.start(1)) {
+        sched.start(1);
+        aiosched.start(1);
+
+        {
             {
                 frame::file::Utf8Configuration utf8cfg;
                 frame::file::TempConfiguration tempcfg;
@@ -262,9 +265,6 @@ int main(int argc, char* argv[])
                     run = false;
                 }
             }
-        } else {
-            run = false;
-            std::cerr << "Could not start schedulers" << endl;
         }
 
         cout << "Here some examples how to test: " << endl;

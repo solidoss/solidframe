@@ -175,12 +175,7 @@ int main(int argc, char* argv[])
         frame::aio::Resolver resolver(fwp);
         ErrorConditionT      err;
 
-        err = scheduler.start(1);
-
-        if (err) {
-            cout << "Error starting aio scheduler: " << err.message() << endl;
-            return 1;
-        }
+        scheduler.start(1);
 
         {
 

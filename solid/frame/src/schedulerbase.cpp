@@ -171,7 +171,7 @@ void dummy_thread_exit()
 {
 }
 
-ErrorConditionT SchedulerBase::doStart(
+void SchedulerBase::doStart(
     CreateWorkerF         _pf,
     ThreadEnterFunctionT& _renf, ThreadExitFunctionT& _rexf,
     size_t _reactorcnt)
@@ -184,9 +184,7 @@ ErrorConditionT SchedulerBase::doStart(
     {
         unique_lock<mutex> lock(impl_->mtx);
 
-        if (impl_->status == StatusRunningE) {
-            return error_already();
-        }
+        solid_check(impl_->status != StatusRunningE, "Scheduler already running");
 
         if (impl_->status != StatusStoppedE || impl_->stopwaitcnt != 0u) {
             do {
@@ -241,7 +239,7 @@ ErrorConditionT SchedulerBase::doStart(
             }
         } else {
             impl_->status = StatusRunningE;
-            return ErrorConditionT();
+            return;
         }
     }
 
@@ -255,7 +253,7 @@ ErrorConditionT SchedulerBase::doStart(
     lock_guard<mutex> lock(impl_->mtx);
     impl_->status = StatusStoppedE;
     impl_->cnd.notify_all();
-    return error_worker();
+    solid_throw("Failed starting worker");
 }
 
 void SchedulerBase::doStop(bool _wait /* = true*/)

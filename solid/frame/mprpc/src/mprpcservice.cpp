@@ -660,7 +660,7 @@ struct Service::Data {
 
 Service::Service(
     UseServiceShell _force_shell)
-    : BaseT(std::move(_force_shell))
+    : BaseT(std::move(_force_shell), false)
     , impl_(make_pimpl<Data>(*this))
 {
 }
@@ -676,106 +676,80 @@ Configuration const& Service::configuration() const
     return impl_->config;
 }
 //-----------------------------------------------------------------------------
-ErrorConditionT Service::start()
+void Service::doStart(Configuration&& _ucfg)
 {
-    lock_guard<std::mutex> lock(impl_->mtx);
-    ErrorConditionT        err = doStart();
-    return err;
+    Configuration cfg;
+    SocketDevice  sd;
+
+    cfg.reset(std::move(_ucfg));
+    cfg.check();
+    cfg.prepare(sd);
+
+    Service::doStartWithoutAny(
+        [this, &cfg, &sd]() {
+            doFinalizeStart(std::move(cfg), std::move(sd));
+        });
 }
 //-----------------------------------------------------------------------------
-ErrorConditionT Service::doStart()
+void Service::doStart()
 {
-
-    solid_dbg(logger, Verbose, this);
-
-    ErrorConditionT error;
-
-    if (!BaseT::start()) {
-        error = error_service_start;
-        return error;
-    }
-
-    if (!configuration().server.listener_address_str.empty()) {
-        std::string tmp;
-        const char* hst_name;
-        const char* svc_name;
-
-        size_t off = impl_->config.server.listener_address_str.rfind(':');
-        if (off != std::string::npos) {
-            tmp      = impl_->config.server.listener_address_str.substr(0, off);
-            hst_name = tmp.c_str();
-            svc_name = impl_->config.server.listener_address_str.c_str() + off + 1;
-            if (svc_name[0] == 0) {
-                svc_name = impl_->config.server.listener_service_str.c_str();
-            }
-        } else {
-            hst_name = impl_->config.server.listener_address_str.c_str();
-            svc_name = impl_->config.server.listener_service_str.c_str();
-        }
-
-        ResolveData  rd = synchronous_resolve(hst_name, svc_name, 0, -1, SocketInfo::Stream);
-        SocketDevice sd;
-
-        if (!rd.empty()) {
-            sd.create(rd.begin());
-            const ErrorCodeT errc = sd.prepareAccept(rd.begin(), Listener::backlog_size());
-            if (errc) {
-                sd.close();
-            }
-        }
-
-        if (sd) {
-
-            SocketAddress local_address;
-
-            sd.localAddress(local_address);
-
-            impl_->config.server.listener_port = local_address.port();
-
-            DynamicPointer<aio::Actor> actptr(new Listener(sd));
-
-            ActorIdT conuid = impl_->config.scheduler().startActor(actptr, *this, make_event(GenericEvents::Start), error);
-            (void)conuid;
-            if (error) {
-                return error;
-            }
-        } else {
-            error = error_service_start_listener;
-            return error;
-        }
-    }
-
-    if (impl_->config.pools_mutex_count > impl_->mtxsarrcp) {
-        delete[] impl_->pmtxarr; //TODO: delete
-        impl_->pmtxarr   = new std::mutex[impl_->config.pools_mutex_count];
-        impl_->mtxsarrcp = impl_->config.pools_mutex_count;
-    }
-
-    return error;
+    Service::doStartWithoutAny(
+        [this]() {
+            doFinalizeStart();
+        });
 }
 //-----------------------------------------------------------------------------
-ErrorConditionT Service::reconfigure(Configuration&& _ucfg)
+void Service::doFinalizeStart(Configuration&& _ucfg, SocketDevice&& _usd)
 {
-
-    solid_dbg(logger, Verbose, this);
-
-    BaseT::stop(true); //block until all actors are destroyed
-
     lock_guard<std::mutex> lock(impl_->mtx);
+    if (_usd) {
+        SocketAddress local_address;
 
-    {
-        ErrorConditionT error;
+        _usd.localAddress(local_address);
 
-        error = _ucfg.check();
+        DynamicPointer<aio::Actor> actptr(new Listener(_usd));
+        ErrorConditionT            error;
+        ActorIdT                   conuid = _ucfg.scheduler().startActor(actptr, *this, make_event(GenericEvents::Start), error);
+        (void)conuid;
 
-        if (error) {
-            return error;
-        }
+        solid_check(!error, "Failed starting listener: " << error.message());
 
         impl_->config.reset(std::move(_ucfg));
+        impl_->config.server.listener_port = local_address.port();
+    } else {
+        impl_->config.reset(std::move(_ucfg));
     }
-    return doStart();
+
+    if (configuration().pools_mutex_count > impl_->mtxsarrcp) {
+        delete[] impl_->pmtxarr; //TODO: delete
+        impl_->pmtxarr   = new std::mutex[configuration().pools_mutex_count];
+        impl_->mtxsarrcp = configuration().pools_mutex_count;
+    }
 }
+//-----------------------------------------------------------------------------
+void Service::doFinalizeStart()
+{
+    lock_guard<std::mutex> lock(impl_->mtx);
+    SocketDevice           sd;
+
+    impl_->config.prepare(sd);
+
+    if (sd) {
+        SocketAddress local_address;
+
+        sd.localAddress(local_address);
+
+        DynamicPointer<aio::Actor> actptr(new Listener(sd));
+        ErrorConditionT            error;
+        ActorIdT                   conuid = configuration().scheduler().startActor(actptr, *this, make_event(GenericEvents::Start), error);
+        (void)conuid;
+
+        solid_check(!error, "Failed starting listener: " << error.message());
+
+        impl_->config.server.listener_port = local_address.port();
+    }
+}
+
 //-----------------------------------------------------------------------------
 size_t Service::doPushNewConnectionPool()
 {
@@ -893,7 +867,7 @@ ErrorConditionT Service::doSendMessage(
     bool                   check_uid = false;
     lock_guard<std::mutex> lock(impl_->mtx);
 
-    if (!isRunning()) {
+    if (!running()) {
         solid_dbg(logger, Error, this << " service stopping");
         error = error_service_stopping;
         return error;
@@ -1783,9 +1757,9 @@ bool Service::connectionStopping(
             retval = doMainConnectionStoppingCleanOneShot(rcon, _ractuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
         } else if (rpool.isCleaningAllMessages()) {
             retval = doMainConnectionStoppingCleanAll(rcon, _ractuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
-        } else if (rpool.isRestarting() && isRunning()) {
+        } else if (rpool.isRestarting() && running()) {
             retval = doMainConnectionRestarting(rcon, _ractuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
-        } else if (!rpool.isFastClosing() && !rpool.isServerSide() && isRunning() /* && _rerror != error_connection_resolve*/) {
+        } else if (!rpool.isFastClosing() && !rpool.isServerSide() && running() /* && _rerror != error_connection_resolve*/) {
             retval = doMainConnectionStoppingPrepareCleanOneShot(rcon, _ractuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
         } else {
             retval = doMainConnectionStoppingPrepareCleanAll(rcon, _ractuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
@@ -2186,7 +2160,7 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
     const bool          is_new_connection_needed = rpool.active_connection_count < rpool.persistent_connection_count || (rpool.hasAnyMessage() && rpool.conn_waitingq.size() < rpool.msgorder_inner_list.size());
 
     if (
-        rpool.active_connection_count < configuration().pool_max_active_connection_count && rpool.pending_connection_count == 0 && is_new_connection_needed && isRunning()) {
+        rpool.active_connection_count < configuration().pool_max_active_connection_count && rpool.pending_connection_count == 0 && is_new_connection_needed && running()) {
 
         solid_dbg(logger, Info, this << " try create new connection in pool " << rpool.active_connection_count << " pending connections " << rpool.pending_connection_count);
 
