@@ -100,6 +100,12 @@ public:
 
     bool stopped() const;
 
+    template <class A>
+    A* any()
+    {
+        return any_.cast<A>();
+    }
+
 protected:
     std::mutex& mutex() const;
 
