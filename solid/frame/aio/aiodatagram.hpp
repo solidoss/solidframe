@@ -93,8 +93,8 @@ class Datagram : public CompletionHandler {
     struct RecvFunctor {
         F f;
 
-        RecvFunctor(F& _rf)
-            : f{std::move(_rf)}
+        RecvFunctor(F&& _rf)
+            : f{std::forward<F>(_rf)}
         {
         }
 
@@ -131,8 +131,8 @@ class Datagram : public CompletionHandler {
     struct RecvFromFunctor {
         F f;
 
-        RecvFromFunctor(F& _rf)
-            : f{std::move(_rf)}
+        RecvFromFunctor(F&& _rf)
+            : f{std::forward<F>(_rf)}
         {
         }
 
@@ -171,8 +171,8 @@ class Datagram : public CompletionHandler {
     struct SendFunctor {
         F f;
 
-        SendFunctor(F& _rf)
-            : f{std::move(_rf)}
+        SendFunctor(F&& _rf)
+            : f{std::forward<F>(_rf)}
         {
         }
 
@@ -207,8 +207,8 @@ class Datagram : public CompletionHandler {
     struct SendToFunctor {
         F f;
 
-        SendToFunctor(F& _rf)
-            : f{std::move(_rf)}
+        SendToFunctor(F&& _rf)
+            : f{std::forward<F>(_rf)}
         {
         }
 
@@ -243,8 +243,8 @@ class Datagram : public CompletionHandler {
     struct ConnectFunctor {
         F f;
 
-        ConnectFunctor(F& _rf)
-            : f{std::move(_rf)}
+        ConnectFunctor(F&& _rf)
+            : f{std::forward<F>(_rf)}
         {
         }
 
@@ -299,7 +299,7 @@ public:
     }
 
     template <typename F>
-    bool connect(ReactorContext& _rctx, SocketAddressStub const& _rsas, F _f)
+    bool connect(ReactorContext& _rctx, SocketAddressStub const& _rsas, F&& _f)
     {
         if (solid_function_empty(send_fnc)) {
             ErrorCodeT err;
@@ -315,7 +315,8 @@ public:
                 if (rv) {
 
                 } else if (can_retry) {
-                    send_fnc = ConnectFunctor<F>(_f);
+                    using RealF = typename std::decay<F>::type;
+                    send_fnc    = ConnectFunctor<RealF>{std::forward<RealF>(_f)};
                     return false;
                 } else {
                     systemError(_rctx, err);
@@ -338,10 +339,11 @@ public:
     bool postRecvFrom(
         ReactorContext& _rctx,
         char* _buf, size_t _bufcp,
-        F _f)
+        F&& _f)
     {
         if (solid_function_empty(recv_fnc)) {
-            recv_fnc       = RecvFromFunctor<F>(_f);
+            using RealF    = typename std::decay<F>::type;
+            recv_fnc       = RecvFromFunctor<RealF>{std::forward<RealF>(_f)};
             recv_buf       = _buf;
             recv_buf_cp    = _bufcp;
             recv_is_posted = true;
@@ -358,10 +360,11 @@ public:
     bool postRecv(
         ReactorContext& _rctx,
         char* _buf, size_t _bufcp,
-        F _f)
+        F&& _f)
     {
         if (solid_function_empty(recv_fnc)) {
-            recv_fnc       = RecvFunctor<F>(_f);
+            using RealF    = typename std::decay<F>::type;
+            recv_fnc       = RecvFunctor<RealF>{std::forward<RealF>(_f)};
             recv_buf       = _buf;
             recv_buf_cp    = _bufcp;
             recv_is_posted = true;
@@ -378,7 +381,7 @@ public:
     bool recvFrom(
         ReactorContext& _rctx,
         char* _buf, size_t _bufcp,
-        F              _f,
+        F&&            _f,
         SocketAddress& _raddr,
         size_t&        _sz)
     {
@@ -400,7 +403,8 @@ public:
                 if (can_retry) {
                     recv_buf    = _buf;
                     recv_buf_cp = _bufcp;
-                    recv_fnc    = RecvFromFunctor<F>(_f);
+                    using RealF = typename std::decay<F>::type;
+                    recv_fnc    = RecvFromFunctor<RealF>{std::forward<RealF>(_f)};
                     errorClear(_rctx);
                     return false;
                 } else {
@@ -419,7 +423,7 @@ public:
     bool recv(
         ReactorContext& _rctx,
         char* _buf, size_t _bufcp,
-        F       _f,
+        F&&     _f,
         size_t& _sz)
     {
         if (solid_function_empty(recv_fnc)) {
@@ -440,7 +444,8 @@ public:
                 if (can_retry) {
                     recv_buf    = _buf;
                     recv_buf_cp = _bufcp;
-                    recv_fnc    = RecvFunctor<F>(_f);
+                    using RealF = typename std::decay<F>::type;
+                    recv_fnc    = RecvFunctor<RealF>{std::forward<RealF>(_f)};
                     errorClear(_rctx);
                     return false;
                 } else {
@@ -460,10 +465,11 @@ public:
         ReactorContext& _rctx,
         const char* _buf, size_t _bufcp,
         SocketAddressStub const& _addrstub,
-        F                        _f)
+        F&&                      _f)
     {
         if (solid_function_empty(send_fnc)) {
-            send_fnc       = SendToFunctor<F>(_f);
+            using RealF    = typename std::decay<F>::type;
+            send_fnc       = SendToFunctor<RealF>{std::forward<RealF>(_f)};
             send_buf       = _buf;
             send_buf_cp    = _bufcp;
             send_addr      = _addrstub;
@@ -482,10 +488,11 @@ public:
     bool postSend(
         ReactorContext& _rctx,
         const char* _buf, size_t _bufcp,
-        F _f)
+        F&& _f)
     {
         if (solid_function_empty(send_fnc)) {
-            send_fnc       = SendFunctor<F>(_f);
+            using RealF    = typename std::decay<F>::type;
+            send_fnc       = SendFunctor<RealF>{std::forward<RealF>(_f)};
             send_buf       = _buf;
             send_buf_cp    = _bufcp;
             send_is_posted = true;
@@ -504,7 +511,7 @@ public:
         ReactorContext& _rctx,
         const char* _buf, size_t _bufcp,
         SocketAddressStub const& _addrstub,
-        F                        _f)
+        F&&                      _f)
     {
         if (solid_function_empty(send_fnc)) {
             contextBind(_rctx);
@@ -522,7 +529,8 @@ public:
                     send_buf    = _buf;
                     send_buf_cp = _bufcp;
                     send_addr   = _addrstub;
-                    send_fnc    = SendToFunctor<F>(_f);
+                    using RealF = typename std::decay<F>::type;
+                    send_fnc    = SendToFunctor<RealF>{std::forward<RealF>(_f)};
                     errorClear(_rctx);
                     return false;
                 } else {
@@ -541,7 +549,7 @@ public:
     bool send(
         ReactorContext& _rctx,
         const char* _buf, size_t _bufcp,
-        F       _f,
+        F&&     _f,
         size_t& _sz)
     {
         if (solid_function_empty(send_fnc)) {
@@ -559,7 +567,8 @@ public:
                 if (can_retry) {
                     send_buf    = _buf;
                     send_buf_cp = _bufcp;
-                    send_fnc    = SendFunctor<F>(_f);
+                    using RealF = typename std::decay<F>::type;
+                    send_fnc    = SendFunctor<RealF>{std::forward<RealF>(_f)};
                     errorClear(_rctx);
                     return false;
                 } else {

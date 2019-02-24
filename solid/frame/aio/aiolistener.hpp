@@ -53,10 +53,10 @@ public:
     //Returns false when the operation is scheduled for completion. On completion _f(...) will be called.
     //Returns true when operation could not be scheduled for completion - e.g. operation already in progress.
     template <typename F>
-    bool postAccept(ReactorContext& _rctx, F _f)
+    bool postAccept(ReactorContext& _rctx, F&& _f)
     {
         if (solid_function_empty(f)) {
-            f = std::move(_f);
+            f = std::forward<F>(_f);
             doPostAccept(_rctx);
             return false;
         } else {
@@ -68,7 +68,7 @@ public:
     //Returns true when the operation completed. Check _rctx.error() for success or fail
     //Returns false when operation is scheduled for completion. On completion _f(...) will be called.
     template <typename F>
-    bool accept(ReactorContext& _rctx, F _f, SocketDevice& _rsd)
+    bool accept(ReactorContext& _rctx, F&& _f, SocketDevice& _rsd)
     {
         if (solid_function_empty(f)) {
             contextBind(_rctx);
@@ -76,7 +76,7 @@ public:
             if (this->doTryAccept(_rctx, _rsd)) {
                 return true;
             }
-            f = std::move(_f);
+            f = std::forward<F>(_f);
             return false;
         } else {
             error(_rctx, error_already);

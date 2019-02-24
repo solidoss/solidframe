@@ -965,23 +965,21 @@ CompletionHandler* Reactor::completionHandler(ReactorContext const& _rctx) const
 
 //-----------------------------------------------------------------------------
 
-void Reactor::doPost(ReactorContext& _rctx, Reactor::EventFunctionT& _revfn, Event&& _uev)
+void Reactor::doPost(ReactorContext& _rctx, Reactor::EventFunctionT&& _revfn, Event&& _uev)
 {
     solid_dbg(logger, Verbose, "exeq " << impl_->exeq.size());
     impl_->exeq.push(ExecStub(actorUid(_rctx), std::move(_uev)));
-    solid_function_clear(impl_->exeq.back().exefnc);
-    std::swap(impl_->exeq.back().exefnc, _revfn);
+    impl_->exeq.back().exefnc = std::move(_revfn);
     impl_->exeq.back().chnuid = impl_->dummyCompletionHandlerUid();
 }
 
 //-----------------------------------------------------------------------------
 
-void Reactor::doPost(ReactorContext& _rctx, Reactor::EventFunctionT& _revfn, Event&& _uev, CompletionHandler const& _rch)
+void Reactor::doPost(ReactorContext& _rctx, Reactor::EventFunctionT&& _revfn, Event&& _uev, CompletionHandler const& _rch)
 {
     solid_dbg(logger, Verbose, "exeq " << impl_->exeq.size() << ' ' << &_rch);
     impl_->exeq.push(ExecStub(_rctx.actorUid(), std::move(_uev)));
-    solid_function_clear(impl_->exeq.back().exefnc);
-    std::swap(impl_->exeq.back().exefnc, _revfn);
+    impl_->exeq.back().exefnc = std::move(_revfn);
     impl_->exeq.back().chnuid = UniqueId(_rch.idxreactor, impl_->chdq[_rch.idxreactor].unique);
 }
 

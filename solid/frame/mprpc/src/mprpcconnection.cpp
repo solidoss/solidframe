@@ -510,8 +510,8 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
             };
             //can stop rightaway - we will handle the last message
             //from service on onStopped method
-            postStop(_rctx,
-                std::move(lambda)); //there might be events pending which will be delivered, but after this call
+            //there might be events pending which will be delivered, but after this call
+            postStop(_rctx, std::move(lambda));
             //no event get posted
         } else if (has_no_message) {
             // try handle the returned message if any

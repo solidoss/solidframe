@@ -75,17 +75,17 @@ protected:
     }
 
     template <class F>
-    void postStop(ReactorContext& _rctx, F _f, Event&& _revent = Event())
+    void postStop(ReactorContext& _rctx, F&& _f, Event&& _revent = Event())
     {
         if (doPrepareStop(_rctx)) {
-            _rctx.reactor().postActorStop(_rctx, _f, _revent);
+            _rctx.reactor().postActorStop(_rctx, std::forward<F>(_f), _revent);
         }
     }
 
     template <class F>
-    void post(ReactorContext& _rctx, F _f, Event&& _revent = Event())
+    void post(ReactorContext& _rctx, F&& _f, Event&& _revent = Event())
     {
-        _rctx.reactor().post(_rctx, _f, std::move(_revent));
+        _rctx.reactor().post(_rctx, std::forward<F>(_f), std::move(_revent));
     }
 
 private:

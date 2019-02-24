@@ -244,16 +244,8 @@ struct ConnectFunction {
     ResolveData::const_iterator iterator;
 
     ConnectFunction() {}
-    ConnectFunction(ConnectFunction&& _ucf)
-        : event{std::move(_ucf.event)}
-        , iterator{_ucf.iterator}
-    {
-    }
-    ConnectFunction(ConnectFunction const& _rcf)
-        : event{_rcf.event}
-        , iterator{_rcf.iterator}
-    {
-    }
+    ConnectFunction(ConnectFunction&& _ucf)      = default;
+    ConnectFunction(ConnectFunction const& _rcf) = default;
 
     void operator()(frame::aio::ReactorContext& _rctx)
     {
@@ -396,8 +388,8 @@ struct ConnectFunction {
         ++_rcf.iterator;
 
         if (_rcf.iterator != presolve_data->end()) {
-            if (rthis.sock.connect(_rctx, _rcf.iterator, std::move(_rcf))) {
-                rthis.post(_rctx, std::move(_rcf));
+            if (rthis.sock.connect(_rctx, _rcf.iterator, std::forward<ConnectFunction>(_rcf))) {
+                rthis.post(_rctx, std::forward<ConnectFunction>(_rcf));
             }
         } else {
             solid_log(generic_logger, Error, &rthis << " postStop");

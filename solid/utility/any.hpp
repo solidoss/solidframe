@@ -229,7 +229,7 @@ public:
         _rany.release(pvalue_);
     }
 
-    template <class T>
+    template <class T, typename = typename std::enable_if<!std::is_same<Any, typename std::decay<T>::type>::value, void>::type>
     explicit Any(
         const T& _rt)
         : AnyBase(
@@ -240,7 +240,7 @@ public:
     {
     }
 
-    template <class T>
+    template <class T, typename = typename std::enable_if<!std::is_same<Any, typename std::decay<T>::type>::value, void>::type>
     explicit Any(
         T&& _ut)
         : AnyBase(
@@ -306,7 +306,7 @@ public:
         pvalue_ = nullptr;
     }
 
-    ThisT& operator=(const ThisT& _rany)
+    Any& operator=(const Any& _rany)
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(&_rany)) {
             clear();
@@ -316,7 +316,7 @@ public:
         return *this;
     }
 
-    ThisT& operator=(ThisT&& _rany)
+    Any& operator=(Any&& _rany)
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(&_rany)) {
             clear();
@@ -327,24 +327,22 @@ public:
     }
 
     template <typename T>
-    ThisT& operator=(const T& _rt)
+    typename std::enable_if<!std::is_same<ThisT, T>::value, ThisT&>::type
+    operator=(const T& _rt)
     {
-        if (static_cast<const void*>(this) != static_cast<const void*>(&_rt)) {
-            clear();
-            using RealT = typename std::remove_reference<T>::type;
-            pvalue_     = do_allocate<RealT>(bool_constant<std::is_convertible<RealT*, AnyBase*>::value>(), bool_constant<sizeof(impl::AnyValue<RealT>) <= DataSize>(), _rt);
-        }
+        clear();
+        using RealT = typename std::decay<T>::type;
+        pvalue_     = do_allocate<RealT>(bool_constant<std::is_convertible<RealT*, AnyBase*>::value>(), bool_constant<sizeof(impl::AnyValue<RealT>) <= DataSize>(), _rt);
         return *this;
     }
 
     template <class T>
-    ThisT& operator=(T&& _ut)
+    typename std::enable_if<!std::is_same<ThisT, T>::value, ThisT&>::type
+    operator=(T&& _ut)
     {
-        if (static_cast<const void*>(this) != static_cast<const void*>(&_ut)) {
-            clear();
-            using RealT = typename std::remove_reference<T>::type;
-            pvalue_     = do_allocate<RealT>(bool_constant<std::is_convertible<RealT*, AnyBase*>::value>(), bool_constant<sizeof(impl::AnyValue<RealT>) <= DataSize>(), std::forward<T>(_ut));
-        }
+        clear();
+        using RealT = typename std::decay<T>::type;
+        pvalue_     = do_allocate<RealT>(bool_constant<std::is_convertible<RealT*, AnyBase*>::value>(), bool_constant<sizeof(impl::AnyValue<RealT>) <= DataSize>(), std::forward<T>(_ut));
         return *this;
     }
 
@@ -373,7 +371,7 @@ private:
     void do_reinit(const TypeToType<T>&, Args&&... _args)
     {
         clear();
-        using RealT = typename std::remove_reference<T>::type;
+        using RealT = typename std::decay<T>::type;
         pvalue_     = do_allocate<RealT>(
             bool_constant<std::is_convertible<RealT*, AnyBase*>::value>(), bool_constant<sizeof(impl::AnyValue<RealT>) <= DataSize>(), std::forward<Args>(_args)...);
     }

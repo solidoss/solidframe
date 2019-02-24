@@ -51,8 +51,8 @@ class Reactor : public frame::ReactorBase {
         Function function;
         bool     repost;
 
-        explicit StopActorF(Function& _function)
-            : function(std::move(_function))
+        explicit StopActorF(Function&& _function)
+            : function{std::forward<Function>(_function)}
             , repost(true)
         {
         }
@@ -61,8 +61,8 @@ class Reactor : public frame::ReactorBase {
         {
             if (repost) { //skip one round - to guarantee that all remaining posts were delivered
                 repost = false;
-                EventFunctionT eventfnc(std::move(*this));
-                _rctx.reactor().doPost(_rctx, eventfnc, std::move(_uevent));
+                EventFunctionT eventfnc{std::move(*this)};
+                _rctx.reactor().doPost(_rctx, std::move(eventfnc), std::move(_uevent));
             } else {
                 function(_rctx, std::move(_uevent));
                 _rctx.reactor().doStopActor(_rctx);
@@ -78,27 +78,28 @@ public:
     ~Reactor();
 
     template <typename Function>
-    void post(ReactorContext& _rctx, Function _fnc, Event&& _uev)
+    void post(ReactorContext& _rctx, Function&& _fnc, Event&& _uev)
     {
-        EventFunctionT eventfnc(std::move(_fnc));
-        doPost(_rctx, eventfnc, std::move(_uev));
+        EventFunctionT eventfnc{std::forward<Function>(_fnc)};
+        doPost(_rctx, std::move(eventfnc), std::move(_uev));
     }
 
     template <typename Function>
-    void post(ReactorContext& _rctx, Function _fnc, Event&& _uev, CompletionHandler const& _rch)
+    void post(ReactorContext& _rctx, Function&& _fnc, Event&& _uev, CompletionHandler const& _rch)
     {
-        EventFunctionT eventfnc(std::move(_fnc));
-        doPost(_rctx, eventfnc, std::move(_uev), _rch);
+        EventFunctionT eventfnc{std::forward<Function>(_fnc)};
+        doPost(_rctx, std::move(eventfnc), std::move(_uev), _rch);
     }
 
     void postActorStop(ReactorContext& _rctx);
 
     template <typename Function>
-    void postActorStop(ReactorContext& _rctx, Function _f, Event&& _uev)
+    void postActorStop(ReactorContext& _rctx, Function&& _f, Event&& _uev)
     {
-        StopActorF<Function> stopfnc(_f);
-        EventFunctionT       eventfnc(std::move(stopfnc));
-        doPost(_rctx, eventfnc, std::move(_uev));
+        using RealF = typename std::decay<Function>::type;
+        StopActorF<RealF> stopfnc{std::forward<RealF>(_f)};
+        EventFunctionT    eventfnc(std::move(stopfnc));
+        doPost(_rctx, std::move(eventfnc), std::move(_uev));
     }
 
     bool addDevice(ReactorContext& _rctx, Device const& _rsd, const ReactorWaitRequestsE _req);
@@ -151,8 +152,8 @@ private:
     void doClearSpecific();
     void doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx);
 
-    void doPost(ReactorContext& _rctx, EventFunctionT& _revfn, Event&& _uev);
-    void doPost(ReactorContext& _rctx, EventFunctionT& _revfn, Event&& _uev, CompletionHandler const& _rch);
+    void doPost(ReactorContext& _rctx, EventFunctionT&& _revfn, Event&& _uev);
+    void doPost(ReactorContext& _rctx, EventFunctionT&& _revfn, Event&& _uev, CompletionHandler const& _rch);
 
     void doStopActor(ReactorContext& _rctx);
 
