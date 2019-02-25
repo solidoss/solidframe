@@ -234,11 +234,6 @@ template <size_t DataSize, class R, class... ArgTypes>
 class Function<DataSize, R(ArgTypes...)> : protected FunctionData<DataSize>, public FunctionBase {
     template <bool B>
     using bool_constant = std::integral_constant<bool, B>;
-    template <typename _Func,
-        typename _Res2 = typename std::result_of<_Func&(ArgTypes...)>::type>
-    struct _Callable : std::__check_func_return_type<_Res2, R> {
-    };
-
 public:
     using ThisT = Function<DataSize, R(ArgTypes...)>;
 
