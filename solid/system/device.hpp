@@ -22,14 +22,7 @@ public:
 #else
     typedef int DescriptorT;
 #endif
-    static constexpr DescriptorT invalidDescriptor()
-    {
-#ifdef SOLID_ON_WINDOWS
-        return reinterpret_cast<DescriptorT>(static_cast<ptrdiff_t>(-1));
-#else
-        return -1;
-#endif
-    }
+    static constexpr DescriptorT invalidDescriptor();
     Device(Device&& _dev) noexcept;
     //! The copy constructor which will grab the desc from the given device (like std::autoptr)
     Device(DescriptorT _desc = invalidDescriptor());
@@ -54,23 +47,41 @@ public:
     DescriptorT descriptor() const;
 
 protected:
-    void descriptor(DescriptorT _desc);
-    bool ok() const noexcept
-    {
-        return desc != invalidDescriptor();
-    }
+    void descriptor(const DescriptorT _desc);
+    void descriptor(const DescriptorT _desc, bool);
+    bool ok() const noexcept;
 
 private:
     Device(const Device& _dev);
     Device&     operator=(const Device& _dev);
-    DescriptorT desc;
+private:
+    DescriptorT desc_;
 };
 
-inline Device::DescriptorT Device::descriptor() const { return desc; }
-inline void                Device::descriptor(DescriptorT _desc)
+inline constexpr Device::DescriptorT Device::invalidDescriptor()
+{
+#ifdef SOLID_ON_WINDOWS
+    return reinterpret_cast<DescriptorT>(static_cast<ptrdiff_t>(-1));
+#else
+    return -1;
+#endif
+}
+
+inline bool Device::ok() const noexcept
+{
+    return desc_ != invalidDescriptor();
+}
+
+inline Device::DescriptorT Device::descriptor() const { return desc_; }
+inline void                Device::descriptor(const DescriptorT _desc)
 {
     close();
-    desc = _desc;
+    desc_ = _desc;
+}
+
+inline void                Device::descriptor(const DescriptorT _desc, bool)
+{
+    desc_ = _desc;
 }
 
 } //namespace solid

@@ -44,20 +44,20 @@ using namespace std;
 namespace solid {
 
 Device::Device(Device&& _dev) noexcept
-    : desc(_dev.descriptor())
+    : desc_(_dev.descriptor())
 {
-    _dev.desc = invalidDescriptor();
+    _dev.desc_ = invalidDescriptor();
 }
 
 Device& Device::operator=(Device&& _dev) noexcept
 {
     close();
-    desc      = _dev.descriptor();
-    _dev.desc = invalidDescriptor();
+    desc_      = _dev.descriptor();
+    _dev.desc_ = invalidDescriptor();
     return *this;
 }
 Device::Device(DescriptorT _desc)
-    : desc(_desc)
+    : desc_(_desc)
 {
 }
 
@@ -71,13 +71,13 @@ ssize_t Device::read(char* _pb, size_t _bl)
     solid_assert(ok());
 #ifdef SOLID_ON_WINDOWS
     DWORD cnt;
-    if (ReadFile(desc, _pb, static_cast<DWORD>(_bl), &cnt, nullptr)) {
+    if (ReadFile(desc_, _pb, static_cast<DWORD>(_bl), &cnt, nullptr)) {
         return cnt;
     } else {
         return -1;
     }
 #else
-    return ::read(desc, _pb, _bl);
+    return ::read(desc_, _pb, _bl);
 #endif
 }
 
@@ -90,13 +90,13 @@ ssize_t Device::write(const char* _pb, size_t _bl)
     ovp.Offset = 0;
     ovp.OffsetHigh = 0;
     ovp.hEvent = nullptr;*/
-    if (WriteFile(desc, const_cast<char*>(_pb), static_cast<DWORD>(_bl), &cnt, nullptr)) {
+    if (WriteFile(desc_, const_cast<char*>(_pb), static_cast<DWORD>(_bl), &cnt, nullptr)) {
         return cnt;
     } else {
         return -1;
     }
 #else
-    return ::write(desc, _pb, _bl);
+    return ::write(desc_, _pb, _bl);
 #endif
 }
 
@@ -113,13 +113,13 @@ void Device::close()
 {
     if (ok()) {
 #ifdef SOLID_ON_WINDOWS
-        CloseHandle(desc);
+        CloseHandle(desc_);
 #else
-        if (::close(desc) != 0) {
+        if (::close(desc_) != 0) {
             solid_assert(errno != EBADF);
         }
 #endif
-        desc = invalidDescriptor();
+        desc_ = invalidDescriptor();
     }
 }
 
@@ -127,9 +127,9 @@ void Device::flush()
 {
     solid_assert(ok());
 #ifdef SOLID_ON_WINDOWS
-    FlushFileBuffers(desc);
+    FlushFileBuffers(desc_);
 #else
-    fsync(desc);
+    fsync(desc_);
 #endif
 }
 
@@ -471,7 +471,7 @@ void SocketDevice::close()
     shutdownReadWrite();
     if (ok()) {
         closesocket(descriptor());
-        Device::descriptor((HANDLE)invalidDescriptor());
+        Device::descriptor((HANDLE)invalidDescriptor(), false);
     }
 #else
     shutdownReadWrite();
