@@ -53,7 +53,8 @@ protected:
 
 private:
     Device(const Device& _dev);
-    Device&     operator=(const Device& _dev);
+    Device& operator=(const Device& _dev);
+
 private:
     DescriptorT desc_;
 };
@@ -79,7 +80,7 @@ inline void                Device::descriptor(const DescriptorT _desc)
     desc_ = _desc;
 }
 
-inline void                Device::descriptor(const DescriptorT _desc, bool)
+inline void Device::descriptor(const DescriptorT _desc, bool)
 {
     desc_ = _desc;
 }

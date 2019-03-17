@@ -234,6 +234,7 @@ template <size_t DataSize, class R, class... ArgTypes>
 class Function<DataSize, R(ArgTypes...)> : protected FunctionData<DataSize>, public FunctionBase {
     template <bool B>
     using bool_constant = std::integral_constant<bool, B>;
+
 public:
     using ThisT = Function<DataSize, R(ArgTypes...)>;
 
