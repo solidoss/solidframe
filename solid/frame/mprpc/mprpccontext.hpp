@@ -70,11 +70,13 @@ struct RecipientId {
     {
     }
 
-    bool isValid()const{
+    bool isValid() const
+    {
         return isValidConnection() && isValidPool();
     }
 
-    bool empty()const{
+    bool empty() const
+    {
         return isInvalidConnection() && isInvalidPool();
     }
 
