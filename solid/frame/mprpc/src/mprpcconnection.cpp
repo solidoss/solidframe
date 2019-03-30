@@ -301,7 +301,7 @@ Connection::Connection(
     , socket_emplace_buf_{0}
     , sock_ptr_(_rconfiguration.server.connection_create_socket_fnc(_rconfiguration, this->proxy(), std::move(_rsd), this->socket_emplace_buf_))
 {
-    solid_dbg(logger, Info, this << " (" << local_address(sock_ptr_->device()) << ") -> (" << remote_address(sock_ptr_->device()) << ')');
+    solid_dbg(logger, Info, this << " (" << local_endpoint(sock_ptr_->device()) << ") -> (" << remote_endpoint(sock_ptr_->device()) << ')');
 }
 //-----------------------------------------------------------------------------
 Connection::~Connection()

@@ -299,7 +299,7 @@ struct ConnectFunction {
             cf.iterator = presolve_data->begin();
             SocketAddressInet inetaddr(cf.iterator);
 
-            solid_log(generic_logger, Info, "Connect to: " << inetaddr);
+            solid_log(generic_logger, Info, "Connect to: " << inetaddr << ':' << inetaddr.port());
 
             if (sock.connect(_rctx, cf.iterator, cf)) {
                 onConnect(_rctx, cf);

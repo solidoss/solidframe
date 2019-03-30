@@ -137,9 +137,22 @@ struct LocalAddressPlot {
     }
 };
 
+struct LocalEndpointPlot {
+    const SocketDevice& rsd;
+    LocalEndpointPlot(const SocketDevice& _rsd)
+        : rsd(_rsd)
+    {
+    }
+};
+
 inline LocalAddressPlot local_address(const SocketDevice& _rsd)
 {
     return LocalAddressPlot(_rsd);
+}
+
+inline LocalEndpointPlot local_endpoint(const SocketDevice& _rsd)
+{
+    return LocalEndpointPlot(_rsd);
 }
 
 struct RemoteAddressPlot {
@@ -150,12 +163,27 @@ struct RemoteAddressPlot {
     }
 };
 
+struct RemoteEndpointPlot {
+    const SocketDevice& rsd;
+    RemoteEndpointPlot(const SocketDevice& _rsd)
+        : rsd(_rsd)
+    {
+    }
+};
+
 inline RemoteAddressPlot remote_address(const SocketDevice& _rsd)
 {
     return RemoteAddressPlot(_rsd);
 }
 
+inline RemoteEndpointPlot remote_endpoint(const SocketDevice& _rsd)
+{
+    return RemoteEndpointPlot(_rsd);
+}
+
 std::ostream& operator<<(std::ostream& _ros, const LocalAddressPlot& _ra);
 std::ostream& operator<<(std::ostream& _ros, const RemoteAddressPlot& _ra);
+std::ostream& operator<<(std::ostream& _ros, const LocalEndpointPlot& _ra);
+std::ostream& operator<<(std::ostream& _ros, const RemoteEndpointPlot& _ra);
 
 } //namespace solid

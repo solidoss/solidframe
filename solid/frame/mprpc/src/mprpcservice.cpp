@@ -2467,7 +2467,7 @@ struct ResolveF {
         if (!_rerror) {
             for (auto it = _rrd.begin(); it != _rrd.end(); ++it) {
                 addrvec.push_back(SocketAddressStub(it));
-                solid_dbg(logger, Info, "add resolved address: " << addrvec.back());
+                solid_dbg(logger, Info, "add resolved endpoint: " << addrvec.back() << ':' << addrvec.back().port());
             }
         }
         std::reverse(addrvec.begin(), addrvec.end());

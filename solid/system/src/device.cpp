@@ -1161,6 +1161,22 @@ std::ostream& operator<<(std::ostream& _ros, const RemoteAddressPlot& _ra)
     return _ros;
 }
 
+std::ostream& operator<<(std::ostream& _ros, const LocalEndpointPlot& _ra)
+{
+    SocketAddress sa;
+    _ra.rsd.localAddress(sa);
+    _ros << sa << ':' << sa.port();
+    return _ros;
+}
+
+std::ostream& operator<<(std::ostream& _ros, const RemoteEndpointPlot& _ra)
+{
+    SocketAddress sa;
+    _ra.rsd.remoteAddress(sa);
+    _ros << sa << ':' << sa.port();
+    return _ros;
+}
+
 /*static*/ size_t SocketInfo::max_listen_backlog_size()
 {
     return 128; //TODO: try take the value from the system

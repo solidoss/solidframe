@@ -138,12 +138,7 @@ int main(int argc, char* argv[])
         sd.prepareAccept(rd.begin(), Listener::backlog_size());
 
         if (sd) {
-
-            {
-                SocketAddress sa;
-                sd.localAddress(sa);
-                cout << "Listening for TCP connections on port: " << sa << endl;
-            }
+            cout << "Listening for TCP connections on endpoint: " << local_endpoint(sd) << endl;
 
             DynamicPointer<frame::aio::Actor> actptr(new Listener(service, scheduler, std::move(sd)));
             solid::ErrorConditionT            error;
@@ -166,11 +161,7 @@ int main(int argc, char* argv[])
 
         if (sd) {
 
-            {
-                SocketAddress sa;
-                sd.localAddress(sa);
-                cout << "Listening for UDP datagrams on port: " << sa << endl;
-            }
+            cout << "Listening for UDP datagrams on endpoint: " << local_endpoint(sd) << endl;
 
             DynamicPointer<frame::aio::Actor> actptr(new Talker(std::move(sd)));
 
