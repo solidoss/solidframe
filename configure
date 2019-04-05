@@ -86,6 +86,7 @@ CREATE_LISTS=
 INSTALL_PREFIX=
 EXTRA_COMPILE_OPTIONS=
 EXTRA_LINK_OPTIONS=
+ARCHITECTURE=
 
 #echo "$@"
 pass_arg_count=0
@@ -141,6 +142,10 @@ do
     -e|--external-dir)
         shift;
         EXTERNAL_DIR=$1
+        ;;
+    -A|--architecture)
+        shift;
+        ARCHITECTURE="$1"
         ;;
     -c|--create-lists)
         CREATE_LISTS="yes"
@@ -241,15 +246,20 @@ echo -ne "./configure -f $FOLDER_NAME -F \"$FOLDER_PATH\" -b \"$BUILD_TYPE\" -g 
 
 if [ "$GENERATOR" = "" ]; then
     echo "Using cmake's default generator:"
-    echo ""
-    
-    exec cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DEXTERNAL_DIR:PATH="$EXTERNAL_DIR" -DEXTRA_COMPILE_OPTIONS:STRING="$EXTRA_COMPILE_OPTIONS" -DEXTRA_LINK_OPTIONS:STRING="$EXTRA_LINK_OPTIONS" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
-    echo "Done!"
 else
+    GEN="-G"
     echo "Using cmake's $GENERATOR"
-    echo ""
-    
-    exec cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DEXTERNAL_DIR:PATH="$EXTERNAL_DIR" -DEXTRA_COMPILE_OPTIONS:STRING="$EXTRA_COMPILE_OPTIONS" -DEXTRA_LINK_OPTIONS:STRING="$EXTRA_LINK_OPTIONS" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
 fi
+
+if [ "$ARCHITECTURE" = "" ]; then
+    echo "Using default architecture"
+else
+    ARC="-A"
+    echo "Using architecture $ARCHITECTURE"
+fi
+
+exec cmake ${GEN} "${GENERATOR}" ${ARC} "${ARCHITECTURE}" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DEXTERNAL_DIR:PATH="$EXTERNAL_DIR" -DEXTRA_COMPILE_OPTIONS:STRING="$EXTRA_COMPILE_OPTIONS" -DEXTRA_LINK_OPTIONS:STRING="$EXTRA_LINK_OPTIONS" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
+
+echo "Done!"
 
 exit
