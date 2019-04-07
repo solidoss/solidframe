@@ -206,11 +206,10 @@ int main(int argc, char* argv[])
             sd.prepareAccept(rd.begin(), Listener::backlog_size());
 
             if (sd) {
-                DynamicPointer<frame::aio::Actor> actptr(new Listener(svc, sch, std::move(sd)));
-                solid::ErrorConditionT            err;
-                solid::frame::ActorIdT            actuid;
+                solid::ErrorConditionT err;
+                solid::frame::ActorIdT actuid;
 
-                actuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                actuid = sch.startActor(make_dynamic<Listener>(svc, sch, std::move(sd)), svc, make_event(GenericEvents::Start), err);
                 solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
@@ -289,10 +288,9 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             sz = 10224 * 32;
             _rsd.sendBufferSize(sz);
             solid_log(generic_logger, Error, "new_connection");
-            DynamicPointer<frame::aio::Actor> actptr(new Connection(std::move(_rsd), secure_ctx));
-            solid::ErrorConditionT            err;
+            solid::ErrorConditionT err;
 
-            rsch.startActor(actptr, rsvc, make_event(GenericEvents::Start), err);
+            rsch.startActor(make_dynamic<Connection>(std::move(_rsd), secure_ctx), rsvc, make_event(GenericEvents::Start), err);
 
 #else
             cout << "Accepted connection: " << _rsd.descriptor() << endl;

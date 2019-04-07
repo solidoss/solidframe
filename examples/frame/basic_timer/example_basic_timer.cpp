@@ -67,11 +67,10 @@ int main(int argc, char* argv[])
             const size_t cnt = argc == 2 ? atoi(argv[1]) : 1;
 
             for (size_t i = 0; i < cnt; ++i) {
-                DynamicPointer<frame::Actor> actptr(new BasicActor(10));
-                solid::ErrorConditionT       err;
-                solid::frame::ActorIdT       actuid;
+                solid::ErrorConditionT err;
+                solid::frame::ActorIdT actuid;
 
-                actuid = s.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                actuid = s.startActor(make_dynamic<BasicActor>(10), svc, make_event(GenericEvents::Start), err);
                 solid_log(generic_logger, Info, "Started BasicActor: " << actuid.index << ',' << actuid.unique);
             }
 

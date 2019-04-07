@@ -124,7 +124,7 @@ public:
     void unregisterCompletionHandler(CompletionHandler& _rch);
 
     void run();
-    bool push(TaskT& _ract, Service& _rsvc, Event&& _revt);
+    bool push(TaskT&& _ract, Service& _rsvc, Event&& _revt);
 
     Service& service(ReactorContext const& _rctx) const;
 

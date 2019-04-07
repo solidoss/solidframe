@@ -199,11 +199,10 @@ int main(int argc, char* argv[])
             sd.prepareAccept(rd.begin(), 2000);
 
             if (sd) {
-                DynamicPointer<frame::aio::Actor> actptr(new Listener(svc, sch, std::move(sd)));
-                solid::ErrorConditionT            err;
-                solid::frame::ActorIdT            actuid;
+                solid::ErrorConditionT err;
+                solid::frame::ActorIdT actuid;
 
-                actuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                actuid = sch.startActor(make_dynamic<Listener>(svc, sch, std::move(sd)), svc, make_event(GenericEvents::Start), err);
                 solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
@@ -290,20 +289,10 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 #endif
             _rsd.enableNoDelay();
 
-            frame::ActorIdT actuid;
-            {
-                DynamicPointer<frame::aio::Actor> actptr(new Connection(std::move(_rsd)));
-                solid::ErrorConditionT            err;
+            solid::ErrorConditionT err;
+            frame::ActorIdT        actuid = rsch.startActor(make_dynamic<Connection>(std::move(_rsd)), rsvc, make_event(GenericEvents::Start), err);
 
-                actuid = rsch.startActor(actptr, rsvc, make_event(GenericEvents::Start), err);
-            }
-
-            {
-                DynamicPointer<frame::aio::Actor> actptr(new Connection(actuid));
-                solid::ErrorConditionT            err;
-
-                rsch.startActor(actptr, rsvc, make_event(GenericEvents::Start), err);
-            }
+            rsch.startActor(make_dynamic<Connection>(actuid), rsvc, make_event(GenericEvents::Start), err);
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));

@@ -53,12 +53,12 @@ private:
     };
 
     struct ScheduleCommand {
-        ActorPointerT& ractptr;
-        Service&       rsvc;
-        Event&&        revt;
+        ActorPointerT&& ractptr;
+        Service&        rsvc;
+        Event&&         revt;
 
-        ScheduleCommand(ActorPointerT& _ractptr, Service& _rsvc, Event&& _revt)
-            : ractptr(_ractptr)
+        ScheduleCommand(ActorPointerT&& _ractptr, Service& _rsvc, Event&& _revt)
+            : ractptr(std::move(_ractptr))
             , rsvc(_rsvc)
             , revt(std::move(_revt))
         {
@@ -66,7 +66,7 @@ private:
 
         bool operator()(ReactorBase& _rreactor)
         {
-            return static_cast<ReactorT&>(_rreactor).push(ractptr, rsvc, std::move(revt));
+            return static_cast<ReactorT&>(_rreactor).push(std::move(ractptr), rsvc, std::move(revt));
         }
     };
 
@@ -94,10 +94,10 @@ public:
     }
 
     ActorIdT startActor(
-        ActorPointerT& _ractptr, Service& _rsvc,
+        ActorPointerT&& _ractptr, Service& _rsvc,
         Event&& _revt, ErrorConditionT& _rerr)
     {
-        ScheduleCommand   cmd(_ractptr, _rsvc, std::move(_revt));
+        ScheduleCommand   cmd(std::move(_ractptr), _rsvc, std::move(_revt));
         ScheduleFunctionT fct([&cmd](ReactorBase& _rreactor) { return cmd(_rreactor); });
 
         return doStartActor(*_ractptr, _rsvc, fct, _rerr);

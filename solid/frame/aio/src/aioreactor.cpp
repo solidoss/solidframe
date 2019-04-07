@@ -238,9 +238,9 @@ public:
 
 struct NewTaskStub {
     NewTaskStub(
-        UniqueId const& _ruid, TaskT const& _ractptr, Service& _rsvc, Event&& _revent)
+        UniqueId const& _ruid, TaskT&& _ractptr, Service& _rsvc, Event&& _revent)
         : uid(_ruid)
-        , actptr(_ractptr)
+        , actptr(std::move(_ractptr))
         , rsvc(_rsvc)
         , event(std::move(_revent))
     {
@@ -689,7 +689,7 @@ bool Reactor::start()
 //-----------------------------------------------------------------------------
 
 //Called from outside reactor's thread
-bool Reactor::push(TaskT& _ract, Service& _rsvc, Event&& _uevent)
+bool Reactor::push(TaskT&& _ract, Service& _rsvc, Event&& _uevent)
 {
     solid_dbg(logger, Verbose, (void*)this);
     bool   rv        = true;
@@ -700,7 +700,7 @@ bool Reactor::push(TaskT& _ract, Service& _rsvc, Event&& _uevent)
 
         solid_dbg(logger, Verbose, (void*)this << " uid = " << uid.index << ',' << uid.unique << " event = " << _uevent);
 
-        impl_->pushtskvec[impl_->crtpushtskvecidx].push_back(NewTaskStub(uid, _ract, _rsvc, std::move(_uevent)));
+        impl_->pushtskvec[impl_->crtpushtskvecidx].push_back(NewTaskStub(uid, std::move(_ract), _rsvc, std::move(_uevent)));
         pushvecsz           = impl_->pushtskvec[impl_->crtpushtskvecidx].size();
         impl_->crtpushvecsz = pushvecsz;
     }

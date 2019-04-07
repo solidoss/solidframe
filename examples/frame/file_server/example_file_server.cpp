@@ -242,7 +242,7 @@ int main(int argc, char* argv[])
 
             {
                 SchedulerT::ActorPointerT actptr(filestoreptr);
-                actuid = sched.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                actuid = sched.startActor(std::move(actptr), svc, make_event(GenericEvents::Start), err);
             }
 
             {
@@ -254,11 +254,10 @@ int main(int argc, char* argv[])
                 sd.prepareAccept(rd.begin(), 2000);
 
                 if (sd) {
-                    DynamicPointer<frame::aio::Actor> actptr(new Listener(svc, aiosched, sd));
-                    solid::ErrorConditionT            err;
-                    solid::frame::ActorIdT            actuid;
+                    solid::ErrorConditionT err;
+                    solid::frame::ActorIdT actuid;
 
-                    actuid = aiosched.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                    actuid = aiosched.startActor(make_dynamic<Listener>(svc, aiosched, sd), svc, make_event(GenericEvents::Start), err);
                     solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
                 } else {
                     cout << "Error creating listener socket" << endl;
@@ -339,10 +338,9 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
     do {
         if (!_rctx.error()) {
-            DynamicPointer<frame::aio::Actor> actptr(new Connection(_rsd));
-            solid::ErrorConditionT            err;
+            solid::ErrorConditionT err;
 
-            rsch.startActor(actptr, rsvc, make_event(GenericEvents::Start), err);
+            rsch.startActor(make_dynamic<Connection>(_rsd), rsvc, make_event(GenericEvents::Start), err);
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));

@@ -179,10 +179,9 @@ int main(int argc, char* argv[])
 
         {
 
-            DynamicPointer<frame::aio::Actor> actptr(new Connection(secure_ctx));
-            solid::ErrorConditionT            err;
+            solid::ErrorConditionT err;
 
-            actuid = scheduler.startActor(actptr, service, make_event(GenericEvents::Start, ConnectStub(resolver, params.connect_addr, params.connect_port)), err);
+            actuid = scheduler.startActor(make_dynamic<Connection>(secure_ctx), service, make_event(GenericEvents::Start, ConnectStub(resolver, params.connect_addr, params.connect_port)), err);
 
             solid_log(generic_logger, Info, "Started Client Connection actor: " << actuid.index << ',' << actuid.unique);
         }

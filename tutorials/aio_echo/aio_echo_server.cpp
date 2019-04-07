@@ -140,11 +140,10 @@ int main(int argc, char* argv[])
         if (sd) {
             cout << "Listening for TCP connections on endpoint: " << local_endpoint(sd) << endl;
 
-            DynamicPointer<frame::aio::Actor> actptr(new Listener(service, scheduler, std::move(sd)));
-            solid::ErrorConditionT            error;
-            solid::frame::ActorIdT            actuid;
+            solid::ErrorConditionT error;
+            solid::frame::ActorIdT actuid;
 
-            actuid = scheduler.startActor(actptr, service, make_event(GenericEvents::Start), error);
+            actuid = scheduler.startActor(make_dynamic<Listener>(service, scheduler, std::move(sd)), service, make_event(GenericEvents::Start), error);
             (void)actuid;
         } else {
             cout << "Error creating listener socket" << endl;
@@ -163,12 +162,10 @@ int main(int argc, char* argv[])
 
             cout << "Listening for UDP datagrams on endpoint: " << local_endpoint(sd) << endl;
 
-            DynamicPointer<frame::aio::Actor> actptr(new Talker(std::move(sd)));
-
             solid::ErrorConditionT error;
             solid::frame::ActorIdT actuid;
 
-            actuid = scheduler.startActor(actptr, service, make_event(GenericEvents::Start), error);
+            actuid = scheduler.startActor(make_dynamic<Talker>(std::move(sd)), service, make_event(GenericEvents::Start), error);
 
             (void)actuid;
 
@@ -222,10 +219,9 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
     do {
         if (!_rctx.error()) {
-            DynamicPointer<frame::aio::Actor> actptr(new Connection(std::move(_rsd)));
-            solid::ErrorConditionT            err;
+            solid::ErrorConditionT err;
 
-            rscheduler.startActor(actptr, rservice, make_event(GenericEvents::Start), err);
+            rscheduler.startActor(make_dynamic<Connection>(std::move(_rsd)), rservice, make_event(GenericEvents::Start), err);
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             timer.waitFor(

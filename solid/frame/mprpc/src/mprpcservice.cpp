@@ -707,9 +707,8 @@ void Service::doFinalizeStart(Configuration&& _ucfg, SocketDevice&& _usd)
 
         _usd.localAddress(local_address);
 
-        DynamicPointer<aio::Actor> actptr(new Listener(_usd));
-        ErrorConditionT            error;
-        ActorIdT                   conuid = _ucfg.scheduler().startActor(actptr, *this, make_event(GenericEvents::Start), error);
+        ErrorConditionT error;
+        ActorIdT        conuid = _ucfg.scheduler().startActor(make_dynamic<Listener>(_usd), *this, make_event(GenericEvents::Start), error);
         (void)conuid;
 
         solid_check(!error, "Failed starting listener: " << error.message());
@@ -739,9 +738,8 @@ void Service::doFinalizeStart()
 
         sd.localAddress(local_address);
 
-        DynamicPointer<aio::Actor> actptr(new Listener(sd));
-        ErrorConditionT            error;
-        ActorIdT                   conuid = configuration().scheduler().startActor(actptr, *this, make_event(GenericEvents::Start), error);
+        ErrorConditionT error;
+        ActorIdT        conuid = configuration().scheduler().startActor(make_dynamic<Listener>(sd), *this, make_event(GenericEvents::Start), error);
         (void)conuid;
 
         solid_check(!error, "Failed starting listener: " << error.message());
@@ -2165,7 +2163,7 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
         solid_dbg(logger, Info, this << " try create new connection in pool " << rpool.active_connection_count << " pending connections " << rpool.pending_connection_count);
 
         DynamicPointer<aio::Actor> actptr(new_connection(configuration(), ConnectionPoolId(_pool_index, rpool.unique), rpool.name));
-        ActorIdT                   conuid = impl_->config.scheduler().startActor(actptr, *this, make_event(GenericEvents::Start), _rerror);
+        ActorIdT                   conuid = impl_->config.scheduler().startActor(std::move(actptr), *this, make_event(GenericEvents::Start), _rerror);
 
         if (!_rerror) {
 
@@ -2216,7 +2214,7 @@ void Service::forwardResolveMessage(ConnectionPoolId const& _rpoolid, Event& _re
 
             DynamicPointer<aio::Actor> actptr(new_connection(configuration(), _rpoolid, rpool.name));
 
-            ActorIdT conuid = impl_->config.scheduler().startActor(actptr, *this, std::move(_revent), error);
+            ActorIdT conuid = impl_->config.scheduler().startActor(std::move(actptr), *this, std::move(_revent), error);
 
             if (!error) {
                 ++rpool.pending_connection_count;
@@ -2386,7 +2384,7 @@ void Service::acceptIncomingConnection(SocketDevice& _rsd)
         solid::ErrorConditionT error;
 
         ActorIdT con_id = impl_->config.scheduler().startActor(
-            actptr, *this, make_event(GenericEvents::Start), error);
+            std::move(actptr), *this, make_event(GenericEvents::Start), error);
 
         solid_dbg(logger, Info, this << " receive connection [" << con_id << "] error = " << error.message());
 

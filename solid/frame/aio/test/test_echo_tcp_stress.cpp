@@ -511,11 +511,12 @@ int test_echo_tcp_stress(int argc, char* argv[])
                     oss << srv_port;
                     srv_port_str = oss.str();
                 }
-                DynamicPointer<frame::aio::Actor> actptr(new server::Listener(srv_svc, srv_sch, std::move(sd), be_secure ? &srv_secure_ctx : nullptr));
-                solid::ErrorConditionT            err;
-                solid::frame::ActorIdT            actuid;
+                solid::ErrorConditionT err;
+                solid::frame::ActorIdT actuid;
 
-                actuid = srv_sch.startActor(actptr, srv_svc, make_event(GenericEvents::Start), err);
+                actuid = srv_sch.startActor(
+                    make_dynamic<server::Listener>(srv_svc, srv_sch, std::move(sd), be_secure ? &srv_secure_ctx : nullptr),
+                    srv_svc, make_event(GenericEvents::Start), err);
                 solid_dbg(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
@@ -548,11 +549,11 @@ int test_echo_tcp_stress(int argc, char* argv[])
                         oss << srv_port;
                         rly_port_str = oss.str();
                     }
-                    DynamicPointer<frame::aio::Actor> actptr(new relay::Listener(rly_svc, rly_sch, std::move(sd)));
-                    solid::ErrorConditionT            err;
-                    solid::frame::ActorIdT            actuid;
+                    //DynamicPointer<frame::aio::Actor> actptr(new relay::Listener(rly_svc, rly_sch, std::move(sd)));
+                    solid::ErrorConditionT err;
+                    solid::frame::ActorIdT actuid;
 
-                    actuid = rly_sch.startActor(actptr, rly_svc, make_event(GenericEvents::Start), err);
+                    actuid = rly_sch.startActor(make_dynamic<relay::Listener>(rly_svc, rly_sch, std::move(sd)), rly_svc, make_event(GenericEvents::Start), err);
                     solid_dbg(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
                 } else {
                     cout << "Error creating listener socket" << endl;
@@ -585,12 +586,14 @@ int test_echo_tcp_stress(int argc, char* argv[])
                 solid::frame::ActorIdT            actuid;
 
                 if (be_secure) {
-                    actptr.reset(new client::SecureConnection(i, clt_secure_ctx));
+                    actptr = make_dynamic<client::SecureConnection>(i, clt_secure_ctx);
+                    //actptr.reset(new client::SecureConnection(i, clt_secure_ctx));
                 } else {
-                    actptr.reset(new client::PlainConnection(i));
+                    //actptr.reset(new client::PlainConnection(i));
+                    actptr = make_dynamic<client::PlainConnection>(i);
                 }
                 ++concnt;
-                actuid = clt_sch.startActor(actptr, clt_svc, make_event(GenericEvents::Start), err);
+                actuid = clt_sch.startActor(std::move(actptr), clt_svc, make_event(GenericEvents::Start), err);
                 if (actuid.isInvalid()) {
                     --concnt;
                 }
@@ -661,12 +664,12 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             solid::ErrorConditionT            err;
 
             if (psecurectx != nullptr) {
-                actptr.reset(new SecureConnection(std::move(_rsd), *psecurectx));
+                actptr = make_dynamic<SecureConnection>(std::move(_rsd), *psecurectx);
             } else {
-                actptr.reset(new PlainConnection(std::move(_rsd)));
+                actptr = make_dynamic<PlainConnection>(std::move(_rsd));
             }
 
-            rsch.startActor(actptr, rsvc, make_event(GenericEvents::Start), err);
+            rsch.startActor(std::move(actptr), rsvc, make_event(GenericEvents::Start), err);
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             //timer.waitFor(_rctx, std::chrono::seconds(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
@@ -970,10 +973,9 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             if (enable_no_delay) {
                 _rsd.enableNoDelay();
             }
-            DynamicPointer<frame::aio::Actor> actptr(new Connection(std::move(_rsd)));
-            solid::ErrorConditionT            err;
+            solid::ErrorConditionT err;
 
-            rsch.startActor(actptr, rsvc, make_event(GenericEvents::Start), err);
+            rsch.startActor(make_dynamic<Connection>(std::move(_rsd)), rsvc, make_event(GenericEvents::Start), err);
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));

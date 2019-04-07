@@ -208,12 +208,11 @@ int main(int argc, char* argv[])
 
         {
             for (size_t i = 0; i < params.connection_count; ++i) {
-                DynamicPointer<frame::aio::Actor> actptr(new Connection(i));
-                solid::ErrorConditionT            err;
-                solid::frame::ActorIdT            actuid;
+                solid::ErrorConditionT err;
+                solid::frame::ActorIdT actuid;
 
                 ++concnt;
-                actuid = sch.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                actuid = sch.startActor(make_dynamic<Connection>(i), svc, make_event(GenericEvents::Start), err);
                 if (actuid.isInvalid()) {
                     --concnt;
                 }

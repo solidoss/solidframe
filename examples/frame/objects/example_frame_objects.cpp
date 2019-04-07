@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
                 {
                     lock_guard<mutex> lock(mtx);
 
-                    actuid = s.startActor(actptr, svc, make_event(GenericEvents::Start), err);
+                    actuid = s.startActor(std::move(actptr), svc, make_event(GenericEvents::Start), err);
 
                     solid_log(generic_logger, Info, "Started BasicActor: " << actuid.index << ',' << actuid.unique);
 
