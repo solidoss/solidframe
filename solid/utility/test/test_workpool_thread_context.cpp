@@ -36,17 +36,14 @@ struct Context {
     }
 };
 
-using FunctionJobT = std::function<void(Context&)>;
-//using FunctionJobT = solid::Function<32, void(Context&)>;
-
 } // namespace
 
 int test_workpool_thread_context(int argc, char* argv[])
 {
     install_crash_handler();
     solid::log_start(std::cerr, {".*:EWS", "test_context:VIEWS"});
-    using WorkPoolT  = WorkPool<FunctionJobT>;
-    using AtomicPWPT = std::atomic<WorkPoolT*>;
+    using CallPoolT  = CallPool<void(Context&)>;
+    using AtomicPWPT = std::atomic<CallPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
 
@@ -64,13 +61,9 @@ int test_workpool_thread_context(int argc, char* argv[])
     auto lambda = [&]() {
         for (int i = 0; i < loop_cnt; ++i) {
             {
-                WorkPoolT wp{
-                    WorkPoolConfiguration(),
-                    [](FunctionJobT& _rj, Context& _rctx) {
-                        _rj(_rctx);
-                    },
-                    "simple text",
-                    0UL};
+                CallPoolT wp{
+                    WorkPoolConfiguration(), 0,
+                    Context("simple text", 0UL)};
 
                 solid_log(generic_logger, Verbose, "wp started");
                 pwp = &wp;
@@ -91,7 +84,7 @@ int test_workpool_thread_context(int argc, char* argv[])
     };
     if (async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         if (pwp != nullptr) {
-            pwp.load()->dumpStatistics();
+            //pwp.load()->dumpStatistics();
         }
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }

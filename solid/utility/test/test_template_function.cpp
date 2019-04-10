@@ -6,7 +6,7 @@ using namespace std;
 using namespace solid;
 namespace {
 class Test {
-    using FunctionT = Function<32, int(std::string&)>;
+    using FunctionT = Function<int(std::string&), 32>;
     //using FunctionT = std::function<int(std::string&)>;
     FunctionT f_;
     template <typename F>

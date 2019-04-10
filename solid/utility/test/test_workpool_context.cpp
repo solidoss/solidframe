@@ -15,7 +15,7 @@ struct Context {
     string         s_;
     atomic<size_t> v_;
     const size_t   c_;
-
+    
     Context(const string& _s, const size_t _v, const size_t _c)
         : s_(_s)
         , v_(_v)
@@ -25,6 +25,37 @@ struct Context {
 
     ~Context()
     {
+    }
+};
+
+
+class MCallPool{
+    using FunctionT = std::function<void(Context&)>;
+    using WorkPoolT = WorkPool<FunctionT>;
+    WorkPoolT  wp_;
+public:
+    MCallPool(const WorkPoolConfiguration& _cfg):wp_(_cfg){}
+    
+    MCallPool(
+        const WorkPoolConfiguration& _cfg,
+        const size_t   _start_wkr_cnt,
+        Context &_rctx
+    ): wp_(
+        _cfg,
+        _start_wkr_cnt,
+        [](FunctionT &_rfnc, Context &_rctx){
+            //_rfnc(std::forward<ArgTypes>(_args)...);
+        }, std::ref(_rctx)
+    ){}
+    
+    template <class JT>
+    void push(const JT& _jb){
+        wp_.push(_jb);
+    }
+
+    template <class JT>
+    void push(JT&& _jb){
+        wp_.push(std::forward<JT>(_jb));
     }
 };
 
@@ -42,10 +73,9 @@ int test_workpool_context(int argc, char* argv[])
         for (int i = 0; i < loop_cnt; ++i) {
             Context ctx{"test", 1, cnt + 1};
             {
-                FunctionWorkPool<Context> wp{
-                    2,
-                    WorkPoolConfiguration(),
-                    ctx};
+                MCallPool wp{
+                    WorkPoolConfiguration(), 2,
+                    std::ref(ctx)};
 
                 solid_log(generic_logger, Verbose, "wp started");
                 for (size_t i = 0; i < cnt; ++i) {

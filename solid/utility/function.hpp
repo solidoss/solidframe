@@ -227,16 +227,20 @@ struct FunctionData {
 //      Function<Size>
 //-----------------------------------------------------------------------------
 
-template <size_t DataSize, class>
+#ifndef SOLID_FUNCTION_STORAGE
+#define SOLID_FUNCTION_STORAGE 24
+#endif
+
+template <class, size_t DataSize = SOLID_FUNCTION_STORAGE>
 class Function; // undefined
 
-template <size_t DataSize, class R, class... ArgTypes>
-class Function<DataSize, R(ArgTypes...)> : protected FunctionData<DataSize>, public FunctionBase {
+template <class R, class... ArgTypes, size_t DataSize>
+class Function<R(ArgTypes...), DataSize> : protected FunctionData<DataSize>, public FunctionBase {
     template <bool B>
     using bool_constant = std::integral_constant<bool, B>;
 
 public:
-    using ThisT = Function<DataSize, R(ArgTypes...)>;
+    using ThisT = Function<R(ArgTypes...), DataSize>;
 
     template <class T>
     using FunctionValueT      = impl::FunctionValue<T, std::is_copy_constructible<T>::value, R, ArgTypes...>;
@@ -441,11 +445,7 @@ private:
 
 #else
 
-#ifndef SOLID_FUNCTION_STORAGE
-#define SOLID_FUNCTION_STORAGE 24
-#endif
-
-#define solid_function_t(...) solid::Function<SOLID_FUNCTION_STORAGE, __VA_ARGS__>
+#define solid_function_t(...) solid::Function<__VA_ARGS__>
 
 #endif
 

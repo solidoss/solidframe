@@ -111,7 +111,7 @@ TestBase* create_test(const FunctionChoice _fnc_choice, const size_t _closure_si
 {
     switch (_fnc_choice) {
     case FunctionChoice::Solid:
-        return create_test<solid::Function<24, uint64_t(const size_t)>>(_closure_size);
+        return create_test<solid::Function<uint64_t(const size_t), 24>>(_closure_size);
     case FunctionChoice::Standard:
         return create_test<std::function<uint64_t(const size_t)>>(_closure_size);
     }

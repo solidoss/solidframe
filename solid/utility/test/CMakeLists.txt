@@ -6,11 +6,11 @@ set( UtilityTestSuite
     test_event.cpp
     test_memory_file.cpp
     test_workpool_context.cpp
-    test_workpool_thread_context.cpp
-    test_workpool.cpp
-    test_workpool_basic.cpp
-    test_workpool_chain.cpp
-    test_workpool_pattern.cpp
+#    test_workpool_thread_context.cpp
+#    test_workpool.cpp
+#    test_workpool_basic.cpp
+#    test_workpool_chain.cpp
+#    test_workpool_pattern.cpp
     test_ioformat.cpp
     test_function.cpp
     test_function_perf.cpp

@@ -309,7 +309,7 @@ int test_binary(int argc, char* argv[])
         auto lambda = [pifs = std::unique_ptr<std::ifstream>(new ifstream)]() mutable {
             pifs->open("test.txt");
         };
-        Function<128, void()> f{std::move(lambda)};
+        Function<void(), 128> f{std::move(lambda)};
         f();
     }
 

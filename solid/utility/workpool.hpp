@@ -21,6 +21,50 @@
 
 namespace solid {
 
+template <class>
+class CallPool;
+
+template <class R, class... ArgTypes>
+class CallPool<R(ArgTypes...)>{
+    using FunctionT = std::function<R(ArgTypes...)>;
+    using WorkPoolT = WorkPool<FunctionT>;
+    WorkPoolT  wp_;
+public:
+    CallPool(const WorkPoolConfiguration& _cfg):wp_(_cfg){}
+    
+    template <typename... Args>
+    CallPool(
+        const WorkPoolConfiguration& _cfg,
+        const size_t   _start_wkr_cnt,
+        Args&&... _args
+    ): wp_(
+        _cfg,
+        _start_wkr_cnt,
+        [](FunctionT &_rfnc, Args&&... _args){
+            _rfnc(std::forward<ArgTypes>(_args)...);
+        }, std::forward<Args>(_args)...
+    ){}
+    
+    template <typename... Args>
+    void start(const size_t   _start_wkr_cnt, Args... _args){
+        wp_.start(_start_wkr_cnt,
+            [](FunctionT &_rfnc, Args... _args){
+                _rfnc(std::forward<Args>(_args)...);
+            }, std::forward<Args>(_args)...);
+    }
+    
+    template <class JT>
+    void push(const JT& _jb){
+        wp_.push(_jb);
+    }
+
+    template <class JT>
+    void push(JT&& _jb){
+        wp_.push(std::forward<JT>(_jb));
+    }
+};
+
+#if 0
 template <typename Ctx = void>
 class FunctionWorkPool;
 
@@ -92,5 +136,5 @@ public:
         return rctx_;
     }
 };
-
+#endif
 } //namespace solid

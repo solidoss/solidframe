@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
                 solid::ErrorConditionT err;
                 solid::frame::ActorIdT actuid;
 
-                actuid = s.startActor(make_dynamic<BasicActor>(10), svc, make_event(GenericEvents::Start), err);
+                actuid = s.startActor(make_dynamic<BasicActor>(10UL), svc, make_event(GenericEvents::Start), err);
                 solid_log(generic_logger, Info, "Started BasicActor: " << actuid.index << ',' << actuid.unique);
             }
 

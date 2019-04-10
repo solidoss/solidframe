@@ -10,7 +10,7 @@ void test_fnc(void* _ptr, const char* _txt)
 }
 
 class Test2 {
-    Function<64, void(void*, const char*)> fnc_;
+    Function<void(void*, const char*), 64> fnc_;
 
 public:
     template <class F>
@@ -50,12 +50,12 @@ public:
 int test_function(int /*argc*/, char* /*argv*/ [])
 {
     {
-        Function<64, void(void*, const char*)> fnc(&test_fnc);
+        Function<void(void*, const char*), 64> fnc(&test_fnc);
         fnc(&fnc, "something");
     }
     {
         ifstream                               ifs;
-        Function<64, void(void*, const char*)> fnc(
+        Function<void(void*, const char*), 64> fnc(
             [ifs = std::move(ifs)](void* _ptr, const char* _txt) mutable {
                 ifs.open("test.txt");
                 cout << "test_fnc: " << _ptr << " " << _txt << endl;

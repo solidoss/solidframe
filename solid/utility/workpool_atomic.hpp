@@ -590,6 +590,7 @@ class WorkPool {
     } statistic_;
 #endif
 public:
+#if 0
     template <class JobHandleFnc, typename... Args>
     WorkPool(
         const size_t                 _start_wkr_cnt,
@@ -622,6 +623,68 @@ public:
             _job_handler_fnc,
             _args...);
     }
+#endif
+    WorkPool(
+        const WorkPoolConfiguration& _config)
+        : config_(_config)
+        , running_(true)
+        , thr_cnt_(0)
+    {
+    }
+
+    template <class JobHandleFnc, typename... Args>
+    WorkPool(
+        const WorkPoolConfiguration& _cfg,
+        const size_t                 _start_wkr_cnt,
+        JobHandleFnc                 _job_handler_fnc,
+        Args&&... _args)
+        : config_(_cfg)
+        , running_(true)
+        , thr_cnt_(0)
+    {
+        doStart(
+            _start_wkr_cnt,
+            _job_handler_fnc,
+            std::forward<Args>(_args)...);
+    }
+
+    template <class JobHandleFnc, typename... Args>
+    WorkPool(
+        const WorkPoolConfiguration& _cfg,
+        JobHandleFnc                 _job_handler_fnc,
+        Args... _args)
+        : config_(_cfg)
+        , running_(true)
+        , thr_cnt_(0)
+    {
+        doStart(
+            0,
+            _job_handler_fnc,
+            std::forward<Args>(_args)...);
+    }
+
+    template <class JobHandleFnc, typename... Args>
+    void start(
+        const size_t _start_wkr_cnt,
+        JobHandleFnc _job_handler_fnc,
+        Args... _args)
+    {
+        doStart(
+            _start_wkr_cnt,
+            _job_handler_fnc,
+            std::forward<Args>(_args)...);
+    }
+
+    template <class JobHandleFnc, typename... Args>
+    void start(
+        JobHandleFnc _job_handler_fnc,
+        Args... _args)
+    {
+        doStart(
+            0,
+            _job_handler_fnc,
+            std::forward<Args>(_args)...);
+    }
 
     ~WorkPool()
     {
@@ -644,18 +707,11 @@ private:
 
     void doStop();
 
-    template <class JobHandlerFnc>
-    void doStart(
-        std::integral_constant<size_t, 1>,
-        const size_t  _start_wkr_cnt,
-        JobHandlerFnc _job_handler_fnc);
-
     template <class JobHandlerFnc, typename... Args>
     void doStart(
-        std::integral_constant<size_t, 2>,
         const size_t  _start_wkr_cnt,
         JobHandlerFnc _job_handler_fnc,
-        Args... _args);
+        Args&&... _args);
 }; //WorkPool
 
 //-----------------------------------------------------------------------------
@@ -750,67 +806,34 @@ void WorkPool<Job, QNBits>::doStop()
 #endif
     }
 }
-//-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
-template <class JobHandlerFnc>
-void WorkPool<Job, QNBits>::doStart(
-    std::integral_constant<size_t, 1>,
-    const size_t  _start_wkr_cnt,
-    JobHandlerFnc _job_handler_fnc)
-{
-    WorkerFactoryT worker_factory_fnc = [_job_handler_fnc, this]() {
-        return std::thread(
-            [this](JobHandlerFnc _job_handler_fnc) {
-                Job      job;
-                uint64_t job_count = 0;
 
-                while (pop(job)) {
-                    _job_handler_fnc(job);
-                    solid_statistic_inc(job_count);
-                }
-
-                solid_dbg(workpool_logger, Verbose, this << " worker exited after handling " << job_count << " jobs");
-                solid_statistic_max(statistic_.max_jobs_on_thread_, job_count);
-                solid_statistic_min(statistic_.min_jobs_on_thread_, job_count);
-            },
-            _job_handler_fnc);
-    };
-
-    doStart(_start_wkr_cnt, std::move(worker_factory_fnc));
-}
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits>
 template <class JobHandlerFnc, typename... Args>
 void WorkPool<Job, QNBits>::doStart(
-    std::integral_constant<size_t, 2>,
     const size_t  _start_wkr_cnt,
     JobHandlerFnc _job_handler_fnc,
-    Args... _args)
+    Args&&... _args)
 {
-    WorkerFactoryT worker_factory_fnc = [_job_handler_fnc, this, _args...]() {
+
+    auto lambda = [_job_handler_fnc, this, _args...]() mutable {
         return std::thread(
-            [this](JobHandlerFnc _job_handler_fnc, Args&&... _args) {
-                using SecondArgumentT = typename function_traits<JobHandlerFnc>::template argument<1>;
-                using ContextT        = typename std::remove_cv<typename std::remove_reference<SecondArgumentT>::type>::type;
+            [this](JobHandlerFnc _job_handler_fnc, Args... _args){
+            uint64_t job_count = 0;
+            Job      job;
 
-                ContextT ctx{std::forward<Args>(_args)...};
-                Job      job;
-                uint64_t job_count = 0;
+            while (pop(job)) {
+                //_job_handler_fnc(job, std::forward<Args>(_args)...);
+                solid_statistic_inc(job_count);
+            }
 
-                while (pop(job)) {
-                    _job_handler_fnc(job, std::ref(ctx));
-                    solid_statistic_inc(job_count);
-                }
-
-                solid_dbg(workpool_logger, Verbose, this << " worker exited after handling " << job_count << " jobs");
-                solid_statistic_max(statistic_.max_jobs_on_thread_, job_count);
-                solid_statistic_min(statistic_.min_jobs_on_thread_, job_count);
-            },
-            _job_handler_fnc,
-            _args...);
+            solid_dbg(workpool_logger, Verbose, this << " worker exited after handling " << job_count << " jobs");
+            solid_statistic_max(statistic_.max_jobs_on_thread_, job_count);
+            solid_statistic_min(statistic_.min_jobs_on_thread_, job_count);
+            }, _args...);
     };
 
-    doStart(_start_wkr_cnt, std::move(worker_factory_fnc));
+    doStart(_start_wkr_cnt, lambda);
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits>
