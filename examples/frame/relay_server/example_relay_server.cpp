@@ -216,8 +216,8 @@ int main(int argc, char* argv[])
             3,
             1024 * 1024 * 64);
     }
-    FunctionWorkPool<>   fwp{WorkPoolConfiguration()};
-    frame::aio::Resolver resolver(fwp);
+    CallPool<void()>   cwp{WorkPoolConfiguration(), 1};
+    frame::aio::Resolver resolver(cwp);
 
     async_resolver(&resolver);
     {

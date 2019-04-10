@@ -109,9 +109,8 @@ int main(int argc, char* argv[])
     using WorkPoolT = WorkPool<FileDevice*>;
 
     WorkPoolT wp{
-        std::thread::hardware_concurrency(),
-        solid::WorkPoolConfiguration(),
-        [](FileDevice* _pfile, Context& _rctx) {
+        solid::WorkPoolConfiguration(), std::thread::hardware_concurrency(),
+        [](FileDevice* _pfile, Context&& _rctx) {
             int64_t sz = _pfile->size();
             int     toread;
             int     cnt = 0;
@@ -123,7 +122,7 @@ int main(int argc, char* argv[])
                 cnt += rv;
                 sz -= rv;
             }
-        }};
+        }, Context()};
     for (FileDeuqeT::iterator it(fdq.begin()); it != fdq.end(); ++it) {
         wp.push(&(*it));
     }

@@ -88,9 +88,9 @@ int test_workpool(int argc, char* argv[])
 
     auto lambda = [&]() {
         WorkPool<size_t> wp{
-            1,
             WorkPoolConfiguration(consumer_count, queue_size <= 0 ? std::numeric_limits<size_t>::max() : queue_size),
-            [job_sleep_msecs](size_t _v, Context& _rctx) {
+            1,
+            [job_sleep_msecs](size_t _v, Context&& _rctx) {
                 //solid_check(_rs == "this is a string", "failed string check");
                 val += _v;
                 if (job_sleep_msecs != 0) {
@@ -100,7 +100,7 @@ int test_workpool(int argc, char* argv[])
                 _rctx.ldq_.emplace_back(_v);
 #endif
             },
-            std::ref(gdq), std::ref(gmtx)};
+            Context(gdq, gmtx)};
 
         pwp = &wp;
 

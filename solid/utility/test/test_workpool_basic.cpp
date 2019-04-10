@@ -37,8 +37,7 @@ int test_workpool_basic(int argc, char* argv[])
         for (int i = 0; i < loop_cnt; ++i) {
             {
                 WorkPoolT wp{
-                    2,
-                    WorkPoolConfiguration(),
+                    WorkPoolConfiguration(), 2,
                     [&val](const size_t _v) {
                         val += _v;
                     }};

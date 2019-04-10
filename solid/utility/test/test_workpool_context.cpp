@@ -15,7 +15,7 @@ struct Context {
     string         s_;
     atomic<size_t> v_;
     const size_t   c_;
-    
+
     Context(const string& _s, const size_t _v, const size_t _c)
         : s_(_s)
         , v_(_v)
@@ -25,37 +25,6 @@ struct Context {
 
     ~Context()
     {
-    }
-};
-
-
-class MCallPool{
-    using FunctionT = std::function<void(Context&)>;
-    using WorkPoolT = WorkPool<FunctionT>;
-    WorkPoolT  wp_;
-public:
-    MCallPool(const WorkPoolConfiguration& _cfg):wp_(_cfg){}
-    
-    MCallPool(
-        const WorkPoolConfiguration& _cfg,
-        const size_t   _start_wkr_cnt,
-        Context &_rctx
-    ): wp_(
-        _cfg,
-        _start_wkr_cnt,
-        [](FunctionT &_rfnc, Context &_rctx){
-            //_rfnc(std::forward<ArgTypes>(_args)...);
-        }, std::ref(_rctx)
-    ){}
-    
-    template <class JT>
-    void push(const JT& _jb){
-        wp_.push(_jb);
-    }
-
-    template <class JT>
-    void push(JT&& _jb){
-        wp_.push(std::forward<JT>(_jb));
     }
 };
 
@@ -70,10 +39,11 @@ int test_workpool_context(int argc, char* argv[])
     const size_t cnt{50000};
 
     auto lambda = [&]() {
+#if 1
         for (int i = 0; i < loop_cnt; ++i) {
             Context ctx{"test", 1, cnt + 1};
             {
-                MCallPool wp{
+                CallPool<void(Context&)> wp{
                     WorkPoolConfiguration(), 2,
                     std::ref(ctx)};
 
@@ -88,6 +58,7 @@ int test_workpool_context(int argc, char* argv[])
             solid_check(ctx.v_ == ctx.c_, ctx.v_ << " != " << ctx.c_);
             solid_log(logger, Verbose, "after loop");
         }
+#endif
     };
     if (async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");

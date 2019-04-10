@@ -42,14 +42,14 @@ int test_workpool_chain(int argc, char* argv[])
         for (int i = 0; i < loop_cnt; ++i) {
             {
                 WorkPoolT wp_b{
-                    start_thr,
                     WorkPoolConfiguration(),
+                    start_thr,
                     [&val](const size_t _v) {
                         val += _v;
                     }};
                 WorkPoolT wp_f{
-                    start_thr,
                     WorkPoolConfiguration(),
+                    start_thr,
                     [&wp_b](const size_t _v) {
                         wp_b.push(_v);
                     }};

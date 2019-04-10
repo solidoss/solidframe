@@ -407,8 +407,8 @@ int test_relay_split(int argc, char* argv[])
         frame::mprpc::ServiceT                mprpcpeera(m);
         frame::mprpc::ServiceT                mprpcpeerb(m);
         ErrorConditionT                       err;
-        FunctionWorkPool<>                    fwp{WorkPoolConfiguration()};
-        frame::aio::Resolver                  resolver(fwp);
+        CallPool<void()>  cwp{WorkPoolConfiguration(), 1};
+        frame::aio::Resolver resolver(cwp);
 
         sch_peera.start(1);
         sch_peerb.start(1);

@@ -69,8 +69,8 @@ int main(int argc, char* argv[])
         frame::Manager         manager;
         frame::mprpc::ServiceT ipcservice(manager);
         ErrorConditionT        err;
-        FunctionWorkPool<>     fwp{WorkPoolConfiguration()};
-        frame::aio::Resolver   resolver(fwp);
+        CallPool<void()>  cwp{WorkPoolConfiguration(), 1};
+        frame::aio::Resolver resolver(cwp);
 
         (WorkPoolConfiguration());
 

@@ -58,8 +58,8 @@ int test_workpool_pattern(int argc, char* argv[])
 
     auto lambda = [&]() {
         WorkPoolT wp{
-            consumer_cnt,
             WorkPoolConfiguration(consumer_cnt),
+            consumer_cnt,
             [&sum, &consummer_pattern, loop = consummer_pattern[0].first, idx = 0](const size_t _v) mutable {
                 sum += _v;
                 --loop;

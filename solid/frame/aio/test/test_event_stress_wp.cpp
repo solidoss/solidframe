@@ -4,62 +4,21 @@
  * actors and schedulers.
  */
 
-#include "solid/utility/workpool.hpp"
-#include "solid/utility/string.hpp"
 #include "solid/utility/function.hpp"
+#include "solid/utility/string.hpp"
+#include "solid/utility/workpool.hpp"
 
 #include <future>
 
 using namespace std;
 using namespace solid;
 
+namespace {
 
-namespace{
-
-using AtomicSizeT   = atomic<size_t>;
-    
-template <typename Ctx>
-class FunctionWorkPool : public WorkPool<solid::Function<void(Ctx&)>> {
-    using WorkPoolT = WorkPool<solid::Function<void(Ctx&)>>;
-
-    Ctx& rctx_;
-
-public:
-    FunctionWorkPool(
-        const size_t                 _start_wkr_cnt,
-        const WorkPoolConfiguration& _cfg,
-        Ctx&                         _rctx)
-        : WorkPoolT(
-              _start_wkr_cnt,
-              _cfg,
-              [this](std::function<void(Ctx&)>& _rfnc) {
-                  _rfnc(this->context());
-              })
-        , rctx_(_rctx)
-    {
-    }
-
-    FunctionWorkPool(
-        const WorkPoolConfiguration& _cfg,
-        Ctx&                         _rctx)
-        : WorkPoolT(
-              0,
-              _cfg,
-              [this](std::function<void(Ctx&)>& _rfnc) {
-                  _rfnc(this->context());
-              })
-        , rctx_(_rctx)
-    {
-    }
-
-    Ctx& context() const
-    {
-        return rctx_;
-    }
-};
+using AtomicSizeT = atomic<size_t>;
 
 
-}//namespace
+} //namespace
 
 int test_event_stress(int argc, char* argv[])
 {
@@ -84,18 +43,18 @@ int test_event_stress(int argc, char* argv[])
     if (argc > 4) {
         account_device_count = make_number(argv[4]);
     }
-    
+
     auto lambda = [&]() {
-        AtomicSizeT     connection_count(0);
-        promise<void>   prom;
-        
-        ConnectionWorkpoolT     connection_wp;
-        AccountWorkpoolT        account_wp;
-        DeviceWorkpoolT         device_wp;
-        
-        for(size_t i = 0; i < account_count; ++i){
-            auto lambda = [account_connection_count](AccountContext &_rctx){
-                for(size_t i = 0; i < account_connection_count; ++i){
+        AtomicSizeT   connection_count(0);
+        promise<void> prom;
+
+        ConnectionWorkpoolT connection_wp;
+        AccountWorkpoolT    account_wp;
+        DeviceWorkpoolT     device_wp;
+
+        for (size_t i = 0; i < account_count; ++i) {
+            auto lambda = [account_connection_count](AccountContext& _rctx) {
+                for (size_t i = 0; i < account_connection_count; ++i) {
                     _rctx.pushConnection(i);
                 }
             };
@@ -106,6 +65,6 @@ int test_event_stress(int argc, char* argv[])
     if (async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }
-    
+
     return 0;
 }
