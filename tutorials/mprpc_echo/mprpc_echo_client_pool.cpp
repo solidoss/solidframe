@@ -82,8 +82,8 @@ int main(int argc, char* argv[])
         AioSchedulerT          scheduler;
         frame::Manager         manager;
         frame::mprpc::ServiceT ipcservice(manager);
-        CallPool<void()>  cwp{WorkPoolConfiguration(), 1};
-        frame::aio::Resolver resolver(cwp);
+        CallPool<void()>       cwp{WorkPoolConfiguration(), 1};
+        frame::aio::Resolver   resolver(cwp);
         ErrorConditionT        err;
 
         scheduler.start(1);

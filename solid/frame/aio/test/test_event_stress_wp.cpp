@@ -17,7 +17,6 @@ namespace {
 
 using AtomicSizeT = atomic<size_t>;
 
-
 } //namespace
 
 int test_event_stress(int argc, char* argv[])

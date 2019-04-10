@@ -171,7 +171,7 @@ int main(int argc, char* argv[])
         frame::ServiceT service(manager);
         frame::ActorIdT actuid;
 
-        CallPool<void()>  cwp{WorkPoolConfiguration(), 1};
+        CallPool<void()>     cwp{WorkPoolConfiguration(), 1};
         frame::aio::Resolver resolver(cwp);
         ErrorConditionT      err;
 

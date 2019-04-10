@@ -122,7 +122,8 @@ int main(int argc, char* argv[])
                 cnt += rv;
                 sz -= rv;
             }
-        }, Context()};
+        },
+        Context()};
     for (FileDeuqeT::iterator it(fdq.begin()); it != fdq.end(); ++it) {
         wp.push(&(*it));
     }

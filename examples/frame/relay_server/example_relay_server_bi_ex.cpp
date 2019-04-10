@@ -378,7 +378,7 @@ int main(int argc, char* argv[])
 
     cout << "sizeof(Connection) = " << sizeof(Connection) << endl;
 
-    CallPool<void()>  cwp{WorkPoolConfiguration(), 1};
+    CallPool<void()>     cwp{WorkPoolConfiguration(), 1};
     frame::aio::Resolver resolver(cwp);
 
     async_resolver(&resolver);

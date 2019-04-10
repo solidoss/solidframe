@@ -354,8 +354,8 @@ int test_raw_proxy(int argc, char* argv[])
         frame::mprpc::ServiceT mprpcserver(m);
         frame::mprpc::ServiceT mprpcclient(m);
         ErrorConditionT        err;
-        CallPool<void()>  cwp{WorkPoolConfiguration(), 1};
-        frame::aio::Resolver resolver(cwp);
+        CallPool<void()>       cwp{WorkPoolConfiguration(), 1};
+        frame::aio::Resolver   resolver(cwp);
 
         sch_client.start(1);
         sch_server.start(1);
