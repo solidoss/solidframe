@@ -65,7 +65,7 @@ public:
     void start(const size_t _start_wkr_cnt, Args... _args)
     {
         wp_.start(_start_wkr_cnt,
-            [](FunctionT& _rfnc, Args... _args) {
+            [](FunctionT& _rfnc, Args&&... _args) {
                 _rfnc(std::forward<Args>(_args)...);
             },
             std::forward<Args>(_args)...);

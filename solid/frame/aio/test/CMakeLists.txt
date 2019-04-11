@@ -28,6 +28,7 @@ if(OPENSSL_FOUND)
     set( aioTestSuite
         test_echo_tcp_stress.cpp
         test_event_stress.cpp
+        test_event_stress_wp.cpp
     )
     #
     create_test_sourcelist( aioTests test_aio.cpp ${aioTestSuite})
@@ -47,8 +48,13 @@ if(OPENSSL_FOUND)
     )
     
     add_test(NAME TestAioEventStress100_100    COMMAND  test_aio test_event_stress 100 100)
+    add_test(NAME TestEventStressWP100_100     COMMAND  test_aio test_event_stress_wp 100 100)
+    
     add_test(NAME TestAioEventStress100_1000   COMMAND  test_aio test_event_stress 100 1000)
+    add_test(NAME TestEventStressWP100_1000    COMMAND  test_aio test_event_stress_wp 100 1000)
+    
     add_test(NAME TestAioEventStress100_10000  COMMAND  test_aio test_event_stress 100 10000)
+    add_test(NAME TestEventStressWP100_10000   COMMAND  test_aio test_event_stress_wp 100 10000)
 
     add_test(NAME TestAioEchoTcpStress1        COMMAND  test_aio test_echo_tcp_stress 1)
     add_test(NAME TestAioEchoTcpStress2        COMMAND  test_aio test_echo_tcp_stress 2)

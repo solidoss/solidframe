@@ -221,7 +221,7 @@ int test_event_stress(int argc, char* argv[])
 
         connection_service.notifyAll(make_event(GenericEvents::Resume));
 
-        prom.get_future().get();
+        solid_check(prom.get_future().wait_for(chrono::seconds(wait_seconds)) == future_status::ready);
     };
 
     if (async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
