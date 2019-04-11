@@ -56,7 +56,7 @@ private:
     }
 };
 
-class Service {
+class Service : NonCopyable {
     enum struct StatusE {
         Stopped,
         Running,

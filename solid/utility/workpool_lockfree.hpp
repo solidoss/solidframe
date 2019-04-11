@@ -36,7 +36,7 @@ extern const LoggerT workpool_logger;
 namespace lockfree {
 
 template <class T, unsigned NBits = 5>
-class Queue {
+class Queue : NonCopyable {
     static constexpr const size_t node_mask = bits_to_mask(NBits);
     static constexpr const size_t node_size = bits_to_count(NBits);
 
@@ -545,7 +545,7 @@ struct WorkPoolConfiguration {
 //-----------------------------------------------------------------------------
 
 template <typename Job, size_t QNBits = 10>
-class WorkPool {
+class WorkPool : NonCopyable {
     using ThisT          = WorkPool<Job, QNBits>;
     using WorkerFactoryT = std::function<std::thread()>;
     using ThreadVectorT  = std::vector<std::thread>;

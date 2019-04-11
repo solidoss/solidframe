@@ -40,7 +40,7 @@ class ReactorBase;
 
 struct ServiceStub;
 
-class Manager final {
+class Manager final : NonCopyable {
     using LockedFunctionT   = std::function<void()>;
     using UnlockedFunctionT = std::function<void()>;
 
@@ -75,11 +75,6 @@ public:
         const size_t _svcmtxcnt     = 0,
         const size_t _actmtxcnt     = 0,
         const size_t _actbucketsize = 0);
-
-    Manager(const Manager&) = delete;
-    Manager(Manager&&)      = delete;
-    Manager& operator=(const Manager&) = delete;
-    Manager& operator=(Manager&&) = delete;
 
     virtual ~Manager();
 

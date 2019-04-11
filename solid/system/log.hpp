@@ -95,7 +95,7 @@ public:
 
 std::ostream& operator<<(std::ostream& _ros, const LogLineBase& _line);
 
-class LoggerBase {
+class LoggerBase : NonCopyable {
     //friend class Engine;
 
     const std::string name_;
@@ -159,7 +159,7 @@ extern const LoggerT generic_logger;
 
 void log_stop();
 
-struct LogRecorder {
+struct LogRecorder : NonCopyable {
     virtual ~LogRecorder();
 
     virtual void recordLine(const solid::LogLineBase& /*_rlog_line*/);

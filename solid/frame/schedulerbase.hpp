@@ -28,7 +28,7 @@ class ActorBase;
 typedef solid_function_t(bool(ReactorBase&)) ScheduleFunctionT;
 
 //! A base class for all schedulers
-class SchedulerBase {
+class SchedulerBase : NonCopyable {
 public:
 protected:
     typedef bool (*CreateWorkerF)(SchedulerBase& _rsch, const size_t, std::thread& _rthr);

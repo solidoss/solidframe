@@ -26,7 +26,7 @@ class ReactorBase;
 class Actor;
 class CompletionHandler;
 
-class ActorBase : public Dynamic<ActorBase> {
+class ActorBase : public Dynamic<ActorBase>, NonCopyable {
 public:
     //! Get the id of the actor
     IndexT id() const;

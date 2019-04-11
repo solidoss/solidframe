@@ -69,7 +69,7 @@ struct WorkPoolConfiguration {
 //-----------------------------------------------------------------------------
 
 template <typename Job, size_t QNBits = 10>
-class WorkPool {
+class WorkPool : NonCopyable {
     using ThisT          = WorkPool<Job, QNBits>;
     using WorkerFactoryT = std::function<std::thread()>;
     using ThreadVectorT  = std::vector<std::thread>;

@@ -25,7 +25,7 @@ class SchedulerBase;
  * The manager will call raise when an actor needs processor
  * time, e.g. because of an event.
  */
-class ReactorBase {
+class ReactorBase : NonCopyable {
 public:
     virtual ~ReactorBase();
     virtual bool raise(UniqueId const& _ractuid, Event const& _re) = 0;
