@@ -25,8 +25,8 @@ int test_workpool_pattern(int argc, char* argv[])
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
 
     const int                          wait_seconds = 500;
-    const size_t                       producer_cnt = thread::hardware_concurrency();
-    const size_t                       consumer_cnt = thread::hardware_concurrency();
+    const size_t                       producer_cnt = 2;
+    const size_t                       consumer_cnt = 2;
     const uint64_t                     check_sum    = 10999970000000UL;
     std::atomic<uint64_t>              sum{0};
     AtomicPWPT                         pwp{nullptr};
