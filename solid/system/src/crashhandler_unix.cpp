@@ -60,7 +60,7 @@ void signalHandler(int signal_number, siginfo_t* info, void* unused_context)
 {
 
     // Only one signal will be allowed past this point
-    if (false == shouldDoExit()) {
+    if (!shouldDoExit()) {
         while (true) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
