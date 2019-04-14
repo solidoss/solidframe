@@ -55,6 +55,7 @@ Pod::Spec.new do |s|
     sp.preserve_paths = "solid/system", "solid/system/*.hpp"
     sp.public_header_files = 'solid/system/*.hpp', 'solid/*.hpp'
     sp.source_files = 'solid/system/src/*.{cpp,hpp}', 'solid/system/*.hpp', 'solid/*.hpp'
+    ss.exclude_files = 'solid/system/src/stacktrace_windows.cpp', 'solid/system/src/stacktrace_android.cpp'
     sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
   end
 
