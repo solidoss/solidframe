@@ -48,16 +48,15 @@ Pod::Spec.new do |s|
 
   # ――― Source Code ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
 
-  s.preserve_paths = "solid", "solid/*.hpp", "solid/system/*.{hpp,ipp}", "solid/utility", "solid/utility/*.hpp", "solid/serialization", "solid/serialization/*.hpp", "solid/frame", "solid/frame/*.hpp", "solid/frame/aio", "solid/frame/aio/*.hpp", "solid/frame/aio/openssl", "solid/frame/aio/openssl/*.hpp", "solid/frame/mprpc", "solid/frame/mprpc/*.hpp"
+  s.preserve_paths = "solid", "solid/*.hpp", "solid/system", "solid/system/*.{hpp,ipp}", "solid/utility", "solid/utility/*.hpp", "solid/serialization", "solid/serialization/*.hpp", "solid/frame", "solid/frame/*.hpp", "solid/frame/aio", "solid/frame/aio/*.hpp", "solid/frame/aio/openssl", "solid/frame/aio/openssl/*.hpp", "solid/frame/mprpc", "solid/frame/mprpc/*.hpp"
 
   s.subspec 'system' do |sp|
     sp.name = 'system'
     sp.preserve_paths = "solid/system", "solid/system/*.hpp"
     sp.public_header_files = 'solid/system/*.hpp', 'solid/*.hpp'
-#    sp.source_files =  'solid/system/src/*.{cpp,hpp}', 'solid/system/*.hpp', 'solid/*.hpp'
-    sp.source_files =  'solid/system/src/device.cpp', 'solid/system/*.hpp', 'solid/*.hpp'
+    sp.source_files =  'solid/system/src/*.{cpp,hpp}', 'solid/system/*.hpp', 'solid/*.hpp'
     sp.exclude_files = 'solid/system/src/crashhandler_windows.cpp', 'solid/system/src/crashhandler_android.cpp', 'solid/system/src/stacktrace_windows.cpp', 'solid/system/src/stacktrace_windows.hpp'
-    sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
+    sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
   end
 
   s.subspec 'utility' do |sp|
@@ -160,6 +159,6 @@ Pod::Spec.new do |s|
   # ――― Project Settings ――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
 
   s.requires_arc = false
-  s.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
+  s.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
 
 end
