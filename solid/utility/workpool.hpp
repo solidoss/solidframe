@@ -41,10 +41,7 @@ class CallPool<R(ArgTypes...)> {
     WorkPoolT wp_;
 
 public:
-    CallPool(const WorkPoolConfiguration& _cfg)
-        : wp_(_cfg)
-    {
-    }
+    CallPool() {}
 
     template <typename... Args>
     CallPool(
@@ -62,9 +59,9 @@ public:
     }
 
     template <typename... Args>
-    void start(const size_t _start_wkr_cnt, Args... _args)
+    void start(const WorkPoolConfiguration& _cfg, const size_t _start_wkr_cnt, Args... _args)
     {
-        wp_.start(_start_wkr_cnt,
+        wp_.start(_cfg, _start_wkr_cnt,
             [](FunctionT& _rfnc, Args&&... _args) {
                 _rfnc(std::forward<Args>(_args)...);
             },
@@ -81,6 +78,10 @@ public:
     void push(JT&& _jb)
     {
         wp_.push(std::forward<JT>(_jb));
+    }
+    void stop()
+    {
+        wp_.stop();
     }
 };
 

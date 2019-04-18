@@ -136,15 +136,15 @@ int test_event_stress_wp(int argc, char* argv[])
         AtomicSizeT   connection_count(0);
         promise<void> prom;
 
-        ConnectionCallPoolT connection_cp{WorkPoolConfiguration()};
-        AccountCallPoolT    account_cp{WorkPoolConfiguration()};
-        DeviceCallPoolT     device_cp{WorkPoolConfiguration()};
+        ConnectionCallPoolT connection_cp{};
+        AccountCallPoolT    account_cp{};
+        DeviceCallPoolT     device_cp{};
 
         ConnectionContext conn_ctx(account_cp, prom);
 
-        account_cp.start(1, AccountContext(connection_cp, device_cp));
-        connection_cp.start(1, std::ref(conn_ctx));
-        device_cp.start(1, DeviceContext(connection_cp));
+        account_cp.start(WorkPoolConfiguration(), 1, AccountContext(connection_cp, device_cp));
+        connection_cp.start(WorkPoolConfiguration(), 1, std::ref(conn_ctx));
+        device_cp.start(WorkPoolConfiguration(), 1, DeviceContext(connection_cp));
 
         conn_ctx.conn_cnt_ = account_connection_count * account_count;
 

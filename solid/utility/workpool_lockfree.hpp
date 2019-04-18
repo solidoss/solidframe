@@ -552,13 +552,13 @@ class WorkPool : NonCopyable {
     using JobQueueT      = Queue<Job, QNBits>;
     using AtomicBoolT    = std::atomic<bool>;
 
-    const WorkPoolConfiguration config_;
-    AtomicBoolT                 running_;
-    std::atomic<size_t>         thr_cnt_;
-    WorkerFactoryT              worker_factory_fnc_;
-    JobQueueT                   job_q_;
-    ThreadVectorT               thr_vec_;
-    std::mutex                  thr_mtx_;
+    WorkPoolConfiguration config_;
+    AtomicBoolT           running_;
+    std::atomic<size_t>   thr_cnt_;
+    WorkerFactoryT        worker_factory_fnc_;
+    JobQueueT             job_q_;
+    ThreadVectorT         thr_vec_;
+    std::mutex            thr_mtx_;
 #ifdef SOLID_HAS_STATISTICS
     struct Statistic : solid::Statistic {
         std::atomic<size_t>   max_worker_count_;
@@ -588,10 +588,9 @@ class WorkPool : NonCopyable {
     } statistic_;
 #endif
 public:
-    WorkPool(
-        const WorkPoolConfiguration& _config)
-        : config_(_config)
-        , running_(true)
+    WorkPool()
+        : config_()
+        , running_(false)
         , thr_cnt_(0)
     {
     }
@@ -602,11 +601,12 @@ public:
         const size_t                 _start_wkr_cnt,
         JobHandleFnc                 _job_handler_fnc,
         Args&&... _args)
-        : config_(_cfg)
-        , running_(true)
+        : config_()
+        , running_(false)
         , thr_cnt_(0)
     {
         doStart(
+            _cfg,
             _start_wkr_cnt,
             _job_handler_fnc,
             std::forward<Args>(_args)...);
@@ -614,11 +614,13 @@ public:
 
     template <class JobHandleFnc, typename... Args>
     void start(
-        const size_t _start_wkr_cnt,
-        JobHandleFnc _job_handler_fnc,
+        const WorkPoolConfiguration& _cfg,
+        const size_t                 _start_wkr_cnt,
+        JobHandleFnc                 _job_handler_fnc,
         Args&&... _args)
     {
         doStart(
+            _cfg,
             _start_wkr_cnt,
             _job_handler_fnc,
             std::forward<Args>(_args)...);
@@ -638,6 +640,11 @@ public:
 
     void dumpStatistics(const bool _dump_queue_too = true) const;
 
+    void stop()
+    {
+        doStop();
+    }
+
 private:
     bool pop(Job& _rjob);
 
@@ -645,8 +652,9 @@ private:
 
     template <class JobHandlerFnc, typename... Args>
     void doStart(
-        size_t        _start_wkr_cnt,
-        JobHandlerFnc _job_handler_fnc,
+        const WorkPoolConfiguration& _cfg,
+        size_t                       _start_wkr_cnt,
+        JobHandlerFnc                _job_handler_fnc,
         Args&&... _args);
 }; //WorkPool
 
@@ -725,8 +733,9 @@ void WorkPool<Job, QNBits>::doStop()
 template <typename Job, size_t QNBits>
 template <class JobHandlerFnc, typename... Args>
 void WorkPool<Job, QNBits>::doStart(
-    size_t        _start_wkr_cnt,
-    JobHandlerFnc _job_handler_fnc,
+    const WorkPoolConfiguration& _cfg,
+    size_t                       _start_wkr_cnt,
+    JobHandlerFnc                _job_handler_fnc,
     Args&&... _args)
 {
 
@@ -753,16 +762,21 @@ void WorkPool<Job, QNBits>::doStart(
         _start_wkr_cnt = config_.max_worker_count_;
     }
 
-    worker_factory_fnc_ = lambda;
+    bool expect = false;
 
-    {
-        std::unique_lock<std::mutex> lock(thr_mtx_);
+    if (running_.compare_exchange_strong(expect, true)) {
+        config_             = _cfg;
+        worker_factory_fnc_ = lambda;
 
-        for (size_t i = 0; i < _start_wkr_cnt; ++i) {
-            thr_vec_.emplace_back(worker_factory_fnc_());
-            solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
+        {
+            std::unique_lock<std::mutex> lock(thr_mtx_);
+
+            for (size_t i = 0; i < _start_wkr_cnt; ++i) {
+                thr_vec_.emplace_back(worker_factory_fnc_());
+                solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
+            }
+            thr_cnt_ += _start_wkr_cnt;
         }
-        thr_cnt_ += _start_wkr_cnt;
     }
 }
 //-----------------------------------------------------------------------------
