@@ -26,8 +26,8 @@ printUsage()
     echo
 }
 
-BOOST_ADDR="https://dl.bintray.com/boostorg/release/1.69.0/source/boost_1_69_0.tar.bz2"
-OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.1.0j.tar.gz"
+BOOST_ADDR="https://dl.bintray.com/boostorg/release/1.70.0/source/boost_1_70_0.tar.bz2"
+OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.1.1b.tar.gz"
 
 SYSTEM=
 BIT64=

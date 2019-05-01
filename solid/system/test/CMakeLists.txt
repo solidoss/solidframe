@@ -15,7 +15,7 @@ create_test_sourcelist( Tests test_system.cpp ${MyTests})
 
 add_executable(test_system ${Tests})
 
-target_link_libraries(test_system solid_system)
+target_link_libraries(test_system solid_system ${SYSTEM_BASIC_LIBRARIES})
 
 
 add_test(NAME TestSystemNanoTime        COMMAND  test_system test_nanotime)

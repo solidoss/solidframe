@@ -113,6 +113,13 @@ if(CMAKE_SYSTEM MATCHES "FreeBSD*")
     )
 
     set(SYSTEM_BASIC_LIBRARIES pmc pthread rt)
+    
+    find_library(EXECINFO_LIBRARY NAMES execinfo)
+    
+    if(EXECINFO_LIBRARY)
+        message("Execinfo library found: ${EXECINFO_LIBRARY}")
+        list(APPEND SYSTEM_BASIC_LIBRARIES ${EXECINFO_LIBRARY})
+    endif()
 endif(CMAKE_SYSTEM MATCHES "FreeBSD*")
 
 if(CMAKE_SYSTEM MATCHES "Darwin*")
