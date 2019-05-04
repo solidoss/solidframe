@@ -1,12 +1,12 @@
 # the frame libraries:
 set(Sources
-    src/manager.cpp
     src/actor.cpp
     src/service.cpp
     src/schedulerbase.cpp
     src/reactor.cpp
     src/completion.cpp
     src/sharedstore.cpp
+    src/manager.cpp
 )
 
 set(Headers

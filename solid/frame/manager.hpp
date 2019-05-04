@@ -47,14 +47,14 @@ class Manager final : NonCopyable {
 public:
     class VisitContext {
         friend class Manager;
-        Manager&     rm_;
-        ReactorBase& rr_;
-        ActorBase&   ra_;
+        Manager&     rmanager_;
+        ReactorBase& rreactor_;
+        ActorBase&   ractor_;
 
-        VisitContext(Manager& _rm, ReactorBase& _rr, ActorBase& _ra)
-            : rm_(_rm)
-            , rr_(_rr)
-            , ra_(_ra)
+        VisitContext(Manager& _rmanager, ReactorBase& _rreactor, ActorBase& _ractor)
+            : rmanager_(_rmanager)
+            , rreactor_(_rreactor)
+            , ractor_(_ractor)
         {
         }
 
@@ -64,11 +64,11 @@ public:
     public:
         ActorBase& actor() const
         {
-            return ra_;
+            return ractor_;
         }
 
-        bool raiseActor(Event const& _revt) const;
-        bool raiseActor(Event&& _uevt) const;
+        bool raiseActor(Event const& _revent) const;
+        bool raiseActor(Event&& _uevent) const;
     };
 
     Manager(
@@ -82,50 +82,20 @@ public:
 
     void start();
 
-    bool notify(ActorIdT const& _ruid, Event&& _uevt);
-
-    //bool notifyAll(Event const &_revt, const size_t _sigmsk = 0);
+    bool notify(ActorIdT const& _ruid, Event&& _uevent);
 
     template <class F>
-    bool visit(ActorIdT const& _ruid, F _f)
-    {
-        //ActorVisitFunctionT fct(std::cref(_f));
-        return doVisit(_ruid, ActorVisitFunctionT{_f});
-    }
+    bool visit(ActorIdT const& _ruid, F _f);
 
     template <class T, class F>
-    bool visitDynamicCast(ActorIdT const& _ruid, F _f)
-    {
-        auto l = [&_f](VisitContext& _rctx) {
-            T* pt = dynamic_cast<T*>(&_rctx.actor());
-            if (pt) {
-                return _f(_rctx, *pt);
-            }
-            return false;
-        };
-        ActorVisitFunctionT fct(std::cref(l));
-        return doVisit(_ruid, fct);
-    }
+    bool visitDynamicCast(ActorIdT const& _ruid, F _f);
 
     template <class T, class F>
-    bool visitExplicitCast(ActorIdT const& _ruid, F _f)
-    {
-        auto visit_lambda = [&_f](VisitContext& _rctx) {
-            const std::type_info& req_type = typeid(T);
-            const std::type_info& val_type = doGetTypeId(*(&_rctx.actor()));
+    bool visitExplicitCast(ActorIdT const& _ruid, F _f);
 
-            if (std::type_index(req_type) == std::type_index(val_type)) {
-                return _f(_rctx, static_cast<T&>(_rctx.actor()));
-            }
-            return false;
-        };
-        //ActorVisitFunctionT fct(std::cref(l));
-        return doVisit(_ruid, ActorVisitFunctionT{visit_lambda});
-    }
+    ActorIdT id(const ActorBase& _ractor) const;
 
-    ActorIdT id(const ActorBase& _ract) const;
-
-    Service& service(const ActorBase& _ract) const;
+    Service& service(const ActorBase& _ractor) const;
 
 private:
     friend class Service;
@@ -138,69 +108,109 @@ private:
 
     size_t serviceCount() const;
 
-    static const std::type_info& doGetTypeId(const ActorBase& _ract)
+    static const std::type_info& doGetTypeId(const ActorBase& _ractor)
     {
-        return typeid(_ract);
+        return typeid(_ractor);
     }
 
     static bool notify_actor(
-        ActorBase& _ract, ReactorBase& _rreact,
-        Event const& _revt, const size_t _sigmsk);
+        ActorBase& _ractor, ReactorBase& _rreactor,
+        Event const& _revent, const size_t _sigmsk);
 
     static bool notify_actor(
-        ActorBase& _ract, ReactorBase& _rreact,
-        Event&& _uevt, const size_t _sigmsk);
+        ActorBase& _ractor, ReactorBase& _rreactor,
+        Event&& _uevent, const size_t _sigmsk);
 
-    bool registerService(Service& _rsvc, const bool _start);
-    void unregisterService(Service& _rsvc);
+    bool registerService(Service& _rservice, const bool _start);
+    void unregisterService(Service& _rservice);
 
-    void unregisterActor(ActorBase& _ract);
-    bool disableActorVisits(ActorBase& _ract);
+    void unregisterActor(ActorBase& _ractor);
+    bool disableActorVisits(ActorBase& _ractor);
 
-    ActorIdT unsafeId(const ActorBase& _ract) const;
+    ActorIdT unsafeId(const ActorBase& _ractor) const;
 
-    std::mutex& mutex(const Service& _rsvc) const;
-    std::mutex& mutex(const ActorBase& _ract) const;
+    std::mutex& mutex(const Service& _rservice) const;
+    std::mutex& mutex(const ActorBase& _ractor) const;
 
     ActorIdT registerActor(
-        const Service&     _rsvc,
-        ActorBase&         _ract,
+        const Service&     _rservice,
+        ActorBase&         _ractor,
         ReactorBase&       _rr,
         ScheduleFunctionT& _rfct,
         ErrorConditionT&   _rerr);
 
-    size_t notifyAll(const Service& _rsvc, Event const& _revt);
+    size_t notifyAll(const Service& _rservice, Event const& _revent);
 
     template <typename F>
-    size_t forEachServiceActor(const Service& _rsvc, F _f)
-    {
-        ActorVisitFunctionT fct(_f);
-        return doForEachServiceActor(_rsvc, fct);
-    }
+    size_t forEachServiceActor(const Service& _rservice, F _f);
 
-    bool raise(const ActorBase& _ract, Event const& _re);
-
-    void stopService(Service& _rsvc, bool _wait);
+    void stopService(Service& _rservice, bool _wait);
 
     template <typename LockedFnc, typename UnlockedFnc>
-    void startService(Service& _rsvc, LockedFnc&& _lf, UnlockedFnc&& _uf)
-    {
-        LockedFunctionT   lf{std::forward<LockedFnc>(_lf)};
-        UnlockedFunctionT uf{std::forward<UnlockedFnc>(_uf)};
+    void startService(Service& _rservice, LockedFnc&& _lf, UnlockedFnc&& _uf);
 
-        doStartService(_rsvc, lf, uf);
-    }
-
-    size_t doForEachServiceActor(const Service& _rsvc, const ActorVisitFunctionT _rfct);
-    size_t doForEachServiceActor(const size_t _chkidx, const ActorVisitFunctionT _rfct);
-    bool   doVisit(ActorIdT const& _ruid, const ActorVisitFunctionT _fctor);
-    void   doUnregisterService(ServiceStub& _rss);
-    void   doStartService(Service& _rsvc, LockedFunctionT& _locked_fnc, UnlockedFunctionT& _unlocked_fnc);
+    size_t doForEachServiceActor(const Service& _rservice, const ActorVisitFunctionT _rvisit_fnc);
+    size_t doForEachServiceActor(const size_t _chkidx, const ActorVisitFunctionT _rvisit_fnc);
+    bool   doVisit(ActorIdT const& _actor_id, const ActorVisitFunctionT _rvisit_fnc);
+    void   doCleanupService(const size_t _service_index, Service& _rservice);
+    void   doStartService(Service& _rservice, const LockedFunctionT& _locked_fnc, const UnlockedFunctionT& _unlocked_fnc);
 
 private:
     struct Data;
     PimplT<Data> impl_;
 };
+
+//-----------------------------------------------------------------------------
+
+template <class F>
+inline bool Manager::visit(ActorIdT const& _ruid, F _f)
+{
+    return doVisit(_ruid, ActorVisitFunctionT{_f});
+}
+
+template <class T, class F>
+inline bool Manager::visitDynamicCast(ActorIdT const& _ruid, F _f)
+{
+    auto lambda = [&_f](VisitContext& _rctx) {
+        T* pt = dynamic_cast<T*>(&_rctx.actor());
+        if (pt) {
+            return _f(_rctx, *pt);
+        }
+        return false;
+    };
+    ActorVisitFunctionT fct(std::ref(lambda));
+    return doVisit(_ruid, fct);
+}
+
+template <class T, class F>
+inline bool Manager::visitExplicitCast(ActorIdT const& _ruid, F _f)
+{
+    auto lambda = [&_f](VisitContext& _rctx) {
+        const std::type_info& req_type = typeid(T);
+        const std::type_info& val_type = doGetTypeId(*(&_rctx.actor()));
+
+        if (std::type_index(req_type) == std::type_index(val_type)) {
+            return _f(_rctx, static_cast<T&>(_rctx.actor()));
+        }
+        return false;
+    };
+
+    return doVisit(_ruid, ActorVisitFunctionT{lambda});
+}
+
+template <typename F>
+inline size_t Manager::forEachServiceActor(const Service& _rservice, F _f)
+{
+    return doForEachServiceActor(_rservice, ActorVisitFunctionT{_f});
+}
+
+template <typename LockedFnc, typename UnlockedFnc>
+inline void Manager::startService(Service& _rservice, LockedFnc&& _lf, UnlockedFnc&& _uf)
+{
+    doStartService(_rservice, LockedFunctionT{std::forward<LockedFnc>(_lf)}, UnlockedFunctionT{std::forward<UnlockedFnc>(_uf)});
+}
+
+//-----------------------------------------------------------------------------
 
 } //namespace frame
 } //namespace solid
