@@ -201,7 +201,7 @@ int test_event_stress(int argc, char* argv[])
         frame::Manager  manager;
         frame::ServiceT account_service{manager};
         frame::ServiceT device_service{manager};
-        frame::ServiceT connection_service{manager}; //should stop firs
+        frame::ServiceT connection_service{manager}; //should stop first
         AtomicSizeT     connection_count(0);
         promise<void>   prom;
 

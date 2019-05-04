@@ -457,6 +457,9 @@ bool Manager::registerService(Service& _rservice, const bool _start)
         rss.reset(&_rservice, _start);
     }
     ++impl_->service_count_;
+    if (_start) {
+        _rservice.statusSetRunning();
+    }
     return true;
 }
 
