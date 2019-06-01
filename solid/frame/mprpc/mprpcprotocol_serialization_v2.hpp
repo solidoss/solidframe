@@ -283,25 +283,25 @@ struct Protocol : public mprpc::Protocol, std::enable_shared_from_this<Protocol<
 
     typename SerializerT::PointerT createSerializer(const WriterConfiguration& _rconfig) const override
     {
-        const LimitsT l(_rconfig.string_size_limit, _rconfig.container_size_limit, _rconfig.string_size_limit);
+        const LimitsT l(_rconfig.string_size_limit, _rconfig.container_size_limit, _rconfig.stream_size_limit);
         return typename SerializerT::PointerT(new SerializerT(type_map_, l));
     }
 
     typename DeserializerT::PointerT createDeserializer(const ReaderConfiguration& _rconfig) const override
     {
-        const LimitsT l(_rconfig.string_size_limit, _rconfig.container_size_limit, _rconfig.string_size_limit);
+        const LimitsT l(_rconfig.string_size_limit, _rconfig.container_size_limit, _rconfig.stream_size_limit);
         return typename DeserializerT::PointerT(new DeserializerT(type_map_, l));
     }
 
     void reconfigure(mprpc::Deserializer& _rdes, const ReaderConfiguration& _rconfig) const override
     {
-        const LimitsT l(_rconfig.string_size_limit, _rconfig.container_size_limit, _rconfig.string_size_limit);
+        const LimitsT l(_rconfig.string_size_limit, _rconfig.container_size_limit, _rconfig.stream_size_limit);
         static_cast<DeserializerT&>(_rdes).limits(l);
     }
 
     void reconfigure(mprpc::Serializer& _rser, const WriterConfiguration& _rconfig) const override
     {
-        const LimitsT l(_rconfig.string_size_limit, _rconfig.container_size_limit, _rconfig.string_size_limit);
+        const LimitsT l(_rconfig.string_size_limit, _rconfig.container_size_limit, _rconfig.stream_size_limit);
         static_cast<SerializerT&>(_rser).limits(l);
     }
 
