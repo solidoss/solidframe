@@ -161,6 +161,9 @@ struct ReaderConfiguration;
 struct WriterConfiguration;
 
 class Protocol {
+    uint32_t version_major_ = 1;
+    uint32_t version_minor_ = 0;
+
 public:
     enum {
         MaxPacketDataSize = 1024 * 64,
@@ -196,6 +199,22 @@ public:
     virtual Deserializer::PointerT createDeserializer(const ReaderConfiguration& _rconf) const = 0;
 
     virtual size_t minimumFreePacketDataSize() const = 0;
+
+    void version(const uint32_t _major, const uint32_t _minor)
+    {
+        version_major_ = _major;
+        version_minor_ = _minor;
+    }
+
+    uint32_t const& versionMajor() const
+    {
+        return version_major_;
+    }
+
+    uint32_t const& versionMinor() const
+    {
+        return version_minor_;
+    }
 };
 
 } //namespace mprpc

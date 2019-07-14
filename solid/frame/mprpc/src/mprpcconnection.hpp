@@ -127,6 +127,12 @@ public:
 
     SocketDevice const& device() const;
 
+    uint32_t peerVersionMajor() const;
+    uint32_t peerVersionMinor() const;
+
+    uint32_t& peerVersionMajor();
+    uint32_t& peerVersionMinor();
+
     Any<>& any();
 
     const UniqueId& relayId() const;
@@ -401,6 +407,8 @@ private:
     char               socket_emplace_buf_[static_cast<size_t>(ConnectionValues::SocketEmplacementSize)];
     SocketStubPtrT     sock_ptr_;
     UniqueId           relay_id_;
+    uint32_t           peer_version_major_ = InvalidIndex();
+    uint32_t           peer_version_minor_ = InvalidIndex();
 };
 
 inline Any<>& Connection::any()
@@ -467,6 +475,24 @@ inline Connection* new_connection(
     std::string const&      _rpool_name)
 {
     return new Connection(_rconfiguration, _rpool_id, _rpool_name);
+}
+
+inline uint32_t Connection::peerVersionMajor() const
+{
+    return peer_version_major_;
+}
+inline uint32_t Connection::peerVersionMinor() const
+{
+    return peer_version_minor_;
+}
+
+inline uint32_t& Connection::peerVersionMajor()
+{
+    return peer_version_major_;
+}
+inline uint32_t& Connection::peerVersionMinor()
+{
+    return peer_version_minor_;
 }
 
 } //namespace mprpc

@@ -2201,6 +2201,36 @@ Configuration const& ConnectionContext::configuration() const
     return rservice.configuration();
 }
 //-----------------------------------------------------------------------------
+uint32_t const& ConnectionContext::versionMajor() const
+{
+    return configuration().protocol().versionMajor();
+}
+//-----------------------------------------------------------------------------
+uint32_t const& ConnectionContext::versionMinor() const
+{
+    return configuration().protocol().versionMinor();
+}
+//-----------------------------------------------------------------------------
+uint32_t ConnectionContext::peerVersionMajor() const
+{
+    return rconnection.peerVersionMajor();
+}
+//-----------------------------------------------------------------------------
+uint32_t ConnectionContext::peerVersionMinor() const
+{
+    return rconnection.peerVersionMinor();
+}
+//-----------------------------------------------------------------------------
+uint32_t& ConnectionContext::peerVersionMajorRef()
+{
+    return rconnection.peerVersionMajor();
+}
+//-----------------------------------------------------------------------------
+uint32_t& ConnectionContext::peerVersionMinorRef()
+{
+    return rconnection.peerVersionMinor();
+}
+//-----------------------------------------------------------------------------
 // SocketStub
 //-----------------------------------------------------------------------------
 /*virtual*/ bool SocketStub::secureAccept(frame::aio::ReactorContext& /*_rctx*/, ConnectionContext& /*_rconctx*/, OnSecureAcceptF /*_pf*/, ErrorConditionT& _rerror)
