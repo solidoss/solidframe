@@ -598,7 +598,15 @@ public:
             schedule(std::move(r));
         }
     }
-
+    
+    template <class T>
+    void addVersion(const uint32_t _version){
+        
+    }
+    template <class T>
+    uint32_t version(T &/*_rt*/){
+        
+    }
 protected:
     void doPrepareRun(const char* _pbeg, unsigned _sz)
     {

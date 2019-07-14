@@ -4,6 +4,7 @@ set( SerializationTestSuite
     test_binary_basic.cpp
     test_polymorphic.cpp
     test_container.cpp
+    test_versioning.cpp
 )
 
 create_test_sourcelist( SerializationTests test_serialization.cpp ${SerializationTestSuite})

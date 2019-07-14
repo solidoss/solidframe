@@ -610,7 +610,16 @@ public: //should be protected
 
         tryRun(std::move(r));
     }
-
+    
+    template <class T>
+    void addVersion(const uint32_t _version){
+        
+    }
+    
+    template <class T>
+    uint32_t version(T &/*_rt*/){
+        
+    }
 protected:
     void doPrepareRun(char* _pbeg, unsigned _sz)
     {
