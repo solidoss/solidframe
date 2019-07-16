@@ -196,6 +196,12 @@ Base::ReturnE DeserializerBase::load_binary(DeserializerBase& _rd, Runnable& _rr
     return _rd.doLoadBinary(_rr);
 }
 
+Base::ReturnE DeserializerBase::load_version(DeserializerBase& _rd, Runnable& _rr, void* /*_pctx*/)
+{
+    _rd.doAddVersion(_rr.data_, _rd.data_.u64_);
+    return ReturnE::Done;
+}
+
 Base::ReturnE DeserializerBase::call_function(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
 {
     return _rr.fnc_(_rd, _rr, _pctx);
