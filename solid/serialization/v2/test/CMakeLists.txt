@@ -22,5 +22,6 @@ add_test(NAME TestSerializationV2Binary       COMMAND  test_serialization_v2 tes
 add_test(NAME TestSerializationV2BinaryBasic  COMMAND  test_serialization_v2 test_binary_basic)
 add_test(NAME TestSerializationV2Polymorphic  COMMAND  test_serialization_v2 test_polymorphic)
 add_test(NAME TestSerializationV2Container    COMMAND  test_serialization_v2 test_container)
+add_test(NAME TestSerializationV2Versioning   COMMAND  test_serialization_v2 test_versioning)
 
 #==============================================================================
