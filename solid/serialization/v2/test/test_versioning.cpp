@@ -34,6 +34,8 @@ namespace v1 {
 struct Test {
     static constexpr uint32_t version = 1;
 
+    uint32_t version_ = version;
+
     struct NestedA {
         static constexpr uint32_t version = 1;
         uint32_t                  v_;
@@ -44,14 +46,16 @@ struct Test {
         }
     } nested_;
 
+    uint32_t nested_version_ = NestedA::version;
+
     PROTOCOL_V2(_rser, _rthis, _rctx, _name)
     {
 
-        serialization::addVersion<Test>(_rser, Test::version, _rctx, "version");
+        serialization::addVersion<Test>(_rser, _rthis.version_, "version");
 
         _rser.add(
             [&_rthis](S& _rser, Context& _rctx, const char* _name) {
-                serialization::addVersion<NestedA>(_rser, NestedA::version, _rctx, "version");
+                serialization::addVersion<NestedA>(_rser, _rthis.nested_version_, "nested_version");
                 _rser.add(_rthis.nested_, _rctx, _name);
             },
             _rctx, _name);
@@ -62,6 +66,8 @@ struct Test {
 namespace v2 {
 struct Test {
     static constexpr uint32_t version = 1;
+
+    uint32_t version_ = version;
 
     struct NestedA {
         static constexpr uint32_t version = 2;
@@ -78,13 +84,15 @@ struct Test {
         }
     } nested_;
 
+    uint32_t nested_version_ = NestedA::version;
+
     PROTOCOL_V2(_rser, _rthis, _rctx, _name)
     {
-        serialization::addVersion<Test>(_rser, Test::version, _rctx, "version");
+        serialization::addVersion<Test>(_rser, _rthis.version_, "version");
 
         _rser.add(
             [&_rthis](S& _rser, Context& _rctx, const char* _name) {
-                serialization::addVersion<NestedA>(_rser, NestedA::version, _rctx, "version");
+                serialization::addVersion<NestedA>(_rser, _rthis.nested_version_, "nested_version");
                 _rser.add(_rthis.nested_, _rctx, _name);
             },
             _rctx, _name);
@@ -95,6 +103,8 @@ struct Test {
 namespace v3 {
 struct Test {
     static constexpr uint32_t version = 2;
+
+    uint32_t version_ = version;
 
     struct NestedA {
         static constexpr uint32_t version = 2;
@@ -122,17 +132,20 @@ struct Test {
 
     } nestedb_;
 
+    uint32_t nested_version_ = NestedB::version; //nested_version for current Test::version
+
     PROTOCOL_V2(_rser, _rthis, _rctx, _name)
     {
-        serialization::addVersion<Test>(_rser, Test::version, _rctx, "version");
+        serialization::addVersion<Test>(_rser, _rthis.version_, "version");
 
         _rser.add(
             [&_rthis](S& _rser, Context& _rctx, const char* _name) {
                 if (serialization::version(_rser, _rthis) == 1) {
-                    serialization::addVersion<NestedA>(_rser, NestedA::version, _rctx, "version");
+
+                    serialization::addVersion<NestedA>(_rser, _rthis.nested_version_, "nested_version");
                     _rser.add(_rthis.nesteda_, _rctx, _name);
                 } else if (_rser.version(_rthis) == 2) {
-                    serialization::addVersion<NestedB>(_rser, NestedB::version, _rctx, "version");
+                    serialization::addVersion<NestedB>(_rser, _rthis.nested_version_, "nested_version");
                     _rser.add(_rthis.nestedb_, _rctx, _name);
                 }
             },
@@ -144,6 +157,8 @@ struct Test {
 namespace v4 {
 struct Test {
     static constexpr uint32_t version = 2;
+
+    uint32_t version_ = version;
 
     struct NestedA {
         static constexpr uint32_t version = 2;
@@ -176,17 +191,19 @@ struct Test {
         }
     } nestedb_;
 
+    uint32_t nested_version_ = NestedB::version; //nested_version for current Test::version
+
     PROTOCOL_V2(_rser, _rthis, _rctx, _name)
     {
-        serialization::addVersion<Test>(_rser, Test::version, _rctx, "version");
+        serialization::addVersion<Test>(_rser, _rthis.version_, "version");
 
         _rser.add(
             [&_rthis](S& _rser, Context& _rctx, const char* _name) {
                 if (_rser.version(_rthis) == 1) {
-                    serialization::addVersion<NestedA>(_rser, NestedA::version, _rctx, "version");
+                    serialization::addVersion<NestedA>(_rser, _rthis.nested_version_, "nested_version");
                     _rser.add(_rthis.nesteda_, _rctx, _name);
                 } else if (_rser.version(_rthis) == 2) {
-                    serialization::addVersion<NestedB>(_rser, NestedB::version, _rctx, "version");
+                    serialization::addVersion<NestedB>(_rser, _rthis.nested_version_, "nested_version");
                     _rser.add(_rthis.nestedb_, _rctx, _name);
                 }
             },

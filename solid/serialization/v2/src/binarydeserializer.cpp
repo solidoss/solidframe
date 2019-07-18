@@ -198,7 +198,8 @@ Base::ReturnE DeserializerBase::load_binary(DeserializerBase& _rd, Runnable& _rr
 
 Base::ReturnE DeserializerBase::load_version(DeserializerBase& _rd, Runnable& _rr, void* /*_pctx*/)
 {
-    _rd.doAddVersion(_rr.data_, _rd.data_.u64_);
+    const uint32_t& rv = *reinterpret_cast<uint32_t*>(_rr.ptr_);
+    _rd.doAddVersion(_rr.data_, rv);
     return ReturnE::Done;
 }
 

@@ -600,10 +600,10 @@ public:
     }
 
     template <class T>
-    void addVersion(const uint32_t /*_version*/, const char* _name)
+    void addVersion(uint32_t& _rversion, const char* _name)
     {
-        addBasicWithCheck(data_.u64_, _name);
-        Runnable r{nullptr, &load_version, 0, typeId<T>(), _name};
+        addBasicWithCheck(_rversion, _name);
+        Runnable r{&_rversion, &load_version, 0, typeId<T>(), _name};
         if (isRunEmpty()) {
             load_version(*this, r, nullptr);
         } else {

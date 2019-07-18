@@ -82,6 +82,7 @@ size_t real_size(size_t _sz)
 struct Message : frame::mprpc::Message {
     static constexpr uint32_t version = 1;
 
+    uint32_t     version_ = version;
     uint32_t     idx;
     std::string  str;
     mutable bool serialized;
@@ -107,7 +108,7 @@ struct Message : frame::mprpc::Message {
 
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        serialization::addVersion<Message>(_s, Message::version, _rctx, "version");
+        serialization::addVersion<Message>(_s, _rthis.version_, "version");
 
         _s.add([&_rthis](S& _rser, frame::mprpc::ConnectionContext& _rctx, const char* /*_name*/) {
             _rser.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
