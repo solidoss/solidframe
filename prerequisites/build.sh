@@ -27,7 +27,7 @@ printUsage()
 }
 
 BOOST_ADDR="https://dl.bintray.com/boostorg/release/1.70.0/source/boost_1_70_0.tar.bz2"
-OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.1.1b.tar.gz"
+OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.1.1c.tar.gz"
 
 SYSTEM=
 BIT64=
@@ -110,7 +110,7 @@ buildBoost()
             BOOST_ADDRESS_MODEL="32"
         fi
         
-        ./bootstrap.bat vc141
+        ./bootstrap.bat
         ./b2 cxxstd=14 --abbreviate-paths --hash address-model="$BOOST_ADDRESS_MODEL" variant="$VARIANT_BUILD" link=static threading=multi --prefix="$EXT_DIR" install
     else
         sh bootstrap.sh
@@ -185,14 +185,14 @@ buildOpenssl()
             ./Configure --prefix="$EXT_DIR" --openssldir="ssl_" darwin64-x86_64-cc
         fi
     elif    [[ "$SYSTEM" =~ "MINGW" ]]; then
-        if [ $BIT64 = true ]; then
+        if [ "$BIT64" = "true" ]; then
             OPENSSL_TARGET="VC-WIN64A"
         else
             OPENSSL_TARGET="VC-WIN32"
         fi
         # on windows we need to compile the shared library too in order to avoid
         # explicit dependency of CRYPT32.LIB
-        wperl Configure $OPENSSL_TARGET --prefix="$EXT_DIR" --openssldir="ssl_"
+        /c/Strawberry/perl/bin/perl Configure $OPENSSL_TARGET --prefix="$EXT_DIR" --openssldir="ssl_"
     else
         if [ $DEBUG ] ; then
             ./config --prefix="$EXT_DIR" --openssldir="ssl_"
