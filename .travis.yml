@@ -8,24 +8,20 @@ language: cpp
 matrix:
   include:
     - os: linux
-      dist: trusty
+      dist: bionic
       sudo: false
-      addons:
-        apt:
-          packages:
-            - gcc-6
-            - g++-6
-          sources:
-            - ubuntu-toolchain-r-test
+      compiler: gcc
+    - os: linux
+      dist: bionic
+      sudo: false
+      compiler: clang
     - os: osx
-      osx_image: xcode8.3
+      compiler: clang
+    - os: osx
+      osx_image: xcode11
       compiler: clang
 install:
-    - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-6 50; fi
-    - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-6 50; fi
-    - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo update-alternatives --auto gcc; fi
-    - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo update-alternatives --auto g++; fi
-    - gcc --version
+    - g++ --version
 script:
  - ./configure -b maintain && cd build/maintain && make -j2 Experimental
 
