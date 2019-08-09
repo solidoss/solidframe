@@ -19,8 +19,8 @@ if(SOLID_ON_WINDOWS)
         build-boost
         EXCLUDE_FROM_ALL 1
         PREFIX ${EXTERNAL_DIR}/boost
-        URL "https://dl.bintray.com/boostorg/release/1.70.0/source/boost_1_70_0.tar.bz2"
-        DOWNLOAD_NO_PROGRESS ON
+        URL "https://dl.bintray.com/boostorg/release/1.70.0/source/boost_1_70_0.zip"
+        DOWNLOAD_NO_PROGRESS OFF
         #URL_MD5 "6f4571e7c5a66ccc3323da6c24be8f05"
         CONFIGURE_COMMAND bootstrap.bat
         BUILD_COMMAND b2.exe cxxstd=14  address-model=${BOOST_ADDRESS_MODEL} variant=${VARIANT_BUILD} --abbreviate-paths --hash --with-system --with-thread --with-program_options --with-serialization --with-filesystem --prefix=${EXTERNAL_DIR} link=static threading=multi install
