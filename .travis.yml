@@ -29,8 +29,8 @@ script:
     - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure -b maintain && cd build/maintain && make -j2 Experimental; fi
     - if [ "$TRAVIS_OS_NAME" == "windows" ]; then "`find c\:/Program\ Files\ \(x86\)/ -name vcvarsall.bat 2>/dev/null | grep -v -F "Permission" | grep -F "2017"`" amd64; fi
     - if [ "$TRAVIS_OS_NAME" == "windows" ]; then ./configure -b maintain -f maintain -g "Visual Studio 15 2017 Win64" && cd build/maintain; fi
-    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then export ORIGINAL_PATH=$ORIGINAL_PATH:/c/nasm; fi
-    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then export PATH=$PATH:"c:\nasm"; fi
+    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then export ORIGINAL_PATH=$ORIGINAL_PATH:"c:\Program Files\NASM"; fi
+    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then export PATH=$PATH:""c:\Program Files\NASM"; fi
     - if [ "$TRAVIS_OS_NAME" == "windows" ]; then travis_wait 20 cmake --build . --config release --target build-openssl; fi
     - if [ "$TRAVIS_OS_NAME" == "windows" ]; then echo $PATH; fi
     - if [ "$TRAVIS_OS_NAME" == "windows" ]; then cat /c/Users/travis/build/vipalade/solidframe/build/maintain/external/openssl/src/build-openssl-stamp/build-openssl-configure-err.log; fi
