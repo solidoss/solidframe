@@ -21,6 +21,9 @@ matrix:
       osx_image: xcode11
       compiler: clang
     - os: windows
+install:
+    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install strawberryperl; fi
+    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install nasm; fi
 script:
     - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure -b maintain && cd build/maintain && make -j2 Experimental; fi
     - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure -b maintain && cd build/maintain && make -j2 Experimental; fi
