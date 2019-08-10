@@ -1,6 +1,8 @@
 if(SOLID_ON_FREEBSD)
     set(WITH_TOOLSET --with-toolset=clang)
 endif()
+
+
 if(SOLID_ON_WINDOWS)
 
     if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")
@@ -15,12 +17,16 @@ if(SOLID_ON_WINDOWS)
         set(VARIANT_BUILD "release")
     endif()
 
+    set(BOOST_VERSION_MAJOR 1)
+    set(BOOST_VERSION_MINOR 70)
+    set(BOOST_VERSION_PATCH 0)
+
     ExternalProject_Add(
         build-boost
         EXCLUDE_FROM_ALL 1
         PREFIX ${EXTERNAL_DIR}/boost
-        URL "https://dl.bintray.com/boostorg/release/1.70.0/source/boost_1_70_0.tar.bz2"
-        DOWNLOAD_NO_PROGRESS ON
+        URL "https://dl.bintray.com/boostorg/release/${BOOST_VERSION_MAJOR}.${BOOST_VERSION_MINOR}.${BOOST_VERSION_PATCH}/source/boost_${BOOST_VERSION_MAJOR}_${BOOST_VERSION_MINOR}_${BOOST_VERSION_PATCH}.zip"
+        DOWNLOAD_NO_PROGRESS OFF
         #URL_MD5 "6f4571e7c5a66ccc3323da6c24be8f05"
         CONFIGURE_COMMAND bootstrap.bat
         BUILD_COMMAND b2.exe cxxstd=14  address-model=${BOOST_ADDRESS_MODEL} variant=${VARIANT_BUILD} --abbreviate-paths --hash --with-system --with-thread --with-program_options --with-serialization --with-filesystem --prefix=${EXTERNAL_DIR} link=static threading=multi install
@@ -33,6 +39,7 @@ if(SOLID_ON_WINDOWS)
     )
 
     set(Boost_FOUND TRUE)
+    include_directories("${EXTERNAL_DIR}/include/boost-${BOOST_VERSION_MAJOR}_${BOOST_VERSION_MINOR}")
 #    set(Boost_PROGRAM_OPTIONS_LIBRARY boost_program_options)
 #    set(Boost_SYSTEM_LIBRARY boost_system)
 #    set(Boost_FILESYSTEM_LIBRARY boost_filesystem)
