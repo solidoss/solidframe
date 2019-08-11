@@ -27,7 +27,7 @@ install:
 script:
     - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure -b maintain && cd build/maintain && make -j2 Experimental; fi
     - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure -b maintain && cd build/maintain && make -j2 Experimental; fi
-    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then travis_wait 40 prerequisites/run_in_visual_studio_2017_environment.sh amd64 bash ./configure -b maintain -f mnt -g "Visual Studio 16 2017 Win64" -A x64 && cd build/mnt && cmake --build . --config release --target Experimental
+    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then travis_wait 40 prerequisites/run_in_visual_studio_2017_environment.sh amd64 bash ./configure -b maintain -f mnt -g "Visual Studio 16 2017 Win64" -A x64 && cd build/mnt && cmake --build . --config release --target Experimental; fi
     - # if [ "$TRAVIS_OS_NAME" == "windows" ]; then "`find c\:/Program\ Files\ \(x86\)/ -name vcvarsall.bat 2>/dev/null | grep -v -F "Permission" | grep -F "2017"`" amd64; fi
     - # if [ "$TRAVIS_OS_NAME" == "windows" ]; then prerequisites/run_in_visual_studio_2017_environment.sh amd64 bash; fi
     - # if [ "$TRAVIS_OS_NAME" == "windows" ]; then ./configure -b maintain -f maintain -g "Visual Studio 15 2017 Win64" && cd build/maintain; fi
