@@ -31,10 +31,10 @@ script:
     - if [ "$TRAVIS_OS_NAME" == "windows" ]; then prerequisites/run_in_visual_studio_2017_environment.sh amd64 bash ./configure -b maintain -f mnt -g "Visual Studio 15 2017 Win64"; fi
     - if [ "$TRAVIS_OS_NAME" == "windows" ]; then cd build/mnt; fi
     - if [ "$TRAVIS_OS_NAME" == "windows" ]; then ../../prerequisites/run_in_visual_studio_2017_environment.sh amd64 bash -c "PATH=\"${PATH}\":\"c:\Program Files\NASM\" cmake --build . --config release --target build-openssl && exit"; fi
-    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then cat /c/Users/travis/build/vipalade/solidframe/build/maintain/external/openssl/src/build-openssl-stamp/build-openssl-configure-err.log; fi
-    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then cat /c/Users/travis/build/vipalade/solidframe/build/maintain/external/openssl/src/build-openssl-stamp/build-openssl-configure-out.log; fi
-    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then cat /c/Users/travis/build/vipalade/solidframe/build/maintain/external/openssl/src/build-openssl-stamp/build-openssl-build-err.log; fi
-    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then cat /c/Users/travis/build/vipalade/solidframe/build/maintain/external/openssl/src/build-openssl-stamp/build-openssl-build-out.log; fi
+    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then cat external/openssl/src/build-openssl-stamp/build-openssl-configure-err.log; fi
+    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then cat external/openssl/src/build-openssl-stamp/build-openssl-configure-out.log; fi
+    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then cat external/openssl/src/build-openssl-stamp/build-openssl-build-err.log; fi
+    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then cat external/openssl/src/build-openssl-stamp/build-openssl-build-out.log; fi
     - if [ "$TRAVIS_OS_NAME" == "windows" ]; then ../../prerequisites/run_in_visual_studio_2017_environment.sh amd64 bash -c "cmake --build . --config release --target build-boost && exit"; fi
     - if [ "$TRAVIS_OS_NAME" == "windows" ]; then cmake --build . --config release --target Experimental; fi
     # - if [ "$TRAVIS_OS_NAME" == "windows" ]; then travis_wait 40 prerequisites/run_in_visual_studio_2017_environment.sh amd64 bash ./configure -b maintain -f mnt -g "Visual Studio 15 2017 Win64" && cd build/mnt && cmake --build . --config release --target Experimental; fi
