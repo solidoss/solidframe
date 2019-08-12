@@ -7,9 +7,7 @@
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
-#include <boost/filesystem/exception.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/utility.hpp>
+#include <filesystem>
 
 #include "mprpc_file_messages.hpp"
 
@@ -21,7 +19,7 @@
 using namespace solid;
 using namespace std;
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 namespace {
 

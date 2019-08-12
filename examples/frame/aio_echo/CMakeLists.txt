@@ -1,7 +1,5 @@
-if(${Boost_FOUND} AND OPENSSL_FOUND)
+if(OPENSSL_FOUND)
     add_executable (example_echo_server example_echo_server.cpp)
-
-    add_dependencies(example_echo_server build-boost)
 
     target_link_libraries (example_echo_server
         solid_frame
@@ -15,9 +13,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
-    #if(SOLID_ON_WINDOWS)
-    #    set(SUFFIX "${CMAKE_BUILD_TYPE}")
-    #endif()
+    add_dependencies(example_echo_server build-cxxopts)
 
     add_custom_command(
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/echo-ca-cert.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-server-key.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-server-cert.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-client-key.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-client-cert.pem
@@ -40,7 +36,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
 
     add_executable (example_secure_echo_server example_secure_echo_server.cpp)
 
-    add_dependencies(example_secure_echo_server example_secure_certs build-boost build-openssl)
+    add_dependencies(example_secure_echo_server example_secure_certs build-openssl)
 
     target_link_libraries (example_secure_echo_server
         solid_frame
@@ -58,7 +54,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
 
     add_executable (example_secure_echo_client example_secure_echo_client.cpp)
 
-    add_dependencies(example_secure_echo_client example_secure_certs build-boost build-openssl)
+    add_dependencies(example_secure_echo_client example_secure_certs build-openssl)
 
     target_link_libraries (example_secure_echo_client
         solid_frame
@@ -75,8 +71,6 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
     )
 
     add_executable (example_echo_auto_client example_echo_auto_client.cpp)
-
-    add_dependencies(example_echo_auto_client build-boost)
 
     target_link_libraries (example_echo_auto_client
         solid_frame

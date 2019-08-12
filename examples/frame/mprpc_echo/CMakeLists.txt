@@ -39,10 +39,10 @@ add_custom_target(example_mprpc_echo_copy_certs
     ${CMAKE_CURRENT_BINARY_DIR}/echo-client-cert.pem
 )
 
-if(${Boost_FOUND} AND OPENSSL_FOUND)
+if(OPENSSL_FOUND)
     add_executable (example_mprpc_echo example_mprpc_echo.cpp)
 
-    add_dependencies(example_mprpc_echo example_mprpc_echo_copy_certs build-boost build-openssl)
+    add_dependencies(example_mprpc_echo example_mprpc_echo_copy_certs build-openssl)
 
     target_link_libraries (example_mprpc_echo
         solid_frame_mprpc

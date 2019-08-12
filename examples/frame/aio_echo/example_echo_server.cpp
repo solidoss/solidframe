@@ -17,7 +17,7 @@
 
 #include "solid/utility/event.hpp"
 
-#include "boost/program_options.hpp"
+#include "cxxopts.hpp"
 
 #include <functional>
 #include <iostream>
@@ -298,6 +298,21 @@ int main(int argc, char* argv[])
 //-----------------------------------------------------------------------------
 bool parseArguments(Params& _par, int argc, char* argv[])
 {
+#if 1
+    using namespace cxxopts;
+    Options options{"example_echo_server", "SolidFrame concept application"};
+    options.add_options()
+            ("h,help", "List program options")
+            ("l,listen-port", "Listener port", value<int>()->default_value("2000"))
+            ("t,talk-port", "Talker port", value<int>()->default_value("3000"))
+            ("c,connection-port", "Connection port", value<int>()->default_value("5000"))
+            ("M,debug-modules", "Debug logging modules", value<vector<string>>())
+            ("A,debug-address", "Debug server address (e.g. on linux use: nc -l 2222)", value<string>())
+            ("P,debug-port", "Debug server port (e.g. on linux use: nc -l 2222)", value<string>())
+            ("C,debug-console", "Debug console", value<bool>()->implicit_value("true")->default_value("false"))
+            ("S,debug-unbuffered", "Debug unbuffered", value<bool>()->implicit_value("false")->default_value("true"));
+#else
+    
     using namespace boost::program_options;
     try {
         options_description desc("SolidFrame concept application");
@@ -325,6 +340,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
         cout << e.what() << "\n";
         return true;
     }
+#endif
 }
 //-----------------------------------------------------------------------------
 //      Listener

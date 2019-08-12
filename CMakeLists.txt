@@ -222,20 +222,18 @@ if(NOT NO_EXTERNAL)
 
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
     include(cmake/build_snappy.cmake)
+    include(cmake/build_cxxopts.cmake)
 
     include_directories(${CMAKE_BINARY_DIR}/external/include)
 
     if(EXTERNAL_DIR STREQUAL "")
         set(EXTERNAL_DIR "${CMAKE_CURRENT_BINARY_DIR}/external")
 
-        include(cmake/build_boost.cmake)
         include(cmake/build_openssl.cmake)
     else()
         #define dummy targets
-        add_custom_target(build-boost)
         add_custom_target(build-openssl)
 
-        include(cmake/find_boost.cmake)
         include(cmake/find_openssl.cmake)
     endif()
 

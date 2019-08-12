@@ -10,9 +10,6 @@
 #include "solid/system/filedevice.hpp"
 #include "solid/system/memory.hpp"
 #include "solid/utility/workpool.hpp"
-#include <boost/filesystem/exception.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/utility.hpp>
 #include <cerrno>
 #include <cstring>
 #include <deque>

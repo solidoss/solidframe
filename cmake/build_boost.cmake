@@ -40,10 +40,6 @@ if(SOLID_ON_WINDOWS)
 
     set(Boost_FOUND TRUE)
     include_directories("${EXTERNAL_DIR}/include/boost-${BOOST_VERSION_MAJOR}_${BOOST_VERSION_MINOR}")
-#    set(Boost_PROGRAM_OPTIONS_LIBRARY boost_program_options)
-#    set(Boost_SYSTEM_LIBRARY boost_system)
-#    set(Boost_FILESYSTEM_LIBRARY boost_filesystem)
-#    set(Boost_SERIALIZATION_LIBRARY boost_serialization)
 else()
     ExternalProject_Add(
         build-boost
