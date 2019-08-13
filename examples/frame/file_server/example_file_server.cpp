@@ -24,7 +24,7 @@
 #include <mutex>
 #include <thread>
 
-#include "boost/program_options.hpp"
+#include "cxxopts.hpp"
 
 #include <fstream>
 #include <functional>
@@ -292,25 +292,24 @@ int main(int argc, char* argv[])
 //------------------------------------------------------------------
 bool parseArguments(Params& _par, int argc, char* argv[])
 {
-    using namespace boost::program_options;
+    using namespace cxxopts;
     try {
-        options_description desc("SolidFrame concept application");
+        Options options{argv[0], "SolidFrame concept application"};
         // clang-format off
-        desc.add_options()
-            ("help,h", "List program options")
-            ("port,p", value<int>(&_par.start_port)->default_value(2000), "Listen port")
-            ("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")
-            ("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
-            ("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
-            ("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
-            ("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
-            ("use-log,l", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered");
+        options.add_options()
+            ("p,port", "Listen port", value<int>(_par.start_port)->default_value("2000"))
+            ("l,use-log", "Debug buffered", value<bool>(_par.log)->implicit_value("true")->default_value("false"))
+            ("M,debug-modules", "Debug logging modules", value<vector<string>>(_par.dbg_modules))
+            ("A,debug-address", "Debug server address (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_addr))
+            ("P,debug-port", "Debug server port (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_port))
+            ("C,debug-console", "Debug console", value<bool>(_par.dbg_console)->implicit_value("true")->default_value("false"))
+            ("S,debug-unbuffered", "Debug unbuffered", value<bool>(_par.dbg_buffered)->implicit_value("false")->default_value("true"))
+            ("h,help", "List program options");
         // clang-format on
-        variables_map vm;
-        store(parse_command_line(argc, argv, desc), vm);
-        notify(vm);
-        if (vm.count("help")) {
-            cout << desc << "\n";
+        auto result = options.parse(argc, argv);
+
+        if (result.count("help")) {
+            std::cout << options.help({""}) << std::endl;
             return true;
         }
         return false;

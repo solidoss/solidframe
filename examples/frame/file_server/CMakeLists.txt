@@ -1,7 +1,7 @@
 if(OPENSSL_FOUND)
     add_executable (example_file_server example_file_server.cpp)
 
-    add_dependencies(example_file_server build-openssl)
+    add_dependencies(example_file_server build-openssl build-cxxopts)
 
     target_link_libraries (example_file_server
         solid_frame_aio
@@ -11,8 +11,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
-        ${Boost_PROGRAM_OPTIONS_LIBRARY}
-        ${Boost_SYSTEM_LIBRARY}
         ${SYSTEM_BASIC_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )

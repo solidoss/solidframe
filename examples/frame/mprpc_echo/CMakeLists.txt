@@ -42,7 +42,7 @@ add_custom_target(example_mprpc_echo_copy_certs
 if(OPENSSL_FOUND)
     add_executable (example_mprpc_echo example_mprpc_echo.cpp)
 
-    add_dependencies(example_mprpc_echo example_mprpc_echo_copy_certs build-openssl)
+    add_dependencies(example_mprpc_echo example_mprpc_echo_copy_certs build-openssl build-cxxopts)
 
     target_link_libraries (example_mprpc_echo
         solid_frame_mprpc
@@ -53,8 +53,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
-        ${Boost_PROGRAM_OPTIONS_LIBRARY}
-        ${Boost_SYSTEM_LIBRARY}
         ${SYSTEM_BASIC_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )

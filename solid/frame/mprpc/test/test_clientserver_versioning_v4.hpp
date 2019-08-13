@@ -50,7 +50,6 @@ struct InitResponse : solid::frame::mprpc::Message {
     }
 };
 
-
 struct Request2 : solid::frame::mprpc::Message {
     static constexpr uint32_t version = 1;
 
@@ -62,12 +61,11 @@ struct Request2 : solid::frame::mprpc::Message {
     }
 };
 
-
 struct Response2 : solid::frame::mprpc::Message {
     static constexpr uint32_t version = 1;
 
-    uint32_t    version_ = version;
-    uint32_t    error_   = -1;
+    uint32_t version_ = version;
+    uint32_t error_   = -1;
 
     Response2() {}
 
@@ -88,7 +86,6 @@ struct Response2 : solid::frame::mprpc::Message {
     }
 };
 
-
 using ProtocolT = solid::frame::mprpc::serialization_v2::Protocol<uint8_t>;
 
 template <class R>
@@ -107,7 +104,5 @@ inline void protocol_setup(R _r, ProtocolT& _rproto)
     _r(_rproto, solid::TypeToType<Request2>(), 7);
 }
 
-}//namespace v4
-}//namespace versioning
-
-
+} //namespace v4
+} //namespace versioning

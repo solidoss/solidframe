@@ -298,49 +298,21 @@ int main(int argc, char* argv[])
 //-----------------------------------------------------------------------------
 bool parseArguments(Params& _par, int argc, char* argv[])
 {
-#if 1
     using namespace cxxopts;
-    Options options{"example_echo_server", "SolidFrame concept application"};
-    options.add_options()
-            ("h,help", "List program options")
-            ("l,listen-port", "Listener port", value<int>()->default_value("2000"))
-            ("t,talk-port", "Talker port", value<int>()->default_value("3000"))
-            ("c,connection-port", "Connection port", value<int>()->default_value("5000"))
-            ("M,debug-modules", "Debug logging modules", value<vector<string>>())
-            ("A,debug-address", "Debug server address (e.g. on linux use: nc -l 2222)", value<string>())
-            ("P,debug-port", "Debug server port (e.g. on linux use: nc -l 2222)", value<string>())
-            ("C,debug-console", "Debug console", value<bool>()->implicit_value("true")->default_value("false"))
-            ("S,debug-unbuffered", "Debug unbuffered", value<bool>()->implicit_value("false")->default_value("true"));
-#else
-    
-    using namespace boost::program_options;
     try {
-        options_description desc("SolidFrame concept application");
-        // clang-format off
-        desc.add_options()
-            ("help,h", "List program options")
-            ("listen-port,l", value<int>(&_par.listener_port)->default_value(2000), "Listener port")
-            ("talk-port,t", value<int>(&_par.talker_port)->default_value(3000), "Talker port")
-            ("connection-port,c", value<int>(&_par.connect_port)->default_value(5000), "Connection port")
-            ("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")
-            ("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
-            ("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
-            ("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
-            ("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered");
-        // clang-format on
-        variables_map vm;
-        store(parse_command_line(argc, argv, desc), vm);
-        notify(vm);
-        if (vm.count("help")) {
-            cout << desc << "\n";
+        Options options{argv[0], "SolidFrame concept application"};
+        options.add_options()("h,help", "List program options")("l,listen-port", "Listener port", value<int>(_par.listener_port)->default_value("2000"))("t,talk-port", "Talker port", value<int>(_par.talker_port)->default_value("3000"))("c,connection-port", "Connection port", value<int>(_par.connect_port)->default_value("5000"))("M,debug-modules", "Debug logging modules", value<vector<string>>(_par.dbg_modules))("A,debug-address", "Debug server address (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_addr))("P,debug-port", "Debug server port (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_port))("C,debug-console", "Debug console", value<bool>(_par.dbg_console)->implicit_value("true")->default_value("false"))("S,debug-unbuffered", "Debug unbuffered", value<bool>(_par.dbg_buffered)->implicit_value("false")->default_value("true"));
+        auto result = options.parse(argc, argv);
+
+        if (result.count("help")) {
+            std::cout << options.help({""}) << std::endl;
             return true;
         }
         return false;
-    } catch (exception& e) {
+    } catch (std::exception& e) {
         cout << e.what() << "\n";
         return true;
     }
-#endif
 }
 //-----------------------------------------------------------------------------
 //      Listener

@@ -50,27 +50,25 @@ struct InitResponse : solid::frame::mprpc::Message {
     }
 };
 
-
 struct Request : solid::frame::mprpc::Message {
     static constexpr uint32_t version = 2;
 
     uint32_t version_ = version;
-    
-    uint32_t    value_;
+
+    uint32_t value_;
 
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
         solid::serialization::addVersion<Request>(_s, _rthis.version_, "version");
-        
+
         _s.add([&_rthis](S& _s, solid::frame::mprpc::ConnectionContext& _rctx, const char* /*_name*/) {
-            if(_s.version(_rthis) == 2){
+            if (_s.version(_rthis) == 2) {
                 _s.add(_rthis.value_, _rctx, "value");
             }
         },
             _rctx, _name);
     }
 };
-
 
 struct Response : solid::frame::mprpc::Message {
     static constexpr uint32_t version = 2;
@@ -93,7 +91,7 @@ struct Response : solid::frame::mprpc::Message {
 
         _s.add([&_rthis](S& _s, solid::frame::mprpc::ConnectionContext& _rctx, const char* /*_name*/) {
             _s.add(_rthis.error_, _rctx, "error");
-            if(_rthis.version_ == 2){
+            if (_rthis.version_ == 2) {
                 _s.add(_rthis.message_, _rctx, "message");
             }
         },
@@ -117,5 +115,5 @@ inline void protocol_setup(R _r, ProtocolT& _rproto)
     _r(_rproto, solid::TypeToType<Response>(), 5);
 }
 
-}//namespace v2
-}//namespace versioning
+} //namespace v2
+} //namespace versioning

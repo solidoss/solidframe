@@ -50,31 +50,29 @@ struct InitResponse : solid::frame::mprpc::Message {
     }
 };
 
-
 struct Request : solid::frame::mprpc::Message {
     static constexpr uint32_t version = 3;
 
     uint32_t version_ = version;
-    
-    uint32_t    valuei_;//deprecated
+
+    uint32_t    valuei_; //deprecated
     std::string values_;
 
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
         solid::serialization::addVersion<Request>(_s, _rthis.version_, "version");
-        
+
         _s.add([&_rthis](S& _s, solid::frame::mprpc::ConnectionContext& _rctx, const char* /*_name*/) {
-            if(_s.version(_rthis) == 1){
-            }else if(_s.version(_rthis) == 2){
+            if (_s.version(_rthis) == 1) {
+            } else if (_s.version(_rthis) == 2) {
                 _s.add(_rthis.valuei_, _rctx, "value");
-            }else if(_s.version(_rthis) == 3){
+            } else if (_s.version(_rthis) == 3) {
                 _s.add(_rthis.values_, _rctx, "value");
             }
         },
             _rctx, _name);
     }
 };
-
 
 struct Response : solid::frame::mprpc::Message {
     static constexpr uint32_t version = 2;
@@ -98,7 +96,7 @@ struct Response : solid::frame::mprpc::Message {
 
         _s.add([&_rthis](S& _s, solid::frame::mprpc::ConnectionContext& _rctx, const char* /*_name*/) {
             _s.add(_rthis.error_, _rctx, "error");
-            if(_rthis.version_ == 2){
+            if (_rthis.version_ == 2) {
                 _s.add(_rthis.message_, _rctx, "message");
             }
         },
@@ -109,8 +107,8 @@ struct Response : solid::frame::mprpc::Message {
 struct Response2 : solid::frame::mprpc::Message {
     static constexpr uint32_t version = 1;
 
-    uint32_t    version_ = version;
-    uint32_t    error_   = -1;
+    uint32_t version_ = version;
+    uint32_t error_   = -1;
 
     Response2() {}
 
@@ -131,7 +129,6 @@ struct Response2 : solid::frame::mprpc::Message {
     }
 };
 
-
 using ProtocolT = solid::frame::mprpc::serialization_v2::Protocol<uint8_t>;
 
 template <class R>
@@ -149,6 +146,5 @@ inline void protocol_setup(R _r, ProtocolT& _rproto)
     _r(_rproto, solid::TypeToType<Response2>(), 6);
 }
 
-}//namespace v3
-}//namespace versioning
-
+} //namespace v3
+} //namespace versioning

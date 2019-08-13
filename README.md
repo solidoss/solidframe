@@ -20,9 +20,9 @@ Boost Software License - Version 1.0 - August 17th, 2003
  * [Wiki](https://github.com/vipalade/solidframe/wiki) - __TODO__
 
 ## Prerequisites
-* C++11 enabled compiler
+* C++14 enabled compiler
 * [CMake](https://cmake.org/): for build system
-* [boost](http://www.boost.org/): for tests, examples and tutorials - not for libraries themselves.
+* [CxxOpts](https://github.com/jarro2783/cxxopts): needed by SolidFrame examples.
 * [OpenSSL](https://www.openssl.org/)/[BoringSSL](https://boringssl.googlesource.com/boringssl/): needed by solid_frame_aio_openssl library.
 
 ## Supported platforms
@@ -103,7 +103,7 @@ Normally, _SolidFrame_ libraries would not depend on boost.
 ### Linux/macOS/FreeBSD
 
 System prerequisites:
- * C++11 enabled compiler: gcc-c++ on Linux and clang on FreeBSD and macOS (minimum: XCode 8/Clang 8).
+ * C++14 enabled compiler: gcc-c++ on Linux and clang on FreeBSD and macOS (minimum: XCode 8/Clang 8).
  * [CMake](https://cmake.org/)
 
 Bash commands for installing _SolidFrame_:

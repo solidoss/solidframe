@@ -7,8 +7,6 @@ if(OPENSSL_FOUND)
         solid_serialization_v1
         solid_utility
         solid_system
-        ${Boost_PROGRAM_OPTIONS_LIBRARY}
-        ${Boost_SYSTEM_LIBRARY}
         ${SYSTEM_BASIC_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
@@ -36,7 +34,7 @@ if(OPENSSL_FOUND)
 
     add_executable (example_secure_echo_server example_secure_echo_server.cpp)
 
-    add_dependencies(example_secure_echo_server example_secure_certs build-openssl)
+    add_dependencies(example_secure_echo_server example_secure_certs build-openssl build-cxxopts)
 
     target_link_libraries (example_secure_echo_server
         solid_frame
@@ -46,15 +44,13 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
-        ${Boost_PROGRAM_OPTIONS_LIBRARY}
-        ${Boost_SYSTEM_LIBRARY}
         ${SYSTEM_BASIC_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (example_secure_echo_client example_secure_echo_client.cpp)
 
-    add_dependencies(example_secure_echo_client example_secure_certs build-openssl)
+    add_dependencies(example_secure_echo_client example_secure_certs build-openssl build-cxxopts)
 
     target_link_libraries (example_secure_echo_client
         solid_frame
@@ -64,21 +60,19 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
-        ${Boost_PROGRAM_OPTIONS_LIBRARY}
-        ${Boost_SYSTEM_LIBRARY}
         ${SYSTEM_BASIC_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (example_echo_auto_client example_echo_auto_client.cpp)
+    
+    add_dependencies(example_echo_auto_client build-cxxopts)
 
     target_link_libraries (example_echo_auto_client
         solid_frame
         solid_frame_aio
         solid_utility
         solid_system
-        ${Boost_PROGRAM_OPTIONS_LIBRARY}
-        ${Boost_SYSTEM_LIBRARY}
         ${SYSTEM_BASIC_LIBRARIES}
     )
 endif()
