@@ -109,7 +109,7 @@ void complete_message<ipc_file::FileRequest>(
     auto msgptr = std::make_shared<ipc_file::FileResponse>(*_rrecv_msg_ptr);
 
     if (0) {
-        boost::system::error_code error;
+        error_code error;
 
         msgptr->remote_file_size = fs::file_size(fs::path(_rrecv_msg_ptr->remote_path), error);
     }
