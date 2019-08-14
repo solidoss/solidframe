@@ -233,10 +233,10 @@ public:
     explicit Any(
         const T& _rt)
         : AnyBase(
-              do_allocate<typename std::remove_reference<T>::type>(
-                  bool_constant<std::is_convertible<typename std::remove_reference<T>::type*, AnyBase*>::value>(),
-                  bool_constant<sizeof(impl::AnyValue<typename std::remove_reference<T>::type>) <= DataSize>(),
-                  _rt))
+            do_allocate<typename std::remove_reference<T>::type>(
+                bool_constant<std::is_convertible<typename std::remove_reference<T>::type*, AnyBase*>::value>(),
+                bool_constant<sizeof(impl::AnyValue<typename std::remove_reference<T>::type>) <= DataSize>(),
+                _rt))
     {
     }
 
@@ -244,10 +244,10 @@ public:
     explicit Any(
         T&& _ut)
         : AnyBase(
-              do_allocate<typename std::remove_reference<T>::type>(
-                  bool_constant<std::is_convertible<typename std::remove_reference<T>::type*, AnyBase*>::value>(),
-                  bool_constant<sizeof(impl::AnyValue<typename std::remove_reference<T>::type>) <= DataSize>(),
-                  std::forward<T>(_ut)))
+            do_allocate<typename std::remove_reference<T>::type>(
+                bool_constant<std::is_convertible<typename std::remove_reference<T>::type*, AnyBase*>::value>(),
+                bool_constant<sizeof(impl::AnyValue<typename std::remove_reference<T>::type>) <= DataSize>(),
+                std::forward<T>(_ut)))
     {
     }
 

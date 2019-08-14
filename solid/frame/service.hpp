@@ -229,27 +229,31 @@ inline void Service::notifyAll(Event const& _revt)
 
 inline void Service::doStart()
 {
-    rm_.startService(*this, []() {}, []() {});
+    rm_.startService(
+        *this, []() {}, []() {});
 }
 
 template <typename A>
 inline void Service::doStart(A&& _a)
 {
     Any<> a{std::forward<A>(_a)};
-    rm_.startService(*this, [this, &a]() { any_ = std::move(a); }, []() {});
+    rm_.startService(
+        *this, [this, &a]() { any_ = std::move(a); }, []() {});
 }
 
 template <typename A, typename F>
 inline void Service::doStartWithAny(A&& _a, F&& _f)
 {
     Any<> a{std::forward<A>(_a)};
-    rm_.startService(*this, [this, &a]() { any_ = std::move(a); }, std::forward<F>(_f));
+    rm_.startService(
+        *this, [this, &a]() { any_ = std::move(a); }, std::forward<F>(_f));
 }
 
 template <typename F>
 inline void Service::doStartWithoutAny(F&& _f)
 {
-    rm_.startService(*this, []() {}, std::forward<F>(_f));
+    rm_.startService(
+        *this, []() {}, std::forward<F>(_f));
 }
 
 inline void Service::stop(const bool _wait)

@@ -528,7 +528,8 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
                         rthis.doContinueStopping(_rctx, event);
                     });
             } else {
-                post(_rctx,
+                post(
+                    _rctx,
                     [](frame::aio::ReactorContext& _rctx, Event&& _revent) {
                         Connection& rthis = static_cast<Connection&>(_rctx.actor());
                         rthis.doContinueStopping(_rctx, _revent);
@@ -682,7 +683,8 @@ void Connection::doContinueStopping(
                     rthis.doContinueStopping(_rctx, _revent);
                 });
         } else {
-            post(_rctx,
+            post(
+                _rctx,
                 [](frame::aio::ReactorContext& _rctx, Event&& _revent) {
                     Connection& rthis = static_cast<Connection&>(_rctx.actor());
                     rthis.doContinueStopping(_rctx, _revent);

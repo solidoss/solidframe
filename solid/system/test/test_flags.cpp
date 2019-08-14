@@ -23,7 +23,7 @@ bool check(const FruitsFlagsT& _fruits)
     return _fruits.has(Fruits::Banana);
 }
 
-int test_flags(int /*argc*/, char* /*argv*/ [])
+int test_flags(int /*argc*/, char* /*argv*/[])
 {
     {
         FruitsFlagsT fruits;

@@ -90,9 +90,10 @@ struct FileResponse : solid::frame::mprpc::Message {
             _s.add(file_size, _rctx, "remote_file_size");
 
             _s.push([ifs = std::move(ifs)](S& _s, solid::frame::mprpc::ConnectionContext& _rctx, const char* _name) mutable {
-                _s.add(ifs, [](std::istream& _ris, uint64_t _len, const bool _done, solid::frame::mprpc::ConnectionContext& _rctx, const char* _name) {
-                    //idbg("Progress(" << _name << "): " << _len << " done = " << _done);
-                },
+                _s.add(
+                    ifs, [](std::istream& _ris, uint64_t _len, const bool _done, solid::frame::mprpc::ConnectionContext& _rctx, const char* _name) {
+                        //idbg("Progress(" << _name << "): " << _len << " done = " << _done);
+                    },
                     _rctx, _name);
                 return true;
             },
@@ -114,9 +115,10 @@ struct FileResponse : solid::frame::mprpc::Message {
                     ofs.open(*plocal_path);
                 }
                 _s.push([ofs = std::move(ofs)](S& _s, solid::frame::mprpc::ConnectionContext& _rctx, const char* _name) mutable {
-                    _s.add(ofs, [](std::ostream& _ros, uint64_t _len, const bool _done, solid::frame::mprpc::ConnectionContext& _rctx, const char* _name) {
-                        //idbg("Progress(" << _name << "): " << _len << " done = " << _done);
-                    },
+                    _s.add(
+                        ofs, [](std::ostream& _ros, uint64_t _len, const bool _done, solid::frame::mprpc::ConnectionContext& _rctx, const char* _name) {
+                            //idbg("Progress(" << _name << "): " << _len << " done = " << _done);
+                        },
                         _rctx, _name);
                     return true;
                 },

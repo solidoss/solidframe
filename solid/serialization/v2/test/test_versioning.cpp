@@ -234,7 +234,7 @@ struct Test {
 
 } //namespace
 
-int test_versioning(int /*argc*/, char* /*argv*/ [])
+int test_versioning(int /*argc*/, char* /*argv*/[])
 {
 
     namespace last = v4;

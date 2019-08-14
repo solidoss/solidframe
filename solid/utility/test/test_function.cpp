@@ -47,7 +47,7 @@ public:
     }
 };
 
-int test_function(int /*argc*/, char* /*argv*/ [])
+int test_function(int /*argc*/, char* /*argv*/[])
 {
     {
         Function<void(void*, const char*), 64> fnc(&test_fnc);
