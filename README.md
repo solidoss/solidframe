@@ -5,8 +5,8 @@ Cross-platform C++ framework for asynchronous, distributed applications.
 ## Build status
 |||
 |:---|----|
-|master|[![Build Status master](https://travis-ci.org/vipalade/solidframe.svg?branch=master)](https://travis-ci.org/vipalade/solidframe)|
-|work|[![Build Status work](https://travis-ci.org/vipalade/solidframe.svg?branch=work)](https://travis-ci.org/vipalade/solidframe)|
+|master|[![Build Status master](https://travis-ci.org/solidoss/solidframe.svg?branch=master)](https://travis-ci.org/solidoss/solidframe)|
+|work|[![Build Status work](https://travis-ci.org/solidoss/solidframe.svg?branch=work)](https://travis-ci.org/solidoss/solidframe)|
 
 ## License
 
