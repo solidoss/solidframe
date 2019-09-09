@@ -178,15 +178,17 @@ struct Message : frame::mprpc::Message {
     {
         _s.add(_rthis.idx, _rctx, "idx");
 
-        _s.add([&_rthis](S& _rs, frame::mprpc::ConnectionContext& _rctx, const char* _name) {
-            if (_rthis.cancelable()) {
-                solid_dbg(generic_logger, Info, "Cancel message: " << _rthis.idx << " " << msgid_vec[_rthis.idx].second);
-                //we're on the peerb,
-                //we now cancel the message on peer a
-                pmprpcpeera->cancelMessage(msgid_vec[_rthis.idx].first, msgid_vec[_rthis.idx].second);
-            }
-        },
-            _rctx, _name);
+        if (_s.is_serializer) {
+            _s.add([&_rthis](S& _rs, frame::mprpc::ConnectionContext& _rctx, const char* _name) {
+                if (_rthis.cancelable()) {
+                    solid_dbg(generic_logger, Info, "Cancel message: " << _rthis.idx << " " << msgid_vec[_rthis.idx].second);
+                    //we're on the peerb,
+                    //we now cancel the message on peer a
+                    pmprpcpeera->cancelMessage(msgid_vec[_rthis.idx].first, msgid_vec[_rthis.idx].second);
+                }
+            },
+                _rctx, _name);
+        }
 
         _s.add(_rthis.str, _rctx, "str");
 
