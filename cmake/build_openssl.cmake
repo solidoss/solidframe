@@ -9,7 +9,7 @@ if(SOLID_ON_WINDOWS)
         build-openssl
         EXCLUDE_FROM_ALL 1
         PREFIX ${EXTERNAL_DIR}/openssl
-        URL https://www.openssl.org/source/openssl-1.1.1c.tar.gz
+        URL https://www.openssl.org/source/openssl-1.1.1d.tar.gz
         DOWNLOAD_NO_PROGRESS OFF
         #URL_MD5 "6f4571e7c5a66ccc3323da6c24be8f05"
         #CONFIGURE_COMMAND ${EXTERNAL_DIR}/openssl/src/build-openssl/config --prefix=${EXTERNAL_DIR} --openssldir=ssl_
@@ -30,7 +30,7 @@ else()
         build-openssl
         EXCLUDE_FROM_ALL 1
         PREFIX ${EXTERNAL_DIR}/openssl
-        URL https://www.openssl.org/source/openssl-1.1.1c.tar.gz
+        URL https://www.openssl.org/source/openssl-1.1.1d.tar.gz
         DOWNLOAD_NO_PROGRESS ON
         #URL_MD5 "6f4571e7c5a66ccc3323da6c24be8f05"
         CONFIGURE_COMMAND ${EXTERNAL_DIR}/openssl/src/build-openssl/config --prefix=${EXTERNAL_DIR} no-shared no-unit-test no-tests no-ui

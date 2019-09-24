@@ -5,7 +5,7 @@ printUsage()
     echo
     echo "Usage:"
     echo
-    echo "./build.sh [--all] [--boost] [--openssl] [--boringssl] [--force-download] [--debug] [--64bit] [--no-cleanup] [-h|--help]"
+    echo "./build.sh [--all] [--openssl] [--boringssl] [--force-download] [--debug] [--64bit] [--no-cleanup] [-h|--help]"
     echo
     echo "Examples:"
     echo
@@ -15,19 +15,16 @@ printUsage()
     echo "Build all supported dependencies:"
     echo "$ ./build.sh --all"
     echo
-    echo "Build only boost:"
-    echo "$ ./build.sh --boost"
+    echo "Build only openssl:"
+    echo "$ ./build.sh --openssl"
     echo
-    echo "Build only boost with debug simbols and force download the archive:"
-    echo "$ ./build.sh --boost --force-download -d"
+    echo "Build only openssl with debug simbols and force download the archive:"
+    echo "$ ./build.sh --openssl --force-download -d"
     echo
-    echo "Build boost and openssl:"
-    echo "$ ./build.sh --boost --openssl"
     echo
 }
 
-BOOST_ADDR="https://dl.bintray.com/boostorg/release/1.70.0/source/boost_1_70_0.tar.bz2"
-OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.1.1c.tar.gz"
+OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.1.1d.tar.gz"
 
 SYSTEM=
 BIT64=
@@ -49,83 +46,6 @@ extractTarBz2()
 extractTarGz()
 {
     tar -xzf "$1"
-}
-
-
-buildBoost()
-{
-    echo
-    echo "Building boost..."
-    echo
-    BOOST_DIR=`ls . | grep "boost" | grep -v "tar"`
-    echo "Cleanup previous builds..."
-    rm -rf $BOOST_DIR
-    rm -rf include/boost
-    rm -rf lib/libboost*
-
-    echo
-    echo "Prepare the boost archive..."
-    echo
-    BOOST_ARCH=`find . -name "boost_*.tar.bz2" | grep -v "old/"`
-
-    if [ -z "$BOOST_ARCH" -o -n "$DOWNLOAD" ] ; then
-        mkdir old
-        mv $BOOST_ARCH old/
-        echo "No boost archive found - try download: $BOOST_ADDR"
-        downloadArchive $BOOST_ADDR
-        BOOST_ARCH=`find . -name "boost_*.tar.bz2" | grep -v "old/"`
-    fi
-
-    echo
-    echo "Extracting boost [$BOOST_ARCH]..."
-    echo
-
-    extractTarBz2 $BOOST_ARCH
-    BOOST_DIR=`ls . | grep "boost" | grep -v "tar"`
-    echo
-    echo "Making boost [$BOOST_DIR]..."
-    echo
-
-    cd "$BOOST_DIR"
-    
-    
-    if [ $DEBUG ] ; then
-        VARIANT_BUILD="debug"
-    else
-        VARIANT_BUILD="release"
-    fi
-    
-    
-    if		[ "$SYSTEM" = "FreeBSD" ] ; then
-        sh bootstrap.sh --with-toolset=clang
-        ./b2 cxxstd=14 toolset=clang --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
-    elif	[ "$SYSTEM" = "Darwin" ] ; then
-        sh bootstrap.sh
-        ./b2 cxxstd=14 --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
-        echo
-    elif    [[ "$SYSTEM" =~ "MINGW" ]]; then
-        if [ $BIT64 = true ]; then
-            BOOST_ADDRESS_MODEL="64"
-        else
-            BOOST_ADDRESS_MODEL="32"
-        fi
-        
-        ./bootstrap.bat
-        ./b2 cxxstd=14 --abbreviate-paths --hash address-model="$BOOST_ADDRESS_MODEL" variant="$VARIANT_BUILD" link=static threading=multi --prefix="$EXT_DIR" install
-    else
-        sh bootstrap.sh
-        ./b2 cxxstd=14 --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
-        echo
-    fi
-    
-    cd ..
-    if [ ! $NOCLEANUP ]; then
-        rm -rf "$BOOST_DIR"
-    fi
-    
-    echo
-    echo "Done BOOST!"
-    echo
 }
 
 buildOpenssl()
@@ -263,8 +183,6 @@ function buildBoringSSL
 
 EXT_DIR="`pwd`"
 
-BUILD_BOOST_MIN=
-BUILD_BOOST_FULL=
 BUILD_OPENSSL=
 BUILD_BORINGSSL=
 
@@ -282,12 +200,7 @@ while [ "$#" -gt 0 ]; do
     HELP=
     case "$1" in
     --all)
-        BUILD_BOOST_FULL=true
         BUILD_OPENSSL=true
-        BUILD_SOMETHING=true
-        ;;
-    --boost)
-        BUILD_BOOST_FULL=true
         BUILD_SOMETHING=true
         ;;
     --openssl)
@@ -337,11 +250,6 @@ fi
 echo "Extern folder: $EXT_DIR"
 echo "System: $SYSTEM"
 
-if [[ ! $BUILD_SOMETHING ]]; then
-    BUILD_BOOST_FULL=true
-    BUILD_OPENSSL=true
-fi
-
 if [ $BUILD_OPENSSL ]; then
     buildOpenssl
 fi
@@ -349,15 +257,6 @@ fi
 if [ $BUILD_BORINGSSL ]; then
     buildBoringSSL
 fi
-
-if [ $BUILD_BOOST_FULL ]; then
-    buildBoost
-else
-    if [ $BUILD_BOOST_MIN ]; then
-        buildBoost
-    fi
-fi
-
 
 if [ -d lib64 ]; then
     cd lib
