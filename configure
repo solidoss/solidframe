@@ -65,6 +65,11 @@ print_usage(){
     echo "$ cd build/asan"
     echo "$ make Experimental"
     echo
+    echo "5) create a maintain build with Thread Sanitizer"
+    echo "$ ./configure -b maintain -f tsan -e ~/work/external -c \"-fsanitize=thread\" -l \"-fsanitize=thread\""
+    echo "$ cd build/asan"
+    echo "$ make Experimental"
+    echo
     exit
 }
 

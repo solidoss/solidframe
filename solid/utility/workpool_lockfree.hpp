@@ -343,7 +343,7 @@ size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, const size_t _max_queue_si
 
             {
                 size_t crtpos = pos;
-                while (!pn->push_commit_pos_.compare_exchange_weak(crtpos, pos + 1, std::memory_order_relaxed, std::memory_order_relaxed)) {
+                while (!pn->push_commit_pos_.compare_exchange_weak(crtpos, pos + 1, std::memory_order_release, std::memory_order_relaxed)) {
                     crtpos = pos;
                     std::this_thread::yield();
                 }
@@ -421,7 +421,7 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
                 size_t push_commit_pos;
                 size_t count = 64;
 
-                while (pos >= (push_commit_pos = pn->push_commit_pos_.load(std::memory_order_relaxed)) && count--) {
+                while (pos >= (push_commit_pos = pn->push_commit_pos_.load(std::memory_order_acquire)) && count--) {
                     std::this_thread::yield();
                 }
 
@@ -434,13 +434,13 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
                     pop_end_.condition_.wait(
                         lock,
                         [pn, pos, &_running]() {
-                            return (pos < pn->push_commit_pos_.load(std::memory_order_relaxed)) || !_running.load();
+                            return (pos < pn->push_commit_pos_.load(std::memory_order_acquire)) || !_running.load();
                         });
                     pop_end_.wait_count_.fetch_sub(1);
                     solid_statistic_inc(statistic_.wait_pop_on_pos_);
                 }
             }
-            const size_t push_commit_pos = pn->push_commit_pos_.load(std::memory_order_relaxed);
+            const size_t push_commit_pos = pn->push_commit_pos_.load(std::memory_order_acquire);
 
             std::atomic_thread_fence(std::memory_order_acquire);
 
