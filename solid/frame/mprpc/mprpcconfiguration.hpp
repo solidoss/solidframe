@@ -418,6 +418,12 @@ public:
         prepare();
         return *this;
     }
+    
+    void clear(Configuration&& _ucfg){
+        _ucfg = std::move(*this);
+        Configuration cfg;
+        *this = std::move(cfg);
+    }
 
     AioSchedulerT& scheduler() const
     {

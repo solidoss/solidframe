@@ -46,7 +46,7 @@ const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
 size_t connection_count(0);
 
-bool                   running                 = true;
+std::atomic<bool>      running{true};
 bool                   client_received_logout  = false;
 bool                   client_received_message = false;
 mutex                  mtx;

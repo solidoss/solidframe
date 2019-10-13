@@ -702,25 +702,31 @@ void Service::doStart()
 void Service::doFinalizeStart(Configuration&& _ucfg, SocketDevice&& _usd)
 {
     lock_guard<std::mutex> lock(impl_->mtx);
+    
     if (_usd) {
         SocketAddress local_address;
-
+        
         _usd.localAddress(local_address);
+        
+        impl_->config = std::move(_ucfg);
 
         ErrorConditionT error;
         ActorIdT        conuid = _ucfg.scheduler().startActor(make_dynamic<Listener>(_usd), *this, make_event(GenericEvents::Start), error);
         (void)conuid;
 
-        solid_check(!error, "Failed starting listener: " << error.message());
-
-        impl_->config.reset(std::move(_ucfg));
+        if(error){
+            impl_->config.clear(std::move(_ucfg));
+            
+            solid_throw("Failed to start listener: " << error.message());
+        }
+        impl_->config.prepare();
         impl_->config.server.listener_port = local_address.port();
-    } else {
+    }else{
         impl_->config.reset(std::move(_ucfg));
     }
 
     if (configuration().pools_mutex_count > impl_->mtxsarrcp) {
-        delete[] impl_->pmtxarr; //TODO: delete
+        delete[] impl_->pmtxarr;
         impl_->pmtxarr   = new std::mutex[configuration().pools_mutex_count];
         impl_->mtxsarrcp = configuration().pools_mutex_count;
     }

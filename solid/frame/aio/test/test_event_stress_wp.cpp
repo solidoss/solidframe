@@ -137,8 +137,8 @@ int test_event_stress_wp(int argc, char* argv[])
         promise<void> prom;
 
         ConnectionCallPoolT connection_cp{};
-        AccountCallPoolT    account_cp{};
         DeviceCallPoolT     device_cp{};
+        AccountCallPoolT    account_cp{};
 
         ConnectionContext conn_ctx(account_cp, prom);
 
