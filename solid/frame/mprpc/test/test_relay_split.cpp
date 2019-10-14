@@ -350,7 +350,7 @@ void peerb_complete_message(
 
 int test_relay_split(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {"solid::frame::mprpc.*:EW", "\\*:VIEW"});
+    solid::log_start(std::cerr, {"solid::frame::mprpc.*:EW", "\\*:EW"});
 
     size_t max_per_pool_connection_count = 1;
 
