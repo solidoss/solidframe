@@ -1,4 +1,4 @@
-BSL-1.0
+BSL-1.0 License
 
 Copyright (c) 2007 - present Valentin Palade (vipalade @ gmail . com)
 
