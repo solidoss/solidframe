@@ -47,7 +47,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 * [__solid_frame_mprpc__](#solid_frame_mprpc): Message Passing - Remote Procedure Call over secure/plain TCP ([MPRPC library](solid/frame/mprpc/README.md))
     * _mprpc::Service_ - pass messages to/from multiple peers.
 * [__solid_frame_aio__](#solid_frame_aio): asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
-    * _Object_ - reactive object with support for Asynchronous IO
+    * _Actor_ - reactive object with support for Asynchronous IO
     * _Reactor_ - reactor with support for Asynchronous IO
     * _Listener_ - asynchronous TCP listener/server socket
     * _Stream_ - asynchronous TCP socket
@@ -75,20 +75,20 @@ Boost Software License - Version 1.0 - August 17th, 2003
     * _binary::Serializer_
     * _binary::Deserializer_
 * [__solid_frame__](#solid_frame):
-    * _Object_ - reactive object
+    * _Actor_ - reactive object
     * _Manager_ - store services and notifies objects within services
     * _Service_ - store and notifies objects
-    * _Reactor_ - active store of objects - allows objects to asynchronously react on events
+    * _Reactor_ - active store of actors - allows actors to asynchronously react on events
     * _Scheduler_ - a thread pool of reactors
-    * _Timer_ - allows objects to schedule time based events
+    * _Timer_ - allows actors to schedule time based events
     * _shared::Store_ - generic store of shared objects that need either multiple read or single write access
 * [__solid_frame_aio__](#solid_frame_aio): asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
-    * _Object_ - reactive object with support for Asynchronous IO
+    * _Actor_ - reactive object with support for Asynchronous IO
     * _Reactor_ - reactor with support for Asynchronous IO
     * _Listener_ - asynchronous TCP listener/server socket
     * _Stream_ - asynchronous TCP socket
     * _Datagram_ - asynchronous UDP socket
-    * _Timer_ - allows objects to schedule time based events
+    * _Timer_ - allows actors to schedule time based events
 * [__solid_frame_aio_openssl__](#solid_frame_aio_openssl): SSL support via OpenSSL
 * [__solid_frame_file__](#solid_frame_file)
     * _file::Store_ - a shared store for files
@@ -420,21 +420,21 @@ const AlphaEventCategory    alpha_event_category{
 Handle events:
 
 ```C++
-void Object::handleEvent(Event &&_revt){
-    static const EventHandler<void, Object&> event_handler = {
-        [](Event &_revt, Object &_robj){cout<<"handle unknown event "<<_revt<< on "<<&_robj<<endl;},
+void Actor::handleEvent(Event &&_revt){
+    static const EventHandler<void, Actor&> event_handler = {
+        [](Event &_revt, Actor &_robj){cout<<"handle unknown event "<<_revt<<" on "<<&_robj<<endl;},//fallback
         {
             {
                 alpha_event_category.event(AlphaEvents::First),
-                [](Event &_revt, Object &_robj){cout<<"handle event "<<_revt<<" on "<<&_robj<<endl;}
+                [](Event &_revt, Actor &_robj){cout<<"handle event "<<_revt<<" on "<<&_robj<<endl;}
             },
             {
                 alpha_event_category.event(AlphaEvents::Second),
-                [](Event &_revt, Object &_robj){cout<<"handle event "<<_revt<<" on "<<&_robj<<endl;}
+                [](Event &_revt, Actor &_robj){cout<<"handle event "<<_revt<<" on "<<&_robj<<endl;}
             },
             {
                 generic_event_category.event(GenericEvents::Message),
-                [](Event &_revt, Object &_robj){cout<<"handle event "<<_revt<<"("<<*_revt.any().cast<std::string>()<<") on "<<&_robj<<endl;}
+                [](Event &_revt, Actor &_robj){cout<<"handle event "<<_revt<<"("<<*_revt.any().cast<std::string>()<<") on "<<&_robj<<endl;}
             }
         }
     };
@@ -559,10 +559,10 @@ std::string     data;
 
 ### <a id="solid_frame"></a>solid_frame
 
-The library offers the base support for an asynchronous active object model and implementation for objects with basic support for notification and timer events.
+The library offers the base support for an asynchronous actor model with support for notification and timer events.
 
  * [__manager.hpp__](solid/frame/manager.hpp): A synchronous, passive store of ObjectBase grouped by services.
- * [__object.hpp__](solid/frame/object.hpp): An active object with support for events: notification events and timer events.
+ * [__actor.hpp__](solid/frame/actor.hpp): An active object with support for events: notification events and timer events.
  * [__reactor.hpp__](solid/frame/reactor.hpp): An active store of Objects with support for notification events and timer events.
  * [__reactorcontext.hpp__](solid/frame/reactorcontext.hpp): A context class given as parameter to every callback called from the reactor.
  * [__scheduler.hpp__](solid/frame/scheduler.hpp): A generic pool of threads running reactors.
@@ -572,7 +572,7 @@ The library offers the base support for an asynchronous active object model and 
  * [_reactorbase.hpp_](solid/frame/reactorbase.hpp): Base for all reactors
  * [_timestore.hpp_](solid/frame/timestore.hpp): Used by reactors for timer events support.
  * [_schedulerbase.hpp_](solid/frame/schedulerbase.hpp): Base for all schedulers.
- * [_objectbase.hpp_](solid/frame/objectbase.hpp): Base for all active Objects
+ * [_actorbase.hpp_](solid/frame/actorbase.hpp): Base for all Actors
 
 
 __Usefull links__
