@@ -1,4 +1,4 @@
-Boost License
+MIT License
 
 Copyright (c) 2007 - present Valentin Palade (vipalade @ gmail . com)
 
