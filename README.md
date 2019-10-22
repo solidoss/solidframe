@@ -10,7 +10,7 @@ Cross-platform C++ framework for asynchronous, distributed applications.
 
 ## Copyright
 
-Copyright (c) 2007-present Valentin Palade (vipalade @ gmail.com).
+Copyright &copy; 2007-present Valentin Palade (vipalade @ gmail.com).
 
 All rights reserved.
 

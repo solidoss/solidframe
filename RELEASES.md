@@ -1,23 +1,12 @@
 # SolidFrame Releases
 
-## Test build environments
-* **Linux**:
-    * Fedora 28 x86_64 - gcc (GCC) 8.1.1 20180502 (Red Hat 8.1.1-1);
-    * Raspbian Linux raspberrypi armv7l - gcc (Raspbian 4.9.2-10) 4.9.2
-    * **Travis**: Ubuntu 14.04 - gcc 6
-* **macOS**:
-    * 10.13 - xcode 9.1 - Apple LLVM version 9.0.0 (clang-900.0.38)
-    * **Travis**: Apple LLVM version 8.1.0 (clang-802.0.42)
-* **iOS**:
-    * 10.13 - xcode 9.1 - Apple LLVM version 9.0.0 (clang-900.0.38)
-* **FreeBSD**:
-    * TrueOS - FreeBSD 12.0 - clang version 4.0.0 (based on LLVM 4.0.0)
-* **Windows**:
-    * Windows10 - Visual Studio 2017.
-
-## Version 5.1
+## Version 5.3
 
 * (DONE) rename mpipc library to mprpc
+* (DONE) remove boost dependency
+* (DONE) Object -> Actor
+* (DONE) Overal fixes
+* (DONE) Refactored solid::WorkPool<>
 
 ## Version 5.0
 
