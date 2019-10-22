@@ -8,6 +8,12 @@ Cross-platform C++ framework for asynchronous, distributed applications.
 |master|[![Build Status master](https://travis-ci.org/solidoss/solidframe.svg?branch=master)](https://travis-ci.org/solidoss/solidframe)|
 |work|[![Build Status work](https://travis-ci.org/solidoss/solidframe.svg?branch=work)](https://travis-ci.org/solidoss/solidframe)|
 
+## Copyright
+
+Copyright (c) 2007-present Valentin Palade (vipalade @ gmail.com).
+
+All rights reserved.
+
 ## License
 
 Boost Software License - Version 1.0 - August 17th, 2003
@@ -27,8 +33,8 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 ## Supported platforms
 
-* **Linux** - _gcc_ - (tested on latest Fedora i686/x86_64, Ubuntu LTS and Raspian on Raspberry Pi 2 armv7l)
-* **FreeBSD** - _llvm_ - (tested on FreeBSD/PcBSD 10.3)
+* **Linux** - _gcc_, _llvm_
+* **FreeBSD** - _llvm_
 * **Darwin/macOS** - _llvm_ - (starting with XCode 8 which has support for thread_local)
 * **iOS** - _llvm_ + [CocoaPods](https://cocoapods.org/) - example: [Bubbles](https://github.com/vipalade/bubbles)) 
 * **Android** - _llvm/gcc_ - (starting with Android Studio 2.2 - example: [Bubbles](https://github.com/vipalade/bubbles))
