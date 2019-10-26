@@ -227,16 +227,20 @@ struct FunctionData {
 //      Function<Size>
 //-----------------------------------------------------------------------------
 
-template <size_t DataSize, class>
+#ifndef SOLID_FUNCTION_STORAGE
+#define SOLID_FUNCTION_STORAGE 24
+#endif
+
+template <class, size_t DataSize = SOLID_FUNCTION_STORAGE>
 class Function; // undefined
 
-template <size_t DataSize, class R, class... ArgTypes>
-class Function<DataSize, R(ArgTypes...)> : protected FunctionData<DataSize>, public FunctionBase {
+template <class R, class... ArgTypes, size_t DataSize>
+class Function<R(ArgTypes...), DataSize> : protected FunctionData<DataSize>, public FunctionBase {
     template <bool B>
     using bool_constant = std::integral_constant<bool, B>;
 
 public:
-    using ThisT = Function<DataSize, R(ArgTypes...)>;
+    using ThisT = Function<R(ArgTypes...), DataSize>;
 
     template <class T>
     using FunctionValueT      = impl::FunctionValue<T, std::is_copy_constructible<T>::value, R, ArgTypes...>;
@@ -246,36 +250,35 @@ public:
 
     explicit Function(std::nullptr_t) {}
 
-    Function(const ThisT& _rany)
+    Function(const Function& _rany)
         : FunctionBase(doCopyFrom(_rany, this->dataPtr(), DataSize))
     {
         solid_check(_rany.empty() == this->empty(), "Copy Non Copyable");
     }
 
-    Function(ThisT&& _rany)
+    Function(Function&& _rany) noexcept
         : FunctionBase(doMoveFrom(_rany, this->dataPtr(), DataSize, _rany.usesData()))
     {
         _rany.release(pvalue_);
     }
 
-    template <class T>
+    template <class T, typename = typename std::enable_if<!std::is_same<Function, typename std::decay<T>::type>::value, void>::type>
     Function(const T& _t)
         : FunctionBase(
-              do_allocate<typename std::remove_reference<T>::type>(
-                  bool_constant<std::is_convertible<typename std::remove_reference<T>::type*, FunctionBase*>::value>(),
-                  bool_constant<sizeof(FunctionValueT<typename std::remove_reference<T>::type>) <= DataSize>(),
-                  _t))
+            do_allocate<typename std::decay<T>::type>(
+                bool_constant<std::is_convertible<typename std::decay<T>::type*, FunctionBase*>::value>(),
+                bool_constant<sizeof(FunctionValueT<typename std::decay<T>::type>) <= DataSize>(),
+                _t))
     {
     }
 
-    template <class T>
-    Function(
-        T&& _ut)
+    template <typename T, typename = typename std::enable_if<!std::is_same<Function, typename std::decay<T>::type>::value, void>::type>
+    Function(T&& _ut)
         : FunctionBase(
-              do_allocate<typename std::remove_reference<T>::type>(
-                  bool_constant<std::is_convertible<typename std::remove_reference<T>::type*, FunctionBase*>::value>(),
-                  bool_constant<sizeof(FunctionValueT<typename std::remove_reference<T>::type>) <= DataSize>(),
-                  std::forward<T>(_ut)))
+            do_allocate<typename std::decay<T>::type>(
+                bool_constant<std::is_convertible<typename std::decay<T>::type*, FunctionBase*>::value>(),
+                bool_constant<sizeof(FunctionValueT<typename std::decay<T>::type>) <= DataSize>(),
+                std::forward<T>(_ut)))
     {
     }
 
@@ -304,7 +307,7 @@ public:
         pvalue_ = nullptr;
     }
 
-    ThisT& operator=(const ThisT& _rany)
+    Function& operator=(const Function& _rany)
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(&_rany)) {
             clear();
@@ -314,7 +317,7 @@ public:
         return *this;
     }
 
-    ThisT& operator=(ThisT&& _rany)
+    Function& operator=(Function&& _rany) noexcept
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(&_rany)) {
             clear();
@@ -331,24 +334,22 @@ public:
     }
 
     template <typename T>
-    ThisT& operator=(const T& _rt)
+    typename std::enable_if<!std::is_same<ThisT, T>::value, ThisT&>::type
+    operator=(const T& _rt)
     {
-        if (static_cast<const void*>(this) != static_cast<const void*>(&_rt)) {
-            clear();
-            using RealT = typename std::remove_reference<T>::type;
-            pvalue_     = do_allocate<RealT>(bool_constant<std::is_convertible<RealT*, FunctionBase*>::value>(), bool_constant<sizeof(FunctionValueT<RealT>) <= DataSize>(), _rt);
-        }
+        clear();
+        using RealT = typename std::decay<T>::type;
+        pvalue_     = do_allocate<RealT>(bool_constant<std::is_convertible<RealT*, FunctionBase*>::value>(), bool_constant<sizeof(FunctionValueT<RealT>) <= DataSize>(), _rt);
         return *this;
     }
 
     template <class T>
-    ThisT& operator=(T&& _ut)
+    typename std::enable_if<!std::is_same<ThisT, T>::value, ThisT&>::type
+    operator=(T&& _ut)
     {
-        if (static_cast<const void*>(this) != static_cast<const void*>(&_ut)) {
-            clear();
-            using RealT = typename std::remove_reference<T>::type;
-            pvalue_     = do_allocate<RealT>(bool_constant<std::is_convertible<RealT*, FunctionBase*>::value>(), bool_constant<sizeof(FunctionValueT<RealT>) <= DataSize>(), std::forward<T>(_ut));
-        }
+        clear();
+        using RealT = typename std::decay<T>::type;
+        pvalue_     = do_allocate<RealT>(bool_constant<std::is_convertible<RealT*, FunctionBase*>::value>(), bool_constant<sizeof(FunctionValueT<RealT>) <= DataSize>(), std::forward<T>(_ut));
         return *this;
     }
 
@@ -384,7 +385,7 @@ private:
     {
         clear();
         pvalue_ = do_allocate<T>(
-            bool_constant<std::is_convertible<typename std::remove_reference<T>::type*, FunctionBase*>::value>(), bool_constant<sizeof(FunctionValueT<T>) <= DataSize>(), std::forward<T>(_arg));
+            bool_constant<std::is_convertible<typename std::decay<T>::type*, FunctionBase*>::value>(), bool_constant<sizeof(FunctionValueT<T>) <= DataSize>(), std::forward<T>(_arg));
     }
 
     template <class T>
@@ -437,17 +438,14 @@ private:
 //-----------------------------------------------------------------------------
 
 } //namespace solid
+
 #ifdef SOLID_USE_STD_FUNCTION
 
 #define solid_function_t(...) std::function<__VA_ARGS__>
 
 #else
 
-#ifndef SOLID_FUNCTION_STORAGE
-#define SOLID_FUNCTION_STORAGE 24
-#endif
-
-#define solid_function_t(...) solid::Function<SOLID_FUNCTION_STORAGE, __VA_ARGS__>
+#define solid_function_t(...) solid::Function<__VA_ARGS__>
 
 #endif
 

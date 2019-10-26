@@ -98,7 +98,7 @@ struct Test {
 
 } //namespace
 
-int test_container(int /*argc*/, char* /*argv*/ [])
+int test_container(int /*argc*/, char* /*argv*/[])
 {
 
     solid::log_start(std::cerr, {".*:VIEW"});
@@ -124,7 +124,8 @@ int test_container(int /*argc*/, char* /*argv*/ [])
 
         test->init();
 
-        rv = ser.run(buf, bufcp, [&test](decltype(ser)& ser, Context& _rctx) { ser.add(test, _rctx, "test"); }, ctx);
+        rv = ser.run(
+            buf, bufcp, [&test](decltype(ser)& ser, Context& _rctx) { ser.add(test, _rctx, "test"); }, ctx);
 
         while (rv > 0) {
             test_data.append(buf, rv);
@@ -137,7 +138,8 @@ int test_container(int /*argc*/, char* /*argv*/ [])
 
         shared_ptr<Test> test;
 
-        long rv = des.run(test_data.data(), test_data.size(), [&test](decltype(des)& des, Context& _rctx) { des.add(test, _rctx, "test"); }, ctx);
+        long rv = des.run(
+            test_data.data(), test_data.size(), [&test](decltype(des)& des, Context& _rctx) { des.add(test, _rctx, "test"); }, ctx);
 
         solid_check(rv == static_cast<long>(test_data.size()));
         test->check();

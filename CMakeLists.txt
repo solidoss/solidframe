@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 #-----------------------------------------------------------------
 # The project
 #-----------------------------------------------------------------
-project (SolidFrame VERSION 5.0)
+project (SolidFrame VERSION 6.0)
 
 execute_process(
     COMMAND "git" "rev-parse" "HEAD"
@@ -27,6 +27,10 @@ endif()
 #-----------------------------------------------------------------
 set(EXTRA_COMPILE_OPTIONS "" CACHE STRING "Extra compiler definitions")
 add_definitions(${EXTRA_COMPILE_OPTIONS})
+
+
+set(EXTRA_LINK_OPTIONS "" CACHE STRING "Extra compiler definitions")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${EXTRA_LINK_OPTIONS}")
 
 #-----------------------------------------------------------------
 # Prepare the external path
@@ -109,6 +113,13 @@ if(CMAKE_SYSTEM MATCHES "FreeBSD*")
     )
 
     set(SYSTEM_BASIC_LIBRARIES pmc pthread rt)
+    
+    find_library(EXECINFO_LIBRARY NAMES execinfo)
+    
+    if(EXECINFO_LIBRARY)
+        message("Execinfo library found: ${EXECINFO_LIBRARY}")
+        list(APPEND SYSTEM_BASIC_LIBRARIES ${EXECINFO_LIBRARY})
+    endif()
 endif(CMAKE_SYSTEM MATCHES "FreeBSD*")
 
 if(CMAKE_SYSTEM MATCHES "Darwin*")
@@ -136,18 +147,17 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
     
     
 
-    set(SYS_DEBUG_FLAGS " -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
     if(CMAKE_CXX_COMPILER MATCHES "clang")
         add_compile_options(
             "$<$<CONFIG:RELASE>:-O3>"
-            "$<$<CONFIG:DEBUG>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
-            "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-O3;-g3>"
+            "$<$<CONFIG:DEBUG>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-Wdelete-non-virtual-dtor;-Wnon-virtual-dtor;-g3>"
+            "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wdelete-non-virtual-dtor;-Wnon-virtual-dtor;-O3;-g3>"
         )
     else()
         add_compile_options(
             "$<$<CONFIG:RELASE>:-O3>"
-            "$<$<CONFIG:DEBUG>:-Wall;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
-            "$<$<CONFIG:MAINTAIN>:-Wall;-O3;-g3>"
+            "$<$<CONFIG:DEBUG>:-Wall;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-Wdelete-non-virtual-dtor;-Wnon-virtual-dtor;-g3>"
+            "$<$<CONFIG:MAINTAIN>:-Wall;-Wdelete-non-virtual-dtor;-Wnon-virtual-dtor;-O3;-g3>"
         )
     endif()
     
@@ -212,20 +222,18 @@ if(NOT NO_EXTERNAL)
 
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
     include(cmake/build_snappy.cmake)
+    include(cmake/build_cxxopts.cmake)
 
     include_directories(${CMAKE_BINARY_DIR}/external/include)
 
     if(EXTERNAL_DIR STREQUAL "")
         set(EXTERNAL_DIR "${CMAKE_CURRENT_BINARY_DIR}/external")
 
-        include(cmake/build_boost.cmake)
         include(cmake/build_openssl.cmake)
     else()
         #define dummy targets
-        add_custom_target(build_boost)
-        add_custom_target(build_openssl)
+        add_custom_target(build-openssl)
 
-        include(cmake/find_boost.cmake)
         include(cmake/find_openssl.cmake)
     endif()
 
@@ -324,7 +332,7 @@ add_custom_target(libraries
     solid_frame_aio
     solid_frame_aio_openssl
     solid_frame_file
-    solid_frame_mpipc
+    solid_frame_mprpc
 )
 
 include(CMakePackageConfigHelpers)

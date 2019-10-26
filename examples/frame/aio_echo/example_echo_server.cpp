@@ -2,8 +2,8 @@
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
 
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiolistener.hpp"
-#include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aiotimer.hpp"
 
@@ -17,7 +17,7 @@
 
 #include "solid/utility/event.hpp"
 
-#include "boost/program_options.hpp"
+#include "cxxopts.hpp"
 
 #include <functional>
 #include <iostream>
@@ -66,7 +66,7 @@ static void term_handler(int signum)
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-class Listener : public Dynamic<Listener, frame::aio::Object> {
+class Listener : public Dynamic<Listener, frame::aio::Actor> {
 public:
     static size_t backlog_size()
     {
@@ -112,7 +112,7 @@ private:
 #include "solid/frame/aio/aiosocket.hpp"
 #include "solid/frame/aio/aiostream.hpp"
 
-class Connection : public Dynamic<Connection, frame::aio::Object> {
+class Connection : public Dynamic<Connection, frame::aio::Actor> {
 protected:
     Connection()
         : sock(this->proxy())
@@ -170,7 +170,7 @@ public:
 #include "solid/frame/aio/aiodatagram.hpp"
 #include "solid/frame/aio/aiosocket.hpp"
 
-class Talker : public Dynamic<Talker, frame::aio::Object> {
+class Talker : public Dynamic<Talker, frame::aio::Actor> {
 public:
     Talker(SocketDevice&& _rsd)
         : sock(this->proxy(), std::move(_rsd))
@@ -229,10 +229,9 @@ int main(int argc, char* argv[])
         frame::Manager  m;
         frame::ServiceT svc(m);
 
-        if (sch.start(thread::hardware_concurrency())) {
-            running = false;
-            cout << "Error starting scheduler" << endl;
-        } else {
+        sch.start(thread::hardware_concurrency());
+
+        {
             ResolveData rd = synchronous_resolve("0.0.0.0", params.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 
             SocketDevice sd;
@@ -241,12 +240,11 @@ int main(int argc, char* argv[])
             sd.prepareAccept(rd.begin(), Listener::backlog_size());
 
             if (sd) {
-                DynamicPointer<frame::aio::Object> objptr(new Listener(svc, sch, std::move(sd)));
-                solid::ErrorConditionT             err;
-                solid::frame::ObjectIdT            objuid;
+                solid::ErrorConditionT err;
+                solid::frame::ActorIdT actuid;
 
-                objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
-                solid_log(generic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
+                actuid = sch.startActor(make_dynamic<Listener>(svc, sch, std::move(sd)), svc, make_event(GenericEvents::Start), err);
+                solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
                 running = false;
@@ -255,13 +253,12 @@ int main(int argc, char* argv[])
             {
                 rd = synchronous_resolve("127.0.0.1", params.connect_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 
-                DynamicPointer<frame::aio::Object> objptr(new ClientConnection(rd));
-                solid::ErrorConditionT             err;
-                solid::frame::ObjectIdT            objuid;
+                solid::ErrorConditionT err;
+                solid::frame::ActorIdT actuid;
 
-                objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
+                actuid = sch.startActor(make_dynamic<ClientConnection>(rd), svc, make_event(GenericEvents::Start), err);
 
-                solid_log(generic_logger, Info, "Started Client Connection object: " << objuid.index << ',' << objuid.unique);
+                solid_log(generic_logger, Info, "Started Client Connection actor: " << actuid.index << ',' << actuid.unique);
             }
 #endif
 #ifdef USE_TALKER
@@ -271,14 +268,12 @@ int main(int argc, char* argv[])
             sd.bind(rd.begin());
 
             if (sd) {
-                DynamicPointer<frame::aio::Object> objptr(new Talker(std::move(sd)));
+                solid::ErrorConditionT err;
+                solid::frame::ActorIdT actuid;
 
-                solid::ErrorConditionT  err;
-                solid::frame::ObjectIdT objuid;
+                actuid = sch.startActor(make_dynamic<Talker>(std::move(sd)), svc, make_event(GenericEvents::Start), err);
 
-                objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
-
-                solid_log(generic_logger, Info, "Started Talker object: " << objuid.index << ',' << objuid.unique);
+                solid_log(generic_logger, Info, "Started Talker actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating talker socket" << endl;
                 running = false;
@@ -303,30 +298,18 @@ int main(int argc, char* argv[])
 //-----------------------------------------------------------------------------
 bool parseArguments(Params& _par, int argc, char* argv[])
 {
-    using namespace boost::program_options;
+    using namespace cxxopts;
     try {
-        options_description desc("SolidFrame concept application");
-        // clang-format off
-        desc.add_options()
-            ("help,h", "List program options")
-            ("listen-port,l", value<int>(&_par.listener_port)->default_value(2000), "Listener port")
-            ("talk-port,t", value<int>(&_par.talker_port)->default_value(3000), "Talker port")
-            ("connection-port,c", value<int>(&_par.connect_port)->default_value(5000), "Connection port")
-            ("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")
-            ("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
-            ("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
-            ("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
-            ("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered");
-        // clang-format on
-        variables_map vm;
-        store(parse_command_line(argc, argv, desc), vm);
-        notify(vm);
-        if (vm.count("help")) {
-            cout << desc << "\n";
+        Options options{argv[0], "SolidFrame concept application"};
+        options.add_options()("h,help", "List program options")("l,listen-port", "Listener port", value<int>(_par.listener_port)->default_value("2000"))("t,talk-port", "Talker port", value<int>(_par.talker_port)->default_value("3000"))("c,connection-port", "Connection port", value<int>(_par.connect_port)->default_value("5000"))("M,debug-modules", "Debug logging modules", value<vector<string>>(_par.dbg_modules))("A,debug-address", "Debug server address (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_addr))("P,debug-port", "Debug server port (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_port))("C,debug-console", "Debug console", value<bool>(_par.dbg_console)->implicit_value("true")->default_value("false"))("S,debug-unbuffered", "Debug unbuffered", value<bool>(_par.dbg_buffered)->implicit_value("false")->default_value("true"));
+        auto result = options.parse(argc, argv);
+
+        if (result.count("help")) {
+            std::cout << options.help({""}) << std::endl;
             return true;
         }
         return false;
-    } catch (exception& e) {
+    } catch (std::exception& e) {
         cout << e.what() << "\n";
         return true;
     }
@@ -368,10 +351,9 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
         if (!_rctx.error()) {
 #ifdef USE_CONNECTION
             _rsd.enableNoDelay();
-            DynamicPointer<frame::aio::Object> objptr(new Connection(std::move(_rsd)));
-            solid::ErrorConditionT             err;
+            solid::ErrorConditionT err;
 
-            rsch.startObject(objptr, rsvc, make_event(GenericEvents::Start), err);
+            rsch.startActor(make_dynamic<Connection>(std::move(_rsd)), rsvc, make_event(GenericEvents::Start), err);
 #else
             cout << "Accepted connection: " << _rsd.descriptor() << endl;
 #endif
@@ -409,7 +391,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
     unsigned    repeatcnt = 2;
-    Connection& rthis     = static_cast<Connection&>(_rctx.object());
+    Connection& rthis     = static_cast<Connection&>(_rctx.actor());
     solid_log(generic_logger, Info, &rthis << " " << _sz);
     do {
         if (!_rctx.error()) {
@@ -445,7 +427,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
 /*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, &rthis << " postRecvSome");
         rthis.sendcnt += rthis.sendcrt;

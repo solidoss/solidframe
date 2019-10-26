@@ -38,8 +38,9 @@ print_usage(){
     echo "[-g|--generator GeneratorName]: Specify the cmake generator - default cmake's default"
     echo "[-F|--folder-path FolderPath]: Specify the build folder path - unlike the build folder-name wich creates a folder under build, this flag allows creating a build folder anywhere"
     echo "[-d|--documentation full/fast]: Build either fast or full documentation"
-    echo "[-p|--param ParamName]: Extra compilation flags. E.g. -p \"-DUINDEX64 -DUSERVICEBITS=3\""
-    echo "[-P|--cmake-param]: Some parameters given to cmake like: -DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE"
+    echo "[-c|--compile-options ParamName]: Extra compilation flags. E.g. -c \"-fsanitize=address  -fno-omit-frame-pointer\""
+    echo "[-l|--link-options ParamName]: Extra link flags. E.g. -l \"-fsanitize=address\""
+    echo "[-P|--cmake-param]: Some parameters given to cmake like: -DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE; \"-DCMake_RUN_CLANG_TIDY:BOOLEAN=true\""
     echo
     echo "Examples:"
     echo
@@ -58,6 +59,16 @@ print_usage(){
     echo "$ ./configure -f mnt -e ~/work/external -b maintain --prefix ~/work/install"
     echo "$ cd build/mnt"
     echo "$ make install"
+    echo
+    echo "4) create a maintain build with Address Sanitizer:"
+    echo "$ ./configure -b maintain -f asan -e ~/work/external -c \"-fsanitize=address  -fno-omit-frame-pointer\" -l \"-fsanitize=address\""
+    echo "$ cd build/asan"
+    echo "$ make Experimental"
+    echo
+    echo "5) create a maintain build with Thread Sanitizer"
+    echo "$ ./configure -b maintain -f tsan -e ~/work/external -c \"-fsanitize=thread\" -l \"-fsanitize=thread\""
+    echo "$ cd build/asan"
+    echo "$ make Experimental"
     echo
     exit
 }
@@ -79,6 +90,8 @@ EXTERNAL_DIR=
 CREATE_LISTS=
 INSTALL_PREFIX=
 EXTRA_COMPILE_OPTIONS=
+EXTRA_LINK_OPTIONS=
+ARCHITECTURE=
 
 #echo "$@"
 pass_arg_count=0
@@ -123,13 +136,21 @@ do
         set -- "$@" "$arg"
         pass_arg_count=`expr $pass_arg_count + 1`
         ;;
-    -p|--compile-options)
+    -c|--compile-options)
         shift
         EXTRA_COMPILE_OPTIONS=$EXTRA_COMPILE_OPTIONS"$1 "
+        ;;
+    -l|--link-options)
+        shift
+        EXTRA_LINK_OPTIONS=$EXTRA_LINK_OPTIONS"$1 "
         ;;
     -e|--external-dir)
         shift;
         EXTERNAL_DIR=$1
+        ;;
+    -A|--architecture)
+        shift;
+        ARCHITECTURE="$1"
         ;;
     -c|--create-lists)
         CREATE_LISTS="yes"
@@ -203,7 +224,7 @@ if [ "$FOLDER_NAME" = "" ]; then
     fi
 fi
 
-echo "Configure an out-of-source build configuration of type [$BUILD_TYPE] on folder [build/$FOLDER_NAME] and compile-options [$EXTRA_COMPILE_OPTIONS]"
+echo "Configure an out-of-source build configuration of type [$BUILD_TYPE] on folder [build/$FOLDER_NAME] compile-options [$EXTRA_COMPILE_OPTIONS] link-options [$EXTRA_LINK_OPTIONS]"
 
 SRC_PATH="`pwd`"
 
@@ -230,15 +251,20 @@ echo -ne "./configure -f $FOLDER_NAME -F \"$FOLDER_PATH\" -b \"$BUILD_TYPE\" -g 
 
 if [ "$GENERATOR" = "" ]; then
     echo "Using cmake's default generator:"
-    echo ""
-    
-    exec cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DEXTERNAL_DIR:PATH="$EXTERNAL_DIR" -DEXTRA_COMPILE_OPTIONS:STRING="$EXTRA_COMPILE_OPTIONS" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
-    echo "Done!"
 else
+    GEN="-G"
     echo "Using cmake's $GENERATOR"
-    echo ""
-    
-    exec cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DEXTERNAL_DIR:PATH="$EXTERNAL_DIR" -DEXTRA_COMPILE_OPTIONS:STRING="$EXTRA_COMPILE_OPTIONS" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
 fi
+
+if [ "$ARCHITECTURE" = "" ]; then
+    echo "Using default architecture"
+else
+    ARC="-A"
+    echo "Using architecture $ARCHITECTURE"
+fi
+
+exec cmake ${GEN} "${GENERATOR}" ${ARC} "${ARCHITECTURE}" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DEXTERNAL_DIR:PATH="$EXTERNAL_DIR" -DEXTRA_COMPILE_OPTIONS:STRING="$EXTRA_COMPILE_OPTIONS" -DEXTRA_LINK_OPTIONS:STRING="$EXTRA_LINK_OPTIONS" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
+
+echo "Done!"
 
 exit

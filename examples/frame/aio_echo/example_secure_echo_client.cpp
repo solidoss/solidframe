@@ -5,7 +5,7 @@
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
 
-#include "solid/frame/aio/aioobject.hpp"
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aiosocket.hpp"
 #include "solid/frame/aio/aiostream.hpp"
@@ -22,7 +22,7 @@
 
 #include "solid/utility/event.hpp"
 
-#include "boost/program_options.hpp"
+#include "cxxopts.hpp"
 
 #include <functional>
 #include <iostream>
@@ -69,7 +69,7 @@ struct ConnectStub {
 
 struct ConnectFunction;
 
-class Connection : public Dynamic<Connection, frame::aio::Object> {
+class Connection : public Dynamic<Connection, frame::aio::Actor> {
 public:
     Connection(SecureContextT& _secure_ctx)
         : sock(this->proxy(), _secure_ctx)
@@ -167,29 +167,23 @@ int main(int argc, char* argv[])
 
         AioSchedulerT scheduler;
 
-        frame::Manager   manager;
-        frame::ServiceT  service(manager);
-        frame::ObjectIdT objuid;
+        frame::Manager  manager;
+        frame::ServiceT service(manager);
+        frame::ActorIdT actuid;
 
-        FunctionWorkPool     fwp{WorkPoolConfiguration()};
-        frame::aio::Resolver resolver(fwp);
+        CallPool<void()>     cwp{WorkPoolConfiguration(), 1};
+        frame::aio::Resolver resolver(cwp);
         ErrorConditionT      err;
 
-        err = scheduler.start(1);
-
-        if (err) {
-            cout << "Error starting aio scheduler: " << err.message() << endl;
-            return 1;
-        }
+        scheduler.start(1);
 
         {
 
-            DynamicPointer<frame::aio::Object> objptr(new Connection(secure_ctx));
-            solid::ErrorConditionT             err;
+            solid::ErrorConditionT err;
 
-            objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start, ConnectStub(resolver, params.connect_addr, params.connect_port)), err);
+            actuid = scheduler.startActor(make_dynamic<Connection>(secure_ctx), service, make_event(GenericEvents::Start, ConnectStub(resolver, params.connect_addr, params.connect_port)), err);
 
-            solid_log(generic_logger, Info, "Started Client Connection object: " << objuid.index << ',' << objuid.unique);
+            solid_log(generic_logger, Info, "Started Client Connection actor: " << actuid.index << ',' << actuid.unique);
         }
 
         while (true) {
@@ -201,7 +195,7 @@ int main(int argc, char* argv[])
                 break;
             }
             line += "\r\n";
-            if (manager.notify(objuid, make_event(GenericEvents::Message, std::move(line)))) {
+            if (manager.notify(actuid, make_event(GenericEvents::Message, std::move(line)))) {
             } else
                 break;
         }
@@ -212,25 +206,24 @@ int main(int argc, char* argv[])
 //-----------------------------------------------------------------------------
 bool parseArguments(Params& _par, int argc, char* argv[])
 {
-    using namespace boost::program_options;
+    using namespace cxxopts;
     try {
-        options_description desc("SolidFrame concept application");
+        Options options{argv[0], "SolidFrame concept application"};
         // clang-format off
-        desc.add_options()
-            ("help,h", "List program options")
-            ("connect-addr,a", value<string>(&_par.connect_addr), "Connect address")
-            ("connect-port,p", value<string>(&_par.connect_port)->default_value("5000"), "Connect port")
-            ("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")
-            ("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
-            ("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
-            ("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
-            ("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered");
+        options.add_options()
+            ("h,help", "List program options")
+            ("a,connect-addr", "Connect address", value<string>(_par.connect_addr))
+            ("p,connect-port", "Connect port", value<string>(_par.connect_port)->default_value("5000"))
+            ("M,debug-modules", "Debug logging modules", value<vector<string>>(_par.dbg_modules))
+            ("A,debug-address", "Debug server address (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_addr))
+            ("P,debug-port", "Debug server port (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_port))
+            ("C,debug-console", "Debug console", value<bool>(_par.dbg_console)->implicit_value("true")->default_value("false"))
+            ("S,debug-unbuffered", "Debug unbuffered", value<bool>(_par.dbg_buffered)->implicit_value("false")->default_value("true"));
         // clang-format on
-        variables_map vm;
-        store(parse_command_line(argc, argv, desc), vm);
-        notify(vm);
-        if (vm.count("help")) {
-            cout << desc << "\n";
+        auto result = options.parse(argc, argv);
+
+        if (result.count("help")) {
+            std::cout << options.help({""}) << std::endl;
             return true;
         }
         return false;
@@ -249,16 +242,8 @@ struct ConnectFunction {
     ResolveData::const_iterator iterator;
 
     ConnectFunction() {}
-    ConnectFunction(ConnectFunction&& _ucf)
-        : event{std::move(_ucf.event)}
-        , iterator{_ucf.iterator}
-    {
-    }
-    ConnectFunction(ConnectFunction const& _rcf)
-        : event{_rcf.event}
-        , iterator{_rcf.iterator}
-    {
-    }
+    ConnectFunction(ConnectFunction&& _ucf)      = default;
+    ConnectFunction(ConnectFunction const& _rcf) = default;
 
     void operator()(frame::aio::ReactorContext& _rctx)
     {
@@ -291,13 +276,13 @@ struct ConnectFunction {
         solid_check(pconnect_stub != nullptr);
         solid_log(generic_logger, Info, "Resolving: " << pconnect_stub->connect_addr << ':' << pconnect_stub->connect_port);
 
-        frame::Manager&  manager = _rctx.service().manager();
-        frame::ObjectIdT objuid  = _rctx.service().manager().id(*this);
+        frame::Manager& manager = _rctx.service().manager();
+        frame::ActorIdT actuid  = _rctx.service().manager().id(*this);
 
         pconnect_stub->resolver.requestResolve(
-            [&manager, objuid](ResolveData& _rrd, ErrorCodeT const& /*_rerr*/) {
+            [&manager, actuid](ResolveData& _rrd, ErrorCodeT const& /*_rerr*/) {
                 solid_log(generic_logger, Info, "send resolv_message");
-                manager.notify(objuid, make_event(GenericEvents::Raise, std::move(_rrd)));
+                manager.notify(actuid, make_event(GenericEvents::Raise, std::move(_rrd)));
             },
             pconnect_stub->connect_addr.c_str(),
             pconnect_stub->connect_port.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
@@ -312,7 +297,7 @@ struct ConnectFunction {
             cf.iterator = presolve_data->begin();
             SocketAddressInet inetaddr(cf.iterator);
 
-            solid_log(generic_logger, Info, "Connect to: " << inetaddr);
+            solid_log(generic_logger, Info, "Connect to: " << inetaddr << ':' << inetaddr.port());
 
             if (sock.connect(_rctx, cf.iterator, cf)) {
                 onConnect(_rctx, cf);
@@ -330,7 +315,7 @@ struct ConnectFunction {
 
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     solid_log(generic_logger, Info, &rthis << " " << _sz);
     cout.write(rthis.buf, _sz);
     //cout<<endl;
@@ -344,7 +329,7 @@ struct ConnectFunction {
 
 /*static*/ void Connection::onSent(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, &rthis << " postRecvSome");
 
@@ -363,7 +348,7 @@ struct ConnectFunction {
 
 /*static*/ void Connection::onSecureConnect(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, &rthis << "");
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
@@ -381,7 +366,7 @@ struct ConnectFunction {
 
 /*static*/ void Connection::onConnect(frame::aio::ReactorContext& _rctx, ConnectFunction& _rcf)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
 
     solid_log(generic_logger, Info, &rthis << "");
 
@@ -401,8 +386,8 @@ struct ConnectFunction {
         ++_rcf.iterator;
 
         if (_rcf.iterator != presolve_data->end()) {
-            if (rthis.sock.connect(_rctx, _rcf.iterator, std::move(_rcf))) {
-                rthis.post(_rctx, std::move(_rcf));
+            if (rthis.sock.connect(_rctx, _rcf.iterator, std::forward<ConnectFunction>(_rcf))) {
+                rthis.post(_rctx, std::forward<ConnectFunction>(_rcf));
             }
         } else {
             solid_log(generic_logger, Error, &rthis << " postStop");
@@ -413,7 +398,7 @@ struct ConnectFunction {
 
 /*static*/ bool Connection::onSecureVerify(frame::aio::ReactorContext& _rctx, bool _preverified, frame::aio::openssl::VerifyContext& _rverify_ctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     solid_log(generic_logger, Info, &rthis << " " << _preverified);
     return _preverified;
 }

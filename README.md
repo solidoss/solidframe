@@ -5,8 +5,14 @@ Cross-platform C++ framework for asynchronous, distributed applications.
 ## Build status
 |||
 |:---|----|
-|master|[![Build Status master](https://travis-ci.org/vipalade/solidframe.svg?branch=master)](https://travis-ci.org/vipalade/solidframe)|
-|work|[![Build Status work](https://travis-ci.org/vipalade/solidframe.svg?branch=work)](https://travis-ci.org/vipalade/solidframe)|
+|master|[![Build Status master](https://travis-ci.org/solidoss/solidframe.svg?branch=master)](https://travis-ci.org/solidoss/solidframe)|
+|work|[![Build Status work](https://travis-ci.org/solidoss/solidframe.svg?branch=work)](https://travis-ci.org/solidoss/solidframe)|
+
+## Copyright
+
+Copyright &copy; 2007-present Valentin Palade (vipalade @ gmail.com).
+
+All rights reserved.
 
 ## License
 
@@ -15,20 +21,20 @@ Boost Software License - Version 1.0 - August 17th, 2003
 ## Resources
  * [Tutorials](tutorials/README.md)
  * [Release Notes](RELEASES.md)
- * [MPIPC library](solid/frame/mpipc/README.md)
+ * [MPRPC library](solid/frame/mprpc/README.md)
  * [API Reference](solid/API.md) - __TODO__
  * [Wiki](https://github.com/vipalade/solidframe/wiki) - __TODO__
 
 ## Prerequisites
-* C++11 enabled compiler
+* C++14 enabled compiler
 * [CMake](https://cmake.org/): for build system
-* [boost](http://www.boost.org/): for tests, examples and tutorials - not for libraries themselves.
+* [CxxOpts](https://github.com/jarro2783/cxxopts): needed by SolidFrame examples.
 * [OpenSSL](https://www.openssl.org/)/[BoringSSL](https://boringssl.googlesource.com/boringssl/): needed by solid_frame_aio_openssl library.
 
 ## Supported platforms
 
-* **Linux** - _gcc_ - (tested on latest Fedora i686/x86_64, Ubuntu LTS and Raspian on Raspberry Pi 2 armv7l)
-* **FreeBSD** - _llvm_ - (tested on FreeBSD/PcBSD 10.3)
+* **Linux** - _gcc_, _llvm_
+* **FreeBSD** - _llvm_
 * **Darwin/macOS** - _llvm_ - (starting with XCode 8 which has support for thread_local)
 * **iOS** - _llvm_ + [CocoaPods](https://cocoapods.org/) - example: [Bubbles](https://github.com/vipalade/bubbles)) 
 * **Android** - _llvm/gcc_ - (starting with Android Studio 2.2 - example: [Bubbles](https://github.com/vipalade/bubbles))
@@ -38,10 +44,10 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 **Focused:**
 
-* [__solid_frame_mpipc__](#solid_frame_mpipc): Message Passing Inter-Process Communication over secure/plain TCP ([MPIPC library](solid/frame/mpipc/README.md))
-    * _mpipc::Service_ - pass messages to/from multiple peers.
+* [__solid_frame_mprpc__](#solid_frame_mprpc): Message Passing - Remote Procedure Call over secure/plain TCP ([MPRPC library](solid/frame/mprpc/README.md))
+    * _mprpc::Service_ - pass messages to/from multiple peers.
 * [__solid_frame_aio__](#solid_frame_aio): asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
-    * _Object_ - reactive object with support for Asynchronous IO
+    * _Actor_ - reactive object with support for Asynchronous IO, timers and evens
     * _Reactor_ - reactor with support for Asynchronous IO
     * _Listener_ - asynchronous TCP listener/server socket
     * _Stream_ - asynchronous TCP socket
@@ -69,25 +75,25 @@ Boost Software License - Version 1.0 - August 17th, 2003
     * _binary::Serializer_
     * _binary::Deserializer_
 * [__solid_frame__](#solid_frame):
-    * _Object_ - reactive object
+    * _Actor_ - reactive object with support for timers and events
     * _Manager_ - store services and notifies objects within services
     * _Service_ - store and notifies objects
-    * _Reactor_ - active store of objects - allows objects to asynchronously react on events
+    * _Reactor_ - active store of actors - allows actors to asynchronously react on events
     * _Scheduler_ - a thread pool of reactors
-    * _Timer_ - allows objects to schedule time based events
+    * _Timer_ - allows actors to schedule time based events
     * _shared::Store_ - generic store of shared objects that need either multiple read or single write access
 * [__solid_frame_aio__](#solid_frame_aio): asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
-    * _Object_ - reactive object with support for Asynchronous IO
+    * _Actor_ - reactive object with support for Asynchronous IO, timers and evens
     * _Reactor_ - reactor with support for Asynchronous IO
     * _Listener_ - asynchronous TCP listener/server socket
     * _Stream_ - asynchronous TCP socket
     * _Datagram_ - asynchronous UDP socket
-    * _Timer_ - allows objects to schedule time based events
+    * _Timer_ - allows actors to schedule time based events
 * [__solid_frame_aio_openssl__](#solid_frame_aio_openssl): SSL support via OpenSSL
 * [__solid_frame_file__](#solid_frame_file)
     * _file::Store_ - a shared store for files
-* [__solid_frame_mpipc__](#solid_frame_mpipc): Message Passing InterProcess Communication over TCP ([MPIPC library](solid/frame/mpipc/README.md))
-    * _mpipc::Service_ - pass messages to/from multiple peers.
+* [__solid_frame_mprpc__](#solid_frame_mprpc): Message Passing - Remote Procedure Call over TCP ([MPRPC library](solid/frame/mprpc/README.md))
+    * _mprpc::Service_ - pass messages to/from multiple peers.
 
 ## <a id="installation"></a>Installation
 
@@ -103,7 +109,7 @@ Normally, _SolidFrame_ libraries would not depend on boost.
 ### Linux/macOS/FreeBSD
 
 System prerequisites:
- * C++11 enabled compiler: gcc-c++ on Linux and clang on FreeBSD and macOS (minimum: XCode 8/Clang 8).
+ * C++14 enabled compiler: gcc-c++ on Linux and clang on FreeBSD and macOS (minimum: XCode 8/Clang 8).
  * [CMake](https://cmake.org/)
 
 Bash commands for installing _SolidFrame_:
@@ -156,7 +162,7 @@ The [CMakeLists.txt](https://github.com/vipalade/bubbles/blob/master/client/andr
 **SolidFrame** can be integrated into any iOS (Swift) project as an [Cocoa Pod](https://cocoapods.org/) by adding lines as the following, to the project's Podfile:
 
 ```Podfile
-  pod 'SolidFrame/frame_mpipc', :configuration => 'Debug', :git => 'https://github.com/vipalade/solidframe.git', :branch => 'master'
+  pod 'SolidFrame/frame_mprpc', :configuration => 'Debug', :git => 'https://github.com/vipalade/solidframe.git', :branch => 'master'
   pod 'SolidFrame/serialization_v2', :configuration => 'Debug', :git => 'https://github.com/vipalade/solidframe.git', :branch => 'master'
   pod 'SolidFrame/frame_aio_openssl', :configuration => 'Debug', :git => 'https://github.com/vipalade/solidframe.git', :branch => 'master'
 ```
@@ -230,6 +236,30 @@ and the location for SolidFrame libraries:
 -L~/work/extern/lib
 ```
 
+## Maintainance
+
+SolidFrame's build system has built-in support for:
+ * code reformatting via __clang-format__
+ * code static analisys via __clang-tidy__
+
+### source reformating via clang-format
+
+For now the support is only available on Linux systems where "clang-format" package should be installed.
+
+There is a "__code-auto-format__" build target which will scan and reformat all source code files using clang-format, configured via [.clang-format](.clang-format) file.
+
+### static analisys via clang-tidy
+
+For now the support is only available on Linux systems where "clang-tidy" package should be installed.
+
+The static analisys via clang-tidy is intergrated into the cmake build system.
+I can be enabled by setting "CMake_RUN_CLANG_TIDY" boolean via __cmake-gui__ after a build configuration was created, or by specifing as parameter when creating a build configuration:
+
+```bash
+./configure -b debug -e ~/work/external -P "-DCMake_RUN_CLANG_TIDY:BOOLEAN=true"
+```
+__clang-tidy__ is controlled via [.clang-tidy](.clang-tidy) configuration file.
+
 ## Overview
 
 _SolidFrame_ is an experimental framework to be used for implementing cross-platform C++ network enabled applications or modules.
@@ -294,7 +324,7 @@ Notes on the above two blocks of code:
 
 The library consists of tools needed by upper level libraries:
  * [__any.hpp__](solid/utility/any.hpp): A variation on boost::any / experimental std::any with storage for emplacement new so it is faster when the majority of sizeof objects that get stored in any<> fall under a given value.
- * [__event.hpp__](solid/utility/event.hpp): Definition of an Event object, a combination between something like std::error_code and an solid::Any<>.
+ * [__event.hpp__](solid/utility/event.hpp): Definition of an Event - a combination between something like std::error_code and an solid::Any<>.
  * [__innerlist.hpp__](solid/utility/innerlist.hpp): A container wrapper which allows implementing bidirectional lists over a std::vector/std::deque (extensively used by the solid_frame_ipc library).
  * [__memoryfile.hpp__](solid/utility/memoryfile.hpp): A data store with file like interface.
  * [__workpool.hpp__](solid/utility/workpool.hpp): Generic thread pool.
@@ -390,21 +420,21 @@ const AlphaEventCategory    alpha_event_category{
 Handle events:
 
 ```C++
-void Object::handleEvent(Event &&_revt){
-    static const EventHandler<void, Object&> event_handler = {
-        [](Event &_revt, Object &_robj){cout<<"handle unknown event "<<_revt<< on "<<&_robj<<endl;},
+void Actor::handleEvent(Event &&_revt){
+    static const EventHandler<void, Actor&> event_handler = {
+        [](Event &_revt, Actor &_robj){cout<<"handle unknown event "<<_revt<<" on "<<&_robj<<endl;},//fallback
         {
             {
                 alpha_event_category.event(AlphaEvents::First),
-                [](Event &_revt, Object &_robj){cout<<"handle event "<<_revt<<" on "<<&_robj<<endl;}
+                [](Event &_revt, Actor &_robj){cout<<"handle event "<<_revt<<" on "<<&_robj<<endl;}
             },
             {
                 alpha_event_category.event(AlphaEvents::Second),
-                [](Event &_revt, Object &_robj){cout<<"handle event "<<_revt<<" on "<<&_robj<<endl;}
+                [](Event &_revt, Actor &_robj){cout<<"handle event "<<_revt<<" on "<<&_robj<<endl;}
             },
             {
                 generic_event_category.event(GenericEvents::Message),
-                [](Event &_revt, Object &_robj){cout<<"handle event "<<_revt<<"("<<*_revt.any().cast<std::string>()<<") on "<<&_robj<<endl;}
+                [](Event &_revt, Actor &_robj){cout<<"handle event "<<_revt<<"("<<*_revt.any().cast<std::string>()<<") on "<<&_robj<<endl;}
             }
         }
     };
@@ -446,7 +476,7 @@ The first version of the solid serialization library had two distinct steps for 
 In order to improve speed, the second version of the library tries to overlap the above two steps - i.e. the items are scheduled only if the serialization/deserialization cannot be done inplace - e.g. the buffer is either full or empty. 
 
 Notable are two other abilities of the serialization engine:
- * The support serializing streams - see [ipc file tutorial](tutorials/mpipc_file) especially [messages definition](tutorials/mpipc_file/mpipc_file_messages.hpp)
+ * The support serializing streams - see [ipc file tutorial](tutorials/mprpc_file) especially [messages definition](tutorials/mprpc_file/mprpc_file_messages.hpp)
  * The support for imposing limits on items: string, container, stream - i.e. serialization/deserialization terminates with an error if an item exceeds the limit set for the item category (either string, container, stream). This is very important when usend in an online protocol.
 
 
@@ -529,39 +559,39 @@ std::string     data;
 
 ### <a id="solid_frame"></a>solid_frame
 
-The library offers the base support for an asynchronous active object model and implementation for objects with basic support for notification and timer events.
+The library offers the base support for an asynchronous actor model with support for notification and timer events.
 
- * [__manager.hpp__](solid/frame/manager.hpp): A synchronous, passive store of ObjectBase grouped by services.
- * [__object.hpp__](solid/frame/object.hpp): An active object with support for events: notification events and timer events.
- * [__reactor.hpp__](solid/frame/reactor.hpp): An active store of Objects with support for notification events and timer events.
+ * [__manager.hpp__](solid/frame/manager.hpp): A synchronous, passive store of ActorBase grouped by services.
+ * [__actor.hpp__](solid/frame/actor.hpp): An active object with support for events: notification events and timer events.
+ * [__reactor.hpp__](solid/frame/reactor.hpp): An active store of Actors with support for notification events and timer events.
  * [__reactorcontext.hpp__](solid/frame/reactorcontext.hpp): A context class given as parameter to every callback called from the reactor.
  * [__scheduler.hpp__](solid/frame/scheduler.hpp): A generic pool of threads running reactors.
- * [__service.hpp__](solid/frame/service.hpp): A way of grouping related objects.
- * [__timer.hpp__](solid/frame/timer.hpp): Used by Objects needing timer events.
+ * [__service.hpp__](solid/frame/service.hpp): A way of grouping related Actors.
+ * [__timer.hpp__](solid/frame/timer.hpp): Used by Actors needing timer events.
  * [__sharedstore.hpp__](solid/frame/sharedstore.hpp): A store of shared object with synchronized non-conflicting read/read-write access.
  * [_reactorbase.hpp_](solid/frame/reactorbase.hpp): Base for all reactors
  * [_timestore.hpp_](solid/frame/timestore.hpp): Used by reactors for timer events support.
  * [_schedulerbase.hpp_](solid/frame/schedulerbase.hpp): Base for all schedulers.
- * [_objectbase.hpp_](solid/frame/objectbase.hpp): Base for all active Objects
+ * [_actorbase.hpp_](solid/frame/actorbase.hpp): Base for all Actors
 
 
 __Usefull links__
- * [An overview of the asynchronous active object model](solid/frame/README.md)
+ * [An overview of the asynchronous actor model](solid/frame/README.md)
 
 ### <a id="solid_frame_aio"></a>solid_frame_aio
 
-The library extends solid_frame with active objects supporting IO, notification and timer events.
- * [__aiodatagram.hpp__](solid/frame/aio/aiodatagram.hpp): Used by aio::Objects to support asynchronous UDP communication.
- * [__aiostream.hpp__](solid/frame/aio/aiostream.hpp): Used by aio::Objects to support asynchronous TCP communication.
- * [__aiotimer.hpp__](solid/frame/aio/aiotimer.hpp): Used by aio::Objects needing timer events.
- * [__aiolistener.hpp__](solid/frame/aio/aiolistener.hpp): Used by aio::Objects listening for TCP connections.
+The library extends solid_frame with actors supporting IO, notification and timer events.
+ * [__aiodatagram.hpp__](solid/frame/aio/aiodatagram.hpp): Used by aio::Actors to support asynchronous UDP communication.
+ * [__aiostream.hpp__](solid/frame/aio/aiostream.hpp): Used by aio::Actors to support asynchronous TCP communication.
+ * [__aiotimer.hpp__](solid/frame/aio/aiotimer.hpp): Used by aio::Actors needing timer events.
+ * [__aiolistener.hpp__](solid/frame/aio/aiolistener.hpp): Used by aio::Actors listening for TCP connections.
  * [__aiosocket.hpp__](solid/frame/aio/aiosocket.hpp): Plain socket access used by Listener/Stream and Datagram
  * [__aioresolver.hpp__](solid/frame/aio/aioresolver.hpp): Asynchronous address resolver.
  * [__aioreactorcontext.hpp__](solid/frame/aio/aioreactorcontext.hpp): A context class given as parameter to every callback called from the aio::Reactor.
- * [_aioreactor.hpp_](solid/frame/aio/aioreactor.hpp): An active store of aio::Objects with support for IO, notification and timer events.
+ * [_aioreactor.hpp_](solid/frame/aio/aioreactor.hpp): An active store of aio::Actors with support for IO, notification and timer events.
 
 __Usefull links__
- * [An overview of the asynchronous active object model](solid/frame/README.md)
+ * [An overview of the asynchronous actor model](solid/frame/README.md)
  * [Tutorial: aio_echo](tutorials/aio_echo/README.md)
 
 ### <a id="solid_frame_aio_openssl"></a>solid_frame_aio_openssl
@@ -571,30 +601,30 @@ Work in progress: The library extends solid_frame_aio with support for Secure So
  * [__aiosecurecontext.hpp__](solid/frame/aio/openssl/aiosecurecontext.hpp): OpenSSL context wrapper.
 
 
-### <a id="solid_frame_mpipc"></a>solid_frame_mpipc
+### <a id="solid_frame_mprpc"></a>solid_frame_mprpc
 
-Message Passing - Inter Process Communication library:
+Message Passing - Remote Procedure Call library:
  * Pluggable - i.e. header only - protocol based on solid_serialization.
  * Pluggable - i.e. header only - support for secure communication via solid_frame_aio_openssl.
  * Pluggable - i.e. header only - support for communication compression via Snappy.
 
-The header only plugins ensure that solid_frame_mpipc itself does not depend on the libraries the plugins depend on.
+The header only plugins ensure that solid_frame_mprpc itself does not depend on the libraries the plugins depend on.
 
 
- * [__mpipcservice.hpp__](solid/frame/mpipc/mpipcservice.hpp): Main interface of the library. Sends mpipc::Messages to different recipients and receives mpipc::Messages.
- * [__mpipcmessage.hpp__](solid/frame/mpipc/mpipcmessage.hpp): Base class for all messages sent through mpipc::Service.
- * [__mpipccontext.hpp__](solid/frame/mpipc/mpipccontext.hpp): A context class given to all callbacks called by the mpipc library.
- * [__mpipcconfiguration.hpp__](solid/frame/mpipc/mpipcconfiguration.hpp): Configuration data for mpipc::Service.
+ * [__mprpcservice.hpp__](solid/frame/mprpc/mprpcservice.hpp): Main interface of the library. Sends mprpc::Messages to different recipients and receives mprpc::Messages.
+ * [__mprpcmessage.hpp__](solid/frame/mprpc/mprpcmessage.hpp): Base class for all messages sent through mprpc::Service.
+ * [__mprpccontext.hpp__](solid/frame/mprpc/mprpccontext.hpp): A context class given to all callbacks called by the mprpc library.
+ * [__mprpcconfiguration.hpp__](solid/frame/mprpc/mprpcconfiguration.hpp): Configuration data for mprpc::Service.
 
 __Usefull links__
- * [MPIPC README](solid/frame/mpipc/README.md)
- * [MPIPC Relay](solid/frame/mpipc/README.md#relay_engine)
+ * [MPRPC README](solid/frame/mprpc/README.md)
+ * [MPRPC Relay](solid/frame/mprpc/README.md#relay_engine)
  * [Tutorial: aio_echo](tutorials/aio_echo/README.md)
- * [Tutorial: mpipc_echo](tutorials/mpipc_echo/README.md)
- * [Tutorial: mpipc_request](tutorials/mpipc_request/README.md)
- * [Tutorial: mpipc_request_ssl](tutorials/mpipc_request_ssl/README.md)
- * [Tutorial: mpipc_file](tutorials/mpipc_file/README.md)
- * [Tutorial: mpipc_echo_relay](tutorials/mpipc_echo_relay/README.md)
+ * [Tutorial: mprpc_echo](tutorials/mprpc_echo/README.md)
+ * [Tutorial: mprpc_request](tutorials/mprpc_request/README.md)
+ * [Tutorial: mprpc_request_ssl](tutorials/mprpc_request_ssl/README.md)
+ * [Tutorial: mprpc_file](tutorials/mprpc_file/README.md)
+ * [Tutorial: mprpc_echo_relay](tutorials/mprpc_echo_relay/README.md)
 
 ### <a id="solid_frame_file"></a>solid_frame_file
 

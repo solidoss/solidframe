@@ -19,7 +19,7 @@
 namespace solid {
 namespace frame {
 
-struct ObjectProxy;
+struct ActorProxy;
 struct ReactorContext;
 
 class SteadyTimer : public CompletionHandler {
@@ -53,8 +53,8 @@ class SteadyTimer : public CompletionHandler {
 
 public:
     SteadyTimer(
-        ObjectProxy const& _robj)
-        : CompletionHandler(_robj, SteadyTimer::on_init_completion)
+        ActorProxy const& _ract)
+        : CompletionHandler(_ract, SteadyTimer::on_init_completion)
         , storeidx(InvalidIndex())
     {
     }
@@ -67,18 +67,18 @@ public:
     //Returns false when the operation is scheduled for completion. On completion _f(...) will be called.
     //Returns true when operation could not be scheduled for completion - e.g. operation already in progress.
     template <class Rep, class Period, typename F>
-    bool waitFor(ReactorContext& _rctx, std::chrono::duration<Rep, Period> const& _rd, F _f)
+    bool waitFor(ReactorContext& _rctx, std::chrono::duration<Rep, Period> const& _rd, F&& _f)
     {
-        return waitUntil(_rctx, _rctx.steadyTime() + _rd, _f);
+        return waitUntil(_rctx, _rctx.steadyTime() + _rd, std::forward<F>(_f));
     }
 
     //Returns true when the operation completed. Check _rctx.error() for success or fail
     //Returns false when operation is scheduled for completion. On completion _f(...) will be called.
     template <class Clock, class Duration, typename F>
-    bool waitUntil(ReactorContext& _rctx, std::chrono::time_point<Clock, Duration> const& _rtp, F _f)
+    bool waitUntil(ReactorContext& _rctx, std::chrono::time_point<Clock, Duration> const& _rtp, F&& _f)
     {
         if (solid_function_empty(f)) {
-            f = std::move(_f);
+            f = std::forward<F>(_f);
             NanoTime steady_nt{time_point_clock_cast<std::chrono::steady_clock>(_rtp)};
             this->addTimer(_rctx, steady_nt, storeidx);
             return false;

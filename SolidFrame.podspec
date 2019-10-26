@@ -11,7 +11,7 @@ Pod::Spec.new do |s|
   # ―――  Spec Metadata  ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
   
   s.name         = "SolidFrame"
-  s.version      = "5.0.0"
+  s.version      = "5.3.0"
   s.summary      = "Cross-platform C++ framework for asynchronous, distributed applications."
 
   s.description  = <<-DESC
@@ -43,18 +43,19 @@ Pod::Spec.new do |s|
   #  Supports git, hg, bzr, svn and HTTP.
   #
 
-  s.source       = { :git => "https://github.com/vipalade/solidframe.git", :branch => "master" }
+  s.source       = { :git => "https://github.com/vipalade/solidframe.git", :branch => "work" }
 
 
   # ――― Source Code ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
 
-  s.preserve_paths = "solid", "solid/*.hpp", "solid/system", "solid/system/*.{hpp,ipp}", "solid/utility", "solid/utility/*.hpp", "solid/serialization", "solid/serialization/*.hpp", "solid/frame", "solid/frame/*.hpp", "solid/frame/aio", "solid/frame/aio/*.hpp", "solid/frame/aio/openssl", "solid/frame/aio/openssl/*.hpp", "solid/frame/mpipc", "solid/frame/mpipc/*.hpp"
+  s.preserve_paths = "solid", "solid/*.hpp", "solid/system", "solid/system/*.{hpp,ipp}", "solid/utility", "solid/utility/*.hpp", "solid/serialization", "solid/serialization/*.hpp", "solid/frame", "solid/frame/*.hpp", "solid/frame/aio", "solid/frame/aio/*.hpp", "solid/frame/aio/openssl", "solid/frame/aio/openssl/*.hpp", "solid/frame/mprpc", "solid/frame/mprpc/*.hpp"
 
   s.subspec 'system' do |sp|
     sp.name = 'system'
     sp.preserve_paths = "solid/system", "solid/system/*.hpp"
     sp.public_header_files = 'solid/system/*.hpp', 'solid/*.hpp'
-    sp.source_files = 'solid/system/src/*.{cpp,hpp}', 'solid/system/*.hpp', 'solid/*.hpp'
+    sp.source_files =  'solid/system/src/*.{cpp,hpp}', 'solid/system/*.hpp', 'solid/*.hpp'
+    sp.exclude_files = 'solid/system/src/crashhandler_windows.cpp', 'solid/system/src/crashhandler_android.cpp', 'solid/system/src/stacktrace_windows.cpp', 'solid/system/src/stacktrace_windows.hpp'
     sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
   end
 
@@ -64,7 +65,7 @@ Pod::Spec.new do |s|
     sp.preserve_paths = "solid/utility", "solid/utility/*.hpp"
     sp.public_header_files = 'solid/utility/*.hpp'
     sp.source_files = 'solid/utility/src/*.{cpp,hpp}', 'solid/utility/*.hpp'
-    sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
+    sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
   end
   
   s.subspec 'serialization_v2' do |sp|
@@ -73,7 +74,7 @@ Pod::Spec.new do |s|
     sp.preserve_paths = "solid/serialization/v2", "solid/serialization/v2/*.hpp"
     sp.public_header_files = 'solid/serialization/v2/*.hpp'
     sp.source_files = 'solid/serialization/v2/src/*.{cpp,hpp}', 'solid/serialization/v2/*.hpp'
-    sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
+    sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
   end
 
   s.subspec 'frame' do |sp|
@@ -82,7 +83,7 @@ Pod::Spec.new do |s|
     sp.preserve_paths = "solid/frame", "solid/frame/*.hpp"
     sp.public_header_files = 'solid/frame/*.hpp'
     sp.source_files = 'solid/frame/src/*.{cpp,hpp}', 'solid/frame/*.hpp'
-    sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
+    sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
   end
 
   s.subspec 'frame_aio' do |sp|
@@ -91,7 +92,7 @@ Pod::Spec.new do |s|
     sp.preserve_paths = "solid/frame/aio", "solid/frame/frame/aio/*.hpp"
     sp.public_header_files = 'solid/frame/aio/*.hpp'
     sp.source_files = 'solid/frame/aio/src/*.{cpp,hpp}', 'solid/frame/aio/*.hpp'
-    sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
+    sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
   end
 
   s.subspec 'frame_aio_openssl' do |sp|
@@ -101,16 +102,16 @@ Pod::Spec.new do |s|
     sp.preserve_paths = "solid/frame/aio/openssl", "solid/frame/frame/aio/openssl/*.hpp"
     sp.public_header_files = 'solid/frame/aio/openssl/*.hpp'
     sp.source_files = 'solid/frame/aio/openssl/src/*.{cpp,hpp}', 'solid/frame/aio/openssl/*.hpp'
-    sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
+    sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
   end
 
-  s.subspec 'frame_mpipc' do |sp|
-    sp.name = 'frame_mpipc'
+  s.subspec 'frame_mprpc' do |sp|
+    sp.name = 'frame_mprpc'
     sp.dependency 'SolidFrame/frame_aio'
-    sp.preserve_paths = "solid/frame/mpipc", "solid/frame/frame/mpipc/*.hpp"
-    sp.public_header_files = 'solid/frame/mpipc/*.hpp'
-    sp.source_files = 'solid/frame/mpipc/src/*.{cpp,hpp}', 'solid/frame/mpipc/*.hpp'
-    sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
+    sp.preserve_paths = "solid/frame/mprpc", "solid/frame/frame/mprpc/*.hpp"
+    sp.public_header_files = 'solid/frame/mprpc/*.hpp'
+    sp.source_files = 'solid/frame/mprpc/src/*.{cpp,hpp}', 'solid/frame/mprpc/*.hpp'
+    sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
   end
   
   s.header_mappings_dir = '.'
@@ -130,7 +131,7 @@ Pod::Spec.new do |s|
       #define SOLID_USE_GCC_BSWAP
 
       #define SOLID_VERSION_MAJOR 5
-      #define SOLID_VERSION_MINOR 0
+      #define SOLID_VERSION_MINOR 2
       #define SOLID_VERSION_PATCH "0"
     #endif
     EOF
@@ -158,6 +159,6 @@ Pod::Spec.new do |s|
   # ――― Project Settings ――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
 
   s.requires_arc = false
-  s.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
+  s.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
 
 end

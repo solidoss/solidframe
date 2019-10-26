@@ -1,8 +1,8 @@
 # Tutorials
 
  * [AIO Echo](aio_echo)
- * [MPIPC Echo](mpipc_echo)
- * [MPIPC Request](mpipc_request)
- * [MPIPC Request with SSL and compression](mpipc_request_ssl)
- * [MPIPC File](mpipc_file)
- * [MPIPC Relay Echo](mpipc_echo_relay)
+ * [MPRPC Echo](mprpc_echo)
+ * [MPRPC Request](mprpc_request)
+ * [MPRPC Request with SSL and compression](mprpc_request_ssl)
+ * [MPRPC File](mprpc_file)
+ * [MPRPC Relay Echo](mprpc_echo_relay)

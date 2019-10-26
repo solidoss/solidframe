@@ -161,7 +161,7 @@ size_t StoreBase::doAllocateIndex()
     } else {
         const size_t objcnt = impl_->objmaxcnt.load();
         lock_all(impl_->mtxstore, objcnt);
-        doResizeObjectVector(objcnt + 1024);
+        doResizeActorVector(objcnt + 1024);
         for (size_t i = objcnt + 1023; i > objcnt; --i) {
             impl_->cacheobjidxstk.push(i);
         }
@@ -178,14 +178,14 @@ void StoreBase::erasePointer(UniqueId const& _ruid, const bool _isalive)
         bool do_notify = true;
         {
             std::lock_guard<std::mutex> lock(mutex(static_cast<size_t>(_ruid.index)));
-            do_notify = doDecrementObjectUseCount(_ruid, _isalive);
+            do_notify = doDecrementActorUseCount(_ruid, _isalive);
             (void)do_notify;
         }
-        notifyObject(_ruid);
+        notifyActor(_ruid);
     }
 }
 
-void StoreBase::notifyObject(UniqueId const& _ruid)
+void StoreBase::notifyActor(UniqueId const& _ruid)
 {
     bool do_raise = false;
     {
@@ -227,7 +227,7 @@ void StoreBase::raise()
     }
 }
 
-void StoreBase::doCacheObjectIndex(const size_t _idx)
+void StoreBase::doCacheActorIndex(const size_t _idx)
 {
     impl_->cacheobjidxstk.push(_idx);
 }

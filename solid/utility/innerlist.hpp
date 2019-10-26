@@ -129,7 +129,7 @@ public:
     }
 
     //insert in front of the sentinel
-    void insertFront(const size_t _sentinel, const size_t _index)
+    void insertBefore(const size_t _sentinel, const size_t _index)
     {
         Link& rsent_link = link(_sentinel);
         Link& rcrt_link  = link(_index);
@@ -142,6 +142,23 @@ public:
         } else {
             Link& lnk = link(rcrt_link.prev_);
             lnk.next_ = _index;
+        }
+        ++size_;
+    }
+
+    void insertAfter(const size_t _sentinel, const size_t _index)
+    {
+        Link& rsent_link = link(_sentinel);
+        Link& rcrt_link  = link(_index);
+
+        rcrt_link        = Link(_sentinel, rsent_link.next_);
+        rsent_link.next_ = _index;
+
+        if (back_ == _sentinel) {
+            back_ = _index;
+        } else {
+            Link& lnk = link(rcrt_link.next_);
+            lnk.prev_ = _index;
         }
         ++size_;
     }

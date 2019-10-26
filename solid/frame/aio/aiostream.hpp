@@ -20,7 +20,7 @@ namespace solid {
 namespace frame {
 namespace aio {
 
-struct ObjectProxy;
+struct ActorProxy;
 struct ReactorContext;
 
 template <class Sock>
@@ -96,8 +96,8 @@ class Stream : public CompletionHandler {
     struct RecvSomeFunctor {
         F f;
 
-        RecvSomeFunctor(F& _rf)
-            : f{std::move(_rf)}
+        RecvSomeFunctor(F&& _rf)
+            : f{std::forward<F>(_rf)}
         {
         }
 
@@ -105,7 +105,7 @@ class Stream : public CompletionHandler {
         {
             if (_rthis.doTryRecv(_rctx)) {
                 const size_t recv_sz = _rthis.recv_buf_sz;
-                F            tmp{std::move(f)};
+                F            tmp{std::forward<F>(f)};
                 _rthis.doClearRecv(_rctx);
                 tmp(_rctx, recv_sz);
             }
@@ -116,8 +116,8 @@ class Stream : public CompletionHandler {
     struct SendAllFunctor {
         F f;
 
-        SendAllFunctor(F& _rf)
-            : f{std::move(_rf)}
+        SendAllFunctor(F&& _rf)
+            : f{std::forward<F>(_rf)}
         {
         }
 
@@ -125,7 +125,7 @@ class Stream : public CompletionHandler {
         {
             while (_rthis.doTrySend(_rctx)) {
                 if (_rthis.send_buf_sz == _rthis.send_buf_cp) {
-                    F tmp{std::move(f)};
+                    F tmp{std::forward<F>(f)};
                     _rthis.doClearSend(_rctx);
                     tmp(_rctx);
                     break;
@@ -138,15 +138,15 @@ class Stream : public CompletionHandler {
     struct ConnectFunctor {
         F f;
 
-        ConnectFunctor(F& _rf)
-            : f{std::move(_rf)}
+        ConnectFunctor(F&& _rf)
+            : f{std::forward<F>(_rf)}
         {
         }
 
         void operator()(ThisT& _rthis, ReactorContext& _rctx)
         {
             _rthis.doCheckConnect(_rctx);
-            F tmp{std::move(f)};
+            F tmp{std::forward<F>(f)};
             _rthis.doClearSend(_rctx);
             tmp(_rctx);
         }
@@ -156,8 +156,8 @@ class Stream : public CompletionHandler {
     struct SecureConnectFunctor {
         F f;
 
-        SecureConnectFunctor(F& _rf)
-            : f{std::move(_rf)}
+        SecureConnectFunctor(F&& _rf)
+            : f{std::forward<F>(_rf)}
         {
         }
 
@@ -177,7 +177,7 @@ class Stream : public CompletionHandler {
                 _rthis.systemError(_rctx, err);
                 solid_assert(err);
             }
-            F tmp{std::move(f)};
+            F tmp{std::forward<F>(f)};
             _rthis.doClearSend(_rctx);
             tmp(_rctx);
         }
@@ -187,8 +187,8 @@ class Stream : public CompletionHandler {
     struct SecureAcceptFunctor {
         F f;
 
-        SecureAcceptFunctor(F& _rf)
-            : f{std::move(_rf)}
+        SecureAcceptFunctor(F&& _rf)
+            : f{std::forward<F>(_rf)}
         {
         }
 
@@ -208,7 +208,7 @@ class Stream : public CompletionHandler {
                 _rthis.systemError(_rctx, err);
                 solid_assert(err);
             }
-            F tmp{std::move(f)};
+            F tmp{std::forward<F>(f)};
             _rthis.doClearRecv(_rctx);
             tmp(_rctx);
         }
@@ -218,8 +218,8 @@ class Stream : public CompletionHandler {
     struct SecureShutdownFunctor {
         F f;
 
-        SecureShutdownFunctor(F& _rf)
-            : f{std::move(_rf)}
+        SecureShutdownFunctor(F&& _rf)
+            : f{std::forward<F>(_rf)}
         {
         }
 
@@ -250,8 +250,8 @@ class Stream : public CompletionHandler {
     struct SecureVerifyFunctor {
         F f;
 
-        SecureVerifyFunctor(F& _rf)
-            : f{std::move(_rf)}
+        SecureVerifyFunctor(F&& _rf)
+            : f{std::forward<F>(_rf)}
         {
         }
 
@@ -263,8 +263,8 @@ class Stream : public CompletionHandler {
 
 public:
     explicit Stream(
-        ObjectProxy const& _robj, SocketDevice&& _rsd)
-        : CompletionHandler(_robj, on_init_completion)
+        ActorProxy const& _ract, SocketDevice&& _rsd)
+        : CompletionHandler(_ract, on_init_completion)
         , s(std::move(_rsd))
         , recv_buf(nullptr)
         , recv_buf_sz(0)
@@ -279,8 +279,8 @@ public:
 
     template <class Ctx>
     Stream(
-        ObjectProxy const& _robj, SocketDevice&& _rsd, const Ctx& _rctx)
-        : CompletionHandler(_robj, on_init_completion)
+        ActorProxy const& _ract, SocketDevice&& _rsd, const Ctx& _rctx)
+        : CompletionHandler(_ract, on_init_completion)
         , s(_rctx, std::move(_rsd))
         , recv_buf(nullptr)
         , recv_buf_sz(0)
@@ -294,8 +294,8 @@ public:
     }
 
     Stream(
-        ObjectProxy const& _robj)
-        : CompletionHandler(_robj, on_dummy_completion)
+        ActorProxy const& _ract)
+        : CompletionHandler(_ract, on_dummy_completion)
         , recv_buf(nullptr)
         , recv_buf_sz(0)
         , recv_buf_cp(0)
@@ -309,8 +309,8 @@ public:
 
     template <class Ctx>
     explicit Stream(
-        ObjectProxy const& _robj, const Ctx& _rctx)
-        : CompletionHandler(_robj, on_dummy_completion)
+        ActorProxy const& _ract, const Ctx& _rctx)
+        : CompletionHandler(_ract, on_dummy_completion)
         , s(_rctx)
         , recv_buf(nullptr)
         , recv_buf_sz(0)
@@ -368,10 +368,11 @@ public:
     }
 
     template <typename F>
-    bool postRecvSome(ReactorContext& _rctx, char* _buf, size_t _bufcp, F _f)
+    bool postRecvSome(ReactorContext& _rctx, char* _buf, size_t _bufcp, F&& _f)
     {
         if (solid_function_empty(recv_fnc)) {
-            recv_fnc       = RecvSomeFunctor<F>(_f);
+            using RealF    = typename std::decay<F>::type;
+            recv_fnc       = RecvSomeFunctor<RealF>{std::forward<RealF>(_f)};
             recv_buf       = _buf;
             recv_buf_cp    = _bufcp;
             recv_buf_sz    = 0;
@@ -386,7 +387,7 @@ public:
     }
 
     template <typename F>
-    bool recvSome(ReactorContext& _rctx, char* _buf, size_t _bufcp, F _f, size_t& _sz)
+    bool recvSome(ReactorContext& _rctx, char* _buf, size_t _bufcp, F&& _f, size_t& _sz)
     {
         if (solid_function_empty(recv_fnc)) {
             errorClear(_rctx);
@@ -400,7 +401,8 @@ public:
                 _sz = recv_buf_sz;
                 return true;
             } else {
-                recv_fnc = RecvSomeFunctor<F>(_f);
+                using RealF = typename std::decay<F>::type;
+                recv_fnc    = RecvSomeFunctor<RealF>{std::forward<RealF>(_f)};
                 return false;
             }
 
@@ -411,10 +413,11 @@ public:
     }
 
     template <typename F>
-    bool postSendAll(ReactorContext& _rctx, const char* _buf, size_t _bufcp, F _f)
+    bool postSendAll(ReactorContext& _rctx, const char* _buf, size_t _bufcp, F&& _f)
     {
         if (solid_function_empty(send_fnc)) {
-            send_fnc       = SendAllFunctor<F>(_f);
+            using RealF    = typename std::decay<F>::type;
+            send_fnc       = SendAllFunctor<RealF>{std::forward<RealF>(_f)};
             send_buf       = _buf;
             send_buf_cp    = _bufcp;
             send_buf_sz    = 0;
@@ -430,7 +433,7 @@ public:
     }
 
     template <typename F>
-    bool sendAll(ReactorContext& _rctx, char* _buf, size_t _bufcp, F _f)
+    bool sendAll(ReactorContext& _rctx, char* _buf, size_t _bufcp, F&& _f)
     {
         if (solid_function_empty(send_fnc)) {
             errorClear(_rctx);
@@ -445,7 +448,8 @@ public:
                     return true;
                 }
             }
-            send_fnc = SendAllFunctor<F>(_f);
+            using RealF = typename std::decay<F>::type;
+            send_fnc    = SendAllFunctor<RealF>{std::forward<RealF>(_f)};
             return false;
         } else {
             error(_rctx, error_already);
@@ -454,7 +458,7 @@ public:
     }
 
     template <typename F>
-    bool connect(ReactorContext& _rctx, SocketAddressStub const& _rsas, F _f)
+    bool connect(ReactorContext& _rctx, SocketAddressStub const& _rsas, F&& _f)
     {
         if (solid_function_empty(send_fnc)) {
             errorClear(_rctx);
@@ -470,7 +474,8 @@ public:
                 if (rv) {
                     doCheckConnect(_rctx);
                 } else if (can_retry) {
-                    send_fnc = ConnectFunctor<F>{_f};
+                    using RealF = typename std::decay<F>::type;
+                    send_fnc    = ConnectFunctor<RealF>{std::forward<RealF>(_f)};
                     return false;
                 } else {
                     error(_rctx, error_stream_system);
@@ -495,7 +500,7 @@ public:
     }
 
     template <typename F>
-    bool secureConnect(ReactorContext& _rctx, F _f)
+    bool secureConnect(ReactorContext& _rctx, F&& _f)
     {
         if (solid_function_empty(send_fnc)) {
             errorClear(_rctx);
@@ -506,7 +511,8 @@ public:
 
             if (s.secureConnect(_rctx, can_retry, err)) {
             } else if (can_retry) {
-                send_fnc = SecureConnectFunctor<F>(_f);
+                using RealF = typename std::decay<F>::type;
+                send_fnc    = SecureConnectFunctor<RealF>{std::forward<RealF>(_f)};
                 return false;
             } else {
                 error(_rctx, error_stream_system);
@@ -518,7 +524,7 @@ public:
     }
 
     template <typename F>
-    bool secureAccept(ReactorContext& _rctx, F _f)
+    bool secureAccept(ReactorContext& _rctx, F&& _f)
     {
         if (solid_function_empty(recv_fnc)) {
             errorClear(_rctx);
@@ -529,7 +535,8 @@ public:
 
             if (s.secureAccept(_rctx, can_retry, err)) {
             } else if (can_retry) {
-                recv_fnc = SecureAcceptFunctor<F>(_f);
+                using RealF = typename std::decay<F>::type;
+                recv_fnc    = SecureAcceptFunctor<RealF>{std::forward<RealF>(_f)};
                 return false;
             } else {
                 error(_rctx, error_stream_system);
@@ -541,7 +548,7 @@ public:
     }
 
     template <typename F>
-    bool secureShutdown(ReactorContext& _rctx, F _f)
+    bool secureShutdown(ReactorContext& _rctx, F&& _f)
     {
         if (solid_function_empty(send_fnc)) {
             errorClear(_rctx);
@@ -552,7 +559,8 @@ public:
 
             if (s.secureShutdown(_rctx, can_retry, err)) {
             } else if (can_retry) {
-                send_fnc = SecureShutdownFunctor<F>(_f);
+                using RealF = typename std::decay<F>::type;
+                send_fnc    = SecureShutdownFunctor<RealF>{std::forward<RealF>(_f)};
                 return false;
             } else {
                 error(_rctx, error_stream_system);
@@ -574,10 +582,11 @@ public:
     }
 
     template <typename F>
-    void secureSetVerifyCallback(ReactorContext& _rctx, typename Sock::VerifyMaskT _mode, F _f)
+    void secureSetVerifyCallback(ReactorContext& _rctx, typename Sock::VerifyMaskT _mode, F&& _f)
     {
-        SecureVerifyFunctor<F> fnc_wrap(_f);
-        ErrorCodeT             err = s.setVerifyCallback(_mode, fnc_wrap);
+        using RealF = typename std::decay<F>::type;
+        SecureVerifyFunctor<RealF> fnc_wrap{std::forward<RealF>(_f)};
+        ErrorCodeT                 err = s.setVerifyCallback(_mode, fnc_wrap);
         if (err) {
             error(_rctx, error_stream_system);
             systemError(_rctx, err);

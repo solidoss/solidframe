@@ -599,6 +599,18 @@ public:
         }
     }
 
+    template <class T>
+    void addVersion(uint32_t& _rversion, const char* _name)
+    {
+        addBasicWithCheck(_rversion, _name);
+        Runnable r{&_rversion, &load_version, 0, typeId<T>(), _name};
+        if (isRunEmpty()) {
+            load_version(*this, r, nullptr);
+        } else {
+            schedule(std::move(r));
+        }
+    }
+
 protected:
     void doPrepareRun(const char* _pbeg, unsigned _sz)
     {
@@ -647,6 +659,7 @@ private:
     static ReturnE load_byte(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
     static ReturnE load_binary(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
     static ReturnE call_function(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
+    static ReturnE load_version(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
 
     template <typename T>
     static ReturnE load_cross_data(DeserializerBase& _rd, Runnable& _rr, void* _pctx)

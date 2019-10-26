@@ -22,13 +22,13 @@ namespace frame {
 
 class Service;
 class ReactorBase;
-class ObjectBase;
+class ActorBase;
 
 //typedef FunctorReference<bool, ReactorBase&>  ScheduleFunctorT;
 typedef solid_function_t(bool(ReactorBase&)) ScheduleFunctionT;
 
 //! A base class for all schedulers
-class SchedulerBase {
+class SchedulerBase : NonCopyable {
 public:
 protected:
     typedef bool (*CreateWorkerF)(SchedulerBase& _rsch, const size_t, std::thread& _rthr);
@@ -36,7 +36,7 @@ protected:
     typedef solid_function_t(bool()) ThreadEnterFunctionT;
     typedef solid_function_t(void()) ThreadExitFunctionT;
 
-    ErrorConditionT doStart(
+    void doStart(
         CreateWorkerF         _pf,
         ThreadEnterFunctionT& _renf,
         ThreadExitFunctionT&  _rexf,
@@ -44,7 +44,7 @@ protected:
 
     void doStop(const bool _wait = true);
 
-    ObjectIdT doStartObject(ObjectBase& _robj, Service& _rsvc, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
+    ActorIdT doStartActor(ActorBase& _ract, Service& _rsvc, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
 
 protected:
     SchedulerBase();

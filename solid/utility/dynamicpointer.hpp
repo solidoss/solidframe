@@ -41,7 +41,7 @@ public:
         }
     }
     template <class B>
-    explicit DynamicPointer(DynamicPointer<B> const& _rcp)
+    DynamicPointer(DynamicPointer<B> const& _rcp)
         : pdyn(static_cast<T*>(_rcp.get()))
     {
         if (pdyn) {

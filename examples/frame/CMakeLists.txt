@@ -1,6 +1,6 @@
 add_subdirectory(basic_timer)
 add_subdirectory(aio_echo)
-add_subdirectory(mpipc_echo)
+add_subdirectory(mprpc_echo)
 add_subdirectory(file_server)
 add_subdirectory(relay_server)
 add_subdirectory(objects)

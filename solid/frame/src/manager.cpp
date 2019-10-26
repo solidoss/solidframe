@@ -21,8 +21,8 @@
 #include "solid/system/memory.hpp"
 #include <atomic>
 
+#include "solid/frame/actorbase.hpp"
 #include "solid/frame/manager.hpp"
-#include "solid/frame/objectbase.hpp"
 #include "solid/frame/reactorbase.hpp"
 #include "solid/frame/service.hpp"
 
@@ -30,17 +30,26 @@
 #include "solid/utility/queue.hpp"
 #include "solid/utility/stack.hpp"
 
+using namespace std;
+
 namespace solid {
 namespace frame {
 
 const LoggerT logger("solid::frame");
 
+//-----------------------------------------------------------------------------
 namespace {
+
+enum struct StatusE {
+    Stopped,
+    Running,
+    Stopping,
+};
 
 enum {
     ErrorServiceUnknownE = 1,
     ErrorServiceNotRunningE,
-    ErrorObjectScheduleE
+    ErrorActorScheduleE
 };
 
 class ErrorCategory : public ErrorCategoryT {
@@ -73,8 +82,8 @@ std::string ErrorCategory::message(int _ev) const
     case ErrorServiceNotRunningE:
         oss << "Service not running";
         break;
-    case ErrorObjectScheduleE:
-        oss << "Object scheduling";
+    case ErrorActorScheduleE:
+        oss << "Actor scheduling";
         break;
     default:
         oss << "Unknown";
@@ -84,9 +93,88 @@ std::string ErrorCategory::message(int _ev) const
 }
 const ErrorConditionT error_service_unknown(ErrorServiceUnknownE, category);
 const ErrorConditionT error_service_not_running(ErrorServiceNotRunningE, category);
-const ErrorConditionT error_object_schedule(ErrorObjectScheduleE, category);
+const ErrorConditionT error_actor_schedule(ErrorActorScheduleE, category);
+
+using StackSizeT = Stack<size_t>;
+
+template <class T>
+class Cache {
+    std::mutex    mutex_;
+    StackSizeT    index_stk_;
+    std::deque<T> dq_;
+
+public:
+    T& create(size_t& _rindex)
+    {
+        lock_guard<mutex> lock(mutex_);
+        if (!index_stk_.empty()) {
+            _rindex = index_stk_.top();
+            index_stk_.pop();
+            return dq_[_rindex];
+        } else {
+            _rindex = dq_.size();
+            dq_.emplace_back();
+            return dq_.back();
+        }
+    }
+
+    template <typename F>
+    T& create(size_t& _rindex, const F& _rf)
+    {
+        lock_guard<mutex> lock(mutex_);
+        if (!index_stk_.empty()) {
+            _rindex = index_stk_.top();
+            index_stk_.pop();
+            T& rt = dq_[_rindex];
+            _rf(_rindex, rt);
+            return rt;
+        } else {
+            _rindex = dq_.size();
+            dq_.emplace_back();
+            _rf(_rindex, dq_.back());
+            return dq_.back();
+        }
+    }
+
+    void release(const size_t _index)
+    {
+        lock_guard<mutex> lock(mutex_);
+        index_stk_.push(_index);
+    }
+
+    template <typename F>
+    void release(const size_t _index, const F& _rf)
+    { //Do not pass index as reference!!
+        lock_guard<mutex> lock(mutex_);
+        _rf(_index, dq_[_index]);
+        index_stk_.push(_index);
+    }
+
+    template <typename F>
+    T& aquire(const size_t _index, const F& _rf)
+    {
+        lock_guard<mutex> lock(mutex_);
+        T&                rt = dq_[_index];
+        _rf(_index, rt);
+        return rt;
+    }
+
+    template <typename F>
+    T* aquirePointer(const size_t _index, const F& _rf)
+    {
+        lock_guard<mutex> lock(mutex_);
+        if (_index < dq_.size()) {
+            T& rt = dq_[_index];
+            _rf(_index, rt);
+            return &rt;
+        } else {
+            return nullptr;
+        }
+    }
+};
 
 } //namespace
+//-----------------------------------------------------------------------------
 
 std::ostream& operator<<(std::ostream& _ros, UniqueId const& _uid)
 {
@@ -94,350 +182,242 @@ std::ostream& operator<<(std::ostream& _ros, UniqueId const& _uid)
     return _ros;
 }
 
-typedef std::atomic<size_t>       AtomicSizeT;
-typedef std::atomic<bool>         AtomicBoolT;
-typedef std::atomic<uint>         AtomicUintT;
-typedef std::atomic<long>         AtomicLongT;
-typedef std::atomic<ReactorBase*> AtomicReactorBaseT;
-typedef std::atomic<IndexT>       AtomicIndexT;
+using SizeStackT    = Stack<size_t>;
+using AtomicStatusT = std::atomic<StatusE>;
 
-typedef Queue<size_t> SizeQueueT;
-typedef Stack<size_t> SizeStackT;
-
-//---------------------------------------------------------
+//-----------------------------------------------------------------------------
 //POD structure
-struct ObjectStub {
-    ObjectBase*  pobject;
-    ReactorBase* preactor;
-    UniqueT      unique;
+struct ActorStub {
+    ActorBase*   pactor_;
+    ReactorBase* preactor_;
+    UniqueT      unique_;
 };
 
-struct ObjectChunk {
-    ObjectChunk(std::mutex& _rmtx)
-        : rmtx(_rmtx)
-        , svcidx(InvalidIndex())
-        , nextchk(InvalidIndex())
-        , objcnt(0)
+struct ActorChunk {
+    std::mutex& rmutex_;
+    size_t      service_index_;
+    size_t      next_chunk_;
+    size_t      actor_count_;
+
+    ActorChunk(std::mutex& _rmutex)
+        : rmutex_(_rmutex)
+        , service_index_(InvalidIndex())
+        , next_chunk_(InvalidIndex())
+        , actor_count_(0)
     {
     }
-    std::mutex& rmtx;
-    size_t      svcidx;
-    size_t      nextchk;
-    size_t      objcnt;
 
     void clear()
     {
-        svcidx  = InvalidIndex();
-        nextchk = InvalidIndex();
-        objcnt  = 0;
+        service_index_ = InvalidIndex();
+        next_chunk_    = InvalidIndex();
+        actor_count_   = 0;
     }
 
     char* data()
     {
         return reinterpret_cast<char*>(this);
     }
-    ObjectStub* objects()
+    ActorStub* actors()
     {
-        return reinterpret_cast<ObjectStub*>(reinterpret_cast<char*>(this) + sizeof(*this));
+        return reinterpret_cast<ActorStub*>(reinterpret_cast<char*>(this) + sizeof(*this));
     }
 
-    ObjectStub& object(const size_t _idx)
+    ActorStub& actor(const size_t _idx)
     {
-        return objects()[_idx];
+        return actors()[_idx];
     }
 
-    const ObjectStub* objects() const
+    const ActorStub* actors() const
     {
-        return reinterpret_cast<const ObjectStub*>(reinterpret_cast<const char*>(this) + sizeof(*this));
+        return reinterpret_cast<const ActorStub*>(reinterpret_cast<const char*>(this) + sizeof(*this));
     }
 
-    ObjectStub const& object(const size_t _idx) const
+    ActorStub const& actor(const size_t _idx) const
     {
-        return objects()[_idx];
+        return actors()[_idx];
+    }
+
+    std::mutex& mutex() const
+    {
+        return rmutex_;
     }
 };
 
-enum State {
-    StateStartingE = 1,
-    StateRunningE,
-    StateStoppingE,
-    StateStoppedE
+class ActorChunkStub {
+    ActorChunk* pchunk_ = nullptr;
+
+public:
+    ActorChunk& chunk() const
+    {
+        return *pchunk_;
+    }
+
+    void chunk(ActorChunk* _pchunk)
+    {
+        if (pchunk_ != nullptr) {
+            delete[] chunk().data();
+        }
+        pchunk_ = _pchunk;
+    }
+
+    bool empty() const
+    {
+        return pchunk_ == nullptr;
+    }
+
+    ~ActorChunkStub()
+    {
+        if (pchunk_ != nullptr) {
+            delete[] chunk().data();
+        }
+    }
 };
 
 struct ServiceStub {
-    ServiceStub(
-        std::mutex& _rmtx)
-        : psvc(nullptr)
-        , rmtx(_rmtx)
-        , firstchk(InvalidIndex())
-        , lastchk(InvalidIndex())
-        , state(StateStoppedE)
-        , crtobjidx(InvalidIndex())
-        , endobjidx(InvalidIndex())
-        , objcnt(0)
+
+    Service*    pservice_;
+    std::mutex* pmutex_;
+    size_t      first_actor_chunk_;
+    size_t      last_actor_chunk_;
+    size_t      current_actor_index_;
+    size_t      end_actor_index_;
+    size_t      actor_count_;
+    StatusE     status_;
+    SizeStackT  actor_index_stk_;
+
+    ServiceStub()
+        : pservice_(nullptr)
+        , pmutex_(nullptr)
+        , first_actor_chunk_(InvalidIndex())
+        , last_actor_chunk_(InvalidIndex())
+        , current_actor_index_(InvalidIndex())
+        , end_actor_index_(InvalidIndex())
+        , actor_count_(0)
+        , status_(StatusE::Stopped)
     {
     }
 
-    void reset(Service* _psvc)
+    void reset(Service* _pservice, const bool _start)
     {
-        psvc      = _psvc;
-        firstchk  = InvalidIndex();
-        lastchk   = InvalidIndex();
-        crtobjidx = InvalidIndex();
-        endobjidx = InvalidIndex();
-        objcnt    = 0;
-        state     = StateRunningE;
-        while (!objcache.empty()) {
-            objcache.pop();
+        pservice_            = _pservice;
+        first_actor_chunk_   = InvalidIndex();
+        last_actor_chunk_    = InvalidIndex();
+        current_actor_index_ = InvalidIndex();
+        end_actor_index_     = InvalidIndex();
+        actor_count_         = 0;
+        status_              = _start ? StatusE::Running : StatusE::Stopped;
+
+        while (!actor_index_stk_.empty()) {
+            actor_index_stk_.pop();
         }
     }
 
     void reset()
     {
-        solid_dbg(logger, Verbose, "" << psvc);
-        psvc      = nullptr;
-        firstchk  = InvalidIndex();
-        lastchk   = InvalidIndex();
-        crtobjidx = InvalidIndex();
-        endobjidx = InvalidIndex();
-        objcnt    = 0;
-        state     = StateStoppedE;
-        while (!objcache.empty()) {
-            objcache.pop();
+        solid_dbg(logger, Verbose, "" << pservice_);
+        first_actor_chunk_   = InvalidIndex();
+        last_actor_chunk_    = InvalidIndex();
+        current_actor_index_ = InvalidIndex();
+        end_actor_index_     = InvalidIndex();
+        actor_count_         = 0;
+        status_              = StatusE::Stopped;
+        while (!actor_index_stk_.empty()) {
+            actor_index_stk_.pop();
         }
     }
 
-    Service*    psvc;
-    std::mutex& rmtx;
-    size_t      firstchk;
-    size_t      lastchk;
-    State       state;
-    size_t      crtobjidx;
-    size_t      endobjidx;
-    size_t      objcnt;
-    SizeStackT  objcache;
-};
-
-typedef std::deque<ObjectChunk*>  ChunkDequeT;
-typedef std::deque<ServiceStub>   ServiceDequeT;
-typedef std::vector<ServiceStub*> ServiceVectorT;
-
-struct ServiceStoreStub {
-    ServiceStoreStub()
-        : nowantwrite(true)
-        , usecnt(0)
+    std::mutex& mutex() const
     {
+        return *pmutex_;
     }
-    AtomicBoolT    nowantwrite;
-    AtomicLongT    usecnt;
-    ServiceVectorT vec;
 };
-
-struct ObjectStoreStub {
-    ObjectStoreStub()
-        : nowantwrite(true)
-        , usecnt(0)
-    {
-    }
-    AtomicBoolT nowantwrite;
-    AtomicLongT usecnt;
-    ChunkDequeT vec;
-};
-
-typedef std::atomic<State> AtomicStateT;
 
 //---------------------------------------------------------
 struct Manager::Data {
-
-    AtomicSizeT             crtsvcstoreidx;
-    ServiceDequeT           svcdq;
-    ServiceStoreStub        svcstore[2];
-    AtomicSizeT             crtsvcidx;
-    size_t                  svccnt;
-    SizeStackT              svccache;
-    std::mutex*             pobjmtxarr;
-    size_t                  objmtxcnt;
-    std::mutex*             psvcmtxarr;
-    size_t                  svcmtxcnt;
-    AtomicSizeT             crtobjstoreidx;
-    ObjectStoreStub         objstore[2];
-    size_t                  objchkcnt;
-    AtomicSizeT             maxobjcnt;
-    SizeStackT              chkcache;
-    AtomicStateT            state;
-    std::mutex              mtx;
-    std::condition_variable cnd;
+    const size_t            service_mutex_count_;
+    const size_t            actor_mutex_count_;
+    const size_t            actor_chunk_size_;
+    AtomicStatusT           status_;
+    size_t                  service_count_;
+    std::mutex*             pservice_mutex_array_;
+    std::mutex*             pactor_mutex_array_;
+    Cache<ServiceStub>      service_cache_;
+    Cache<ActorChunkStub>   actor_chunk_cache_;
+    std::mutex              mutex_;
+    std::condition_variable condition_;
 
     Data(
-        Manager& _rm);
+        const size_t _service_mutex_count,
+        const size_t _actor_mutex_count,
+        const size_t _actor_chunk_size);
+
     ~Data();
 
-    ObjectChunk* allocateChunk(std::mutex& _rmtx) const
+    inline ActorChunk* allocateChunk(std::mutex& _rmtx) const
     {
-        char*        p   = new char[sizeof(ObjectChunk) + objchkcnt * sizeof(ObjectStub)];
-        ObjectChunk* poc = new (p) ObjectChunk(_rmtx);
-        for (size_t i = 0; i < objchkcnt; ++i) {
-            ObjectStub& ros(poc->object(i));
-            ros.pobject  = nullptr;
-            ros.preactor = nullptr;
-            ros.unique   = 0;
+        char*       pdata        = new char[sizeof(ActorChunk) + actor_chunk_size_ * sizeof(ActorStub)];
+        ActorChunk* pactor_chunk = new (pdata) ActorChunk(_rmtx);
+        for (size_t i = 0; i < actor_chunk_size_; ++i) {
+            ActorStub& ras(pactor_chunk->actor(i));
+            ras.pactor_   = nullptr;
+            ras.preactor_ = nullptr;
+            ras.unique_   = 0;
         }
-        return poc;
+        return pactor_chunk;
     }
 
-    ObjectChunk* chunk(const size_t _storeidx, const size_t _idx) const
+    inline ActorChunkStub& chunk(const size_t _actor_index, std::unique_lock<std::mutex>& _rlock)
     {
-        return objstore[_storeidx].vec[_idx / objchkcnt];
+        return actor_chunk_cache_.aquire(
+            _actor_index / actor_chunk_size_,
+            [&_rlock](const size_t, ActorChunkStub& _racs) {
+                _rlock = std::unique_lock<std::mutex>(_racs.chunk().mutex());
+            });
     }
 
-    ObjectStub& object(const size_t _storeidx, const size_t _idx)
+    inline ActorChunkStub* chunkPointer(const size_t _actor_index, std::unique_lock<std::mutex>& _rlock)
     {
-        return chunk(_storeidx, _idx)->object(_idx % objchkcnt);
-    }
-
-    size_t aquireReadServiceStore()
-    {
-        size_t idx = crtsvcstoreidx;
-        if (svcstore[idx].nowantwrite && svcstore[idx].usecnt.fetch_add(1) >= 0) {
-            return idx;
-        }
-        std::lock_guard<std::mutex> lock(mtx);
-        idx    = crtsvcstoreidx;
-        long v = svcstore[idx].usecnt.fetch_add(1);
-        solid_assert(v >= 0);
-        return idx;
-    }
-
-    void releaseReadServiceStore(const size_t _idx)
-    {
-        svcstore[_idx].usecnt.fetch_sub(1);
-    }
-
-    size_t aquireWriteServiceStore()
-    {
-        //NOTE: mtx must be locked
-        size_t idx    = (crtsvcstoreidx + 1) % 2;
-        long   expect = 0;
-
-        svcstore[idx].nowantwrite = false;
-
-        while (!svcstore[idx].usecnt.compare_exchange_weak(expect, LONG_MIN)) {
-            expect = 0;
-            std::this_thread::yield();
-        }
-        return idx;
-    }
-
-    size_t releaseWriteServiceStore(const size_t _idx)
-    {
-        svcstore[_idx].usecnt = 0;
-        crtsvcstoreidx        = _idx;
-        return _idx;
-    }
-
-    size_t aquireReadObjectStore()
-    {
-        size_t idx = crtobjstoreidx;
-        if (objstore[idx].nowantwrite && objstore[idx].usecnt.fetch_add(1) >= 0) {
-            return idx;
-        }
-        std::lock_guard<std::mutex> lock(mtx);
-        idx    = crtobjstoreidx;
-        long v = objstore[idx].usecnt.fetch_add(1);
-        solid_assert(v >= 0);
-        return idx;
-    }
-
-    void releaseReadObjectStore(const size_t _idx)
-    {
-        objstore[_idx].usecnt.fetch_sub(1);
-    }
-
-    size_t aquireWriteObjectStore()
-    {
-        //NOTE: mtx must be locked
-        size_t idx    = (crtobjstoreidx + 1) % 2;
-        long   expect = 0;
-
-        objstore[idx].nowantwrite = false;
-
-        while (!objstore[idx].usecnt.compare_exchange_weak(expect, LONG_MIN)) {
-            expect = 0;
-            std::this_thread::yield();
-        }
-        return idx;
-    }
-    size_t releaseWriteObjectStore(const size_t _idx)
-    {
-        objstore[_idx].usecnt = 0;
-        crtobjstoreidx        = _idx;
-        return _idx;
+        return actor_chunk_cache_.aquirePointer(
+            _actor_index / actor_chunk_size_,
+            [&_rlock](const size_t, ActorChunkStub& _racs) {
+                _rlock = std::unique_lock<std::mutex>(_racs.chunk().mutex());
+            });
     }
 };
 
 Manager::Data::Data(
-    Manager& /*_rm*/)
-    : crtsvcstoreidx(0)
-    , crtsvcidx(0)
-    , svccnt(0)
-    , crtobjstoreidx(0)
-    , maxobjcnt(0)
-    , state(StateRunningE)
+    const size_t _service_mutex_count,
+    const size_t _actor_mutex_count,
+    const size_t _actor_chunk_size)
+    : service_mutex_count_(_service_mutex_count)
+    , actor_mutex_count_(_actor_mutex_count)
+    , actor_chunk_size_(_actor_chunk_size)
+    , status_(StatusE::Running)
+    , service_count_(0)
 {
+    pactor_mutex_array_ = new std::mutex[actor_mutex_count_];
+
+    pservice_mutex_array_ = new std::mutex[service_mutex_count_];
 }
 
 Manager::Data::~Data()
 {
-    size_t objstoreidx = 0;
-    if (objstore[1].vec.size() > objstore[0].vec.size()) {
-        objstoreidx = 1;
-    }
-    ChunkDequeT& rchdq = objstore[objstoreidx].vec;
-    for (auto& v : rchdq) {
-        delete[] v->data();
-    }
-}
-
-bool Manager::VisitContext::raiseObject(Event const& _revt) const
-{
-    return rr_.raise(ro_.runId(), _revt);
-}
-
-bool Manager::VisitContext::raiseObject(Event&& _uevt) const
-{
-    return rr_.raise(ro_.runId(), std::move(_uevt));
+    delete[] pactor_mutex_array_; //TODO: get rid of delete
+    delete[] pservice_mutex_array_;
 }
 
 Manager::Manager(
-    const size_t _svcmtxcnt /* = 0*/,
-    const size_t _objmtxcnt /* = 0*/,
-    const size_t _objbucketsize /* = 0*/
+    const size_t _service_mutex_count /* = 0*/,
+    const size_t _actor_mutex_count /* = 0*/,
+    const size_t _actor_chunk_size /* = 0*/
     )
-    : impl_(make_pimpl<Data>(*this))
+    : impl_(make_pimpl<Data>(
+        _service_mutex_count == 0 ? memory_page_size() / sizeof(std::mutex) : _service_mutex_count,
+        _actor_mutex_count == 0 ? memory_page_size() / sizeof(std::mutex) : _actor_mutex_count,
+        _actor_chunk_size == 0 ? (memory_page_size() - sizeof(ActorChunk)) / sizeof(ActorStub) : _actor_chunk_size))
 {
     solid_dbg(logger, Verbose, "" << this);
-
-    if (_objmtxcnt == 0) {
-        impl_->objmtxcnt = memory_page_size() / sizeof(std::mutex);
-    } else {
-        impl_->objmtxcnt = _objmtxcnt;
-    }
-
-    if (_svcmtxcnt == 0) {
-        impl_->svcmtxcnt = memory_page_size() / sizeof(std::mutex);
-    } else {
-        impl_->svcmtxcnt = _svcmtxcnt;
-    }
-
-    impl_->pobjmtxarr = new std::mutex[impl_->objmtxcnt];
-
-    impl_->psvcmtxarr = new std::mutex[impl_->svcmtxcnt];
-
-    if (_objbucketsize == 0) {
-        impl_->objchkcnt = (memory_page_size() - sizeof(ObjectChunk)) / sizeof(ObjectStub);
-    } else {
-        impl_->objchkcnt = _objbucketsize;
-    }
 }
 
 /*virtual*/ Manager::~Manager()
@@ -445,572 +425,501 @@ Manager::Manager(
     solid_dbg(logger, Verbose, "" << this);
     stop();
     solid_dbg(logger, Verbose, "" << this);
-    delete[] impl_->pobjmtxarr; //TODO: get rid of delete
-    delete[] impl_->psvcmtxarr;
 }
 
-bool Manager::registerService(
-    Service& _rs)
+bool Manager::registerService(Service& _rservice, const bool _start)
 {
-    std::lock_guard<std::mutex> lock(impl_->mtx);
 
-    if (_rs.isRegistered()) {
+    if (_rservice.registered()) {
         return false;
     }
 
-    if (impl_->state != StateRunningE) {
+    std::lock_guard<std::mutex> lock(impl_->mutex_);
+
+    if (impl_->status_.load() != StatusE::Running) {
         return false;
     }
 
-    size_t crtsvcstoreidx = impl_->crtsvcstoreidx;
-    size_t svcidx         = InvalidIndex();
+    {
+        size_t                       service_index = InvalidIndex();
+        std::unique_lock<std::mutex> lock;
+        ServiceStub&                 rss = impl_->service_cache_.create(
+            service_index,
+            [&lock, this](const size_t _index, ServiceStub& _rss) {
+                if (_rss.pmutex_ == nullptr) {
+                    _rss.pmutex_ = &impl_->pservice_mutex_array_[_index % impl_->service_mutex_count_];
+                }
+                lock = std::unique_lock<std::mutex>(_rss.mutex());
+            });
 
-    if (!impl_->svccache.empty()) {
+        _rservice.index(service_index);
 
-        svcidx = impl_->svccache.top();
-        impl_->svccache.top();
-
-    } else if (impl_->crtsvcidx < impl_->svcstore[crtsvcstoreidx].vec.size()) {
-
-        svcidx = impl_->crtsvcidx;
-        impl_->svcdq.push_back(ServiceStub(impl_->psvcmtxarr[svcidx % impl_->svcmtxcnt]));
-        impl_->svcstore[crtsvcstoreidx].vec[svcidx] = &impl_->svcdq[svcidx];
-        ++impl_->crtsvcidx;
-
-    } else {
-
-        const size_t newsvcvecidx = impl_->aquireWriteServiceStore();
-
-        impl_->svcstore[newsvcvecidx].vec = impl_->svcstore[crtsvcstoreidx].vec; //update the new vector
-
-        impl_->svcstore[newsvcvecidx].vec.push_back(nullptr);
-        impl_->svcstore[newsvcvecidx].vec.resize(impl_->svcstore[newsvcvecidx].vec.capacity());
-
-        svcidx = impl_->crtsvcidx;
-
-        impl_->svcdq.push_back(ServiceStub(impl_->psvcmtxarr[svcidx % impl_->svcmtxcnt]));
-        impl_->svcstore[newsvcvecidx].vec[svcidx] = &impl_->svcdq[svcidx];
-
-        crtsvcstoreidx = impl_->releaseWriteServiceStore(newsvcvecidx);
-        ++impl_->crtsvcidx;
+        rss.reset(&_rservice, _start);
     }
-    _rs.idx = svcidx;
-    ++impl_->svccnt;
-    impl_->svcstore[crtsvcstoreidx].vec[svcidx]->reset(&_rs);
+    ++impl_->service_count_;
+    if (_start) {
+        _rservice.statusSetRunning();
+    }
     return true;
 }
 
-void Manager::unregisterService(Service& _rsvc)
+void Manager::unregisterService(Service& _rservice)
 {
-    const size_t svcidx = _rsvc.idx;
+    const size_t service_index = _rservice.index();
 
-    if (svcidx == InvalidIndex()) {
+    if (service_index == InvalidIndex()) {
         return;
     }
 
-    const size_t svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
-    ServiceStub& rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
+    std::lock_guard<std::mutex> lock(impl_->mutex_);
 
-    std::lock_guard<std::mutex> lock(rss.rmtx);
+    doCleanupService(service_index, _rservice);
 
-    if (rss.psvc != &_rsvc) {
-        return;
-    }
+    impl_->service_cache_.release(service_index);
 
-    impl_->releaseReadServiceStore(svcstoreidx);
-
-    doUnregisterService(rss);
-}
-
-void Manager::doUnregisterService(ServiceStub& _rss)
-{
-    std::lock_guard<std::mutex> lock2(impl_->mtx);
-
-    const size_t objvecidx = impl_->crtobjstoreidx; //inside lock, so crtobjstoreidx will not change
-
-    impl_->svccache.push(_rss.psvc->idx);
-
-    _rss.psvc->idx.store(InvalidIndex());
-
-    size_t chkidx = _rss.firstchk;
-
-    while (chkidx != InvalidIndex()) {
-        ObjectChunk* pchk = impl_->objstore[objvecidx].vec[chkidx];
-        chkidx            = pchk->nextchk;
-        pchk->clear();
-        impl_->chkcache.push(chkidx);
-    }
-
-    _rss.reset();
-    --impl_->svccnt;
-
-    if (impl_->svccnt == 0 && impl_->state == StateStoppingE) {
-        impl_->cnd.notify_all();
+    --impl_->service_count_;
+    if (impl_->service_count_ == 0 && impl_->status_.load() == StatusE::Stopping) {
+        impl_->condition_.notify_all();
     }
 }
 
-ObjectIdT Manager::registerObject(
-    const Service&     _rsvc,
-    ObjectBase&        _robj,
-    ReactorBase&       _rr,
-    ScheduleFunctionT& _rfct,
-    ErrorConditionT&   _rerr)
+void Manager::doCleanupService(const size_t _service_index, Service& _rservice)
 {
-    ObjectIdT retval;
+    std::unique_lock<std::mutex> lock;
+    ServiceStub&                 rss = impl_->service_cache_.aquire(
+        _service_index,
+        [&lock](const size_t /*_index*/, ServiceStub& _rss) {
+            lock = std::unique_lock<std::mutex>(_rss.mutex());
+        });
 
-    const size_t svcidx = _rsvc.idx;
+    if (rss.pservice_ == &_rservice) {
 
-    if (svcidx == InvalidIndex()) {
-        _rerr = error_service_unknown;
+        rss.pservice_->index(InvalidIndex());
+
+        size_t actor_chunk_index = rss.first_actor_chunk_;
+
+        while (actor_chunk_index != InvalidIndex()) {
+            impl_->actor_chunk_cache_.release(
+                actor_chunk_index,
+                [&actor_chunk_index](const size_t /*_index*/, const ActorChunkStub& _racs) {
+                    actor_chunk_index = _racs.chunk().next_chunk_;
+                });
+        }
+
+        rss.reset();
+    }
+}
+
+ActorIdT Manager::registerActor(
+    const Service&     _rservice,
+    ActorBase&         _ractor,
+    ReactorBase&       _rreactor,
+    ScheduleFunctionT& _rschedule_fnc,
+    ErrorConditionT&   _rerror)
+{
+    ActorIdT     retval;
+    const size_t service_index = _rservice.index();
+
+    if (service_index == InvalidIndex()) {
+        _rerror = error_service_unknown;
         return retval;
     }
 
-    size_t                      objidx      = InvalidIndex();
-    const size_t                svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
-    ServiceStub&                rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
-    std::lock_guard<std::mutex> lock(rss.rmtx);
+    size_t                       actor_index = InvalidIndex();
+    std::unique_lock<std::mutex> lock;
+    ServiceStub&                 rss = impl_->service_cache_.aquire(
+        service_index,
+        [&lock](const size_t _index, ServiceStub& _rss) {
+            lock = std::unique_lock<std::mutex>(_rss.mutex());
+        });
 
-    impl_->releaseReadServiceStore(svcstoreidx);
-
-    if (rss.psvc != &_rsvc || rss.state != StateRunningE) {
-        _rerr = error_service_not_running;
+    if (rss.pservice_ != &_rservice || rss.status_ != StatusE::Running) {
+        _rerror = error_service_not_running;
         return retval;
     }
 
-    if (!rss.objcache.empty()) {
-
-        objidx = rss.objcache.top();
-        rss.objcache.pop();
-
-    } else if (rss.crtobjidx < rss.endobjidx) {
-
-        objidx = rss.crtobjidx;
-        ++rss.crtobjidx;
-
+    if (!rss.actor_index_stk_.empty()) {
+        actor_index = rss.actor_index_stk_.top();
+        rss.actor_index_stk_.pop();
+    } else if (rss.current_actor_index_ < rss.end_actor_index_) {
+        actor_index = rss.current_actor_index_;
+        ++rss.current_actor_index_;
     } else {
+        size_t actor_chunk_index = InvalidIndex();
 
-        std::lock_guard<std::mutex> lock2(impl_->mtx);
-        size_t                      chkidx = InvalidIndex();
-        if (!impl_->chkcache.empty()) {
-            chkidx = impl_->chkcache.top();
-            impl_->chkcache.pop();
+        impl_->actor_chunk_cache_.create(
+            actor_chunk_index,
+            [this](const size_t _index, ActorChunkStub& _racs) {
+                if (_racs.empty()) {
+                    _racs.chunk(impl_->allocateChunk(impl_->pactor_mutex_array_[_index % impl_->actor_mutex_count_]));
+                }
+            });
+
+        actor_index = actor_chunk_index * impl_->actor_chunk_size_;
+
+        rss.current_actor_index_ = actor_index + 1;
+        rss.end_actor_index_     = actor_index + impl_->actor_chunk_size_;
+
+        if (rss.first_actor_chunk_ == InvalidIndex()) {
+            rss.first_actor_chunk_ = rss.last_actor_chunk_ = actor_chunk_index;
         } else {
-            const size_t newobjstoreidx = impl_->aquireWriteObjectStore();
-            const size_t oldobjstoreidx = (newobjstoreidx + 1) % 2;
+            {
+                std::unique_lock<std::mutex> lock;
+                ActorChunkStub&              rlast_chunk = impl_->actor_chunk_cache_.aquire(
+                    rss.last_actor_chunk_,
+                    [&lock](const size_t, ActorChunkStub& _racs) {
+                        lock = std::unique_lock<std::mutex>(_racs.chunk().mutex());
+                    });
 
-            ObjectStoreStub& rnewobjstore = impl_->objstore[newobjstoreidx];
-
-            rnewobjstore.vec.insert(
-                rnewobjstore.vec.end(),
-                impl_->objstore[oldobjstoreidx].vec.begin() + rnewobjstore.vec.size(),
-                impl_->objstore[oldobjstoreidx].vec.end());
-            chkidx = rnewobjstore.vec.size();
-            rnewobjstore.vec.push_back(impl_->allocateChunk(impl_->pobjmtxarr[chkidx % impl_->objmtxcnt]));
-
-            impl_->releaseWriteObjectStore(newobjstoreidx);
+                rlast_chunk.chunk().next_chunk_ = actor_chunk_index;
+            }
+            rss.last_actor_chunk_ = actor_chunk_index;
         }
-
-        objidx        = chkidx * impl_->objchkcnt;
-        rss.crtobjidx = objidx + 1;
-        rss.endobjidx = objidx + impl_->objchkcnt;
-
-        if (impl_->maxobjcnt < rss.endobjidx) {
-            impl_->maxobjcnt = rss.endobjidx;
-        }
-
-        if (rss.firstchk == InvalidIndex()) {
-            rss.firstchk = rss.lastchk = chkidx;
-        } else {
-
-            //make the link with the last chunk
-            const size_t objstoreidx = impl_->crtobjstoreidx; //impl_->mtx is locked so it is safe to fetch the value of
-
-            ObjectChunk& laschk(*impl_->objstore[objstoreidx].vec[rss.lastchk]);
-
-            std::lock_guard<std::mutex> lock3(laschk.rmtx);
-
-            laschk.nextchk = chkidx;
-        }
-        rss.lastchk = chkidx;
     }
     {
-        const size_t                objstoreidx = impl_->aquireReadObjectStore();
-        ObjectChunk&                robjchk(*impl_->chunk(objstoreidx, objidx));
-        std::lock_guard<std::mutex> lock2(robjchk.rmtx);
+        std::unique_lock<std::mutex> lock;
+        ActorChunkStub&              racs   = impl_->chunk(actor_index, lock);
+        ActorChunk&                  rchunk = racs.chunk();
 
-        impl_->releaseReadObjectStore(objstoreidx);
-
-        if (robjchk.svcidx == InvalidIndex()) {
-            robjchk.svcidx = _rsvc.idx;
+        if (rchunk.service_index_ == InvalidIndex()) {
+            rchunk.service_index_ = _rservice.index();
         }
 
-        solid_assert(robjchk.svcidx == _rsvc.idx);
+        solid_assert(rchunk.service_index_ == _rservice.index());
 
-        _robj.id(objidx);
+        _ractor.id(actor_index);
 
-        if (_rfct(_rr)) {
-            //the object is scheduled
-            //NOTE: a scheduler's reactor must ensure that the object is fully
-            //registered onto manager by locking the object's mutex before calling
-            //any the object's code
+        if (_rschedule_fnc(_rreactor)) {
+            //the actor is scheduled
+            //NOTE: a scheduler's reactor must ensure that the actor is fully
+            //registered onto manager by locking the actor's mutex before calling
+            //any the actor's code
 
-            ObjectStub& ros = robjchk.object(objidx % impl_->objchkcnt);
+            ActorStub& ras = rchunk.actor(actor_index % impl_->actor_chunk_size_);
 
-            ros.pobject   = &_robj;
-            ros.preactor  = &_rr;
-            retval.index  = objidx;
-            retval.unique = ros.unique;
-            ++robjchk.objcnt;
-            ++rss.objcnt;
+            ras.pactor_   = &_ractor;
+            ras.preactor_ = &_rreactor;
+            retval.index  = actor_index;
+            retval.unique = ras.unique_;
+            ++rchunk.actor_count_;
+            ++rss.actor_count_;
         } else {
-            _robj.id(InvalidIndex());
-            //the object was not scheduled
-            rss.objcache.push(objidx);
-            _rerr.assign(-3, _rerr.category()); //TODO: proper error
-            _rerr = error_object_schedule;
+            _ractor.id(InvalidIndex());
+            rss.actor_index_stk_.push(actor_index);
+            _rerror = error_actor_schedule;
         }
     }
+
     return retval;
 }
 
-void Manager::unregisterObject(ObjectBase& _robj)
+void Manager::unregisterActor(ActorBase& _ractor)
 {
-    size_t svcidx = InvalidIndex();
-    size_t objidx = InvalidIndex();
+    size_t service_index = InvalidIndex();
+    size_t actor_index   = static_cast<size_t>(_ractor.id());
     {
-        const size_t                objstoreidx = impl_->aquireReadObjectStore();
-        ObjectChunk&                robjchk(*impl_->chunk(objstoreidx, static_cast<size_t>(_robj.id())));
-        std::lock_guard<std::mutex> lock2(robjchk.rmtx);
+        std::unique_lock<std::mutex> lock;
+        ActorChunkStub&              racs   = impl_->chunk(actor_index, lock);
+        ActorChunk&                  rchunk = racs.chunk();
 
-        objidx = static_cast<size_t>(_robj.id());
+        ActorStub& ras = rchunk.actor(actor_index % impl_->actor_chunk_size_);
 
-        impl_->releaseReadObjectStore(objstoreidx);
+        ras.pactor_   = nullptr;
+        ras.preactor_ = nullptr;
+        ++ras.unique_;
 
-        ObjectStub& ros = robjchk.object(_robj.id() % impl_->objchkcnt);
+        _ractor.id(InvalidIndex());
 
-        ros.pobject  = nullptr;
-        ros.preactor = nullptr;
-        ++ros.unique;
-
-        _robj.id(InvalidIndex());
-
-        --robjchk.objcnt;
-        svcidx = robjchk.svcidx;
-        solid_assert(svcidx != InvalidIndex());
+        --rchunk.actor_count_;
+        service_index = rchunk.service_index_;
+        solid_assert(service_index != InvalidIndex());
     }
     {
-        solid_assert(objidx != InvalidIndex());
+        solid_assert(actor_index != InvalidIndex());
 
-        const size_t                svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
-        ServiceStub&                rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
-        std::lock_guard<std::mutex> lock(rss.rmtx);
+        std::unique_lock<std::mutex> lock;
+        ServiceStub&                 rss = impl_->service_cache_.aquire(
+            service_index,
+            [&lock](const size_t _index, ServiceStub& _rss) {
+                lock = std::unique_lock<std::mutex>(_rss.mutex());
+            });
 
-        impl_->releaseReadServiceStore(svcstoreidx);
-
-        rss.objcache.push(objidx);
-        --rss.objcnt;
-        solid_dbg(logger, Verbose, "" << this << " serviceid = " << svcidx << " objcnt = " << rss.objcnt);
-        if (rss.objcnt == 0 && rss.state == StateStoppingE) {
-            impl_->cnd.notify_all();
+        rss.actor_index_stk_.push(actor_index);
+        --rss.actor_count_;
+        solid_dbg(logger, Verbose, "" << this << " serviceid = " << service_index << " actcnt = " << rss.actor_count_);
+        if (rss.actor_count_ == 0 && rss.status_ == StatusE::Stopping) {
+            impl_->condition_.notify_all();
         }
     }
 }
 
-bool Manager::disableObjectVisits(ObjectBase& _robj)
+bool Manager::disableActorVisits(ActorBase& _ractor)
 {
     bool retval = false;
-    if (_robj.isRegistered()) {
-        const size_t                objstoreidx = impl_->aquireReadObjectStore();
-        ObjectChunk&                robjchk(*impl_->chunk(objstoreidx, static_cast<size_t>(_robj.id())));
-        std::lock_guard<std::mutex> lock(robjchk.rmtx);
 
-        impl_->releaseReadObjectStore(objstoreidx);
+    if (_ractor.isRegistered()) {
+        size_t                       actor_index = static_cast<size_t>(_ractor.id());
+        std::unique_lock<std::mutex> lock;
+        ActorChunkStub&              racs   = impl_->chunk(actor_index, lock);
+        ActorChunk&                  rchunk = racs.chunk();
 
-        ObjectStub& ros = robjchk.object(_robj.id() % impl_->objchkcnt);
-        retval          = (ros.preactor != nullptr);
-        ros.preactor    = nullptr;
+        ActorStub& ras = rchunk.actor(actor_index % impl_->actor_chunk_size_);
+        retval         = (ras.preactor_ != nullptr);
+        ras.preactor_  = nullptr;
     }
     return retval;
 }
-#if 1
-bool Manager::notify(ObjectIdT const& _ruid, Event&& _uevt)
+
+bool Manager::notify(ActorIdT const& _ruid, Event&& _uevt)
 {
     const auto do_notify_fnc = [&_uevt](VisitContext& _rctx) {
-        return _rctx.raiseObject(std::move(_uevt));
+        return _rctx.raiseActor(std::move(_uevt));
     };
-    //ObjectVisitFunctionT f(std::cref(do_notify_fnc));
 
-    return doVisit(_ruid, ObjectVisitFunctionT{do_notify_fnc});
+    return doVisit(_ruid, ActorVisitFunctionT{do_notify_fnc});
 }
-#else
-bool Manager::notify(ObjectIdT const& _ruid, Event&& _uevt, const size_t _sigmsk /* = 0*/)
-{
-    bool retval = false;
-    if (_ruid.index < impl_->maxobjcnt) {
-        const size_t objstoreidx = impl_->aquireReadObjectStore();
-        ObjectChunk& rchk(*impl_->chunk(objstoreidx, _ruid.index));
-        {
-            std::lock_guard<std::mutex> lock(rchk.rmtx);
-            ObjectStub const&           ros(impl_->object(objstoreidx, _ruid.index));
-
-            if (ros.unique == _ruid.unique && ros.pobject && ros.preactor) {
-                retval = notify_object(*ros.pobject, *ros.preactor, std::move(_uevt), _sigmsk);
-            }
-        }
-        impl_->releaseReadObjectStore(objstoreidx);
-    }
-    return retval;
-}
-#endif
 
 size_t Manager::notifyAll(const Service& _rsvc, Event const& _revt)
 {
     const auto do_notify_fnc = [_revt](VisitContext& _rctx) {
-        return _rctx.raiseObject(_revt);
+        return _rctx.raiseActor(_revt);
     };
-    //ObjectVisitFunctionT f(std::cref(do_notify_fnc));
-    return doForEachServiceObject(_rsvc, ObjectVisitFunctionT{do_notify_fnc});
+    return doForEachServiceActor(_rsvc, ActorVisitFunctionT{do_notify_fnc});
 }
 
-bool Manager::doVisit(ObjectIdT const& _ruid, const ObjectVisitFunctionT _rfct)
+bool Manager::doVisit(ActorIdT const& _actor_id, const ActorVisitFunctionT _rfct)
 {
+
     bool retval = false;
-    if (_ruid.index < impl_->maxobjcnt) {
-        const size_t objstoreidx = impl_->aquireReadObjectStore();
-        ObjectChunk& rchk(*impl_->chunk(objstoreidx, static_cast<size_t>(_ruid.index)));
-        {
-            std::lock_guard<std::mutex> lock(rchk.rmtx);
-            ObjectStub const&           ros(impl_->object(objstoreidx, static_cast<size_t>(_ruid.index)));
 
-            if (ros.unique == _ruid.unique && ros.pobject != nullptr && ros.preactor != nullptr) {
-                VisitContext ctx(*this, *ros.preactor, *ros.pobject);
-                retval = _rfct(ctx);
-            }
+    std::unique_lock<std::mutex> lock;
+    ActorChunkStub*              pacs = impl_->chunkPointer(_actor_id.index, lock);
+    if (pacs != nullptr) {
+        ActorChunk& rchunk = pacs->chunk();
+        ActorStub&  ras    = rchunk.actor(_actor_id.index % impl_->actor_chunk_size_);
+
+        if (ras.unique_ == _actor_id.unique && ras.pactor_ != nullptr && ras.preactor_ != nullptr) {
+            VisitContext ctx(*this, *ras.preactor_, *ras.pactor_);
+            retval = _rfct(ctx);
         }
-        impl_->releaseReadObjectStore(objstoreidx);
     }
     return retval;
 }
 
-bool Manager::raise(const ObjectBase& _robj, Event const& _re)
+std::mutex& Manager::mutex(const ActorBase& _ractor) const
 {
-    //Current chunk's mutex must be locked
+    size_t                       actor_index = static_cast<size_t>(_ractor.id());
+    std::unique_lock<std::mutex> lock;
+    ActorChunkStub&              racs   = impl_->chunk(actor_index, lock);
+    ActorChunk&                  rchunk = racs.chunk();
 
-    const size_t      objstoreidx = impl_->aquireReadObjectStore();
-    ObjectStub const& ros(impl_->object(objstoreidx, static_cast<size_t>(_robj.id())));
-
-    impl_->releaseReadObjectStore(objstoreidx);
-
-    solid_assert(ros.pobject == &_robj);
-
-    return ros.preactor->raise(ros.pobject->runId(), _re);
+    return rchunk.mutex();
 }
 
-std::mutex& Manager::mutex(const ObjectBase& _robj) const
+ActorIdT Manager::id(const ActorBase& _ractor) const
 {
-    std::mutex* pmtx;
-    {
-        const size_t objstoreidx = impl_->aquireReadObjectStore();
-        ObjectChunk& rchk(*impl_->chunk(objstoreidx, static_cast<size_t>(_robj.id())));
+    const IndexT actor_index = _ractor.id();
+    ActorIdT     retval;
 
-        pmtx = &rchk.rmtx;
-        impl_->releaseReadObjectStore(objstoreidx);
-    }
-    return *pmtx;
-}
+    if (actor_index != InvalidIndex()) {
+        std::unique_lock<std::mutex> lock;
+        ActorChunkStub&              racs   = impl_->chunk(actor_index, lock);
+        ActorChunk&                  rchunk = racs.chunk();
+        ActorStub&                   ras    = rchunk.actor(actor_index % impl_->actor_chunk_size_);
 
-ObjectIdT Manager::id(const ObjectBase& _robj) const
-{
-    const IndexT objidx = _robj.id();
-    ObjectIdT    retval;
-
-    if (objidx != InvalidIndex()) {
-        const size_t      objstoreidx = impl_->aquireReadObjectStore();
-        ObjectStub const& ros(impl_->object(objstoreidx, static_cast<size_t>(objidx)));
-        ObjectBase*       pobj = ros.pobject;
-        solid_assert(pobj == &_robj);
-        retval = ObjectIdT(objidx, ros.unique);
-        impl_->releaseReadObjectStore(objstoreidx);
+        ActorBase* pactor = ras.pactor_;
+        solid_assert(pactor == &_ractor);
+        retval = ActorIdT(actor_index, ras.unique_);
     }
     return retval;
 }
 
-std::mutex& Manager::mutex(const Service& _rsvc) const
+std::mutex& Manager::mutex(const Service& _rservice) const
 {
-    std::mutex*  pmtx        = nullptr;
-    const size_t svcidx      = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
-    const size_t svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
-    ServiceStub& rsvc        = *impl_->svcstore[svcstoreidx].vec[svcidx];
+    std::mutex*  pmutex        = nullptr;
+    const size_t service_index = _rservice.index();
 
-    pmtx = &rsvc.rmtx;
+    impl_->service_cache_.aquire(
+        service_index,
+        [&pmutex](const size_t _index, ServiceStub& _rss) {
+            pmutex = &_rss.mutex();
+        });
 
-    impl_->releaseReadServiceStore(svcstoreidx);
-
-    return *pmtx;
+    return *pmutex;
 }
 
-size_t Manager::doForEachServiceObject(const Service& _rsvc, const ObjectVisitFunctionT _rfct)
+size_t Manager::doForEachServiceActor(const Service& _rservice, const ActorVisitFunctionT _rvisit_fnc)
 {
-    if (!_rsvc.isRegistered()) {
+    if (!_rservice.registered()) {
         return 0u;
     }
-    const size_t svcidx = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
-    size_t       chkidx = InvalidIndex();
+    const size_t service_index     = _rservice.index();
+    size_t       first_actor_chunk = InvalidIndex();
     {
-        const size_t svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
-        {
-            ServiceStub&                rss = *impl_->svcstore[svcstoreidx].vec[svcidx];
-            std::lock_guard<std::mutex> lock(rss.rmtx);
-
-            chkidx = rss.firstchk;
-        }
-        impl_->releaseReadServiceStore(svcstoreidx);
+        std::unique_lock<std::mutex> lock;
+        ServiceStub&                 rss = impl_->service_cache_.aquire(
+            service_index,
+            [&lock](const size_t _index, ServiceStub& _rss) {
+                lock = std::unique_lock<std::mutex>(_rss.mutex());
+            });
+        first_actor_chunk = rss.first_actor_chunk_;
     }
 
-    return doForEachServiceObject(chkidx, _rfct);
+    return doForEachServiceActor(first_actor_chunk, _rvisit_fnc);
 }
 
-size_t Manager::doForEachServiceObject(const size_t _chkidx, const ObjectVisitFunctionT _rfct)
+size_t Manager::doForEachServiceActor(const size_t _first_actor_chunk, const ActorVisitFunctionT _rvisit_fnc)
 {
 
-    size_t crtchkidx     = _chkidx;
+    size_t chunk_index   = _first_actor_chunk;
     size_t visited_count = 0;
 
-    while (crtchkidx != InvalidIndex()) {
+    while (chunk_index != InvalidIndex()) {
 
-        const size_t objstoreidx = impl_->aquireReadObjectStore(); //can lock impl_->mtx
+        std::unique_lock<std::mutex> lock;
+        ActorChunkStub&              racs    = impl_->chunk(chunk_index * impl_->actor_chunk_size_, lock);
+        ActorChunk&                  rchunk  = racs.chunk();
+        ActorStub*                   pactors = rchunk.actors();
 
-        ObjectChunk& rchk = *impl_->objstore[objstoreidx].vec[crtchkidx];
-
-        std::lock_guard<std::mutex> lock(rchk.rmtx);
-
-        impl_->releaseReadObjectStore(objstoreidx);
-
-        ObjectStub* poss = rchk.objects();
-
-        for (size_t i(0), cnt(0); i < impl_->objchkcnt && cnt < rchk.objcnt; ++i) {
-            if (poss[i].pobject != nullptr && poss[i].preactor != nullptr) {
-                VisitContext ctx(*this, *poss[i].preactor, *poss[i].pobject);
-                _rfct(ctx);
+        for (size_t i(0), cnt(0); i < impl_->actor_chunk_size_ && cnt < rchunk.actor_count_; ++i) {
+            ActorStub& ractor = pactors[i];
+            if (ractor.pactor_ != nullptr && ractor.preactor_ != nullptr) {
+                VisitContext ctx(*this, *ractor.preactor_, *ractor.pactor_);
+                _rvisit_fnc(ctx);
                 ++visited_count;
                 ++cnt;
             }
         }
 
-        crtchkidx = rchk.nextchk;
+        chunk_index = rchunk.next_chunk_;
     }
 
     return visited_count;
 }
 
-Service& Manager::service(const ObjectBase& _robj) const
+Service& Manager::service(const ActorBase& _ractor) const
 {
-    Service* psvc   = nullptr;
-    size_t   svcidx = InvalidIndex();
+
+    Service* pservice = nullptr;
+
+    size_t service_index = InvalidIndex();
     {
-        const size_t objstoreidx = impl_->aquireReadObjectStore();
-        ObjectChunk& rchk(*impl_->chunk(objstoreidx, static_cast<size_t>(_robj.id())));
+        size_t                       actor_index = static_cast<size_t>(_ractor.id());
+        std::unique_lock<std::mutex> lock;
+        ActorChunkStub&              racs   = impl_->chunk(actor_index, lock);
+        ActorChunk&                  rchunk = racs.chunk();
 
-        std::lock_guard<std::mutex> lock(rchk.rmtx);
-
-        solid_assert(rchk.object(_robj.id() % impl_->objchkcnt).pobject == &_robj);
-
-        svcidx = rchk.svcidx;
-        impl_->releaseReadObjectStore(objstoreidx);
+        service_index = rchunk.service_index_;
     }
+
     {
-        const size_t svcstoreidx = impl_->aquireReadServiceStore();
-        psvc                     = impl_->svcstore[svcstoreidx].vec[svcidx]->psvc;
-        impl_->releaseReadServiceStore(svcstoreidx);
+        std::unique_lock<std::mutex> lock;
+        ServiceStub&                 rss = impl_->service_cache_.aquire(
+            service_index,
+            [&lock](const size_t _index, ServiceStub& _rss) {
+                lock = std::unique_lock<std::mutex>(_rss.mutex());
+            });
+
+        pservice = rss.pservice_;
     }
-    return *psvc;
+    return *pservice;
 }
 
-bool Manager::startService(Service& _rsvc)
+void Manager::doStartService(Service& _rservice, const LockedFunctionT& _locked_fnc, const UnlockedFunctionT& _unlocked_fnc)
 {
-    if (!_rsvc.isRegistered()) {
-        return false;
-    }
-    const size_t                svcidx      = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
-    const size_t                svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
-    ServiceStub&                rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
-    std::lock_guard<std::mutex> lock(rss.rmtx);
+    solid_check(_rservice.registered(), "Service not registered");
 
-    impl_->releaseReadServiceStore(svcstoreidx);
+    {
+        const size_t                 service_index = _rservice.index();
+        std::unique_lock<std::mutex> lock;
+        ServiceStub&                 rss = impl_->service_cache_.aquire(
+            service_index,
+            [&lock](const size_t _index, ServiceStub& _rss) {
+                lock = std::unique_lock<std::mutex>(_rss.mutex());
+            });
 
-    if (rss.state == StateStoppedE) {
-        rss.psvc->setRunning();
-        rss.state = StateRunningE;
-        return true;
+        solid_check(rss.status_ == StatusE::Stopped, "Service not stopped");
+
+        rss.status_ = StatusE::Running;
+
+        try {
+            _locked_fnc();
+        } catch (...) {
+            rss.status_ = StatusE::Stopped;
+            throw;
+        }
     }
-    return false;
+    try {
+        _unlocked_fnc();
+    } catch (...) {
+        stopService(_rservice, true);
+        throw;
+    }
+    _rservice.statusSetRunning();
 }
 
-void Manager::stopService(Service& _rsvc, const bool _wait)
+void Manager::stopService(Service& _rservice, const bool _wait)
 {
-    if (!_rsvc.isRegistered()) {
-        return;
-    }
+    solid_check(_rservice.registered(), "Service not registered");
 
-    const size_t svcidx      = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
-    const size_t svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
-    ServiceStub& rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
+    const size_t                 service_index = _rservice.index();
+    std::unique_lock<std::mutex> lock;
+    ServiceStub&                 rss = impl_->service_cache_.aquire(
+        service_index,
+        [&lock](const size_t _index, ServiceStub& _rss) {
+            lock = std::unique_lock<std::mutex>(_rss.mutex());
+        });
 
-    std::unique_lock<std::mutex> lock(rss.rmtx);
+    solid_dbg(logger, Verbose, "" << service_index << " actor_count = " << rss.actor_count_);
 
-    solid_dbg(logger, Verbose, "" << svcidx << " objcnt = " << rss.objcnt);
+    _rservice.statusSetStopping();
 
-    impl_->releaseReadServiceStore(svcstoreidx);
-
-    if (rss.state == StateStoppedE) {
-        solid_dbg(logger, Verbose, "" << svcidx);
-        return;
-    }
-    if (rss.state == StateRunningE) {
+    if (rss.status_ == StatusE::Running) {
+        rss.status_             = StatusE::Stopping;
         const auto raise_lambda = [](VisitContext& _rctx) {
-            return _rctx.raiseObject(make_event(GenericEvents::Kill));
+            return _rctx.raiseActor(make_event(GenericEvents::Kill));
         };
-        //ObjectVisitFunctionT fctor(std::cref(l));
+        const size_t cnt = doForEachServiceActor(rss.first_actor_chunk_, ActorVisitFunctionT{raise_lambda});
 
-        rss.psvc->resetRunning();
-
-        const size_t cnt = doForEachServiceObject(rss.firstchk, ObjectVisitFunctionT{raise_lambda});
-
-        if (cnt == 0 && rss.objcnt == 0) {
-            rss.state = StateStoppedE;
-            solid_dbg(logger, Verbose, "StateStoppedE on " << svcidx);
+        if (cnt == 0 && rss.actor_count_ == 0) {
+            solid_dbg(logger, Verbose, "StateStoppedE on " << service_index);
+            rss.status_ = StatusE::Stopped;
+            _rservice.statusSetStopped();
             return;
         }
-        rss.state = StateStoppingE;
     }
 
-    if (rss.state == StateStoppingE && _wait) {
-        solid_dbg(logger, Verbose, "" << svcidx);
-        while (rss.objcnt != 0u) {
-            impl_->cnd.wait(lock);
+    if (rss.status_ == StatusE::Stopped) {
+        solid_dbg(logger, Verbose, "" << service_index);
+        return;
+    }
+
+    if (rss.status_ == StatusE::Stopping && _wait) {
+        while (rss.actor_count_ != 0u) {
+            impl_->condition_.wait(lock);
         }
-        solid_dbg(logger, Verbose, "StateStoppedE on " << svcidx);
-        rss.state = StateStoppedE;
+        rss.status_ = StatusE::Stopped;
+        _rservice.statusSetStopped();
     }
 }
 
 void Manager::start()
 {
     {
-        std::unique_lock<std::mutex> lock(impl_->mtx);
+        std::unique_lock<std::mutex> lock(impl_->mutex_);
 
-        while (impl_->state != StateRunningE) {
-            if (impl_->state == StateStoppedE) {
-                impl_->state = StateRunningE;
+        while (impl_->status_ != StatusE::Running) {
+            if (impl_->status_ == StatusE::Stopped) {
+                impl_->status_ = StatusE::Running;
                 continue;
             }
-            if (impl_->state == StateRunningE) {
+            if (impl_->status_ == StatusE::Running) {
                 continue;
             }
 
-            if (impl_->state == StateStoppingE) {
-                while (impl_->state == StateStoppingE) {
-                    impl_->cnd.wait(lock);
+            if (impl_->status_ == StatusE::Stopping) {
+                while (impl_->status_ == StatusE::Stopping) {
+                    impl_->condition_.wait(lock);
                 }
             } else {
                 continue;
@@ -1022,75 +931,94 @@ void Manager::start()
 void Manager::stop()
 {
     {
-        std::unique_lock<std::mutex> lock(impl_->mtx);
-        if (impl_->state == StateStoppedE) {
+        std::unique_lock<std::mutex> lock(impl_->mutex_);
+        if (impl_->status_ == StatusE::Stopped) {
             return;
         }
-        if (impl_->state == StateRunningE) {
-            impl_->state = StateStoppingE;
-        } else if (impl_->state == StateStoppingE) {
-            while (impl_->svccnt != 0u) {
-                impl_->cnd.wait(lock);
+        if (impl_->status_ == StatusE::Running) {
+            impl_->status_ = StatusE::Stopping;
+        } else if (impl_->status_ == StatusE::Stopping) {
+            while (impl_->service_count_ != 0u) {
+                impl_->condition_.wait(lock);
             }
         } else {
             return;
         }
     }
 
-    const size_t svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
-
-    ServiceStoreStub& rsvcstore = impl_->svcstore[svcstoreidx];
-
     const auto raise_lambda = [](VisitContext& _rctx) {
-        return _rctx.raiseObject(make_event(GenericEvents::Kill));
+        return _rctx.raiseActor(make_event(GenericEvents::Kill));
     };
 
-    //broadcast to all objects to stop
-    for (auto it = rsvcstore.vec.begin(); it != rsvcstore.vec.end(); ++it) {
-        if (*it != nullptr) {
-            ServiceStub& rss = *(*it);
+    //broadcast to all actors to stop
+    for (size_t service_index = 0; true; ++service_index) {
+        std::unique_lock<std::mutex> lock;
+        ServiceStub*                 pss = impl_->service_cache_.aquirePointer(
+            service_index,
+            [&lock](const size_t _index, ServiceStub& _rss) {
+                lock = std::unique_lock<std::mutex>(_rss.mutex());
+            });
 
-            std::lock_guard<std::mutex> lock(rss.rmtx);
+        if (pss != nullptr) {
 
-            if (rss.psvc != nullptr && rss.state == StateRunningE) {
-                rss.psvc->resetRunning();
-
-                const size_t cnt = doForEachServiceObject(rss.firstchk, ObjectVisitFunctionT{raise_lambda});
+            if (pss->pservice_ != nullptr && pss->status_ == StatusE::Running) {
+                pss->status_     = StatusE::Stopping;
+                const size_t cnt = doForEachServiceActor(pss->first_actor_chunk_, ActorVisitFunctionT{raise_lambda});
                 (void)cnt;
-                rss.state = (rss.objcnt != 0) ? StateStoppingE : StateStoppedE;
-                solid_dbg(logger, Verbose, "StateStoppedE on " << (it - rsvcstore.vec.begin()));
+
+                if (pss->actor_count_ == 0) {
+                    pss->status_ = StatusE::Stopped;
+                    pss->pservice_->statusSetStopped();
+                    solid_dbg(logger, Verbose, "StateStoppedE on " << service_index);
+                }
             }
+        } else {
+            break;
         }
-    }
+    } //for
 
     //wait for all services to stop
-    for (auto it = rsvcstore.vec.begin(); it != rsvcstore.vec.end(); ++it) {
-        if (*it != nullptr) {
-            ServiceStub& rss = *(*it);
+    for (size_t service_index = 0; true; ++service_index) {
+        std::unique_lock<std::mutex> lock;
+        ServiceStub*                 pss = impl_->service_cache_.aquirePointer(
+            service_index,
+            [&lock](const size_t _index, ServiceStub& _rss) {
+                lock = std::unique_lock<std::mutex>(_rss.mutex());
+            });
 
-            std::unique_lock<std::mutex> lock(rss.rmtx);
+        if (pss != nullptr) {
 
-            if (rss.psvc != nullptr && rss.state == StateStoppingE) {
-                solid_dbg(logger, Verbose, "wait stop service: " << (it - rsvcstore.vec.begin()));
-                while (rss.objcnt != 0u) {
-                    impl_->cnd.wait(lock);
+            if (pss->pservice_ != nullptr && pss->status_ == StatusE::Stopping) {
+                solid_dbg(logger, Verbose, "wait stop service: " << service_index);
+                while (pss->actor_count_ != 0u) {
+                    impl_->condition_.wait(lock);
                 }
-                rss.state = StateStoppedE;
-                solid_dbg(logger, Verbose, "StateStoppedE on " << (it - rsvcstore.vec.begin()));
-            } else if (rss.psvc != nullptr) {
-                solid_dbg(logger, Verbose, "unregister already stopped service: " << (it - rsvcstore.vec.begin()) << " " << rss.psvc << " " << rss.state);
-                solid_assert(rss.state == StateStoppedE);
+                pss->status_ = StatusE::Stopped;
+                pss->pservice_->statusSetStopped();
+                solid_dbg(logger, Verbose, "StateStoppedE on " << service_index);
             }
+        } else {
+            break;
         }
-    }
-
-    impl_->releaseReadServiceStore(svcstoreidx);
+    } //for
 
     {
-        std::lock_guard<std::mutex> lock(impl_->mtx);
-        impl_->state = StateStoppedE;
-        impl_->cnd.notify_all();
+        std::lock_guard<std::mutex> lock(impl_->mutex_);
+        impl_->status_ = StatusE::Stopped;
+        impl_->condition_.notify_all();
     }
 }
+//-----------------------------------------------------------------------------
+bool Manager::VisitContext::raiseActor(Event const& _revent) const
+{
+    return rreactor_.raise(actor().runId(), _revent);
+}
+
+bool Manager::VisitContext::raiseActor(Event&& _uevent) const
+{
+    return rreactor_.raise(actor().runId(), std::move(_uevent));
+}
+//-----------------------------------------------------------------------------
+
 } //namespace frame
 } //namespace solid

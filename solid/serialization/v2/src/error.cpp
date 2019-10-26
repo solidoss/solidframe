@@ -72,8 +72,8 @@ std::string ErrorCategory::message(int _ev) const
 } //namespace
 
 /*extern*/ const ErrorConditionT error_limit_container(Error_Limit_Container_E, category);
-/*extern*/ const ErrorConditionT error_limit_string(Error_Limit_Container_E, category);
-/*extern*/ const ErrorConditionT error_limit_stream(Error_Limit_Container_E, category);
+/*extern*/ const ErrorConditionT error_limit_string(Error_Limit_String_E, category);
+/*extern*/ const ErrorConditionT error_limit_stream(Error_Limit_Stream_E, category);
 /*extern*/ const ErrorConditionT error_limit_blob(Error_Limit_Blob_E, category);
 /*extern*/ const ErrorConditionT error_cross_integer(Error_Cross_Integer_E, category);
 

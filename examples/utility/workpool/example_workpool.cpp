@@ -20,8 +20,7 @@ int main(int argc, char* argv[])
     solid::log_start(std::cerr, {".*:VIEW"});
 
     WorkPool<int> wp{
-        0,
-        WorkPoolConfiguration(),
+        WorkPoolConfiguration(), 0,
         [](int _v) {
             solid_log(generic_logger, Info, "v = " << _v);
             std::this_thread::sleep_for(std::chrono::milliseconds(_v * 10));

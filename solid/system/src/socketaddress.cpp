@@ -117,8 +117,8 @@ std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet4& _rsa)
     synchronous_resolve(
         hoststr, servstr,
         _rsa,
-        ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService);
-    _ros << hoststr << ':' << servstr;
+        ReverseResolveInfo::NumericHost /* | ReverseResolveInfo::NumericService*/);
+    _ros << hoststr;
     return _ros;
 }
 
@@ -129,8 +129,8 @@ std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet& _rsa)
     synchronous_resolve(
         hoststr, servstr,
         _rsa,
-        ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService);
-    _ros << hoststr << ':' << servstr;
+        ReverseResolveInfo::NumericHost /* | ReverseResolveInfo::NumericService*/);
+    _ros << hoststr;
     return _ros;
 }
 
@@ -141,8 +141,8 @@ std::ostream& operator<<(std::ostream& _ros, const SocketAddress& _rsa)
     synchronous_resolve(
         hoststr, servstr,
         _rsa,
-        ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService);
-    _ros << hoststr << ':' << servstr;
+        ReverseResolveInfo::NumericHost /* | ReverseResolveInfo::NumericService*/);
+    _ros << hoststr;
     return _ros;
 }
 

@@ -221,9 +221,10 @@ public:
         _rs
             .push(
                 [pifs = std::move(pifs)](S& _rs, Context& _rctx, const char* _name) mutable {
-                    _rs.add(*pifs, [](std::istream& _ris, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
-                        solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
-                    },
+                    _rs.add(
+                        *pifs, [](std::istream& _ris, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
+                            solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
+                        },
                         _rctx, _name);
                     return true;
                 },
@@ -264,9 +265,10 @@ public:
                         return true;
                     },
                     [this](S& _rs, Context& _rctx, const char* _name) {
-                        _rs.add(oss, [](std::ostream& _ros, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
-                            solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
-                        },
+                        _rs.add(
+                            oss, [](std::ostream& _ros, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
+                                solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
+                            },
                             _rctx, _name);
                         return true;
                     }),
@@ -309,7 +311,7 @@ int test_binary(int argc, char* argv[])
         auto lambda = [pifs = std::unique_ptr<std::ifstream>(new ifstream)]() mutable {
             pifs->open("test.txt");
         };
-        Function<128, void()> f{std::move(lambda)};
+        Function<void(), 128> f{std::move(lambda)};
         f();
     }
 
@@ -397,7 +399,8 @@ int test_binary(int argc, char* argv[])
 
             ctx.output_file_path = output_file_path;
 
-            des.run(ris,
+            des.run(
+                ris,
                 [&t_c, &tp_c, &tup_c, &sp1_c, &up1_c](decltype(des)& des, Context& ctx) {
                     des.add(t_c, ctx, "t").add(tp_c, ctx, "tp_c").add(tup_c, ctx, "tup_c").add(sp1_c, ctx, "sp1").add(up1_c, ctx, "up1");
                 },

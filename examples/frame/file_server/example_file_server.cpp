@@ -2,8 +2,8 @@
 #include "solid/frame/reactor.hpp"
 #include "solid/frame/scheduler.hpp"
 
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiolistener.hpp"
-#include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aioreactorcontext.hpp"
 #include "solid/frame/aio/aiosocket.hpp"
@@ -24,7 +24,7 @@
 #include <mutex>
 #include <thread>
 
-#include "boost/program_options.hpp"
+#include "cxxopts.hpp"
 
 #include <fstream>
 #include <functional>
@@ -87,7 +87,7 @@ FileStoreSharedPointerT filestoreptr;
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-class Listener : public Dynamic<Listener, frame::aio::Object> {
+class Listener : public Dynamic<Listener, frame::aio::Actor> {
 public:
     Listener(
         frame::Service& _rsvc,
@@ -118,7 +118,7 @@ private:
 
 struct FilePointerMessage;
 
-class Connection : public Dynamic<Connection, frame::aio::Object> {
+class Connection : public Dynamic<Connection, frame::aio::Actor> {
     typedef std::vector<solid::DynamicPointer<>>   DynamicPointerVectorT;
     typedef frame::file::FileIOStream<1024>        IOFileStreamT;
     typedef frame::aio::Stream<frame::aio::Socket> StreamSocketT;
@@ -201,7 +201,10 @@ int main(int argc, char* argv[])
         frame::Manager  m;
         frame::ServiceT svc(m);
 
-        if (!sched.start(1) && !aiosched.start(1)) {
+        sched.start(1);
+        aiosched.start(1);
+
+        {
             {
                 frame::file::Utf8Configuration utf8cfg;
                 frame::file::TempConfiguration tempcfg;
@@ -234,12 +237,12 @@ int main(int argc, char* argv[])
                 filestoreptr = new frame::file::Store<>(m, utf8cfg, tempcfg);
             }
 
-            solid::ErrorConditionT  err;
-            solid::frame::ObjectIdT objuid;
+            solid::ErrorConditionT err;
+            solid::frame::ActorIdT actuid;
 
             {
-                SchedulerT::ObjectPointerT objptr(filestoreptr);
-                objuid = sched.startObject(objptr, svc, make_event(GenericEvents::Start), err);
+                SchedulerT::ActorPointerT actptr(filestoreptr);
+                actuid = sched.startActor(std::move(actptr), svc, make_event(GenericEvents::Start), err);
             }
 
             {
@@ -251,20 +254,16 @@ int main(int argc, char* argv[])
                 sd.prepareAccept(rd.begin(), 2000);
 
                 if (sd) {
-                    DynamicPointer<frame::aio::Object> objptr(new Listener(svc, aiosched, sd));
-                    solid::ErrorConditionT             err;
-                    solid::frame::ObjectIdT            objuid;
+                    solid::ErrorConditionT err;
+                    solid::frame::ActorIdT actuid;
 
-                    objuid = aiosched.startObject(objptr, svc, make_event(GenericEvents::Start), err);
-                    solid_log(generic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
+                    actuid = aiosched.startActor(make_dynamic<Listener>(svc, aiosched, sd), svc, make_event(GenericEvents::Start), err);
+                    solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
                 } else {
                     cout << "Error creating listener socket" << endl;
                     run = false;
                 }
             }
-        } else {
-            run = false;
-            std::cerr << "Could not start schedulers" << endl;
         }
 
         cout << "Here some examples how to test: " << endl;
@@ -293,25 +292,24 @@ int main(int argc, char* argv[])
 //------------------------------------------------------------------
 bool parseArguments(Params& _par, int argc, char* argv[])
 {
-    using namespace boost::program_options;
+    using namespace cxxopts;
     try {
-        options_description desc("SolidFrame concept application");
+        Options options{argv[0], "SolidFrame concept application"};
         // clang-format off
-        desc.add_options()
-            ("help,h", "List program options")
-            ("port,p", value<int>(&_par.start_port)->default_value(2000), "Listen port")
-            ("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")
-            ("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
-            ("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
-            ("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
-            ("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
-            ("use-log,l", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered");
+        options.add_options()
+            ("p,port", "Listen port", value<int>(_par.start_port)->default_value("2000"))
+            ("l,use-log", "Debug buffered", value<bool>(_par.log)->implicit_value("true")->default_value("false"))
+            ("M,debug-modules", "Debug logging modules", value<vector<string>>(_par.dbg_modules))
+            ("A,debug-address", "Debug server address (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_addr))
+            ("P,debug-port", "Debug server port (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_port))
+            ("C,debug-console", "Debug console", value<bool>(_par.dbg_console)->implicit_value("true")->default_value("false"))
+            ("S,debug-unbuffered", "Debug unbuffered", value<bool>(_par.dbg_buffered)->implicit_value("false")->default_value("true"))
+            ("h,help", "List program options");
         // clang-format on
-        variables_map vm;
-        store(parse_command_line(argc, argv, desc), vm);
-        notify(vm);
-        if (vm.count("help")) {
-            cout << desc << "\n";
+        auto result = options.parse(argc, argv);
+
+        if (result.count("help")) {
+            std::cout << options.help({""}) << std::endl;
             return true;
         }
         return false;
@@ -339,10 +337,9 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
     do {
         if (!_rctx.error()) {
-            DynamicPointer<frame::aio::Object> objptr(new Connection(_rsd));
-            solid::ErrorConditionT             err;
+            solid::ErrorConditionT err;
 
-            rsch.startObject(objptr, rsvc, make_event(GenericEvents::Start), err);
+            rsch.startActor(make_dynamic<Connection>(_rsd), rsvc, make_event(GenericEvents::Start), err);
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
@@ -427,7 +424,7 @@ const char* Connection::findEnd(const char* _p)
 
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         rthis.bend   = rthis.bbeg + _sz + (rthis.crtpat - patt);
         rthis.crtpat = patt;
@@ -501,14 +498,14 @@ void Connection::doRun(frame::aio::ReactorContext& _rctx)
     }
 }
 struct OpenCbk {
-    frame::Manager&  rm;
-    frame::ObjectIdT uid;
+    frame::Manager& rm;
+    frame::ActorIdT uid;
 
     OpenCbk(
-        frame::Manager&         _rm,
-        const frame::ObjectIdT& _robjuid)
+        frame::Manager&        _rm,
+        const frame::ActorIdT& _ractuid)
         : rm(_rm)
-        , uid(_robjuid)
+        , uid(_ractuid)
     {
     }
 
@@ -606,7 +603,7 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext& _rctx)
 
 /*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         rthis.doRun(_rctx);
     } else {

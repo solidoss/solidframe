@@ -7,8 +7,11 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
+#include "solid/system/exception.hpp"
 #include "solid/utility/algorithm.hpp"
 #include "solid/utility/common.hpp"
+#include "solid/utility/string.hpp"
+#include <sstream>
 
 namespace solid {
 
@@ -75,6 +78,55 @@ size_t bit_count(const uint32_t _v)
 size_t bit_count(const uint64_t _v)
 {
     return bit_count(static_cast<uint32_t>(_v & 0xffffffff)) + bit_count(static_cast<uint32_t>(_v >> 32));
+}
+
+uint64_t make_number(std::string _str)
+{
+
+    solid_check(!_str.empty(), "Empty string");
+    uint64_t mul = 1;
+    if (isupper(_str.back()) != 0) {
+        switch (_str.back()) {
+        case 'K':
+            mul = 1024ULL;
+            break;
+        case 'M':
+            mul = 1024ULL * 1024;
+            break;
+        case 'G':
+            mul = 1024ULL * 1024 * 1024;
+            break;
+        case 'T':
+            mul = 1024ULL * 1024 * 1024 * 1024;
+            break;
+        default:
+            solid_throw("Unknown multiplier: " << _str.back());
+        }
+        _str.pop_back();
+    }
+    if (islower(_str.back()) != 0) {
+        switch (_str.back()) {
+        case 'k':
+            mul = 1000ULL;
+            break;
+        case 'm':
+            mul = 1000ULL * 1000;
+            break;
+        case 'g':
+            mul = 1000ULL * 1000 * 1000;
+            break;
+        case 't':
+            mul = 1000ULL * 1000 * 1000 * 1000;
+            break;
+        default:
+            solid_throw("Unknown multiplier: " << _str.back());
+        }
+        _str.pop_back();
+    }
+    std::istringstream iss{_str};
+    uint64_t           n;
+    iss >> n;
+    return n * mul;
 }
 
 } //namespace solid

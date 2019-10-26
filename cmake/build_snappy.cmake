@@ -1,7 +1,7 @@
 set(snappy_PREFIX ${CMAKE_BINARY_DIR}/external/snappy)
 
 ExternalProject_Add(
-    build_snappy
+    build-snappy
     EXCLUDE_FROM_ALL 1
     PREFIX ${snappy_PREFIX}
     URL https://github.com/google/snappy/archive/1.1.7.tar.gz

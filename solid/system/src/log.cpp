@@ -32,6 +32,8 @@ std::ostream& operator<<(std::ostream& _ros, const LogLineBase& _line)
     return _line.writeTo(_ros);
 }
 
+LogLineBase::~LogLineBase() {}
+
 LogRecorder::~LogRecorder() {}
 
 void LogRecorder::recordLine(const solid::LogLineBase& /*_rlog_line*/) {}
@@ -838,7 +840,7 @@ ErrorConditionT log_start(
             path = "log";
             path += path_separator;
         }
-        Directory::create(path.c_str());
+        Directory::create_all(path.c_str());
         string fpath;
 
         filePath(fpath, 0, path, name);

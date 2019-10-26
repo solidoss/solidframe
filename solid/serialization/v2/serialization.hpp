@@ -16,5 +16,24 @@
 namespace solid {
 namespace serialization {
 using namespace v2;
+
+template <class T, class S>
+void addVersion(S& _rs, const uint32_t& _version, const char* _name)
+{
+    _rs.template addVersion<T>(_version, _name);
 }
+
+template <class T, class S>
+void addVersion(S& _rs, uint32_t& _rversion, const char* _name)
+{
+    _rs.template addVersion<T>(_rversion, _name);
+}
+
+template <class T, class S>
+uint32_t version(S& _rs, const T& _rt)
+{
+    return _rs.version(_rt);
+}
+
+} // namespace serialization
 } // namespace solid

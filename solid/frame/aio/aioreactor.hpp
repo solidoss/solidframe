@@ -30,14 +30,14 @@ class Service;
 
 namespace aio {
 
-class Object;
+class Actor;
 class CompletionHandler;
 struct ChangeTimerIndexCallback;
 struct TimerCallback;
 struct EventHandler;
 struct ExecStub;
 
-typedef DynamicPointer<Object> ObjectPointerT;
+typedef DynamicPointer<Actor> ActorPointerT;
 
 //!
 /*!
@@ -47,12 +47,12 @@ class Reactor : public frame::ReactorBase {
     typedef solid_function_t(void(ReactorContext&, Event&&)) EventFunctionT;
 
     template <class Function>
-    struct StopObjectF {
+    struct StopActorF {
         Function function;
         bool     repost;
 
-        explicit StopObjectF(Function& _function)
-            : function(std::move(_function))
+        explicit StopActorF(Function&& _function)
+            : function{std::forward<Function>(_function)}
             , repost(true)
         {
         }
@@ -61,44 +61,45 @@ class Reactor : public frame::ReactorBase {
         {
             if (repost) { //skip one round - to guarantee that all remaining posts were delivered
                 repost = false;
-                EventFunctionT eventfnc(std::move(*this));
-                _rctx.reactor().doPost(_rctx, eventfnc, std::move(_uevent));
+                EventFunctionT eventfnc{std::move(*this)};
+                _rctx.reactor().doPost(_rctx, std::move(eventfnc), std::move(_uevent));
             } else {
                 function(_rctx, std::move(_uevent));
-                _rctx.reactor().doStopObject(_rctx);
+                _rctx.reactor().doStopActor(_rctx);
             }
         }
     };
 
 public:
-    typedef ObjectPointerT TaskT;
-    typedef Object         ObjectT;
+    typedef ActorPointerT TaskT;
+    typedef Actor         ActorT;
 
     Reactor(SchedulerBase& _rsched, const size_t _schedidx);
     ~Reactor();
 
     template <typename Function>
-    void post(ReactorContext& _rctx, Function _fnc, Event&& _uev)
+    void post(ReactorContext& _rctx, Function&& _fnc, Event&& _uev)
     {
-        EventFunctionT eventfnc(std::move(_fnc));
-        doPost(_rctx, eventfnc, std::move(_uev));
+        EventFunctionT eventfnc{std::forward<Function>(_fnc)};
+        doPost(_rctx, std::move(eventfnc), std::move(_uev));
     }
 
     template <typename Function>
-    void post(ReactorContext& _rctx, Function _fnc, Event&& _uev, CompletionHandler const& _rch)
+    void post(ReactorContext& _rctx, Function&& _fnc, Event&& _uev, CompletionHandler const& _rch)
     {
-        EventFunctionT eventfnc(std::move(_fnc));
-        doPost(_rctx, eventfnc, std::move(_uev), _rch);
+        EventFunctionT eventfnc{std::forward<Function>(_fnc)};
+        doPost(_rctx, std::move(eventfnc), std::move(_uev), _rch);
     }
 
-    void postObjectStop(ReactorContext& _rctx);
+    void postActorStop(ReactorContext& _rctx);
 
     template <typename Function>
-    void postObjectStop(ReactorContext& _rctx, Function _f, Event&& _uev)
+    void postActorStop(ReactorContext& _rctx, Function&& _f, Event&& _uev)
     {
-        StopObjectF<Function> stopfnc(_f);
-        EventFunctionT        eventfnc(std::move(stopfnc));
-        doPost(_rctx, eventfnc, std::move(_uev));
+        using RealF = typename std::decay<Function>::type;
+        StopActorF<RealF> stopfnc{std::forward<RealF>(_f)};
+        EventFunctionT    eventfnc(std::move(stopfnc));
+        doPost(_rctx, std::move(eventfnc), std::move(_uev));
     }
 
     bool addDevice(ReactorContext& _rctx, Device const& _rsd, const ReactorWaitRequestsE _req);
@@ -115,19 +116,19 @@ public:
 
     bool start();
 
-    bool raise(UniqueId const& _robjuid, Event const& _revt) override;
-    bool raise(UniqueId const& _robjuid, Event&& _uevt) override;
+    bool raise(UniqueId const& _ractuid, Event const& _revt) override;
+    bool raise(UniqueId const& _ractuid, Event&& _uevt) override;
     void stop() override;
 
-    void registerCompletionHandler(CompletionHandler& _rch, Object const& _robj);
+    void registerCompletionHandler(CompletionHandler& _rch, Actor const& _ract);
     void unregisterCompletionHandler(CompletionHandler& _rch);
 
     void run();
-    bool push(TaskT& _robj, Service& _rsvc, Event&& _revt);
+    bool push(TaskT&& _ract, Service& _rsvc, Event&& _revt);
 
     Service& service(ReactorContext const& _rctx) const;
 
-    Object& object(ReactorContext const& _rctx) const;
+    Actor& actor(ReactorContext const& _rctx) const;
 
     CompletionHandler* completionHandler(ReactorContext const& _rctx) const;
 
@@ -151,18 +152,18 @@ private:
     void doClearSpecific();
     void doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx);
 
-    void doPost(ReactorContext& _rctx, EventFunctionT& _revfn, Event&& _uev);
-    void doPost(ReactorContext& _rctx, EventFunctionT& _revfn, Event&& _uev, CompletionHandler const& _rch);
+    void doPost(ReactorContext& _rctx, EventFunctionT&& _revfn, Event&& _uev);
+    void doPost(ReactorContext& _rctx, EventFunctionT&& _revfn, Event&& _uev, CompletionHandler const& _rch);
 
-    void doStopObject(ReactorContext& _rctx);
+    void doStopActor(ReactorContext& _rctx);
 
     void        onTimer(ReactorContext& _rctx, const size_t _tidx, const size_t _chidx);
-    static void call_object_on_event(ReactorContext& _rctx, Event&& _uev);
+    static void call_actor_on_event(ReactorContext& _rctx, Event&& _uev);
     static void increase_event_vector_size(ReactorContext& _rctx, Event&& _uev);
-    static void stop_object(ReactorContext& _rctx, Event&& _uevent);
-    static void stop_object_repost(ReactorContext& _rctx, Event&& _uevent);
+    static void stop_actor(ReactorContext& _rctx, Event&& _uevent);
+    static void stop_actor_repost(ReactorContext& _rctx, Event&& _uevent);
 
-    UniqueId objectUid(ReactorContext const& _rctx) const;
+    UniqueId actorUid(ReactorContext const& _rctx) const;
 
 private: //data
     struct Data;

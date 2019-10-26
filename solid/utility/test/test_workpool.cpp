@@ -1,3 +1,4 @@
+#include "solid/system/crashhandler.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/utility/workpool.hpp"
 #include <algorithm>
@@ -38,9 +39,13 @@ struct Context {
 
 int test_workpool(int argc, char* argv[])
 {
+    install_crash_handler();
+
     solid::log_start(std::cerr, {".*:EWS"});
 
     cout << "usage: " << argv[0] << " JOB_COUNT WAIT_SECONDS QUEUE_SIZE PRODUCER_COUNT CONSUMER_COUNT PUSH_SLEEP_MSECS JOB_SLEEP_MSECS" << endl;
+    using WorkPoolT  = WorkPool<size_t>;
+    using AtomicPWPT = std::atomic<WorkPoolT*>;
 
     size_t        job_count        = 5000000;
     int           wait_seconds     = 100;
@@ -51,7 +56,7 @@ int test_workpool(int argc, char* argv[])
     int           job_sleep_msecs  = 0;
     deque<size_t> gdq;
     std::mutex    gmtx;
-    promise<void> prom;
+    AtomicPWPT    pwp{nullptr};
 
     if (argc > 1) {
         job_count = atoi(argv[1]);
@@ -81,17 +86,11 @@ int test_workpool(int argc, char* argv[])
         job_sleep_msecs = atoi(argv[7]);
     }
 
-    thread wait_thread(
-        [](promise<void>& _rprom, const int _wait_time_seconds) {
-            solid_check(_rprom.get_future().wait_for(chrono::seconds(_wait_time_seconds)) == future_status::ready, " Test is taking too long - waited " << _wait_time_seconds << " secs");
-        },
-        std::ref(prom), wait_seconds);
-
-    {
+    auto lambda = [&]() {
         WorkPool<size_t> wp{
-            1,
             WorkPoolConfiguration(consumer_count, queue_size <= 0 ? std::numeric_limits<size_t>::max() : queue_size),
-            [job_sleep_msecs](size_t _v, Context& _rctx) {
+            1,
+            [job_sleep_msecs](size_t _v, Context&& _rctx) {
                 //solid_check(_rs == "this is a string", "failed string check");
                 val += _v;
                 if (job_sleep_msecs != 0) {
@@ -101,7 +100,9 @@ int test_workpool(int argc, char* argv[])
                 _rctx.ldq_.emplace_back(_v);
 #endif
             },
-            std::ref(gdq), std::ref(gmtx)};
+            Context(gdq, gmtx)};
+
+        pwp = &wp;
 
         auto producer_lambda = [job_count, push_sleep_msecs, &wp]() {
             for (size_t i = 0; i < job_count; ++i) {
@@ -124,11 +125,15 @@ int test_workpool(int argc, char* argv[])
         } else {
             producer_lambda();
         }
+        pwp = nullptr;
+    };
+
+    if (async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
+        if (pwp != nullptr) {
+            pwp.load()->dumpStatistics();
+        }
+        solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }
-
-    prom.set_value();
-    wait_thread.join();
-
     const size_t v = (((job_count - 1) * job_count) / 2) * (producer_count == 0 ? 1 : producer_count);
 
     solid_log(generic_logger, Warning, "val = " << val << " expected val = " << v);

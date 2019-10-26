@@ -378,6 +378,8 @@ class TypeIdMapSer : virtual protected TypeIdMapBase {
 public:
     TypeIdMapSer() {}
 
+    virtual ~TypeIdMapSer() {}
+
     template <class T>
     ErrorConditionT store(Ser& _rs, T* _pt, const char* _name) const
     {

@@ -55,4 +55,6 @@ inline void to_upper(std::string& _rstr)
     std::transform(_rstr.begin(), _rstr.end(), _rstr.begin(), [](unsigned char c) { return std::toupper(c); });
 }
 
+uint64_t make_number(std::string _str);
+
 } //namespace solid

@@ -1,5 +1,5 @@
+#include "solid/frame/actor.hpp"
 #include "solid/frame/manager.hpp"
-#include "solid/frame/object.hpp"
 #include "solid/frame/reactor.hpp"
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
@@ -37,7 +37,7 @@ struct GlobalId {
     uint16_t group_unique;
 };
 
-class BasicObject : public Dynamic<BasicObject, frame::Object> {
+class BasicActor : public Dynamic<BasicActor, frame::Actor> {
     enum Status : uint8_t {
         StatusInMemory,
         StatusCompressed,
@@ -45,7 +45,7 @@ class BasicObject : public Dynamic<BasicObject, frame::Object> {
     };
 
 public:
-    BasicObject()
+    BasicActor()
         : timer_(proxy())
         , status_(StatusInMemory)
         , active_(false)
@@ -64,15 +64,15 @@ private:
     GlobalId           id_;
 };
 
-using ObjectDequeT = std::deque<BasicObject>;
+using ActorDequeT = std::deque<BasicActor>;
 
 namespace {
-ObjectDequeT       objdq;
+ActorDequeT        actdq;
 condition_variable cnd;
 mutex              mtx;
-size_t             running_objcnt = 0;
-size_t             started_objcnt = 0;
-size_t             ondisk_objcnt  = 0;
+size_t             running_actcnt = 0;
+size_t             started_actcnt = 0;
+size_t             ondisk_actcnt  = 0;
 } // namespace
 
 int main(int argc, char* argv[])
@@ -86,41 +86,39 @@ int main(int argc, char* argv[])
         frame::ServiceT        svc(m);
         solid::ErrorConditionT err;
 
-        err = s.start(1);
+        s.start(1);
 
-        if (!err) {
+        {
             const size_t cnt = argc == 2 ? atoi(argv[1]) : 1000;
 
-            cout << "Creating " << cnt << " objects:" << endl;
+            cout << "Creating " << cnt << " actors:" << endl;
 
             for (size_t i = 0; i < cnt; ++i) {
 
-                objdq.emplace_back();
+                actdq.emplace_back();
 
-                DynamicPointer<frame::Object> objptr(&objdq.back());
-                solid::frame::ObjectIdT       objuid;
+                DynamicPointer<frame::Actor> actptr(&actdq.back());
+                solid::frame::ActorIdT       actuid;
                 {
                     lock_guard<mutex> lock(mtx);
 
-                    objuid = s.startObject(objptr, svc, make_event(GenericEvents::Start), err);
+                    actuid = s.startActor(std::move(actptr), svc, make_event(GenericEvents::Start), err);
 
-                    solid_log(generic_logger, Info, "Started BasicObject: " << objuid.index << ',' << objuid.unique);
+                    solid_log(generic_logger, Info, "Started BasicActor: " << actuid.index << ',' << actuid.unique);
 
                     if (err) {
-                        cout << "Error starting object " << i << ": " << err.message() << endl;
+                        cout << "Error starting actor " << i << ": " << err.message() << endl;
                         break;
                     }
-                    ++running_objcnt;
+                    ++running_actcnt;
                 }
             }
-        } else {
-            cout << "Error starting scheduler: " << err.message() << endl;
         }
 
         if (!err) {
             {
                 unique_lock<mutex> lock(mtx);
-                while (started_objcnt != running_objcnt) {
+                while (started_actcnt != running_actcnt) {
                     cnd.wait(lock);
                 }
             }
@@ -143,25 +141,25 @@ int main(int argc, char* argv[])
             cout << "Notify all raise: DONE. " << duration.count() << "ms" << endl;
             {
                 unique_lock<mutex> lock(mtx);
-                while (ondisk_objcnt != running_objcnt) {
+                while (ondisk_actcnt != running_actcnt) {
                     cnd.wait(lock);
                 }
             }
-            cout << "All objects on disk" << endl;
+            cout << "All actors on disk" << endl;
         }
     }
     cout << "DONE!" << endl;
     return 0;
 }
 
-/*virtual*/ void BasicObject::onEvent(frame::ReactorContext& _rctx, Event&& _uevent)
+/*virtual*/ void BasicActor::onEvent(frame::ReactorContext& _rctx, Event&& _uevent)
 {
     solid_log(generic_logger, Info, "event = " << _uevent);
     if (_uevent == generic_event_start) {
         {
             lock_guard<mutex> lock(mtx);
-            ++started_objcnt;
-            if (started_objcnt == running_objcnt) {
+            ++started_actcnt;
+            if (started_actcnt == running_actcnt) {
                 cnd.notify_one();
             }
         }
@@ -172,8 +170,8 @@ int main(int argc, char* argv[])
             status_ = StatusOnDisk;
             timer_.cancel(_rctx);
             lock_guard<mutex> lock(mtx);
-            ++ondisk_objcnt;
-            if (ondisk_objcnt == running_objcnt) {
+            ++ondisk_actcnt;
+            if (ondisk_actcnt == running_actcnt) {
                 cnd.notify_one();
             }
         }
@@ -183,7 +181,7 @@ int main(int argc, char* argv[])
     }
 }
 
-void BasicObject::onTimer(frame::ReactorContext& _rctx)
+void BasicActor::onTimer(frame::ReactorContext& _rctx)
 {
     solid_log(generic_logger, Info, "");
 
@@ -193,8 +191,8 @@ void BasicObject::onTimer(frame::ReactorContext& _rctx)
     } else if (status_ == StatusCompressed) {
         status_ = StatusOnDisk;
         lock_guard<mutex> lock(mtx);
-        ++ondisk_objcnt;
-        if (ondisk_objcnt == running_objcnt) {
+        ++ondisk_actcnt;
+        if (ondisk_actcnt == running_actcnt) {
             cnd.notify_one();
         }
     }

@@ -14,8 +14,8 @@ $ openssl x509 -req -in server-req.pem -days 1000 -CA ca-cert.pem -CAkey ca-key.
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
 
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiolistener.hpp"
-#include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aiotimer.hpp"
 
@@ -28,7 +28,7 @@ $ openssl x509 -req -in server-req.pem -days 1000 -CA ca-cert.pem -CAkey ca-key.
 
 #include "solid/utility/event.hpp"
 
-#include "boost/program_options.hpp"
+#include "cxxopts.hpp"
 
 #include <functional>
 #include <iostream>
@@ -79,7 +79,7 @@ SecureContextT secure_ctx(SecureContextT::create());
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-class Listener : public Dynamic<Listener, frame::aio::Object> {
+class Listener : public Dynamic<Listener, frame::aio::Actor> {
 public:
     // We will use the this backlog_size
     // both as parameter to listen and as max
@@ -123,7 +123,7 @@ private:
 #include "solid/frame/aio/aiosocket.hpp"
 #include "solid/frame/aio/aiostream.hpp"
 
-class Connection : public Dynamic<Connection, frame::aio::Object> {
+class Connection : public Dynamic<Connection, frame::aio::Actor> {
 public:
     Connection(SocketDevice&& _rsd, SecureContextT& _rctx)
         : sock(this->proxy(), std::move(_rsd), _rctx)
@@ -195,11 +195,9 @@ int main(int argc, char* argv[])
 
         frame::Manager  m;
         frame::ServiceT svc(m);
+        sch.start(thread::hardware_concurrency());
 
-        if (sch.start(thread::hardware_concurrency())) {
-            running = false;
-            cout << "Error starting scheduler" << endl;
-        } else {
+        {
             ResolveData rd = synchronous_resolve("0.0.0.0", params.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 
             SocketDevice sd;
@@ -208,12 +206,11 @@ int main(int argc, char* argv[])
             sd.prepareAccept(rd.begin(), Listener::backlog_size());
 
             if (sd) {
-                DynamicPointer<frame::aio::Object> objptr(new Listener(svc, sch, std::move(sd)));
-                solid::ErrorConditionT             err;
-                solid::frame::ObjectIdT            objuid;
+                solid::ErrorConditionT err;
+                solid::frame::ActorIdT actuid;
 
-                objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
-                solid_log(generic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
+                actuid = sch.startActor(make_dynamic<Listener>(svc, sch, std::move(sd)), svc, make_event(GenericEvents::Start), err);
+                solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
                 running = false;
@@ -237,24 +234,23 @@ int main(int argc, char* argv[])
 //-----------------------------------------------------------------------------
 bool parseArguments(Params& _par, int argc, char* argv[])
 {
-    using namespace boost::program_options;
+    using namespace cxxopts;
     try {
-        options_description desc("SolidFrame concept application");
+        Options options{argv[0], "SolidFrame concept application"};
         // clang-format off
-        desc.add_options()
-            ("help,h", "List program options")
-            ("listen-port,l", value<int>(&_par.listener_port)->default_value(2000), "Listener port")
-            ("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")
-            ("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
-            ("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
-            ("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
-            ("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered");
+        options.add_options()
+            ("h,help", "List program options")
+            ("l,listen-port", "Listener port", value<int>(_par.listener_port)->default_value("2000"))
+            ("M,debug-modules", "Debug logging modules", value<vector<string>>(_par.dbg_modules))
+            ("A,debug-address", "Debug server address (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_addr))
+            ("P,debug-port", "Debug server port (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_port))
+            ("C,debug-console", "Debug console", value<bool>(_par.dbg_console)->implicit_value("true")->default_value("false"))
+            ("S,debug-unbuffered", "Debug unbuffered", value<bool>(_par.dbg_buffered)->implicit_value("false")->default_value("true"));
         // clang-format on
-        variables_map vm;
-        store(parse_command_line(argc, argv, desc), vm);
-        notify(vm);
-        if (vm.count("help")) {
-            cout << desc << "\n";
+        auto result = options.parse(argc, argv);
+
+        if (result.count("help")) {
+            std::cout << options.help({""}) << std::endl;
             return true;
         }
         return false;
@@ -291,10 +287,9 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             sz = 10224 * 32;
             _rsd.sendBufferSize(sz);
             solid_log(generic_logger, Error, "new_connection");
-            DynamicPointer<frame::aio::Object> objptr(new Connection(std::move(_rsd), secure_ctx));
-            solid::ErrorConditionT             err;
+            solid::ErrorConditionT err;
 
-            rsch.startObject(objptr, rsvc, make_event(GenericEvents::Start), err);
+            rsch.startActor(make_dynamic<Connection>(std::move(_rsd), secure_ctx), rsvc, make_event(GenericEvents::Start), err);
 
 #else
             cout << "Accepted connection: " << _rsd.descriptor() << endl;
@@ -342,7 +337,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
     unsigned    repeatcnt = 2;
-    Connection& rthis     = static_cast<Connection&>(_rctx.object());
+    Connection& rthis     = static_cast<Connection&>(_rctx.actor());
     solid_log(generic_logger, Info, &rthis << " " << _sz);
     do {
         if (!_rctx.error()) {
@@ -378,7 +373,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
 /*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, &rthis << " postRecvSome");
         rthis.sendcnt += rthis.sendcrt;
@@ -391,7 +386,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
 /*static*/ void Connection::onSecureAccept(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, &rthis << " postRecvSome");
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
@@ -403,7 +398,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
 /*static*/ bool Connection::onSecureVerify(frame::aio::ReactorContext& _rctx, bool _preverified, frame::aio::openssl::VerifyContext& _rverify_ctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
     solid_log(generic_logger, Info, &rthis << " " << _preverified);
     return _preverified;
 }

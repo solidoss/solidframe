@@ -1,12 +1,12 @@
 # the frame libraries:
 set(Sources
-    src/manager.cpp
-    src/object.cpp
+    src/actor.cpp
     src/service.cpp
     src/schedulerbase.cpp
     src/reactor.cpp
     src/completion.cpp
     src/sharedstore.cpp
+    src/manager.cpp
 )
 
 set(Headers
@@ -14,8 +14,8 @@ set(Headers
     completion.hpp
     forwardcompletion.hpp
     manager.hpp
-    objectbase.hpp
-    object.hpp
+    actorbase.hpp
+    actor.hpp
     reactorbase.hpp
     reactorcontext.hpp
     reactor.hpp
@@ -46,4 +46,4 @@ install (TARGETS solid_frame DESTINATION lib EXPORT SolidFrameConfig)
 
 add_subdirectory(aio)
 add_subdirectory(file)
-add_subdirectory(mpipc)
+add_subdirectory(mprpc)

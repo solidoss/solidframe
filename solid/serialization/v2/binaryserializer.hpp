@@ -611,6 +611,13 @@ public: //should be protected
         tryRun(std::move(r));
     }
 
+    template <class T>
+    void addVersion(const uint32_t _version, const char* _name)
+    {
+        doAddVersion(typeId<T>(), _version);
+        addBasicWithCheck(_version, _name);
+    }
+
 protected:
     void doPrepareRun(char* _pbeg, unsigned _sz)
     {
@@ -1008,7 +1015,7 @@ public:
     template <typename F>
     ThisT& add(std::istream& _ris, const uint64_t _sz, F _f, Ctx& _rctx, const char* _name)
     {
-        addStream(_ris, _sz, _f, _name);
+        addStream(_ris, _sz, _f, _rctx, _name);
         return *this;
     }
     template <typename F>

@@ -15,13 +15,13 @@ foreach (SOURCE_FILE ${ALL_SOURCE_FILES})
 endforeach ()
 
 find_program(CLANG_FORMAT_BIN
-    NAMES clang-format-6.0 clang-format
+    NAMES clang-format-8
     PATHS /usr/local/bin /usr/bin
     NO_DEFAULT_PATH
 )
 
 add_custom_target(
-    clangformat
+    code-auto-format
     COMMAND ${CLANG_FORMAT_BIN}
     -style=file
     -i

@@ -98,6 +98,22 @@ public:
         Wait
     };
 
+    template <class T>
+    uint32_t version(const T& /*_rt*/)
+    {
+        size_t idx = typeId<T>();
+        if (idx < version_offset_) {
+            return InvalidIndex();
+        }
+
+        idx -= version_offset_;
+
+        if (idx < version_vec_.size()) {
+            return version_vec_[idx];
+        }
+        return InvalidIndex();
+    }
+
 protected:
     enum {
         InnerListRun,
@@ -106,16 +122,32 @@ protected:
         //Add above
         InnerListCount,
     };
+    using VersionVectorT = std::vector<uint32_t>;
 
     Base() {}
+
     Base(const Limits& _rlimits)
         : limits_(_rlimits)
     {
     }
 
+    template <class T>
+    static const size_t typeId()
+    {
+        static const size_t idx = newTypeId();
+        return idx;
+    }
+
+    void doAddVersion(const size_t _type_idx, const uint32_t _version);
+
+private:
+    static size_t newTypeId();
+
 protected:
     Limits          limits_;
     ErrorConditionT error_;
+    VersionVectorT  version_vec_;
+    size_t          version_offset_ = InvalidSize();
 };
 
 #define SOLID_SERIALIZATION_BASIC(T)                                                  \

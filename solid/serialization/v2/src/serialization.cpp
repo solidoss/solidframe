@@ -9,6 +9,7 @@
 //
 
 #include "solid/serialization/v2/serialization.hpp"
+#include <atomic>
 
 namespace solid {
 namespace serialization {
@@ -61,6 +62,34 @@ const ErrorCategory ec;
 /*virtual*/ TypeMapBase::~TypeMapBase() {}
 //========================================================================
 //========================================================================
+namespace binary {
+/*static*/ size_t Base::newTypeId()
+{
+    static std::atomic<size_t> crt_idx{0};
+    return crt_idx.fetch_add(1);
+}
+
+void Base::doAddVersion(const size_t _type_idx, const uint32_t _version)
+{
+    if (_type_idx < version_offset_) {
+        if (version_offset_ != InvalidIndex()) {
+            version_vec_.insert(version_vec_.begin(), version_offset_ - _type_idx, InvalidIndex());
+        }
+        version_offset_ = _type_idx;
+    }
+
+    const size_t idx = _type_idx - version_offset_;
+    if (idx < version_vec_.size()) {
+    } else {
+        version_vec_.resize(idx + 1, InvalidIndex());
+    }
+    version_vec_[idx] = _version;
+}
+
+//========================================================================
+//========================================================================
+
+} //namespace binary
 } // namespace v2
 } // namespace serialization
 } // namespace solid

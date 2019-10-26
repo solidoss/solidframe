@@ -2,8 +2,8 @@
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
 
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiolistener.hpp"
-#include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aioresolver.hpp"
 #include "solid/frame/aio/aiosocket.hpp"
@@ -19,7 +19,7 @@
 
 #include "solid/utility/event.hpp"
 
-#include "boost/program_options.hpp"
+#include "cxxopts.hpp"
 
 #include <functional>
 #include <iostream>
@@ -64,7 +64,7 @@ frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr)
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-class Listener final : public Dynamic<Listener, frame::aio::Object> {
+class Listener final : public Dynamic<Listener, frame::aio::Actor> {
 public:
     Listener(
         frame::Service& _rsvc,
@@ -173,10 +173,10 @@ struct EventData;
 using EventDataPtrT = std::unique_ptr<EventData>;
 
 struct EventData {
-    EventDataPtrT    nextptr_;
-    frame::ObjectIdT senderid_;
-    BufferPtrT       bufptr_;
-    size_t           bufsz_;
+    EventDataPtrT   nextptr_;
+    frame::ActorIdT senderid_;
+    BufferPtrT      bufptr_;
+    size_t          bufsz_;
 
     EventData()
         : bufsz_(-1)
@@ -184,7 +184,7 @@ struct EventData {
     }
 };
 
-class Connection final : public Dynamic<Connection, frame::aio::Object> {
+class Connection final : public Dynamic<Connection, frame::aio::Actor> {
 public:
     Connection(SocketDevice&& _rsd)
         : sock_(this->proxy(), std::move(_rsd))
@@ -192,9 +192,9 @@ public:
         init();
     }
 
-    Connection(const frame::ObjectIdT& _peer_obduid)
+    Connection(const frame::ActorIdT& _peer_obduid)
         : sock_(this->proxy())
-        , peer_objuid_(_peer_obduid)
+        , peer_actuid_(_peer_obduid)
     {
         init();
     }
@@ -212,7 +212,7 @@ protected:
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
     void onStop(frame::Manager& _rm) override
     {
-        _rm.notify(peer_objuid_, Event(generic_event_kill));
+        _rm.notify(peer_actuid_, Event(generic_event_kill));
     }
 
     static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
@@ -267,13 +267,13 @@ protected:
         BufferCount       = 4 };
     using StreamSocketT = frame::aio::Stream<frame::aio::Socket>;
 
-    BufferPtrT       rbufptr_;
-    uint16_t         rbufcnt_;
-    EventDataPtrT    reventdataptr_;
-    EventDataPtrT    weventdatabegptr_;
-    EventData*       pweventdataend_;
-    StreamSocketT    sock_;
-    frame::ObjectIdT peer_objuid_;
+    BufferPtrT      rbufptr_;
+    uint16_t        rbufcnt_;
+    EventDataPtrT   reventdataptr_;
+    EventDataPtrT   weventdatabegptr_;
+    EventData*      pweventdataend_;
+    StreamSocketT   sock_;
+    frame::ActorIdT peer_actuid_;
 };
 
 bool parseArguments(Params& _par, int argc, char* argv[]);
@@ -308,8 +308,8 @@ int main(int argc, char* argv[])
 
     cout << "sizeof(Connection) = " << sizeof(Connection) << endl;
 
-    FunctionWorkPool     fwp{WorkPoolConfiguration()};
-    frame::aio::Resolver resolver(fwp);
+    CallPool<void()>     cwp{WorkPoolConfiguration(), 0};
+    frame::aio::Resolver resolver(cwp);
 
     async_resolver(&resolver);
     {
@@ -318,10 +318,9 @@ int main(int argc, char* argv[])
 
         frame::Manager  m;
         frame::ServiceT svc(m);
+        sch.start(thread::hardware_concurrency());
 
-        if (sch.start(thread::hardware_concurrency())) {
-            cout << "Error starting scheduler" << endl;
-        } else {
+        {
             ResolveData rd = synchronous_resolve("0.0.0.0", params.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 
             SocketDevice sd;
@@ -330,12 +329,11 @@ int main(int argc, char* argv[])
             sd.prepareAccept(rd.begin(), 2000);
 
             if (sd) {
-                DynamicPointer<frame::aio::Object> objptr(new Listener(svc, sch, std::move(sd)));
-                solid::ErrorConditionT             err;
-                solid::frame::ObjectIdT            objuid;
+                solid::ErrorConditionT err;
+                solid::frame::ActorIdT actuid;
 
-                objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
-                solid_log(generic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
+                actuid = sch.startActor(make_dynamic<Listener>(svc, sch, std::move(sd)), svc, make_event(GenericEvents::Start), err);
+                solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
             }
@@ -352,25 +350,24 @@ int main(int argc, char* argv[])
 //-----------------------------------------------------------------------------
 bool parseArguments(Params& _par, int argc, char* argv[])
 {
-    using namespace boost::program_options;
+    using namespace cxxopts;
     try {
-        options_description desc("SolidFrame Example Relay-Server Application");
+        Options options(argv[0], "SolidFrame Example Relay-Server Application");
         // clang-format off
-        desc.add_options()
-            ("help,h", "List program options")
-            ("listen-port,l", value<int>(&_par.listener_port)->default_value(2000), "Listener port")
-            ("connect-addr,c", value<string>(&_par.connect_addr_str)->default_value(""), "Connect address")
-            ("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")
-            ("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
-            ("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
-            ("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
-            ("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered");
+        options.add_options()
+            ("p,listen-port", "Listen port", value<int>(_par.listener_port)->default_value("2000"))
+            ("c,connect-addr", "Connect address", value<string>(_par.connect_addr_str)->default_value(""))
+            ("M,debug-modules", "Debug logging modules", value<vector<string>>(_par.dbg_modules))
+            ("A,debug-address", "Debug server address (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_addr))
+            ("P,debug-port", "Debug server port (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_port))
+            ("C,debug-console", "Debug console", value<bool>(_par.dbg_console)->implicit_value("true")->default_value("false"))
+            ("S,debug-unbuffered", "Debug unbuffered", value<bool>(_par.dbg_buffered)->implicit_value("false")->default_value("true"))
+            ("h,help", "List program options");
         // clang-format on
-        variables_map vm;
-        store(parse_command_line(argc, argv, desc), vm);
-        notify(vm);
-        if (vm.count("help")) {
-            cout << desc << "\n";
+        auto result = options.parse(argc, argv);
+
+        if (result.count("help")) {
+            std::cout << options.help({""}) << std::endl;
             return true;
         }
 
@@ -422,20 +419,10 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 #endif
             _rsd.enableNoDelay();
 
-            frame::ObjectIdT objuid;
-            {
-                DynamicPointer<frame::aio::Object> objptr(new Connection(std::move(_rsd)));
-                solid::ErrorConditionT             err;
+            solid::ErrorConditionT err;
+            frame::ActorIdT        actuid = rsch_.startActor(make_dynamic<Connection>(std::move(_rsd)), rsvc_, make_event(GenericEvents::Start), err);
 
-                objuid = rsch_.startObject(objptr, rsvc_, make_event(GenericEvents::Start), err);
-            }
-
-            {
-                DynamicPointer<frame::aio::Object> objptr(new Connection(objuid));
-                solid::ErrorConditionT             err;
-
-                rsch_.startObject(objptr, rsvc_, make_event(GenericEvents::Start), err);
-            }
+            rsch_.startActor(make_dynamic<Connection>(actuid), rsvc_, make_event(GenericEvents::Start), err);
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
@@ -456,12 +443,12 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 //-----------------------------------------------------------------------------
 
 struct ResolvFunc {
-    frame::Manager&  rm;
-    frame::ObjectIdT objuid;
+    frame::Manager& rm;
+    frame::ActorIdT actuid;
 
-    ResolvFunc(frame::Manager& _rm, frame::ObjectIdT const& _robjuid)
+    ResolvFunc(frame::Manager& _rm, frame::ActorIdT const& _ractuid)
         : rm(_rm)
-        , objuid(_robjuid)
+        , actuid(_ractuid)
     {
     }
 
@@ -472,7 +459,7 @@ struct ResolvFunc {
         ev.any() = std::move(_rrd);
 
         solid_log(generic_logger, Info, this << " send resolv_message");
-        rm.notify(objuid, std::move(ev));
+        rm.notify(actuid, std::move(ev));
     }
 };
 
@@ -541,10 +528,10 @@ struct ResolvFunc {
             }
         }
 
-        frame::ObjectIdT* ppeer_objuid = _revent.any().cast<frame::ObjectIdT>();
-        if (ppeer_objuid) {
+        frame::ActorIdT* ppeer_actuid = _revent.any().cast<frame::ActorIdT>();
+        if (ppeer_actuid) {
             //peer connection established
-            peer_objuid_ = *ppeer_objuid;
+            peer_actuid_ = *ppeer_actuid;
             //do the first read
             sock_.postRecvSome(_rctx, rbufptr_->data(), rbufptr_->capacity(), Connection::onRecv);
         }
@@ -553,7 +540,7 @@ struct ResolvFunc {
 
 /*static*/ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
 
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, &rthis << " SUCCESS");
@@ -561,7 +548,7 @@ struct ResolvFunc {
         Event ev(make_event(GenericEvents::Message, _rctx.manager().id(rthis)));
 
         solid_log(generic_logger, Info, &rthis << " send resolv_message");
-        if (_rctx.manager().notify(rthis.peer_objuid_, std::move(ev))) {
+        if (_rctx.manager().notify(rthis.peer_actuid_, std::move(ev))) {
 
             rthis.sock_.device().enableNoDelay();
             //do the first read
@@ -579,13 +566,13 @@ struct ResolvFunc {
 
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
 
     solid_log(generic_logger, Info, &rthis << " " << _sz);
 
     if (!_rctx.error()) {
 
-        _rctx.manager().notify(rthis.peer_objuid_, make_event(GenericEvents::Raise, rthis.makeReadEventData(_rctx, _sz)));
+        _rctx.manager().notify(rthis.peer_actuid_, make_event(GenericEvents::Raise, rthis.makeReadEventData(_rctx, _sz)));
 
         if (rthis.prepareCurrentReadBuffer()) {
             rthis.sock_.postRecvSome(_rctx, rthis.rbufptr_->data(), rthis.rbufptr_->capacity(), Connection::onRecv);
@@ -601,10 +588,10 @@ struct ResolvFunc {
 
 /*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
 
     if (!_rctx.error()) {
-        _rctx.manager().notify(rthis.peer_objuid_, make_event(GenericEvents::Raise, rthis.popWriteEventData()));
+        _rctx.manager().notify(rthis.peer_actuid_, make_event(GenericEvents::Raise, rthis.popWriteEventData()));
 
         solid_log(generic_logger, Info, &rthis << " ");
 

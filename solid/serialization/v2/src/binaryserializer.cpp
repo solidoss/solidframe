@@ -102,7 +102,7 @@ void SerializerBase::tryRun(Runnable&& _ur, void* _pctx)
 
 void SerializerBase::limits(const Limits& _rlimits, const char* _name)
 {
-    solid_dbg(generic_logger, Info, _name);
+    solid_dbg(logger, Info, _name);
     if (isRunEmpty()) {
         limits_ = _rlimits;
     } else {
@@ -120,7 +120,7 @@ void SerializerBase::limits(const Limits& _rlimits, const char* _name)
 
 void SerializerBase::limitString(const size_t _sz, const char* _name)
 {
-    solid_dbg(generic_logger, Info, _name);
+    solid_dbg(logger, Info, _name);
     if (isRunEmpty()) {
         limits_.stringlimit_ = _sz;
     } else {
@@ -140,7 +140,7 @@ void SerializerBase::limitString(const size_t _sz, const char* _name)
 
 void SerializerBase::limitContainer(const size_t _sz, const char* _name)
 {
-    solid_dbg(generic_logger, Info, _name);
+    solid_dbg(logger, Info, _name);
     if (isRunEmpty()) {
         limits_.containerlimit_ = _sz;
     } else {
@@ -160,7 +160,7 @@ void SerializerBase::limitContainer(const size_t _sz, const char* _name)
 
 void SerializerBase::limitStream(const uint64_t _sz, const char* _name)
 {
-    solid_dbg(generic_logger, Info, _name);
+    solid_dbg(logger, Info, _name);
     if (isRunEmpty()) {
         limits_.streamlimit_ = _sz;
     } else {
@@ -248,7 +248,9 @@ Base::ReturnE SerializerBase::store_stream(SerializerBase& _rs, Runnable& _rr, v
         }
 
         if (!done) {
-            _rr.fnc_(_rs, _rr, _pctx);
+            if (_rr.size_ != 0) {
+                _rr.fnc_(_rs, _rr, _pctx);
+            }
             return ReturnE::Wait;
         }
         _rr.size_ = 0;

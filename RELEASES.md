@@ -1,21 +1,15 @@
 # SolidFrame Releases
 
-## Test build environments
-* **Linux**:
-    * Fedora 28 x86_64 - gcc (GCC) 8.1.1 20180502 (Red Hat 8.1.1-1);
-    * Raspbian Linux raspberrypi armv7l - gcc (Raspbian 4.9.2-10) 4.9.2
-    * **Travis**: Ubuntu 14.04 - gcc 6
-* **macOS**:
-    * 10.13 - xcode 9.1 - Apple LLVM version 9.0.0 (clang-900.0.38)
-    * **Travis**: Apple LLVM version 8.1.0 (clang-802.0.42)
-* **iOS**:
-    * 10.13 - xcode 9.1 - Apple LLVM version 9.0.0 (clang-900.0.38)
-* **FreeBSD**:
-    * TrueOS - FreeBSD 12.0 - clang version 4.0.0 (based on LLVM 4.0.0)
-* **Windows**:
-    * Windows10 - Visual Studio 2017.
+## Version 6.0
+
+* (DONE) rename mpipc library to mprpc
+* (DONE) remove boost dependency
+* (DONE) Object -> Actor
+* (DONE) Overal fixes
+* (DONE) Refactored solid::WorkPool<>. solid::CallPool<>
 
 ## Version 5.0
+
 * (DONE) add support for endianess on seralization/v2
 * (DONE) clang tidy support
 * (DONE) fix compilation on g++ 8.1.1
@@ -25,6 +19,7 @@
 * (DONE) mpipc: improve connection pool with support for events like ConnectionActivated, PoolDisconnect, ConnectionStop
 
 ## Version 4.0
+
 * (DONE) port to Windows
 * (DONE) SolidFrame.podspec
 * (DONE) solid_frame_mpipc: messagereader - cache deserializer
@@ -32,6 +27,7 @@
 * (DONE) solid_serialization_v2 - improved binary serialization engine
 
 ## Version 3.0
+
 * (DONE) solid_frame_mpipc: improve protocol to allow transparent (i.e. not knowing the type of the mesage) message handling - e.g. skipping, relaying.
 * (DONE) solid_frame_mpipc: support for generic message relaying: solid::frame::mpipc::relay::Engine. 
 * (DONE) tutorials: mpipc_echo_relay
@@ -43,11 +39,13 @@
 * (DONE) integrate clangformat support
 
 ## Version 2.2
+
 * (DONE) all: switch from NanoTime to std::chrono
 * (DONE) BUILD: cmake support for clangformat
 * (DONE) solid_serialization: speed improvements, plain arrays serialization
 
 ## Version 2.1
+
 * (DONE) solid_frame_aio_openssl: Improved OpenSSL/BoringSSL support
 * (DONE) solid_frame_mpipc: Pluggable (header only) support for SSL
 * (DONE) BUILD: Android support - https://github.com/vipalade/bubbles
@@ -59,9 +57,10 @@
 
 
 ## Version 2.0
+
 * Fix utility memoryfile examples
 * pushCall instead of pushReinit
-* Finalizing the MPIPC library.
+* Finalizing the MPRPC library.
 * Cross-platform support:
     * Linux
     * FreeBSD

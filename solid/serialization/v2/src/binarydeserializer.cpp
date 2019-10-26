@@ -103,7 +103,7 @@ void DeserializerBase::tryRun(Runnable&& _ur, void* _pctx)
 
 void DeserializerBase::limits(const Limits& _rlimits, const char* _name)
 {
-    solid_dbg(generic_logger, Info, _name);
+    solid_dbg(logger, Info, _name);
     if (isRunEmpty()) {
         limits_ = _rlimits;
     } else {
@@ -121,7 +121,7 @@ void DeserializerBase::limits(const Limits& _rlimits, const char* _name)
 
 void DeserializerBase::limitString(const size_t _sz, const char* _name)
 {
-    solid_dbg(generic_logger, Info, _name);
+    solid_dbg(logger, Info, _name);
     if (isRunEmpty()) {
         limits_.stringlimit_ = _sz;
     } else {
@@ -141,7 +141,7 @@ void DeserializerBase::limitString(const size_t _sz, const char* _name)
 
 void DeserializerBase::limitContainer(const size_t _sz, const char* _name)
 {
-    solid_dbg(generic_logger, Info, _name);
+    solid_dbg(logger, Info, _name);
     if (isRunEmpty()) {
         limits_.containerlimit_ = _sz;
     } else {
@@ -161,7 +161,7 @@ void DeserializerBase::limitContainer(const size_t _sz, const char* _name)
 
 void DeserializerBase::limitStream(const uint64_t _sz, const char* _name)
 {
-    solid_dbg(generic_logger, Info, _name);
+    solid_dbg(logger, Info, _name);
     if (isRunEmpty()) {
         limits_.streamlimit_ = _sz;
     } else {
@@ -194,6 +194,13 @@ Base::ReturnE DeserializerBase::load_byte(DeserializerBase& _rd, Runnable& _rr, 
 Base::ReturnE DeserializerBase::load_binary(DeserializerBase& _rd, Runnable& _rr, void* /*_pctx*/)
 {
     return _rd.doLoadBinary(_rr);
+}
+
+Base::ReturnE DeserializerBase::load_version(DeserializerBase& _rd, Runnable& _rr, void* /*_pctx*/)
+{
+    const uint32_t& rv = *reinterpret_cast<uint32_t*>(_rr.ptr_);
+    _rd.doAddVersion(_rr.data_, rv);
+    return ReturnE::Done;
 }
 
 Base::ReturnE DeserializerBase::call_function(DeserializerBase& _rd, Runnable& _rr, void* _pctx)

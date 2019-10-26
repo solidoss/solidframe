@@ -7,15 +7,12 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#include <fstream>
-#include <iostream>
-//#include <boost/system/operations.hpp>
-//#include <boost/system/exception.hpp>
-//#include <boost/utility.hpp>
 #include "solid/system/filedevice.hpp"
 #include <cerrno>
 #include <cstring>
 #include <deque>
+#include <fstream>
+#include <iostream>
 #include <string>
 
 using namespace std;

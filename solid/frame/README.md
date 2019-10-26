@@ -4,7 +4,7 @@
 
 ### Introduction
 
-When implementing network enabled asynchronous applications one ends up having multiple objects (connections, relay nodes, listeners etc) with certain needs:
+When implementing network enabled asynchronous applications one ends up having multiple actors (connections, relay nodes, listeners etc) with certain needs:
  * be able to react on IO events
  * be able to react on timer events
  * be able to react on custom events
@@ -42,24 +42,24 @@ void Connection::onReceiveAuthentication(Context &_rctx, const std::string &auth
 }
 ```
 
-Before deciding what we can use for /*something*/ lets consider the following constraints:
+Before deciding what we can use for /*something*/ - lambda captures - lets consider the following constraints:
  * the lambda expression might be executed on a different thread than the one handling the connection.
  * when the asynchronous authentication completes and the lambda is called the connection might not exist - the client closed the connection before receiving the authentication response.
 
-Because of the second constraint, we cannot use a naked pointer to connection (/*something*/ = this), but we can use a std::shared_ptr<Connection>.
-The problem is that, then, the connection should have some synchronization mechanism in place (not very desirable in an asynchronous design).
+Because of the second constraint, we cannot use a naked pointer to connection (i.e. /*something*/ = this), but we can use a std::shared_ptr<Connection>.
+The problem is that, then, the connection should have some synchronization mechanism in place (not very desirable in an asynchronous design) to keep itself alive as long as there are references to it.
 
-SolidFrame's solution for the above problem is a temporally unique run-time ID for objects. Every object derived from either solid::frame::Object or solid::frame::aio::Object has associated such a unique ID which can be used to notify those objects with events.
+SolidFrame's solution for the above problem is a temporally unique run-time ID for actors. Every actor derived from either solid::frame::Actor or solid::frame::aio::Actor has associated such a unique ID which can be used to notify those actors with events.
 
-### The asynchronous, active objects model
+### The asynchronous, actor model
 
-As explained above central to SolidFrame's architecture are the [__solid::frame::Object__](object.hpp) and [__solid::frame::aio::Object__](aio/aioobject.hpp) with their temporally unique run-time IDs.
+As explained above central to SolidFrame's architecture are the [__solid::frame::Actor__](actor.hpp) and [__solid::frame::aio::Actor__](aio/aioactor.hpp) with their temporally unique run-time IDs.
 
-Closely related to either Objects are:
- * [_solid::frame::Manager_](manager.hpp): Passive, synchronized container of registered objects. The Objects are stored grouped by services. It allows sending notification events to specific objects identified by their run-time unique ID.
- * [_solid::frame::Service_](service.hpp): Group of objects conceptually related. It allows sending notification events to all registered objects withing the service.
- * [_solid::frame::Reactor_](reactor.hpp): Active container of solid::frame::Objects. Delivers timer and notification events to registered objects.
- * [_solid::frame::aio::Reactor_](aio/reactor.hpp): Active container of solid::frame::aio::Objects. Delivers IO, timer and notification events to registered objects.
+Closely related to either Actors are:
+ * [_solid::frame::Manager_](manager.hpp): Passive, synchronized container of registered actors. The Actors are stored grouped by services. It allows sending notification events to specific actors identified by their run-time unique ID.
+ * [_solid::frame::Service_](service.hpp): Group of actors conceptually related. It allows sending notification events to all registered actors withing the service.
+ * [_solid::frame::Reactor_](reactor.hpp): Active container of solid::frame::Actors. Delivers timer and notification events to registered actors.
+ * [_solid::frame::aio::Reactor_](aio/reactor.hpp): Active container of solid::frame::aio::Actors. Delivers IO, timer and notification events to registered actors.
  * [_solid::frame::Scheduler<ReactorT>_](scheduler.hpp): A thread pool of reactors.
 
 Let us look further to some sample code to clarify the use of the above classes:
@@ -68,7 +68,7 @@ int main(int argc, char *argv[]){
     using namespace solid;
     using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
 
-    frame::ObjectIdT    listeneruid;
+    frame::ActorIdT    listeneruid;
 
     AioSchedulerT       scheduler;
     frame::Manager      manager;
@@ -89,13 +89,11 @@ int main(int argc, char *argv[]){
         sd.prepareAccept(rd.begin(), 2000);
 
         if(sd.ok()){
-            DynamicPointer<frame::aio::Object>  objptr(new Listener(service, scheduler, std::move(sd)));
-
-            listeneruid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
+            listeneruid = scheduler.startActor(make_dynamic<Listener>(service, scheduler, std::move(sd)), service, generic_event_category.event(GenericEvents::Start), error);
 
             if(error){
-                SOLID_ASSERT(listeneruid.isInvalid());
-                cout<<"Error starting object: "<<error.message()<<endl;
+                solid_assert(listeneruid.isInvalid());
+                cout<<"Error starting actor: "<<error.message()<<endl;
                 return 1;
             }
             (void)objuid;
@@ -136,16 +134,14 @@ The following lines:
     sd.prepareAccept(rd.begin(), 2000);
 ```
 create and configures a socket device/descriptor for listening for TCP connections.
-After this, if we have a valid socket device, we can create and start a Listener object:
+After this, if we have a valid socket device, we can create and start a Listener actor:
 
 ```C++
 if(sd.ok()){
-    DynamicPointer<frame::aio::Object>  objptr(new Listener(service, scheduler, std::move(sd)));
-
-    listeneruid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
+    listeneruid = scheduler.startActor(make_dynamic<Listener>(service, scheduler, std::move(sd)), service, generic_event_category.event(GenericEvents::Start), error);
 
     if(listeneruid.isInvalid()){
-        cout<<"Error starting object: "<<error.message()<<endl;
+        cout<<"Error starting actor: "<<error.message()<<endl;
         return 1;
     }
     (void)objuid;
@@ -160,38 +156,38 @@ As you can see above, the Listener constructor needs:
 The next line:
 
  ```C++
-    listeneruid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
+    listeneruid = scheduler.startActor(make_dynamic<Listener>(service, scheduler, std::move(sd)), service, generic_event_category.event(GenericEvents::Start), error);
  ```
 
 will try to atomically:
 
- * register the Listener object onto service
- * schedule the Listener object onto scheduler along with an initial event
+ * register the Listener actor onto service
+ * schedule the Listener actor onto scheduler along with an initial event
 
-Every object must override:
+Every actor must override:
 
  ```C++
-    virtual void Object::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
+    virtual void Actor::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
  ```
 
 to receive the events, so on the above code, once the Listener got started, Listener::onEvent will be called on the scheduler thread with the GenericEvents::Start event.
-What will Listener do on onEvent will see later. For now let us stay a little bit more on the scheduler.startObject line.
+What will Listener do on onEvent will see later. For now let us stay a little bit more on the scheduler.startActor line.
 
-As we can see it returns a frame::ObjectIdT and an error. While the error value is obvious, the returned ObjectIdT value is the temporally unique run-time ID explained above.
+As we can see it returns a frame::ActorIdT and an error. While the error value is obvious, the returned ActorIdT value is the temporally unique run-time ID explained above.
 
-This way "listeneruid" can be used at any time during the lifetime of "manager" to notify the Listener object with a custom event, as we do with the following line:
+This way "listeneruid" can be used at any time during the lifetime of "manager" to notify the Listener actor with a custom event, as we do with the following line:
 
  ```C++
     manager.notify(listeneruid, generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")))
  ```
 
 **Notes:**
-  * One can easily forge a valid ObjectIdT and be able to send an event to a valid Object. This problem will be addressed by future versions of SolidFrame.
-  * The object that ObjectIdT value addresses, may not exist when manager.notify(...) is called.
-  * Once manager.notify(...) returned true the event will be delivered to the Object.
+  * One can easily forge a valid ActorIdT and be able to send an event to a valid Actor. This problem will be addressed by future versions of SolidFrame.
+  * The actor that ActorIdT value addresses, may not exist when manager.notify(...) is called.
+  * Once manager.notify(...) returned true the event will be delivered to the Actor.
   * ```generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")``` constructs a generic Message event and instantiates the "any" value contained by the event with a std::string. On the receiving side, the any value can only be retrieved using event.any().cast\<std::string\>() which returns a pointer to std::string.
 
-Now that you have had a birds eye view of Object/Manager/Service/Scheduler architecture, let us go back to the Connection::onReceiveAuthentication hypothetical code, and rewrite it with SolidFrame concepts:
+Now that you have had a birds eye view of Actor/Manager/Service/Scheduler architecture, let us go back to the Connection::onReceiveAuthentication hypothetical code, and rewrite it with SolidFrame concepts:
 
 ```C++
 void Connection::onReceiveAuthentication(Context &_rctx, const std::string &auth_credentials){
@@ -200,7 +196,7 @@ void Connection::onReceiveAuthentication(Context &_rctx, const std::string &auth
 
     authentication::Service &rauth_service(_rctx.authenticationService());
     frame::Manager          &rmanager(_rctx.service().manager());
-    frame::ObjectIdT        connection_id = service(_rctx).manager().id(*this);
+    frame::ActorIdT         connection_id = _rctx.service().manager().id(*this);
 
     rauth_service.asyncAuthenticate(
         auth_credentials,
@@ -211,7 +207,7 @@ void Connection::onReceiveAuthentication(Context &_rctx, const std::string &auth
 }
 ```
 
-With the above implementation all that the lambda function does, is to forward the given parameters as a notification event to the object identified by connection_id. We do not care if the object exists.
+With the above implementation all that the lambda function does, is to forward the given parameters as a notification event to the actor identified by connection_id. We do not care if the actor exists.
 
 Now, you might be wondering what is needed on the connection side to create and to handle the authentication result event.
 

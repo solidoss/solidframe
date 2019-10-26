@@ -124,8 +124,8 @@ struct ReverseResolveCbk : ReverseResolve {
 
 class Resolver {
 public:
-    Resolver(FunctionWorkPool& _rfwp)
-        : rfwp_(_rfwp)
+    Resolver(CallPool<void()>& _rcwp)
+        : rcwp_(_rcwp)
     {
     }
     ~Resolver() {}
@@ -140,7 +140,7 @@ public:
         int         _type   = -1,
         int         _proto  = -1)
     {
-        rfwp_.push(DirectResolveCbk<Cbk>(_cbk, _host, _srvc, _flags, _family, _type, _proto));
+        rcwp_.push(DirectResolveCbk<Cbk>(_cbk, _host, _srvc, _flags, _family, _type, _proto));
     }
 
     template <class Cbk>
@@ -149,11 +149,11 @@ public:
         const SocketAddressStub& _rsa,
         int                      _flags = 0)
     {
-        rfwp_.push(ReverseResolveCbk<Cbk>(_rsa, _flags));
+        rcwp_.push(ReverseResolveCbk<Cbk>(_rsa, _flags));
     }
 
 private:
-    FunctionWorkPool& rfwp_;
+    CallPool<void()>& rcwp_;
 };
 
 } //namespace aio

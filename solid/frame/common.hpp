@@ -64,7 +64,7 @@ struct UniqueId {
     }
 };
 
-using ObjectIdT = UniqueId;
+using ActorIdT = UniqueId;
 
 std::ostream& operator<<(std::ostream& _ros, UniqueId const& _uid);
 
