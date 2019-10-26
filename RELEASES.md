@@ -1,12 +1,12 @@
 # SolidFrame Releases
 
-## Version 5.3
+## Version 6.0
 
 * (DONE) rename mpipc library to mprpc
 * (DONE) remove boost dependency
 * (DONE) Object -> Actor
 * (DONE) Overal fixes
-* (DONE) Refactored solid::WorkPool<>
+* (DONE) Refactored solid::WorkPool<>. solid::CallPool<>
 
 ## Version 5.0
 
