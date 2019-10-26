@@ -9,7 +9,7 @@ __Source files__
 
 Before continuing with this tutorial, you should:
  * prepare a SolidFrame build as explained [here](../../README.md#installation).
- * read the [overview of the asynchronous active object model](../../solid/frame/README.md).
+ * read the [overview of the asynchronous actor model](../../solid/frame/README.md).
  * read the [informations about solid_frame_mprpc](../../solid/frame/mprpc/README.md)
  * follow the first ipc tutorial: [mprpc_echo](../mprpc_echo)
 
@@ -261,8 +261,8 @@ AioSchedulerT           scheduler;
 
 frame::Manager          manager;
 frame::mprpc::ServiceT  ipcservice(manager);
-
-frame::aio::Resolver    resolver;
+CallPool<void()>        cwp{WorkPoolConfiguration(), 1};
+frame::aio::Resolver    resolver(cwp);
 
 ErrorConditionT         err;
 
@@ -273,12 +273,6 @@ if(err){
     return 1;
 }
 
-err = resolver.start(1);
-
-if(err){
-    cout<<"Error starting aio resolver: "<<err.message()<<endl;
-    return 1;
-}
 ```
 
 Next, configure the ipcservice:
@@ -293,7 +287,7 @@ Next, configure the ipcservice:
 
     cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
 
-    err = ipcservice.reconfigure(std::move(cfg));
+    err = ipcservice.start(std::move(cfg));
 
     if(err){
         cout<<"Error starting ipcservice: "<<err.message()<<endl;
@@ -314,7 +308,7 @@ void complete_message(
     std::shared_ptr<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
-    SOLID_CHECK(false); //this method should not be called
+    solid_check(false); //this method should not be called
 }
 
 struct MessageSetup {
@@ -375,7 +369,7 @@ while(true){
                                 return;
                             }
 
-                            SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
+                            solid_check(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
 
                             cout<<"File List from "<<_rctx.recipientName()<<":"<<_rsent_msg_ptr->path<<" with "<<_rrecv_msg_ptr->node_dq.size()<<" items: {"<<endl;
 
@@ -409,9 +403,9 @@ while(true){
                                 return;
                             }
 
-                            SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
-                            SOLID_CHECK(_rsent_msg_ptr->local_path == _rrecv_msg_ptr->local_path);
-                            SOLID_CHECK(_rsent_msg_ptr->remote_path == _rrecv_msg_ptr->remote_path);
+                            solid_check(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
+                            solid_check(_rsent_msg_ptr->local_path == _rrecv_msg_ptr->local_path);
+                            solid_check(_rsent_msg_ptr->remote_path == _rrecv_msg_ptr->remote_path);
 
                             cout<<"Done copy from "<<_rctx.recipientName()<<":"<<_rsent_msg_ptr->remote_path<<" to "<<_rsent_msg_ptr->local_path<<": ";
 
@@ -478,7 +472,7 @@ We will skip the the initialization of the ipcservice and its prerequisites as i
 
     cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 
-    err = ipcservice.reconfigure(std::move(cfg));
+    err = ipcservice.start(std::move(cfg));
 
     if(err){
         cout<<"Error starting ipcservice: "<<err.message()<<endl;
@@ -518,9 +512,9 @@ void complete_message<ipc_file::ListRequest>(
     std::shared_ptr<ipc_file::ListRequest>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
 {
-    SOLID_CHECK(not _rerror);
-    SOLID_CHECK(_rrecv_msg_ptr);
-    SOLID_CHECK(not _rsent_msg_ptr);
+    solid_check(not _rerror);
+    solid_check(_rrecv_msg_ptr);
+    solid_check(not _rsent_msg_ptr);
 
     auto msgptr = std::make_shared<ipc_file::ListResponse>(*_rrecv_msg_ptr);
 
@@ -540,7 +534,7 @@ void complete_message<ipc_file::ListRequest>(
             ++it;
         }
     }
-    SOLID_CHECK(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
+    solid_check(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>
@@ -550,9 +544,9 @@ void complete_message<ipc_file::ListResponse>(
     std::shared_ptr<ipc_file::ListResponse>& _rrecv_msg_ptr,
     ErrorConditionT const&                   _rerror)
 {
-    SOLID_CHECK(not _rerror);
-    SOLID_CHECK(not _rrecv_msg_ptr);
-    SOLID_CHECK(_rsent_msg_ptr);
+    solid_check(not _rerror);
+    solid_check(not _rrecv_msg_ptr);
+    solid_check(_rsent_msg_ptr);
 }
 
 template <>
@@ -562,9 +556,9 @@ void complete_message<ipc_file::FileRequest>(
     std::shared_ptr<ipc_file::FileRequest>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
 {
-    SOLID_CHECK(not _rerror);
-    SOLID_CHECK(_rrecv_msg_ptr);
-    SOLID_CHECK(not _rsent_msg_ptr);
+    solid_check(not _rerror);
+    solid_check(_rrecv_msg_ptr);
+    solid_check(not _rsent_msg_ptr);
 
     auto msgptr = std::make_shared<ipc_file::FileResponse>(*_rrecv_msg_ptr);
 
@@ -574,7 +568,7 @@ void complete_message<ipc_file::FileRequest>(
         msgptr->remote_file_size = fs::file_size(fs::path(_rrecv_msg_ptr->remote_path), error);
     }
 
-    SOLID_CHECK(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
+    solid_check(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>
@@ -584,9 +578,9 @@ void complete_message<ipc_file::FileResponse>(
     std::shared_ptr<ipc_file::FileResponse>& _rrecv_msg_ptr,
     ErrorConditionT const&                   _rerror)
 {
-    SOLID_CHECK(not _rerror);
-    SOLID_CHECK(not _rrecv_msg_ptr);
-    SOLID_CHECK(_rsent_msg_ptr);
+    solid_check(not _rerror);
+    solid_check(not _rrecv_msg_ptr);
+    solid_check(_rsent_msg_ptr);
 }
 
 struct MessageSetup {

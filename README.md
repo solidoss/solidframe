@@ -47,7 +47,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 * [__solid_frame_mprpc__](#solid_frame_mprpc): Message Passing - Remote Procedure Call over secure/plain TCP ([MPRPC library](solid/frame/mprpc/README.md))
     * _mprpc::Service_ - pass messages to/from multiple peers.
 * [__solid_frame_aio__](#solid_frame_aio): asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
-    * _Actor_ - reactive object with support for Asynchronous IO
+    * _Actor_ - reactive object with support for Asynchronous IO, timers and evens
     * _Reactor_ - reactor with support for Asynchronous IO
     * _Listener_ - asynchronous TCP listener/server socket
     * _Stream_ - asynchronous TCP socket
@@ -75,7 +75,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
     * _binary::Serializer_
     * _binary::Deserializer_
 * [__solid_frame__](#solid_frame):
-    * _Actor_ - reactive object
+    * _Actor_ - reactive object with support for timers and events
     * _Manager_ - store services and notifies objects within services
     * _Service_ - store and notifies objects
     * _Reactor_ - active store of actors - allows actors to asynchronously react on events
@@ -83,7 +83,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
     * _Timer_ - allows actors to schedule time based events
     * _shared::Store_ - generic store of shared objects that need either multiple read or single write access
 * [__solid_frame_aio__](#solid_frame_aio): asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
-    * _Actor_ - reactive object with support for Asynchronous IO
+    * _Actor_ - reactive object with support for Asynchronous IO, timers and evens
     * _Reactor_ - reactor with support for Asynchronous IO
     * _Listener_ - asynchronous TCP listener/server socket
     * _Stream_ - asynchronous TCP socket
@@ -324,7 +324,7 @@ Notes on the above two blocks of code:
 
 The library consists of tools needed by upper level libraries:
  * [__any.hpp__](solid/utility/any.hpp): A variation on boost::any / experimental std::any with storage for emplacement new so it is faster when the majority of sizeof objects that get stored in any<> fall under a given value.
- * [__event.hpp__](solid/utility/event.hpp): Definition of an Event object, a combination between something like std::error_code and an solid::Any<>.
+ * [__event.hpp__](solid/utility/event.hpp): Definition of an Event - a combination between something like std::error_code and an solid::Any<>.
  * [__innerlist.hpp__](solid/utility/innerlist.hpp): A container wrapper which allows implementing bidirectional lists over a std::vector/std::deque (extensively used by the solid_frame_ipc library).
  * [__memoryfile.hpp__](solid/utility/memoryfile.hpp): A data store with file like interface.
  * [__workpool.hpp__](solid/utility/workpool.hpp): Generic thread pool.
@@ -561,13 +561,13 @@ std::string     data;
 
 The library offers the base support for an asynchronous actor model with support for notification and timer events.
 
- * [__manager.hpp__](solid/frame/manager.hpp): A synchronous, passive store of ObjectBase grouped by services.
+ * [__manager.hpp__](solid/frame/manager.hpp): A synchronous, passive store of ActorBase grouped by services.
  * [__actor.hpp__](solid/frame/actor.hpp): An active object with support for events: notification events and timer events.
- * [__reactor.hpp__](solid/frame/reactor.hpp): An active store of Objects with support for notification events and timer events.
+ * [__reactor.hpp__](solid/frame/reactor.hpp): An active store of Actors with support for notification events and timer events.
  * [__reactorcontext.hpp__](solid/frame/reactorcontext.hpp): A context class given as parameter to every callback called from the reactor.
  * [__scheduler.hpp__](solid/frame/scheduler.hpp): A generic pool of threads running reactors.
- * [__service.hpp__](solid/frame/service.hpp): A way of grouping related objects.
- * [__timer.hpp__](solid/frame/timer.hpp): Used by Objects needing timer events.
+ * [__service.hpp__](solid/frame/service.hpp): A way of grouping related Actors.
+ * [__timer.hpp__](solid/frame/timer.hpp): Used by Actors needing timer events.
  * [__sharedstore.hpp__](solid/frame/sharedstore.hpp): A store of shared object with synchronized non-conflicting read/read-write access.
  * [_reactorbase.hpp_](solid/frame/reactorbase.hpp): Base for all reactors
  * [_timestore.hpp_](solid/frame/timestore.hpp): Used by reactors for timer events support.
@@ -576,22 +576,22 @@ The library offers the base support for an asynchronous actor model with support
 
 
 __Usefull links__
- * [An overview of the asynchronous active object model](solid/frame/README.md)
+ * [An overview of the asynchronous actor model](solid/frame/README.md)
 
 ### <a id="solid_frame_aio"></a>solid_frame_aio
 
-The library extends solid_frame with active objects supporting IO, notification and timer events.
- * [__aiodatagram.hpp__](solid/frame/aio/aiodatagram.hpp): Used by aio::Objects to support asynchronous UDP communication.
- * [__aiostream.hpp__](solid/frame/aio/aiostream.hpp): Used by aio::Objects to support asynchronous TCP communication.
- * [__aiotimer.hpp__](solid/frame/aio/aiotimer.hpp): Used by aio::Objects needing timer events.
- * [__aiolistener.hpp__](solid/frame/aio/aiolistener.hpp): Used by aio::Objects listening for TCP connections.
+The library extends solid_frame with actors supporting IO, notification and timer events.
+ * [__aiodatagram.hpp__](solid/frame/aio/aiodatagram.hpp): Used by aio::Actors to support asynchronous UDP communication.
+ * [__aiostream.hpp__](solid/frame/aio/aiostream.hpp): Used by aio::Actors to support asynchronous TCP communication.
+ * [__aiotimer.hpp__](solid/frame/aio/aiotimer.hpp): Used by aio::Actors needing timer events.
+ * [__aiolistener.hpp__](solid/frame/aio/aiolistener.hpp): Used by aio::Actors listening for TCP connections.
  * [__aiosocket.hpp__](solid/frame/aio/aiosocket.hpp): Plain socket access used by Listener/Stream and Datagram
  * [__aioresolver.hpp__](solid/frame/aio/aioresolver.hpp): Asynchronous address resolver.
  * [__aioreactorcontext.hpp__](solid/frame/aio/aioreactorcontext.hpp): A context class given as parameter to every callback called from the aio::Reactor.
- * [_aioreactor.hpp_](solid/frame/aio/aioreactor.hpp): An active store of aio::Objects with support for IO, notification and timer events.
+ * [_aioreactor.hpp_](solid/frame/aio/aioreactor.hpp): An active store of aio::Actors with support for IO, notification and timer events.
 
 __Usefull links__
- * [An overview of the asynchronous active object model](solid/frame/README.md)
+ * [An overview of the asynchronous actor model](solid/frame/README.md)
  * [Tutorial: aio_echo](tutorials/aio_echo/README.md)
 
 ### <a id="solid_frame_aio_openssl"></a>solid_frame_aio_openssl

@@ -9,7 +9,7 @@ __Source files__
 
 Before continuing with this tutorial, you should:
  * prepare a SolidFrame build as explained [here](../../README.md#installation).
- * read the [overview of the asynchronous active object model](../../solid/frame/README.md).
+ * read the [overview of the asynchronous actor model](../../solid/frame/README.md).
  * read the [informations about solid_frame_mprpc](../../solid/frame/mprpc/README.md)
  * follow the first mprpc tutorial: [mprpc_echo](../mprpc_echo)
  * __follow the mprpc request tutorial__: [mprpc_request](../mprpc_request)
@@ -319,7 +319,7 @@ void complete_message(
     std::shared_ptr<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
-    SOLID_CHECK(false); //this method should not be called
+    solid_check(false); //this method should not be called
 }
 
 struct MessageSetup {
@@ -396,7 +396,7 @@ frame::mprpc::snappy::setup(cfg);
 Both code snippets above must be added just before:
 
 ```C++
-err = ipcservice.reconfigure(std::move(cfg));
+err = ipcservice.start(std::move(cfg));
 ```
 
 The last code snippets for client side, constructs a somehow hard-coded Request as follows:
@@ -523,9 +523,9 @@ void complete_message<ipc_request::Request>(
     std::shared_ptr<ipc_request::Request> &_rrecv_msg_ptr,
     ErrorConditionT const &_rerror
 ){
-    SOLID_CHECK(not _rerror);
-    SOLID_CHECK(_rrecv_msg_ptr);
-    SOLID_CHECK(not _rsent_msg_ptr);
+    solid_check(not _rerror);
+    solid_check(_rrecv_msg_ptr);
+    solid_check(not _rsent_msg_ptr);
 
     cout<<"Received request: ";
     if(_rrecv_msg_ptr->key){
@@ -553,7 +553,7 @@ void complete_message<ipc_request::Request>(
         }
 }
 
-    SOLID_CHECK(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
+    solid_check(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 ```
 
@@ -717,7 +717,7 @@ frame::mprpc::snappy::setup(cfg);
 Both the above snippets of code should be put just above the following line:
 
 ```C++
-err = ipcservice.reconfigure(std::move(cfg));
+err = ipcservice.start(std::move(cfg));
 ```
 
 ### Compile

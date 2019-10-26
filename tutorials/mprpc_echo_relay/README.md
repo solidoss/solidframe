@@ -9,7 +9,7 @@ __Source files__
 
 Before continuing with this tutorial, you should:
  * prepare a SolidFrame build as explained [here](../../README.md#installation).
- * read the [overview of the asynchronous active object model](../../solid/frame/README.md).
+ * read the [overview of the asynchronous actor model](../../solid/frame/README.md).
  * read the [informations about solid_frame_mprpc](../../solid/frame/mprpc/README.md)
  * read the [informations about solid_frame_mprpc relay engine](../../solid/frame/mprpc/README.md#relay_engine)
 
@@ -119,8 +119,9 @@ First initializing the protocol:
             auto   proto = ProtocolT::create();
             frame::mprpc::Configuration cfg(scheduler, proto);
 
-            proto->registerType<Register>(con_register, 0, 10);
-            proto->registerType<Message>(on_message, 1, 10);
+            proto->null(null_type_id);
+            proto->registerMessage<Register>(con_register, register_type_id);
+            proto->registerMessage<Message>(on_message, TypeIdT{1, 1});
 ```
 
 where con_register is a lambda defined as follows:
@@ -130,7 +131,7 @@ where con_register is a lambda defined as follows:
                 std::shared_ptr<Register>&       _rsent_msg_ptr,
                 std::shared_ptr<Register>&       _rrecv_msg_ptr,
                 ErrorConditionT const&           _rerror) {
-                SOLID_CHECK(!_rerror);
+                solid_check(!_rerror);
 
                 if (_rrecv_msg_ptr and _rrecv_msg_ptr->name.empty()) {
                     auto lambda = [](frame::mprpc::ConnectionContext&, ErrorConditionT const& _rerror) {
@@ -195,7 +196,7 @@ where, _on_connection_start_ is a lambda:
 
                 auto            msgptr = std::make_shared<Register>(p.name);
                 ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mprpc::MessageFlagsE::WaitResponse});
-                SOLID_CHECK(not err, "failed send Register");
+                solid_check(not err, "failed send Register");
             };
 ```
 which instantiates a Register request message and sends it to the server.
@@ -297,19 +298,19 @@ next follows a new block for configuring the mprpc::Service:
                 std::shared_ptr<Register>&       _rsent_msg_ptr,
                 std::shared_ptr<Register>&       _rrecv_msg_ptr,
                 ErrorConditionT const&           _rerror) {
-                SOLID_CHECK(!_rerror);
+                solid_check(!_rerror);
                 if (_rrecv_msg_ptr) {
-                    SOLID_CHECK(!_rsent_msg_ptr);
+                    solid_check(!_rsent_msg_ptr);
                     idbg("recv register request: " << _rrecv_msg_ptr->name);
 
                     relay_engine.registerConnection(_rctx, std::move(_rrecv_msg_ptr->name));
 
                     ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-                    SOLID_CHECK(!err, "Failed sending register response: " << err.message());
+                    solid_check(!err, "Failed sending register response: " << err.message());
 
                 } else {
-                    SOLID_CHECK(!_rrecv_msg_ptr);
+                    solid_check(!_rrecv_msg_ptr);
                     idbg("sent register response");
                 }
             };
@@ -327,7 +328,7 @@ next follows a new block for configuring the mprpc::Service:
 
             cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 
-            err = ipcservice.reconfigure(std::move(cfg));
+            err = ipcservice.start(std::move(cfg));
 
             if (err) {
                 cout << "Error starting ipcservice: " << err.message() << endl;
@@ -345,7 +346,7 @@ next follows a new block for configuring the mprpc::Service:
 the line:
 
 ```C++
-    proto->registerType<Register>(con_register, 0, 10);
+    proto->registerMessage<Register>(con_register, register_type_id);
 ```
 
 registers the con_register lambda to be called after a Register request message is received or response was sent back to the client.
@@ -361,7 +362,7 @@ and send back the response
 ```C++
     ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-    SOLID_CHECK(!err, "Failed sending register response: " << err.message());
+    solid_check(!err, "Failed sending register response: " << err.message());
 ```
 
 going back to the configuration code, after configuring the listener, we enable the relay onto the server:
@@ -375,7 +376,7 @@ and set Active as the start state for connections:
     cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 ```
 
-the last part of the configuration block handles the service _reconfigure_ call and, in case of success, it prints the port on which the server is listening on.
+the last part of the configuration block handles the service _start_ call and, in case of success, it prints the port on which the server is listening on.
 
 If everything was Ok, the server awaits for the user to press ENTER, and then exits:
 

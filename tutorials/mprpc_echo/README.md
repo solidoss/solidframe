@@ -9,7 +9,7 @@ __Source files__
 
 Before continuing with this tutorial, you should:
  * prepare a SolidFrame build as explained [here](../../README.md#installation).
- * read the [overview of the asynchronous active object model](../../solid/frame/README.md).
+ * read the [overview of the asynchronous actor model](../../solid/frame/README.md).
  * read the [informations about solid_frame_mprpc](../../solid/frame/mprpc/README.md)
 
 ## Overview
@@ -125,7 +125,8 @@ AioSchedulerT           scheduler;
 frame::Manager          manager;
 frame::mprpc::ServiceT  ipcservice(manager);
 
-frame::aio::Resolver    resolver;
+CallPool<void()>        cwp{WorkPoolConfiguration(), 1};
+frame::aio::Resolver    resolver(cwp);
 
 ErrorConditionT         err;
 
@@ -136,12 +137,6 @@ if(err){
     return 1;
 }
 
-err = resolver.start(1);
-
-if(err){
-    cout<<"Error starting aio resolver: "<<err.message()<<endl;
-    return 1;
-}
 ```
 
 The scheduler is for asynchronous IO.
@@ -161,7 +156,7 @@ Next we configure the ipcservice like this:
 
     cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
 
-    err = ipcservice.reconfigure(std::move(cfg));
+    err = ipcservice.start(std::move(cfg));
 
     if(err){
         cout<<"Error starting ipcservice: "<<err.message()<<endl;
@@ -193,7 +188,7 @@ void complete_message(
         return;
     }
 
-    SOLID_CHECK(_rrecv_msg_ptr and _rsent_msg_ptr);
+    solid_check(_rrecv_msg_ptr and _rsent_msg_ptr);
 
     cout << "Received from " << _rctx.recipientName() << ": " << _rrecv_msg_ptr->str << endl;
 }
@@ -301,7 +296,7 @@ E.g. the initialization of the ipcservice and its prerequisites is the same as o
 
     cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 
-    err = ipcsvc.reconfigure(std::move(cfg));
+    err = ipcsvc.start(std::move(cfg));
 
     if(err){
         cout<<"Error starting ipcservice: "<<err.message()<<endl;
@@ -334,15 +329,15 @@ void complete_message(
     std::shared_ptr<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
-    SOLID_CHECK(not _rerror);
+    solid_check(not _rerror);
 
     if (_rrecv_msg_ptr) {
-        SOLID_CHECK(not _rsent_msg_ptr);
-        SOLID_CHECK(not _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr)));
+        solid_check(not _rsent_msg_ptr);
+        solid_check(not _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr)));
     }
 
     if (_rsent_msg_ptr) {
-        SOLID_CHECK(not _rrecv_msg_ptr);
+        solid_check(not _rrecv_msg_ptr);
     }
 }
 

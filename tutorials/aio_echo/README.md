@@ -7,7 +7,7 @@ __Source files__:
 
 Before continuing with this tutorial, you should:
  * prepare a SolidFrame build as explained [here](../../README.md#installation).
- * read the [overview of the asynchronous active object model](../../solid/frame/README.md).
+ * read the [overview of the asynchronous actor model](../../solid/frame/README.md).
 
 ## Overview
 
@@ -58,7 +58,7 @@ Let us start with the include part and with the declaration of the scheduler we 
 #include "solid/frame/service.hpp"
 
 #include "solid/frame/aio/aioreactor.hpp"
-#include "solid/frame/aio/aioobject.hpp"
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiolistener.hpp"
 #include "solid/frame/aio/aiotimer.hpp"
 #include "solid/frame/aio/aiostream.hpp"
@@ -111,27 +111,27 @@ int main(int argc, char *argv[]){
 ```
 
 Next, we will be instantiating the SolidFrame Asynchronous environment:
- * The __scheduler__. The active container for solid::frame::aio::Objects. It provides IO events, timer events and custom events to Objects.
+ * The __scheduler__. The active container for solid::frame::aio::Actors. It provides IO events, timer events and custom events to Actors.
  * The __manager__. A passive container of solid::frame::Services.
- * The __service__. A passive container for solid::frame::ObjectBase.
+ * The __service__. A passive container for solid::frame::ActorBase.
 
-The __manager__ allows notifying different objects with custom events while the __service__ allows broadcasting custom events to all its objects.
-So, if you want to notify a single object with a specific event, you'll use the manager:
+The __manager__ allows notifying different actors with custom events while the __service__ allows broadcasting custom events to all its actors.
+So, if you want to notify a single actor with a specific event, you'll use the manager:
 
 ```C++
-solid::frame::ObjectUidT objuid = scheduler.startObject(/*...*/);
+solid::frame::ActorUidT objuid = scheduler.startActor(/*...*/);
 //...
 manager.notify(objuid, make_event(GenericEvents::Message));
 ```
 
-While if you want to broadcast a specific event to all objects from a service you will use the service:
+While if you want to broadcast a specific event to all actors from a service you will use the service:
 
 ```C++
 //...
 service.notifyAll(generic_event_stop);
 ```
 
-Now, let us go back to the code, instantiate the above objects and start the scheduler with a single running thread:
+Now, let us go back to the code, instantiate the above actors and start the scheduler with a single running thread:
 
 ```C++
 AioSchedulerT       scheduler;
@@ -146,7 +146,7 @@ if(scheduler.start(1/*a single thread*/)){
 }
 ```
 
-Next we will instantiate and start a Listener (which is a solid::frame::aio::Object):
+Next we will instantiate and start a Listener (which is a solid::frame::aio::Actor):
 
 ```C++
 {
@@ -164,11 +164,10 @@ Next we will instantiate and start a Listener (which is a solid::frame::aio::Obj
             cout<<"Listening for TCP connections on port: "<<sa<<endl;
         }
 
-        DynamicPointer<frame::aio::Object>  objptr(new Listener(service, scheduler, std::move(sd)));
         solid::ErrorConditionT              error;
-        solid::frame::ObjectIdT             objuid;
+        solid::frame::ActorIdT             objuid;
 
-        objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start), error);
+        objuid = scheduler.startActor(make_dynamic<Listener>(service, scheduler, std::move(sd)), service, make_event(GenericEvents::Start), error);
         (void)objuid;
     }else{
         cout<<"Error creating listener socket"<<endl;
@@ -177,27 +176,27 @@ Next we will instantiate and start a Listener (which is a solid::frame::aio::Obj
 }
 ```
 
-In the first four lines of the above code we prepare a socket device for listening for new connections. Then, if the socket device is OK we go on and print the local address of the socket then we instantiate a Listener object. The listener object will need:
+In the first four lines of the above code we prepare a socket device for listening for new connections. Then, if the socket device is OK we go on and print the local address of the socket then we instantiate a Listener actor. The listener actor will need:
  * a reference to the __service__ - all accepted connections will be registered onto the given service;
  * a reference to the __scheduler__ - all accepted connection will be scheduled onto the given scheduler;
  * the socket device previously prepared.
 
-After the Listener object is created it must be _atomically_:
+After the Listener actor is created it must be _atomically_:
  * Registered onto service.
  * Scheduled onto scheduler.
 
 This is done in the line:
 
 ```C++
-objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start), error);
+objuid = scheduler.startActor(make_dynamic<Listener>(service, scheduler, std::move(sd)), service, make_event(GenericEvents::Start), error);
 ```
 
-The startObject method parameters are:
- * _objptr_: a smart pointer to a solid::frame::aio::Object - in our case the listener;
- * _service_: reference to the service which will keep the object;
- * _event_: the first event to be delivered to the object if it gets scheduled onto scheduler.
+The startActor method parameters are:
+ * _objptr_: a smart pointer to a solid::frame::aio::Actor - in our case the listener;
+ * _service_: reference to the service which will keep the actor;
+ * _event_: the first event to be delivered to the actor if it gets scheduled onto scheduler.
 
-As you will soon see in the declaration of Listener class, every solid::frame::aio::Object must override the onEvent method to handle the notification events sent to the object:
+As you will soon see in the declaration of Listener class, every solid::frame::aio::Actor must override the onEvent method to handle the notification events sent to the actor:
 
 ```C++
 void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
@@ -221,12 +220,10 @@ Now, lets get back to the main function and instantiate a Talker (a UDP socket) 
             cout<<"Listening for UDP datagrams on port: "<<sa<<endl;
         }
 
-        DynamicPointer<frame::aio::Object>  objptr(new Talker(std::move(sd)));
-
         solid::ErrorConditionT              error;
-        solid::frame::ObjectIdT             objuid;
+        solid::frame::ActorIdT             objuid;
 
-        objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start), error);
+        objuid = scheduler.startActor(make_dynamic<Taker>(std::move(sd)), service, make_event(GenericEvents::Start), error);
 
         (void)objuid;
 
@@ -250,18 +247,18 @@ Now, before delving into the Listener and Talker code, lets see what happens aft
 
 The SolidFrame Asynchronous environment shuts down in the following order:
  * the _service_
-   * stops accepting new objects
-   * notifies all existing objects with make_event(GenericEvents::Kill)
-   * waits until all objects die
+   * stops accepting new actors
+   * notifies all existing actors with make_event(GenericEvents::Kill)
+   * waits until all actors die
  * the _manager_ (because every _service_ has a reference to the _manager_, the _manager_ must outlive all services)
    * ensures that all services are stopped
- * the _scheduler_ (because every _manager_ keep internally references to _shedulers_, _schedulers_ used by _objects_ stored within a _manager_ MUST outlive the _manager_
+ * the _scheduler_ (because every _manager_ keep internally references to _shedulers_, _schedulers_ used by _actors_ stored within a _manager_ MUST outlive the _manager_
    * waits until all its threads terminate
 
 Let us now see the declaration of the Listener:
 
 ```C++
-class Listener: public frame::aio::Object{
+class Listener: public frame::aio::Actor{
 public:
     Listener(
         frame::Service &_rsvc,
@@ -297,15 +294,15 @@ The definition of the __onEvent__ method is simple - only handle Start and Kill 
 ```
 
 For the Start event we're launching a _fully asynchronous_ __accept__ operation which will complete on __onAccept__ method through the given lambda.
-For the Kill event we only schedule object stop.
+For the Kill event we only schedule actor stop.
 
 __Notes__
  1. Some of the asynchronous IO operations supported by solid::frame::aio library have two forms:
    * a _fully asynchronous_ one (those with the "post" prefix) for which the result is only given by the mean of the given function callback
    * an _asynchronous_ one: the result may either be returned immediately after the IO function call exits or if the operation cannot be completed right away through the given callback function.
  2. The postStop method call atomically:
-   * prevents any new notification event be posted for the object
-   * schedules the object de-registration from the scheduler and from its service after all currently undelivered/pending notification events are delivered to the object.
+   * prevents any new notification event be posted for the actor
+   * schedules the actor de-registration from the scheduler and from its service after all currently undelivered/pending notification events are delivered to the actor.
 
 Let us further see the definition of the __onAccept__ method:
 
@@ -315,10 +312,9 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 
     do{
         if(!_rctx.error()){
-            DynamicPointer<frame::aio::Object>  objptr(new Connection(std::move(_rsd)));
             solid::ErrorConditionT              err;
 
-            rscheduler.startObject(objptr, rservice, make_event(GenericEvents::Start), err);
+            rscheduler.startActor(make_dynamic<Connection>(std::move(_rsd)), rservice, make_event(GenericEvents::Start), err);
         }else{
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             timer.waitFor(
@@ -343,14 +339,14 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 
 ```
 
-The above function tries to accept at most 4 connections that are immediately available. If more than 4 connections are available for accept we call the fully asynchronous version of accept (we allow this way for the Reactor to process other objects events too).
+The above function tries to accept at most 4 connections that are immediately available. If more than 4 connections are available for accept we call the fully asynchronous version of accept (we allow this way for the Reactor to process other actors events too).
 
-Interesting, is that for an error we do not stop the Listener object but use a timer to wait for 10 seconds before we retry accepting new connections. This is because most certain, the reason why we cannot accept new connections is that a system limit on file descriptors has beer reached and we must wait until some descriptors get released.
+Interesting, is that for an error we do not stop the Listener actor but use a timer to wait for 10 seconds before we retry accepting new connections. This is because most certain, the reason why we cannot accept new connections is that a system limit on file descriptors has beer reached and we must wait until some descriptors get released.
 
-In the above code, we've introduced a new frame::aio::Object - the Connection. Let us see its declaration:
+In the above code, we've introduced a new frame::aio::Actor - the Connection. Let us see its declaration:
 
 ```C++
-class Connection: public frame::aio::Object{
+class Connection: public frame::aio::Actor{
 public:
     Connection(SocketDevice &&_rsd):sock(this->proxy(), std::move(_rsd)){}
 private:
@@ -385,7 +381,7 @@ Next is the code for __Connection::onRecv__ and for __Connection::onSend__ which
 ```C++
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
     unsigned    repeatcnt = 4;
-    Connection  &rthis = static_cast<Connection&>(_rctx.object());
+    Connection  &rthis = static_cast<Connection&>(_rctx.actor());
     do{
         if(!_rctx.error()){
             if(rthis.sock.sendAll(_rctx, rthis.buf, _sz, Connection::onSend)){
@@ -405,12 +401,12 @@ Next is the code for __Connection::onRecv__ and for __Connection::onSend__ which
 
     if(repeatcnt == 0){
         bool rv = rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
-        SOLID_ASSERT(!rv);
+        solid_assert(!rv);
     }
 }
 
 /*static*/ void Connection::onSend(frame::aio::ReactorContext &_rctx){
-    Connection &rthis = static_cast<Connection&>(_rctx.object());
+    Connection &rthis = static_cast<Connection&>(_rctx.actor());
     if(!_rctx.error()){
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
     }else{
@@ -423,12 +419,12 @@ The interesting part on the above code is that we're using static completion cal
 
 The Connection::onRecv method uses a loop similar to the one from __Listener::onAccept__: we try to consume as much data already available on the socket as possible (the internal read buffer for socket is 16KB/32KB or more and we do the reading with a 2KB buffer).
 
-Moving on to the Talker (a frame::aio::Object).
+Moving on to the Talker (a frame::aio::Actor).
 
 First with its declaration:
 
 ```C++
-class Talker: public frame::aio::Object{
+class Talker: public frame::aio::Actor{
 public:
     Talker(SocketDevice &&_rsd):sock(this->proxy(), std::move(_rsd)){}
 private:
@@ -514,13 +510,13 @@ In the above code we've moved back to using lambdas for completion. Although the
 ## Conclusion
 
 In this tutorial you have learned about basic usage of the solid_frame and solid_frame_aio libraries. You have learned:
- * How to create a Listener object.
+ * How to create a Listener Actor.
  * How to accept new connections
  * How to read from connection and write it back to it
  * How to create a Talker for UDP communication
  * How to receive UDP data and how to send it back
- * How to create and start aio::Objects
- * How to notify aio::Objects
+ * How to create and start aio::Actors
+ * How to notify aio::Actors
 
 ## Next
 
