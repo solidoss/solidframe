@@ -328,6 +328,7 @@ void MessageWriter::doCancel(
             if (rmsgstub.serializer_ptr_) {
                 //the message is being sent
                 rmsgstub.serializer_ptr_->clear();
+                _rsender.protocol().reconfigure(*rmsgstub.serializer_ptr_, _rsender.configuration());
                 rmsgstub.state_ = MessageStub::StateE::WriteCanceled;
             } else if (!_force && rmsgstub.state_ == MessageStub::StateE::WriteWait) {
                 //message is waiting response
@@ -351,6 +352,7 @@ void MessageWriter::doCancel(
         case MessageStub::StateE::RelayedHeadStart:
         case MessageStub::StateE::RelayedHeadContinue:
             rmsgstub.serializer_ptr_->clear();
+            _rsender.protocol().reconfigure(*rmsgstub.serializer_ptr_, _rsender.configuration());
         case MessageStub::StateE::RelayedBody:
             rmsgstub.state_ = MessageStub::StateE::RelayedCancelRequest;
             _rsender.cancelRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);

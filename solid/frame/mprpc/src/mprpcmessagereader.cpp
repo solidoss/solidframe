@@ -263,6 +263,7 @@ const char* MessageReader::doConsumeMessage(
                                 solid_dbg(logger, Info, "Read Body");
                                 rmsgstub.state_ = MessageStub::StateE::ReadBodyStart;
                                 rmsgstub.deserializer_ptr_->clear();
+                                _receiver.protocol().reconfigure(*rmsgstub.deserializer_ptr_, _receiver.configuration());
                             } else {
                                 solid_dbg(logger, Info, "Relay message");
                                 rmsgstub.state_ = MessageStub::StateE::RelayStart;
