@@ -112,7 +112,7 @@ int test_event_stress_wp(int argc, char* argv[])
     size_t account_connection_count = 10;
     size_t account_device_count     = 20;
     size_t repeat_count             = 40;
-    int    wait_seconds             = 10000;
+    int    wait_seconds             = 10;
 
     if (argc > 1) {
         repeat_count = make_number(argv[1]);
@@ -159,8 +159,8 @@ int test_event_stress_wp(int argc, char* argv[])
         solid_check(prom.get_future().wait_for(chrono::seconds(wait_seconds)) == future_status::ready);
     };
 
-    if (async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
-        solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
+    if (async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds + 10)) != future_status::ready) {
+        solid_throw(" Test is taking too long - waited " << wait_seconds + 10 << " secs");
     }
 
     return 0;
