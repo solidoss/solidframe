@@ -4,11 +4,13 @@
  * actors and schedulers.
  */
 
+#include "solid/system/crashhandler.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/string.hpp"
 #include "solid/utility/workpool.hpp"
 
 #include <future>
+#include <iostream>
 
 using namespace std;
 using namespace solid;
@@ -108,6 +110,10 @@ void DeviceContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat_
 
 int test_event_stress_wp(int argc, char* argv[])
 {
+    install_crash_handler();
+
+    solid::log_start(std::cerr, {".*:EWS"});
+
     size_t account_count            = 10000;
     size_t account_connection_count = 10;
     size_t account_device_count     = 20;
@@ -156,7 +162,15 @@ int test_event_stress_wp(int argc, char* argv[])
             };
             account_cp.push(lambda);
         }
-        solid_check(prom.get_future().wait_for(chrono::seconds(wait_seconds)) == future_status::ready);
+
+        if (prom.get_future().wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
+            solid_dbg(workpool_logger, Statistic, "Connection pool:");
+            connection_cp.dumpStatistics();
+            solid_dbg(workpool_logger, Statistic, "Device pool:");
+            device_cp.dumpStatistics();
+            solid_dbg(workpool_logger, Statistic, "Account pool:");
+            account_cp.dumpStatistics();
+        }
     };
 
     if (async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds + 10)) != future_status::ready) {

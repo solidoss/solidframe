@@ -84,6 +84,11 @@ public:
     {
         wp_.stop();
     }
+
+    void dumpStatistics() const
+    {
+        wp_.dumpStatistics();
+    }
 };
 
 } //namespace solid

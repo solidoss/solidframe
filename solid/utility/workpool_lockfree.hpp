@@ -207,6 +207,7 @@ public:
 
     void wake()
     {
+        std::lock_guard<std::mutex> lock(pop_end_.mutex_);
         pop_end_.condition_.notify_all();
     }
     void dumpStatistics() const;
