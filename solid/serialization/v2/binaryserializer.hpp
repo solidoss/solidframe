@@ -111,12 +111,6 @@ public:
 
     void clear();
 
-    void limits(const Limits& _rlimits, const char* _name);
-
-    void limitString(const size_t _sz, const char* _name);
-    void limitContainer(const size_t _sz, const char* _name);
-    void limitStream(const uint64_t _sz, const char* _name);
-
     bool empty() const
     {
         return run_lst_.empty();
@@ -549,13 +543,13 @@ public: //should be protected
 
         schedule(std::move(r));
     }
-
+    
     template <typename A>
-    void addVectorBool(const std::vector<bool, A>& _rc, const char* _name)
+    void addVectorBool(const std::vector<bool, A>& _rc, const uint64_t _limit, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rc.size());
+        solid_dbg(logger, Info, _name << ' ' << _rc.size() << ' ' <<_limit);
 
-        if (Base::limits().hasContainer() && _rc.size() > Base::limits().container()) {
+        if (_rc.size() > _limit) {
             baseError(error_limit_container);
             return;
         }
@@ -571,6 +565,12 @@ public: //should be protected
         }
 
         schedule(std::move(r));
+    }
+    
+    template <typename A>
+    void addVectorBool(const std::vector<bool, A>& _rc, const char* _name)
+    {
+        addVectorBool(_rc, limits().container(), _name);
     }
 
     template <size_t N>
@@ -1038,6 +1038,20 @@ public:
         solidSerializeV2(*this, _rt, _rctx, _name);
         return *this;
     }
+    
+    template <typename T>
+    ThisT& add(T& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+    {
+        solidSerializeV2(*this, _rt, _limit, _rctx, _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& add(const T& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+    {
+        solidSerializeV2(*this, _rt, _limit, _rctx, _name);
+        return *this;
+    }
 
     template <typename T, size_t N>
     ThisT& add(const std::array<T, N>& _rt, const size_t _sz, Ctx& _rctx, const char* _name)
@@ -1063,35 +1077,6 @@ public:
     ThisT& push(T&& _rt, Ctx& _rctx, const char* _name)
     {
         solidSerializePushV2(*this, std::move(_rt), _rctx, _name);
-        return *this;
-    }
-
-    const Limits& limits() const
-    {
-        return Base::limits();
-    }
-
-    ThisT& limits(const Limits& _rlimits, const char* _name)
-    {
-        SerializerBase::limits(_rlimits, _name);
-        return *this;
-    }
-
-    ThisT& limitString(const size_t _sz, const char* _name)
-    {
-        SerializerBase::limitString(_sz, _name);
-        return *this;
-    }
-
-    ThisT& limitContainer(const size_t _sz, const char* _name)
-    {
-        SerializerBase::limitContainer(_sz, _name);
-        return *this;
-    }
-
-    ThisT& limitStream(const uint64_t _sz, const char* _name)
-    {
-        SerializerBase::limitStream(_sz, _name);
         return *this;
     }
 

@@ -234,7 +234,7 @@ public:
             .add(um, _rctx, "um")
             .add(us, _rctx, "us")
             .add(a, _rctx, "a");
-        _rs.add(vb, _rctx, "vb");
+        _rs.add(vb, 10, _rctx, "vb");
         _rs.add(bs, _rctx, "bs");
         _rs.add(vc, _rctx, "vc");
         _rs.add(a1, _rctx, "a1");
@@ -292,7 +292,7 @@ public:
 
 int test_binary(int argc, char* argv[])
 {
-    solid::log_start(std::cout, {".*:EW"});
+    solid::log_start(std::cout, {".*:VIEW"});
     //solid::log_start(argv[0], {".*:VIEW"}, true, 2, 1024 * 1024);
 
     std::string input_file_path;

@@ -82,6 +82,12 @@ struct Limits {
 
 class Base : public v2::Base {
 public:
+    enum struct ReturnE {
+        Done = 0,
+        Continue,
+        Wait
+    };
+    
     const ErrorConditionT& error() const
     {
         return error_;
@@ -91,12 +97,10 @@ public:
     {
         return limits_;
     }
-
-    enum struct ReturnE {
-        Done = 0,
-        Continue,
-        Wait
-    };
+    
+    void limits(const Limits &_limits){
+        limits_ = _limits;
+    }
 
     template <class T>
     uint32_t version(const T& /*_rt*/)
@@ -251,6 +255,29 @@ template <class S, class A, class Ctx>
 inline void solidSerializeV2(S& _rs, const std::vector<bool, A>& _rt, Ctx& _rctx, const char* _name)
 {
     _rs.addVectorBool(_rt, _name);
+}
+
+//with limit
+
+template <class S, class A>
+inline void solidSerializeV2(S& _rs, const std::vector<bool, A>& _rt, const uint64_t _limit, const char* _name)
+{
+    _rs.addVectorBool(_rt, _limit, _name);
+}
+template <class S, class A>
+inline void solidSerializeV2(S& _rs, std::vector<bool, A>& _rt, const uint64_t _limit, const char* _name)
+{
+    _rs.addVectorBool(_rt, _limit, _name);
+}
+template <class S, class A, class Ctx>
+inline void solidSerializeV2(S& _rs, std::vector<bool, A>& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+{
+    _rs.addVectorBool(_rt, _limit, _name);
+}
+template <class S, class A, class Ctx>
+inline void solidSerializeV2(S& _rs, const std::vector<bool, A>& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+{
+    _rs.addVectorBool(_rt, _limit, _name);
 }
 
 //vector<char> ----------------------------------------------------------------

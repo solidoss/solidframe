@@ -47,9 +47,26 @@ class DeserializerBase : public Base {
             , size_(_size)
             , data_(_data)
             , name_(_name)
+            , limit_(0)
         {
         }
-
+        
+        Runnable(
+            void*       _ptr,
+            CallbackT   _call,
+            uint64_t    _size,
+            uint64_t    _data,
+            uint64_t    _limit,
+            const char* _name)
+            : ptr_(_ptr)
+            , call_(_call)
+            , size_(_size)
+            , data_(_data)
+            , name_(_name)
+            , limit_(_limit)
+        {
+        }
+        
         template <class F>
         Runnable(void* _ptr, CallbackT _call, F&& _f, const char* _name)
             : ptr_(_ptr)
@@ -58,6 +75,7 @@ class DeserializerBase : public Base {
             , data_(0)
             , name_(_name)
             , fnc_(std::move(_f))
+            ,limit_(0)
         {
         }
 
@@ -75,6 +93,7 @@ class DeserializerBase : public Base {
             , data_(_data)
             , name_(_name)
             , fnc_(std::move(_f))
+            , limit_(0)
         {
         }
 
@@ -91,6 +110,7 @@ class DeserializerBase : public Base {
         uint64_t    data_;
         const char* name_;
         FunctionT   fnc_;
+        uint64_t    limit_;
     };
 
     using RunListT         = std::list<Runnable>;
@@ -109,12 +129,6 @@ public:
     long          run(const char* _pbeg, unsigned _sz, void* _pctx = nullptr);
 
     void clear();
-
-    void limits(const Limits& _rlimits, const char* _name);
-
-    void limitString(const size_t _sz, const char* _name);
-    void limitContainer(const size_t _sz, const char* _name);
-    void limitStream(const uint64_t _sz, const char* _name);
 
     const ErrorConditionT& error() const
     {
@@ -169,10 +183,10 @@ public:
     }
 
     template <typename A>
-    inline void addVectorBool(std::vector<bool, A>& _rv, const char* _name)
+    inline void addVectorBool(std::vector<bool, A>& _rv, const uint64_t _limit, const char* _name)
     {
         solid_dbg(logger, Info, _name);
-        Runnable r{&_rv, &load_vector_bool<A>, 0, 0, _name};
+        Runnable r{&_rv, &load_vector_bool<A>, 0, 0, _limit, _name};
 
         if (isRunEmpty()) {
             if (load_vector_bool<A>(*this, r, nullptr) == ReturnE::Done) {
@@ -182,7 +196,13 @@ public:
 
         schedule(std::move(r));
     }
-
+    
+    template <typename A>
+    inline void addVectorBool(std::vector<bool, A>& _rv, const char* _name)
+    {
+        addVectorBool(_rv, limits().container(), _name);
+    }
+    
     template <size_t N>
     inline void addBitset(std::bitset<N>& _rb, const char* _name)
     {
@@ -768,9 +788,9 @@ private:
 
         if (r == ReturnE::Done && _rd.data_.u64_ != 0) {
             _rr.size_ = _rd.data_.u64_;
-            solid_dbg(logger, Info, "size = " << _rr.size_);
+            solid_dbg(logger, Info, "size = " << _rr.size_<<' '<<_rr.limit_);
 
-            if (_rd.Base::limits().hasContainer() && _rr.size_ > _rd.Base::limits().container()) {
+            if ( _rr.size_ > _rr.limit_) {
                 _rd.baseError(error_limit_container);
                 return ReturnE::Done;
             }
@@ -1270,7 +1290,21 @@ public:
         solidSerializeV2(*this, _rt, _rctx, _name);
         return *this;
     }
+    
+    template <typename T>
+    ThisT& add(T& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+    {
+        solidSerializeV2(*this, _rt, _limit, _rctx, _name);
+        return *this;
+    }
 
+    template <typename T>
+    ThisT& add(const T& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+    {
+        solidSerializeV2(*this, _rt, _limit, _rctx, _name);
+        return *this;
+    }
+    
     template <typename T, size_t N, typename S>
     ThisT& add(std::array<T, N>& _rt, S& _rsz, Ctx& _rctx, const char* _name)
     {
@@ -1296,35 +1330,6 @@ public:
     ThisT& push(T&& _rt, Ctx& _rctx, const char* _name)
     {
         solidSerializePushV2(*this, std::move(_rt), _rctx, _name);
-        return *this;
-    }
-
-    const Limits& limits() const
-    {
-        return Base::limits();
-    }
-
-    ThisT& limits(const Limits& _rlimits, const char* _name)
-    {
-        DeserializerBase::limits(_rlimits, _name);
-        return *this;
-    }
-
-    ThisT& limitString(const size_t _sz, const char* _name)
-    {
-        DeserializerBase::limitString(_sz, _name);
-        return *this;
-    }
-
-    ThisT& limitContainer(const size_t _sz, const char* _name)
-    {
-        DeserializerBase::limitContainer(_sz, _name);
-        return *this;
-    }
-
-    ThisT& limitStream(const uint64_t _sz, const char* _name)
-    {
-        DeserializerBase::limitStream(_sz, _name);
         return *this;
     }
 
