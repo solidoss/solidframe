@@ -445,7 +445,7 @@ public:
                 rcontainer.insert(rcontainer.end(), std::move(value));
                 parsing_value = false;
             } else if (_rr.size_ > _rr.limit_) {
-                _rd.baseError(error_limit_stream);
+                _rd.baseError(error_limit_container);
                 return ReturnE::Done;
             }
 
