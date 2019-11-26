@@ -159,11 +159,11 @@ public: //should be protected
         schedule(std::move(r));
     }
 
-    inline void addBasic(const std::string& _rb, const char* _name)
+    inline void addBasic(const std::string& _rb, const uint64_t _limit, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rb.size() << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
+        solid_dbg(logger, Info, _name << ' ' << _rb.size() << ' '<< _limit << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
 
-        if (Base::limits().hasString() && _rb.size() > Base::limits().string()) {
+        if (_rb.size() > _limit) {
             baseError(error_limit_string);
             return;
         }
@@ -179,14 +179,19 @@ public: //should be protected
         }
 
         schedule(std::move(r));
+    }
+    
+    inline void addBasic(const std::string& _rb, const char* _name)
+    {
+        addBasic(_rb, limits().string(), _name);
     }
 
     template <typename T, class A>
-    inline void addVectorChar(const std::vector<T, A>& _rb, const char* _name)
+    inline void addVectorChar(const std::vector<T, A>& _rb, const uint64_t _limit, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rb.size());
+        solid_dbg(logger, Info, _name << ' ' << _rb.size()<<' '<<_limit);
 
-        if (Base::limits().hasString() && _rb.size() > Base::limits().string()) {
+        if (_rb.size() > _limit) {
             baseError(error_limit_string);
             return;
         }
@@ -203,13 +208,18 @@ public: //should be protected
 
         schedule(std::move(r));
     }
+    template <typename T, class A>
+    inline void addVectorChar(const std::vector<T, A>& _rb, const char* _name)
+    {
+        addVectorChar(_rb, limits().container(), _name);
+    }
 
     template <class A>
-    inline void addVectorChar(const std::vector<uint8_t, A>& _rb, const char* _name)
+    inline void addVectorChar(const std::vector<uint8_t, A>& _rb, const uint64_t _limit, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rb.size() << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
+        solid_dbg(logger, Info, _name << ' ' << _rb.size() <<' '<<_limit << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
 
-        if (Base::limits().hasString() && _rb.size() > Base::limits().string()) {
+        if (_rb.size() > _limit) {
             baseError(error_limit_string);
             return;
         }
@@ -225,6 +235,12 @@ public: //should be protected
         }
 
         schedule(std::move(r));
+    }
+    
+    template <class A>
+    inline void addVectorChar(const std::vector<uint8_t, A>& _rb, const char* _name)
+    {
+        addVectorChar(_rb, limits().container(), _name);
     }
 
     template <typename T>
@@ -377,10 +393,10 @@ public: //should be protected
     }
 
     template <class S, class C>
-    void addContainer(S& _rs, const C& _rc, const char* _name)
+    void addContainer(S& _rs, const C& _rc, const uint64_t _limit, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rc.size());
-        if (Base::limits().hasContainer() && _rc.size() > Base::limits().container()) {
+        solid_dbg(logger, Info, _name << ' ' << _rc.size()<< ' '<<_limit);
+        if (_rc.size() > _limit) {
             baseError(error_limit_container);
             return;
         }
@@ -421,13 +437,19 @@ public: //should be protected
             }
         }
     }
+    
+    template <class S, class C>
+    void addContainer(S& _rs, const C& _rc, const char* _name)
+    {
+        addContainer(_rs, _rc, limits().container(), _name);
+    }
 
     template <class S, class C, class Ctx>
-    void addContainer(S& _rs, const C& _rc, Ctx& _rctx, const char* _name)
+    void addContainer(S& _rs, const C& _rc, const uint64_t _limit, Ctx& _rctx, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rc.size());
+        solid_dbg(logger, Info, _name << ' ' << _rc.size()<< ' '<<_limit);
 
-        if (Base::limits().hasContainer() && _rc.size() > Base::limits().container()) {
+        if (_rc.size() > _limit) {
             baseError(error_limit_container);
             return;
         }
@@ -468,6 +490,12 @@ public: //should be protected
                 schedule(std::move(r));
             }
         }
+    }
+    
+    template <class S, class C, class Ctx>
+    void addContainer(S& _rs, const C& _rc, Ctx& _rctx, const char* _name)
+    {
+        addContainer(_rs, _rc, limits().container(), _rctx, _name);
     }
 
     template <class F>

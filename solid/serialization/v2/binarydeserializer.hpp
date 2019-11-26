@@ -250,10 +250,10 @@ public:
         schedule(std::move(r));
     }
 
-    void addBasic(std::string& _rb, const char* _name)
+    void addBasic(std::string& _rb, const uint64_t _limit, const char* _name)
     {
         solid_dbg(logger, Info, _name);
-        Runnable r{&_rb, &load_string, 0, 0, _name};
+        Runnable r{&_rb, &load_string, 0, 0, _limit, _name};
 
         _rb.clear(); //necessary otherwise map<string, something> would not work on gcc5.3
 
@@ -265,12 +265,17 @@ public:
 
         schedule(std::move(r));
     }
+    
+    void addBasic(std::string& _rb, const char* _name)
+    {
+        addBasic(_rb, limits().string(), _name);
+    }
 
     template <typename T, class A>
-    void addVectorChar(std::vector<T, A>& _rb, const char* _name)
+    void addVectorChar(std::vector<T, A>& _rb, const uint64_t _limit, const char* _name)
     {
         solid_dbg(logger, Info, _name);
-        Runnable r{&_rb, &load_vector_char<T, A>, 0, 0, _name};
+        Runnable r{&_rb, &load_vector_char<T, A>, 0, 0, _limit, _name};
 
         _rb.clear(); //necessary otherwise map<string, something> would not work on gcc5.3
 
@@ -281,6 +286,12 @@ public:
         }
 
         schedule(std::move(r));
+    }
+    
+    template <typename T, class A>
+    void addVectorChar(std::vector<T, A>& _rb, const char* _name)
+    {
+        addVectorChar(_rb, limits().container(), _name);
     }
 
     template <class D, class F>
@@ -405,7 +416,7 @@ public:
     }
 
     template <class D, class C>
-    void addContainer(D& _rd, C& _rc, const char* _name)
+    void addContainer(D& _rd, C& _rc, const uint64_t _limit, const char* _name)
     {
         solid_dbg(logger, Info, _name);
 
@@ -433,7 +444,7 @@ public:
             if (parsing_value) {
                 rcontainer.insert(rcontainer.end(), std::move(value));
                 parsing_value = false;
-            } else if (rd.limits().hasContainer() && _rr.size_ > rd.limits().container()) {
+            } else if (_rr.size_ > _rr.limit_) {
                 _rd.baseError(error_limit_stream);
                 return ReturnE::Done;
             }
@@ -463,12 +474,19 @@ public:
         };
 
         Runnable r{&_rc, call_function, lambda, _name};
+        r.limit_ = _limit;
 
         tryRun(std::move(r));
     }
+    
+    template <class D, class C>
+    void addContainer(D& _rd, C& _rc, const char* _name)
+    {
+        addContainer(_rd, _rc, limits().container(), _name);
+    }
 
     template <class D, class C, class Ctx>
-    void addContainer(D& _rd, C& _rc, Ctx& _rctx, const char* _name)
+    void addContainer(D& _rd, C& _rc, const uint64_t _limit, Ctx& _rctx, const char* _name)
     {
         solid_dbg(logger, Info, _name);
 
@@ -497,8 +515,8 @@ public:
             if (parsing_value) {
                 rcontainer.insert(rcontainer.end(), std::move(value));
                 parsing_value = false;
-            } else if (rd.limits().hasContainer() && _rr.size_ > rd.limits().container()) {
-                _rd.baseError(error_limit_stream);
+            } else if (_rr.size_ > _rr.limit_) {
+                _rd.baseError(error_limit_container);
                 return ReturnE::Done;
             }
 
@@ -527,10 +545,17 @@ public:
         };
 
         Runnable r{&_rc, call_function, lambda, _name};
+        r.limit_ = _limit;
 
         tryRun(std::move(r), &_rctx);
     }
-
+    
+    template <class D, class C, class Ctx>
+    void addContainer(D& _rd, C& _rc, Ctx& _rctx, const char* _name)
+    {
+        addContainer(_rd, _rc, limits().container(), _rctx, _name);
+    }
+    
     template <class F, class Ctx>
     void addStream(std::ostream& _ros, F _f, Ctx& _rctx, const char* _name)
     {
@@ -844,7 +869,7 @@ private:
             _rr.size_ = _rd.data_.u64_;
             solid_dbg(logger, Info, "size = " << _rr.size_);
 
-            if (_rr.size_ > N || (_rd.Base::limits().hasContainer() && _rr.size_ > _rd.Base::limits().container())) {
+            if (_rr.size_ > N) {
                 _rd.baseError(error_limit_container);
                 return ReturnE::Done;
             }
@@ -900,7 +925,7 @@ private:
             _rr.size_ = _rd.data_.u64_;
             solid_dbg(logger, Info, "size = " << _rr.size_);
 
-            if (_rd.Base::limits().hasString() && _rr.size_ > _rd.Base::limits().string()) {
+            if (_rr.size_ > _rr.limit_) {
                 _rd.baseError(error_limit_string);
                 return ReturnE::Done;
             }
@@ -1022,7 +1047,7 @@ private:
         if (r == ReturnE::Done && data_.u64_ != 0) {
             _rr.size_ = data_.u64_;
 
-            if (Base::limits().hasString() && _rr.size_ > Base::limits().string()) {
+            if (_rr.size_ > _rr.limit_) {
                 baseError(error_limit_string);
                 return ReturnE::Done;
             }

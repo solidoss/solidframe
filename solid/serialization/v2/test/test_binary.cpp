@@ -202,6 +202,7 @@ public:
     template <class S>
     void solidSerializeV2(S& _rs, Context& _rctx, const char* /*_name*/) const
     {
+        _rs.add(p, 100, _rctx, "p");
         _rs
             .add(b, _rctx, "b")
             .add(
@@ -231,10 +232,10 @@ public:
                 _rctx, "s")
             .add(m, _rctx, "m")
             .add(s, _rctx, "s")
-            .add(um, _rctx, "um")
+            .add(um, 11, _rctx, "um")
             .add(us, _rctx, "us")
             .add(a, _rctx, "a");
-        _rs.add(vb, 10, _rctx, "vb");
+        _rs.add(vb, 100, _rctx, "vb");
         _rs.add(bs, _rctx, "bs");
         _rs.add(vc, _rctx, "vc");
         _rs.add(a1, _rctx, "a1");
@@ -248,6 +249,7 @@ public:
     template <class S>
     void solidSerializeV2(S& _rs, Context& _rctx, const char* /*_name*/)
     {
+        _rs.add(p, 100, _rctx, "p");
         _rs
             .add(b, _rctx, "b")
             .add(
@@ -275,10 +277,10 @@ public:
                 _rctx, "s")
             .add(m, _rctx, "m")
             .add(s, _rctx, "s")
-            .add(um, _rctx, "um")
+            .add(um, 11, _rctx, "um")
             .add(us, _rctx, "us")
             .add(a, _rctx, "a");
-        _rs.add(vb, _rctx, "vb");
+        _rs.add(vb, 100, _rctx, "vb");
         _rs.add(bs, _rctx, "bs");
         _rs.add(vc, _rctx, "vc");
         _rs.add(a1, _rctx, "a1");
@@ -373,6 +375,8 @@ int test_binary(int argc, char* argv[])
                     ser.add(t, _rctx, "t").add(tp, _rctx, "tp").add(tup, _rctx, "tup").add(sp1, _rctx, "sp1").add(up1, _rctx, "up1");
                 },
                 ctx);
+            
+            solid_check(!ser.error(), "check failed: " << ser.error().message());
         }
 
         if (choice != 's') {
