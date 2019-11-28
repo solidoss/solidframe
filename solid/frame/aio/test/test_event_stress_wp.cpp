@@ -118,7 +118,7 @@ int test_event_stress_wp(int argc, char* argv[])
     size_t account_connection_count = 10;
     size_t account_device_count     = 20;
     size_t repeat_count             = 40;
-    int    wait_seconds             = 10;
+    int    wait_seconds             = 50;
 
     if (argc > 1) {
         repeat_count = make_number(argv[1]);

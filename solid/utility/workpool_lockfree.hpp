@@ -109,8 +109,9 @@ class Queue : NonCopyable {
 
         Node* nodeExchange(Node* _pn)
         {
-            if (_pn)
+            if (_pn) {
                 _pn->use_cnt_.fetch_add(1);
+            }
             spinLockAcquire();
             Node* const pn = pnode_;
             pnode_         = _pn;
