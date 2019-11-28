@@ -223,7 +223,7 @@ public:
             .push(
                 [pifs = std::move(pifs)](S& _rs, Context& _rctx, const char* _name) mutable {
                     _rs.add(
-                        *pifs, [](std::istream& _ris, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
+                        *pifs, InvalidIndex(), 1024 * 128, [](std::istream& _ris, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
                             solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
                         },
                         _rctx, _name);
@@ -268,7 +268,7 @@ public:
                     },
                     [this](S& _rs, Context& _rctx, const char* _name) {
                         _rs.add(
-                            oss, [](std::ostream& _ros, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
+                            oss, 1024 * 128, [](std::ostream& _ros, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
                                 solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
                             },
                             _rctx, _name);
@@ -294,7 +294,7 @@ public:
 
 int test_binary(int argc, char* argv[])
 {
-    solid::log_start(std::cout, {".*:VIEW"});
+    solid::log_start(std::cerr, {".*:VIEW"});
     //solid::log_start(argv[0], {".*:VIEW"}, true, 2, 1024 * 1024);
 
     std::string input_file_path;
@@ -375,7 +375,7 @@ int test_binary(int argc, char* argv[])
                     ser.add(t, _rctx, "t").add(tp, _rctx, "tp").add(tup, _rctx, "tup").add(sp1, _rctx, "sp1").add(up1, _rctx, "up1");
                 },
                 ctx);
-            
+
             solid_check(!ser.error(), "check failed: " << ser.error().message());
         }
 

@@ -87,7 +87,7 @@ public:
         Continue,
         Wait
     };
-    
+
     const ErrorConditionT& error() const
     {
         return error_;
@@ -97,8 +97,9 @@ public:
     {
         return limits_;
     }
-    
-    void limits(const Limits &_limits){
+
+    void limits(const Limits& _limits)
+    {
         limits_ = _limits;
     }
 
@@ -189,25 +190,25 @@ SOLID_SERIALIZATION_BASIC(std::string);
 
 //string with limit
 
-template <class S>                                                                
-inline void solidSerializeV2(S& _rs, const std::string& _rt, const uint64_t _limit, const char* _name)             
-{                                                                                 
-    _rs.addBasic(_rt, _limit, _name);                                                     
-}                                                                                 
-template <class S>                                                                
-inline void solidSerializeV2(S& _rs, std::string& _rt, const uint64_t _limit, const char* _name)                   
-{                                                                                 
-    _rs.addBasic(_rt, _limit, _name);                                                     
-}                                                                                 
-template <class S, class Ctx>                                                     
-inline void solidSerializeV2(S& _rs, std::string& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)       
-{                                                                                 
-    _rs.addBasic(_rt, _limit, _name);                                                     
-}                                                                                 
-template <class S, class Ctx>                                                     
-inline void solidSerializeV2(S& _rs, const std::string& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name) 
-{                                                                                 
-    _rs.addBasic(_rt, _limit, _name);                                                     
+template <class S>
+inline void solidSerializeV2(S& _rs, const std::string& _rt, const uint64_t _limit, const char* _name)
+{
+    _rs.addBasic(_rt, _limit, _name);
+}
+template <class S>
+inline void solidSerializeV2(S& _rs, std::string& _rt, const uint64_t _limit, const char* _name)
+{
+    _rs.addBasic(_rt, _limit, _name);
+}
+template <class S, class Ctx>
+inline void solidSerializeV2(S& _rs, std::string& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+{
+    _rs.addBasic(_rt, _limit, _name);
+}
+template <class S, class Ctx>
+inline void solidSerializeV2(S& _rs, const std::string& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+{
+    _rs.addBasic(_rt, _limit, _name);
 }
 
 //bitset ----------------------------------------------------------------------
@@ -326,9 +327,7 @@ inline void solidSerializeV2(S& _rs, const std::vector<char, A>& _rt, Ctx& _rctx
     _rs.addVectorChar(_rt, _name);
 }
 
-
 //with limit
-
 
 template <class S, class A>
 inline void solidSerializeV2(S& _rs, const std::vector<char, A>& _rt, const uint64_t _limit, const char* _name)
@@ -350,7 +349,6 @@ inline void solidSerializeV2(S& _rs, const std::vector<char, A>& _rt, const uint
 {
     _rs.addVectorChar(_rt, _limit, _name);
 }
-
 
 //vector<uint8_t> ----------------------------------------------------------------
 
@@ -509,7 +507,6 @@ inline void solidSerializeV2IsContainer(S& _rs, T& _rt, const uint64_t _limit, c
 {
     _rs.addContainer(_rs, _rt, _limit, _name);
 }
-
 
 //- function dispatch
 

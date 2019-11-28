@@ -138,48 +138,47 @@ Base::ReturnE SerializerBase::store_stream(SerializerBase& _rs, Runnable& _rr, v
     std::istream& ris    = *const_cast<std::istream*>(static_cast<const std::istream*>(_rr.ptr_));
     size_t        toread = _rs.pend_ - _rs.pcrt_;
 
-    if (toread > 2) {
-        toread -= 2;
-        if (_rr.size_ != InvalidSize()) {
-            if (_rr.size_ < toread) {
-                toread = static_cast<size_t>(_rr.size_);
-            }
-        }
-
-        if (ris) {
-            ris.read(_rs.pcrt_ + 2, toread);
-            toread = static_cast<size_t>(ris.gcount());
-        } else {
-            toread = 0;
-        }
-        solid_check(toread <= 0xffff);
-        uint16_t chunk_len = static_cast<uint16_t>(toread);
-        _rs.pcrt_          = store(_rs.pcrt_, chunk_len);
-        _rs.pcrt_ += toread;
-        _rr.data_ += toread;
-
-        if (_rs.Base::limits().hasStream() && _rr.data_ > _rs.Base::limits().stream()) {
-            _rs.baseError(error_limit_stream);
-            return ReturnE::Done;
-        }
-
-        bool done = (toread == 0); //we need to have written a final chunk_len == 0
-
-        if (_rr.size_ != InvalidSize()) {
-            _rr.size_ -= toread;
-        }
-
-        if (!done) {
-            if (_rr.size_ != 0) {
-                _rr.fnc_(_rs, _rr, _pctx);
-            }
-            return ReturnE::Wait;
-        }
-        _rr.size_ = 0;
-        _rr.fnc_(_rs, _rr, _pctx);
-    } else {
+    if (toread <= 2) {
         return ReturnE::Wait;
     }
+    toread -= 2;
+    if (_rr.size_ != InvalidSize()) {
+        if (_rr.size_ < toread) {
+            toread = static_cast<size_t>(_rr.size_);
+        }
+    }
+
+    if (ris) {
+        ris.read(_rs.pcrt_ + 2, toread);
+        toread = static_cast<size_t>(ris.gcount());
+    } else {
+        toread = 0;
+    }
+
+    solid_check(toread <= 0xffff);
+
+    _rs.pcrt_ = store(_rs.pcrt_, static_cast<uint16_t>(toread));
+    _rs.pcrt_ += toread;
+    _rr.data_ += toread;
+
+    const bool done = (toread == 0); //we need to have written a final toread == 0
+
+    if (_rr.size_ != InvalidSize()) {
+        _rr.size_ -= toread;
+    }
+
+    if (!done) {
+        if (_rr.size_ != 0) {
+            _rr.fnc_(_rs, _rr, _pctx);
+            if (_rs.error()) {
+                return ReturnE::Done;
+            }
+        }
+        return ReturnE::Wait;
+    }
+    _rr.size_ = 0;
+    _rr.fnc_(_rs, _rr, _pctx);
+
     return ReturnE::Done;
 }
 

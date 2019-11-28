@@ -50,7 +50,7 @@ class DeserializerBase : public Base {
             , limit_(0)
         {
         }
-        
+
         Runnable(
             void*       _ptr,
             CallbackT   _call,
@@ -66,7 +66,7 @@ class DeserializerBase : public Base {
             , limit_(_limit)
         {
         }
-        
+
         template <class F>
         Runnable(void* _ptr, CallbackT _call, F&& _f, const char* _name)
             : ptr_(_ptr)
@@ -75,7 +75,7 @@ class DeserializerBase : public Base {
             , data_(0)
             , name_(_name)
             , fnc_(std::move(_f))
-            ,limit_(0)
+            , limit_(0)
         {
         }
 
@@ -196,13 +196,13 @@ public:
 
         schedule(std::move(r));
     }
-    
+
     template <typename A>
     inline void addVectorBool(std::vector<bool, A>& _rv, const char* _name)
     {
         addVectorBool(_rv, limits().container(), _name);
     }
-    
+
     template <size_t N>
     inline void addBitset(std::bitset<N>& _rb, const char* _name)
     {
@@ -265,7 +265,7 @@ public:
 
         schedule(std::move(r));
     }
-    
+
     void addBasic(std::string& _rb, const char* _name)
     {
         addBasic(_rb, limits().string(), _name);
@@ -287,7 +287,7 @@ public:
 
         schedule(std::move(r));
     }
-    
+
     template <typename T, class A>
     void addVectorChar(std::vector<T, A>& _rb, const char* _name)
     {
@@ -478,7 +478,7 @@ public:
 
         tryRun(std::move(r));
     }
-    
+
     template <class D, class C>
     void addContainer(D& _rd, C& _rc, const char* _name)
     {
@@ -549,25 +549,25 @@ public:
 
         tryRun(std::move(r), &_rctx);
     }
-    
+
     template <class D, class C, class Ctx>
     void addContainer(D& _rd, C& _rc, Ctx& _rctx, const char* _name)
     {
         addContainer(_rd, _rc, limits().container(), _rctx, _name);
     }
-    
+
     template <class F, class Ctx>
-    void addStream(std::ostream& _ros, F _f, Ctx& _rctx, const char* _name)
+    void addStream(std::ostream& _ros, const uint64_t _limit, F _f, Ctx& _rctx, const char* _name)
     {
         uint64_t len    = 0;
-        auto     lambda = [_f = std::move(_f), len](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
+        auto     lambda = [_f = std::move(_f), len, _limit](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
             Ctx&          rctx = *static_cast<Ctx*>(_pctx);
             std::ostream& ros  = *const_cast<std::ostream*>(static_cast<const std::ostream*>(_rr.ptr_));
             len += _rr.data_;
 
             _f(ros, len, _rr.data_ == 0, rctx, _rr.name_);
 
-            if (_rd.Base::limits().hasStream() && len > _rd.Base::limits().stream()) {
+            if (len > _limit) {
                 _rd.baseError(error_limit_stream);
             }
             return ReturnE::Done;
@@ -813,9 +813,9 @@ private:
 
         if (r == ReturnE::Done && _rd.data_.u64_ != 0) {
             _rr.size_ = _rd.data_.u64_;
-            solid_dbg(logger, Info, "size = " << _rr.size_<<' '<<_rr.limit_);
+            solid_dbg(logger, Info, "size = " << _rr.size_ << ' ' << _rr.limit_);
 
-            if ( _rr.size_ > _rr.limit_) {
+            if (_rr.size_ > _rr.limit_) {
                 _rd.baseError(error_limit_container);
                 return ReturnE::Done;
             }
@@ -1298,7 +1298,14 @@ public:
     template <typename F>
     ThisT& add(std::ostream& _ros, F _f, Ctx& _rctx, const char* _name)
     {
-        addStream(_ros, _f, _rctx, _name);
+        addStream(_ros, limits().stream(), _f, _rctx, _name);
+        return *this;
+    }
+
+    template <typename F>
+    ThisT& add(std::ostream& _ros, const uint64_t _limit, F _f, Ctx& _rctx, const char* _name)
+    {
+        addStream(_ros, _limit, _f, _rctx, _name);
         return *this;
     }
 
@@ -1315,7 +1322,7 @@ public:
         solidSerializeV2(*this, _rt, _rctx, _name);
         return *this;
     }
-    
+
     template <typename T>
     ThisT& add(T& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
     {
@@ -1329,7 +1336,7 @@ public:
         solidSerializeV2(*this, _rt, _limit, _rctx, _name);
         return *this;
     }
-    
+
     template <typename T, size_t N, typename S>
     ThisT& add(std::array<T, N>& _rt, S& _rsz, Ctx& _rctx, const char* _name)
     {

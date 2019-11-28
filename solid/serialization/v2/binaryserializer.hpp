@@ -161,7 +161,7 @@ public: //should be protected
 
     inline void addBasic(const std::string& _rb, const uint64_t _limit, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rb.size() << ' '<< _limit << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
+        solid_dbg(logger, Info, _name << ' ' << _rb.size() << ' ' << _limit << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
 
         if (_rb.size() > _limit) {
             baseError(error_limit_string);
@@ -180,7 +180,7 @@ public: //should be protected
 
         schedule(std::move(r));
     }
-    
+
     inline void addBasic(const std::string& _rb, const char* _name)
     {
         addBasic(_rb, limits().string(), _name);
@@ -189,7 +189,7 @@ public: //should be protected
     template <typename T, class A>
     inline void addVectorChar(const std::vector<T, A>& _rb, const uint64_t _limit, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rb.size()<<' '<<_limit);
+        solid_dbg(logger, Info, _name << ' ' << _rb.size() << ' ' << _limit);
 
         if (_rb.size() > _limit) {
             baseError(error_limit_string);
@@ -217,7 +217,7 @@ public: //should be protected
     template <class A>
     inline void addVectorChar(const std::vector<uint8_t, A>& _rb, const uint64_t _limit, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rb.size() <<' '<<_limit << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
+        solid_dbg(logger, Info, _name << ' ' << _rb.size() << ' ' << _limit << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
 
         if (_rb.size() > _limit) {
             baseError(error_limit_string);
@@ -236,7 +236,7 @@ public: //should be protected
 
         schedule(std::move(r));
     }
-    
+
     template <class A>
     inline void addVectorChar(const std::vector<uint8_t, A>& _rb, const char* _name)
     {
@@ -395,7 +395,7 @@ public: //should be protected
     template <class S, class C>
     void addContainer(S& _rs, const C& _rc, const uint64_t _limit, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rc.size()<< ' '<<_limit);
+        solid_dbg(logger, Info, _name << ' ' << _rc.size() << ' ' << _limit);
         if (_rc.size() > _limit) {
             baseError(error_limit_container);
             return;
@@ -437,7 +437,7 @@ public: //should be protected
             }
         }
     }
-    
+
     template <class S, class C>
     void addContainer(S& _rs, const C& _rc, const char* _name)
     {
@@ -447,7 +447,7 @@ public: //should be protected
     template <class S, class C, class Ctx>
     void addContainer(S& _rs, const C& _rc, const uint64_t _limit, Ctx& _rctx, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rc.size()<< ' '<<_limit);
+        solid_dbg(logger, Info, _name << ' ' << _rc.size() << ' ' << _limit);
 
         if (_rc.size() > _limit) {
             baseError(error_limit_container);
@@ -491,7 +491,7 @@ public: //should be protected
             }
         }
     }
-    
+
     template <class S, class C, class Ctx>
     void addContainer(S& _rs, const C& _rc, Ctx& _rctx, const char* _name)
     {
@@ -499,10 +499,16 @@ public: //should be protected
     }
 
     template <class F>
-    void addStream(std::istream& _ris, const uint64_t _sz, F _f, const char* _name)
+    void addStream(std::istream& _ris, const uint64_t _sz, const uint64_t _limit, F _f, const char* _name)
     {
-        auto lambda = [_f = std::move(_f)](SerializerBase& _rs, Runnable& _rr, void* _pctx) {
+        solid_dbg(logger, Info, _name << ' ' << _sz << ' ' << _limit);
+
+        auto lambda = [_f = std::move(_f), _limit](SerializerBase& _rs, Runnable& _rr, void* _pctx) {
             std::istream& ris = *const_cast<std::istream*>(static_cast<const std::istream*>(_rr.ptr_));
+            if (_rr.data_ > _limit) {
+                _rs.baseError(error_limit_stream);
+                return ReturnE::Done;
+            }
             _f(ris, _rr.data_, _rr.size_ == 0, _rr.name_);
             return ReturnE::Done;
         };
@@ -519,11 +525,17 @@ public: //should be protected
     }
 
     template <class F, class Ctx>
-    void addStream(std::istream& _ris, const uint64_t _sz, F _f, Ctx& _rctx, const char* _name)
+    void addStream(std::istream& _ris, const uint64_t _sz, const uint64_t _limit, F _f, Ctx& _rctx, const char* _name)
     {
-        auto lambda = [_f = std::move(_f)](SerializerBase& _rs, Runnable& _rr, void* _pctx) {
+        solid_dbg(logger, Info, _name << ' ' << _sz << ' ' << _limit);
+
+        auto lambda = [_f = std::move(_f), _limit](SerializerBase& _rs, Runnable& _rr, void* _pctx) {
             std::istream& ris  = *const_cast<std::istream*>(static_cast<const std::istream*>(_rr.ptr_));
             Ctx&          rctx = *static_cast<Ctx*>(_pctx);
+            if (_rr.data_ > _limit) {
+                _rs.baseError(error_limit_stream);
+                return ReturnE::Done;
+            }
             _f(ris, _rr.data_, _rr.size_ == 0, rctx, _rr.name_);
             return ReturnE::Done;
         };
@@ -571,11 +583,11 @@ public: //should be protected
 
         schedule(std::move(r));
     }
-    
+
     template <typename A>
     void addVectorBool(const std::vector<bool, A>& _rc, const uint64_t _limit, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rc.size() << ' ' <<_limit);
+        solid_dbg(logger, Info, _name << ' ' << _rc.size() << ' ' << _limit);
 
         if (_rc.size() > _limit) {
             baseError(error_limit_container);
@@ -594,7 +606,7 @@ public: //should be protected
 
         schedule(std::move(r));
     }
-    
+
     template <typename A>
     void addVectorBool(const std::vector<bool, A>& _rc, const char* _name)
     {
@@ -1043,13 +1055,21 @@ public:
     template <typename F>
     ThisT& add(std::istream& _ris, const uint64_t _sz, F _f, Ctx& _rctx, const char* _name)
     {
-        addStream(_ris, _sz, _f, _rctx, _name);
+        addStream(_ris, _sz, limits().stream(), _f, _rctx, _name);
         return *this;
     }
+
+    template <typename F>
+    ThisT& add(std::istream& _ris, const uint64_t _sz, const uint64_t _limit, F _f, Ctx& _rctx, const char* _name)
+    {
+        addStream(_ris, _sz, _limit, _f, _rctx, _name);
+        return *this;
+    }
+
     template <typename F>
     ThisT& add(std::istream& _ris, F _f, Ctx& _rctx, const char* _name)
     {
-        addStream(_ris, InvalidSize(), _f, _rctx, _name);
+        addStream(_ris, InvalidSize(), limits().stream(), _f, _rctx, _name);
         return *this;
     }
 
@@ -1066,7 +1086,7 @@ public:
         solidSerializeV2(*this, _rt, _rctx, _name);
         return *this;
     }
-    
+
     template <typename T>
     ThisT& add(T& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
     {

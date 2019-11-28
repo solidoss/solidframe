@@ -203,17 +203,18 @@ Base::ReturnE DeserializerBase::load_stream_chunk(DeserializerBase& _rd, Runnabl
             len = static_cast<size_t>(_rr.size_);
         }
 
-        ros.write(_rd.pcrt_, len);
-
-        _rr.size_ -= len;
-        _rd.pcrt_ += len;
-
         _rr.data_ = len;
+
         _rr.fnc_(_rd, _rr, _pctx);
 
         if (_rd.error()) {
             return ReturnE::Done;
         }
+
+        ros.write(_rd.pcrt_, len);
+
+        _rd.pcrt_ += len;
+        _rr.size_ -= len;
 
         if (_rr.size_ == 0) {
             _rr.call_ = load_stream;
