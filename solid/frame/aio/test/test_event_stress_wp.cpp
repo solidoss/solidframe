@@ -110,7 +110,7 @@ void DeviceContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat_
 
 int test_event_stress_wp(int argc, char* argv[])
 {
-    install_crash_handler();
+    //install_crash_handler();
 
     solid::log_start(std::cerr, {".*:EWS"});
 
@@ -170,6 +170,8 @@ int test_event_stress_wp(int argc, char* argv[])
             device_cp.dumpStatistics();
             solid_dbg(workpool_logger, Statistic, "Account pool:");
             account_cp.dumpStatistics();
+            //we must throw here otherwise it will crash because workpool(s) is/are used after destroy
+            solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
         }
     };
 
