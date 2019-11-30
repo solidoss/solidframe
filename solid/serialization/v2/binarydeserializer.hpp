@@ -1303,9 +1303,9 @@ public:
     }
 
     template <typename F>
-    ThisT& add(std::ostream& _ros, const uint64_t _limit, F _f, Ctx& _rctx, const char* _name)
+    ThisT& add(std::ostream& _ros, const Limit _limit, F _f, Ctx& _rctx, const char* _name)
     {
-        addStream(_ros, _limit, _f, _rctx, _name);
+        addStream(_ros, _limit.value_, _f, _rctx, _name);
         return *this;
     }
 
@@ -1324,16 +1324,16 @@ public:
     }
 
     template <typename T>
-    ThisT& add(T& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+    ThisT& add(T& _rt, const Limit _limit, Ctx& _rctx, const char* _name)
     {
-        solidSerializeV2(*this, _rt, _limit, _rctx, _name);
+        solidSerializeV2(*this, _rt, _limit.value_, _rctx, _name);
         return *this;
     }
 
     template <typename T>
-    ThisT& add(const T& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+    ThisT& add(const T& _rt, const Limit _limit, Ctx& _rctx, const char* _name)
     {
-        solidSerializeV2(*this, _rt, _limit, _rctx, _name);
+        solidSerializeV2(*this, _rt, _limit.value_, _rctx, _name);
         return *this;
     }
 

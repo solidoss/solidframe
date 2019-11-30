@@ -1060,9 +1060,9 @@ public:
     }
 
     template <typename F>
-    ThisT& add(std::istream& _ris, const uint64_t _sz, const uint64_t _limit, F _f, Ctx& _rctx, const char* _name)
+    ThisT& add(std::istream& _ris, const uint64_t _sz, const Limit _limit, F _f, Ctx& _rctx, const char* _name)
     {
-        addStream(_ris, _sz, _limit, _f, _rctx, _name);
+        addStream(_ris, _sz, _limit.value_, _f, _rctx, _name);
         return *this;
     }
 
@@ -1070,6 +1070,13 @@ public:
     ThisT& add(std::istream& _ris, F _f, Ctx& _rctx, const char* _name)
     {
         addStream(_ris, InvalidSize(), limits().stream(), _f, _rctx, _name);
+        return *this;
+    }
+
+    template <typename F>
+    ThisT& add(std::istream& _ris, const Limit _limit, F _f, Ctx& _rctx, const char* _name)
+    {
+        addStream(_ris, InvalidSize(), _limit.value_, _f, _rctx, _name);
         return *this;
     }
 
@@ -1087,24 +1094,24 @@ public:
         return *this;
     }
 
-    template <typename T>
-    ThisT& add(T& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
-    {
-        solidSerializeV2(*this, _rt, _limit, _rctx, _name);
-        return *this;
-    }
-
-    template <typename T>
-    ThisT& add(const T& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
-    {
-        solidSerializeV2(*this, _rt, _limit, _rctx, _name);
-        return *this;
-    }
-
     template <typename T, size_t N>
     ThisT& add(const std::array<T, N>& _rt, const size_t _sz, Ctx& _rctx, const char* _name)
     {
         addArray(*this, _rt, _sz, _rctx, _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& add(T& _rt, const Limit _limit, Ctx& _rctx, const char* _name)
+    {
+        solidSerializeV2(*this, _rt, _limit.value_, _rctx, _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& add(const T& _rt, const Limit _limit, Ctx& _rctx, const char* _name)
+    {
+        solidSerializeV2(*this, _rt, _limit.value_, _rctx, _name);
         return *this;
     }
 
