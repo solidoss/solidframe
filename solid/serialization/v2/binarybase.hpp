@@ -24,14 +24,19 @@ namespace solid {
 namespace serialization {
 namespace v2 {
 
-struct Limit{
+struct Limit {
     uint64_t value_ = InvalidSize();
+
 private:
-    Limit(const uint64_t _value): value_(_value){}
+    Limit(const uint64_t _value)
+        : value_(_value)
+    {
+    }
     friend Limit limit(const uint64_t _value);
 };
 
-inline Limit limit(const uint64_t _value = InvalidSize()){
+inline Limit limit(const uint64_t _value = InvalidSize())
+{
     return Limit{_value};
 }
 namespace binary {
