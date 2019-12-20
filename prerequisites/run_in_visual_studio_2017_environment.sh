@@ -14,6 +14,4 @@ echo "$VSSETUP"
 echo "$CMDSETUP"
 CMDARG="$1"
 shift
-CMD="\"$VSSETUP\" $CMDARG && cd $CMDSETUP && " "$@"
-echo "$CMD"
-cmd.exe /C "$CMD"
+cmd.exe "/C "$VSSETUP" $CMDARG & cd $CMDSETUP & $@"
