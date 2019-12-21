@@ -112,7 +112,7 @@ buildOpenssl()
         fi
         # on windows we need to compile the shared library too in order to avoid
         # explicit dependency of CRYPT32.LIB
-        /c/Strawberry/perl/bin/perl Configure $OPENSSL_TARGET --prefix="$EXT_DIR" --openssldir="ssl_" no-shared
+        /c/Strawberry/perl/bin/perl Configure $OPENSSL_TARGET --prefix="$EXT_DIR" --openssldir="ssl_"
     else
         if [ $DEBUG ] ; then
             ./config --prefix="$EXT_DIR" --openssldir="ssl_"
