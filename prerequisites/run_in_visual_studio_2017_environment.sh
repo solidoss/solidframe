@@ -10,8 +10,6 @@ VSCMDPATH="`find c\:/Program\ Files\ \(x86\)/ -name vcvarsall.bat 2>/dev/null | 
 VSSETUP="`cygpath -w "$VSCMDPATH"`"
 CMDPATH="`pwd`"
 CMDSETUP="`cygpath -w "$CMDPATH"`"
-echo "$VSSETUP"
-echo "$CMDSETUP"
 CMDARG="$1"
 shift
 cmd.exe "/C "$VSSETUP" $CMDARG & cd $CMDSETUP & $@"
