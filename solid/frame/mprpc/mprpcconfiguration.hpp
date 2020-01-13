@@ -600,18 +600,34 @@ private:
     }
 };
 
-struct InternetResolverF {
-    aio::Resolver&     rresolver;
-    std::string        default_service;
-    SocketInfo::Family family;
+class InternetResolverF {
+    aio::Resolver&           rresolver_;
+    const std::string        default_host_;
+    const std::string        default_service_;
+    const SocketInfo::Family family_;
 
+public:
     InternetResolverF(
         aio::Resolver&     _rresolver,
         const char*        _default_service,
-        SocketInfo::Family _family = SocketInfo::AnyFamily)
-        : rresolver(_rresolver)
-        , default_service(_default_service)
-        , family(_family)
+        const char*        _default_host = "localhost",
+        SocketInfo::Family _family       = SocketInfo::AnyFamily)
+        : rresolver_(_rresolver)
+        , default_host_(_default_host)
+        , default_service_(_default_service)
+        , family_(_family)
+    {
+    }
+
+    InternetResolverF(
+        aio::Resolver&     _rresolver,
+        const std::string& _default_service,
+        const std::string& _default_host = "localhost",
+        SocketInfo::Family _family       = SocketInfo::AnyFamily)
+        : rresolver_(_rresolver)
+        , default_host_(_default_host)
+        , default_service_(_default_service)
+        , family_(_family)
     {
     }
 

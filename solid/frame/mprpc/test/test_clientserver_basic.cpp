@@ -241,7 +241,7 @@ void server_complete_message(
         solid_dbg(generic_logger, Info, crtreadidx);
         if (crtwriteidx < writecount) {
             err = pmprpcclient->sendMessage(
-                "localhost", std::make_shared<Message>(crtwriteidx++),
+                "", std::make_shared<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
             solid_check(!err, "Connection id should not be invalid! " << err.message());
         }
@@ -376,7 +376,7 @@ int test_clientserver_basic(int argc, char* argv[])
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 
-            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/);
+            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF{resolver, server_port};
 
             if (secure) {
                 solid_dbg(generic_logger, Info, "Configure SSL client ------------------------------------");
@@ -406,7 +406,7 @@ int test_clientserver_basic(int argc, char* argv[])
 
         for (; crtwriteidx < start_count;) {
             mprpcclient.sendMessage(
-                "localhost", std::make_shared<Message>(crtwriteidx++),
+                "", std::make_shared<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 

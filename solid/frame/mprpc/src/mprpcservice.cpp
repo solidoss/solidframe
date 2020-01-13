@@ -893,7 +893,7 @@ ErrorConditionT Service::doSendMessage(
     std::string message_url;
     const char* recipient_name = configuration().extract_recipient_name_fnc(_recipient_url, message_url, impl_->tmp_str);
 
-    if (_recipient_url != nullptr && (recipient_name == nullptr || recipient_name[0] == '\0')) {
+    if (_recipient_url != nullptr && (recipient_name == nullptr)) {
         solid_dbg(logger, Error, this << " failed extracting recipient name");
         error = error_service_invalid_url;
         return error;
@@ -2492,18 +2492,22 @@ void InternetResolverF::operator()(const std::string& _name, ResolveCompleteFunc
         hst_name = tmp.c_str();
         svc_name = _name.c_str() + off + 1;
         if (svc_name[0] == 0) {
-            svc_name = default_service.c_str();
+            svc_name = default_service_.c_str();
         }
     } else {
         hst_name = _name.c_str();
-        svc_name = default_service.c_str();
+        svc_name = default_service_.c_str();
+    }
+
+    if (hst_name[0] == 0) {
+        hst_name = default_host_.c_str();
     }
 
     ResolveF fnc;
 
     fnc.cbk = std::move(_cbk);
 
-    rresolver.requestResolve(fnc, hst_name, svc_name, 0, this->family, SocketInfo::Stream);
+    rresolver_.requestResolve(fnc, hst_name, svc_name, 0, this->family_, SocketInfo::Stream);
 }
 //=============================================================================
 
