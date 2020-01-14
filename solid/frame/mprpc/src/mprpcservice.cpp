@@ -893,7 +893,7 @@ ErrorConditionT Service::doSendMessage(
     std::string message_url;
     const char* recipient_name = configuration().extract_recipient_name_fnc(_recipient_url, message_url, impl_->tmp_str);
 
-    if (_recipient_url != nullptr && (recipient_name == nullptr)) {
+    if (_recipient_url != nullptr && (recipient_name == nullptr || recipient_name[0] == '\0')) {
         solid_dbg(logger, Error, this << " failed extracting recipient name");
         error = error_service_invalid_url;
         return error;
