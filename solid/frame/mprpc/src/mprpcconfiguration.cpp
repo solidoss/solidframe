@@ -111,11 +111,9 @@ SocketStubPtrT default_create_server_socket(Configuration const& _rcfg, frame::a
 
 const char* default_extract_recipient_name(const char* _purl, std::string& _msgurl, std::string& _tmpstr)
 {
-    if (_purl == nullptr) {
-        return nullptr;
-    }
+    solid_assert(_purl != nullptr);
 
-    const char* p = strchr(_purl, '/');
+    const char* const p = strchr(_purl, '/');
 
     if (p == nullptr) {
         return _purl;

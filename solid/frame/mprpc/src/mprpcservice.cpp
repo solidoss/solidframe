@@ -865,11 +865,12 @@ ErrorConditionT Service::doSendMessage(
 
     solid_dbg(logger, Verbose, this);
 
-    solid::ErrorConditionT error;
-    size_t                 pool_index;
-    uint32_t               unique    = -1;
-    bool                   check_uid = false;
-    lock_guard<std::mutex> lock(impl_->mtx);
+    static constexpr const char* empty_recipient_name = ":";
+    solid::ErrorConditionT       error;
+    size_t                       pool_index;
+    uint32_t                     unique    = -1;
+    bool                         check_uid = false;
+    lock_guard<std::mutex>       lock(impl_->mtx);
 
     if (!running()) {
         solid_dbg(logger, Error, this << " service stopping");
@@ -891,12 +892,17 @@ ErrorConditionT Service::doSendMessage(
     }
 
     std::string message_url;
-    const char* recipient_name = configuration().extract_recipient_name_fnc(_recipient_url, message_url, impl_->tmp_str);
+    const char* recipient_name = _recipient_url;
 
-    if (_recipient_url != nullptr && (recipient_name == nullptr || recipient_name[0] == '\0')) {
-        solid_dbg(logger, Error, this << " failed extracting recipient name");
-        error = error_service_invalid_url;
-        return error;
+    if (_recipient_url != nullptr) {
+        recipient_name = configuration().extract_recipient_name_fnc(_recipient_url, message_url, impl_->tmp_str);
+        if (recipient_name == nullptr) {
+            solid_dbg(logger, Error, this << " failed extracting recipient name");
+            error = error_service_invalid_url;
+            return error;
+        } else if (recipient_name[0] == '\0') {
+            recipient_name = empty_recipient_name;
+        }
     }
 
     if (_rrecipient_id_in.isValidConnection()) {
@@ -2486,7 +2492,7 @@ void InternetResolverF::operator()(const std::string& _name, ResolveCompleteFunc
     const char* hst_name;
     const char* svc_name;
 
-    size_t off = _name.rfind(':');
+    const size_t off = _name.rfind(':');
     if (off != std::string::npos) {
         tmp      = _name.substr(0, off);
         hst_name = tmp.c_str();
