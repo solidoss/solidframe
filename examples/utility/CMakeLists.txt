@@ -1,5 +1,4 @@
 add_subdirectory(workpool)
 add_subdirectory(queue)
-add_subdirectory(dynamic)
 add_subdirectory(algorithm)
 add_subdirectory(memory_file)

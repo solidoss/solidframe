@@ -21,7 +21,6 @@
 #include "solid/system/log.hpp"
 #include "solid/system/pimpl.hpp"
 #include "solid/utility/delegate.hpp"
-#include "solid/utility/dynamicpointer.hpp"
 #include "solid/utility/function.hpp"
 
 namespace solid {

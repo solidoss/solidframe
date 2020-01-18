@@ -117,7 +117,7 @@ void connection_unregister(uint32_t _id)
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-class Listener : public Dynamic<Listener, frame::aio::Actor> {
+class Listener : public frame::aio::Actor {
 public:
     Listener(
         frame::Service& _rsvc,
@@ -146,7 +146,7 @@ private:
     ListenerSocketT sock;
 };
 
-class Connection : public Dynamic<Connection, frame::aio::Actor> {
+class Connection : public frame::aio::Actor {
 public:
     Connection(SocketDevice&& _rsd)
         : sock1(this->proxy(), std::move(_rsd))
@@ -241,7 +241,7 @@ int main(int argc, char* argv[])
                 solid::ErrorConditionT err;
                 solid::frame::ActorIdT actuid;
 
-                actuid = sch.startActor(make_dynamic<Listener>(svc, sch, std::move(sd)), svc, make_event(GenericEvents::Start), err);
+                actuid = sch.startActor(make_shared<Listener>(svc, sch, std::move(sd)), svc, make_event(GenericEvents::Start), err);
                 solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
@@ -337,7 +337,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             _rsd.enableNoDelay();
             solid::ErrorConditionT err;
 
-            rsch.startActor(make_dynamic<Connection>(std::move(_rsd)), rsvc, make_event(GenericEvents::Start), err);
+            rsch.startActor(make_shared<Connection>(std::move(_rsd)), rsvc, make_event(GenericEvents::Start), err);
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));

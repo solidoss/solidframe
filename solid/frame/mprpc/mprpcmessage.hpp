@@ -83,7 +83,7 @@ struct MessageHeader {
     void solidSerializeV1(S& _rs, frame::mprpc::ConnectionContext& _rctx)
     {
         if (S::IsSerializer) {
-            //because a message can be sent to multiple destinations (usign DynamicPointer)
+            //because a message can be sent to multiple destinations
             //on serialization we cannot use/modify the values stored by ipc::Message
             //so, we'll use ones store in the context. Because the context is volatile
             //we'll store as values.

@@ -13,7 +13,6 @@
 #include "solid/system/error.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/utility/common.hpp"
-#include "solid/utility/dynamicpointer.hpp"
 #include "solid/utility/function.hpp"
 #include <memory>
 #include <typeindex>

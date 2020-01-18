@@ -9,8 +9,6 @@
 //
 
 #include "solid/frame/aio/aioresolver.hpp"
-#include "solid/utility/dynamicpointer.hpp"
-
 #include <memory>
 
 namespace solid {

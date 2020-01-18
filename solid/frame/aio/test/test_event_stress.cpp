@@ -102,7 +102,7 @@ void Account::onEvent(frame::ReactorContext& _rctx, Event&& _revent)
         solid_dbg(logger, Info, "Create " << account_device_count << " devices");
 
         for (size_t i = 0; i < account_device_count; ++i) {
-            device_vec_.emplace_back(device_scheduler.startActor(make_dynamic<Device>(), device_service, make_event(GenericEvents::Start), err));
+            device_vec_.emplace_back(device_scheduler.startActor(make_shared<Device>(), device_service, make_event(GenericEvents::Start), err));
         }
     } else if (generic_event_kill == _revent) {
         solid_dbg(generic_logger, Error, this << " postStop");
@@ -210,10 +210,10 @@ int test_event_stress(int argc, char* argv[])
         device_scheduler.start(1);
 
         for (size_t i = 0; i < account_count; ++i) {
-            const auto acc_id = account_scheduler.startActor(make_dynamic<Account>(), account_service, make_event(GenericEvents::Start), err);
+            const auto acc_id = account_scheduler.startActor(make_shared<Account>(), account_service, make_event(GenericEvents::Start), err);
             for (size_t j = 0; j < account_connection_count; ++j) {
                 ++connection_count;
-                connection_scheduler.startActor(make_dynamic<Connection>(acc_id, repeat_count, j, connection_count, prom), connection_service, make_event(GenericEvents::Start), err);
+                connection_scheduler.startActor(make_shared<Connection>(acc_id, repeat_count, j, connection_count, prom), connection_service, make_event(GenericEvents::Start), err);
             }
         }
 

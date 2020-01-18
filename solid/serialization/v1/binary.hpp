@@ -24,7 +24,6 @@
 #include "solid/system/log.hpp"
 #include "solid/utility/algorithm.hpp"
 #include "solid/utility/common.hpp"
-#include "solid/utility/dynamicpointer.hpp"
 #include "solid/utility/stack.hpp"
 
 namespace solid {

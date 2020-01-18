@@ -74,8 +74,10 @@ struct ResolveMessage {
 
 using MessageIdVectorT = std::vector<MessageId>;
 
-class Connection final : public Dynamic<Connection, frame::aio::Actor> {
+class Connection final : public frame::aio::Actor {
 public:
+    using PointerT = std::shared_ptr<Connection>;
+
     static Event eventResolve();
     static Event eventNewMessage();
     static Event eventNewMessage(const MessageId&);
@@ -460,21 +462,21 @@ inline SocketDevice const& Connection::device() const
     return sock_ptr_->device();
 }
 
-inline Connection* new_connection(
+inline Connection::PointerT new_connection(
     Configuration const&    _rconfiguration,
     SocketDevice&           _rsd,
     ConnectionPoolId const& _rpool_id,
     std::string const&      _rpool_name)
 {
-    return new Connection(_rconfiguration, _rsd, _rpool_id, _rpool_name);
+    return std::make_shared<Connection>(_rconfiguration, _rsd, _rpool_id, _rpool_name);
 }
 
-inline Connection* new_connection(
+inline Connection::PointerT new_connection(
     Configuration const&    _rconfiguration,
     ConnectionPoolId const& _rpool_id,
     std::string const&      _rpool_name)
 {
-    return new Connection(_rconfiguration, _rpool_id, _rpool_name);
+    return std::make_shared<Connection>(_rconfiguration, _rpool_id, _rpool_name);
 }
 
 inline uint32_t Connection::peerVersionMajor() const

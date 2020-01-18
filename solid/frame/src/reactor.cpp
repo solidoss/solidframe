@@ -58,7 +58,6 @@ public:
     EventActor()
         : dummyhandler(proxy(), dummy_completion)
     {
-        use();
     }
 
     void stop()
@@ -223,6 +222,7 @@ struct Reactor::Data {
         , crtraisevecsz(0)
         , actcnt(0)
         , timestore(MinEventCapacity)
+        , event_actor_ptr(make_shared<EventActor>())
     {
         pcrtpushtskvec = &pushtskvec[1];
         pcrtraisevec   = &raisevec[1];
@@ -258,7 +258,7 @@ struct Reactor::Data {
 
     UniqueId dummyCompletionHandlerUid() const
     {
-        const size_t idx = eventact.dummyhandler.idxreactor;
+        const size_t idx = event_actor_ptr->dummyhandler.idxreactor;
         return UniqueId(idx, chdq[idx].unique);
     }
 
@@ -276,7 +276,7 @@ struct Reactor::Data {
     condition_variable      cnd;
     NewTaskVectorT          pushtskvec[2];
     RaiseEventVectorT       raisevec[2];
-    EventActor              eventact;
+    shared_ptr<EventActor>  event_actor_ptr;
     CompletionHandlerDequeT chdq;
     UidVectorT              freeuidvec;
     ActorDequeT             actdq;
@@ -304,11 +304,11 @@ bool Reactor::start()
     solid_dbg(logger, Verbose, "");
 
     impl_->actdq.push_back(ActorStub());
-    impl_->actdq.back().actptr = &impl_->eventact;
+    impl_->actdq.back().actptr = impl_->event_actor_ptr;
 
     popUid(*impl_->actdq.back().actptr);
 
-    impl_->eventact.registerCompletionHandlers();
+    impl_->event_actor_ptr->registerCompletionHandlers();
 
     impl_->running = true;
 
@@ -404,7 +404,7 @@ void Reactor::run()
 
         running = impl_->running || (impl_->actcnt != 0) || !impl_->exeq.empty();
     }
-    impl_->eventact.stop();
+    impl_->event_actor_ptr->stop();
     doClearSpecific();
     solid_dbg(logger, Verbose, "<exit>");
 }
@@ -474,7 +474,7 @@ void Reactor::doStopActor(ReactorContext& _rctx)
 
     this->stopActor(*ros.actptr, ros.psvc->manager());
 
-    ros.actptr.clear();
+    ros.actptr.reset();
     ros.psvc = nullptr;
     ++ros.unique;
     --this->impl_->actcnt;
@@ -711,7 +711,7 @@ void Reactor::unregisterCompletionHandler(CompletionHandler& _rch)
         _rch.handleCompletion(ctx);
     }
 
-    rcs.pch    = &impl_->eventact.dummyhandler;
+    rcs.pch    = &impl_->event_actor_ptr->dummyhandler;
     rcs.actidx = 0;
     ++rcs.unique;
 }

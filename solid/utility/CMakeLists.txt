@@ -1,19 +1,17 @@
 set(Sources
     src/utility.cpp
-    src/dynamictype.cpp
     src/memoryfile.cpp
     src/ioformat.cpp
     src/any.cpp
     src/event.cpp
     src/workpool.cpp
+    src/super.cpp
 )
 
 set(Headers
     algorithm.hpp
     any.hpp
     common.hpp
-    dynamicpointer.hpp
-    dynamictype.hpp
     event.hpp
     innerlist.hpp
     ioformat.hpp

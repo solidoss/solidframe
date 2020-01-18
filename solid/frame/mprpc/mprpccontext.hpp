@@ -14,7 +14,6 @@
 
 #include "solid/frame/mprpc/mprpcmessageflags.hpp"
 #include "solid/utility/any.hpp"
-#include "solid/utility/dynamicpointer.hpp"
 
 #include <ostream>
 

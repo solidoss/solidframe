@@ -4,7 +4,6 @@
 #include "solid/frame/mprpc/mprpcservice.hpp"
 #include "solid/serialization/v1/typeidmap.hpp"
 #include "solid/system/log.hpp"
-#include "solid/utility/dynamicpointer.hpp"
 
 using namespace solid;
 using namespace std;

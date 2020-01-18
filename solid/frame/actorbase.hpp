@@ -13,9 +13,8 @@
 #include <vector>
 
 #include "solid/frame/common.hpp"
-#include "solid/utility/dynamicpointer.hpp"
-#include "solid/utility/dynamictype.hpp"
 #include <atomic>
+#include <memory>
 
 namespace solid {
 namespace frame {
@@ -26,7 +25,7 @@ class ReactorBase;
 class Actor;
 class CompletionHandler;
 
-class ActorBase : public Dynamic<ActorBase>, NonCopyable {
+class ActorBase : public std::enable_shared_from_this<ActorBase>, NonCopyable {
 public:
     //! Get the id of the actor
     IndexT id() const;

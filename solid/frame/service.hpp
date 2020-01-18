@@ -14,7 +14,6 @@
 #include "solid/frame/manager.hpp"
 #include "solid/frame/schedulerbase.hpp"
 #include "solid/utility/any.hpp"
-#include "solid/utility/dynamictype.hpp"
 #include <atomic>
 #include <mutex>
 #include <vector>

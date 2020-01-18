@@ -8,9 +8,11 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "solid/system/exception.hpp"
+#include "solid/system/mutualstore.hpp"
 #include "solid/utility/algorithm.hpp"
 #include "solid/utility/common.hpp"
 #include "solid/utility/string.hpp"
+#include <mutex>
 #include <sstream>
 
 namespace solid {
@@ -127,6 +129,43 @@ uint64_t make_number(std::string _str)
     uint64_t           n;
     iss >> n;
     return n * mul;
+}
+
+//---------------------------------------------------------------------
+//      Shared
+//---------------------------------------------------------------------
+
+namespace {
+
+typedef MutualStore<std::mutex> MutexStoreT;
+
+MutexStoreT& mutexStore()
+{
+    static MutexStoreT mtxstore(true, 3, 2, 2);
+    return mtxstore;
+}
+
+// size_t specificId(){
+//  static const size_t id(Thread::specificId());
+//  return id;
+// }
+
+std::mutex& global_mutex()
+{
+    static std::mutex mtx;
+    return mtx;
+}
+
+} //namespace
+
+std::mutex& shared_mutex_safe(const void* _p)
+{
+    std::lock_guard<std::mutex> lock(global_mutex());
+    return mutexStore().safeAt(reinterpret_cast<size_t>(_p));
+}
+std::mutex& shared_mutex(const void* _p)
+{
+    return mutexStore().at(reinterpret_cast<size_t>(_p));
 }
 
 } //namespace solid

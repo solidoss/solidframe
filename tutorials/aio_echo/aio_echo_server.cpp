@@ -143,7 +143,7 @@ int main(int argc, char* argv[])
             solid::ErrorConditionT error;
             solid::frame::ActorIdT actuid;
 
-            actuid = scheduler.startActor(make_dynamic<Listener>(service, scheduler, std::move(sd)), service, make_event(GenericEvents::Start), error);
+            actuid = scheduler.startActor(make_shared<Listener>(service, scheduler, std::move(sd)), service, make_event(GenericEvents::Start), error);
             (void)actuid;
         } else {
             cout << "Error creating listener socket" << endl;
@@ -165,7 +165,7 @@ int main(int argc, char* argv[])
             solid::ErrorConditionT error;
             solid::frame::ActorIdT actuid;
 
-            actuid = scheduler.startActor(make_dynamic<Talker>(std::move(sd)), service, make_event(GenericEvents::Start), error);
+            actuid = scheduler.startActor(make_shared<Talker>(std::move(sd)), service, make_event(GenericEvents::Start), error);
 
             (void)actuid;
 
@@ -221,7 +221,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
         if (!_rctx.error()) {
             solid::ErrorConditionT err;
 
-            rscheduler.startActor(make_dynamic<Connection>(std::move(_rsd)), rservice, make_event(GenericEvents::Start), err);
+            rscheduler.startActor(make_shared<Connection>(std::move(_rsd)), rservice, make_event(GenericEvents::Start), err);
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             timer.waitFor(

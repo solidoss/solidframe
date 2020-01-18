@@ -48,7 +48,7 @@ private:
     Actor& ract_;
 };
 
-class Actor : public Dynamic<Actor, ActorBase>, ForwardCompletionHandler {
+class Actor : public ActorBase, ForwardCompletionHandler {
 protected:
     friend class CompletionHandler;
     friend class Reactor;

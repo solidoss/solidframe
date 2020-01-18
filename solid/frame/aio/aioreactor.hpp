@@ -16,7 +16,6 @@
 #include "solid/frame/reactorbase.hpp"
 #include "solid/system/nanotime.hpp"
 #include "solid/system/pimpl.hpp"
-#include "solid/utility/dynamicpointer.hpp"
 
 namespace solid {
 
@@ -37,7 +36,7 @@ struct TimerCallback;
 struct EventHandler;
 struct ExecStub;
 
-typedef DynamicPointer<Actor> ActorPointerT;
+using ActorPointerT = std::shared_ptr<Actor>;
 
 //!
 /*!

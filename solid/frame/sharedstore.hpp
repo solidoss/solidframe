@@ -14,7 +14,6 @@
 #include "solid/frame/common.hpp"
 #include "solid/system/error.hpp"
 #include "solid/system/pimpl.hpp"
-#include "solid/utility/dynamictype.hpp"
 #include "solid/utility/function.hpp"
 #include <deque>
 #include <mutex>
@@ -31,7 +30,7 @@ struct PointerBase;
 
 typedef std::vector<UniqueId> UidVectorT;
 
-class StoreBase : public Dynamic<StoreBase, Actor> {
+class StoreBase : public Actor {
 public:
     typedef shared::UidVectorT UidVectorT;
     struct Accessor {
@@ -260,11 +259,11 @@ enum Flags {
 
 template <class T,
     class Ctl>
-class Store : public Dynamic<Store<T, Ctl>, StoreBase> {
+class Store : public StoreBase {
 public:
-    typedef Pointer<T>                        PointerT;
-    typedef Ctl                               ControllerT;
-    typedef Dynamic<Store<T, Ctl>, StoreBase> BaseT;
+    typedef Pointer<T> PointerT;
+    typedef Ctl        ControllerT;
+    typedef StoreBase  BaseT;
 
     Store(
         Manager& _rm)

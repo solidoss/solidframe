@@ -213,7 +213,6 @@ public:
         : eventhandler(proxy())
         , dummyhandler(proxy(), dummy_completion)
     {
-        use();
     }
 
     void stop()
@@ -435,6 +434,7 @@ struct Reactor::Data {
         , devcnt(0)
         , actcnt(0)
         , timestore(MinEventCapacity)
+        , event_actor_ptr(make_shared<EventActor>())
     {
     }
 #if defined(SOLID_USE_EPOLL)
@@ -524,7 +524,7 @@ struct Reactor::Data {
 
     UniqueId dummyCompletionHandlerUid() const
     {
-        const size_t idx = eventact.dummyhandler.idxreactor;
+        const size_t idx = event_actor_ptr->dummyhandler.idxreactor;
         return UniqueId(idx, chdq[idx].unique);
     }
 
@@ -541,7 +541,7 @@ struct Reactor::Data {
     EventVectorT            eventvec;
     NewTaskVectorT          pushtskvec[2];
     RaiseEventVectorT       raisevec[2];
-    EventActor              eventact;
+    shared_ptr<EventActor>  event_actor_ptr;
     CompletionHandlerDequeT chdq;
     UidVectorT              freeuidvec;
     ActorDequeT             actdq;
@@ -619,16 +619,16 @@ bool Reactor::start()
     }
 #endif
 
-    if (!impl_->eventact.eventhandler.init()) {
+    if (!impl_->event_actor_ptr->eventhandler.init()) {
         return false;
     }
 
     impl_->actdq.push_back(ActorStub());
-    impl_->actdq.back().actptr = &impl_->eventact;
+    impl_->actdq.back().actptr = impl_->event_actor_ptr;
 
     popUid(*impl_->actdq.back().actptr);
 
-    impl_->eventact.registerCompletionHandlers();
+    impl_->event_actor_ptr->registerCompletionHandlers();
 
     impl_->eventvec.resize(MinEventCapacity);
     impl_->eventvec.resize(impl_->eventvec.capacity());
@@ -652,7 +652,7 @@ bool Reactor::start()
         impl_->crtraisevecsz = raisevecsz;
     }
     if (raisevecsz == 1) {
-        impl_->eventact.eventhandler.write(*this);
+        impl_->event_actor_ptr->eventhandler.write(*this);
     }
     return rv;
 }
@@ -672,7 +672,7 @@ bool Reactor::start()
         impl_->crtraisevecsz = raisevecsz;
     }
     if (raisevecsz == 1) {
-        impl_->eventact.eventhandler.write(*this);
+        impl_->event_actor_ptr->eventhandler.write(*this);
     }
     return rv;
 }
@@ -683,7 +683,7 @@ bool Reactor::start()
 {
     solid_dbg(logger, Verbose, "");
     impl_->running = false;
-    impl_->eventact.eventhandler.write(*this);
+    impl_->event_actor_ptr->eventhandler.write(*this);
 }
 
 //-----------------------------------------------------------------------------
@@ -706,7 +706,7 @@ bool Reactor::push(TaskT&& _ract, Service& _rsvc, Event&& _uevent)
     }
 
     if (pushvecsz == 1) {
-        impl_->eventact.eventhandler.write(*this);
+        impl_->event_actor_ptr->eventhandler.write(*this);
     }
     return rv;
 }
@@ -781,7 +781,7 @@ void Reactor::run()
         running = impl_->running || (impl_->actcnt != 0) || !impl_->exeq.empty();
     }
 
-    impl_->eventact.stop();
+    impl_->event_actor_ptr->stop();
     doClearSpecific();
     solid_dbg(logger, Info, "<exit>");
     (void)waitmsec;
@@ -1023,7 +1023,7 @@ void Reactor::doStopActor(ReactorContext& _rctx)
 
     this->stopActor(*ras.actptr, ras.psvc->manager());
 
-    ras.actptr.clear();
+    ras.actptr.reset();
     ras.psvc = nullptr;
     ++ras.unique;
     --this->impl_->actcnt;
@@ -1318,7 +1318,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
     }
     ++impl_->devcnt;
     if (impl_->devcnt == (impl_->eventvec.size() + 1)) {
-        impl_->eventact.post(_rctx, &Reactor::increase_event_vector_size);
+        impl_->event_actor_ptr->post(_rctx, &Reactor::increase_event_vector_size);
     }
 #elif defined(SOLID_USE_KQUEUE)
     int read_flags = EV_ADD;
@@ -1350,7 +1350,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
         } else {
             ++impl_->devcnt;
             if (impl_->devcnt == (impl_->eventvec.size() + 1)) {
-                impl_->eventact.post(_rctx, &Reactor::increase_event_vector_size);
+                impl_->event_actor_ptr->post(_rctx, &Reactor::increase_event_vector_size);
             }
         }
         return true;
@@ -1370,7 +1370,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
     } else {
         ++impl_->devcnt;
         if (impl_->devcnt == (impl_->eventvec.size() + 1)) {
-            impl_->eventact.post(_rctx, &Reactor::increase_event_vector_size);
+            impl_->event_actor_ptr->post(_rctx, &Reactor::increase_event_vector_size);
         }
     }
 #elif defined(SOLID_USE_WSAPOLL)
@@ -1434,7 +1434,7 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
         } else {
             ++impl_->devcnt;
             if (impl_->devcnt == (impl_->eventvec.size() + 1)) {
-                impl_->eventact.post(_rctx, &Reactor::increase_event_vector_size);
+                impl_->event_actor_ptr->post(_rctx, &Reactor::increase_event_vector_size);
             }
         }
         return true;
@@ -1454,7 +1454,7 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
     } else {
         ++impl_->devcnt;
         if (impl_->devcnt == (impl_->eventvec.size() + 1)) {
-            impl_->eventact.post(_rctx, &Reactor::increase_event_vector_size);
+            impl_->event_actor_ptr->post(_rctx, &Reactor::increase_event_vector_size);
         }
     }
 #elif defined(SOLID_USE_WSAPOLL)
@@ -1605,7 +1605,7 @@ void Reactor::unregisterCompletionHandler(CompletionHandler& _rch)
     }
 
     impl_->chposcache.push(_rch.idxreactor);
-    rcs.pch    = &impl_->eventact.dummyhandler;
+    rcs.pch    = &impl_->event_actor_ptr->dummyhandler;
     rcs.actidx = 0;
     ++rcs.unique;
 }

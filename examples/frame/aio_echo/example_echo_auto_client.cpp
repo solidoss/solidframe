@@ -111,7 +111,7 @@ frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr)
 
 } //namespace
 
-class Connection : public Dynamic<Connection, frame::aio::Actor> {
+class Connection : public frame::aio::Actor {
 public:
     Connection(const size_t _idx)
         : sock(this->proxy())
@@ -212,7 +212,7 @@ int main(int argc, char* argv[])
                 solid::frame::ActorIdT actuid;
 
                 ++concnt;
-                actuid = sch.startActor(make_dynamic<Connection>(i), svc, make_event(GenericEvents::Start), err);
+                actuid = sch.startActor(make_shared<Connection>(i), svc, make_event(GenericEvents::Start), err);
                 if (actuid.isInvalid()) {
                     --concnt;
                 }

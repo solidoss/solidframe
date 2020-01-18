@@ -69,7 +69,7 @@ struct ConnectStub {
 
 struct ConnectFunction;
 
-class Connection : public Dynamic<Connection, frame::aio::Actor> {
+class Connection : public frame::aio::Actor {
 public:
     Connection(SecureContextT& _secure_ctx)
         : sock(this->proxy(), _secure_ctx)
@@ -181,7 +181,7 @@ int main(int argc, char* argv[])
 
             solid::ErrorConditionT err;
 
-            actuid = scheduler.startActor(make_dynamic<Connection>(secure_ctx), service, make_event(GenericEvents::Start, ConnectStub(resolver, params.connect_addr, params.connect_port)), err);
+            actuid = scheduler.startActor(make_shared<Connection>(secure_ctx), service, make_event(GenericEvents::Start, ConnectStub(resolver, params.connect_addr, params.connect_port)), err);
 
             solid_log(generic_logger, Info, "Started Client Connection actor: " << actuid.index << ',' << actuid.unique);
         }

@@ -29,7 +29,7 @@ namespace mprpc {
 
 class Service;
 
-class Listener final : public Dynamic<Listener, frame::aio::Actor> {
+class Listener final : public frame::aio::Actor {
 public:
     static size_t backlog_size()
     {
