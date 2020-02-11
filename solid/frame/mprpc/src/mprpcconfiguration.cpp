@@ -94,7 +94,6 @@ size_t default_compress(char*, size_t, ErrorConditionT&)
 size_t default_decompress(char*, const char*, size_t, ErrorConditionT& _rerror)
 {
     //This should never be called
-    solid_assert(false);
     _rerror = error_compression_unavailable;
     return 0;
 }

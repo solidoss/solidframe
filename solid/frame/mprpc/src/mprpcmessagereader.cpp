@@ -74,7 +74,7 @@ size_t MessageReader::read(
 
         if (!packet_header.isOk()) {
             _rerror = error_reader_invalid_packet_header;
-            solid_assert(false);
+            solid_dbg(logger, Error, _rerror.message());
             break;
         }
 
@@ -88,7 +88,7 @@ size_t MessageReader::read(
         if (!_rerror) {
             pbufpos += packet_header.size();
         } else {
-            solid_assert(false);
+            solid_dbg(logger, Error, "consume packet: " << _rerror.message());
             break;
         }
         state_ = StateE::ReadPacketHead;
@@ -116,7 +116,7 @@ void MessageReader::doConsumePacket(
             pbufpos = tmpbuf;
             pbufend = tmpbuf + uncompressed_size;
         } else {
-            solid_assert(false);
+            solid_dbg(logger, Error, "decompressing: " << _rerror.message());
             return;
         }
     }
@@ -152,7 +152,6 @@ void MessageReader::doConsumePacket(
                 pbufpos = doConsumeMessage(pbufpos, pbufend, message_idx, cmd, _receiver, _rerror);
             } else {
                 _rerror = error_reader_protocol;
-                solid_assert(false);
                 return;
             }
             break;
@@ -168,7 +167,6 @@ void MessageReader::doConsumePacket(
                 rmsgstub.clear();
             } else {
                 _rerror = error_reader_protocol;
-                solid_assert(false);
             }
             break;
         case PacketHeader::CommandE::Update:
@@ -181,9 +179,8 @@ void MessageReader::doConsumePacket(
                 solid_dbg(logger, Verbose, "CancelRequest: " << requid);
                 _receiver.receiveCancelRequest(requid);
             } else {
-                solid_dbg(logger, Verbose, "CancelRequest - error parsing requestid");
+                solid_dbg(logger, Error, "parsing requestid");
                 _rerror = error_reader_protocol;
-                solid_assert(false);
             }
         } break;
         case PacketHeader::CommandE::AckdCount:
@@ -195,7 +192,6 @@ void MessageReader::doConsumePacket(
                 _receiver.receiveAckCount(count);
             } else {
                 _rerror = error_reader_protocol;
-                solid_assert(false);
             }
             break;
         default:
@@ -277,7 +273,7 @@ const char* MessageReader::doConsumeMessage(
                     _pbufpos = _pbufend;
                     cache(rmsgstub.deserializer_ptr_);
                     rmsgstub.clear();
-                    solid_assert(false);
+                    solid_dbg(logger, Error, "deserializing: " << _rerror.message());
                     break;
                 }
             }
@@ -321,14 +317,14 @@ const char* MessageReader::doConsumeMessage(
                                     break;
                                 }
                                 //fail: protocol error
-                                solid_assert(false);
+                                solid_dbg(logger, Error, "protocol");
                             } else if (!rmsgstub.deserializer_ptr_->empty()) {
                                 break;
                             } else {
-                                solid_assert(false);
+                                solid_dbg(logger, Error, "protocol");
                             }
                         } else {
-                            solid_assert(false);
+                            solid_dbg(logger, Error, "protocol");
                         }
                     } else {
                         _rerror = rmsgstub.deserializer_ptr_->error();
@@ -336,14 +332,13 @@ const char* MessageReader::doConsumeMessage(
                         cache(rmsgstub.deserializer_ptr_);
                         _pbufpos = _pbufend;
                         rmsgstub.clear();
-                        solid_assert(false);
                         break;
                     }
                 } else {
-                    solid_assert(false);
+                    solid_dbg(logger, Error, "protocol");
                 }
             } else {
-                solid_assert(false);
+                solid_dbg(logger, Error, "protocol");
             }
 
             //protocol error
@@ -371,9 +366,9 @@ const char* MessageReader::doConsumeMessage(
                 }
                 break;
             }
-            solid_assert(false);
+            solid_dbg(logger, Error, "protocol");
         } else {
-            solid_assert(false);
+            solid_dbg(logger, Error, "protocol");
         }
 
         //protocol error
@@ -403,7 +398,7 @@ const char* MessageReader::doConsumeMessage(
         }
         //protocol error
         _rerror = error_reader_protocol;
-        solid_assert(false);
+        solid_dbg(logger, Error, "protocol");
         _pbufpos = _pbufend;
         rmsgstub.clear();
         break;
@@ -428,7 +423,7 @@ const char* MessageReader::doConsumeMessage(
         }
         //protocol error
         _rerror = error_reader_protocol;
-        solid_assert(false);
+        solid_dbg(logger, Error, "protocol");
         _pbufpos = _pbufend;
         rmsgstub.clear();
         break;
@@ -445,7 +440,7 @@ const char* MessageReader::doConsumeMessage(
         }
         //protocol error
         _rerror = error_reader_protocol;
-        solid_assert(false);
+        solid_dbg(logger, Error, "protocol");
         _pbufpos = _pbufend;
         rmsgstub.clear();
         break;
@@ -472,7 +467,7 @@ const char* MessageReader::doConsumeMessage(
         }
         //protocol error
         _rerror = error_reader_protocol;
-        solid_assert(false);
+        solid_dbg(logger, Error, "protocol");
         _pbufpos = _pbufend;
         rmsgstub.clear();
         break;

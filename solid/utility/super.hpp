@@ -17,7 +17,7 @@ struct Super : S {
 
     template <typename... Args>
     explicit Super(Args&&... _args)
-        : T(std::forward<Args>(_args)...)
+        : S(std::forward<Args>(_args)...)
     {
     }
 
