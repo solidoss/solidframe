@@ -217,7 +217,7 @@ public: //should be protected
     template <class A>
     inline void addVectorChar(const std::vector<uint8_t, A>& _rb, const uint64_t _limit, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rb.size() << ' ' << _limit << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
+        solid_dbg(logger, Info, _name << ' ' << _rb.size() << ' ' << _limit);
 
         if (_rb.size() > _limit) {
             baseError(error_limit_string);
