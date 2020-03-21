@@ -114,21 +114,15 @@ std::ostream& operator<<(std::ostream& _ros, const RelayDataFlagsT& _flags);
 
 struct RelayData {
     RecvBufferPointerT    bufptr_;
-    const char*           pdata_;
-    size_t                data_size_;
-    RelayData*            pnext_;
+    const char*           pdata_     = nullptr;
+    size_t                data_size_ = 0;
+    RelayData*            pnext_     = nullptr;
     RelayDataFlagsT       flags_;
-    MessageHeader::FlagsT message_flags_;
-    MessageHeader*        pmessage_header_;
+    MessageHeader::FlagsT message_flags_   = 0;
+    MessageHeader*        pmessage_header_ = nullptr;
 
-    RelayData()
-        : pdata_(nullptr)
-        , data_size_(0)
-        , pnext_(nullptr)
-        , message_flags_(0)
-        , pmessage_header_(nullptr)
-    {
-    }
+    RelayData() {}
+
     RelayData(
         RelayData&& _rrelmsg)
         : bufptr_(std::move(_rrelmsg.bufptr_))
@@ -196,9 +190,6 @@ private:
         : bufptr_(_bufptr)
         , pdata_(_pdata)
         , data_size_(_data_size)
-        , pnext_(nullptr)
-        , message_flags_(0)
-        , pmessage_header_(nullptr)
     {
         if (_is_last) {
             flags_.set(RelayDataFlagsE::Last);
@@ -359,10 +350,9 @@ enum struct ConnectionState {
 struct ReaderConfiguration {
     ReaderConfiguration();
 
-    size_t   string_size_limit;
-    size_t   container_size_limit;
-    uint64_t stream_size_limit;
-
+    size_t              string_size_limit;
+    size_t              container_size_limit;
+    uint64_t            stream_size_limit;
     size_t              max_message_count_multiplex;
     UncompressFunctionT decompress_fnc;
 };
@@ -370,14 +360,12 @@ struct ReaderConfiguration {
 struct WriterConfiguration {
     WriterConfiguration();
 
-    size_t max_message_count_multiplex;
-    size_t max_message_count_response_wait;
-    size_t max_message_continuous_packet_count;
-
-    size_t   string_size_limit;
-    size_t   container_size_limit;
-    uint64_t stream_size_limit;
-
+    size_t            max_message_count_multiplex;
+    size_t            max_message_count_response_wait;
+    size_t            max_message_continuous_packet_count;
+    size_t            string_size_limit;
+    size_t            container_size_limit;
+    uint64_t          stream_size_limit;
     CompressFunctionT inplace_compress_fnc;
 };
 
@@ -518,6 +506,8 @@ public:
         bool                               connection_start_secure;
         ConnectionStartFunctionT           connection_start_fnc;
         ConnectionSecureHandshakeFunctionT connection_on_secure_handshake_fnc;
+        uint32_t                           connection_timeout_activation_seconds;
+        uint32_t                           connection_timeout_secured_seconds;
         ServerSetupSocketDeviceFunctionT   socket_device_setup_fnc;
         std::string                        listener_address_str;
         std::string                        listener_service_str;
@@ -555,9 +545,9 @@ public:
 
     } client;
 
-    size_t                        connection_reconnect_timeout_seconds;
-    uint32_t                      connection_inactivity_timeout_seconds;
-    uint32_t                      connection_keepalive_timeout_seconds;
+    size_t                        connection_timeout_reconnect_seconds;
+    uint32_t                      connection_timeout_inactivity_seconds;
+    uint32_t                      connection_timeout_keepalive_seconds;
     uint32_t                      connection_inactivity_keepalive_count; //server error if receives more than inactivity_keepalive_count keep alive messages during inactivity_timeout_seconds interval
     uint8_t                       connection_recv_buffer_start_capacity_kb;
     uint8_t                       connection_recv_buffer_max_capacity_kb;

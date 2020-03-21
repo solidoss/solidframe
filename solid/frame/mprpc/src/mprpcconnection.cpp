@@ -368,7 +368,8 @@ bool Connection::isConnected() const
 //-----------------------------------------------------------------------------
 bool Connection::isSecured() const
 {
-    return false;
+    return flags_.has(FlagsE::Secure);
+    ;
 }
 //-----------------------------------------------------------------------------
 bool Connection::shouldSendKeepalive() const
@@ -429,6 +430,7 @@ void Connection::doStart(frame::aio::ReactorContext& _rctx, const bool _is_incom
         if (!start_secure) {
             service(_rctx).onIncomingConnectionStart(conctx);
         }
+        doResetTimerStart(_rctx);
     } else {
         flags_.set(FlagsE::Connected);
         config.client.socket_device_setup_fnc(sock_ptr_->device());
@@ -1096,7 +1098,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
             rthis.doStop(_rctx, error_connection_invalid_state); //TODO: add new error
         }
     } else {
-
+        rthis.flags_.set(FlagsE::Secure);
         rthis.service(_rctx).onOutgoingConnectionStart(conctx);
 
         solid_dbg(logger, Verbose, &rthis << "");
@@ -1148,7 +1150,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
             rthis.doStop(_rctx, error_connection_invalid_state); //TODO: add new error
         }
     } else {
-
+        rthis.flags_.set(FlagsE::Secure);
         rthis.service(_rctx).onIncomingConnectionStart(conctx);
 
         solid_dbg(logger, Verbose, &rthis << "");
@@ -1289,21 +1291,32 @@ void Connection::doResetTimerStart(frame::aio::ReactorContext& _rctx)
     Configuration const& config = service(_rctx).configuration();
 
     if (isServer()) {
-        if (config.connection_inactivity_timeout_seconds != 0u) {
-            recv_keepalive_count_ = 0;
-            flags_.reset(FlagsE::HasActivity);
 
-            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.connection_inactivity_timeout_seconds << " seconds");
+        if (isActiveState()) {
+            if (config.connection_timeout_inactivity_seconds != 0u) {
+                recv_keepalive_count_ = 0;
+                flags_.reset(FlagsE::HasActivity);
 
-            timer_.waitFor(_rctx, std::chrono::seconds(config.connection_inactivity_timeout_seconds), onTimerInactivity);
+                solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.connection_timeout_inactivity_seconds << " seconds");
+
+                timer_.waitFor(_rctx, std::chrono::seconds(config.connection_timeout_inactivity_seconds), onTimerInactivity);
+            }
+        } else if (config.server.connection_start_secure && !isSecured() && config.server.connection_timeout_secured_seconds != 0u) { //wait for secure handshake
+            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.server.connection_timeout_secured_seconds << " seconds");
+
+            timer_.waitFor(_rctx, std::chrono::seconds(config.server.connection_timeout_secured_seconds), onTimerWaitSecured);
+        } else if (config.server.connection_timeout_activation_seconds != 0u) { //wait for activate
+            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.server.connection_timeout_activation_seconds << " seconds");
+
+            timer_.waitFor(_rctx, std::chrono::seconds(config.server.connection_timeout_activation_seconds), onTimerWaitActivation);
         }
     } else { //client
-        if (config.connection_keepalive_timeout_seconds != 0u) {
+        if (config.connection_timeout_keepalive_seconds != 0u) {
             flags_.set(FlagsE::WaitKeepAliveTimer);
 
-            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.connection_keepalive_timeout_seconds << " seconds");
+            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.connection_timeout_keepalive_seconds << " seconds");
 
-            timer_.waitFor(_rctx, std::chrono::seconds(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
+            timer_.waitFor(_rctx, std::chrono::seconds(config.connection_timeout_keepalive_seconds), onTimerKeepalive);
         }
     }
 }
@@ -1314,15 +1327,15 @@ void Connection::doResetTimerSend(frame::aio::ReactorContext& _rctx)
     Configuration const& config = service(_rctx).configuration();
 
     if (isServer()) {
-        if (config.connection_inactivity_timeout_seconds != 0u) {
+        if (config.connection_timeout_inactivity_seconds != 0u) {
             flags_.set(FlagsE::HasActivity);
         }
     } else { //client
-        if (config.connection_keepalive_timeout_seconds != 0u && isWaitingKeepAliveTimer()) {
+        if (config.connection_timeout_keepalive_seconds != 0u && isWaitingKeepAliveTimer()) {
 
-            solid_dbg(logger, Verbose, this << ' ' << this->id() << " wait for " << config.connection_keepalive_timeout_seconds << " seconds");
+            solid_dbg(logger, Verbose, this << ' ' << this->id() << " wait for " << config.connection_timeout_keepalive_seconds << " seconds");
 
-            timer_.waitFor(_rctx, std::chrono::seconds(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
+            timer_.waitFor(_rctx, std::chrono::seconds(config.connection_timeout_keepalive_seconds), onTimerKeepalive);
         }
     }
 }
@@ -1333,19 +1346,44 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
     Configuration const& config = service(_rctx).configuration();
 
     if (isServer()) {
-        if (config.connection_inactivity_timeout_seconds != 0u) {
+        if (config.connection_timeout_inactivity_seconds != 0u) {
             flags_.set(FlagsE::HasActivity);
         }
     } else { //client
-        if (config.connection_keepalive_timeout_seconds != 0u && !isWaitingKeepAliveTimer()) {
+        if (config.connection_timeout_keepalive_seconds != 0u && !isWaitingKeepAliveTimer()) {
             flags_.set(FlagsE::WaitKeepAliveTimer);
 
-            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.connection_keepalive_timeout_seconds << " seconds");
+            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.connection_timeout_keepalive_seconds << " seconds");
 
-            timer_.waitFor(_rctx, std::chrono::seconds(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
+            timer_.waitFor(_rctx, std::chrono::seconds(config.connection_timeout_keepalive_seconds), onTimerKeepalive);
         }
     }
 }
+//-----------------------------------------------------------------------------
+/*static*/ void Connection::onTimerWaitSecured(frame::aio::ReactorContext& _rctx)
+{
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
+
+    solid_dbg(logger, Info, &rthis << " " << rthis.flags_.toString() << " " << rthis.recv_keepalive_count_);
+    solid_assert(rthis.isServer());
+
+    if (!rthis.isSecured()) {
+        rthis.doStop(_rctx, error_connection_inactivity_timeout);
+    }
+}
+
+//-----------------------------------------------------------------------------
+/*static*/ void Connection::onTimerWaitActivation(frame::aio::ReactorContext& _rctx)
+{
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
+
+    solid_dbg(logger, Info, &rthis << " " << rthis.flags_.toString() << " " << rthis.recv_keepalive_count_);
+    solid_assert(rthis.isServer());
+    if (!rthis.isActiveState()) {
+        rthis.doStop(_rctx, error_connection_inactivity_timeout);
+    }
+}
+
 //-----------------------------------------------------------------------------
 /*static*/ void Connection::onTimerInactivity(frame::aio::ReactorContext& _rctx)
 {
@@ -1360,9 +1398,9 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
 
         Configuration const& config = rthis.service(_rctx).configuration();
 
-        solid_dbg(logger, Info, &rthis << ' ' << rthis.id() << " wait for " << config.connection_inactivity_timeout_seconds << " seconds");
+        solid_dbg(logger, Info, &rthis << ' ' << rthis.id() << " wait for " << config.connection_timeout_inactivity_seconds << " seconds");
 
-        rthis.timer_.waitFor(_rctx, std::chrono::seconds(config.connection_inactivity_timeout_seconds), onTimerInactivity);
+        rthis.timer_.waitFor(_rctx, std::chrono::seconds(config.connection_timeout_inactivity_seconds), onTimerInactivity);
     } else {
         rthis.doStop(_rctx, error_connection_inactivity_timeout);
     }
