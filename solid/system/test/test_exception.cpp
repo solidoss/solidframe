@@ -54,13 +54,13 @@ int test_exception(int argc, char* argv[])
 
     {
         ostringstream oss;
-        const int     line = 67;
+        const int     line = 68;
         oss << '[' << __FILE__ << '(' << line << ")][" << SOLID_FUNCTION_NAME << "] (argc == 0) check failed: some error: " << argc << " " << argv[0] << " " << test_null(argv[1]);
         check_str = oss.str();
     }
     {
         ostringstream oss;
-        const int     line = 76;
+        const int     line = 77;
         oss << '[' << __FILE__ << '(' << line << ")][" << SOLID_FUNCTION_NAME << "] error_test:" << error_test.message();
         check_condition_str = oss.str();
     }
