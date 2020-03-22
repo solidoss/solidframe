@@ -31,7 +31,7 @@ namespace solid {
 
 void DynamicPointerBase::clear(DynamicBase* _pdyn)
 {
-    solid_assert(_pdyn);
+    solid_assert_log(_pdyn, generic_logger);
     if (_pdyn->release() == 0u) {
         delete _pdyn;
     }

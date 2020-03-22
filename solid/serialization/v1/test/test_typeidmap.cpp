@@ -192,7 +192,7 @@ typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT>         Delta
 int test_typeidmap(int argc, char* argv[])
 {
 
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {".*:EWX"});
 
     std::string alpha_data;
     std::string beta_data;

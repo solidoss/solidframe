@@ -17,8 +17,6 @@ namespace serialization {
 namespace v2 {
 namespace binary {
 
-const LoggerT logger{"solid::serialization::v2::binary"};
-
 //== Deserializer  ==============================================================
 DeserializerBase::DeserializerBase(const TypeMapBase& _rtype_map, const Limits& _rlimits)
     : Base(_rlimits)

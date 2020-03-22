@@ -35,7 +35,7 @@ using namespace std;
 namespace solid {
 namespace frame {
 
-const LoggerT logger("solid::frame");
+const LoggerT frame_logger("solid::frame");
 
 //-----------------------------------------------------------------------------
 namespace {
@@ -315,7 +315,7 @@ struct ServiceStub {
 
     void reset()
     {
-        solid_dbg(logger, Verbose, "" << pservice_);
+        solid_dbg(frame_logger, Verbose, "" << pservice_);
         first_actor_chunk_   = InvalidIndex();
         last_actor_chunk_    = InvalidIndex();
         current_actor_index_ = InvalidIndex();
@@ -417,14 +417,14 @@ Manager::Manager(
         _actor_mutex_count == 0 ? memory_page_size() / sizeof(std::mutex) : _actor_mutex_count,
         _actor_chunk_size == 0 ? (memory_page_size() - sizeof(ActorChunk)) / sizeof(ActorStub) : _actor_chunk_size))
 {
-    solid_dbg(logger, Verbose, "" << this);
+    solid_dbg(frame_logger, Verbose, "" << this);
 }
 
 /*virtual*/ Manager::~Manager()
 {
-    solid_dbg(logger, Verbose, "" << this);
+    solid_dbg(frame_logger, Verbose, "" << this);
     stop();
-    solid_dbg(logger, Verbose, "" << this);
+    solid_dbg(frame_logger, Verbose, "" << this);
 }
 
 bool Manager::registerService(Service& _rservice, const bool _start)
@@ -585,7 +585,7 @@ ActorIdT Manager::registerActor(
             rchunk.service_index_ = _rservice.index();
         }
 
-        solid_assert(rchunk.service_index_ == _rservice.index());
+        solid_assert_log(rchunk.service_index_ == _rservice.index(), frame_logger);
 
         _ractor.id(actor_index);
 
@@ -632,10 +632,10 @@ void Manager::unregisterActor(ActorBase& _ractor)
 
         --rchunk.actor_count_;
         service_index = rchunk.service_index_;
-        solid_assert(service_index != InvalidIndex());
+        solid_assert_log(service_index != InvalidIndex(), frame_logger);
     }
     {
-        solid_assert(actor_index != InvalidIndex());
+        solid_assert_log(actor_index != InvalidIndex(), frame_logger);
 
         std::unique_lock<std::mutex> lock;
         ServiceStub&                 rss = impl_->service_cache_.aquire(
@@ -646,7 +646,7 @@ void Manager::unregisterActor(ActorBase& _ractor)
 
         rss.actor_index_stk_.push(actor_index);
         --rss.actor_count_;
-        solid_dbg(logger, Verbose, "" << this << " serviceid = " << service_index << " actcnt = " << rss.actor_count_);
+        solid_dbg(frame_logger, Verbose, "" << this << " serviceid = " << service_index << " actcnt = " << rss.actor_count_);
         if (rss.actor_count_ == 0 && rss.status_ == StatusE::Stopping) {
             impl_->condition_.notify_all();
         }
@@ -728,7 +728,7 @@ ActorIdT Manager::id(const ActorBase& _ractor) const
         ActorStub&                   ras    = rchunk.actor(actor_index % impl_->actor_chunk_size_);
 
         ActorBase* pactor = ras.pactor_;
-        solid_assert(pactor == &_ractor);
+        solid_assert_log(pactor == &_ractor, frame_logger);
         retval = ActorIdT(actor_index, ras.unique_);
     }
     return retval;
@@ -827,7 +827,7 @@ Service& Manager::service(const ActorBase& _ractor) const
 
 void Manager::doStartService(Service& _rservice, const LockedFunctionT& _locked_fnc, const UnlockedFunctionT& _unlocked_fnc)
 {
-    solid_check(_rservice.registered(), "Service not registered");
+    solid_check_log(_rservice.registered(), frame_logger, "Service not registered");
 
     {
         const size_t                 service_index = _rservice.index();
@@ -838,7 +838,7 @@ void Manager::doStartService(Service& _rservice, const LockedFunctionT& _locked_
                 lock = std::unique_lock<std::mutex>(_rss.mutex());
             });
 
-        solid_check(rss.status_ == StatusE::Stopped, "Service not stopped");
+        solid_check_log(rss.status_ == StatusE::Stopped, frame_logger, "Service not stopped");
 
         rss.status_ = StatusE::Running;
 
@@ -860,7 +860,7 @@ void Manager::doStartService(Service& _rservice, const LockedFunctionT& _locked_
 
 void Manager::stopService(Service& _rservice, const bool _wait)
 {
-    solid_check(_rservice.registered(), "Service not registered");
+    solid_check_log(_rservice.registered(), frame_logger, "Service not registered");
 
     const size_t                 service_index = _rservice.index();
     std::unique_lock<std::mutex> lock;
@@ -870,7 +870,7 @@ void Manager::stopService(Service& _rservice, const bool _wait)
             lock = std::unique_lock<std::mutex>(_rss.mutex());
         });
 
-    solid_dbg(logger, Verbose, "" << service_index << " actor_count = " << rss.actor_count_);
+    solid_dbg(frame_logger, Verbose, "" << service_index << " actor_count = " << rss.actor_count_);
 
     _rservice.statusSetStopping();
 
@@ -882,7 +882,7 @@ void Manager::stopService(Service& _rservice, const bool _wait)
         const size_t cnt = doForEachServiceActor(rss.first_actor_chunk_, ActorVisitFunctionT{raise_lambda});
 
         if (cnt == 0 && rss.actor_count_ == 0) {
-            solid_dbg(logger, Verbose, "StateStoppedE on " << service_index);
+            solid_dbg(frame_logger, Verbose, "StateStoppedE on " << service_index);
             rss.status_ = StatusE::Stopped;
             _rservice.statusSetStopped();
             return;
@@ -890,7 +890,7 @@ void Manager::stopService(Service& _rservice, const bool _wait)
     }
 
     if (rss.status_ == StatusE::Stopped) {
-        solid_dbg(logger, Verbose, "" << service_index);
+        solid_dbg(frame_logger, Verbose, "" << service_index);
         return;
     }
 
@@ -969,7 +969,7 @@ void Manager::stop()
                 if (pss->actor_count_ == 0) {
                     pss->status_ = StatusE::Stopped;
                     pss->pservice_->statusSetStopped();
-                    solid_dbg(logger, Verbose, "StateStoppedE on " << service_index);
+                    solid_dbg(frame_logger, Verbose, "StateStoppedE on " << service_index);
                 }
             }
         } else {
@@ -989,13 +989,13 @@ void Manager::stop()
         if (pss != nullptr) {
 
             if (pss->pservice_ != nullptr && pss->status_ == StatusE::Stopping) {
-                solid_dbg(logger, Verbose, "wait stop service: " << service_index);
+                solid_dbg(frame_logger, Verbose, "wait stop service: " << service_index);
                 while (pss->actor_count_ != 0u) {
                     impl_->condition_.wait(lock);
                 }
                 pss->status_ = StatusE::Stopped;
                 pss->pservice_->statusSetStopped();
-                solid_dbg(logger, Verbose, "StateStoppedE on " << service_index);
+                solid_dbg(frame_logger, Verbose, "StateStoppedE on " << service_index);
             }
         } else {
             break;

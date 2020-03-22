@@ -8,6 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "solid/system/exception.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/mutualstore.hpp"
 #include "solid/utility/algorithm.hpp"
 #include "solid/utility/common.hpp"
@@ -85,7 +86,7 @@ size_t bit_count(const uint64_t _v)
 uint64_t make_number(std::string _str)
 {
 
-    solid_check(!_str.empty(), "Empty string");
+    solid_check_log(!_str.empty(), generic_logger, "Empty string");
     uint64_t mul = 1;
     if (isupper(_str.back()) != 0) {
         switch (_str.back()) {
@@ -102,7 +103,7 @@ uint64_t make_number(std::string _str)
             mul = 1024ULL * 1024 * 1024 * 1024;
             break;
         default:
-            solid_throw("Unknown multiplier: " << _str.back());
+            solid_throw_log(generic_logger, "Unknown multiplier: " << _str.back());
         }
         _str.pop_back();
     }
@@ -121,7 +122,7 @@ uint64_t make_number(std::string _str)
             mul = 1000ULL * 1000 * 1000 * 1000;
             break;
         default:
-            solid_throw("Unknown multiplier: " << _str.back());
+            solid_throw_log(generic_logger, "Unknown multiplier: " << _str.back());
         }
         _str.pop_back();
     }

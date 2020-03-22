@@ -67,7 +67,7 @@ class Datagram : public CompletionHandler {
             rthis.doClear(_rctx);
             break;
         default:
-            solid_assert(false);
+            solid_assert_log(false, generic_logger);
         }
     }
 
@@ -117,7 +117,7 @@ class Datagram : public CompletionHandler {
                     } else {
                         _rthis.error(_rctx, error_datagram_system);
                         _rthis.systemError(_rctx, err);
-                        solid_assert(err);
+                        solid_assert_log(err, generic_logger);
                     }
                 }
             }
@@ -156,7 +156,7 @@ class Datagram : public CompletionHandler {
                     } else {
                         _rthis.error(_rctx, error_datagram_system);
                         _rthis.systemError(_rctx, err);
-                        solid_assert(err);
+                        solid_assert_log(err, generic_logger);
                     }
                 }
             }
@@ -192,7 +192,7 @@ class Datagram : public CompletionHandler {
                     } else {
                         _rthis.error(_rctx, error_datagram_system);
                         _rthis.systemError(_rctx, err);
-                        solid_assert(err);
+                        solid_assert_log(err, generic_logger);
                     }
                 }
             }
@@ -228,7 +228,7 @@ class Datagram : public CompletionHandler {
                     } else {
                         _rthis.error(_rctx, error_datagram_system);
                         _rthis.systemError(_rctx, err);
-                        solid_assert(err);
+                        solid_assert_log(err, generic_logger);
                     }
                 }
             }
@@ -321,12 +321,12 @@ public:
                 } else {
                     systemError(_rctx, err);
                     error(_rctx, error_datagram_system);
-                    solid_assert(err);
+                    solid_assert_log(err, generic_logger);
                 }
             } else {
                 error(_rctx, error_datagram_system);
                 systemError(_rctx, err);
-                solid_assert(err);
+                solid_assert_log(err, generic_logger);
             }
 
         } else {
@@ -410,7 +410,7 @@ public:
                 } else {
                     error(_rctx, error_datagram_system);
                     systemError(_rctx, err);
-                    solid_assert(err);
+                    solid_assert_log(err, generic_logger);
                 }
             }
         } else {
@@ -451,7 +451,7 @@ public:
                 } else {
                     error(_rctx, error_datagram_system);
                     systemError(_rctx, err);
-                    solid_assert(err);
+                    solid_assert_log(err, generic_logger);
                 }
             }
         } else {
@@ -479,7 +479,7 @@ public:
             return false;
         } else {
             error(_rctx, error_already);
-            solid_assert(false);
+            solid_assert_log(false, generic_logger);
             return true;
         }
     }
@@ -501,7 +501,7 @@ public:
             return false;
         } else {
             error(_rctx, error_already);
-            solid_assert(false);
+            solid_assert_log(false, generic_logger);
             return true;
         }
     }
@@ -536,7 +536,7 @@ public:
                 } else {
                     error(_rctx, error_datagram_system);
                     systemError(_rctx, err);
-                    solid_assert(err);
+                    solid_assert_log(err, generic_logger);
                 }
             }
         } else {
@@ -574,7 +574,7 @@ public:
                 } else {
                     error(_rctx, error_datagram_system);
                     systemError(_rctx, err);
-                    solid_assert(err);
+                    solid_assert_log(err, generic_logger);
                 }
             }
         } else {

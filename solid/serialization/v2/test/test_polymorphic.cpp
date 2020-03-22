@@ -145,7 +145,7 @@ struct Command {
 int test_polymorphic(int /*argc*/, char* /*argv*/[])
 {
 
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {".*:EWX"});
 
     using TypeMapT      = serialization::TypeMap<uint8_t, Context, serialization::binary::Serializer, serialization::binary::Deserializer, TypeData>;
     using SerializerT   = TypeMapT::SerializerT;

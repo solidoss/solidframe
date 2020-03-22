@@ -39,9 +39,10 @@ inline Limit limit(const uint64_t _value = InvalidSize())
 {
     return Limit{_value};
 }
-namespace binary {
 
 extern const LoggerT logger;
+
+namespace binary {
 
 struct Limits {
     Limits(

@@ -11,6 +11,7 @@
 #pragma once
 
 #include "solid/system/error.hpp"
+#include "solid/system/log.hpp"
 #include "solid/utility/common.hpp"
 #include <functional>
 #include <memory>
@@ -20,6 +21,8 @@
 namespace solid {
 namespace serialization {
 namespace v2 {
+
+const LoggerT& serialization_logger();
 
 struct Base {
     virtual ~Base();

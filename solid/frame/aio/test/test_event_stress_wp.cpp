@@ -112,7 +112,7 @@ int test_event_stress_wp(int argc, char* argv[])
 {
     //install_crash_handler();
 
-    solid::log_start(std::cerr, {".*:EWS"});
+    solid::log_start(std::cerr, {".*:EWXS"});
 
     size_t account_count            = 10000;
     size_t account_connection_count = 10;

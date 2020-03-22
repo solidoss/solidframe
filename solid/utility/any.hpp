@@ -11,6 +11,7 @@
 #pragma once
 
 #include "solid/system/exception.hpp"
+#include "solid/system/log.hpp"
 #include <cstddef>
 #include <type_traits>
 #include <typeindex>
@@ -220,7 +221,7 @@ public:
     Any(const ThisT& _rany)
         : AnyBase(doCopyFrom(_rany, this->dataPtr(), DataSize))
     {
-        solid_check(_rany.empty() == this->empty(), "Copy Non Copyable");
+        solid_check_log(_rany.empty() == this->empty(), generic_logger, "Copy Non Copyable");
     }
 
     Any(ThisT&& _rany)
@@ -311,7 +312,7 @@ public:
         if (static_cast<const void*>(this) != static_cast<const void*>(&_rany)) {
             clear();
             pvalue_ = doCopyFrom(_rany, this->dataPtr(), DataSize);
-            solid_check(_rany.empty() == this->empty(), "Copy Non Copyable");
+            solid_check_log(_rany.empty() == this->empty(), generic_logger, "Copy Non Copyable");
         }
         return *this;
     }

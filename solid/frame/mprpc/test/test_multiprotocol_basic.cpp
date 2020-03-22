@@ -63,7 +63,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 int test_multiprotocol_basic(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {".*:EWX"});
 
     size_t max_per_pool_connection_count = 1;
 

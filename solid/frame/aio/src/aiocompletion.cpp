@@ -80,7 +80,7 @@ void CompletionHandler::deactivate()
         idxreactor = InvalidIndex();
     }
     if (isActive()) {
-        solid_throw("FATAL: CompletionHandler deleted/deactivated outside actor's reactor!");
+        solid_throw_log(generic_logger, "FATAL: CompletionHandler deleted/deactivated outside actor's reactor!");
     }
 }
 
@@ -102,7 +102,7 @@ void CompletionHandler::remDevice(ReactorContext& _rctx, Device const& _rsd)
 
 void CompletionHandler::addTimer(ReactorContext& _rctx, NanoTime const& _rt, size_t& _storedidx)
 {
-    solid_assert(isActive());
+    solid_assert_log(isActive(), generic_logger);
     _rctx.reactor().addTimer(*this, _rt, _storedidx);
 }
 void CompletionHandler::remTimer(ReactorContext& _rctx, size_t const& _storedidx)

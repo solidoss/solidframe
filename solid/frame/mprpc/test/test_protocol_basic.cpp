@@ -264,7 +264,7 @@ struct Sender : frame::mprpc::MessageWriter::Sender {
 int test_protocol_basic(int argc, char* argv[])
 {
 
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {".*:EWX"});
 
     for (int i = 0; i < 127; ++i) {
         if (isprint(i) && !isblank(i)) {

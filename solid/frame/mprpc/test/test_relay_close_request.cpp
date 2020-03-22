@@ -332,7 +332,7 @@ int test_relay_close_request(int argc, char* argv[])
     signal(SIGPIPE, SIG_IGN);
 #endif
 
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {".*:EWX"});
 
     size_t max_per_pool_connection_count = 1;
 

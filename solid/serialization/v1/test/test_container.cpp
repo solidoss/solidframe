@@ -92,7 +92,7 @@ struct Test {
 int test_container(int argc, char* argv[])
 {
 
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {".*:EWX"});
 
     using SerializerT   = serialization::binary::Serializer<void>;
     using DeserializerT = serialization::binary::Deserializer<void>;

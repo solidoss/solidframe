@@ -41,7 +41,7 @@ struct Context {
 int test_workpool_thread_context(int argc, char* argv[])
 {
     install_crash_handler();
-    solid::log_start(std::cerr, {".*:EWS", "test_context:VIEWS"});
+    solid::log_start(std::cerr, {".*:EWXS", "test_context:VIEWS"});
     using CallPoolT  = CallPool<void(Context&)>;
     using AtomicPWPT = std::atomic<CallPoolT*>;
 
