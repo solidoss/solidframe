@@ -249,7 +249,7 @@ private:
     void nodeRelease(Node* _pn, const int _line)
     {
         const size_t cnt = _pn->use_cnt_.fetch_sub(1);
-        solid_assert(cnt != 0);
+        solid_assert_log(cnt != 0, workpool_logger);
         if (cnt == 1) {
             //the last one
             pushEmptyNode(_pn);

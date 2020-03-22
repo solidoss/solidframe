@@ -49,7 +49,7 @@ SingleNameEngine::~SingleNameEngine()
 //-----------------------------------------------------------------------------
 ErrorConditionT SingleNameEngine::registerConnection(const ConnectionContext& _rconctx, std::string&& _uname)
 {
-    solid_assert(!_uname.empty());
+    solid_assert_log(!_uname.empty(), logger);
     ErrorConditionT err;
     auto            lambda = [&_uname, this, &_rconctx /*, &err*/](EngineCore::Proxy& _proxy) {
         size_t conidx = static_cast<size_t>(_rconctx.relayId().index);

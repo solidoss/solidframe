@@ -135,13 +135,13 @@ private:
         //csolid_assert(_p);
         Node* pn  = ((Node*)(((char*)_p) - sizeof(Node*)));
         Node* ppn = pn->prev;
-        solid_assert(pn != ptn);
+        solid_assert_log(pn != ptn, generic_logger);
         pn->prev = ptn;
         ptn      = pn; //cache the node
         if (ppn) {
             return (T*)(ppn->data + (NodeSize * sizeof(T) - sizeof(T)));
         } else {
-            solid_assert(!sz);
+            solid_assert_log(!sz, generic_logger);
             return nullptr;
         }
     }

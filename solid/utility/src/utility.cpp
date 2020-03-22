@@ -103,7 +103,7 @@ uint64_t make_number(std::string _str)
             mul = 1024ULL * 1024 * 1024 * 1024;
             break;
         default:
-            solid_throw("Unknown multiplier: " << _str.back());
+            solid_throw_log(generic_logger, "Unknown multiplier: " << _str.back());
         }
         _str.pop_back();
     }
@@ -122,7 +122,7 @@ uint64_t make_number(std::string _str)
             mul = 1000ULL * 1000 * 1000 * 1000;
             break;
         default:
-            solid_throw("Unknown multiplier: " << _str.back());
+            solid_throw_log(generic_logger, "Unknown multiplier: " << _str.back());
         }
         _str.pop_back();
     }

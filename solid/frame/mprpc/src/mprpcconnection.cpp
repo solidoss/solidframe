@@ -84,6 +84,12 @@ const EventCategory<ConnectionEvents> connection_event_category{
 
 } //namespace
 
+void ResolveMessage::popAddress()
+{
+    solid_assert_log(addrvec.size(), logger);
+    addrvec.pop_back();
+}
+
 //-----------------------------------------------------------------------------
 inline Service& Connection::service(frame::aio::ReactorContext& _rctx) const
 {
@@ -502,7 +508,7 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
         const bool        can_stop       = service(_rctx).connectionStopping(conctx, actuid, seconds_to_wait, pool_msg_id, has_no_message ? &msg_bundle : nullptr, event, tmp_error);
 
         if (can_stop) {
-            solid_assert(has_no_message);
+            solid_assert_log(has_no_message, logger);
             solid_dbg(logger, Info, this << ' ' << this->id() << " postStop");
             auto lambda = [msg_b = std::move(msg_bundle), pool_msg_id](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) mutable {
                 Connection& rthis = static_cast<Connection&>(_rctx.actor());
@@ -540,7 +546,7 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
         } else {
             //we have initiated the stopping process but we cannot finish it right away because
             //we have some local messages to handle
-            solid_assert(event.empty());
+            solid_assert_log(event.empty(), logger);
             size_t offset = 0;
             post(_rctx,
                 [offset](frame::aio::ReactorContext& _rctx, Event&& _revent) {
@@ -631,7 +637,7 @@ void Connection::doCompleteAllMessages(
         post(
             _rctx,
             [_offset](frame::aio::ReactorContext& _rctx, Event&& _revent) {
-                solid_assert(_revent.empty());
+                solid_assert_log(_revent.empty(), logger);
                 Connection& rthis = static_cast<Connection&>(_rctx.actor());
                 rthis.doCompleteAllMessages(_rctx, _offset);
             });
@@ -856,7 +862,7 @@ void Connection::doHandleEventResolve(
             }
         }
     } else {
-        solid_assert(false);
+        solid_assert_log(false, logger);
     }
 }
 //-----------------------------------------------------------------------------
@@ -888,7 +894,7 @@ void Connection::doHandleEventNewConnMessage(frame::aio::ReactorContext& _rctx, 
 {
 
     MessageId* pmsgid = _revent.any().cast<MessageId>();
-    solid_assert(pmsgid);
+    solid_assert_log(pmsgid, logger);
 
     if (pmsgid != nullptr) {
 
@@ -912,7 +918,7 @@ void Connection::doHandleEventCancelConnMessage(frame::aio::ReactorContext& _rct
 {
 
     MessageId* pmsgid = _revent.any().cast<MessageId>();
-    solid_assert(pmsgid);
+    solid_assert_log(pmsgid, logger);
 
     if (pmsgid != nullptr) {
         ConnectionContext    conctx(service(_rctx), *this);
@@ -926,7 +932,7 @@ void Connection::doHandleEventCancelPoolMessage(frame::aio::ReactorContext& _rct
 {
 
     MessageId* pmsgid = _revent.any().cast<MessageId>();
-    solid_assert(pmsgid);
+    solid_assert_log(pmsgid, logger);
 
     if (pmsgid != nullptr) {
         MessageBundle msg_bundle;
@@ -941,7 +947,7 @@ void Connection::doHandleEventClosePoolMessage(frame::aio::ReactorContext& _rctx
 {
 
     MessageId* pmsgid = _revent.any().cast<MessageId>();
-    solid_assert(pmsgid);
+    solid_assert_log(pmsgid, logger);
 
     if (pmsgid != nullptr) {
         MessageBundle msg_bundle;
@@ -1182,7 +1188,7 @@ void Connection::doHandleEventSendRaw(frame::aio::ReactorContext& _rctx, Event& 
     SendRaw*          pdata = _revent.any().cast<SendRaw>();
     ConnectionContext conctx(service(_rctx), *this);
 
-    solid_assert(pdata);
+    solid_assert_log(pdata, logger);
 
     if (this->isRawState() && pdata != nullptr) {
 
@@ -1217,7 +1223,7 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, Event& 
     ConnectionContext conctx(service(_rctx), *this);
     size_t            used_size = 0;
 
-    solid_assert(pdata);
+    solid_assert_log(pdata, logger);
 
     solid_dbg(logger, Info, this);
 
@@ -1241,7 +1247,7 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, Event& 
             if (cons_buf_off_ == recv_buf_off_) {
                 cons_buf_off_ = recv_buf_off_ = 0;
             } else {
-                solid_assert(cons_buf_off_ < recv_buf_off_);
+                solid_assert_log(cons_buf_off_ < recv_buf_off_, logger);
             }
         }
     } else if (pdata != nullptr) {
@@ -1373,7 +1379,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
 
     Connection& rthis = static_cast<Connection&>(_rctx.actor());
 
-    solid_assert(!rthis.isServer());
+    solid_assert_log(!rthis.isServer(), logger);
     rthis.flags_.set(FlagsE::Keepalive);
     rthis.flags_.reset(FlagsE::WaitKeepAliveTimer);
     solid_dbg(logger, Info, &rthis << " post send");
@@ -1387,7 +1393,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
     SendRaw*          pdata = _revent.any().cast<SendRaw>();
     ConnectionContext conctx(rthis.service(_rctx), rthis);
 
-    solid_assert(pdata);
+    solid_assert_log(pdata, logger);
 
     if (pdata != nullptr) {
 
@@ -1423,7 +1429,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
     RecvRaw*          pdata = _revent.any().cast<RecvRaw>();
     ConnectionContext conctx(rthis.service(_rctx), rthis);
 
-    solid_assert(pdata);
+    solid_assert_log(pdata, logger);
 
     if (pdata != nullptr) {
 
@@ -1470,7 +1476,7 @@ void Connection::doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint
     } else {
         //tried to relay received messages/message parts - but all failed
         //so we need to ack the buffer
-        solid_assert(recv_buf_.use_count());
+        solid_assert_log(recv_buf_.use_count(), logger);
         solid_dbg(logger, Info, this << " send accept for " << (int)_request_buffer_ack_count << " buffers");
 
         if (ackd_buf_count_ == 0) {
@@ -1623,7 +1629,7 @@ struct Connection::Receiver : MessageReader::Receiver {
         --repeatcnt;
         rthis.doOptimizeRecvBuffer();
 
-        solid_assert(rthis.recv_buf_);
+        solid_assert_log(rthis.recv_buf_, logger);
 
         pbuf = rthis.recv_buf_->data() + rthis.recv_buf_off_;
 
@@ -1637,7 +1643,7 @@ struct Connection::Receiver : MessageReader::Receiver {
 
     if (repeatcnt == 0) {
         bool rv = rthis.postRecvSome(_rctx, pbuf, bufsz); //fully asynchronous call
-        solid_assert(!rv);
+        solid_assert_log(!rv, logger);
         (void)rv;
     }
 }

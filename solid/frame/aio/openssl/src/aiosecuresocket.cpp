@@ -353,7 +353,7 @@ ErrorCodeT Context::loadPrivateKeyFile(const char* _path, const FileFormat _ffor
     if (SSL_CTX_use_PrivateKey_file(pctx, _path, _fformat == FileFormat::Pem ? SSL_FILETYPE_PEM : SSL_FILETYPE_ASN1) != 1) {
         err = ssl_category.makeError(::ERR_get_error());
     }
-    solid_assert(SSL_CTX_check_private_key(pctx));
+    solid_assert_log(SSL_CTX_check_private_key(pctx), logger);
     return err;
 }
 
@@ -448,7 +448,7 @@ Socket::Socket(
     ::SSL_set_mode(pssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
     if (device()) {
         int rv = SSL_set_fd(pssl, device().descriptor());
-        solid_assert(rv != 0);
+        solid_assert_log(rv != 0, logger);
     }
 }
 
@@ -560,7 +560,7 @@ ssize_t Socket::recv(ReactorContext& _rctx, char* _pb, size_t _bl, bool& _can_re
     switch (err_cond) {
     case SSL_ERROR_NONE:
         _can_retry = false;
-        solid_assert(retval >= 0);
+        solid_assert_log(retval >= 0, logger);
         return retval;
     case SSL_ERROR_ZERO_RETURN:
         _can_retry = false;
@@ -587,7 +587,7 @@ ssize_t Socket::recv(ReactorContext& _rctx, char* _pb, size_t _bl, bool& _can_re
             //TODO: find out why this happens
             _rerr = solid::error_system;
         }
-        solid_assert(_rerr);
+        solid_assert_log(_rerr, logger);
         break;
     case SSL_ERROR_SSL:
         _can_retry = false;
@@ -596,7 +596,7 @@ ssize_t Socket::recv(ReactorContext& _rctx, char* _pb, size_t _bl, bool& _can_re
     case SSL_ERROR_WANT_X509_LOOKUP:
     //for reschedule, we can return -1 but not set the _rerr
     default:
-        solid_assert(false);
+        solid_assert_log(false, logger);
         break;
     }
     return -1;
@@ -656,7 +656,7 @@ ssize_t Socket::send(ReactorContext& _rctx, const char* _pb, size_t _bl, bool& _
     case SSL_ERROR_WANT_X509_LOOKUP:
     //for reschedule, we can return -1 but not set the _rerr
     default:
-        solid_assert(false);
+        solid_assert_log(false, logger);
         break;
     }
     return -1;
@@ -713,7 +713,7 @@ bool Socket::secureAccept(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& _
     case SSL_ERROR_WANT_X509_LOOKUP:
     //for reschedule, we can return -1 but not set the _rerr
     default:
-        solid_assert(false);
+        solid_assert_log(false, logger);
         break;
     }
     return false;
@@ -772,7 +772,7 @@ bool Socket::secureConnect(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& 
     case SSL_ERROR_WANT_X509_LOOKUP:
     //for reschedule, we can return -1 but not set the _rerr
     default:
-        solid_assert(false);
+        solid_assert_log(false, logger);
         break;
     }
     return false;
@@ -829,7 +829,7 @@ bool Socket::secureShutdown(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT&
     case SSL_ERROR_WANT_X509_LOOKUP:
     //for reschedule, we can return -1 but not set the _rerr
     default:
-        solid_assert(false);
+        solid_assert_log(false, logger);
         break;
     }
     return false;

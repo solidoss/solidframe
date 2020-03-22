@@ -110,7 +110,7 @@ SocketStubPtrT default_create_server_socket(Configuration const& _rcfg, frame::a
 
 const char* default_extract_recipient_name(const char* _purl, std::string& _msgurl, std::string& _tmpstr)
 {
-    solid_assert(_purl != nullptr);
+    solid_assert_log(_purl != nullptr, service_logger());
 
     const char* const p = strchr(_purl, '/');
 
@@ -218,7 +218,7 @@ bool RelayEngine::notifyConnection(Manager& _rm, const ActorIdT& _rrelay_uid, co
     bool& /*_rmore*/
 )
 {
-    solid_throw("should not be called");
+    solid_throw_log(service_logger(), "should not be called");
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void RelayEngine::doCancel(
@@ -228,17 +228,17 @@ bool RelayEngine::notifyConnection(Manager& _rm, const ActorIdT& _rrelay_uid, co
     DoneFunctionT& /*_done_fnc*/
 )
 {
-    solid_throw("should not be called");
+    solid_throw_log(service_logger(), "should not be called");
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void RelayEngine::doPollNew(const UniqueId& /*_rrelay_uid*/, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/)
 {
-    solid_throw("should not be called");
+    solid_throw_log(service_logger(), "should not be called");
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void RelayEngine::doPollDone(const UniqueId& /*_rrelay_uid*/, DoneFunctionT& /*_done_fnc*/, CancelFunctionT& /*_cancel_fnc*/)
 {
-    solid_throw("should not be called");
+    solid_throw_log(service_logger(), "should not be called");
 }
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -385,7 +385,7 @@ void Configuration::prepare(SocketDevice& _rsd)
             }
         }
 
-        solid_throw("failed to create listener socket device");
+        solid_throw_log(service_logger(), "failed to create listener socket device");
     }
 }
 

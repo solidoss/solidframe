@@ -740,6 +740,12 @@ void LogCategory::parse(LogAtomicFlagsBackT& _ror_flags, LogAtomicFlagsBackT& _r
         case 'R':
             _ror_flags |= (1UL << static_cast<LogAtomicFlagsBackT>(LogFlags::Raw));
             break;
+        case 'x':
+            _rand_flags |= (1UL << static_cast<LogAtomicFlagsBackT>(LogFlags::Exception));
+            break;
+        case 'X':
+            _ror_flags |= (1UL << static_cast<LogAtomicFlagsBackT>(LogFlags::Exception));
+            break;
         default:
             break;
         }

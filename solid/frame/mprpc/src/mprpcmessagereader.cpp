@@ -160,7 +160,7 @@ void MessageReader::doConsumePacket(
             solid_dbg(logger, Error, "CancelMessage " << message_idx);
             if (pbufpos != nullptr && message_idx < message_vec_.size()) {
                 MessageStub& rmsgstub = message_vec_[message_idx];
-                solid_assert(rmsgstub.state_ != MessageStub::StateE::NotStarted);
+                solid_assert_log(rmsgstub.state_ != MessageStub::StateE::NotStarted, logger);
                 if (rmsgstub.state_ == MessageStub::StateE::RelayBody) {
                     _receiver.cancelRelayed(rmsgstub.relay_id);
                 }
@@ -475,7 +475,7 @@ const char* MessageReader::doConsumeMessage(
         solid_check_log(false, logger, "Invalid message state: " << (int)rmsgstub.state_);
         break;
     }
-    solid_assert(!_rerror || (_rerror && _pbufpos == _pbufend));
+    solid_assert_log(!_rerror || (_rerror && _pbufpos == _pbufend), logger);
     return _pbufpos;
 }
 //-----------------------------------------------------------------------------

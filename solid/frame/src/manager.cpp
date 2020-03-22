@@ -585,7 +585,7 @@ ActorIdT Manager::registerActor(
             rchunk.service_index_ = _rservice.index();
         }
 
-        solid_assert(rchunk.service_index_ == _rservice.index());
+        solid_assert_log(rchunk.service_index_ == _rservice.index(), frame_logger);
 
         _ractor.id(actor_index);
 
@@ -632,10 +632,10 @@ void Manager::unregisterActor(ActorBase& _ractor)
 
         --rchunk.actor_count_;
         service_index = rchunk.service_index_;
-        solid_assert(service_index != InvalidIndex());
+        solid_assert_log(service_index != InvalidIndex(), frame_logger);
     }
     {
-        solid_assert(actor_index != InvalidIndex());
+        solid_assert_log(actor_index != InvalidIndex(), frame_logger);
 
         std::unique_lock<std::mutex> lock;
         ServiceStub&                 rss = impl_->service_cache_.aquire(
@@ -728,7 +728,7 @@ ActorIdT Manager::id(const ActorBase& _ractor) const
         ActorStub&                   ras    = rchunk.actor(actor_index % impl_->actor_chunk_size_);
 
         ActorBase* pactor = ras.pactor_;
-        solid_assert(pactor == &_ractor);
+        solid_assert_log(pactor == &_ractor, frame_logger);
         retval = ActorIdT(actor_index, ras.unique_);
     }
     return retval;

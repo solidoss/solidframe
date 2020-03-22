@@ -102,7 +102,7 @@ struct MessageStub : inner::Node<InnerLinkCount> {
     }
     void clear()
     {
-        solid_assert(pfront_ == nullptr && pback_ == nullptr);
+        solid_assert_log(pfront_ == nullptr && pback_ == nullptr, logger);
         state_  = MessageStateE::Cache;
         pfront_ = nullptr;
         pback_  = nullptr;
@@ -163,7 +163,7 @@ std::ostream& operator<<(std::ostream& _ros, const SendInnerListT& _rlst)
             _ros << _idx << ' ';
             ++cnt;
         });
-    solid_assert(cnt == _rlst.size());
+    solid_assert_log(cnt == _rlst.size(), logger);
     return _ros;
 }
 
@@ -175,7 +175,7 @@ std::ostream& operator<<(std::ostream& _ros, const RecvInnerListT& _rlst)
             _ros << _idx << ' ';
             ++cnt;
         });
-    solid_assert(cnt == _rlst.size());
+    solid_assert_log(cnt == _rlst.size(), logger);
     return _ros;
 }
 
@@ -209,8 +209,7 @@ struct ConnectionStub : ConnectionStubBase {
         id_.clear();
         ConnectionStubBase::clear();
         pdone_relay_data_top_ = nullptr;
-        solid_assert(send_msg_list_.empty());
-        solid_assert(recv_msg_list_.empty());
+        solid_assert_log(send_msg_list_.empty() && recv_msg_list_.empty(), logger);
     }
 };
 
@@ -367,7 +366,7 @@ void EngineCore::doStopConnection(const size_t _conidx)
                 case MessageStateE::WaitResponse:
                     rmsg.state_ = MessageStateE::RecvCancel;
 
-                    solid_assert(snd_conidx < impl_->con_dq_.size() && impl_->con_dq_[snd_conidx].unique_ == rmsg.sender_con_id_.unique);
+                    solid_assert_log(snd_conidx < impl_->con_dq_.size() && impl_->con_dq_[snd_conidx].unique_ == rmsg.sender_con_id_.unique, logger);
 
                     {
                         ConnectionStub& rsndcon                  = impl_->con_dq_[snd_conidx];
@@ -375,7 +374,7 @@ void EngineCore::doStopConnection(const size_t _conidx)
 
                         rsndcon.send_msg_list_.erase(msgidx);
                         rsndcon.send_msg_list_.pushFront(msgidx);
-                        solid_assert(rsndcon.send_msg_list_.check());
+                        solid_assert_log(rsndcon.send_msg_list_.check(), logger);
 
                         if (should_notify_connection) {
                             solid_check_log(notifyConnection(impl_->manager(), rsndcon.id_, RelayEngineNotification::DoneData), logger, "Connection should be alive");
@@ -404,7 +403,7 @@ void EngineCore::doStopConnection(const size_t _conidx)
             MessageStub& rmsg       = rcon.send_msg_list_.front();
             const size_t msgidx     = rcon.send_msg_list_.popFront();
             const size_t rcv_conidx = static_cast<size_t>(rmsg.receiver_con_id_.index);
-            solid_assert(rcon.send_msg_list_.check());
+            solid_assert_log(rcon.send_msg_list_.check(), logger);
 
             rmsg.sender_con_id_.clear(); //unlink from the sender connection
 
@@ -420,7 +419,7 @@ void EngineCore::doStopConnection(const size_t _conidx)
                 case MessageStateE::WaitResponse:
                     rmsg.state_ = MessageStateE::SendCancel;
 
-                    solid_assert(rcv_conidx < impl_->con_dq_.size() && impl_->con_dq_[rcv_conidx].unique_ == rmsg.receiver_con_id_.unique);
+                    solid_assert_log(rcv_conidx < impl_->con_dq_.size() && impl_->con_dq_[rcv_conidx].unique_ == rmsg.receiver_con_id_.unique, logger);
                     rmsg.push(impl_->createSendCancelRelayData());
                     {
                         ConnectionStub& rrcvcon                  = impl_->con_dq_[rcv_conidx];
@@ -478,7 +477,7 @@ void EngineCore::doExecute(ExecuteFunctionT& _rfnc)
 size_t EngineCore::doRegisterUnnamedConnection(const ActorIdT& _rcon_uid, UniqueId& _rrelay_con_uid)
 {
     if (_rrelay_con_uid.isValid()) {
-        solid_assert(impl_->isValid(_rrelay_con_uid));
+        solid_assert_log(impl_->isValid(_rrelay_con_uid), logger);
         return static_cast<size_t>(_rrelay_con_uid.index);
     }
 
@@ -511,12 +510,12 @@ bool EngineCore::doRelayStart(
 {
     size_t            msgidx;
     lock_guard<mutex> lock(impl_->mtx_);
-    solid_assert(_rcon_uid.isValid());
+    solid_assert_log(_rcon_uid.isValid(), logger);
 
     size_t snd_conidx = static_cast<size_t>(_rrelay_con_uid.index);
 
     if (_rrelay_con_uid.isValid()) {
-        solid_assert(impl_->isValid(_rrelay_con_uid));
+        solid_assert_log(impl_->isValid(_rrelay_con_uid), logger);
         snd_conidx = static_cast<size_t>(_rrelay_con_uid.index);
     } else {
         snd_conidx = doRegisterUnnamedConnection(_rcon_uid, _rrelay_con_uid);
@@ -550,7 +549,7 @@ bool EngineCore::doRelayStart(
 
     solid_dbg(logger, Info, _rrelay_con_uid << " msgid = " << _rrelay_id << " size = " << _rrelmsg.data_size_ << " receiver_conidx " << rmsg.receiver_con_id_.index << " sender_conidx " << rmsg.sender_con_id_.index << " flags = " << _rrelmsg.flags_);
 
-    solid_assert(rmsg.pfront_ == nullptr);
+    solid_assert_log(rmsg.pfront_ == nullptr, logger);
 
     rmsg.push(impl_->createRelayData(std::move(_rrelmsg)));
 
@@ -574,9 +573,9 @@ bool EngineCore::doRelay(
 {
     lock_guard<mutex> lock(impl_->mtx_);
 
-    solid_assert(_rrelay_id.isValid());
-    solid_assert(_rrelay_con_uid.isValid());
-    solid_assert(impl_->isValid(_rrelay_con_uid));
+    solid_assert_log(_rrelay_id.isValid(), logger);
+    solid_assert_log(_rrelay_con_uid.isValid(), logger);
+    solid_assert_log(impl_->isValid(_rrelay_con_uid), logger);
 
     if (_rrelay_id.index < impl_->msg_dq_.size() && impl_->msg_dq_[_rrelay_id.index].unique_ == _rrelay_id.unique) {
         const size_t msgidx                        = _rrelay_id.index;
@@ -597,7 +596,7 @@ bool EngineCore::doRelay(
                 ConnectionStub& rrcvcon                  = impl_->con_dq_[static_cast<size_t>(rmsg.receiver_con_id_.index)];
                 bool            should_notify_connection = (rrcvcon.recv_msg_list_.backIndex() == msgidx || !rrcvcon.recv_msg_list_.back().hasData());
 
-                solid_assert(!rrcvcon.recv_msg_list_.empty());
+                solid_assert_log(!rrcvcon.recv_msg_list_.empty(), logger);
 
                 //move the message at the back of the list so it get processed sooner - somewhat unfair
                 //but this way we can keep using a single list for send messages
@@ -634,9 +633,9 @@ bool EngineCore::doRelayResponse(
 {
     lock_guard<mutex> lock(impl_->mtx_);
 
-    solid_assert(_rrelay_id.isValid());
-    solid_assert(_rrelay_con_uid.isValid());
-    solid_assert(impl_->isValid(_rrelay_con_uid));
+    solid_assert_log(_rrelay_id.isValid(), logger);
+    solid_assert_log(_rrelay_con_uid.isValid(), logger);
+    solid_assert_log(impl_->isValid(_rrelay_con_uid), logger);
 
     if (_rrelay_id.index < impl_->msg_dq_.size() && impl_->msg_dq_[_rrelay_id.index].unique_ == _rrelay_id.unique) {
         const size_t msgidx            = _rrelay_id.index;
@@ -650,9 +649,9 @@ bool EngineCore::doRelayResponse(
         solid_dbg(logger, Info, _rrelay_con_uid << " msgid = " << _rrelay_id << " receiver_conidx " << rmsg.receiver_con_id_ << " sender_conidx " << rmsg.sender_con_id_ << " flags = " << _rrelmsg.flags_);
 
         if (rmsg.state_ == MessageStateE::WaitResponse) {
-            solid_assert(rmsg.sender_con_id_.isValid());
-            solid_assert(rmsg.receiver_con_id_.isValid());
-            solid_assert(rmsg.pfront_ == nullptr);
+            solid_assert_log(rmsg.sender_con_id_.isValid(), logger);
+            solid_assert_log(rmsg.receiver_con_id_.isValid(), logger);
+            solid_assert_log(rmsg.pfront_ == nullptr, logger);
 
             rmsg.receiver_msg_id_.clear();
 
@@ -671,8 +670,8 @@ bool EngineCore::doRelayResponse(
             const size_t rcv_conidx = static_cast<size_t>(rmsg.receiver_con_id_.index);
             const size_t snd_conidx = static_cast<size_t>(rmsg.sender_con_id_.index);
 
-            solid_assert(rcv_conidx < impl_->con_dq_.size() && impl_->con_dq_[rcv_conidx].unique_ == rmsg.receiver_con_id_.unique);
-            solid_assert(snd_conidx < impl_->con_dq_.size() && impl_->con_dq_[snd_conidx].unique_ == rmsg.sender_con_id_.unique);
+            solid_assert_log(rcv_conidx < impl_->con_dq_.size() && impl_->con_dq_[rcv_conidx].unique_ == rmsg.receiver_con_id_.unique, logger);
+            solid_assert_log(snd_conidx < impl_->con_dq_.size() && impl_->con_dq_[snd_conidx].unique_ == rmsg.sender_con_id_.unique, logger);
 
             ConnectionStub& rrcvcon                  = impl_->con_dq_[rcv_conidx];
             ConnectionStub& rsndcon                  = impl_->con_dq_[snd_conidx];
@@ -685,8 +684,8 @@ bool EngineCore::doRelayResponse(
 
             solid_dbg(logger, Info, "rcv_lst = " << rrcvcon.recv_msg_list_);
 
-            solid_assert(rsndcon.send_msg_list_.check());
-            solid_assert(rrcvcon.send_msg_list_.check());
+            solid_assert_log(rsndcon.send_msg_list_.check(), logger);
+            solid_assert_log(rrcvcon.send_msg_list_.check(), logger);
 
             if (should_notify_connection) {
                 solid_check_log(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), logger, "Connection should be alive");
@@ -703,7 +702,7 @@ bool EngineCore::doRelayResponse(
                 ConnectionStub& rrcvcon                  = impl_->con_dq_[static_cast<size_t>(rmsg.receiver_con_id_.index)];
                 bool            should_notify_connection = (rrcvcon.recv_msg_list_.backIndex() == msgidx || !rrcvcon.recv_msg_list_.back().hasData());
 
-                solid_assert(!rrcvcon.recv_msg_list_.empty());
+                solid_assert_log(!rrcvcon.recv_msg_list_.empty(), logger);
 
                 //move the message at the back of the list so it get processed sooner - somewhat unfair
                 //but this way we can keep using a single list for send messages
@@ -728,13 +727,13 @@ void EngineCore::doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_
 {
     lock_guard<mutex> lock(impl_->mtx_);
 
-    solid_assert(_rrelay_con_uid.isValid());
-    solid_assert(impl_->isValid(_rrelay_con_uid));
+    solid_assert_log(_rrelay_con_uid.isValid(), logger);
+    solid_assert_log(impl_->isValid(_rrelay_con_uid), logger);
 
     const size_t    conidx = static_cast<size_t>(_rrelay_con_uid.index);
     ConnectionStub& rcon   = impl_->con_dq_[conidx];
 
-    solid_assert(rcon.id_.unique == _rrelay_con_uid.unique);
+    solid_assert_log(rcon.id_.unique == _rrelay_con_uid.unique, logger);
 
     solid_dbg(logger, Verbose, _rrelay_con_uid << ' ' << plot(rcon));
 
@@ -765,12 +764,12 @@ void EngineCore::doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_
             } else {
                 //the connection has received the SendCancel event for the message,
                 //we can now safely delete the message
-                solid_assert(!rmsg.pfront_->bufptr_);
-                solid_assert(pnext == nullptr);
+                solid_assert_log(!rmsg.pfront_->bufptr_, logger);
+                solid_assert_log(pnext == nullptr, logger);
 
                 if (rmsg.sender_con_id_.isValid()) {
                     //we can safely unlink message from sender connection
-                    solid_assert(static_cast<size_t>(rmsg.sender_con_id_.index) < impl_->con_dq_.size() && impl_->con_dq_[static_cast<size_t>(rmsg.sender_con_id_.index)].unique_ == rmsg.sender_con_id_.unique);
+                    solid_assert_log(static_cast<size_t>(rmsg.sender_con_id_.index) < impl_->con_dq_.size() && impl_->con_dq_[static_cast<size_t>(rmsg.sender_con_id_.index)].unique_ == rmsg.sender_con_id_.unique, logger);
 
                     ConnectionStub& rsndcon = impl_->con_dq_[static_cast<size_t>(rmsg.sender_con_id_.index)];
 
@@ -800,8 +799,8 @@ void EngineCore::doPollDone(const UniqueId& _rrelay_con_uid, DoneFunctionT& _don
 {
     lock_guard<mutex> lock(impl_->mtx_);
 
-    solid_assert(_rrelay_con_uid.isValid());
-    solid_assert(impl_->isValid(_rrelay_con_uid));
+    solid_assert_log(_rrelay_con_uid.isValid(), logger);
+    solid_assert_log(impl_->isValid(_rrelay_con_uid), logger);
 
     const size_t    conidx = static_cast<size_t>(_rrelay_con_uid.index);
     ConnectionStub& rcon   = impl_->con_dq_[conidx];
@@ -820,13 +819,13 @@ void EngineCore::doPollDone(const UniqueId& _rrelay_con_uid, DoneFunctionT& _don
     rcon.pdone_relay_data_top_ = nullptr;
     solid_dbg(logger, Verbose, _rrelay_con_uid << " send_msg_list.size = " << rcon.send_msg_list_.size() << " front idx = " << rcon.send_msg_list_.frontIndex());
 
-    solid_assert(rcon.send_msg_list_.check());
+    solid_assert_log(rcon.send_msg_list_.check(), logger);
 
     while (!rcon.send_msg_list_.empty() && rcon.send_msg_list_.front().state_ == MessageStateE::RecvCancel) {
         MessageStub& rmsg   = rcon.send_msg_list_.front();
         size_t       msgidx = rcon.send_msg_list_.popFront();
 
-        solid_assert(rmsg.receiver_con_id_.isInvalid());
+        solid_assert_log(rmsg.receiver_con_id_.isInvalid(), logger);
 
         while ((prd = rmsg.pop()) != nullptr) {
             _done_fnc(prd->bufptr_);
@@ -849,11 +848,11 @@ void EngineCore::doComplete(
 {
     lock_guard<mutex> lock(impl_->mtx_);
 
-    solid_assert(_rrelay_con_uid.isValid());
-    solid_assert(impl_->isValid(_rrelay_con_uid));
+    solid_assert_log(_rrelay_con_uid.isValid(), logger);
+    solid_assert_log(impl_->isValid(_rrelay_con_uid), logger);
 
     solid_dbg(logger, Verbose, _rrelay_con_uid << " try complete msg " << _rengine_msg_id);
-    solid_assert(_prelay_data);
+    solid_assert_log(_prelay_data, logger);
 
     if (_rengine_msg_id.index < impl_->msg_dq_.size() && impl_->msg_dq_[_rengine_msg_id.index].unique_ == _rengine_msg_id.unique) {
         const size_t    msgidx  = _rengine_msg_id.index;
@@ -861,7 +860,7 @@ void EngineCore::doComplete(
         ConnectionStub& rrcvcon = impl_->con_dq_[static_cast<size_t>(rmsg.receiver_con_id_.index)]; //the connection currently calling this method
 
         if (rmsg.sender_con_id_.isValid()) {
-            solid_assert(static_cast<size_t>(rmsg.sender_con_id_.index) < impl_->con_dq_.size() && impl_->con_dq_[static_cast<size_t>(rmsg.sender_con_id_.index)].unique_ == rmsg.sender_con_id_.unique);
+            solid_assert_log(static_cast<size_t>(rmsg.sender_con_id_.index) < impl_->con_dq_.size() && impl_->con_dq_[static_cast<size_t>(rmsg.sender_con_id_.index)].unique_ == rmsg.sender_con_id_.unique, logger);
 
             ConnectionStub& rsndcon                  = impl_->con_dq_[static_cast<size_t>(rmsg.sender_con_id_.index)];
             bool            should_notify_connection = rsndcon.pdone_relay_data_top_ == nullptr;
@@ -874,7 +873,7 @@ void EngineCore::doComplete(
             }
 
             if (_prelay_data->isMessageLast()) {
-                solid_assert(rmsg.pfront_ == nullptr);
+                solid_assert_log(rmsg.pfront_ == nullptr, logger);
 
                 if (rmsg.state_ == MessageStateE::Relay && _prelay_data->isRequest()) {
                     rmsg.state_ = MessageStateE::WaitResponse;
@@ -885,7 +884,7 @@ void EngineCore::doComplete(
                 } else {
                     rrcvcon.recv_msg_list_.erase(msgidx);
                     rsndcon.send_msg_list_.erase(msgidx);
-                    solid_assert(rsndcon.send_msg_list_.check());
+                    solid_assert_log(rsndcon.send_msg_list_.check(), logger);
                     rmsg.clear();
                     impl_->eraseMessage(msgidx);
                     solid_dbg(logger, Info, _rrelay_con_uid << " erase message " << msgidx << " rcv_lst = " << rsndcon.send_msg_list_);
@@ -917,8 +916,8 @@ void EngineCore::doCancel(
 {
     lock_guard<mutex> lock(impl_->mtx_);
 
-    solid_assert(_rrelay_con_uid.isValid());
-    solid_assert(impl_->isValid(_rrelay_con_uid));
+    solid_assert_log(_rrelay_con_uid.isValid(), logger);
+    solid_assert_log(impl_->isValid(_rrelay_con_uid), logger);
 
     solid_dbg(logger, Info, _rrelay_con_uid << " try complete cancel msg " << _rengine_msg_id);
     const size_t msgidx = _rengine_msg_id.index;
@@ -952,7 +951,7 @@ void EngineCore::doCancel(
             rsndcon.pdone_relay_data_top_ = nullptr;
 
             if (rmsg.receiver_con_id_.isValid()) {
-                solid_assert(static_cast<size_t>(rmsg.receiver_con_id_.index) < impl_->con_dq_.size() && impl_->con_dq_[static_cast<size_t>(rmsg.receiver_con_id_.index)].unique_ == rmsg.receiver_con_id_.unique);
+                solid_assert_log(static_cast<size_t>(rmsg.receiver_con_id_.index) < impl_->con_dq_.size() && impl_->con_dq_[static_cast<size_t>(rmsg.receiver_con_id_.index)].unique_ == rmsg.receiver_con_id_.unique, logger);
 
                 ConnectionStub& rrcvcon = impl_->con_dq_[static_cast<size_t>(rmsg.receiver_con_id_.index)];
                 rmsg.state_             = MessageStateE::SendCancel;
@@ -979,11 +978,11 @@ void EngineCore::doCancel(
                 impl_->eraseMessage(_rengine_msg_id.index);
             }
 
-            solid_assert(_prelay_data == nullptr);
+            solid_assert_log(_prelay_data == nullptr, logger);
             return;
         }
         if (rmsg.receiver_con_id_.isValid()) {
-            solid_assert(rmsg.receiver_con_id_ == _rrelay_con_uid);
+            solid_assert_log(rmsg.receiver_con_id_ == _rrelay_con_uid, logger);
 
             ConnectionStub& rrcvcon = impl_->con_dq_[static_cast<size_t>(rmsg.receiver_con_id_.index)];
             //cancel comes from receiving connection
@@ -995,7 +994,7 @@ void EngineCore::doCancel(
             rmsg.state_ = MessageStateE::RecvCancel;
 
             if (rmsg.sender_con_id_.isValid()) {
-                solid_assert(static_cast<size_t>(rmsg.sender_con_id_.index) < impl_->con_dq_.size() && impl_->con_dq_[static_cast<size_t>(rmsg.sender_con_id_.index)].unique_ == rmsg.sender_con_id_.unique);
+                solid_assert_log(static_cast<size_t>(rmsg.sender_con_id_.index) < impl_->con_dq_.size() && impl_->con_dq_[static_cast<size_t>(rmsg.sender_con_id_.index)].unique_ == rmsg.sender_con_id_.unique, logger);
 
                 ConnectionStub& rsndcon                  = impl_->con_dq_[static_cast<size_t>(rmsg.sender_con_id_.index)];
                 bool            should_notify_connection = rsndcon.pdone_relay_data_top_ == nullptr;
@@ -1010,7 +1009,7 @@ void EngineCore::doCancel(
 
                 rsndcon.send_msg_list_.erase(msgidx);
                 rsndcon.send_msg_list_.pushFront(msgidx);
-                solid_assert(rsndcon.send_msg_list_.check());
+                solid_assert_log(rsndcon.send_msg_list_.check(), logger);
 
                 if (should_notify_connection) {
                     solid_dbg(logger, Info, _rrelay_con_uid << " notify sending connection of canceled message " << _rengine_msg_id);
@@ -1030,7 +1029,7 @@ void EngineCore::doCancel(
     }
 
     if (_prelay_data != nullptr) {
-        solid_assert(!_prelay_data->bufptr_);
+        solid_assert_log(!_prelay_data->bufptr_, logger);
         _prelay_data->clear();
         impl_->eraseRelayData(_prelay_data);
     }

@@ -430,7 +430,7 @@ public:
             if (init) {
                 init                                = false;
                 const RunListIteratorT old_sentinel = _rd.sentinel();
-                solid_assert(_rd.isRunEmpty());
+                solid_assert_log(_rd.isRunEmpty(), logger);
 
                 rd.addBasicWithCheck(_rr.size_, _rr.name_);
 
@@ -501,7 +501,7 @@ public:
             if (init) {
                 init                                = false;
                 const RunListIteratorT old_sentinel = _rd.sentinel();
-                solid_assert(_rd.isRunEmpty());
+                solid_assert_log(_rd.isRunEmpty(), logger);
 
                 rd.addBasicWithCheck(_rr.size_, _rr.name_);
 

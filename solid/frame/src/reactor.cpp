@@ -606,7 +606,7 @@ void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
             }
 
             ActorStub& ros = impl_->actdq[static_cast<size_t>(rnewact.uid.index)];
-            solid_assert(ros.unique == rnewact.uid.unique);
+            solid_assert_log(ros.unique == rnewact.uid.unique, frame_logger);
 
             {
                 //NOTE: we must lock the mutex of the actor
@@ -646,7 +646,7 @@ bool Reactor::addTimer(CompletionHandler const& _rch, NanoTime const& _rt, size_
 {
     if (_rstoreidx != InvalidIndex()) {
         size_t idx = impl_->timestore.change(_rstoreidx, _rt);
-        solid_assert(idx == _rch.idxreactor);
+        solid_assert_log(idx == _rch.idxreactor, frame_logger);
     } else {
         _rstoreidx = impl_->timestore.push(_rt, _rch.idxreactor);
     }
@@ -656,7 +656,7 @@ bool Reactor::addTimer(CompletionHandler const& _rch, NanoTime const& _rt, size_
 void Reactor::doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx)
 {
     CompletionHandlerStub& rch = impl_->chdq[_chidx];
-    solid_assert(static_cast<SteadyTimer*>(rch.pch)->storeidx == _oldidx);
+    solid_assert_log(static_cast<SteadyTimer*>(rch.pch)->storeidx == _oldidx, frame_logger);
     static_cast<SteadyTimer*>(rch.pch)->storeidx = _newidx;
 }
 
