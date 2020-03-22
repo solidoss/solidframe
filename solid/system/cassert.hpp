@@ -11,16 +11,23 @@
 #pragma once
 
 #include "solid/system/common.hpp"
+#include "solid/system/log.hpp"
 
 #ifdef SOLID_HAS_ASSERT
 
 #include <cassert>
 
 #define solid_assert(a) assert((a))
+#define solid_assert_log(a, l)                             \
+    if (static_cast<bool>(a)) {                            \
+    } else {                                               \
+        solid_log(l, Exception, "(" #a ") assert failed"); \
+        assert((a));                                       \
+    }
 
 #else
 #define solid_assert(a)
-
+#define solid_assert_log(l, a)
 #endif
 
 namespace solid {
@@ -32,6 +39,7 @@ template <>
 struct static_test<true> {
     static void ok()
     {
+        assert(false);
     }
 };
 

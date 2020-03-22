@@ -440,7 +440,7 @@ public:
                 if (ptr.empty()) {
                     doPushWait(idx, _f, StoreBase::ReinitWaitE);
                 } else if (!controller().preparePointer(acc, _f, ptr, _flags, err)) {
-                    solid_assert(ptr.empty());
+                    solid_assert_log(ptr.empty(), generic_logger);
                     doPushWait(idx, _f, StoreBase::ReinitWaitE);
                 }
             }
@@ -613,7 +613,7 @@ private:
     {
         Stub& rs = stubvec[_idx];
         if (rs.usecnt == 0) {
-            solid_assert(rs.pwaitfirst == nullptr);
+            solid_assert_log(rs.pwaitfirst == nullptr, generic_logger);
             ++rs.usecnt;
             rs.state = StoreBase::UniqueLockStateE;
             return PointerT(&rs.act, this, UniqueId(_idx, rs.uid));
@@ -635,7 +635,7 @@ private:
         Stub& rs = stubvec[_idx];
 
         if (rs.state == StoreBase::UniqueLockStateE) {
-            solid_assert(rs.usecnt == 1);
+            solid_assert_log(rs.usecnt == 1, generic_logger);
             rs.state = StoreBase::SharedLockStateE;
             return true;
         }
@@ -786,7 +786,7 @@ private:
                 }
                 break;
             default:
-                solid_assert(false);
+                solid_assert_log(false, generic_logger);
                 return;
             }
             ++rs.usecnt;

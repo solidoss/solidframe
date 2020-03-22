@@ -40,7 +40,7 @@ const LoggerT logger("solid::frame::aio");
             SocketDevice sd;
             FunctionT    tmpf;
             std::swap(tmpf, rthis.f);
-            solid_assert(solid_function_empty(rthis.f));
+            solid_assert_log(solid_function_empty(rthis.f), logger);
             rthis.doAccept(_rctx, sd);
 
             tmpf(_rctx, sd);
@@ -62,7 +62,7 @@ const LoggerT logger("solid::frame::aio");
         rthis.doClear(_rctx);
         break;
     default:
-        solid_assert(false);
+        solid_assert_log(false, logger);
     }
 }
 
@@ -125,7 +125,7 @@ void Listener::doAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 
     if (!err) {
     } else if (can_retry) {
-        solid_assert(false);
+        solid_assert_log(false, logger);
     } else {
         systemError(_rctx, err);
         error(_rctx, error_listener_system);

@@ -46,7 +46,7 @@ class SteadyTimer : public CompletionHandler {
             rthis.f = &on_dummy;
             break;
         default:
-            solid_assert(false);
+            solid_assert_log(false, generic_logger);
         }
     }
     static void on_dummy(ReactorContext& _rctx)

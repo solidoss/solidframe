@@ -80,6 +80,10 @@ const EventCategory<PoolEvents> pool_event_category{
         }
     }};
 } //namespace
+const LoggerT& service_logger()
+{
+    return logger;
+}
 //=============================================================================
 using NameMapT      = std::unordered_map<const char*, size_t, CStringHash, CStringEqual>;
 using ActorIdQueueT = Queue<ActorIdT>;
@@ -176,7 +180,7 @@ std::ostream& operator<<(std::ostream& _ros, const MessageOrderInnerListT& _rlst
             _ros << _idx << ' ';
             ++cnt;
         });
-    solid_assert(cnt == _rlst.size());
+    solid_assert_log(cnt == _rlst.size(), logger);
     return _ros;
 }
 
@@ -188,7 +192,7 @@ std::ostream& operator<<(std::ostream& _ros, const MessageAsyncInnerListT& _rlst
             _ros << _idx << ' ';
             ++cnt;
         });
-    solid_assert(cnt == _rlst.size());
+    solid_assert_log(cnt == _rlst.size(), logger);
     return _ros;
 }
 
@@ -259,7 +263,7 @@ struct ConnectionPoolStub {
 
     ~ConnectionPoolStub()
     {
-        solid_assert(msgcache_inner_list.size() == msgvec.size());
+        solid_assert_log(msgcache_inner_list.size() == msgvec.size(), logger);
     }
 
     void clear()
@@ -274,8 +278,8 @@ struct ConnectionPoolStub {
         while (!conn_waitingq.empty()) {
             conn_waitingq.pop();
         }
-        solid_assert(msgorder_inner_list.empty());
-        solid_assert(msgasync_inner_list.empty());
+        solid_assert_log(msgorder_inner_list.empty(), logger);
+        solid_assert_log(msgasync_inner_list.empty(), logger);
         msgcache_inner_list.clear();
         msgorder_inner_list.clear();
         msgasync_inner_list.clear();
@@ -285,7 +289,7 @@ struct ConnectionPoolStub {
         retry_connect_count = 0;
         connect_addr_vec.clear();
         solid_function_clear(on_event_fnc);
-        solid_assert(msgorder_inner_list.check());
+        solid_assert_log(msgorder_inner_list.check(), logger);
     }
 
     MessageId insertMessage(
@@ -309,7 +313,7 @@ struct ConnectionPoolStub {
 
         rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rcomplete_fnc, _msg_url);
 
-        //solid_assert(rmsgstub.msgbundle.message_ptr.get());
+        //solid_assert_log(rmsgstub.msgbundle.message_ptr.get(), logger);
 
         return MessageId(idx, rmsgstub.unique);
     }
@@ -332,7 +336,7 @@ struct ConnectionPoolStub {
             solid_dbg(logger, Info, "msgasync_inner_list " << msgasync_inner_list);
         }
 
-        solid_assert(msgorder_inner_list.check());
+        solid_assert_log(msgorder_inner_list.check(), logger);
 
         return msgid;
     }
@@ -355,7 +359,7 @@ struct ConnectionPoolStub {
             solid_dbg(logger, Info, "msgasync_inner_list " << msgasync_inner_list);
         }
 
-        solid_assert(msgorder_inner_list.check());
+        solid_assert_log(msgorder_inner_list.check(), logger);
 
         return msgid;
     }
@@ -370,7 +374,7 @@ struct ConnectionPoolStub {
     {
         MessageStub& rmsgstub(msgvec[_rmsgid.index]);
 
-        solid_assert(!rmsgstub.msgbundle.message_ptr && rmsgstub.unique == _rmsgid.unique);
+        solid_assert_log(!rmsgstub.msgbundle.message_ptr && rmsgstub.unique == _rmsgid.unique, logger);
 
         rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rcomplete_fnc, _msg_url);
 
@@ -383,7 +387,7 @@ struct ConnectionPoolStub {
             solid_dbg(logger, Info, "msgasync_inner_list " << msgasync_inner_list);
         }
 
-        solid_assert(msgorder_inner_list.check());
+        solid_assert_log(msgorder_inner_list.check(), logger);
         return _rmsgid;
     }
 
@@ -399,7 +403,7 @@ struct ConnectionPoolStub {
         solid_dbg(logger, Info, "msgorder_inner_list " << msgorder_inner_list);
         msgcache_inner_list.pushBack(msgorder_inner_list.popFront());
 
-        solid_assert(msgorder_inner_list.check());
+        solid_assert_log(msgorder_inner_list.check(), logger);
     }
 
     void popFrontMessage()
@@ -407,14 +411,14 @@ struct ConnectionPoolStub {
         solid_dbg(logger, Info, "msgorder_inner_list " << msgorder_inner_list);
         msgorder_inner_list.popFront();
 
-        solid_assert(msgorder_inner_list.check());
+        solid_assert_log(msgorder_inner_list.check(), logger);
     }
 
     void eraseMessageOrder(const size_t _msg_idx)
     {
         solid_dbg(logger, Info, "msgorder_inner_list " << msgorder_inner_list);
         msgorder_inner_list.erase(_msg_idx);
-        solid_assert(msgorder_inner_list.check());
+        solid_assert_log(msgorder_inner_list.check(), logger);
     }
 
     void eraseMessageOrderAsync(const size_t _msg_idx)
@@ -423,10 +427,10 @@ struct ConnectionPoolStub {
         msgorder_inner_list.erase(_msg_idx);
         const MessageStub& rmsgstub(msgvec[_msg_idx]);
         if (Message::is_asynchronous(rmsgstub.msgbundle.message_flags)) {
-            solid_assert(msgasync_inner_list.contains(_msg_idx));
+            solid_assert_log(msgasync_inner_list.contains(_msg_idx), logger);
             msgasync_inner_list.erase(_msg_idx);
         }
-        solid_assert(msgorder_inner_list.check());
+        solid_assert_log(msgorder_inner_list.check(), logger);
     }
 
     void clearPopAndCacheMessage(const size_t _msg_idx)
@@ -443,13 +447,13 @@ struct ConnectionPoolStub {
         msgcache_inner_list.pushBack(_msg_idx);
 
         rmsgstub.clear();
-        solid_assert(msgorder_inner_list.check());
+        solid_assert_log(msgorder_inner_list.check(), logger);
     }
 
     void cacheMessageId(const MessageId& _rmsgid)
     {
-        solid_assert(_rmsgid.index < msgvec.size());
-        solid_assert(msgvec[_rmsgid.index].unique == _rmsgid.unique);
+        solid_assert_log(_rmsgid.index < msgvec.size(), logger);
+        solid_assert_log(msgvec[_rmsgid.index].unique == _rmsgid.unique, logger);
         if (_rmsgid.index < msgvec.size() && msgvec[_rmsgid.index].unique == _rmsgid.unique) {
             msgvec[_rmsgid.index].clear();
             msgcache_inner_list.pushBack(_rmsgid.index);
@@ -717,7 +721,7 @@ void Service::doFinalizeStart(Configuration&& _ucfg, SocketDevice&& _usd)
         if (error) {
             impl_->config.clear(std::move(_ucfg));
 
-            solid_throw("Failed to start listener: " << error.message());
+            solid_throw_log(logger, "Failed to start listener: " << error.message());
         }
         impl_->config.prepare();
         impl_->config.server.listener_port = local_address.port();
@@ -748,7 +752,7 @@ void Service::doFinalizeStart()
         ActorIdT        conuid = configuration().scheduler().startActor(make_shared<Listener>(sd), *this, make_event(GenericEvents::Start), error);
         (void)conuid;
 
-        solid_check(!error, "Failed starting listener: " << error.message());
+        solid_check_log(!error, logger, "Failed starting listener: " << error.message());
 
         impl_->config.server.listener_port = local_address.port();
     }
@@ -906,7 +910,7 @@ ErrorConditionT Service::doSendMessage(
     }
 
     if (_rrecipient_id_in.isValidConnection()) {
-        solid_assert(_precipient_id_out == nullptr);
+        solid_assert_log(_precipient_id_out == nullptr, logger);
         //directly send the message to a connection actor
         return doSendMessageToConnection(
             _rrecipient_id_in,
@@ -1001,7 +1005,7 @@ ErrorConditionT Service::doSendMessage(
                 rpool.eraseMessageOrderAsync(msgid.index);
             }
         } else {
-            solid_throw("Message Cancel connection not available");
+            solid_throw_log(logger, "Message Cancel connection not available");
         }
     }
 
@@ -1012,7 +1016,7 @@ ErrorConditionT Service::doSendMessage(
         success = manager().notify(
             rpool.main_connection_id,
             Connection::eventNewMessage());
-        solid_assert(success);
+        solid_assert_log(success, logger);
     }
 
     if (!success && !Message::is_synchronous(_flags)) {
@@ -1047,7 +1051,7 @@ ErrorConditionT Service::doSendMessageToConnection(
     solid_dbg(logger, Verbose, this);
 
     if (!_rrecipient_id_in.isValidPool()) {
-        solid_assert(false);
+        solid_assert_log(false, logger);
         return error_service_unknown_connection;
     }
 
@@ -1177,7 +1181,7 @@ bool Service::doTryPushMessageToConnection(
     const bool          message_is_null         = !rmsgstub.msgbundle.message_ptr;
     bool                success                 = false;
 
-    solid_assert(!Message::is_canceled(rmsgstub.msgbundle.message_flags));
+    solid_assert_log(!Message::is_canceled(rmsgstub.msgbundle.message_flags), logger);
 
     if (!rmsgstub.msgbundle.message_ptr) {
         return false;
@@ -1234,7 +1238,7 @@ bool Service::doTryPushMessageToConnection(
     MessageStub& rmsgstub = rpool.msgvec[_rmsg_id.index];
     bool         success  = false;
 
-    solid_assert(!Message::is_canceled(rmsgstub.msgbundle.message_flags));
+    solid_assert_log(!Message::is_canceled(rmsgstub.msgbundle.message_flags), logger);
 
     if (rmsgstub.isCancelable()) {
 
@@ -1269,7 +1273,7 @@ ErrorConditionT Service::pollPoolForUpdates(
 
     ErrorConditionT error;
 
-    solid_assert(rpool.unique == _rconnection.poolId().unique);
+    solid_assert_log(rpool.unique == _rconnection.poolId().unique, logger);
     if (rpool.unique != _rconnection.poolId().unique) {
         error = error_service_pool_unknown;
         return error;
@@ -1325,7 +1329,7 @@ ErrorConditionT Service::pollPoolForUpdates(
                     break;
                 }
             } else {
-                solid_assert(false);
+                solid_assert_log(false, logger);
             }
             ++count;
         }
@@ -1376,7 +1380,7 @@ void Service::rejectNewPoolMessage(Connection const& _rconnection)
     lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
     ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
-    solid_assert(rpool.unique == _rconnection.poolId().unique);
+    solid_assert_log(rpool.unique == _rconnection.poolId().unique, logger);
     if (rpool.unique != _rconnection.poolId().unique) {
         return;
     }
@@ -1523,7 +1527,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const& _rrecipient_id, Messag
 
                 solid_dbg(logger, Verbose, this << " message " << _rmsg_id << " from pool " << pool_index << " is handled by connection " << rmsgstub.actid);
 
-                solid_assert(!rmsgstub.msgbundle.message_ptr);
+                solid_assert_log(!rmsgstub.msgbundle.message_ptr, logger);
 
                 rmsgstub.msgbundle.message_flags.set(MessageFlagsE::Canceled);
 
@@ -1538,7 +1542,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const& _rrecipient_id, Messag
                     rmsgstub.msgid = MessageId();
                     rmsgstub.actid = ActorIdT();
                     error          = error_service_message_lost;
-                    solid_throw("Lost message");
+                    solid_throw_log(logger, "Lost message");
                 }
             }
 
@@ -1559,7 +1563,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const& _rrecipient_id, Messag
                         rpool.eraseMessageOrderAsync(_rmsg_id.index);
                     }
                 } else {
-                    solid_throw("Message Cancel connection not available");
+                    solid_throw_log(logger, "Message Cancel connection not available");
                 }
             }
         }
@@ -1750,7 +1754,7 @@ bool Service::connectionStopping(
             _pmsg_bundle->clear();
         }
 
-        solid_assert(rpool.unique == rcon.poolId().unique);
+        solid_assert_log(rpool.unique == rcon.poolId().unique, logger);
         if (rpool.unique != rcon.poolId().unique) {
             return false;
         }
@@ -1809,8 +1813,8 @@ bool Service::doNonMainConnectionStopping(
     if (_rcon.isActiveState()) {
         --rpool.active_connection_count;
     } else {
-        solid_assert(!_rcon.isServer());
-        solid_assert(rpool.pending_connection_count >= 0);
+        solid_assert_log(!_rcon.isServer(), logger);
+        solid_assert_log(rpool.pending_connection_count >= 0, logger);
         --rpool.pending_connection_count;
     }
 
@@ -1884,11 +1888,11 @@ bool Service::doMainConnectionStoppingCleanOneShot(
         *pmsgidx = rpool.msgorder_inner_list.nextIndex(crtmsgidx);
 
         if (rpool.msgorder_inner_list.size() != 1) {
-            solid_assert(rpool.msgorder_inner_list.contains(crtmsgidx));
+            solid_assert_log(rpool.msgorder_inner_list.contains(crtmsgidx), logger);
         } else if (rpool.msgorder_inner_list.size() == 1) {
-            solid_assert(rpool.msgorder_inner_list.frontIndex() == crtmsgidx);
+            solid_assert_log(rpool.msgorder_inner_list.frontIndex() == crtmsgidx, logger);
         } else {
-            solid_assert(false);
+            solid_assert_log(false, logger);
         }
 
         if (rmsgstub.msgbundle.message_ptr && Message::is_one_shot(rmsgstub.msgbundle.message_flags)) {
@@ -1946,7 +1950,7 @@ bool Service::doMainConnectionStoppingCleanAll(
         if (_rcon.isActiveState()) {
             --rpool.active_connection_count;
         } else {
-            solid_assert(rpool.pending_connection_count >= 0);
+            solid_assert_log(rpool.pending_connection_count >= 0, logger);
             --rpool.pending_connection_count;
         }
 
@@ -1997,7 +2001,7 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
         if (_rcon.isActiveState()) {
             --rpool.active_connection_count;
         } else {
-            solid_assert(rpool.pending_connection_count >= 0);
+            solid_assert_log(rpool.pending_connection_count >= 0, logger);
             --rpool.pending_connection_count;
         }
 
@@ -2058,7 +2062,7 @@ bool Service::doMainConnectionRestarting(
     if (_rcon.isActiveState()) {
         --rpool.active_connection_count;
     } else {
-        solid_assert(rpool.pending_connection_count >= 0);
+        solid_assert_log(rpool.pending_connection_count >= 0, logger);
         --rpool.pending_connection_count;
     }
 
@@ -2090,7 +2094,7 @@ bool Service::doMainConnectionRestarting(
             if (_rcon.isActiveState()) {
                 ++rpool.active_connection_count;
             } else {
-                solid_assert(!_rcon.isServer());
+                solid_assert_log(!_rcon.isServer(), logger);
                 ++rpool.pending_connection_count;
             }
 
@@ -2119,7 +2123,7 @@ void Service::connectionStop(ConnectionContext& _rconctx)
         unique_lock<std::mutex> lock2(impl_->poolMutex(pool_index));
         ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
 
-        solid_assert(rpool.unique == _rconctx.connection().poolId().unique);
+        solid_assert_log(rpool.unique == _rconctx.connection().poolId().unique, logger);
         if (rpool.unique != _rconctx.connection().poolId().unique) {
             return;
         }
@@ -2144,7 +2148,7 @@ void Service::connectionStop(ConnectionContext& _rconctx)
 
         if (rpool.hasNoConnection()) {
 
-            solid_assert(rpool.msgorder_inner_list.empty());
+            solid_assert_log(rpool.msgorder_inner_list.empty(), logger);
             impl_->conpoolcachestk.push(pool_index);
 
             if (!rpool.name.empty() && !rpool.isClosing()) { //closing pools are already unregistered from namemap
@@ -2270,7 +2274,7 @@ void Service::doPushFrontMessageToPool(
 
     solid_dbg(logger, Verbose, this << " " << _rmsgbundle.message_ptr.get() << " msgorder list sz = " << rpool.msgorder_inner_list.size());
 
-    solid_assert(rpool.unique == _rpool_id.unique);
+    solid_assert_log(rpool.unique == _rpool_id.unique, logger);
 
     if (
         Message::is_idempotent(_rmsgbundle.message_flags) || !Message::is_done_send(_rmsgbundle.message_flags)) {
@@ -2311,7 +2315,7 @@ ErrorConditionT Service::activateConnection(ConnectionContext& _rconctx, ActorId
         lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
         ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
-        solid_assert(rpool.unique == _rconctx.connection().poolId().unique);
+        solid_assert_log(rpool.unique == _rconctx.connection().poolId().unique, logger);
         if (rpool.unique != _rconctx.connection().poolId().unique) {
             error = error_service_pool_unknown;
             return error;
@@ -2400,11 +2404,11 @@ void Service::acceptIncomingConnection(SocketDevice& _rsd)
         solid_dbg(logger, Info, this << " receive connection [" << con_id << "] error = " << error.message());
 
         if (error) {
-            solid_assert(con_id.isInvalid());
+            solid_assert_log(con_id.isInvalid(), logger);
             rpool.clear();
             impl_->conpoolcachestk.push(pool_index);
         } else {
-            solid_assert(con_id.isValid());
+            solid_assert_log(con_id.isValid(), logger);
             ++rpool.pending_connection_count;
             rpool.main_connection_id = con_id;
         }
@@ -2427,7 +2431,7 @@ void Service::onOutgoingConnectionStart(ConnectionContext& _rconctx)
         lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
         ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
-        solid_assert(rpool.unique == _rconctx.connection().poolId().unique);
+        solid_assert_log(rpool.unique == _rconctx.connection().poolId().unique, logger);
         if (rpool.unique != _rconctx.connection().poolId().unique) {
             return;
         }

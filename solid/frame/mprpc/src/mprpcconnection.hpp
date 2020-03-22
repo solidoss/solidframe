@@ -53,11 +53,7 @@ struct ResolveMessage {
         return addrvec.back();
     }
 
-    void popAddress()
-    {
-        solid_assert(addrvec.size());
-        addrvec.pop_back();
-    }
+    void popAddress();
 
     ResolveMessage(AddressVectorT&& _raddrvec)
         : addrvec(std::move(_raddrvec))

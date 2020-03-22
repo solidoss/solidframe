@@ -831,7 +831,7 @@ private:
                 return ReturnE::Done;
             } else {
                 p = cross::store_with_check(data_.buf_, BufferCapacityE, _rr.data_);
-                solid_check(p, "should not be null");
+                solid_check_log(p, logger, "should not be null");
                 _rr.ptr_  = data_.buf_;
                 _rr.size_ = p - data_.buf_;
                 _rr.data_ = 0;

@@ -74,7 +74,7 @@ void FileBuf::device(FilePointerT& _rptr)
     //solid_dbg(logger, Info, "");
     if (hasBuf()) {
         if (hasPut()) {
-            solid_assert(false);
+            solid_assert_log(false, logger);
             if (!flushPut()) {
                 return 0;
             }
@@ -190,7 +190,7 @@ ssize_t FileBuf::writeAll(const char* _s, size_t _n)
     solid_dbg(logger, Info, "seekoff = " << _off << " way = " << _way << " mode = " << _mode << " off = " << off);
     if (hasBuf()) {
         if (hasPut()) {
-            solid_assert(!hasGet());
+            solid_assert_log(!hasGet(), logger);
             if (!flushPut()) {
                 return pos_type(-1);
             }

@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "solid/system/log.hpp"
 #include "solid/system/socketaddress.hpp"
 
 #include "solid/frame/mprpc/mprpcmessageflags.hpp"
@@ -35,6 +36,8 @@ struct MessageHeader;
 namespace relay {
 class EngineCore;
 }
+
+const LoggerT& service_logger();
 
 //! A structure to uniquely indetify an IPC connection pool
 /*!

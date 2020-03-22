@@ -29,7 +29,7 @@ struct Event;
 
 namespace frame {
 
-extern const LoggerT logger;
+extern const LoggerT frame_logger;
 
 class Manager;
 class Service;

@@ -66,7 +66,7 @@ class Stream : public CompletionHandler {
             rthis.doClear(_rctx);
             break;
         default:
-            solid_assert(false);
+            solid_assert_log(false, generic_logger);
         }
     }
 
@@ -175,7 +175,7 @@ class Stream : public CompletionHandler {
             } else {
                 _rthis.error(_rctx, error_stream_system);
                 _rthis.systemError(_rctx, err);
-                solid_assert(err);
+                solid_assert_log(err, generic_logger);
             }
             F tmp{std::forward<F>(f)};
             _rthis.doClearSend(_rctx);
@@ -206,7 +206,7 @@ class Stream : public CompletionHandler {
             } else {
                 _rthis.error(_rctx, error_stream_system);
                 _rthis.systemError(_rctx, err);
-                solid_assert(err);
+                solid_assert_log(err, generic_logger);
             }
             F tmp{std::forward<F>(f)};
             _rthis.doClearRecv(_rctx);
@@ -237,7 +237,7 @@ class Stream : public CompletionHandler {
             } else {
                 _rthis.error(_rctx, error_stream_system);
                 _rthis.systemError(_rctx, err);
-                solid_assert(err);
+                solid_assert_log(err, generic_logger);
             }
 
             F tmp{std::move(f)};
@@ -427,7 +427,7 @@ public:
             return false;
         } else {
             error(_rctx, error_already);
-            solid_assert(false);
+            solid_assert_log(false, generic_logger);
             return true;
         }
     }
@@ -480,12 +480,12 @@ public:
                 } else {
                     error(_rctx, error_stream_system);
                     systemError(_rctx, err);
-                    solid_assert(err);
+                    solid_assert_log(err, generic_logger);
                 }
             } else {
                 error(_rctx, error_stream_system);
                 systemError(_rctx, err);
-                solid_assert(err);
+                solid_assert_log(err, generic_logger);
             }
 
         } else {
@@ -517,7 +517,7 @@ public:
             } else {
                 error(_rctx, error_stream_system);
                 systemError(_rctx, err);
-                solid_assert(err);
+                solid_assert_log(err, generic_logger);
             }
         }
         return true;
@@ -541,7 +541,7 @@ public:
             } else {
                 error(_rctx, error_stream_system);
                 systemError(_rctx, err);
-                solid_assert(err);
+                solid_assert_log(err, generic_logger);
             }
         }
         return true;
@@ -565,7 +565,7 @@ public:
             } else {
                 error(_rctx, error_stream_system);
                 systemError(_rctx, err);
-                solid_assert(err);
+                solid_assert_log(err, generic_logger);
             }
         }
         return true;
@@ -577,7 +577,7 @@ public:
         if (err) {
             error(_rctx, error_stream_system);
             systemError(_rctx, err);
-            solid_assert(err);
+            solid_assert_log(err, generic_logger);
         }
     }
 
@@ -590,7 +590,7 @@ public:
         if (err) {
             error(_rctx, error_stream_system);
             systemError(_rctx, err);
-            solid_assert(err);
+            solid_assert_log(err, generic_logger);
         }
     }
 
@@ -600,7 +600,7 @@ public:
         if (err) {
             error(_rctx, error_stream_system);
             systemError(_rctx, err);
-            solid_assert(err);
+            solid_assert_log(err, generic_logger);
         }
     }
 
@@ -610,7 +610,7 @@ public:
         if (err) {
             error(_rctx, error_stream_system);
             systemError(_rctx, err);
-            solid_assert(err);
+            solid_assert_log(err, generic_logger);
         }
     }
 
@@ -620,7 +620,7 @@ public:
         if (err) {
             error(_rctx, error_stream_system);
             systemError(_rctx, err);
-            solid_assert(err);
+            solid_assert_log(err, generic_logger);
         }
     }
 
@@ -675,7 +675,7 @@ private:
                 recv_buf_sz = recv_buf_cp = 0;
                 error(_rctx, error_stream_system);
                 systemError(_rctx, err);
-                solid_assert(err);
+                solid_assert_log(err, generic_logger);
             }
         }
         return true;
@@ -702,7 +702,7 @@ private:
                 send_buf_sz = send_buf_cp = 0;
                 error(_rctx, error_stream_system);
                 systemError(_rctx, err);
-                solid_assert(err);
+                solid_assert_log(err, generic_logger);
             }
         }
         return true;
@@ -735,7 +735,7 @@ private:
     void doClearRecv(ReactorContext& _rctx)
     {
         solid_function_clear(recv_fnc);
-        solid_assert(solid_function_empty(recv_fnc));
+        solid_assert_log(solid_function_empty(recv_fnc), generic_logger);
         recv_buf    = nullptr;
         recv_buf_sz = recv_buf_cp = 0;
     }
@@ -743,7 +743,7 @@ private:
     void doClearSend(ReactorContext& _rctx)
     {
         solid_function_clear(send_fnc);
-        solid_assert(solid_function_empty(send_fnc));
+        solid_assert_log(solid_function_empty(send_fnc), generic_logger);
         send_buf    = nullptr;
         send_buf_sz = send_buf_cp = 0;
     }
