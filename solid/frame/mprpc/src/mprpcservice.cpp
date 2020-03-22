@@ -80,6 +80,10 @@ const EventCategory<PoolEvents> pool_event_category{
         }
     }};
 } //namespace
+const LoggerT& service_logger()
+{
+    return logger;
+}
 //=============================================================================
 using NameMapT      = std::unordered_map<const char*, size_t, CStringHash, CStringEqual>;
 using ActorIdQueueT = Queue<ActorIdT>;
@@ -748,7 +752,7 @@ void Service::doFinalizeStart()
         ActorIdT        conuid = configuration().scheduler().startActor(make_shared<Listener>(sd), *this, make_event(GenericEvents::Start), error);
         (void)conuid;
 
-        solid_check(!error, "Failed starting listener: " << error.message());
+        solid_check_log(!error, logger, "Failed starting listener: " << error.message());
 
         impl_->config.server.listener_port = local_address.port();
     }

@@ -8,6 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "solid/system/exception.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/mutualstore.hpp"
 #include "solid/utility/algorithm.hpp"
 #include "solid/utility/common.hpp"
@@ -85,7 +86,7 @@ size_t bit_count(const uint64_t _v)
 uint64_t make_number(std::string _str)
 {
 
-    solid_check(!_str.empty(), "Empty string");
+    solid_check_log(!_str.empty(), generic_logger, "Empty string");
     uint64_t mul = 1;
     if (isupper(_str.back()) != 0) {
         switch (_str.back()) {

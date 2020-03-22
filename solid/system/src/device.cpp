@@ -36,6 +36,7 @@
 #include "solid/system/directory.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/system/filedevice.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/socketdevice.hpp"
 #include "solid/system/socketinfo.hpp"
 
@@ -384,7 +385,7 @@ struct Starter {
         WORD wVersionRequested;
         wVersionRequested = MAKEWORD(2, 2);
         int err           = WSAStartup(wVersionRequested, &wsaData);
-        solid_check(err == 0, "Error WSAStartup: " << err);
+        solid_check_log(err == 0, generic_logger, "Error WSAStartup: " << err);
     }
     ~Starter()
     {

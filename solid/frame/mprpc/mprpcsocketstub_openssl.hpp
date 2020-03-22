@@ -292,7 +292,7 @@ struct NameCheckSecureStart {
     {
         if (!name.empty()) {
             _rsock.secureSetCheckHostName(_rctx, name);
-            solid_check(!_rctx.error());
+            solid_check_log(!_rctx.error(), service_logger());
         } else {
             _rsock.secureSetCheckHostName(_rctx, _rconctx.recipientName());
         }

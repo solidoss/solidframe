@@ -155,7 +155,7 @@ Base::ReturnE SerializerBase::store_stream(SerializerBase& _rs, Runnable& _rr, v
         toread = 0;
     }
 
-    solid_check(toread <= 0xffff);
+    solid_check_log(toread <= 0xffff, logger);
 
     _rs.pcrt_ = store(_rs.pcrt_, static_cast<uint16_t>(toread));
     _rs.pcrt_ += toread;

@@ -563,9 +563,9 @@ size_t MessageWriter::doWritePacketData(
         uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelRequest);
         pbufpos     = _rsender.protocol().storeValue(pbufpos, cmd);
         pbufpos     = _rsender.protocol().storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().index);
-        solid_check(pbufpos != nullptr, "fail store cross value");
+        solid_check_log(pbufpos != nullptr, logger, "fail store cross value");
         pbufpos = _rsender.protocol().storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().unique);
-        solid_check(pbufpos != nullptr, "fail store cross value");
+        solid_check_log(pbufpos != nullptr, logger, "fail store cross value");
         _cancel_remote_msg_vec.pop_back();
     }
 
@@ -658,7 +658,7 @@ char* MessageWriter::doWriteMessageHead(
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
-    solid_check(_pbufpos != nullptr, "fail store cross value");
+    solid_check_log(_pbufpos != nullptr, logger, "fail store cross value");
 
     char* psizepos = _pbufpos;
     _pbufpos       = _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(0));
@@ -704,7 +704,7 @@ char* MessageWriter::doWriteMessageBody(
     _pbufpos += 1;
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
-    solid_check(_pbufpos != nullptr, "fail store cross value");
+    solid_check_log(_pbufpos != nullptr, logger, "fail store cross value");
 
     char* psizepos = _pbufpos;
     _pbufpos       = _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(0));
@@ -761,7 +761,7 @@ char* MessageWriter::doWriteRelayedHead(
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
-    solid_check(_pbufpos != nullptr, "fail store cross value");
+    solid_check_log(_pbufpos != nullptr, logger, "fail store cross value");
 
     char* psizepos = _pbufpos;
     _pbufpos       = _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(0));
@@ -809,7 +809,7 @@ char* MessageWriter::doWriteRelayedBody(
     _pbufpos += 1;
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
-    solid_check(_pbufpos != nullptr, "fail store cross value");
+    solid_check_log(_pbufpos != nullptr, logger, "fail store cross value");
 
     char* psizepos = _pbufpos;
     _pbufpos       = _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(0));
@@ -880,7 +880,7 @@ char* MessageWriter::doWriteMessageCancel(
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
-    solid_check(_pbufpos != nullptr, "fail store cross value");
+    solid_check_log(_pbufpos != nullptr, logger, "fail store cross value");
 
     solid_assert(write_inner_list_.size());
     doWriteQueueErase(_msgidx, __LINE__);
@@ -908,7 +908,7 @@ char* MessageWriter::doWriteRelayedCancel(
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
-    solid_check(_pbufpos != nullptr, "fail store cross value");
+    solid_check_log(_pbufpos != nullptr, logger, "fail store cross value");
     solid_assert(rmsgstub.prelay_data_ == nullptr);
     //_rsender.completeRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
     //rmsgstub.prelay_data_ = nullptr;
@@ -938,7 +938,7 @@ char* MessageWriter::doWriteRelayedCancelRequest(
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
-    solid_check(_pbufpos != nullptr, "fail store cross value");
+    solid_check_log(_pbufpos != nullptr, logger, "fail store cross value");
 
     solid_assert(write_inner_list_.size());
     doWriteQueueErase(_msgidx, __LINE__);

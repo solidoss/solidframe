@@ -14,6 +14,14 @@
 namespace solid {
 namespace serialization {
 namespace v2 {
+
+const LoggerT logger{"solid::serialization"};
+
+const LoggerT& serialization_logger()
+{
+    return logger;
+}
+
 //========================================================================
 /*virtual*/ Base::~Base()
 {

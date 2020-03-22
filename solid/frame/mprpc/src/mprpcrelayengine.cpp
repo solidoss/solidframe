@@ -378,14 +378,14 @@ void EngineCore::doStopConnection(const size_t _conidx)
                         solid_assert(rsndcon.send_msg_list_.check());
 
                         if (should_notify_connection) {
-                            solid_check(notifyConnection(impl_->manager(), rsndcon.id_, RelayEngineNotification::DoneData), "Connection should be alive");
+                            solid_check_log(notifyConnection(impl_->manager(), rsndcon.id_, RelayEngineNotification::DoneData), logger, "Connection should be alive");
                         }
                     }
                     continue;
                 //case MessageStateE::SendCancel://rmsg.sender_con_id_ should be invalid
                 //case MessageStateE::RecvCancel://message should not be in the recv_msg_list_
                 default:
-                    solid_check(false, "Invalid message state " << static_cast<size_t>(rmsg.state_));
+                    solid_check_log(false, logger, "Invalid message state " << static_cast<size_t>(rmsg.state_));
                     break;
                 } //switch
             }
@@ -430,14 +430,14 @@ void EngineCore::doStopConnection(const size_t _conidx)
                         rrcvcon.recv_msg_list_.pushBack(msgidx);
 
                         if (should_notify_connection) {
-                            solid_check(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
+                            solid_check_log(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), logger, "Connection should be alive");
                         }
                     }
                     continue;
                 //case MessageStateE::SendCancel://rmsg.sender_con_id_ should be invalid
                 //case MessageStateE::RecvCancel://message should not be in the recv_msg_list_
                 default:
-                    solid_check(false, "Invalid message state " << static_cast<size_t>(rmsg.state_));
+                    solid_check_log(false, logger, "Invalid message state " << static_cast<size_t>(rmsg.state_));
                     break;
                 } //switch
             }
@@ -559,7 +559,7 @@ bool EngineCore::doRelayStart(
     rrcvcon.recv_msg_list_.pushBack(msgidx);
 
     if (should_notify_connection && rrcvcon.id_.isValid()) {
-        solid_check(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
+        solid_check_log(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), logger, "Connection should be alive");
     }
 
     return true;
@@ -607,7 +607,7 @@ bool EngineCore::doRelay(
 
                 if (should_notify_connection) {
                     //solid_dbg(logger, Verbose, _rrelay_con_uid <<" notify receiver connection");
-                    solid_check(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
+                    solid_check_log(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), logger, "Connection should be alive");
                 }
             }
         } else {
@@ -689,7 +689,7 @@ bool EngineCore::doRelayResponse(
             solid_assert(rrcvcon.send_msg_list_.check());
 
             if (should_notify_connection) {
-                solid_check(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
+                solid_check_log(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), logger, "Connection should be alive");
             }
         } else if (rmsg.state_ == MessageStateE::Relay) {
             bool   is_msg_relay_data_queue_empty = (rmsg.pfront_ == nullptr);
@@ -713,7 +713,7 @@ bool EngineCore::doRelayResponse(
 
                 if (should_notify_connection) {
                     //solid_dbg(logger, Info, _rrelay_con_uid <<" notify receiver connection");
-                    solid_check(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
+                    solid_check_log(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), logger, "Connection should be alive");
                 }
             }
         }
@@ -870,7 +870,7 @@ void EngineCore::doComplete(
             rsndcon.pdone_relay_data_top_ = _prelay_data;
 
             if (should_notify_connection) {
-                solid_check(notifyConnection(impl_->manager(), rsndcon.id_, RelayEngineNotification::DoneData), "Connection should be alive");
+                solid_check_log(notifyConnection(impl_->manager(), rsndcon.id_, RelayEngineNotification::DoneData), logger, "Connection should be alive");
             }
 
             if (_prelay_data->isMessageLast()) {
@@ -966,7 +966,7 @@ void EngineCore::doCancel(
 
                     if (should_notify_connection) {
                         solid_dbg(logger, Info, _rrelay_con_uid << " notify recv connection of canceled message " << _rengine_msg_id);
-                        solid_check(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
+                        solid_check_log(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), logger, "Connection should be alive");
                     } else {
                         solid_dbg(logger, Verbose, _rrelay_con_uid << " rcv con " << rrcvcon.id_ << " not notified for message " << _rengine_msg_id);
                     }
@@ -1014,7 +1014,7 @@ void EngineCore::doCancel(
 
                 if (should_notify_connection) {
                     solid_dbg(logger, Info, _rrelay_con_uid << " notify sending connection of canceled message " << _rengine_msg_id);
-                    solid_check(notifyConnection(impl_->manager(), rsndcon.id_, RelayEngineNotification::DoneData), "Connection should be alive");
+                    solid_check_log(notifyConnection(impl_->manager(), rsndcon.id_, RelayEngineNotification::DoneData), logger, "Connection should be alive");
                 } else {
                     solid_dbg(logger, Verbose, _rrelay_con_uid << " snd con not notified for message " << _rengine_msg_id);
                 }

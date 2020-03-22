@@ -21,6 +21,10 @@
 using namespace std;
 
 namespace solid {
+namespace {
+const LoggerT logger("solid::frame::mprpc::relay");
+}
+
 namespace frame {
 namespace mprpc {
 namespace relay {
@@ -99,7 +103,7 @@ ErrorConditionT SingleNameEngine::registerConnection(const ConnectionContext& _r
         rcon.id_                 = _rconctx.connectionId();
         _proxy.registerConnectionId(_rconctx, conidx);
 
-        solid_check(_proxy.notifyConnection(_proxy.connection(conidx).id_, RelayEngineNotification::NewData), "Connection should be alive");
+        solid_check_log(_proxy.notifyConnection(_proxy.connection(conidx).id_, RelayEngineNotification::NewData), logger, "Connection should be alive");
     };
 
     to_lower(_uname);

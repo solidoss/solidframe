@@ -900,8 +900,7 @@ ErrorCodeT Socket::doPrepareVerifyCallback(VerifyMaskT _verify_mask)
     Socket* pthis = static_cast<Socket*>(SSL_get_ex_data(ssl, thisSSLDataIndex()));
     void*   pctx  = SSL_get_ex_data(ssl, contextPointerSSLDataIndex());
 
-    solid_check(ssl);
-    solid_check(pthis);
+    solid_check_log(ssl && pthis, logger);
 
     if (!solid_function_empty(pthis->verify_cbk)) {
         VerifyContext vctx(x509_ctx);

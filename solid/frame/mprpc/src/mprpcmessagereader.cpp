@@ -472,7 +472,7 @@ const char* MessageReader::doConsumeMessage(
         rmsgstub.clear();
         break;
     default:
-        solid_check(false, "Invalid message state: " << (int)rmsgstub.state_);
+        solid_check_log(false, logger, "Invalid message state: " << (int)rmsgstub.state_);
         break;
     }
     solid_assert(!_rerror || (_rerror && _pbufpos == _pbufend));

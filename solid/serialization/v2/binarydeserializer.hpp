@@ -460,7 +460,7 @@ public:
                     rcontainer.insert(rcontainer.end(), std::move(value));
                 } else {
                     parsing_value = true;
-                    solid_check(_rd.pcrt_ == _rd.pend_, "buffer not empty");
+                    solid_check_log(_rd.pcrt_ == _rd.pend_, logger, "buffer not empty");
                 }
             }
 
@@ -531,7 +531,7 @@ public:
                     rcontainer.insert(rcontainer.end(), std::move(value));
                 } else {
                     parsing_value = true;
-                    solid_check(_rd.pcrt_ == _rd.pend_, "buffer not empty");
+                    solid_check_log(_rd.pcrt_ == _rd.pend_, logger, "buffer not empty");
                 }
             }
 
@@ -752,7 +752,7 @@ private:
                     --_rr.size_;
 
                     size_t toread = _rd.pend_ - _rd.pcrt_;
-                    solid_check(toread <= _rr.size_, "Should not happen");
+                    solid_check_log(toread <= _rr.size_, logger, "Should not happen");
                     memcpy(_rd.data_.buf_ + _rr.data_, _rd.pcrt_, toread);
                     _rd.pcrt_ += toread;
                     _rr.size_ -= toread;
@@ -761,7 +761,7 @@ private:
                 }
             } else {
                 size_t toread = _rd.pend_ - _rd.pcrt_;
-                solid_check(toread >= _rr.size_, "Should not happen");
+                solid_check_log(toread >= _rr.size_, logger, "Should not happen");
                 if (toread > _rr.size_) {
                     toread = static_cast<size_t>(_rr.size_);
                 }
