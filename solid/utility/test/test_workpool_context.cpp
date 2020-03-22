@@ -32,7 +32,7 @@ struct Context {
 
 int test_workpool_context(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EWS", "test_context:VIEWS"});
+    solid::log_start(std::cerr, {".*:EWXS", "test_context:VIEWS"});
 
     int          wait_seconds = 500;
     int          loop_cnt     = 5;

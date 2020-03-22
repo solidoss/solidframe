@@ -17,7 +17,7 @@ const LoggerT logger("test_basic");
 int test_workpool_basic(int argc, char* argv[])
 {
     install_crash_handler();
-    solid::log_start(std::cerr, {".*:EWS", "test_basic:VIEWS"});
+    solid::log_start(std::cerr, {".*:EWXS", "test_basic:VIEWS"});
     using WorkPoolT  = WorkPool<size_t>;
     using AtomicPWPT = std::atomic<WorkPoolT*>;
 

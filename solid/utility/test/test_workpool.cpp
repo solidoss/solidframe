@@ -41,7 +41,7 @@ int test_workpool(int argc, char* argv[])
 {
     install_crash_handler();
 
-    solid::log_start(std::cerr, {".*:EWS"});
+    solid::log_start(std::cerr, {".*:EWXS"});
 
     cout << "usage: " << argv[0] << " JOB_COUNT WAIT_SECONDS QUEUE_SIZE PRODUCER_COUNT CONSUMER_COUNT PUSH_SLEEP_MSECS JOB_SLEEP_MSECS" << endl;
     using WorkPoolT  = WorkPool<size_t>;

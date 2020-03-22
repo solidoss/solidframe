@@ -261,7 +261,7 @@ struct Receiver : frame::mprpc::MessageReader::Receiver {
 
 int test_protocol_cancel(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {"solid::frame::mprpc.*:EW", "\\*:EW"});
+    solid::log_start(std::cerr, {"solid::frame::mprpc.*:EWX", "\\*:EWX"});
 
     for (int i = 0; i < 127; ++i) {
         if (isprint(i) && !isblank(i)) {

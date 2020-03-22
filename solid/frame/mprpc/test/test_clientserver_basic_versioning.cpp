@@ -265,7 +265,7 @@ void server_complete_message(
 int test_clientserver_basic_versioning(int argc, char* argv[])
 {
 
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {".*:EWX"});
 
     size_t max_per_pool_connection_count = 1;
 

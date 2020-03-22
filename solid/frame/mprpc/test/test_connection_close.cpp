@@ -288,7 +288,7 @@ void server_complete_logout(
 
 int test_connection_close(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {".*:EWX"});
 
     for (int j = 0; j < 1; ++j) {
         for (int i = 0; i < 127; ++i) {

@@ -164,7 +164,7 @@ void check_files(const vector<string>& _file_vec, const char* _path_prefix_clien
 
 int test_clientserver_upload(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EW", "test:IEW", "solid::frame::mprpc::.*:EW"});
+    solid::log_start(std::cerr, {".*:EWX", "test:IEW", "solid::frame::mprpc::.*:EWX"});
 
     size_t   max_per_pool_connection_count = 1;
     bool     secure                        = false;

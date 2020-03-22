@@ -42,7 +42,7 @@ using TypeIdMapT    = serialization::TypeIdMap<SerializerT, DeserializerT>;
 
 int test_binary(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {".*:EWX"});
 
     string     test_data;
     TypeIdMapT typemap;

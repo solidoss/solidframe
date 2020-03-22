@@ -374,7 +374,7 @@ void peerb_complete_message(
 
 int test_relay_cancel_response(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EWS", "solid::frame::mprpc::writer:EWS", "solid::frame::mprpc::relay:EWS"});
+    solid::log_start(std::cerr, {".*:EWXS", "solid::frame::mprpc::writer:EWXS", "solid::frame::mprpc::relay:EWXS"});
 
     size_t max_per_pool_connection_count = 1;
 

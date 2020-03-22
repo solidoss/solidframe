@@ -239,7 +239,7 @@ int test_versioning(int /*argc*/, char* /*argv*/[])
 
     namespace last = v4;
 
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {".*:EWX"});
 
     using TypeMapT      = serialization::TypeMap<uint8_t, Context, serialization::binary::Serializer, serialization::binary::Deserializer, TypeData>;
     using SerializerT   = TypeMapT::SerializerT;

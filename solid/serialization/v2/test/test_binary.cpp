@@ -294,7 +294,7 @@ public:
 
 int test_binary(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {".*:EWX"});
     //solid::log_start(argv[0], {".*:VIEW"}, true, 2, 1024 * 1024);
 
     std::string input_file_path;
