@@ -165,9 +165,7 @@ class Protocol {
     uint32_t version_minor_ = 0;
 
 public:
-    enum {
-        MaxPacketDataSize = 1024 * 64,
-    };
+    static constexpr size_t MaxPacketDataSize = 1024 * 64;
 
     using PointerT = std::shared_ptr<Protocol>;
 

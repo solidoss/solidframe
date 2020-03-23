@@ -65,17 +65,16 @@ size_t MessageReader::read(
         if (state_ == StateE::ReadPacketBody) {
             //try read the data
             const char* tmpbufpos = packet_header.load(pbufpos, _receiver.protocol());
+            if (!packet_header.isOk()) {
+                _rerror = error_reader_invalid_packet_header;
+                solid_dbg(logger, Error, _rerror.message());
+                break;
+            }
             if (static_cast<size_t>(pbufend - tmpbufpos) >= packet_header.size()) {
                 pbufpos = tmpbufpos;
             } else {
                 break;
             }
-        }
-
-        if (!packet_header.isOk()) {
-            _rerror = error_reader_invalid_packet_header;
-            solid_dbg(logger, Error, _rerror.message());
-            break;
         }
 
         //parse the data

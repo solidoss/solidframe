@@ -21,25 +21,6 @@ namespace mprpc {
 //-----------------------------------------------------------------------------
 /*virtual*/ Protocol::~Protocol() {}
 //-----------------------------------------------------------------------------
-bool PacketHeader::isOk() const
-{
-    bool rv = true;
-    switch (static_cast<TypeE>(type_)) {
-    case TypeE::Data:
-    case TypeE::KeepAlive:
-        break;
-    default:
-        rv = false;
-        break;
-    }
-
-    if (size() > Protocol::MaxPacketDataSize) {
-        rv = false;
-    }
-
-    return rv;
-}
-//-----------------------------------------------------------------------------
 } //namespace mprpc
 } //namespace frame
 } //namespace solid
