@@ -334,6 +334,7 @@ using UncompressFunctionT                       = solid_function_t(size_t(char*,
 using ExtractRecipientNameFunctionT             = solid_function_t(const char*(const char*, std::string&, std::string&));
 using AioSchedulerT                             = frame::Scheduler<frame::aio::Reactor>;
 using ConnectionEnterActiveCompleteFunctionT    = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
+using ConnectionPostCompleteFunctionT           = solid_function_t(void(ConnectionContext&));
 using ConnectionEnterPassiveCompleteFunctionT   = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
 using ConnectionSecureHandhakeCompleteFunctionT = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
 using ConnectionSendRawDataCompleteFunctionT    = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));

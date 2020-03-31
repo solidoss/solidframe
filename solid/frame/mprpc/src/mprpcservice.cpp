@@ -1594,6 +1594,26 @@ ErrorConditionT Service::doConnectionNotifyEnterActiveState(
     return error;
 }
 //-----------------------------------------------------------------------------
+ErrorConditionT Service::doConnectionNotifyPost(
+    RecipientId const&                _rrecipient_id,
+    ConnectionPostCompleteFunctionT&& _ucomplete_fnc)
+{
+
+    solid_dbg(logger, Verbose, this);
+
+    ErrorConditionT error;
+    bool            success = manager().notify(
+        _rrecipient_id.connectionId(),
+        Connection::eventPost(std::move(_ucomplete_fnc)));
+
+    if (!success) {
+        solid_dbg(logger, Warning, this << " failed notify enter active event to " << _rrecipient_id.connectionId());
+        error = error_service_unknown_connection;
+    }
+
+    return error;
+}
+//-----------------------------------------------------------------------------
 ErrorConditionT Service::doConnectionNotifyStartSecureHandshake(
     RecipientId const&                          _rrecipient_id,
     ConnectionSecureHandhakeCompleteFunctionT&& _ucomplete_fnc)

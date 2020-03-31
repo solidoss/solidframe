@@ -38,6 +38,7 @@ enum class ConnectionEvents {
     Stopping,
     RelayNew,
     RelayDone,
+    Post,
     Invalid,
 };
 
@@ -75,6 +76,8 @@ const EventCategory<ConnectionEvents> connection_event_category{
             return "RelayNew";
         case ConnectionEvents::RelayDone:
             return "RelayDone";
+        case ConnectionEvents::Post:
+            return "Post";
         case ConnectionEvents::Invalid:
             return "Invalid";
         default:
@@ -198,6 +201,13 @@ struct StartSecure {
 {
     Event event = connection_event_category.event(ConnectionEvents::StartSecure);
     event.any() = StartSecure(std::move(_ucomplete_fnc));
+    return event;
+}
+//-----------------------------------------------------------------------------
+/*static*/ Event Connection::eventPost(ConnectionPostCompleteFunctionT&& _ucomplete_fnc)
+{
+    Event event = connection_event_category.event(ConnectionEvents::Post);
+    event.any() = ConnectionPostCompleteFunctionT(std::move(_ucomplete_fnc));
     return event;
 }
 //-----------------------------------------------------------------------------
@@ -799,6 +809,10 @@ void Connection::onStopped(
                     [](Event& _revt, Connection& _rcon, frame::aio::ReactorContext& _rctx) {
                         _rcon.doHandleEventRelayDone(_rctx, _revt);
                     }},
+                {connection_event_category.event(ConnectionEvents::Post),
+                    [](Event& _revt, Connection& _rcon, frame::aio::ReactorContext& _rctx) {
+                        _rcon.doHandleEventPost(_rctx, _revt);
+                    }},
                 {connection_event_category.event(ConnectionEvents::Stopping),
                     [](Event& _revt, Connection& _rcon, frame::aio::ReactorContext& _rctx) {
                         solid_dbg(logger, Info, &_rcon << ' ' << _rcon.id() << " cancel timer");
@@ -1289,6 +1303,14 @@ void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event
         ackd_buf_count_ += static_cast<uint8_t>(ack_buf_cnt);
         doSend(_rctx);
     }
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventPost(frame::aio::ReactorContext& _rctx, Event& _revent)
+{
+    ConnectionContext                conctx(service(_rctx), *this);
+    ConnectionPostCompleteFunctionT* pdata = _revent.any().cast<ConnectionPostCompleteFunctionT>();
+    solid_check(pdata != nullptr);
+    (*pdata)(conctx);
 }
 //-----------------------------------------------------------------------------
 void Connection::doResetTimerStart(frame::aio::ReactorContext& _rctx)
