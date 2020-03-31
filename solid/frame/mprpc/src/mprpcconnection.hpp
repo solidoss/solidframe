@@ -87,6 +87,7 @@ public:
     static Event eventStartSecure(ConnectionSecureHandhakeCompleteFunctionT&&);
     static Event eventSendRaw(ConnectionSendRawDataCompleteFunctionT&&, std::string&&);
     static Event eventRecvRaw(ConnectionRecvRawDataCompleteFunctionT&&);
+    static Event eventPost(ConnectionPostCompleteFunctionT&&);
 
     Connection(
         Configuration const&    _rconfiguration,
@@ -318,6 +319,7 @@ private:
     void doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventRelayNew(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event& _revent);
+    void doHandleEventPost(frame::aio::ReactorContext& _rctx, Event& _revent);
 
     void doContinueStopping(
         frame::aio::ReactorContext& _rctx,
