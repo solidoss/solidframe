@@ -17,6 +17,7 @@ if(cxx17fs)
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
+        stdc++fs
     )
 
     add_executable (tutorial_mprpc_file_client mprpc_file_client.cpp mprpc_file_messages.hpp)
