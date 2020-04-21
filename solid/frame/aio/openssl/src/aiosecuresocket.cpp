@@ -685,7 +685,7 @@ bool Socket::secureAccept(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& _
         return true;
     case SSL_ERROR_ZERO_RETURN:
         _can_retry = false;
-        return 0;
+        return false;
     case SSL_ERROR_WANT_READ:
         _can_retry        = true;
         want_read_on_recv = true;
@@ -747,7 +747,7 @@ bool Socket::secureConnect(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& 
         return true;
     case SSL_ERROR_ZERO_RETURN:
         _can_retry = false;
-        return 0;
+        return false;
     case SSL_ERROR_WANT_READ:
         _can_retry        = true;
         want_read_on_send = true;
@@ -807,7 +807,7 @@ bool Socket::secureShutdown(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT&
         return true;
     case SSL_ERROR_ZERO_RETURN:
         _can_retry = false;
-        return 0;
+        return false;
     case SSL_ERROR_WANT_READ:
         _can_retry        = true;
         want_read_on_send = true;
