@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 #-----------------------------------------------------------------
 # The project
 #-----------------------------------------------------------------
@@ -25,12 +25,16 @@ endif()
 #-----------------------------------------------------------------
 # Extra user definitions
 #-----------------------------------------------------------------
-set(EXTRA_COMPILE_OPTIONS "" CACHE STRING "Extra compiler definitions")
+set(EXTRA_COMPILE_OPTIONS "" CACHE STRING "Extra compiler options")
 add_compile_options(${EXTRA_COMPILE_OPTIONS})
 
 
-set(EXTRA_LINK_OPTIONS "" CACHE STRING "Extra compiler definitions")
-add_link_options(${EXTRA_LINK_OPTIONS})
+set(EXTRA_LINK_OPTIONS "" CACHE STRING "Extra linker options")
+if (CMAKE_VERSION VERSION_LESS "3.13")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${EXTRA_LINK_OPTIONS}")
+else()
+    add_link_options(${EXTRA_LINK_OPTIONS})
+endif()
 
 #-----------------------------------------------------------------
 # Prepare the external path
