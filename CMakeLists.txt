@@ -25,12 +25,16 @@ endif()
 #-----------------------------------------------------------------
 # Extra user definitions
 #-----------------------------------------------------------------
-set(EXTRA_COMPILE_OPTIONS "" CACHE STRING "Extra compiler definitions")
-add_definitions(${EXTRA_COMPILE_OPTIONS})
+set(EXTRA_COMPILE_OPTIONS "" CACHE STRING "Extra compiler options")
+add_compile_options(${EXTRA_COMPILE_OPTIONS})
 
 
-set(EXTRA_LINK_OPTIONS "" CACHE STRING "Extra compiler definitions")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${EXTRA_LINK_OPTIONS}")
+set(EXTRA_LINK_OPTIONS "" CACHE STRING "Extra linker options")
+if (CMAKE_VERSION VERSION_LESS "3.13")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${EXTRA_LINK_OPTIONS}")
+else()
+    add_link_options(${EXTRA_LINK_OPTIONS})
+endif()
 
 #-----------------------------------------------------------------
 # Prepare the external path
