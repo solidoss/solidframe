@@ -157,7 +157,7 @@ bool restart(
 int main(int argc, char* argv[])
 {
 
-    cout << "Built on SolidFrame version " << SOLID_VERSION_MAJOR << '.' << SOLID_VERSION_MINOR << '.' << SOLID_VERSION_PATCH << endl;
+    cout << "Built on SolidFrame version " << solid::version_full() << endl;
 
     if (parseArguments(params, argc, argv))
         return 0;

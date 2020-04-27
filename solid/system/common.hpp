@@ -10,7 +10,8 @@
 
 #pragma once
 
-#include "solid/solid_config.hpp"
+#include "solid/system/configuration_impl.hpp"
+#include "solid/system/version.hpp"
 #include <cstdint>
 #include <cstdlib>
 #include <type_traits>
