@@ -111,6 +111,8 @@ class WorkPool : NonCopyable {
     } statistic_;
 #endif
 public:
+    static constexpr size_t node_capacity = bits_to_count(QNBits);
+
     WorkPool()
         : config_()
         , running_(false)

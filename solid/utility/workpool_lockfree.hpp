@@ -176,10 +176,7 @@ class Queue : NonCopyable {
     } statistic_;
 #endif
 public:
-    static constexpr size_t nodeSize()
-    {
-        return node_size;
-    }
+    static constexpr size_t node_capacity = node_size;
 
     Queue()
         : size_(0)
@@ -595,6 +592,8 @@ class WorkPool : NonCopyable {
     } statistic_;
 #endif
 public:
+    static constexpr size_t node_capacity = JobQueueT::node_capacity;
+
     WorkPool()
         : config_()
         , running_(false)
@@ -781,7 +780,7 @@ void WorkPool<Job, QNBits>::doStop()
     dumpStatistics(false); //the queue statistic will be dumped on its destructor
     {
 #ifdef SOLID_HAS_STATISTICS
-        const size_t max_jobs_in_queue = config_.max_job_queue_size_ == static_cast<size_t>(-1) ? config_.max_job_queue_size_ : config_.max_job_queue_size_ + JobQueueT::nodeSize();
+        const size_t max_jobs_in_queue = config_.max_job_queue_size_ == static_cast<size_t>(-1) ? config_.max_job_queue_size_ : config_.max_job_queue_size_ + JobQueueT::node_capacity;
         solid_check_log(statistic_.max_jobs_in_queue_ <= max_jobs_in_queue, workpool_logger, "statistic_.max_jobs_in_queue_ = " << statistic_.max_jobs_in_queue_ << " <= config_.max_job_queue_size_ = " << max_jobs_in_queue);
         solid_check_log(statistic_.max_worker_count_ <= config_.max_worker_count_, workpool_logger, "statistic_.max_worker_count_ = " << statistic_.max_worker_count_ << " <= config_.max_worker_count_ = " << config_.max_worker_count_);
 #endif
