@@ -80,6 +80,19 @@ public:
     {
         wp_.push(std::forward<JT>(_jb));
     }
+
+    template <class JT>
+    bool tryPush(const JT& _jb)
+    {
+        return wp_.tryPush(_jb);
+    }
+
+    template <class JT>
+    bool tryPush(JT&& _jb)
+    {
+        return wp_.tryPush(std::forward<JT>(_jb));
+    }
+
     void stop()
     {
         wp_.stop();
