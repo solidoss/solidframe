@@ -29,24 +29,3 @@
 #define solid_assert(a)
 #define solid_assert_log(l, a)
 #endif
-
-namespace solid {
-
-template <bool B>
-struct static_test;
-
-template <>
-struct static_test<true> {
-    static void ok()
-    {
-        assert(false);
-    }
-};
-
-template <>
-struct static_test<false> {
-};
-
-} //namespace solid
-
-#define cstatic_assert(e) solid::static_test<(e)>::ok()

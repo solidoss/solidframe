@@ -323,10 +323,10 @@ int test_keepalive_fail(int argc, char* argv[])
             cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 
             if (test_scenario == 0) {
-                cfg.connection_inactivity_timeout_seconds = 60;
+                cfg.connection_timeout_inactivity_seconds = 60;
                 cfg.connection_inactivity_keepalive_count = 4;
             } else if (test_scenario == 1) {
-                cfg.connection_inactivity_timeout_seconds = 20;
+                cfg.connection_timeout_inactivity_seconds = 20;
                 cfg.connection_inactivity_keepalive_count = 4;
             }
 
@@ -354,9 +354,9 @@ int test_keepalive_fail(int argc, char* argv[])
             cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
 
             if (test_scenario == 0) {
-                cfg.connection_keepalive_timeout_seconds = 10;
+                cfg.connection_timeout_keepalive_seconds = 10;
             } else if (test_scenario == 1) {
-                cfg.connection_keepalive_timeout_seconds = 100;
+                cfg.connection_timeout_keepalive_seconds = 100;
             }
 
             cfg.connection_stop_fnc         = &client_connection_stop;

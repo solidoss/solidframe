@@ -1,3 +1,7 @@
+add_custom_target(versioning
+    COMMAND ${CMAKE_COMMAND} -DINFILE="${CMAKE_CURRENT_SOURCE_DIR}/src/version.cpp.in"  -DOUTFILE="${CMAKE_CURRENT_BINARY_DIR}/version.cpp" -DPROJECT_ROOT_DIR="${SolidFrame_SOURCE_DIR}" -P "${SolidFrame_SOURCE_DIR}/cmake/version_configure_file.cmake"
+)
+
 set(Sources
     src/device.cpp
     src/socketaddress.cpp
@@ -31,6 +35,7 @@ set(Headers
     statistic.hpp
     crashhandler.hpp
     chunkedstream.hpp
+    version.hpp
 )
 
 set(Inlines
@@ -52,7 +57,10 @@ endif()
 
 add_library (solid_system STATIC
     ${Sources} ${Headers} ${Inlines}
+    "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
 )
+
+set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/version.cpp PROPERTIES GENERATED TRUE)
 
 target_include_directories(solid_system PUBLIC
     $<BUILD_INTERFACE:${SolidFrame_SOURCE_DIR}>
@@ -60,6 +68,19 @@ target_include_directories(solid_system PUBLIC
     $<INSTALL_INTERFACE:include>
     PRIVATE src
 )
+
+
+add_dependencies(solid_system versioning)
+
+include_directories(
+    "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/configuration_impl.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/configuration_impl.hpp)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version_impl.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/version_impl.hpp)
+
+install (FILES ${CMAKE_CURRENT_BINARY_DIR}/configuration_impl.hpp DESTINATION include/solid/system)
+install (FILES ${CMAKE_CURRENT_BINARY_DIR}/version_impl.hpp DESTINATION include/solid/system)
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/system)
 install (TARGETS solid_system DESTINATION lib EXPORT SolidFrameConfig)

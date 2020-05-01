@@ -17,30 +17,34 @@
 
 namespace solid {
 
+constexpr size_t workpoll_default_node_capacity_bit_count = 10;
+
 #ifdef SOLID_USE_WORKPOOL_MUTEX
 
 using WorkPoolConfiguration = locking::WorkPoolConfiguration;
-template <typename Job, size_t QNBits = 10>
+template <typename Job, size_t QNBits = workpoll_default_node_capacity_bit_count>
 using WorkPool = locking::WorkPool<Job, QNBits>;
 
 #else
 
 using lockfree::WorkPoolConfiguration;
 
-template <typename Job, size_t QNBits = 10>
+template <typename Job, size_t QNBits = workpoll_default_node_capacity_bit_count>
 using WorkPool = lockfree::WorkPool<Job, QNBits>;
 #endif
 
-template <class>
+template <class, size_t QNBits = workpoll_default_node_capacity_bit_count>
 class CallPool;
 
-template <class R, class... ArgTypes>
-class CallPool<R(ArgTypes...)> {
+template <class R, class... ArgTypes, size_t QNBits>
+class CallPool<R(ArgTypes...), QNBits> {
     using FunctionT = std::function<R(ArgTypes...)>;
-    using WorkPoolT = WorkPool<FunctionT>;
+    using WorkPoolT = WorkPool<FunctionT, QNBits>;
     WorkPoolT wp_;
 
 public:
+    static constexpr size_t node_capacity = WorkPoolT::node_capacity;
+
     CallPool() {}
 
     template <typename... Args>
@@ -80,6 +84,19 @@ public:
     {
         wp_.push(std::forward<JT>(_jb));
     }
+
+    template <class JT>
+    bool tryPush(const JT& _jb)
+    {
+        return wp_.tryPush(_jb);
+    }
+
+    template <class JT>
+    bool tryPush(JT&& _jb)
+    {
+        return wp_.tryPush(std::forward<JT>(_jb));
+    }
+
     void stop()
     {
         wp_.stop();

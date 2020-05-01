@@ -4,15 +4,7 @@ cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 #-----------------------------------------------------------------
 project (SolidFrame VERSION 6.1)
 
-execute_process(
-    COMMAND "git" "rev-parse" "HEAD"
-    WORKING_DIRECTORY  ${CMAKE_CURRENT_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_VERSION ${VERSION}
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-set(PROJECT_VERSION_PATCH "${GIT_VERSION}")
-
-message("SolidFrame version: ${PROJECT_VERSION} - ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
+message("SolidFrame version: ${PROJECT_VERSION} - ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 #-----------------------------------------------------------------
 # Set policies
 #-----------------------------------------------------------------
@@ -266,11 +258,6 @@ endif()
 if(ON_CROSS)
     set(SOLID_TEST_NONE TRUE)
 endif()
-
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/solid/solid_config.hpp)
-
-
-install (FILES ${CMAKE_CURRENT_BINARY_DIR}/solid/solid_config.hpp DESTINATION include/solid)
 
 #-----------------------------------------------------------------
 # C++ Standard

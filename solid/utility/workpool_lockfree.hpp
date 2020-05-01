@@ -176,10 +176,7 @@ class Queue : NonCopyable {
     } statistic_;
 #endif
 public:
-    static constexpr size_t nodeSize()
-    {
-        return node_size;
-    }
+    static constexpr size_t node_capacity = node_size;
 
     Queue()
         : size_(0)
@@ -192,16 +189,16 @@ public:
 
     ~Queue();
 
-    size_t push(const T& _rt, const size_t _max_queue_size)
+    size_t push(const T& _rt, const size_t _max_queue_size, const bool _wait = true)
     {
         T* pt = nullptr;
-        return doPush(_rt, std::move(*pt), _max_queue_size, std::integral_constant<bool, true>());
+        return doPush(_rt, std::move(*pt), _max_queue_size, std::integral_constant<bool, true>(), _wait);
     }
 
-    size_t push(T&& _rt, const size_t _max_queue_size)
+    size_t push(T&& _rt, const size_t _max_queue_size, const bool _wait = true)
     {
         T* pt = nullptr;
-        return doPush(*pt, std::move(_rt), _max_queue_size, std::integral_constant<bool, false>());
+        return doPush(*pt, std::move(_rt), _max_queue_size, std::integral_constant<bool, false>(), _wait);
     }
 
     bool pop(T& _rt, std::atomic<bool>& _running, const size_t _max_queue_size);
@@ -277,7 +274,7 @@ private:
     }
 
     template <bool IsCopy>
-    size_t doPush(const T& _rt, T&& _ut, const size_t _max_queue_size, std::integral_constant<bool, IsCopy>);
+    size_t doPush(const T& _rt, T&& _ut, const size_t _max_queue_size, std::integral_constant<bool, IsCopy>, const bool _wait);
 };
 
 //-----------------------------------------------------------------------------
@@ -330,7 +327,7 @@ inline void printt(const T&, const int, void*, const size_t) {}
 //      is also commited
 template <class T, unsigned NBits>
 template <bool IsCopy>
-size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, const size_t _max_queue_size, std::integral_constant<bool, IsCopy> _is_copy)
+size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, const size_t _max_queue_size, std::integral_constant<bool, IsCopy> _is_copy, const bool _wait)
 {
     do {
         Node*        pn  = pushNodeAcquire();
@@ -377,9 +374,14 @@ size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, const size_t _max_queue_si
                 std::unique_lock<std::mutex> lock(push_end_.mutex_);
 
                 if (size_.load() >= _max_queue_size) {
-                    push_end_.wait_count_.fetch_add(1);
-                    push_end_.condition_.wait(lock, [this, _max_queue_size]() { return size_.load() < _max_queue_size; });
-                    push_end_.wait_count_.fetch_sub(1);
+                    if (_wait) {
+                        push_end_.wait_count_.fetch_add(1);
+                        push_end_.condition_.wait(lock, [this, _max_queue_size]() { return size_.load() < _max_queue_size; });
+                        push_end_.wait_count_.fetch_sub(1);
+                    } else {
+                        nodeRelease(pn, __LINE__);
+                        return InvalidSize();
+                    }
                 }
 
                 //pn is locked!
@@ -590,6 +592,8 @@ class WorkPool : NonCopyable {
     } statistic_;
 #endif
 public:
+    static constexpr size_t node_capacity = JobQueueT::node_capacity;
+
     WorkPool()
         : config_()
         , running_(false)
@@ -639,6 +643,12 @@ public:
 
     template <class JT>
     void push(JT&& _jb);
+
+    template <class JT>
+    bool tryPush(const JT& _jb);
+
+    template <class JT>
+    bool tryPush(JT&& _jb);
 
     void dumpStatistics(const bool _dump_queue_too = true) const;
 
@@ -698,6 +708,52 @@ void WorkPool<Job, QNBits>::push(JT&& _jb)
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits>
+template <class JT>
+bool WorkPool<Job, QNBits>::tryPush(const JT& _jb)
+{
+    const size_t qsz     = job_q_.push(_jb, config_.max_job_queue_size_, false /*wait*/);
+    const size_t thr_cnt = thr_cnt_.load();
+
+    if (qsz != InvalidSize()) {
+        if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
+            std::lock_guard<std::mutex> lock(thr_mtx_);
+            if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
+                thr_vec_.emplace_back(worker_factory_fnc_());
+                ++thr_cnt_;
+                solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
+            }
+        }
+        solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
+        return true;
+    } else {
+        return false;
+    }
+}
+//-----------------------------------------------------------------------------
+template <typename Job, size_t QNBits>
+template <class JT>
+bool WorkPool<Job, QNBits>::tryPush(JT&& _jb)
+{
+    const size_t qsz     = job_q_.push(std::move(_jb), config_.max_job_queue_size_, false /*wait*/);
+    const size_t thr_cnt = thr_cnt_.load();
+
+    if (qsz != InvalidSize()) {
+        if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
+            std::lock_guard<std::mutex> lock(thr_mtx_);
+            if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
+                thr_vec_.emplace_back(worker_factory_fnc_());
+                ++thr_cnt_;
+                solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
+            }
+        }
+        solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
+        return true;
+    } else {
+        return false;
+    }
+}
+//-----------------------------------------------------------------------------
+template <typename Job, size_t QNBits>
 bool WorkPool<Job, QNBits>::pop(Job& _rjob)
 {
     return job_q_.pop(_rjob, running_, config_.max_job_queue_size_);
@@ -724,7 +780,7 @@ void WorkPool<Job, QNBits>::doStop()
     dumpStatistics(false); //the queue statistic will be dumped on its destructor
     {
 #ifdef SOLID_HAS_STATISTICS
-        const size_t max_jobs_in_queue = config_.max_job_queue_size_ == static_cast<size_t>(-1) ? config_.max_job_queue_size_ : config_.max_job_queue_size_ + JobQueueT::nodeSize();
+        const size_t max_jobs_in_queue = config_.max_job_queue_size_ == static_cast<size_t>(-1) ? config_.max_job_queue_size_ : config_.max_job_queue_size_ + JobQueueT::node_capacity;
         solid_check_log(statistic_.max_jobs_in_queue_ <= max_jobs_in_queue, workpool_logger, "statistic_.max_jobs_in_queue_ = " << statistic_.max_jobs_in_queue_ << " <= config_.max_job_queue_size_ = " << max_jobs_in_queue);
         solid_check_log(statistic_.max_worker_count_ <= config_.max_worker_count_, workpool_logger, "statistic_.max_worker_count_ = " << statistic_.max_worker_count_ << " <= config_.max_worker_count_ = " << config_.max_worker_count_);
 #endif

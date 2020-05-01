@@ -10,8 +10,6 @@
 
 #pragma once
 
-#include "solid/solid_config.hpp"
-
 #include <ostream>
 #include <system_error>
 #include <vector>

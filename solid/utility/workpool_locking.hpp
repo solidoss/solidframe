@@ -111,6 +111,8 @@ class WorkPool : NonCopyable {
     } statistic_;
 #endif
 public:
+    static constexpr size_t node_capacity = bits_to_count(QNBits);
+
     WorkPool()
         : config_()
         , running_(false)
@@ -160,6 +162,12 @@ public:
 
     template <class JT>
     void push(JT&& _jb);
+
+    template <class JT>
+    bool tryPush(const JT& _jb);
+
+    template <class JT>
+    bool tryPush(JT&& _jb);
 
     void dumpStatistics() const;
 
@@ -254,6 +262,76 @@ void WorkPool<Job, QNBits>::push(JT&& _jb)
         }
     }
     solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
+}
+//-----------------------------------------------------------------------------
+template <typename Job, size_t QNBits>
+template <class JT>
+bool WorkPool<Job, QNBits>::tryPush(const JT& _jb)
+{
+    size_t qsz;
+    {
+        {
+            std::unique_lock<std::mutex> lock(mtx_);
+
+            if (job_q_.size() < config_.max_job_queue_size_) {
+            } else {
+                return false;
+            }
+
+            job_q_.push(_jb);
+            qsz = job_q_.size();
+        }
+
+        sig_cnd_.notify_one();
+
+        const size_t thr_cnt = thr_cnt_.load();
+
+        if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
+            std::lock_guard<std::mutex> lock(thr_mtx_);
+            if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
+                thr_vec_.emplace_back(worker_factory_fnc_());
+                ++thr_cnt_;
+                solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
+            }
+        }
+    }
+    solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
+    return true;
+}
+//-----------------------------------------------------------------------------
+template <typename Job, size_t QNBits>
+template <class JT>
+bool WorkPool<Job, QNBits>::tryPush(JT&& _jb)
+{
+    size_t qsz;
+    {
+        {
+            std::unique_lock<std::mutex> lock(mtx_);
+
+            if (job_q_.size() < config_.max_job_queue_size_) {
+            } else {
+                return false;
+            }
+
+            job_q_.push(std::move(_jb));
+            qsz = job_q_.size();
+        }
+
+        sig_cnd_.notify_one();
+
+        const size_t thr_cnt = thr_cnt_.load();
+
+        if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
+            std::lock_guard<std::mutex> lock(thr_mtx_);
+            if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
+                thr_vec_.emplace_back(worker_factory_fnc_());
+                ++thr_cnt_;
+                solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
+            }
+        }
+    }
+    solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
+    return true;
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits>

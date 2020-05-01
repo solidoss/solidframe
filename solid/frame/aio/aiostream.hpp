@@ -427,7 +427,6 @@ public:
             return false;
         } else {
             error(_rctx, error_already);
-            solid_assert_log(false, generic_logger);
             return true;
         }
     }
@@ -477,10 +476,11 @@ public:
                     using RealF = typename std::decay<F>::type;
                     send_fnc    = ConnectFunctor<RealF>{std::forward<RealF>(_f)};
                     return false;
-                } else {
+                } else if (err) {
                     error(_rctx, error_stream_system);
                     systemError(_rctx, err);
-                    solid_assert_log(err, generic_logger);
+                } else {
+                    error(_rctx, error_stream_shutdown);
                 }
             } else {
                 error(_rctx, error_stream_system);
@@ -514,10 +514,11 @@ public:
                 using RealF = typename std::decay<F>::type;
                 send_fnc    = SecureConnectFunctor<RealF>{std::forward<RealF>(_f)};
                 return false;
-            } else {
+            } else if (err) {
                 error(_rctx, error_stream_system);
                 systemError(_rctx, err);
-                solid_assert_log(err, generic_logger);
+            } else {
+                error(_rctx, error_stream_shutdown);
             }
         }
         return true;
@@ -538,10 +539,11 @@ public:
                 using RealF = typename std::decay<F>::type;
                 recv_fnc    = SecureAcceptFunctor<RealF>{std::forward<RealF>(_f)};
                 return false;
-            } else {
+            } else if (err) {
                 error(_rctx, error_stream_system);
                 systemError(_rctx, err);
-                solid_assert_log(err, generic_logger);
+            } else {
+                error(_rctx, error_stream_shutdown);
             }
         }
         return true;
@@ -562,10 +564,11 @@ public:
                 using RealF = typename std::decay<F>::type;
                 send_fnc    = SecureShutdownFunctor<RealF>{std::forward<RealF>(_f)};
                 return false;
-            } else {
+            } else if (err) {
                 error(_rctx, error_stream_system);
                 systemError(_rctx, err);
-                solid_assert_log(err, generic_logger);
+            } else {
+                error(_rctx, error_stream_shutdown);
             }
         }
         return true;
@@ -590,7 +593,6 @@ public:
         if (err) {
             error(_rctx, error_stream_system);
             systemError(_rctx, err);
-            solid_assert_log(err, generic_logger);
         }
     }
 
@@ -600,7 +602,6 @@ public:
         if (err) {
             error(_rctx, error_stream_system);
             systemError(_rctx, err);
-            solid_assert_log(err, generic_logger);
         }
     }
 
@@ -610,7 +611,6 @@ public:
         if (err) {
             error(_rctx, error_stream_system);
             systemError(_rctx, err);
-            solid_assert_log(err, generic_logger);
         }
     }
 
@@ -620,7 +620,6 @@ public:
         if (err) {
             error(_rctx, error_stream_system);
             systemError(_rctx, err);
-            solid_assert_log(err, generic_logger);
         }
     }
 
@@ -671,11 +670,13 @@ private:
         } else if (rv < 0) {
             if (can_retry) {
                 return false;
-            } else {
+            } else if (err) {
                 recv_buf_sz = recv_buf_cp = 0;
                 error(_rctx, error_stream_system);
                 systemError(_rctx, err);
-                solid_assert_log(err, generic_logger);
+            } else {
+                recv_buf_sz = recv_buf_cp = 0;
+                error(_rctx, error_stream_shutdown);
             }
         }
         return true;
@@ -698,11 +699,13 @@ private:
         } else if (rv < 0) {
             if (can_retry) {
                 return false;
-            } else {
+            } else if (err) {
                 send_buf_sz = send_buf_cp = 0;
                 error(_rctx, error_stream_system);
                 systemError(_rctx, err);
-                solid_assert_log(err, generic_logger);
+            } else {
+                send_buf_sz = send_buf_cp = 0;
+                error(_rctx, error_stream_shutdown);
             }
         }
         return true;

@@ -249,16 +249,18 @@ void Configuration::init()
 
     connection_recv_buffer_max_capacity_kb = connection_send_buffer_max_capacity_kb = 64;
 
-    connection_inactivity_timeout_seconds = 60 * 10; //ten minutes
-    connection_keepalive_timeout_seconds  = 60 * 5; //five minutes
-    connection_reconnect_timeout_seconds  = 10;
+    connection_timeout_inactivity_seconds = 60 * 10; //ten minutes
+    connection_timeout_keepalive_seconds  = 60 * 5; //five minutes
+    connection_timeout_reconnect_seconds  = 10;
 
     connection_relay_buffer_count = 8;
 
     connection_inactivity_keepalive_count = 2;
 
-    server.connection_start_state  = ConnectionState::Passive;
-    server.connection_start_secure = true;
+    server.connection_start_state                = ConnectionState::Passive;
+    server.connection_start_secure               = true;
+    server.connection_timeout_activation_seconds = 60 * 5;
+    server.connection_timeout_secured_seconds    = 60;
 
     client.connection_start_state  = ConnectionState::Passive;
     client.connection_start_secure = true;
@@ -295,7 +297,7 @@ size_t Configuration::connectionReconnectTimeoutSeconds(
     const bool /*_last_connection_was_secured*/) const
 {
     if (_failed_create_connection_actor) {
-        return connection_reconnect_timeout_seconds / 2;
+        return connection_timeout_reconnect_seconds / 2;
     }
     if (_last_connection_was_active || _last_connection_was_connected) {
         return 0; //reconnect right away
@@ -303,8 +305,8 @@ size_t Configuration::connectionReconnectTimeoutSeconds(
     size_t retry_count   = _retry_count / 2;
     size_t sleep_seconds = retry_count;
 
-    if (sleep_seconds > connection_reconnect_timeout_seconds) {
-        sleep_seconds = connection_reconnect_timeout_seconds;
+    if (sleep_seconds > connection_timeout_reconnect_seconds) {
+        sleep_seconds = connection_timeout_reconnect_seconds;
     }
 
     return sleep_seconds; //TODO: add entropy - improve algorithm

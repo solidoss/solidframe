@@ -11,6 +11,7 @@ set( UtilityTestSuite
     test_workpool_basic.cpp
     test_workpool_chain.cpp
     test_workpool_pattern.cpp
+    test_workpool_try.cpp
     test_ioformat.cpp
     test_function.cpp
     test_function_perf.cpp
@@ -31,6 +32,7 @@ add_test(NAME TestUtilityWorkPoolThreadContext          COMMAND  test_utility te
 add_test(NAME TestUtilityWorkPoolContext                COMMAND  test_utility test_workpool_context)
 add_test(NAME TestUtilityWorkPoolPattern                COMMAND  test_utility test_workpool_pattern)
 add_test(NAME TestUtilityWorkPoolBasic                  COMMAND  test_utility test_workpool_basic)
+add_test(NAME TestUtilityWorkPoolTry                    COMMAND  test_utility test_workpool_try)
 add_test(NAME TestUtilityWorkPoolChain                  COMMAND  test_utility test_workpool_chain)
 add_test(NAME TestUtilityWorkPoolChain1                 COMMAND  test_utility test_workpool_chain 1)
 add_test(NAME TestUtilityWorkPoolChain2                 COMMAND  test_utility test_workpool_chain 2)

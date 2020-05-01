@@ -1,0 +1,17 @@
+#include "solid/system/version.hpp"
+#include <string>
+
+using namespace std;
+
+namespace solid{
+    const char* version_vcs_commit(){
+        return "@PROJECT_VERSION_VCS_COMMIT@";
+    }
+    const char* version_vcs_branch(){
+        return "@PROJECT_VERSION_VCS_BRANCH@";
+    }
+    const char* version_full(){
+        static const string full = to_string(VERSION_MAJOR) + '.' + to_string(VERSION_MINOR) + string(version_vcs_commit()[0] ? (string("-") + version_vcs_branch() + "-" + version_vcs_commit()) : string(""));
+        return full.c_str();
+    }
+}//namespace solid
