@@ -255,7 +255,9 @@ void Configuration::init()
 
     connection_relay_buffer_count = 8;
 
-    connection_inactivity_keepalive_count = 2;
+    //server closes connection when receiving more than connection_inactivity_keepalive_count
+    //keep-alive requests during connection_timeout_inactivity_seconds
+    connection_inactivity_keepalive_count = 10;
 
     server.connection_start_state                = ConnectionState::Passive;
     server.connection_start_secure               = true;

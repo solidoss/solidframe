@@ -2011,7 +2011,7 @@ void Connection::doCompleteKeepalive(frame::aio::ReactorContext& _rctx)
 
         ++recv_keepalive_count_;
 
-        solid_dbg(logger, Verbose, this << "recv_keep_alive_count = " << recv_keepalive_count_);
+        solid_dbg(logger, Verbose, this << " recv_keep_alive_count = " << recv_keepalive_count_);
 
         if (recv_keepalive_count_ < config.connection_inactivity_keepalive_count) {
             flags_.set(FlagsE::Keepalive);
