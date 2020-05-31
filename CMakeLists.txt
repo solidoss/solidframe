@@ -266,8 +266,7 @@ endif()
 if (CMAKE_VERSION VERSION_LESS "3.1")
     set (CMAKE_CXX_FLAGS "--std=c++14 ${CMAKE_CXX_FLAGS}")
 else ()
-   set(CMAKE_CXX_STANDARD 14
-  CACHE STRING "C++ standard version to use (default is 14)")
+    set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard version to use (default is 14)")
 endif ()
 
 #-----------------------------------------------------------------
