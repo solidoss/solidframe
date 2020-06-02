@@ -14,6 +14,8 @@ endif()
 
 #-----------------------------------------------------------------
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 #-----------------------------------------------------------------
 # Extra user definitions
 #-----------------------------------------------------------------
@@ -215,8 +217,7 @@ endif(NOT ON_FOUND)
 
 if(NOT NO_EXTERNAL)
     include(ExternalProject)
-
-    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+    
     include(cmake/build_snappy.cmake)
     include(cmake/build_cxxopts.cmake)
 
