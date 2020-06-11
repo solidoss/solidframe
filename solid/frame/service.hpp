@@ -29,12 +29,8 @@ class Service;
 template <class S = Service>
 class ServiceShell;
 
-struct UseServiceShell {
+struct UseServiceShell : NonCopyable {
     Manager& rmanager;
-
-    UseServiceShell()        = delete;
-    UseServiceShell& operator=(const UseServiceShell&) = delete;
-    UseServiceShell& operator=(UseServiceShell&&) = delete;
 
     UseServiceShell(UseServiceShell&& _uss)
         : rmanager(_uss.rmanager)
@@ -71,11 +67,6 @@ protected:
         UseServiceShell _force_shell, A&& _a, const bool _start = true);
 
 public:
-    Service(const Service&) = delete;
-    Service(Service&&)      = delete;
-    Service& operator=(const Service&) = delete;
-    Service& operator=(Service&&) = delete;
-
     virtual ~Service();
 
     bool registered() const;
