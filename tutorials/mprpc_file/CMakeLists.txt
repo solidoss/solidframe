@@ -1,5 +1,9 @@
-
-set(CMAKE_REQUIRED_FLAGS -std=c++17 -lstdc++fs)
+if(APPLE)
+else()
+    set(STDFS_LIB stdc++fs)
+endif()
+    
+set(CMAKE_REQUIRED_FLAGS -std=c++17 -l${STDFS_LIB})
 include(CheckCXXSymbolExists)
 CHECK_CXX_SYMBOL_EXISTS(std::filesystem::path::preferred_separator filesystem cxx17fs)
 
@@ -17,7 +21,7 @@ if(cxx17fs)
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
-        stdc++fs
+        ${STDFS_LIB}
     )
 
     add_executable (tutorial_mprpc_file_client mprpc_file_client.cpp mprpc_file_messages.hpp)

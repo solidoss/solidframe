@@ -461,7 +461,8 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
                 printt(_rt, __LINE__, pn, push_commit_pos);
             }
 #endif
-            solid_check_log(sz < 10000000ULL, workpool_logger);
+            solid_check_log(sz < -1000ULL, workpool_logger, " sz = " << sz);
+
             nodeRelease(pn, __LINE__);
             if (sz < _max_queue_size && push_end_.wait_count_.load()) {
                 solid_dbg(workpool_logger, Verbose, this << " notify push - size = " << sz << " wait_count = " << push_end_.wait_count_.load());
