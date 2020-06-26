@@ -746,6 +746,9 @@ Actor& ReactorContext::actor() const
 {
     return reactor().actor(*this);
 }
+
+//-----------------------------------------------------------------------------
+
 Service& ReactorContext::service() const
 {
     return reactor().service(*this);
@@ -755,7 +758,14 @@ Service& ReactorContext::service() const
 
 Manager& ReactorContext::manager() const
 {
-    return reactor().service(*this).manager();
+    return service().manager();
+}
+
+//-----------------------------------------------------------------------------
+
+ActorIdT ReactorContext::actorId() const
+{
+    return service().id(actor());
 }
 
 //-----------------------------------------------------------------------------
@@ -769,7 +779,7 @@ UniqueId ReactorContext::actorUid() const
 
 std::mutex& ReactorContext::actorMutex() const
 {
-    return reactor().service(*this).mutex(reactor().actor(*this));
+    return service().mutex(actor());
 }
 
 //-----------------------------------------------------------------------------

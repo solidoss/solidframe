@@ -59,8 +59,7 @@ struct ReactorContext {
     Service& service() const;
     Manager& manager() const;
 
-    UniqueId actorUid() const;
-
+    ActorIdT    actorId() const;
     std::mutex& actorMutex() const;
 
     void clearError()
@@ -99,6 +98,8 @@ private:
     {
         system_error_ = _err;
     }
+
+    UniqueId actorUid() const;
 
     ReactorContext(
         Reactor&        _rreactor,

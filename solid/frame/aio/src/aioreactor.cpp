@@ -1651,14 +1651,19 @@ Service& ReactorContext::service() const
 
 Manager& ReactorContext::manager() const
 {
-    return reactor().service(*this).manager();
+    return service().manager();
 }
 
 //-----------------------------------------------------------------------------
 
 std::mutex& ReactorContext::actorMutex() const
 {
-    return reactor().service(*this).mutex(reactor().actor(*this));
+    return service().mutex(actor());
+}
+//-----------------------------------------------------------------------------
+ActorIdT ReactorContext::actorId() const
+{
+    return service().id(actor());
 }
 
 //-----------------------------------------------------------------------------
