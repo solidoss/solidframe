@@ -46,7 +46,7 @@ std::string          srv_port_str;
 std::string          rly_port_str;
 bool                 be_secure       = false;
 bool                 use_relay       = false;
-unsigned             wait_seconds    = 100;
+unsigned             wait_seconds    = 200;
 constexpr const bool enable_no_delay = true;
 } //namespace
 //-----------------------------------------------------------------------------
