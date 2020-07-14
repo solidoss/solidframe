@@ -2161,7 +2161,7 @@ void Service::connectionStop(ConnectionContext& _rconctx)
         configuration().relayEngine().stopConnection(_rconctx.relayId());
         configuration().connection_stop_fnc(_rconctx);
 
-        //we might need to release the connectionpool entry - so we need the master lock
+        //we might need to release the connectionpool entry - so we need the main lock
         lock_guard<std::mutex> lock(impl_->mtx);
 
         lock2.lock();
