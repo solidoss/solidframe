@@ -335,17 +335,19 @@ write_basic_package_version_file(
   COMPATIBILITY AnyNewerVersion
 )
 
-export(EXPORT SolidFrameConfig FILE SolidFrameConfig.cmake)
+export(EXPORT SolidFrameConfig FILE SolidFrameConfig.cmake NAMESPACE SolidFrame::)
 
-install(EXPORT SolidFrameConfig DESTINATION lib/cmake/SolidFrame)
+install(EXPORT SolidFrameConfig DESTINATION lib/cmake/SolidFrame COMPONENT Devel NAMESPACE SolidFrame::)
+
+
 
 install(
-  FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/SolidFrameConfigVersion.cmake"
-  DESTINATION
-    lib/cmake/SolidFrame
-  COMPONENT
-    Devel
+    FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/SolidFrameConfigVersion.cmake"
+    DESTINATION
+        lib/cmake/SolidFrame
+    COMPONENT
+        Devel
 )
 
 if(NOT ON_CROSS)
