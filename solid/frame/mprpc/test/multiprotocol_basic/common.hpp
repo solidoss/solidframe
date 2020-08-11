@@ -10,19 +10,16 @@ typedef solid::frame::Scheduler<solid::frame::aio::Reactor> AioSchedulerT;
 
 using TypeIdT = std::pair<uint8_t, uint8_t>;
 
-namespace std {
-//inject a hash for TypeIdT
-template <>
-struct hash<TypeIdT> {
-    typedef TypeIdT     argument_type;
-    typedef std::size_t result_type;
-    result_type         operator()(argument_type const& s) const noexcept
+struct TypeIdHash {
+    using argument_type = TypeIdT;
+    using result_type   = std::size_t;
+
+    result_type operator()(argument_type const& s) const noexcept
     {
         result_type const h1(std::hash<uint8_t>{}(s.first));
         result_type const h2(std::hash<uint8_t>{}(s.second));
-        return h1 ^ (h2 << 1); // || use boost::hash_combine (see Discussion)
+        return h1 ^ (h2 << 1);
     }
 };
-} //namespace std
 
-using ProtocolT = solid::frame::mprpc::serialization_v2::Protocol<TypeIdT>;
+using ProtocolT = solid::frame::mprpc::serialization_v2::Protocol<TypeIdT, TypeIdHash>;

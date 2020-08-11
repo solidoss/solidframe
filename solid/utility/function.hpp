@@ -265,20 +265,20 @@ public:
     template <class T, typename = typename std::enable_if<!std::is_same<Function, typename std::decay<T>::type>::value, void>::type>
     Function(const T& _t)
         : FunctionBase(
-            do_allocate<typename std::decay<T>::type>(
-                bool_constant<std::is_convertible<typename std::decay<T>::type*, FunctionBase*>::value>(),
-                bool_constant<sizeof(FunctionValueT<typename std::decay<T>::type>) <= DataSize>(),
-                _t))
+              do_allocate<typename std::decay<T>::type>(
+                  bool_constant<std::is_convertible<typename std::decay<T>::type*, FunctionBase*>::value>(),
+                  bool_constant<sizeof(FunctionValueT<typename std::decay<T>::type>) <= DataSize>(),
+                  _t))
     {
     }
 
     template <typename T, typename = typename std::enable_if<!std::is_same<Function, typename std::decay<T>::type>::value, void>::type>
     Function(T&& _ut)
         : FunctionBase(
-            do_allocate<typename std::decay<T>::type>(
-                bool_constant<std::is_convertible<typename std::decay<T>::type*, FunctionBase*>::value>(),
-                bool_constant<sizeof(FunctionValueT<typename std::decay<T>::type>) <= DataSize>(),
-                std::forward<T>(_ut)))
+              do_allocate<typename std::decay<T>::type>(
+                  bool_constant<std::is_convertible<typename std::decay<T>::type*, FunctionBase*>::value>(),
+                  bool_constant<sizeof(FunctionValueT<typename std::decay<T>::type>) <= DataSize>(),
+                  std::forward<T>(_ut)))
     {
     }
 

@@ -129,7 +129,7 @@ private:
                     << "127.0.0.1"
                     << " " << server_port);
             async_resolver().requestResolve(
-                [&rm = _rctx.service().manager(), actor_id = _rctx.service().manager().id(*this), this](ResolveData& _rrd, ErrorCodeT const& /*_rerr*/) {
+                [& rm = _rctx.service().manager(), actor_id = _rctx.service().manager().id(*this), this](ResolveData& _rrd, ErrorCodeT const& /*_rerr*/) {
                     Event ev(make_event(GenericEvents::Message));
 
                     ev.any() = std::move(_rrd);

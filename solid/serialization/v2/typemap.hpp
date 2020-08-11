@@ -19,7 +19,13 @@ namespace solid {
 namespace serialization {
 namespace v2 {
 
-template <typename TypeId, class Ctx, template <typename, class> class Ser, template <typename, class> class Des, class Data>
+template <
+    typename TypeId,
+    class Ctx,
+    template <typename, class> class Ser,
+    template <typename, class> class Des,
+    class Data,
+    class Hash = std::hash<TypeId>>
 class TypeMap : protected TypeMapBase {
     typedef void (*CastFunctionT)(void*, void*);
 
@@ -71,12 +77,13 @@ class TypeMap : protected TypeMapBase {
     };
 
     using TypeVectorT = std::vector<TypeStub>;
-    using TypeIdMapT  = std::unordered_map<TypeId, size_t>;
-    typedef std::unordered_map<CastIdT, CastStub, CastHash> CastMapT;
-    size_t                                                  null_index_;
-    TypeVectorT                                             type_vec_;
-    TypeIdMapT                                              type_id_map_;
-    CastMapT                                                cast_map_;
+    using TypeIdMapT  = std::unordered_map<TypeId, size_t, Hash>;
+    using CastMapT    = std::unordered_map<CastIdT, CastStub, CastHash>;
+
+    size_t      null_index_;
+    TypeVectorT type_vec_;
+    TypeIdMapT  type_id_map_;
+    CastMapT    cast_map_;
 
 public:
     using ContextT      = Ctx;

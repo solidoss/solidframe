@@ -25,8 +25,8 @@ template <typename TypeId, class Ctx>
 using SerializerTT = serialization::binary::Serializer<TypeId, Ctx>;
 template <typename TypeId, class Ctx>
 using DeserializerTT = serialization::binary::Deserializer<TypeId, Ctx>;
-template <typename TypeId, typename Data>
-using TypeMapTT = serialization::TypeMap<TypeId, ConnectionContext, SerializerTT, DeserializerTT, Data>;
+template <typename TypeId, typename Data, typename Hash = std::hash<TypeId>>
+using TypeMapTT = serialization::TypeMap<TypeId, ConnectionContext, SerializerTT, DeserializerTT, Data, Hash>;
 using LimitsT   = serialization::binary::Limits;
 
 template <class S>
@@ -126,8 +126,8 @@ private:
     }
 };
 
-template <typename TypeId>
-struct Protocol : public mprpc::Protocol, std::enable_shared_from_this<Protocol<TypeId>> {
+template <typename TypeId, typename Hash = std::hash<TypeId>>
+struct Protocol : public mprpc::Protocol, std::enable_shared_from_this<Protocol<TypeId, Hash>> {
     struct TypeData {
         template <class F>
         TypeData(F&& _f)
@@ -145,10 +145,10 @@ struct Protocol : public mprpc::Protocol, std::enable_shared_from_this<Protocol<
         MessageCompleteFunctionT complete_fnc_;
     };
 
-    using ThisT         = Protocol<TypeId>;
+    using ThisT         = Protocol<TypeId, Hash>;
     using PointerT      = std::shared_ptr<ThisT>;
     using TypeIdT       = TypeId;
-    using TypeMapT      = TypeMapTT<TypeIdT, TypeData>;
+    using TypeMapT      = TypeMapTT<TypeIdT, TypeData, Hash>;
     using SerializerT   = Serializer<typename TypeMapT::SerializerT>;
     using DeserializerT = Deserializer<typename TypeMapT::DeserializerT>;
 
