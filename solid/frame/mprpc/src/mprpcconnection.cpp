@@ -720,7 +720,9 @@ void Connection::onStopped(
 
     ActorIdT          actuid(uid(_rctx));
     ConnectionContext conctx(service(_rctx), *this);
-
+    
+    this->relay_id_.clear();//the connection was unregistered from RelayEngine on Service::connectionStopping
+    
     service(_rctx).connectionStop(conctx);
 
     if (_rmsg_bundle.message_ptr || !solid_function_empty(_rmsg_bundle.complete_fnc)) {

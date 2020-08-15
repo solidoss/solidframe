@@ -343,8 +343,8 @@ Manager& EngineCore::manager()
 //-----------------------------------------------------------------------------
 void EngineCore::stopConnection(const UniqueId& _rrelay_con_uid)
 {
-    lock_guard<mutex> lock(impl_->mtx_);
     if (_rrelay_con_uid.isValid()) {
+        lock_guard<mutex> lock(impl_->mtx_);
         doStopConnection(static_cast<size_t>(_rrelay_con_uid.index));
     }
 }
