@@ -44,13 +44,16 @@ message("External path: \"${EXTERNAL_DIR}\"")
 #-----------------------------------------------------------------
 
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "release")
+    message(STATUS "Setting build type to 'release' as none was specified.")
+    set(CMAKE_BUILD_TYPE "release" CACHE STRING "Choose the type of build." FORCE)
+    # Set the possible values of build type for cmake-gui
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+        "release" "debug" "maintain")
+    set(CMAKE_CONFIGURATION_TYPES "release")
+    set(CONFIGURATION_TYPE "release")
 endif()
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
-
-set(CMAKE_CONFIGURATION_TYPES "release" CACHE STRING "" FORCE)
-set(CONFIGURATION_TYPE "release")
 
 if(CMAKE_BUILD_TYPE STREQUAL "maintain")
     set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -59,7 +62,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "maintain")
     set(SOLID_HAS_ASSERT TRUE)
 
     #force a single configuration type on Windows builds
-    set(CMAKE_CONFIGURATION_TYPES "release" CACHE STRING "" FORCE)
+    set(CMAKE_CONFIGURATION_TYPES "release")
     set(CONFIGURATION_TYPE "release")
 endif(CMAKE_BUILD_TYPE STREQUAL "maintain")
 
@@ -71,7 +74,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "debug")
     set(SOLID_HAS_STATISTICS TRUE)
     set(SOLID_HAS_ASSERT TRUE)
     #force a single configuration type on Windows builds
-    set(CMAKE_CONFIGURATION_TYPES "debug" CACHE STRING "" FORCE)
+    set(CMAKE_CONFIGURATION_TYPES "debug")
     set(CONFIGURATION_TYPE "debug")
 endif(CMAKE_BUILD_TYPE STREQUAL "debug")
 

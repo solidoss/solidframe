@@ -1808,7 +1808,7 @@ bool Service::connectionStopping(
         // Service::connectionStop
         ppool->on_event_fnc(_rconctx, pool_event_category.event(PoolEvents::PoolDisconnect), _rerror);
     }
-    if(retval && _rconctx.relayId().isValid()){
+    if (retval && _rconctx.relayId().isValid()) {
         //we must call relayEngine.stopConnection here instead of on Service::connectionStop
         //because at that point, the connection actor, because the call to Service::connectionStop
         //is made after connection postStop, the connection cannot receive notifications anymore
