@@ -62,8 +62,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "maintain")
     set(SOLID_HAS_ASSERT TRUE)
 
     #force a single configuration type on Windows builds
-    set(CMAKE_CONFIGURATION_TYPES "release")
-    set(CONFIGURATION_TYPE "release")
+    set(CMAKE_CONFIGURATION_TYPES "RelWithDebInfo")
+    set(CONFIGURATION_TYPE "RelWithDebInfo")
 endif(CMAKE_BUILD_TYPE STREQUAL "maintain")
 
 
