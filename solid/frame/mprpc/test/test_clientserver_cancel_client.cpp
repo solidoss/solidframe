@@ -222,7 +222,8 @@ void server_receive_message(frame::mprpc::ConnectionContext& _rctx, std::shared_
     }
 
     size_t idx = static_cast<Message&>(*_rmsgptr).idx;
-    solid_check(!initarray[idx % initarraysize].cancel);
+    
+    solid_check(!initarray[idx % initarraysize].cancel, "message "<<idx<<" should have been canceled");
 
     transfered_size += _rmsgptr->str.size();
     ++transfered_count;
