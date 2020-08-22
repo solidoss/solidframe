@@ -423,7 +423,7 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
         if (pos < node_size) {
             {
                 size_t push_commit_pos;
-                size_t count = 64;
+                size_t count = 512;
 
                 while (pos >= (push_commit_pos = pn->push_commit_pos_.load(std::memory_order_acquire)) && count--) {
                     std::this_thread::yield();
