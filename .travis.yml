@@ -15,6 +15,16 @@ matrix:
       dist: bionic
       sudo: false
       compiler: clang
+    - os: linux
+      arch: arm64
+      dist: bionic
+      sudo: false
+      compiler: gcc
+    - os: linux
+      arch: arm64
+      dist: bionic
+      sudo: false
+      compiler: clang
     - os: osx
       compiler: clang
     - os: osx
