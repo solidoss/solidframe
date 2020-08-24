@@ -60,7 +60,9 @@ int test_workpool_context(int argc, char* argv[])
         }
 #endif
     };
-    if (async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
+
+    auto fut = async(launch::async, lambda);
+    if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }
     solid_log(logger, Verbose, "after async wait");

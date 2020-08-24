@@ -47,7 +47,7 @@ int test_workpool_thread_context(int argc, char* argv[])
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
 
-    int                 wait_seconds = 500;
+    int                 wait_seconds = 200;
     int                 loop_cnt     = 5;
     const size_t        cnt{5000000};
     std::atomic<size_t> val{0};
@@ -82,7 +82,9 @@ int test_workpool_thread_context(int argc, char* argv[])
             val = 0;
         }
     };
-    if (async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
+
+    auto fut = async(launch::async, lambda);
+    if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         if (pwp != nullptr) {
             //pwp.load()->dumpStatistics();
         }

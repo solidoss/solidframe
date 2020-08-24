@@ -223,8 +223,8 @@ int test_event_stress(int argc, char* argv[])
 
         solid_check(prom.get_future().wait_for(chrono::seconds(wait_seconds)) == future_status::ready);
     };
-
-    if (async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
+    auto fut = async(launch::async, lambda);
+    if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }
 

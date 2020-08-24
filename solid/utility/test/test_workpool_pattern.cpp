@@ -91,7 +91,9 @@ int test_workpool_pattern(int argc, char* argv[])
             thr.join();
         }
     };
-    if (async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
+
+    auto fut = async(launch::async, lambda);
+    if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         if (pwp != nullptr) {
             pwp.load()->dumpStatistics();
         }
