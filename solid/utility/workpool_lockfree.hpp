@@ -75,6 +75,7 @@ class Queue : NonCopyable {
     struct End {
         Node*                   pnode_;
         std::atomic<size_t>     wait_count_;
+        std::atomic<size_t>     wait_count_notify_;
         std::atomic_flag        spin_lock_;
         std::mutex              mutex_;
         std::condition_variable condition_;
@@ -82,6 +83,7 @@ class Queue : NonCopyable {
         End()
             : pnode_(nullptr)
             , wait_count_(0)
+            , wait_count_notify_(0)
         {
             spin_lock_.clear();
         }
@@ -145,6 +147,7 @@ class Queue : NonCopyable {
         std::atomic<size_t> push_notif_;
         std::atomic<size_t> wait_pop_on_pos_;
         std::atomic<size_t> wait_pop_on_next_;
+        std::atomic<size_t> notify_all_count_;
         Statistic()
             : push_count_(0)
             , push_node_count_(0)
@@ -156,21 +159,23 @@ class Queue : NonCopyable {
             , push_notif_(0)
             , wait_pop_on_pos_(0)
             , wait_pop_on_next_(0)
+            , notify_all_count_(0)
         {
         }
 
         std::ostream& print(std::ostream& _ros) const override
         {
-            _ros << " push_count_ = " << push_count_;
-            _ros << " pop_count_ = " << pop_count_;
-            _ros << " pop_node_count_ = " << pop_node_count_;
-            _ros << " push_node_count_ = " << push_node_count_;
-            _ros << " new_node_count_ = " << new_node_count_;
-            _ros << " del_node_count_ = " << del_node_count_;
-            _ros << " pop_notif_ = " << pop_notif_;
-            _ros << " push_notif_ = " << push_notif_;
-            _ros << " wait_pop_on_pos_ = " << wait_pop_on_pos_;
-            _ros << " wait_pop_on_next_ = " << wait_pop_on_next_;
+            _ros << " push_count = " << push_count_;
+            _ros << " pop_count = " << pop_count_;
+            _ros << " pop_node_count = " << pop_node_count_;
+            _ros << " push_node_count = " << push_node_count_;
+            _ros << " new_node_count = " << new_node_count_;
+            _ros << " del_node_count = " << del_node_count_;
+            _ros << " pop_notif = " << pop_notif_;
+            _ros << " push_notif = " << push_notif_;
+            _ros << " wait_pop_on_pos = " << wait_pop_on_pos_;
+            _ros << " wait_pop_on_next = " << wait_pop_on_next_;
+            _ros << " notify_all_count = " << notify_all_count_;
             return _ros;
         }
     } statistic_;
@@ -353,15 +358,15 @@ size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, const size_t _max_queue_si
                 printt(_rt, __LINE__, pn, 0);
             }
 #endif
-
+            
             const size_t pop_wait_cnt = pop_end_.wait_count_.load();
+            const size_t pop_wait_cnt_notify = pop_end_.wait_count_notify_.load();
 
-            if (pop_wait_cnt != 0) {
-                {
-                    std::unique_lock<std::mutex> lock(pop_end_.mutex_);
-                }
+            if (pop_wait_cnt != 0 && pop_wait_cnt_notify != 0) {
+                
                 solid_dbg(workpool_logger, Verbose, this << " pop_wait_cnt = " << pop_wait_cnt);
                 pop_end_.condition_.notify_all(); //see NOTE(*) below
+                solid_statistic_inc(statistic_.notify_all_count_);
             }
 
             solid_statistic_inc(statistic_.push_count_);
@@ -425,16 +430,20 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
                 size_t push_commit_pos;
                 size_t count = 512;
 
+                pop_end_.wait_count_notify_.fetch_add(1);
+                pop_end_.wait_count_.fetch_add(1);
+
                 while (pos >= (push_commit_pos = pn->push_commit_pos_.load(std::memory_order_acquire)) && count--) {
                     std::this_thread::yield();
                 }
 
-                if (pos >= push_commit_pos) {
+                if (pos < push_commit_pos) {
+                    pop_end_.wait_count_.fetch_sub(1);
+                }else{
                     solid_dbg(workpool_logger, Verbose, this << " need to wait - pos = " << pos << " >= commit_pos = " << push_commit_pos);
                     //need to wait
                     std::unique_lock<std::mutex> lock(pop_end_.mutex_);
 
-                    pop_end_.wait_count_.fetch_add(1);
                     pop_end_.condition_.wait(
                         lock,
                         [pn, pos, &_running]() {
@@ -583,11 +592,11 @@ class WorkPool : NonCopyable {
 
         std::ostream& print(std::ostream& _ros) const override
         {
-            _ros << " max_worker_count_ = " << max_worker_count_;
-            _ros << " max_jobs_in_queue_ = " << max_jobs_in_queue_;
-            _ros << " max_jobs_on_thread_ = " << max_jobs_on_thread_;
-            _ros << " min_jobs_on_thread_ = " << min_jobs_on_thread_;
-            _ros << " wait_count_ = " << wait_count_;
+            _ros << " max_worker_count = " << max_worker_count_;
+            _ros << " max_jobs_in_queue = " << max_jobs_in_queue_;
+            _ros << " max_jobs_on_thread = " << max_jobs_on_thread_;
+            _ros << " min_jobs_on_thread = " << min_jobs_on_thread_;
+            _ros << " wait_count = " << wait_count_;
             return _ros;
         }
     } statistic_;

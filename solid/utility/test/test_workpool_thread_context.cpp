@@ -47,7 +47,7 @@ int test_workpool_thread_context(int argc, char* argv[])
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
 
-    int                 wait_seconds = 200;
+    int                 wait_seconds = 100;
     int                 loop_cnt     = 5;
     const size_t        cnt{5000000};
     std::atomic<size_t> val{0};
@@ -69,7 +69,6 @@ int test_workpool_thread_context(int argc, char* argv[])
                 pwp = &wp;
                 for (size_t i = 0; i < cnt; ++i) {
                     auto l = [i, &val](Context& _rctx) {
-                        //this_thread::sleep_for(std::chrono::seconds(2));
                         ++_rctx.count_;
                         val += i;
                     };
