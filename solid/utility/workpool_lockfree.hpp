@@ -360,7 +360,7 @@ size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, const size_t _max_queue_si
 #endif
             
             const size_t pop_wait_cnt = pop_end_.wait_count_.load();
-            const size_t pop_wait_cnt_notify = pop_end_.wait_count_notify_.load();
+            const size_t pop_wait_cnt_notify = pop_end_.wait_count_notify_.exchange(0);
 
             if (pop_wait_cnt != 0 && pop_wait_cnt_notify != 0) {
                 
