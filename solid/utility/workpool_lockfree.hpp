@@ -75,7 +75,6 @@ class Queue : NonCopyable {
     struct End {
         Node*                   pnode_;
         std::atomic<size_t>     wait_count_;
-        std::atomic<size_t>     wait_count_notify_;
         std::atomic_flag        spin_lock_;
         std::mutex              mutex_;
         std::condition_variable condition_;
@@ -83,7 +82,6 @@ class Queue : NonCopyable {
         End()
             : pnode_(nullptr)
             , wait_count_(0)
-            , wait_count_notify_(0)
         {
             spin_lock_.clear();
         }
@@ -360,9 +358,8 @@ size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, const size_t _max_queue_si
 #endif
             
             const size_t pop_wait_cnt = pop_end_.wait_count_.load();
-            const size_t pop_wait_cnt_notify = pop_end_.wait_count_notify_.exchange(0);
-
-            if (pop_wait_cnt != 0 && pop_wait_cnt_notify != 0) {
+            
+            if (pop_wait_cnt != 0) {
                 
                 solid_dbg(workpool_logger, Verbose, this << " pop_wait_cnt = " << pop_wait_cnt);
                 pop_end_.condition_.notify_all(); //see NOTE(*) below
@@ -408,7 +405,7 @@ size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, const size_t _max_queue_si
                 nodeRelease(pn, __LINE__);
             }
             if (do_notify_pop_end) {
-                {
+                if(0){
                     std::unique_lock<std::mutex> lock(pop_end_.mutex_);
                 }
                 pop_end_.condition_.notify_all(); //see NOTE(*) below
@@ -430,7 +427,6 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
                 size_t push_commit_pos;
                 size_t count = 512;
 
-                pop_end_.wait_count_notify_.fetch_add(1);
                 pop_end_.wait_count_.fetch_add(1);
 
                 while (pos >= (push_commit_pos = pn->push_commit_pos_.load(std::memory_order_acquire)) && count--) {
