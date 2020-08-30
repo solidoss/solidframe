@@ -12,11 +12,19 @@
 #include "solid/system/mutualstore.hpp"
 #include "solid/utility/algorithm.hpp"
 #include "solid/utility/common.hpp"
+#include "solid/utility/queue_lockfree.hpp"
 #include "solid/utility/string.hpp"
+#include "solid/utility/workpool.hpp"
 #include <mutex>
 #include <sstream>
 
 namespace solid {
+
+const LoggerT workpool_logger{"solid::workpool"};
+
+namespace lockfree {
+const LoggerT queue_logger{"solid::lockfree::queue"};
+}
 
 const uint8_t reverted_chars[] = {
     0x00, 0x80, 0x40, 0xC0, 0x20, 0xA0, 0x60, 0xE0, 0x10, 0x90,

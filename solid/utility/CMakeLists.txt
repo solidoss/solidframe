@@ -4,7 +4,6 @@ set(Sources
     src/ioformat.cpp
     src/any.cpp
     src/event.cpp
-    src/workpool.cpp
     src/super.cpp
 )
 
@@ -17,6 +16,7 @@ set(Headers
     ioformat.hpp
     memoryfile.hpp
     queue.hpp
+    queue_lockfree.hpp
     sharedmutex.hpp
     stack.hpp
     string.hpp

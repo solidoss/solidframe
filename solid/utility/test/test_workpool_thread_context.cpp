@@ -48,8 +48,8 @@ int test_workpool_thread_context(int argc, char* argv[])
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
 
     int                 wait_seconds = 100;
-    int                 loop_cnt     = 5;
-    const size_t        cnt{5000000};
+    int                 loop_cnt     = 2;
+    const size_t        cnt{500000};
     std::atomic<size_t> val{0};
     AtomicPWPT          pwp{nullptr};
     const size_t        v = ((cnt - 1) * cnt) / 2;
@@ -65,7 +65,7 @@ int test_workpool_thread_context(int argc, char* argv[])
                     WorkPoolConfiguration(), 0,
                     Context("simple text", 0UL)};
 
-                solid_log(generic_logger, Verbose, "wp started");
+                solid_log(logger, Verbose, "wp started");
                 pwp = &wp;
                 for (size_t i = 0; i < cnt; ++i) {
                     auto l = [i, &val](Context& _rctx) {
@@ -75,6 +75,7 @@ int test_workpool_thread_context(int argc, char* argv[])
                     wp.push(l);
                 };
                 pwp = nullptr;
+                solid_log(logger, Verbose, "completed all pushes - wating for workpool to terminate");
             }
             solid_log(logger, Verbose, "after loop");
             solid_check(v == val, "val = " << val << " v = " << v);
