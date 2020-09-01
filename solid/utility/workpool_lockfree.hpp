@@ -52,30 +52,10 @@ struct WorkerStub {
     
     WorkerStub():state_(StateE::Cancel){}
     
-//     bool notify()
-//     {
-//         StateE     expected = StateE::Wait;
-//         const auto notified = state_.compare_exchange_strong(expected, StateE::Notify,
-//             std::memory_order_release,
-//             std::memory_order_relaxed);
-//         if (notified) {
-//             cv_.notify_one();
-//         }
-//         return notified;
-//     }
-
     void wake()
     {
         cv_.notify_one();
     }
-
-//     bool cancel()
-//     {
-//         StateE expected = StateE::Wait;
-//         return state_.compare_exchange_strong(expected, StateE::Cancel,
-//             std::memory_order_release,
-//             std::memory_order_relaxed);
-//     }
 
     bool wait(std::mutex& _rmutex, std::atomic<bool>& _rrunning)
     {
@@ -92,8 +72,10 @@ struct WorkerStub {
         {
             std::unique_lock<std::mutex> lock{_rmutex};
             cv_.wait(lock, [&_rrunning, this]() { return state_.load() != StateE::Wait || !_rrunning; });
+            //solid_check(state_.load() == WorkerStub::StateE::Notify, "expect state not Notify but: "<<static_cast<int>(state_.load()));
         }
-
+        
+        //NOTE: no push should happen after _rrunning is set to false
         return _rrunning;
     }
 };
@@ -155,6 +137,7 @@ class WorkPool : NonCopyable {
     std::atomic<WorkerStub*> worker_head_;
     WorkerStub*              pregistered_worker_front_ = nullptr;
     WorkerStub*              pregistered_worker_back_  = nullptr;
+    std::atomic<int>         worker_q_size_;
 #ifdef SOLID_HAS_STATISTICS
     struct Statistic : solid::Statistic {
         std::atomic<size_t>   max_worker_count_;
@@ -192,6 +175,7 @@ public:
         , running_(false)
         , thr_cnt_(0)
         , worker_head_{nullptr}
+        , worker_q_size_{0}
     {
     }
 
@@ -447,7 +431,9 @@ bool WorkPool<Job, QNBits>::doJobPop(WorkerStub& _rws, Job& _rjob)
     while (!job_q_ptr_->pop(_rjob)) {
         if (_rws.wait(job_mtx_, running_)) {
             solid_dbg(workpool_logger, Verbose, "push_worker: "<<&_rws <<" state = "<<static_cast<int>(_rws.state_.load()));
-            _rws.state_.store(WorkerStub::StateE::Wait);
+            //_rws.state_.store(WorkerStub::StateE::Wait);
+            auto expect_state = WorkerStub::StateE::Notify;
+            solid_check(_rws.state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Wait), "expect state not Notify, but: "<<static_cast<int>(expect_state));
             doWorkerPush(_rws);
             continue;
         } else if(job_q_ptr_->pop(_rjob)){
@@ -502,6 +488,8 @@ bool WorkPool<Job, QNBits>::doJobPop(WorkerStub& _rws, Job& _rjob)
 template <typename Job, size_t QNBits>
 void WorkPool<Job, QNBits>::doWorkerPush(WorkerStub& _rws)
 {
+    solid_check(worker_q_size_.fetch_add(1) < config_.max_worker_count_);
+    //solid_dbg(workpool_logger, Warning, &_rws);
     _rws.pnext_ = worker_head_.load(std::memory_order_relaxed);
 
     while (!worker_head_.compare_exchange_weak(_rws.pnext_, &_rws/*,
@@ -517,6 +505,9 @@ bool WorkPool<Job, QNBits>::doWorkerPop(WorkerStub*& _rpws)
     while (pold_head && !worker_head_.compare_exchange_strong(pold_head, pold_head->pnext_/*, std::memory_order_acquire, std::memory_order_relaxed*/))
         ;
     _rpws = pold_head;
+    if(pold_head){
+        solid_check(worker_q_size_.fetch_sub(1) >= 1);
+    }
     return pold_head != nullptr;
 }
 //-----------------------------------------------------------------------------

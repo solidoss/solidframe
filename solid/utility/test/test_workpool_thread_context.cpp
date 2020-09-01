@@ -48,7 +48,7 @@ int test_workpool_thread_context(int argc, char* argv[])
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
 
     int                 wait_seconds = 100;
-    int                 loop_cnt     = 2;
+    int                 loop_cnt     = 1;
     const size_t        cnt{500000};
     std::atomic<size_t> val{0};
     AtomicPWPT          pwp{nullptr};
