@@ -371,8 +371,8 @@ bool Queue<T, NBits>::pop(T& _rt)
         Node*        pn  = popNodeAquire();
         size_t       pos = pn->pop_pos_.load();
         bool         valid;
-        while((valid = (pos < pn->push_commit_pos_.load(std::memory_order_acquire)))){
-            if(pn->pop_pos_.compare_exchange_strong(pos, pos + 1)){
+        while((valid = (pos < pn->push_commit_pos_.load(/*std::memory_order_acquire*/)))){
+            if(pn->pop_pos_.compare_exchange_weak(pos, pos + 1)){
                 break;
             }
         }
@@ -393,13 +393,15 @@ bool Queue<T, NBits>::pop(T& _rt)
                 if (pop_end_.pnode_ == pn) {
                     //ABA cannot happen because pn is locked and cannot be in the empty stack
                     Node* ptmpn = pop_end_.nodeNext();
-                    solid_dbg(queue_logger, Verbose, this << " move to new node " << pn << " -> " << pn->next_.load());
+                    solid_dbg(queue_logger, Warning, this << " move to new node " << pn << " -> " << pn->next_.load());
                     solid_check_log(ptmpn == pn, queue_logger, ptmpn << " != " << pn);
                     nodeRelease(ptmpn, __LINE__);
                 }
             }
             nodeRelease(pn, __LINE__);
             continue;
+        }else{
+            solid_dbg(queue_logger, Warning, this << " nothing to pop "<<pn<<" "<<size_<<" "<<pos<<" "<<pn->push_commit_pos_);
         }
         
         nodeRelease(pn, __LINE__);
