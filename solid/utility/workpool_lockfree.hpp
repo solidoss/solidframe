@@ -64,7 +64,7 @@ struct WorkerStub {
     {
         size_t count = 64;
         StateE state;
-        while ((state = state_.load(/*std::memory_order_acquire*/)) != StateE::Wait && count--) {
+        while ((state = state_.load(/*std::memory_order_acquire*/)) == StateE::Wait && count--) {
             std::this_thread::yield();
         }
 
@@ -274,6 +274,8 @@ private:
 
     void doWorkerPush(WorkerStub& _rws, const size_t _thr_id);
     bool doWorkerPop(WorkerStub*& _rpws);
+    
+    bool doWorkerWake(WorkerStub *_pws = nullptr);
 
     void doRegisterWorker(WorkerStub& _rws, const size_t _thr_id);
     void doUnregisterWorker(WorkerStub& _rws, const size_t _thr_id);
@@ -367,6 +369,44 @@ bool WorkPool<Job, QNBits>::tryPush(JT&& _jb)
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits>
+bool WorkPool<Job, QNBits>::doWorkerWake(WorkerStub *_pws){
+    WorkerStub* pworker_stub;
+    while (doWorkerPop(pworker_stub)) {
+        //solid_dbg(workpool_logger, Verbose, "pop_worker: "<<pworker_stub);
+        //pworker_stub valid states: Wait, WaitCancel
+        bool do_break = true;
+        size_t count = 0;
+        while(true){
+            ++count;
+            if(pworker_stub != _pws){
+            }else{
+                continue;
+            }
+            auto expect_state = WorkerStub::StateE::Wait;
+            if(pworker_stub->state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Notify)){
+                solid_dbg(workpool_logger, Verbose, "wake worker");
+                std::lock_guard<std::mutex> lock(job_mtx_);
+                pworker_stub->wake();
+                return true;
+            }else{
+                solid_assert_logx(expect_state == WorkerStub::StateE::WaitCancel, workpool_logger, "expect state not WaitCancel but: "<<static_cast<int>(expect_state)<< " count "<<count);
+                if(pworker_stub->state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Cancel)){
+                    solid_dbg(workpool_logger, Warning, "worker canceled");
+                    do_break = false;
+                    break;
+                }else{
+                    solid_assert_logx(expect_state == WorkerStub::StateE::Wait, workpool_logger, "expect state not Wait but: "<<static_cast<int>(expect_state)<< " count "<<count);
+                    solid_dbg(workpool_logger, Warning, "force notify: "<<pworker_stub<< " count "<<count);
+                    continue;//try wake another thread
+                }
+            }
+        }
+        if(do_break) break;
+    }
+    return false;
+}
+//-----------------------------------------------------------------------------
+template <typename Job, size_t QNBits>
 template <class JT>
 size_t WorkPool<Job, QNBits>::doJobPush(const JT& _rj, const bool _wait)
 {
@@ -374,35 +414,15 @@ size_t WorkPool<Job, QNBits>::doJobPush(const JT& _rj, const bool _wait)
 
     if (sz != InvalidSize()) {
         ++push_count_;
-        WorkerStub* pworker_stub;
-        while (doWorkerPop(pworker_stub)) {
-            solid_dbg(workpool_logger, Verbose, "pop_worker: "<<pworker_stub);
-            //pworker_stub valid states: Wait, WaitCancel
-            bool do_break = true;
+        if(doWorkerWake()){
             
-            while(true){
-                auto expect_state = WorkerStub::StateE::Wait;
-                if(pworker_stub->state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Notify)){
-                    std::lock_guard<std::mutex> lock(job_mtx_);
-                    pworker_stub->wake();
-                    break;
-                }else{
-                    solid_assert_logx(expect_state == WorkerStub::StateE::WaitCancel, workpool_logger, "expect state not Cancel but: "<<static_cast<int>(expect_state));
-                    if(pworker_stub->state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Cancel)){
-                        do_break = false;
-                        break;
-                    }else{
-                        solid_assert_logx(expect_state == WorkerStub::StateE::Wait, workpool_logger, "expect state not Wait but: "<<static_cast<int>(expect_state));
-                        solid_dbg(workpool_logger, Verbose, "force notify: "<<pworker_stub);
-                        continue;//try wake another thread
-                    }
-                }
-            }
-            if(do_break) break;
+        }else{
+            solid_dbg(workpool_logger, Warning, "no worker notified - "<<sz);
         }
     }
     return sz;
 }
+
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits>
 template <class JT>
@@ -412,34 +432,10 @@ size_t WorkPool<Job, QNBits>::doJobPush(JT&& _rj, const bool _wait)
 
     if (sz != InvalidSize()) {
         ++push_count_;
-        WorkerStub* pworker_stub;
-        while (doWorkerPop(pworker_stub)) {
-            //solid_dbg(workpool_logger, Verbose, "pop_worker: "<<pworker_stub);
-            //pworker_stub valid states: Wait, WaitCancel
-            bool do_break = true;
-            size_t count = 0;
-            while(true){
-                ++count;
-                auto expect_state = WorkerStub::StateE::Wait;
-                if(pworker_stub->state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Notify)){
-                    solid_dbg(workpool_logger, Verbose, "wake worker");
-                    std::lock_guard<std::mutex> lock(job_mtx_);
-                    pworker_stub->wake();
-                    break;
-                }else{
-                    solid_assert_logx(expect_state == WorkerStub::StateE::WaitCancel, workpool_logger, "expect state not WaitCancel but: "<<static_cast<int>(expect_state)<< " count "<<count);
-                    if(pworker_stub->state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Cancel)){
-                        solid_dbg(workpool_logger, Verbose, "worker canceled");
-                        do_break = false;
-                        break;
-                    }else{
-                        solid_assert_logx(expect_state == WorkerStub::StateE::Wait, workpool_logger, "expect state not Wait but: "<<static_cast<int>(expect_state)<< " count "<<count);
-                        solid_dbg(workpool_logger, Verbose, "force notify: "<<pworker_stub<< " count "<<count);
-                        continue;//try wake another thread
-                    }
-                }
-            }
-            if(do_break) break;
+        if(doWorkerWake()){
+            
+        }else{
+            solid_dbg(workpool_logger, Verbose, "no worker notified - "<<sz);
         }
     }
     return sz;
@@ -484,37 +480,7 @@ bool WorkPool<Job, QNBits>::doJobPop(WorkerStub& _rws, const size_t thr_id_, Job
     }else{
         solid_assert_logx(expect_state == WorkerStub::StateE::Notify, workpool_logger, "expect state not Notify but: "<<static_cast<int>(expect_state));
         _rws.state_.store(WorkerStub::StateE::Cancel);
-        WorkerStub* pworker_stub;
-        while (doWorkerPop(pworker_stub)) {
-            solid_dbg(workpool_logger, Verbose, "pop_worker: "<<pworker_stub);
-            if(pworker_stub == &_rws){
-                continue;
-            }
-            //pworker_stub valid states: Wait, WaitCancel
-            bool do_break = true;
-            size_t count = 0;
-            while(true){
-                ++count;
-                auto expect_state = WorkerStub::StateE::Wait;
-                if(pworker_stub->state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Notify)){
-                    pworker_stub->wake();
-                    break;
-                }else{
-                    //solid_check(expect_state == WorkerStub::StateE::WaitCancel, "expect state not Cancel but: "<<static_cast<int>(expect_state));
-                    solid_assert_logx(expect_state == WorkerStub::StateE::WaitCancel, workpool_logger, "expect state not Cancel but: "<<static_cast<int>(expect_state));
-                    if(pworker_stub->state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Cancel)){
-                        do_break = false;
-                        break;
-                    }else{
-                        //solid_check(expect_state == WorkerStub::StateE::Wait, "expect state not Wait but: "<<static_cast<int>(expect_state));
-                        solid_assert_logx(expect_state == WorkerStub::StateE::Wait, workpool_logger, "expect state not Wait but: "<<static_cast<int>(expect_state)<< " count "<<count);
-                        solid_dbg(workpool_logger, Verbose, "force notify: "<<pworker_stub<< " count "<<count);
-                        continue;//try wake another thread
-                    }
-                }
-            }
-            if(do_break) break;
-        }
+        doWorkerWake(&_rws);
     }
 
     return true;

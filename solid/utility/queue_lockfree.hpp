@@ -367,13 +367,18 @@ size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, std::integral_constant<boo
 template <class T, unsigned NBits>
 bool Queue<T, NBits>::pop(T& _rt)
 {
+    size_t loop_count = 0;
     do{
+        ++loop_count;
+        
         Node*        pn  = popNodeAquire();
         size_t       pos = pn->pop_pos_.load();
         bool         valid;
         while((valid = (pos < pn->push_commit_pos_.load(/*std::memory_order_acquire*/)))){
             if(pn->pop_pos_.compare_exchange_weak(pos, pos + 1)){
                 break;
+            }else{
+                solid_dbg(queue_logger, Warning, this << " pos = "<<pos);
             }
         }
         
@@ -393,15 +398,17 @@ bool Queue<T, NBits>::pop(T& _rt)
                 if (pop_end_.pnode_ == pn) {
                     //ABA cannot happen because pn is locked and cannot be in the empty stack
                     Node* ptmpn = pop_end_.nodeNext();
-                    solid_dbg(queue_logger, Warning, this << " move to new node " << pn << " -> " << pn->next_.load());
+                    solid_dbg(queue_logger, Warning, this << " move to new node " << pn << " -> " << pn->next_.load()<<" "<<pos<<" "<<pn->push_commit_pos_<< " "<<loop_count);
                     solid_check_log(ptmpn == pn, queue_logger, ptmpn << " != " << pn);
                     nodeRelease(ptmpn, __LINE__);
                 }
+                nodeRelease(pn, __LINE__);
+                continue;
+            }else{
+                solid_dbg(queue_logger, Warning, this << " nothing to pop "<<pn<<" "<<size_<<" "<<pos<<" "<<pn->push_commit_pos_<<" "<<loop_count);
             }
-            nodeRelease(pn, __LINE__);
-            continue;
         }else{
-            solid_dbg(queue_logger, Warning, this << " nothing to pop "<<pn<<" "<<size_<<" "<<pos<<" "<<pn->push_commit_pos_);
+            solid_dbg(queue_logger, Warning, this << " nothing to pop "<<pn<<" "<<size_<<" "<<pos<<" "<<pn->push_commit_pos_<<" "<<loop_count);
         }
         
         nodeRelease(pn, __LINE__);
