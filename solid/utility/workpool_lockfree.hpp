@@ -291,14 +291,16 @@ template <typename Job, size_t QNBits>
 template <class JT>
 void WorkPool<Job, QNBits>::push(const JT& _jb)
 {
+    solid_check(running_.load(std::memory_order_relaxed));
     const size_t qsz     = doJobPush(_jb);
     const size_t thr_cnt = thr_cnt_.load();
 
     if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
         std::lock_guard<std::mutex> lock(thr_mtx_);
+        solid_check(running_.load(std::memory_order_relaxed));
         if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
-            thr_vec_.emplace_back(worker_factory_fnc_(thr_vec_.size()));
             ++thr_cnt_;
+            thr_vec_.emplace_back(worker_factory_fnc_(thr_vec_.size()));
             solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
         }
     }
@@ -309,14 +311,16 @@ template <typename Job, size_t QNBits>
 template <class JT>
 void WorkPool<Job, QNBits>::push(JT&& _jb)
 {
+    solid_check(running_.load(std::memory_order_relaxed));
     const size_t qsz     = doJobPush(std::move(_jb));
     const size_t thr_cnt = thr_cnt_.load();
 
     if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
         std::lock_guard<std::mutex> lock(thr_mtx_);
+        solid_check(running_.load(std::memory_order_relaxed));
         if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
-            thr_vec_.emplace_back(worker_factory_fnc_(thr_vec_.size()));
             ++thr_cnt_;
+            thr_vec_.emplace_back(worker_factory_fnc_(thr_vec_.size()));
             solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
         }
     }
@@ -327,15 +331,17 @@ template <typename Job, size_t QNBits>
 template <class JT>
 bool WorkPool<Job, QNBits>::tryPush(const JT& _jb)
 {
+    solid_check(running_.load(std::memory_order_relaxed));
     const size_t qsz     = doJobPush(_jb, false /*wait*/);
     const size_t thr_cnt = thr_cnt_.load();
 
     if (qsz != InvalidSize()) {
         if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
             std::lock_guard<std::mutex> lock(thr_mtx_);
+            solid_check(running_.load(std::memory_order_relaxed));
             if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
-                thr_vec_.emplace_back(worker_factory_fnc_(thr_vec_.size()));
                 ++thr_cnt_;
+                thr_vec_.emplace_back(worker_factory_fnc_(thr_vec_.size()));
                 solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
             }
         }
@@ -350,15 +356,17 @@ template <typename Job, size_t QNBits>
 template <class JT>
 bool WorkPool<Job, QNBits>::tryPush(JT&& _jb)
 {
+    solid_check(running_.load(std::memory_order_relaxed));
     const size_t qsz     = doJobPush(std::move(_jb), false /*wait*/);
     const size_t thr_cnt = thr_cnt_.load();
 
     if (qsz != InvalidSize()) {
         if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
             std::lock_guard<std::mutex> lock(thr_mtx_);
+            solid_check(running_.load(std::memory_order_relaxed));
             if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
-                thr_vec_.emplace_back(worker_factory_fnc_(thr_vec_.size()));
                 ++thr_cnt_;
+                thr_vec_.emplace_back(worker_factory_fnc_(thr_vec_.size()));
                 solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
             }
         }

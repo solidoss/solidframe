@@ -10,6 +10,7 @@
 #include "solid/utility/workpool.hpp"
 
 #include <future>
+#include <thread>
 #include <iostream>
 
 using namespace std;
@@ -18,6 +19,7 @@ using namespace solid;
 namespace {
 
 using AtomicSizeT = atomic<size_t>;
+using AtomicSSizeT = atomic<ssize_t>;
 
 struct AccountContext;
 struct ConnectionContext;
@@ -28,7 +30,7 @@ using ConnectionCallPoolT = CallPool<void(ConnectionContext&)>;
 using DeviceCallPoolT     = CallPool<void(DeviceContext&&)>;
 
 struct ConnectionContext {
-    AtomicSizeT       conn_cnt_;
+    AtomicSSizeT       conn_cnt_;
     AccountCallPoolT& racc_cp_;
     promise<void>&    rprom_;
     ConnectionContext(AccountCallPoolT& _racc_cp, promise<void>& _rprom)
@@ -69,6 +71,7 @@ void AccountContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat
 {
     rconn_cp_.push(
         [_acc, _acc_con, _repeat_count](ConnectionContext& _rctx) mutable {
+            solid_assert(_repeat_count > 0);
             --_repeat_count;
             if (_repeat_count) {
                 _rctx.pushConnection(_acc, _acc_con, _repeat_count);
@@ -96,12 +99,19 @@ void DeviceContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat_
 {
     rconn_cp_.push(
         [_acc, _acc_con, _repeat_count](ConnectionContext& _rctx) mutable {
+            solid_assert(_repeat_count > 0);
             --_repeat_count;
             if (_repeat_count) {
+                if(_rctx.conn_cnt_ <= 0){
+                    solid_dbg(workpool_logger, Warning, "OVERPUSH "<<_acc<<' '<<_acc_con<<' ' <<_repeat_count);
+                }
                 _rctx.pushConnection(_acc, _acc_con, _repeat_count);
             } else if (_rctx.conn_cnt_.fetch_sub(1) == 1) {
                 //last connection
                 _rctx.rprom_.set_value();
+                //solid_dbg(workpool_logger, Warning, "DONE - notify "<<_acc<<' '<<_acc_con<<' ' <<_repeat_count);
+            }else if(_rctx.conn_cnt_ < 0){
+                solid_dbg(workpool_logger, Warning, "DONE - notify "<<_acc<<' '<<_acc_con<<' ' <<_repeat_count);
             }
         });
 }
@@ -139,45 +149,59 @@ int test_event_stress_wp(int argc, char* argv[])
     (void)account_device_count;
 
     auto lambda = [&]() {
-        AtomicSizeT   connection_count(0);
-        promise<void> prom;
+        {
+            AtomicSizeT   connection_count(0);
+            promise<void> prom;
+            ConnectionCallPoolT connection_cp{};
+            DeviceCallPoolT     device_cp{};
+            AccountCallPoolT    account_cp{};
+            ConnectionContext   conn_ctx(account_cp, prom);
 
-        ConnectionCallPoolT connection_cp{};
-        DeviceCallPoolT     device_cp{};
-        AccountCallPoolT    account_cp{};
+            account_cp.start(WorkPoolConfiguration(), 1, AccountContext(connection_cp, device_cp));
+            connection_cp.start(WorkPoolConfiguration(), 1, std::ref(conn_ctx));
+            device_cp.start(WorkPoolConfiguration(), 1, DeviceContext(connection_cp));
 
-        ConnectionContext conn_ctx(account_cp, prom);
-
-        account_cp.start(WorkPoolConfiguration(), 1, AccountContext(connection_cp, device_cp));
-        connection_cp.start(WorkPoolConfiguration(), 1, std::ref(conn_ctx));
-        device_cp.start(WorkPoolConfiguration(), 1, DeviceContext(connection_cp));
-
-        conn_ctx.conn_cnt_ = account_connection_count * account_count;
-
-        for (size_t i = 0; i < account_count; ++i) {
-            auto lambda = [i, account_connection_count, repeat_count](AccountContext&& _rctx) {
-                for (size_t j = 0; j < account_connection_count; ++j) {
-                    _rctx.pushConnection(i, j, repeat_count);
+            conn_ctx.conn_cnt_ = account_connection_count * account_count;
+            auto lam = [&](){
+                for (size_t i = 0; i < account_count; ++i) {
+                    auto lambda = [i, account_connection_count, repeat_count](AccountContext&& _rctx) {
+                        for (size_t j = 0; j < account_connection_count; ++j) {
+                            _rctx.pushConnection(i, j, repeat_count);
+                        }
+                    };
+                    account_cp.push(lambda);
                 }
+                solid_dbg(workpool_logger, Statistic, "producer done");
             };
-            account_cp.push(lambda);
+            {
+                auto fut = async(launch::async, lam);
+                fut.wait();
+            }
+            {
+                auto fut = prom.get_future();
+                if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
+                    solid_dbg(workpool_logger, Statistic, "Connection pool:");
+                    connection_cp.dumpStatistics();
+                    solid_dbg(workpool_logger, Statistic, "Device pool:");
+                    device_cp.dumpStatistics();
+                    solid_dbg(workpool_logger, Statistic, "Account pool:");
+                    account_cp.dumpStatistics();
+                    //we must throw here otherwise it will crash because workpool(s) is/are used after destroy
+                    solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
+                }
+            }
+            //this_thread::sleep_for(chrono::milliseconds(100));
+            account_cp.stop();
+            device_cp.stop();
+            connection_cp.stop();
         }
-
-        if (prom.get_future().wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
-            solid_dbg(workpool_logger, Statistic, "Connection pool:");
-            connection_cp.dumpStatistics();
-            solid_dbg(workpool_logger, Statistic, "Device pool:");
-            device_cp.dumpStatistics();
-            solid_dbg(workpool_logger, Statistic, "Account pool:");
-            account_cp.dumpStatistics();
-            //we must throw here otherwise it will crash because workpool(s) is/are used after destroy
-            solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
-        }
+        int *p = new int[1000];
+        delete []p;
     };
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds + 10)) != future_status::ready) {
         solid_throw(" Test is taking too long - waited " << wait_seconds + 10 << " secs");
     }
-
+    
     return 0;
 }
