@@ -143,6 +143,7 @@ class WorkPool : NonCopyable {
     AtomicBoolT              running_;
     std::atomic<size_t>      thr_cnt_;
     size_t                   stopping_thr_cnt_ = 0;
+    size_t                   starting_thr_cnt_ = 0;
     WorkerFactoryT           worker_factory_fnc_;
     JobQueuePtrT             job_q_ptr_;
     ThreadVectorT            thr_vec_;
@@ -190,7 +191,7 @@ public:
         : config_()
         , running_(false)
         , thr_cnt_(0)
-        , worker_head_{0}
+        , worker_head_{static_cast<size_t>(InvalidIndex())}
         , push_count_{0}
         , pop_count_{0}
     {
@@ -205,7 +206,7 @@ public:
         : config_()
         , running_(false)
         , thr_cnt_(0)
-        , worker_head_{0}
+        , worker_head_{static_cast<size_t>(InvalidIndex())}
         , push_count_{0}
         , pop_count_{0}
     {
@@ -271,13 +272,13 @@ private:
         size_t                       _start_wkr_cnt,
         JobHandlerFnc                _job_handler_fnc,
         Args&&... _args);
-
+    
     void doWorkerPush(WorkerStub& _rws, const size_t _thr_id);
     bool doWorkerPop(WorkerStub*& _rpws);
     
     bool doWorkerWake(WorkerStub *_pws = nullptr);
 
-    void doRegisterWorker(WorkerStub& _rws, const size_t _thr_id);
+    bool doRegisterWorker(WorkerStub& _rws, const size_t _thr_id);
     void doUnregisterWorker(WorkerStub& _rws, const size_t _thr_id);
     
     WorkerStub& worker(const size_t _thr_id)const{
@@ -384,19 +385,19 @@ bool WorkPool<Job, QNBits>::doWorkerWake(WorkerStub *_pws){
             }
             auto expect_state = WorkerStub::StateE::Wait;
             if(pworker_stub->state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Notify)){
-                solid_dbg(workpool_logger, Verbose, "wake worker");
+                //solid_dbg(workpool_logger, Warning, "wake worker");
                 std::lock_guard<std::mutex> lock(job_mtx_);
                 pworker_stub->wake();
                 return true;
             }else{
                 solid_assert_logx(expect_state == WorkerStub::StateE::WaitCancel, workpool_logger, "expect state not WaitCancel but: "<<static_cast<int>(expect_state)<< " count "<<count);
                 if(pworker_stub->state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Cancel)){
-                    solid_dbg(workpool_logger, Warning, "worker canceled");
+                    //solid_dbg(workpool_logger, Warning, "worker canceled");
                     do_break = false;
                     break;
                 }else{
                     solid_assert_logx(expect_state == WorkerStub::StateE::Wait, workpool_logger, "expect state not Wait but: "<<static_cast<int>(expect_state)<< " count "<<count);
-                    solid_dbg(workpool_logger, Warning, "force notify: "<<pworker_stub<< " count "<<count);
+                    //solid_dbg(workpool_logger, Warning, "force notify: "<<pworker_stub<< " count "<<count);
                     continue;//try wake another thread
                 }
             }
@@ -417,7 +418,7 @@ size_t WorkPool<Job, QNBits>::doJobPush(const JT& _rj, const bool _wait)
         if(doWorkerWake()){
             
         }else{
-            solid_dbg(workpool_logger, Warning, "no worker notified - "<<sz);
+            //solid_dbg(workpool_logger, Verbose, "no worker notified - "<<sz);
         }
     }
     return sz;
@@ -435,7 +436,7 @@ size_t WorkPool<Job, QNBits>::doJobPush(JT&& _rj, const bool _wait)
         if(doWorkerWake()){
             
         }else{
-            solid_dbg(workpool_logger, Verbose, "no worker notified - "<<sz);
+            //solid_dbg(workpool_logger, Verbose, "no worker notified - "<<sz);
         }
     }
     return sz;
@@ -446,16 +447,19 @@ bool WorkPool<Job, QNBits>::doJobPop(WorkerStub& _rws, const size_t thr_id_, Job
 {
     //_rws valid states: Cancel, WaitCancel
     auto expect_state = WorkerStub::StateE::WaitCancel;
+    //bool did_push = true;
     if(_rws.state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Wait)){
+        //did_push = false;
     }else{
         solid_assert_logx(expect_state == WorkerStub::StateE::Cancel, workpool_logger, "expect state not Cancel but: "<<static_cast<int>(expect_state));
         _rws.state_.store(WorkerStub::StateE::Wait);
-        solid_dbg(workpool_logger, Verbose, "push_worker: "<<&_rws);
+        //solid_dbg(workpool_logger, Verbose, "push_worker: "<<&_rws);
         doWorkerPush(_rws, thr_id_);
     }
-
+    size_t loop_count = 0;
     while (!job_q_ptr_->pop(_rjob)) {
-        solid_dbg(workpool_logger, Warning, "worker wait "<<pop_count_<<" "<<push_count_);
+        //solid_dbg(workpool_logger, Warning, "worker wait "<<pop_count_<<" "<<push_count_<<' '<<did_push<<' '<<loop_count);
+        ++loop_count;
         if (_rws.wait(job_mtx_, running_)) {
             //solid_dbg(workpool_logger, Verbose, "push_worker: "<<&_rws <<" state = "<<static_cast<int>(_rws.state_.load()));
             //_rws.state_.store(WorkerStub::StateE::Wait);
@@ -467,7 +471,7 @@ bool WorkPool<Job, QNBits>::doJobPop(WorkerStub& _rws, const size_t thr_id_, Job
         } else if(job_q_ptr_->pop(_rjob)){
             break;
         }else{
-            solid_dbg(workpool_logger, Warning, this << " no more waiting");
+            //solid_dbg(workpool_logger, Warning, this << " no more waiting");
             return false;
         }
     }
@@ -480,7 +484,12 @@ bool WorkPool<Job, QNBits>::doJobPop(WorkerStub& _rws, const size_t thr_id_, Job
     }else{
         solid_assert_logx(expect_state == WorkerStub::StateE::Notify, workpool_logger, "expect state not Notify but: "<<static_cast<int>(expect_state));
         _rws.state_.store(WorkerStub::StateE::Cancel);
-        doWorkerWake(&_rws);
+        //solid_dbg(workpool_logger, Warning, "already notified");
+        if(doWorkerWake(&_rws)){
+            
+        }else{
+            //solid_dbg(workpool_logger, Warning, "no worker notified!");
+        }
     }
 
     return true;
@@ -489,10 +498,10 @@ bool WorkPool<Job, QNBits>::doJobPop(WorkerStub& _rws, const size_t thr_id_, Job
 template <typename Job, size_t QNBits>
 void WorkPool<Job, QNBits>::doWorkerPush(WorkerStub& _rws, const size_t _thr_id)
 {
-    bool expect = false;
-    const bool stacked_ok = _rws.stacked_.compare_exchange_strong(expect, true);
-    solid_assert_log(stacked_ok, workpool_logger);
-    ((void)stacked_ok);
+    //bool expect = false;
+    //const bool stacked_ok = _rws.stacked_.compare_exchange_strong(expect, true);
+    //solid_assert_log(stacked_ok, workpool_logger);
+    //((void)stacked_ok);
     
     const size_t aba_id = _rws.abaId(_thr_id);
     _rws.next_ = worker_head_.load(std::memory_order_relaxed);
@@ -507,19 +516,19 @@ template <typename Job, size_t QNBits>
 bool WorkPool<Job, QNBits>::doWorkerPop(WorkerStub*& _rpws)
 {
     size_t old_head = worker_head_.load();
-    while (old_head && !worker_head_.compare_exchange_weak(old_head, worker(WorkerStub::thrId(old_head)).next_/*, std::memory_order_acquire, std::memory_order_relaxed*/))
+    while (old_head != InvalidIndex() && !worker_head_.compare_exchange_weak(old_head, worker(WorkerStub::thrId(old_head)).next_/*, std::memory_order_acquire, std::memory_order_relaxed*/))
         ;
     
-    if(old_head){
+    if(old_head != InvalidIndex()){
         _rpws = &worker(WorkerStub::thrId(old_head));
-        bool expect = true;
-        const bool stacked_ok = _rpws->stacked_.compare_exchange_strong(expect, false);
-        if(stacked_ok){
-            _rpws->pop_thr_id_ = std::this_thread::get_id();
-            _rpws->pop_count_ = _rpws->pop_counter_.fetch_add(1);
-        }
-        solid_assert_logx(stacked_ok, workpool_logger, "last pop thr "<<_rpws->pop_thr_id_<<" vs "<<std::this_thread::get_id()<<" "<<_rpws->pop_count_<<" vs "<<_rpws->pop_counter_);
-        ((void)stacked_ok);
+        //bool expect = true;
+        //const bool stacked_ok = _rpws->stacked_.compare_exchange_strong(expect, false);
+        //if(stacked_ok){
+        //    _rpws->pop_thr_id_ = std::this_thread::get_id();
+        //    _rpws->pop_count_ = _rpws->pop_counter_.fetch_add(1);
+        //}
+        //solid_assert_logx(stacked_ok, workpool_logger, "last pop thr "<<_rpws->pop_thr_id_<<" vs "<<std::this_thread::get_id()<<" "<<_rpws->pop_count_<<" vs "<<_rpws->pop_counter_);
+        //((void)stacked_ok);
         return true;
     }else{
         _rpws = nullptr;
@@ -540,7 +549,9 @@ void WorkPool<Job, QNBits>::doStop()
         std::unique_lock<std::mutex> lock(thr_mtx_);
 
         for (auto& t : thr_vec_) {
-            t.pworker_->wake();
+            if(t.pworker_){
+                t.pworker_->wake();
+            }
         }
         
         thr_cnd_.wait(lock, [this](){return thr_cnt_ == 0;});
@@ -576,7 +587,7 @@ void WorkPool<Job, QNBits>::doStart(
                 uint64_t   job_count = 0;
                 Job        job;
                 WorkerStub stub;
-                doRegisterWorker(stub, _id);
+                if(!doRegisterWorker(stub, _id)) return;
 
                 while (doJobPop(stub, _id, job)) {
                     _job_handler_fnc(job, std::forward<Args>(_args)...);
@@ -613,6 +624,7 @@ void WorkPool<Job, QNBits>::doStart(
                 thr_vec_.emplace_back(worker_factory_fnc_(thr_vec_.size()));
                 solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
             }
+            thr_cnd_.wait(lock, [this](){return thr_cnt_ == starting_thr_cnt_;});
         }
     }
 }
@@ -629,10 +641,21 @@ void WorkPool<Job, QNBits>::dumpStatistics(const bool _dump_queue_too) const
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits>
-void WorkPool<Job, QNBits>::doRegisterWorker(WorkerStub& _rws, const size_t _thr_id)
+bool WorkPool<Job, QNBits>::doRegisterWorker(WorkerStub& _rws, const size_t _thr_id)
 {
     std::unique_lock<std::mutex> lock(thr_mtx_);
-    thr_vec_[_thr_id].pworker_ = &_rws;
+    if(running_){
+        thr_vec_[_thr_id].pworker_ = &_rws;
+        ++starting_thr_cnt_;
+        if(starting_thr_cnt_ == thr_cnt_){
+            thr_cnd_.notify_all();
+        }
+        return true;
+    }
+    if(thr_cnt_.fetch_sub(1) == 1){
+        thr_cnd_.notify_all();
+    }
+    return false;
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits>

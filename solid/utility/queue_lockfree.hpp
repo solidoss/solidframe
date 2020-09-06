@@ -335,6 +335,7 @@ size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, std::integral_constant<boo
 
             if (size_.load() >= max_size_) {
                 if (_wait) {
+                    solid_dbg(queue_logger, Warning, this << "wait qsz = "<<size_.load());
                     push_end_.wait_count_.fetch_add(1);
                     push_end_.condition_.wait(lock, [this]() { return size_.load() < max_size_; });
                     push_end_.wait_count_.fetch_sub(1);
@@ -377,8 +378,6 @@ bool Queue<T, NBits>::pop(T& _rt)
         while((valid = (pos < pn->push_commit_pos_.load(/*std::memory_order_acquire*/)))){
             if(pn->pop_pos_.compare_exchange_weak(pos, pos + 1)){
                 break;
-            }else{
-                solid_dbg(queue_logger, Warning, this << " pos = "<<pos);
             }
         }
         
@@ -388,8 +387,9 @@ bool Queue<T, NBits>::pop(T& _rt)
             _rt = std::move(pn->item(pos));
             
             const size_t qsz = size_.fetch_sub(1);
-            
             if(qsz == max_size_){
+                solid_dbg(queue_logger, Warning, this << " qsz = "<<qsz);
+                std::unique_lock<std::mutex> lock(push_end_.mutex_);
                 push_end_.condition_.notify_all();
             }
         }else if(pos == node_size){
@@ -398,18 +398,18 @@ bool Queue<T, NBits>::pop(T& _rt)
                 if (pop_end_.pnode_ == pn) {
                     //ABA cannot happen because pn is locked and cannot be in the empty stack
                     Node* ptmpn = pop_end_.nodeNext();
-                    solid_dbg(queue_logger, Warning, this << " move to new node " << pn << " -> " << pn->next_.load()<<" "<<pos<<" "<<pn->push_commit_pos_<< " "<<loop_count);
+                    //solid_dbg(queue_logger, Verbose, this << " move to new node " << pn << " -> " << pn->next_.load()<<" "<<pos<<" "<<pn->push_commit_pos_<< " "<<loop_count);
                     solid_check_log(ptmpn == pn, queue_logger, ptmpn << " != " << pn);
                     nodeRelease(ptmpn, __LINE__);
                 }
                 nodeRelease(pn, __LINE__);
                 continue;
-            }else{
-                solid_dbg(queue_logger, Warning, this << " nothing to pop "<<pn<<" "<<size_<<" "<<pos<<" "<<pn->push_commit_pos_<<" "<<loop_count);
-            }
-        }else{
-            solid_dbg(queue_logger, Warning, this << " nothing to pop "<<pn<<" "<<size_<<" "<<pos<<" "<<pn->push_commit_pos_<<" "<<loop_count);
-        }
+            }/*else{
+                solid_dbg(queue_logger, Verbose, this << " nothing to pop "<<pn<<" "<<size_<<" "<<pos<<" "<<pn->push_commit_pos_<<" "<<loop_count);
+            }*/
+        }/*else{
+            solid_dbg(queue_logger, Verbose, this << " nothing to pop "<<pn<<" "<<size_<<" "<<pos<<" "<<pn->push_commit_pos_<<" "<<loop_count);
+        }*/
         
         nodeRelease(pn, __LINE__);
         return valid;
