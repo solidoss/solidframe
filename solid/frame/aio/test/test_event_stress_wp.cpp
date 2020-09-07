@@ -180,7 +180,7 @@ int test_event_stress_wp(int argc, char* argv[])
     size_t account_connection_count = 10;
     size_t account_device_count     = 20;
     size_t repeat_count             = 40;
-    int    wait_seconds             = 100;
+    int    wait_seconds             = 200;
 
     if (argc > 1) {
         repeat_count = make_number(argv[1]);
@@ -249,11 +249,15 @@ int test_event_stress_wp(int argc, char* argv[])
                     solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
                 }
             }
+            solid_dbg(workpool_logger, Statistic, "connections done");
             //this_thread::sleep_for(chrono::milliseconds(100));
             gctx.stopping_ = true;
             conn_ctx.wait();
+            solid_dbg(workpool_logger, Statistic, "conn_ctx done");
             acc_ctx.wait();
+            solid_dbg(workpool_logger, Statistic, "acc_ctx done");
             dev_ctx.wait();
+            solid_dbg(workpool_logger, Statistic, "dev_ctx done");
         }
         int* p = new int[1000];
         delete[] p;
