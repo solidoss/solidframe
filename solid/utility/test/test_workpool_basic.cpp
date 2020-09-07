@@ -23,7 +23,7 @@ int test_workpool_basic(int argc, char* argv[])
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
 
-    const int           wait_seconds = 100;
+    const int           wait_seconds = 150;
     int                 loop_cnt     = 5;
     const size_t        cnt{5000000};
     const size_t        v = (((cnt - 1) * cnt)) / 2;
