@@ -10,31 +10,69 @@
 #include "solid/utility/workpool.hpp"
 
 #include <future>
-#include <thread>
 #include <iostream>
+#include <thread>
 
 using namespace std;
 using namespace solid;
 
 namespace {
 
-using AtomicSizeT = atomic<size_t>;
+using AtomicSizeT  = atomic<size_t>;
 using AtomicSSizeT = atomic<ssize_t>;
 
 struct AccountContext;
 struct ConnectionContext;
 struct DeviceContext;
 
-using AccountCallPoolT    = CallPool<void(AccountContext&&)>;
+using AccountCallPoolT    = CallPool<void(AccountContext&)>;
 using ConnectionCallPoolT = CallPool<void(ConnectionContext&)>;
-using DeviceCallPoolT     = CallPool<void(DeviceContext&&)>;
+using DeviceCallPoolT     = CallPool<void(DeviceContext&)>;
 
-struct ConnectionContext {
-    AtomicSSizeT       conn_cnt_;
+struct GlobalContext {
+    atomic<bool>       stopping_;
+    mutex              mtx_;
+    condition_variable cnd_;
+};
+
+struct Context {
+    AtomicSizeT    use_count_;
+    GlobalContext& rgctx_;
+
+    Context(GlobalContext& _rgctx)
+        : use_count_(0)
+        , rgctx_(_rgctx)
+    {
+    }
+
+    void enter()
+    {
+        ++use_count_;
+    }
+
+    void exit()
+    {
+        if (use_count_.fetch_sub(1) == 1 && rgctx_.stopping_) {
+            lock_guard<mutex> lock(rgctx_.mtx_);
+            rgctx_.cnd_.notify_one();
+        }
+    }
+
+    void wait()
+    {
+        solid_check(rgctx_.stopping_);
+        unique_lock<mutex> lock(rgctx_.mtx_);
+        rgctx_.cnd_.wait(lock, [this]() { return use_count_ == 0; });
+    }
+};
+
+struct ConnectionContext : Context {
+    AtomicSSizeT      conn_cnt_;
     AccountCallPoolT& racc_cp_;
     promise<void>&    rprom_;
-    ConnectionContext(AccountCallPoolT& _racc_cp, promise<void>& _rprom)
-        : conn_cnt_(0)
+    ConnectionContext(GlobalContext& _rgctx, AccountCallPoolT& _racc_cp, promise<void>& _rprom)
+        : Context(_rgctx)
+        , conn_cnt_(0)
         , racc_cp_(_racc_cp)
         , rprom_(_rprom)
     {
@@ -43,12 +81,13 @@ struct ConnectionContext {
     void pushConnection(size_t _acc, size_t _acc_con, size_t _repeat_count);
 };
 
-struct AccountContext {
+struct AccountContext : Context {
     ConnectionCallPoolT& rconn_cp_;
     DeviceCallPoolT&     rdev_cp_;
 
-    AccountContext(ConnectionCallPoolT& _rconn_cp, DeviceCallPoolT& _rdev_cp)
-        : rconn_cp_(_rconn_cp)
+    AccountContext(GlobalContext& _rgctx, ConnectionCallPoolT& _rconn_cp, DeviceCallPoolT& _rdev_cp)
+        : Context(_rgctx)
+        , rconn_cp_(_rconn_cp)
         , rdev_cp_(_rdev_cp)
     {
     }
@@ -57,10 +96,11 @@ struct AccountContext {
     void pushConnectionToDevice(size_t _acc, size_t _acc_con, size_t _repeat_count);
 };
 
-struct DeviceContext {
+struct DeviceContext : Context {
     ConnectionCallPoolT& rconn_cp_;
-    DeviceContext(ConnectionCallPoolT& _rconn_cp)
-        : rconn_cp_(_rconn_cp)
+    DeviceContext(GlobalContext& _rgctx, ConnectionCallPoolT& _rconn_cp)
+        : Context(_rgctx)
+        , rconn_cp_(_rconn_cp)
     {
     }
 
@@ -69,53 +109,65 @@ struct DeviceContext {
 
 void AccountContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat_count)
 {
+    enter();
     rconn_cp_.push(
         [_acc, _acc_con, _repeat_count](ConnectionContext& _rctx) mutable {
-            solid_assert(_repeat_count > 0);
+            solid_assert(_repeat_count > 0 && _repeat_count < 1000000);
             --_repeat_count;
             if (_repeat_count) {
                 _rctx.pushConnection(_acc, _acc_con, _repeat_count);
             }
         });
+    exit();
 }
 
 void AccountContext::pushConnectionToDevice(size_t _acc, size_t _acc_con, size_t _repeat_count)
 {
+    enter();
     rdev_cp_.push(
-        [_acc, _acc_con, _repeat_count](DeviceContext&& _rctx) mutable {
+        [_acc, _acc_con, _repeat_count](DeviceContext& _rctx) mutable {
             _rctx.pushConnection(_acc, _acc_con, _repeat_count);
         });
+    exit();
 }
 
 void ConnectionContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat_count)
 {
+    enter();
     racc_cp_.push(
-        [_acc, _acc_con, _repeat_count](AccountContext&& _rctx) mutable {
+        [_acc, _acc_con, _repeat_count](AccountContext& _rctx) mutable {
             _rctx.pushConnectionToDevice(_acc, _acc_con, _repeat_count);
         });
+    exit();
 }
 
 void DeviceContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat_count)
 {
+    enter();
     rconn_cp_.push(
         [_acc, _acc_con, _repeat_count](ConnectionContext& _rctx) mutable {
-            solid_assert(_repeat_count > 0);
-            --_repeat_count;
-            if (_repeat_count) {
-                if(_rctx.conn_cnt_ <= 0){
-                    solid_dbg(workpool_logger, Warning, "OVERPUSH "<<_acc<<' '<<_acc_con<<' ' <<_repeat_count);
+            volatile size_t repeat_count     = _repeat_count;
+            ConnectionContext* volatile pctx = &_rctx;
+            solid_assert(repeat_count > 0 && repeat_count < 1000000);
+            --repeat_count;
+            if (repeat_count) {
+                if (_rctx.conn_cnt_ <= 0) {
+                    solid_dbg(workpool_logger, Warning, "OVERPUSH " << _acc << ' ' << _acc_con << ' ' << repeat_count);
                 }
-                _rctx.pushConnection(_acc, _acc_con, _repeat_count);
+                solid_assert(_rctx.conn_cnt_ > 0);
+                pctx->pushConnection(_acc, _acc_con, repeat_count);
             } else if (_rctx.conn_cnt_.fetch_sub(1) == 1) {
                 //last connection
                 _rctx.rprom_.set_value();
                 //solid_dbg(workpool_logger, Warning, "DONE - notify "<<_acc<<' '<<_acc_con<<' ' <<_repeat_count);
-            }else if(_rctx.conn_cnt_ < 0){
-                solid_dbg(workpool_logger, Warning, "DONE - notify "<<_acc<<' '<<_acc_con<<' ' <<_repeat_count);
+            } else if (_rctx.conn_cnt_ < 0) {
+                solid_dbg(workpool_logger, Warning, "DONE - notify " << _acc << ' ' << _acc_con << ' ' << _repeat_count);
+                solid_assert(false);
             }
         });
+    exit();
 }
-
+/// ->AccountP->ConnectionP->AccountP->DeviceP->ConnectionP->AccountP->DeviceP->ConnectionP
 } //namespace
 
 int test_event_stress_wp(int argc, char* argv[])
@@ -150,21 +202,26 @@ int test_event_stress_wp(int argc, char* argv[])
 
     auto lambda = [&]() {
         {
-            AtomicSizeT   connection_count(0);
-            promise<void> prom;
+            AtomicSizeT         connection_count(0);
+            promise<void>       prom;
             ConnectionCallPoolT connection_cp{};
             DeviceCallPoolT     device_cp{};
             AccountCallPoolT    account_cp{};
-            ConnectionContext   conn_ctx(account_cp, prom);
+            GlobalContext       gctx;
+            ConnectionContext   conn_ctx(gctx, account_cp, prom);
+            AccountContext      acc_ctx(gctx, connection_cp, device_cp);
+            DeviceContext       dev_ctx(gctx, connection_cp);
 
-            account_cp.start(WorkPoolConfiguration(), 1, AccountContext(connection_cp, device_cp));
+            gctx.stopping_ = false;
+
+            account_cp.start(WorkPoolConfiguration(), 1, std::ref(acc_ctx));
             connection_cp.start(WorkPoolConfiguration(), 1, std::ref(conn_ctx));
-            device_cp.start(WorkPoolConfiguration(), 1, DeviceContext(connection_cp));
+            device_cp.start(WorkPoolConfiguration(), 1, std::ref(dev_ctx));
 
-            conn_ctx.conn_cnt_ = account_connection_count * account_count;
-            auto lam = [&](){
+            conn_ctx.conn_cnt_  = (account_connection_count * account_count);
+            auto produce_lambda = [&]() {
                 for (size_t i = 0; i < account_count; ++i) {
-                    auto lambda = [i, account_connection_count, repeat_count](AccountContext&& _rctx) {
+                    auto lambda = [i, account_connection_count, repeat_count](AccountContext& _rctx) {
                         for (size_t j = 0; j < account_connection_count; ++j) {
                             _rctx.pushConnection(i, j, repeat_count);
                         }
@@ -173,9 +230,11 @@ int test_event_stress_wp(int argc, char* argv[])
                 }
                 solid_dbg(workpool_logger, Statistic, "producer done");
             };
-            {
-                auto fut = async(launch::async, lam);
+            if (0) {
+                auto fut = async(launch::async, produce_lambda);
                 fut.wait();
+            } else {
+                produce_lambda();
             }
             {
                 auto fut = prom.get_future();
@@ -191,17 +250,18 @@ int test_event_stress_wp(int argc, char* argv[])
                 }
             }
             //this_thread::sleep_for(chrono::milliseconds(100));
-            account_cp.stop();
-            device_cp.stop();
-            connection_cp.stop();
+            gctx.stopping_ = true;
+            conn_ctx.wait();
+            acc_ctx.wait();
+            dev_ctx.wait();
         }
-        int *p = new int[1000];
-        delete []p;
+        int* p = new int[1000];
+        delete[] p;
     };
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds + 10)) != future_status::ready) {
         solid_throw(" Test is taking too long - waited " << wait_seconds + 10 << " secs");
     }
-    
+
     return 0;
 }

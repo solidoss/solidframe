@@ -24,11 +24,11 @@
         solid_log(l, Exception, "(" #a ") assert failed"); \
         assert((a));                                       \
     }
-#define solid_assert_logx(a, l, x)                             \
-    if (static_cast<bool>(a)) {                            \
-    } else {                                               \
-        solid_log(l, Exception, "(" #a ") assert failed "<<x); \
-        assert((a));                                       \
+#define solid_assert_logx(a, l, x)                               \
+    if (static_cast<bool>(a)) {                                  \
+    } else {                                                     \
+        solid_log(l, Exception, "(" #a ") assert failed " << x); \
+        assert((a));                                             \
     }
 
 #else

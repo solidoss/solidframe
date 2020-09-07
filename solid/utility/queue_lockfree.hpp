@@ -308,7 +308,7 @@ template <class T, unsigned NBits>
 template <bool IsCopy>
 size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, std::integral_constant<bool, IsCopy> _is_copy, const bool _wait)
 {
-    
+
     do {
         Node*        pn  = pushNodeAcquire();
         const size_t pos = pn->push_pos_.fetch_add(1);
@@ -335,7 +335,7 @@ size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, std::integral_constant<boo
 
             if (size_.load() >= max_size_) {
                 if (_wait) {
-                    solid_dbg(queue_logger, Warning, this << "wait qsz = "<<size_.load());
+                    solid_dbg(queue_logger, Warning, this << "wait qsz = " << size_.load());
                     push_end_.wait_count_.fetch_add(1);
                     push_end_.condition_.wait(lock, [this]() { return size_.load() < max_size_; });
                     push_end_.wait_count_.fetch_sub(1);
@@ -360,7 +360,6 @@ size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, std::integral_constant<boo
                 nodeRelease(ptmpn, __LINE__);
             }
             nodeRelease(pn, __LINE__);
-            
         }
     } while (true);
 }
@@ -369,32 +368,32 @@ template <class T, unsigned NBits>
 bool Queue<T, NBits>::pop(T& _rt)
 {
     size_t loop_count = 0;
-    do{
+    do {
         ++loop_count;
-        
-        Node*        pn  = popNodeAquire();
-        size_t       pos = pn->pop_pos_.load();
-        bool         valid;
-        while((valid = (pos < pn->push_commit_pos_.load(/*std::memory_order_acquire*/)))){
-            if(pn->pop_pos_.compare_exchange_weak(pos, pos + 1)){
+
+        Node*  pn  = popNodeAquire();
+        size_t pos = pn->pop_pos_.load();
+        bool   valid;
+        while ((valid = (pos < pn->push_commit_pos_.load(/*std::memory_order_acquire*/)))) {
+            if (pn->pop_pos_.compare_exchange_weak(pos, pos + 1)) {
                 break;
             }
         }
-        
-        if(valid){
+
+        if (valid) {
             std::atomic_thread_fence(std::memory_order_acquire);
-            
+
             _rt = std::move(pn->item(pos));
-            
+
             const size_t qsz = size_.fetch_sub(1);
-            if(qsz == max_size_){
-                solid_dbg(queue_logger, Warning, this << " qsz = "<<qsz);
+            if (qsz == max_size_) {
+                solid_dbg(queue_logger, Warning, this << " qsz = " << qsz);
                 std::unique_lock<std::mutex> lock(push_end_.mutex_);
                 push_end_.condition_.notify_all();
             }
-        }else if(pos == node_size){
+        } else if (pos == node_size) {
             std::unique_lock<std::mutex> lock(pop_end_.mutex_);
-            if (pn->next_.load() != nullptr){
+            if (pn->next_.load() != nullptr) {
                 if (pop_end_.pnode_ == pn) {
                     //ABA cannot happen because pn is locked and cannot be in the empty stack
                     Node* ptmpn = pop_end_.nodeNext();
@@ -404,16 +403,16 @@ bool Queue<T, NBits>::pop(T& _rt)
                 }
                 nodeRelease(pn, __LINE__);
                 continue;
-            }/*else{
+            } /*else{
                 solid_dbg(queue_logger, Verbose, this << " nothing to pop "<<pn<<" "<<size_<<" "<<pos<<" "<<pn->push_commit_pos_<<" "<<loop_count);
             }*/
-        }/*else{
+        } /*else{
             solid_dbg(queue_logger, Verbose, this << " nothing to pop "<<pn<<" "<<size_<<" "<<pos<<" "<<pn->push_commit_pos_<<" "<<loop_count);
         }*/
-        
+
         nodeRelease(pn, __LINE__);
         return valid;
-    }while(true);
+    } while (true);
 }
 
 //-----------------------------------------------------------------------------
