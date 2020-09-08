@@ -33,9 +33,14 @@ add_test(NAME TestUtilityWorkPoolContext                COMMAND  test_utility te
 add_test(NAME TestUtilityWorkPoolPattern                COMMAND  test_utility test_workpool_pattern)
 add_test(NAME TestUtilityWorkPoolBasic                  COMMAND  test_utility test_workpool_basic)
 add_test(NAME TestUtilityWorkPoolTry                    COMMAND  test_utility test_workpool_try)
+add_test(NAME TestUtilityWorkPoolChain                  COMMAND  test_utility test_workpool_chain 1)
+add_test(NAME TestUtilityWorkPoolChain                  COMMAND  test_utility test_workpool_chain 2)
+add_test(NAME TestUtilityWorkPoolChain                  COMMAND  test_utility test_workpool_chain 4)
+add_test(NAME TestUtilityWorkPoolChain                  COMMAND  test_utility test_workpool_chain 8)
+add_test(NAME TestUtilityWorkPoolChain                  COMMAND  test_utility test_workpool_chain 16)
 add_test(NAME TestUtilityWorkPoolChain                  COMMAND  test_utility test_workpool_chain)
-add_test(NAME TestUtilityWorkPoolChain1                 COMMAND  test_utility test_workpool_chain 1)
-add_test(NAME TestUtilityWorkPoolChain2                 COMMAND  test_utility test_workpool_chain 2)
+add_test(NAME TestUtilityWorkPoolChain1                 COMMAND  test_utility test_workpool_chain 0 1)
+add_test(NAME TestUtilityWorkPoolChain2                 COMMAND  test_utility test_workpool_chain 0 2)
 # test_workpool args: JOB_COUNT WAIT_SECONDS QUEUE_SIZE PRODUCER_COUNT CONSUMER_COUNT PUSH_SLEEP_MSECS JOB_SLEEP_MSECS
 add_test(NAME TestUtilityWorkPool                       COMMAND  test_utility test_workpool)
 

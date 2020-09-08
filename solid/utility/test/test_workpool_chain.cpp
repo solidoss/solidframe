@@ -30,25 +30,38 @@ int test_workpool_chain(int argc, char* argv[])
     const size_t        v = (((cnt - 1) * cnt)) / 2;
     std::atomic<size_t> val{0};
     AtomicPWPT          pwp{nullptr};
-
+    size_t              thread_count = 0;
+    
     if (argc > 1) {
-        start_thr = atoi(argv[1]);
+        thread_count = atoi(argv[1]);
     }
 
     if (argc > 2) {
-        loop_cnt = atoi(argv[2]);
+        start_thr = atoi(argv[2]);
     }
+
+    if (argc > 3) {
+        loop_cnt = atoi(argv[3]);
+    }
+
+    if(thread_count == 0){
+        thread_count = thread::hardware_concurrency();
+    }
+    if(start_thr > thread_count){
+        start_thr = thread_count;
+    }
+
     auto lambda = [&]() {
         for (int i = 0; i < loop_cnt; ++i) {
             {
                 WorkPoolT wp_b{
-                    WorkPoolConfiguration(),
+                    WorkPoolConfiguration(thread_count),
                     start_thr,
                     [&val](const size_t _v) {
                         val += _v;
                     }};
                 WorkPoolT wp_f{
-                    WorkPoolConfiguration(),
+                    WorkPoolConfiguration(thread_count),
                     start_thr,
                     [&wp_b](const size_t _v) {
                         wp_b.push(_v);

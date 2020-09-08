@@ -181,23 +181,31 @@ int test_event_stress_wp(int argc, char* argv[])
     size_t account_device_count     = 20;
     size_t repeat_count             = 40;
     int    wait_seconds             = 200;
+    size_t thread_count             = 0;
 
     if (argc > 1) {
-        repeat_count = make_number(argv[1]);
+        thread_count = make_number(argv[1]);
     }
 
     if (argc > 2) {
-        account_count = make_number(argv[2]);
+        repeat_count = make_number(argv[2]);
     }
 
     if (argc > 3) {
-        account_connection_count = make_number(argv[3]);
+        account_count = make_number(argv[3]);
     }
 
     if (argc > 4) {
-        account_device_count = make_number(argv[4]);
+        account_connection_count = make_number(argv[4]);
     }
 
+    if (argc > 5) {
+        account_device_count = make_number(argv[5]);
+    }
+
+    if(thread_count == 0){
+        thread_count = thread::hardware_concurrency();
+    }
     (void)account_device_count;
 
     auto lambda = [&]() {
@@ -214,9 +222,9 @@ int test_event_stress_wp(int argc, char* argv[])
 
             gctx.stopping_ = false;
 
-            account_cp.start(WorkPoolConfiguration(), 1, std::ref(acc_ctx));
-            connection_cp.start(WorkPoolConfiguration(), 1, std::ref(conn_ctx));
-            device_cp.start(WorkPoolConfiguration(), 1, std::ref(dev_ctx));
+            account_cp.start(WorkPoolConfiguration(thread_count), 1, std::ref(acc_ctx));
+            connection_cp.start(WorkPoolConfiguration(thread_count), 1, std::ref(conn_ctx));
+            device_cp.start(WorkPoolConfiguration(thread_count), 1, std::ref(dev_ctx));
 
             conn_ctx.conn_cnt_  = (account_connection_count * account_count);
             auto produce_lambda = [&]() {

@@ -48,14 +48,20 @@ if(OPENSSL_FOUND)
     )
     
     add_test(NAME TestAioEventStress100_100    COMMAND  test_aio test_event_stress 100 100)
-    add_test(NAME TestEventStressWP100_100     COMMAND  test_aio test_event_stress_wp 100 100)
+    add_test(NAME TestEventStressWP100_100     COMMAND  test_aio test_event_stress_wp 0 100 100)
     
     add_test(NAME TestAioEventStress100_1000   COMMAND  test_aio test_event_stress 100 1000)
-    add_test(NAME TestEventStressWP100_1000    COMMAND  test_aio test_event_stress_wp 100 1000)
+    add_test(NAME TestEventStressWP100_1000    COMMAND  test_aio test_event_stress_wp 0 100 1000)
     
     add_test(NAME TestAioEventStress100_10000  COMMAND  test_aio test_event_stress 100 10000)
-    add_test(NAME TestEventStressWP100_10000   COMMAND  test_aio test_event_stress_wp 100 10000)
-
+    
+    add_test(NAME TestEventStressWP100_10000   COMMAND  test_aio test_event_stress_wp 1 100 10000)
+    add_test(NAME TestEventStressWP100_10000   COMMAND  test_aio test_event_stress_wp 2 100 10000)
+    add_test(NAME TestEventStressWP100_10000   COMMAND  test_aio test_event_stress_wp 4 100 10000)
+    add_test(NAME TestEventStressWP100_10000   COMMAND  test_aio test_event_stress_wp 8 100 10000)
+    add_test(NAME TestEventStressWP100_10000   COMMAND  test_aio test_event_stress_wp 16 100 10000)
+    add_test(NAME TestEventStressWP100_10000   COMMAND  test_aio test_event_stress_wp 0 100 10000)
+    
     add_test(NAME TestAioEchoTcpStress1        COMMAND  test_aio test_echo_tcp_stress 1)
     add_test(NAME TestAioEchoTcpStress2        COMMAND  test_aio test_echo_tcp_stress 2)
     add_test(NAME TestAioEchoTcpStress4        COMMAND  test_aio test_echo_tcp_stress 4)
