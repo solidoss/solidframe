@@ -39,8 +39,8 @@ add_test(NAME TestUtilityWorkPoolChain4                 COMMAND  test_utility te
 add_test(NAME TestUtilityWorkPoolChain8                 COMMAND  test_utility test_workpool_chain 8)
 add_test(NAME TestUtilityWorkPoolChain16                COMMAND  test_utility test_workpool_chain 16)
 add_test(NAME TestUtilityWorkPoolChain                  COMMAND  test_utility test_workpool_chain)
-add_test(NAME TestUtilityWorkPoolChain1                 COMMAND  test_utility test_workpool_chain 0 1)
-add_test(NAME TestUtilityWorkPoolChain2                 COMMAND  test_utility test_workpool_chain 0 2)
+add_test(NAME TestUtilityWorkPoolChain0_1                 COMMAND  test_utility test_workpool_chain 0 1)
+add_test(NAME TestUtilityWorkPoolChain0_2                 COMMAND  test_utility test_workpool_chain 0 2)
 # test_workpool args: JOB_COUNT WAIT_SECONDS QUEUE_SIZE PRODUCER_COUNT CONSUMER_COUNT PUSH_SLEEP_MSECS JOB_SLEEP_MSECS
 add_test(NAME TestUtilityWorkPool                       COMMAND  test_utility test_workpool)
 
