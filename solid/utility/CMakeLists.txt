@@ -23,6 +23,7 @@ set(Headers
     workpool.hpp
     workpool_lockfree.hpp
     workpool_locking.hpp
+    workpool_common.hpp
     function.hpp
     functiontraits.hpp
     typetraits.hpp

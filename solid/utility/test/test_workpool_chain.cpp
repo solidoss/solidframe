@@ -18,7 +18,7 @@ int test_workpool_chain(int argc, char* argv[])
 {
     install_crash_handler();
     solid::log_start(std::cerr, {".*:EWXS", "test_basic:VIEWS"});
-    using WorkPoolT  = WorkPool<size_t>;
+    using WorkPoolT  = WorkPool<size_t, workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<100>>;
     using AtomicPWPT = std::atomic<WorkPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
@@ -31,7 +31,7 @@ int test_workpool_chain(int argc, char* argv[])
     std::atomic<size_t> val{0};
     AtomicPWPT          pwp{nullptr};
     size_t              thread_count = 0;
-    
+
     if (argc > 1) {
         thread_count = atoi(argv[1]);
     }
@@ -44,10 +44,10 @@ int test_workpool_chain(int argc, char* argv[])
         loop_cnt = atoi(argv[3]);
     }
 
-    if(thread_count == 0){
+    if (thread_count == 0) {
         thread_count = thread::hardware_concurrency();
     }
-    if(start_thr > thread_count){
+    if (start_thr > thread_count) {
         start_thr = thread_count;
     }
 

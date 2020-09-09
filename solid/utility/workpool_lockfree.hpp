@@ -21,19 +21,14 @@
 
 #include "solid/system/cassert.hpp"
 #include "solid/system/exception.hpp"
-#include "solid/system/log.hpp"
 #include "solid/system/statistic.hpp"
 #include "solid/utility/common.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/functiontraits.hpp"
 #include "solid/utility/queue_lockfree.hpp"
+#include "solid/utility/workpool_common.hpp"
 
 namespace solid {
-
-extern const LoggerT workpool_logger;
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 namespace lockfree {
 //-----------------------------------------------------------------------------
 struct WorkerStub {
@@ -48,7 +43,6 @@ struct WorkerStub {
     std::condition_variable cv_;
     size_t                  next_ = 0;
     std::thread::id         pop_thr_id_;
-    size_t                  pop_count_ = 0;
     std::atomic<size_t>     pop_counter_;
     uint16_t                aba_counter_ = 0;
 
@@ -62,24 +56,6 @@ struct WorkerStub {
     void wake()
     {
         cv_.notify_one();
-    }
-
-    bool wait(std::mutex& _rmutex, std::atomic<bool>& _rrunning)
-    {
-        size_t count = 64;
-        StateE state;
-        while ((state = state_.load(/*std::memory_order_acquire*/)) == StateE::Wait && count--) {
-            std::this_thread::yield();
-        }
-
-        {
-            std::unique_lock<std::mutex> lock{_rmutex};
-            cv_.wait(lock, [&_rrunning, this]() { return state_.load() != StateE::Wait || !_rrunning; });
-            //solid_check(state_.load() == WorkerStub::StateE::Notify, "expect state not Notify but: "<<static_cast<int>(state_.load()));
-        }
-
-        //NOTE: no push should happen after _rrunning is set to false
-        return _rrunning;
     }
 
     inline static constexpr size_t thrId(const size_t _aba_id)
@@ -99,20 +75,6 @@ struct ThreadStub {
 
     ThreadStub(std::thread&& _rthr)
         : thread_(std::move(_rthr))
-    {
-    }
-};
-//-----------------------------------------------------------------------------
-
-struct WorkPoolConfiguration {
-    size_t max_worker_count_;
-    size_t max_job_queue_size_;
-
-    explicit WorkPoolConfiguration(
-        const size_t _max_worker_count   = std::thread::hardware_concurrency(),
-        const size_t _max_job_queue_size = std::numeric_limits<size_t>::max())
-        : max_worker_count_(_max_worker_count == 0 ? std::thread::hardware_concurrency() : _max_worker_count)
-        , max_job_queue_size_(_max_job_queue_size == 0 ? std::numeric_limits<size_t>::max() : _max_job_queue_size)
     {
     }
 };
@@ -139,16 +101,15 @@ struct WorkPoolConfiguration {
 
 //-----------------------------------------------------------------------------
 
-template <typename Job, size_t QNBits = 10>
-class WorkPool : NonCopyable {
-    using ThisT          = WorkPool<Job, QNBits>;
+template <typename Job, size_t QNBits = 10, typename Base = solid::impl::WorkPoolBase>
+class WorkPool : protected Base {
+    using ThisT          = WorkPool<Job, QNBits, Base>;
     using WorkerFactoryT = std::function<std::thread(const size_t)>;
     using ThreadVectorT  = std::vector<ThreadStub>;
-    using JobQueueT      = Queue<Job, QNBits>;
+    using JobQueueT      = Queue<Job, QNBits, typename Base::QueueBase>;
     using AtomicBoolT    = std::atomic<bool>;
     using JobQueuePtrT   = std::unique_ptr<JobQueueT>;
 
-    WorkPoolConfiguration   config_;
     AtomicBoolT             running_;
     std::atomic<size_t>     thr_cnt_;
     size_t                  stopping_thr_cnt_ = 0;
@@ -162,8 +123,6 @@ class WorkPool : NonCopyable {
     std::atomic<size_t>     worker_head_;
     WorkerStub*             pregistered_worker_front_ = nullptr;
     WorkerStub*             pregistered_worker_back_  = nullptr;
-    std::atomic<size_t>     push_count_;
-    std::atomic<size_t>     pop_count_;
 #ifdef SOLID_HAS_STATISTICS
     struct Statistic : solid::Statistic {
         std::atomic<size_t>   max_worker_count_;
@@ -171,6 +130,8 @@ class WorkPool : NonCopyable {
         std::atomic<uint64_t> max_jobs_on_thread_;
         std::atomic<uint64_t> min_jobs_on_thread_;
         std::atomic<size_t>   wait_count_;
+        std::atomic<size_t>   max_worker_wake_loop_;
+        std::atomic<size_t>   max_job_pop_loop_;
 
         Statistic()
             : max_worker_count_(0)
@@ -178,6 +139,8 @@ class WorkPool : NonCopyable {
             , max_jobs_on_thread_(0)
             , min_jobs_on_thread_(-1)
             , wait_count_(0)
+            , max_worker_wake_loop_(0)
+            , max_job_pop_loop_(0)
         {
         }
 
@@ -187,6 +150,8 @@ class WorkPool : NonCopyable {
             _ros << " max_jobs_in_queue = " << max_jobs_in_queue_;
             _ros << " max_jobs_on_thread = " << max_jobs_on_thread_;
             _ros << " min_jobs_on_thread = " << min_jobs_on_thread_;
+            _ros << " max_worker_wake_loop = " << max_worker_wake_loop_;
+            _ros << " max_job_pop_loop = " << max_job_pop_loop_;
             _ros << " wait_count = " << wait_count_;
             return _ros;
         }
@@ -197,12 +162,9 @@ public:
     static constexpr size_t node_capacity = JobQueueT::node_capacity;
 
     WorkPool()
-        : config_()
-        , running_(false)
+        : running_(false)
         , thr_cnt_(0)
         , worker_head_{static_cast<size_t>(InvalidIndex())}
-        , push_count_{0}
-        , pop_count_{0}
     {
     }
 
@@ -212,12 +174,9 @@ public:
         const size_t                 _start_wkr_cnt,
         JobHandleFnc                 _job_handler_fnc,
         Args&&... _args)
-        : config_()
-        , running_(false)
+        : running_(false)
         , thr_cnt_(0)
         , worker_head_{static_cast<size_t>(InvalidIndex())}
-        , push_count_{0}
-        , pop_count_{0}
     {
         doStart(
             _cfg,
@@ -294,21 +253,39 @@ private:
     {
         return *thr_vec_[_thr_id].pworker_;
     }
+
+    bool doWait(WorkerStub& _rws)
+    {
+        size_t             count = 64;
+        WorkerStub::StateE state;
+        while ((state = _rws.state_.load(/*std::memory_order_acquire*/)) == WorkerStub::StateE::Wait && count--) {
+            std::this_thread::yield();
+        }
+
+        {
+            std::unique_lock<std::mutex> lock{job_mtx_};
+            Base::wait(_rws.cv_, lock, [this, &_rws]() { return _rws.state_.load() != WorkerStub::StateE::Wait || !running_.load(std::memory_order_relaxed); });
+        }
+
+        //NOTE: no push should happen after running_ is set to false
+        return running_.load(std::memory_order_relaxed);
+    }
+
 }; //WorkPool
 
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
+template <typename Job, size_t QNBits, typename Base>
 template <class JT>
-void WorkPool<Job, QNBits>::push(const JT& _jb)
+void WorkPool<Job, QNBits, Base>::push(const JT& _jb)
 {
     solid_check(running_.load(std::memory_order_relaxed));
     const size_t qsz     = doJobPush(_jb);
     const size_t thr_cnt = thr_cnt_.load();
 
-    if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
+    if (thr_cnt < Base::config_.max_worker_count_ && qsz > thr_cnt) {
         std::lock_guard<std::mutex> lock(thr_mtx_);
         solid_check(running_.load(std::memory_order_relaxed));
-        if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
+        if (qsz > thr_vec_.size() && thr_vec_.size() < Base::config_.max_worker_count_) {
             ++thr_cnt_;
             thr_vec_.emplace_back(worker_factory_fnc_(thr_vec_.size()));
             solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
@@ -317,18 +294,18 @@ void WorkPool<Job, QNBits>::push(const JT& _jb)
     solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
+template <typename Job, size_t QNBits, typename Base>
 template <class JT>
-void WorkPool<Job, QNBits>::push(JT&& _jb)
+void WorkPool<Job, QNBits, Base>::push(JT&& _jb)
 {
     solid_check(running_.load(std::memory_order_relaxed));
     const size_t qsz     = doJobPush(std::move(_jb));
     const size_t thr_cnt = thr_cnt_.load();
 
-    if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
+    if (thr_cnt < Base::config_.max_worker_count_ && qsz > thr_cnt) {
         std::lock_guard<std::mutex> lock(thr_mtx_);
         solid_check(running_.load(std::memory_order_relaxed));
-        if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
+        if (qsz > thr_vec_.size() && thr_vec_.size() < Base::config_.max_worker_count_) {
             ++thr_cnt_;
             thr_vec_.emplace_back(worker_factory_fnc_(thr_vec_.size()));
             solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
@@ -337,19 +314,19 @@ void WorkPool<Job, QNBits>::push(JT&& _jb)
     solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
+template <typename Job, size_t QNBits, typename Base>
 template <class JT>
-bool WorkPool<Job, QNBits>::tryPush(const JT& _jb)
+bool WorkPool<Job, QNBits, Base>::tryPush(const JT& _jb)
 {
     solid_check(running_.load(std::memory_order_relaxed));
     const size_t qsz     = doJobPush(_jb, false /*wait*/);
     const size_t thr_cnt = thr_cnt_.load();
 
     if (qsz != InvalidSize()) {
-        if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
+        if (thr_cnt < Base::config_.max_worker_count_ && qsz > thr_cnt) {
             std::lock_guard<std::mutex> lock(thr_mtx_);
             solid_check(running_.load(std::memory_order_relaxed));
-            if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
+            if (qsz > thr_vec_.size() && thr_vec_.size() < Base::config_.max_worker_count_) {
                 ++thr_cnt_;
                 thr_vec_.emplace_back(worker_factory_fnc_(thr_vec_.size()));
                 solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
@@ -362,19 +339,19 @@ bool WorkPool<Job, QNBits>::tryPush(const JT& _jb)
     }
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
+template <typename Job, size_t QNBits, typename Base>
 template <class JT>
-bool WorkPool<Job, QNBits>::tryPush(JT&& _jb)
+bool WorkPool<Job, QNBits, Base>::tryPush(JT&& _jb)
 {
     solid_check(running_.load(std::memory_order_relaxed));
     const size_t qsz     = doJobPush(std::move(_jb), false /*wait*/);
     const size_t thr_cnt = thr_cnt_.load();
 
     if (qsz != InvalidSize()) {
-        if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
+        if (thr_cnt < Base::config_.max_worker_count_ && qsz > thr_cnt) {
             std::lock_guard<std::mutex> lock(thr_mtx_);
             solid_check(running_.load(std::memory_order_relaxed));
-            if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
+            if (qsz > thr_vec_.size() && thr_vec_.size() < Base::config_.max_worker_count_) {
                 ++thr_cnt_;
                 thr_vec_.emplace_back(worker_factory_fnc_(thr_vec_.size()));
                 solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
@@ -387,17 +364,18 @@ bool WorkPool<Job, QNBits>::tryPush(JT&& _jb)
     }
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
-bool WorkPool<Job, QNBits>::doWorkerWake(WorkerStub* _pws)
+template <typename Job, size_t QNBits, typename Base>
+bool WorkPool<Job, QNBits, Base>::doWorkerWake(WorkerStub* _pws)
 {
     WorkerStub* pworker_stub;
     while (doWorkerPop(pworker_stub)) {
         //solid_dbg(workpool_logger, Verbose, "pop_worker: "<<pworker_stub);
         //pworker_stub valid states: Wait, WaitCancel
-        bool   do_break = true;
-        size_t count    = 0;
+        bool   do_break   = true;
+        size_t loop_count = 0;
         while (true) {
-            ++count;
+            ++loop_count;
+            solid_statistic_max(statistic_.max_worker_wake_loop_, loop_count);
             if (pworker_stub != _pws) {
             } else {
                 continue;
@@ -409,13 +387,13 @@ bool WorkPool<Job, QNBits>::doWorkerWake(WorkerStub* _pws)
                 pworker_stub->wake();
                 return true;
             } else {
-                solid_assert_logx(expect_state == WorkerStub::StateE::WaitCancel, workpool_logger, "expect state not WaitCancel but: " << static_cast<int>(expect_state) << " count " << count);
+                solid_assert_logx(expect_state == WorkerStub::StateE::WaitCancel, workpool_logger, "expect state not WaitCancel but: " << static_cast<int>(expect_state) << " count " << loop_count);
                 if (pworker_stub->state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Cancel)) {
                     //solid_dbg(workpool_logger, Warning, "worker canceled");
                     do_break = false;
                     break;
                 } else {
-                    solid_assert_logx(expect_state == WorkerStub::StateE::Wait, workpool_logger, "expect state not Wait but: " << static_cast<int>(expect_state) << " count " << count);
+                    solid_assert_logx(expect_state == WorkerStub::StateE::Wait, workpool_logger, "expect state not Wait but: " << static_cast<int>(expect_state) << " count " << loop_count);
                     //solid_dbg(workpool_logger, Warning, "force notify: "<<pworker_stub<< " count "<<count);
                     continue; //try wake another thread
                 }
@@ -427,14 +405,13 @@ bool WorkPool<Job, QNBits>::doWorkerWake(WorkerStub* _pws)
     return false;
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
+template <typename Job, size_t QNBits, typename Base>
 template <class JT>
-size_t WorkPool<Job, QNBits>::doJobPush(const JT& _rj, const bool _wait)
+size_t WorkPool<Job, QNBits, Base>::doJobPush(const JT& _rj, const bool _wait)
 {
     const size_t sz = job_q_ptr_->push(_rj, _wait);
 
     if (sz != InvalidSize()) {
-        ++push_count_;
         if (doWorkerWake()) {
 
         } else {
@@ -445,14 +422,13 @@ size_t WorkPool<Job, QNBits>::doJobPush(const JT& _rj, const bool _wait)
 }
 
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
+template <typename Job, size_t QNBits, typename Base>
 template <class JT>
-size_t WorkPool<Job, QNBits>::doJobPush(JT&& _rj, const bool _wait)
+size_t WorkPool<Job, QNBits, Base>::doJobPush(JT&& _rj, const bool _wait)
 {
     const size_t sz = job_q_ptr_->push(std::move(_rj), _wait);
 
     if (sz != InvalidSize()) {
-        ++push_count_;
         if (doWorkerWake()) {
 
         } else {
@@ -462,8 +438,8 @@ size_t WorkPool<Job, QNBits>::doJobPush(JT&& _rj, const bool _wait)
     return sz;
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
-bool WorkPool<Job, QNBits>::doJobPop(WorkerStub& _rws, const size_t thr_id_, Job& _rjob)
+template <typename Job, size_t QNBits, typename Base>
+bool WorkPool<Job, QNBits, Base>::doJobPop(WorkerStub& _rws, const size_t thr_id_, Job& _rjob)
 {
     //_rws valid states: Cancel, WaitCancel
     auto expect_state = WorkerStub::StateE::WaitCancel;
@@ -478,11 +454,12 @@ bool WorkPool<Job, QNBits>::doJobPop(WorkerStub& _rws, const size_t thr_id_, Job
     }
     size_t loop_count = 0;
     while (!job_q_ptr_->pop(_rjob)) {
-        //solid_dbg(workpool_logger, Warning, "worker wait "<<pop_count_<<" "<<push_count_<<' '<<did_push<<' '<<loop_count);
+        //solid_dbg(workpool_logger, Warning, "worker wait "<<did_push<<' '<<loop_count);
         ++loop_count;
-        if (_rws.wait(job_mtx_, running_)) {
+        solid_statistic_inc(statistic_.wait_count_);
+        solid_statistic_max(statistic_.max_job_pop_loop_, loop_count);
+        if (doWait(_rws)) {
             //solid_dbg(workpool_logger, Verbose, "push_worker: "<<&_rws <<" state = "<<static_cast<int>(_rws.state_.load()));
-            //_rws.state_.store(WorkerStub::StateE::Wait);
             auto       expect_state = WorkerStub::StateE::Notify;
             const bool ok           = _rws.state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Wait);
             solid_assert_logx(ok, workpool_logger, "expect state not Notify, but: " << static_cast<int>(expect_state));
@@ -495,7 +472,6 @@ bool WorkPool<Job, QNBits>::doJobPop(WorkerStub& _rws, const size_t thr_id_, Job
             return false;
         }
     }
-    ++pop_count_;
     //_rws valid states: Wait, Notify
 
     expect_state = WorkerStub::StateE::Wait;
@@ -515,8 +491,8 @@ bool WorkPool<Job, QNBits>::doJobPop(WorkerStub& _rws, const size_t thr_id_, Job
     return true;
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
-void WorkPool<Job, QNBits>::doWorkerPush(WorkerStub& _rws, const size_t _thr_id)
+template <typename Job, size_t QNBits, typename Base>
+void WorkPool<Job, QNBits, Base>::doWorkerPush(WorkerStub& _rws, const size_t _thr_id)
 {
     //bool expect = false;
     //const bool stacked_ok = _rws.stacked_.compare_exchange_strong(expect, true);
@@ -533,8 +509,8 @@ void WorkPool<Job, QNBits>::doWorkerPush(WorkerStub& _rws, const size_t _thr_id)
         ;
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
-bool WorkPool<Job, QNBits>::doWorkerPop(WorkerStub*& _rpws)
+template <typename Job, size_t QNBits, typename Base>
+bool WorkPool<Job, QNBits, Base>::doWorkerPop(WorkerStub*& _rpws)
 {
     size_t old_head = worker_head_.load();
     while (old_head != InvalidIndex() && !worker_head_.compare_exchange_weak(old_head, worker(WorkerStub::thrId(old_head)).next_ /*, std::memory_order_acquire, std::memory_order_relaxed*/))
@@ -546,9 +522,8 @@ bool WorkPool<Job, QNBits>::doWorkerPop(WorkerStub*& _rpws)
         //const bool stacked_ok = _rpws->stacked_.compare_exchange_strong(expect, false);
         //if(stacked_ok){
         //    _rpws->pop_thr_id_ = std::this_thread::get_id();
-        //    _rpws->pop_count_ = _rpws->pop_counter_.fetch_add(1);
         //}
-        //solid_assert_logx(stacked_ok, workpool_logger, "last pop thr "<<_rpws->pop_thr_id_<<" vs "<<std::this_thread::get_id()<<" "<<_rpws->pop_count_<<" vs "<<_rpws->pop_counter_);
+        //solid_assert_logx(stacked_ok, workpool_logger, "last pop thr "<<_rpws->pop_thr_id_<<" vs "<<std::this_thread::get_id());
         //((void)stacked_ok);
         return true;
     } else {
@@ -557,8 +532,8 @@ bool WorkPool<Job, QNBits>::doWorkerPop(WorkerStub*& _rpws)
     }
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
-void WorkPool<Job, QNBits>::doStop()
+template <typename Job, size_t QNBits, typename Base>
+void WorkPool<Job, QNBits, Base>::doStop()
 {
     bool expect = true;
 
@@ -586,16 +561,16 @@ void WorkPool<Job, QNBits>::doStop()
     dumpStatistics(false); //the queue statistic will be dumped on its destructor
     {
 #ifdef SOLID_HAS_STATISTICS
-        const size_t max_jobs_in_queue = config_.max_job_queue_size_ == static_cast<size_t>(-1) ? config_.max_job_queue_size_ : config_.max_job_queue_size_ + JobQueueT::node_capacity;
+        const size_t max_jobs_in_queue = Base::config_.max_job_queue_size_ == static_cast<size_t>(-1) ? Base::config_.max_job_queue_size_ : Base::config_.max_job_queue_size_ + JobQueueT::node_capacity;
         solid_check_log(statistic_.max_jobs_in_queue_ <= max_jobs_in_queue, workpool_logger, "statistic_.max_jobs_in_queue_ = " << statistic_.max_jobs_in_queue_ << " <= config_.max_job_queue_size_ = " << max_jobs_in_queue);
-        solid_check_log(statistic_.max_worker_count_ <= config_.max_worker_count_, workpool_logger, "statistic_.max_worker_count_ = " << statistic_.max_worker_count_ << " <= config_.max_worker_count_ = " << config_.max_worker_count_);
+        solid_check_log(statistic_.max_worker_count_ <= Base::config_.max_worker_count_, workpool_logger, "statistic_.max_worker_count_ = " << statistic_.max_worker_count_ << " <= config_.max_worker_count_ = " << Base::config_.max_worker_count_);
 #endif
     }
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
+template <typename Job, size_t QNBits, typename Base>
 template <class JobHandlerFnc, typename... Args>
-void WorkPool<Job, QNBits>::doStart(
+void WorkPool<Job, QNBits, Base>::doStart(
     const WorkPoolConfiguration& _cfg,
     size_t                       _start_wkr_cnt,
     JobHandlerFnc                _job_handler_fnc,
@@ -626,21 +601,21 @@ void WorkPool<Job, QNBits>::doStart(
             _job_handler_fnc, _args...);
     };
 
-    solid_dbg(workpool_logger, Verbose, this << " start " << _start_wkr_cnt << " " << config_.max_worker_count_ << ' ' << config_.max_job_queue_size_);
-    if (_start_wkr_cnt > config_.max_worker_count_) {
-        _start_wkr_cnt = config_.max_worker_count_;
+    solid_dbg(workpool_logger, Verbose, this << " start " << _start_wkr_cnt << " " << Base::config_.max_worker_count_ << ' ' << Base::config_.max_job_queue_size_);
+    if (_start_wkr_cnt > Base::config_.max_worker_count_) {
+        _start_wkr_cnt = Base::config_.max_worker_count_;
     }
 
     bool expect = false;
 
     if (running_.compare_exchange_strong(expect, true)) {
-        config_             = _cfg;
+        Base::config_       = _cfg;
         worker_factory_fnc_ = lambda;
-        job_q_ptr_.reset(new JobQueueT(config_.max_job_queue_size_));
+        job_q_ptr_.reset(new JobQueueT(Base::config_.max_job_queue_size_));
         {
             std::unique_lock<std::mutex> lock(thr_mtx_);
 
-            thr_vec_.reserve(config_.max_worker_count_);
+            thr_vec_.reserve(Base::config_.max_worker_count_);
 
             thr_cnt_ += _start_wkr_cnt;
             for (size_t i = 0; i < _start_wkr_cnt; ++i) {
@@ -652,8 +627,8 @@ void WorkPool<Job, QNBits>::doStart(
     }
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
-void WorkPool<Job, QNBits>::dumpStatistics(const bool _dump_queue_too) const
+template <typename Job, size_t QNBits, typename Base>
+void WorkPool<Job, QNBits, Base>::dumpStatistics(const bool _dump_queue_too) const
 {
 #ifdef SOLID_HAS_STATISTICS
     if (_dump_queue_too) {
@@ -663,8 +638,8 @@ void WorkPool<Job, QNBits>::dumpStatistics(const bool _dump_queue_too) const
 #endif
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
-bool WorkPool<Job, QNBits>::doRegisterWorker(WorkerStub& _rws, const size_t _thr_id)
+template <typename Job, size_t QNBits, typename Base>
+bool WorkPool<Job, QNBits, Base>::doRegisterWorker(WorkerStub& _rws, const size_t _thr_id)
 {
     std::unique_lock<std::mutex> lock(thr_mtx_);
     if (running_) {
@@ -681,8 +656,8 @@ bool WorkPool<Job, QNBits>::doRegisterWorker(WorkerStub& _rws, const size_t _thr
     return false;
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
-void WorkPool<Job, QNBits>::doUnregisterWorker(WorkerStub& _rws, const size_t _thr_id)
+template <typename Job, size_t QNBits, typename Base>
+void WorkPool<Job, QNBits, Base>::doUnregisterWorker(WorkerStub& _rws, const size_t _thr_id)
 {
     std::unique_lock<std::mutex> lock(thr_mtx_);
     ++stopping_thr_cnt_;

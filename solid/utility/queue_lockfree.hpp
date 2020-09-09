@@ -32,8 +32,19 @@ namespace lockfree {
 
 extern const LoggerT queue_logger;
 
-template <class T, unsigned NBits = 5>
-class Queue : NonCopyable {
+namespace impl {
+class QueueBase : NonCopyable {
+protected:
+    template <class Predicate>
+    void wait(std::condition_variable& _rcv, std::unique_lock<std::mutex>& _rlock, Predicate _predicate)
+    {
+        _rcv.wait(_rlock, _predicate);
+    }
+};
+} //namespace impl
+
+template <class T, unsigned NBits = 5, typename Base = impl::QueueBase>
+class Queue : protected Base {
     static constexpr const size_t node_mask = bits_to_mask(NBits);
     static constexpr const size_t node_size = bits_to_count(NBits);
 
@@ -138,11 +149,9 @@ class Queue : NonCopyable {
         std::atomic<size_t> pop_node_count_;
         std::atomic<size_t> new_node_count_;
         std::atomic<size_t> del_node_count_;
-        std::atomic<size_t> pop_notif_;
         std::atomic<size_t> push_notif_;
-        std::atomic<size_t> wait_pop_on_pos_;
-        std::atomic<size_t> wait_pop_on_next_;
-        std::atomic<size_t> notify_all_count_;
+        std::atomic<size_t> push_wait_;
+
         Statistic()
             : push_count_(0)
             , push_node_count_(0)
@@ -150,11 +159,8 @@ class Queue : NonCopyable {
             , pop_node_count_(0)
             , new_node_count_(0)
             , del_node_count_(0)
-            , pop_notif_(0)
             , push_notif_(0)
-            , wait_pop_on_pos_(0)
-            , wait_pop_on_next_(0)
-            , notify_all_count_(0)
+            , push_wait_(0)
         {
         }
 
@@ -166,11 +172,8 @@ class Queue : NonCopyable {
             _ros << " push_node_count = " << push_node_count_;
             _ros << " new_node_count = " << new_node_count_;
             _ros << " del_node_count = " << del_node_count_;
-            _ros << " pop_notif = " << pop_notif_;
             _ros << " push_notif = " << push_notif_;
-            _ros << " wait_pop_on_pos = " << wait_pop_on_pos_;
-            _ros << " wait_pop_on_next = " << wait_pop_on_next_;
-            _ros << " notify_all_count = " << notify_all_count_;
+            _ros << " push_wait = " << push_wait_;
             return _ros;
         }
     } statistic_;
@@ -204,11 +207,6 @@ public:
 
     bool pop(T& _rt);
 
-    void wake()
-    {
-        std::lock_guard<std::mutex> lock(pop_end_.mutex_);
-        pop_end_.condition_.notify_all();
-    }
     void dumpStatistics() const;
 
 private:
@@ -279,16 +277,16 @@ private:
 };
 
 //-----------------------------------------------------------------------------
-template <class T, unsigned NBits>
-void Queue<T, NBits>::dumpStatistics() const
+template <class T, unsigned NBits, typename Base>
+void Queue<T, NBits, Base>::dumpStatistics() const
 {
 #ifdef SOLID_HAS_STATISTICS
     solid_dbg(queue_logger, Statistic, "Queue: " << this << " statistic:" << this->statistic_);
 #endif
 }
 
-template <class T, unsigned NBits>
-Queue<T, NBits>::~Queue()
+template <class T, unsigned NBits, typename Base>
+Queue<T, NBits, Base>::~Queue()
 {
     solid_dbg(queue_logger, Verbose, this);
     nodeRelease(pop_end_.nodeExchange(nullptr), __LINE__);
@@ -304,9 +302,9 @@ Queue<T, NBits>::~Queue()
     dumpStatistics();
 }
 //-----------------------------------------------------------------------------
-template <class T, unsigned NBits>
+template <class T, unsigned NBits, typename Base>
 template <bool IsCopy>
-size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, std::integral_constant<bool, IsCopy> _is_copy, const bool _wait)
+size_t Queue<T, NBits, Base>::doPush(const T& _rt, T&& _ut, std::integral_constant<bool, IsCopy> _is_copy, const bool _wait)
 {
 
     do {
@@ -328,6 +326,7 @@ size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, std::integral_constant<boo
                 }
             }
             nodeRelease(pn, __LINE__);
+            solid_statistic_inc(statistic_.push_count_);
             return sz;
         } else {
             //overflow
@@ -336,8 +335,10 @@ size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, std::integral_constant<boo
             if (size_.load() >= max_size_) {
                 if (_wait) {
                     solid_dbg(queue_logger, Warning, this << "wait qsz = " << size_.load());
+                    solid_statistic_inc(statistic_.push_wait_);
                     push_end_.wait_count_.fetch_add(1);
-                    push_end_.condition_.wait(lock, [this]() { return size_.load() < max_size_; });
+                    //push_end_.condition_.wait(lock, [this]() { return size_.load() < max_size_; });
+                    Base::wait(push_end_.condition_, lock, [this]() { return size_.load() < max_size_; });
                     push_end_.wait_count_.fetch_sub(1);
                 } else {
                     nodeRelease(pn, __LINE__);
@@ -364,8 +365,8 @@ size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, std::integral_constant<boo
     } while (true);
 }
 //-----------------------------------------------------------------------------
-template <class T, unsigned NBits>
-bool Queue<T, NBits>::pop(T& _rt)
+template <class T, unsigned NBits, typename Base>
+bool Queue<T, NBits, Base>::pop(T& _rt)
 {
     size_t loop_count = 0;
     do {
@@ -384,10 +385,11 @@ bool Queue<T, NBits>::pop(T& _rt)
             std::atomic_thread_fence(std::memory_order_acquire);
 
             _rt = std::move(pn->item(pos));
-
+            solid_statistic_inc(statistic_.pop_count_);
             const size_t qsz = size_.fetch_sub(1);
             if (qsz == max_size_) {
                 solid_dbg(queue_logger, Warning, this << " qsz = " << qsz);
+                solid_statistic_inc(statistic_.push_notif_);
                 std::unique_lock<std::mutex> lock(push_end_.mutex_);
                 push_end_.condition_.notify_all();
             }

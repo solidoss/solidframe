@@ -21,25 +21,22 @@ constexpr size_t workpoll_default_node_capacity_bit_count = 10;
 
 #ifdef SOLID_USE_WORKPOOL_MUTEX
 
-using WorkPoolConfiguration = locking::WorkPoolConfiguration;
-template <typename Job, size_t QNBits = workpoll_default_node_capacity_bit_count>
-using WorkPool = locking::WorkPool<Job, QNBits>;
+template <typename Job, size_t QNBits = workpoll_default_node_capacity_bit_count, typename Base = impl::WorkPoolBase>
+using WorkPool = locking::WorkPool<Job, QNBits, Base>;
 
 #else
 
-using lockfree::WorkPoolConfiguration;
-
-template <typename Job, size_t QNBits = workpoll_default_node_capacity_bit_count>
-using WorkPool = lockfree::WorkPool<Job, QNBits>;
+template <typename Job, size_t QNBits = workpoll_default_node_capacity_bit_count, typename Base = impl::WorkPoolBase>
+using WorkPool = lockfree::WorkPool<Job, QNBits, Base>;
 #endif
 
-template <class, size_t QNBits = workpoll_default_node_capacity_bit_count>
+template <class, size_t QNBits = workpoll_default_node_capacity_bit_count, typename Base = impl::WorkPoolBase>
 class CallPool;
 
-template <class R, class... ArgTypes, size_t QNBits>
-class CallPool<R(ArgTypes...), QNBits> {
+template <class R, class... ArgTypes, size_t QNBits, typename Base>
+class CallPool<R(ArgTypes...), QNBits, Base> {
     using FunctionT = std::function<R(ArgTypes...)>;
-    using WorkPoolT = WorkPool<FunctionT, QNBits>;
+    using WorkPoolT = WorkPool<FunctionT, QNBits, Base>;
     WorkPoolT wp_;
 
 public:

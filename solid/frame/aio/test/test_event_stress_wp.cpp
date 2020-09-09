@@ -25,9 +25,9 @@ struct AccountContext;
 struct ConnectionContext;
 struct DeviceContext;
 
-using AccountCallPoolT    = CallPool<void(AccountContext&)>;
-using ConnectionCallPoolT = CallPool<void(ConnectionContext&)>;
-using DeviceCallPoolT     = CallPool<void(DeviceContext&)>;
+using AccountCallPoolT    = CallPool<void(AccountContext&), workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<100>>;
+using ConnectionCallPoolT = CallPool<void(ConnectionContext&), workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<100>>;
+using DeviceCallPoolT     = CallPool<void(DeviceContext&), workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<100>>;
 
 struct GlobalContext {
     atomic<bool>       stopping_;
@@ -203,7 +203,7 @@ int test_event_stress_wp(int argc, char* argv[])
         account_device_count = make_number(argv[5]);
     }
 
-    if(thread_count == 0){
+    if (thread_count == 0) {
         thread_count = thread::hardware_concurrency();
     }
     (void)account_device_count;
