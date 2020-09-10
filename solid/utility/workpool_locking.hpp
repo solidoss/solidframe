@@ -24,7 +24,7 @@
 #include "solid/utility/function.hpp"
 #include "solid/utility/functiontraits.hpp"
 #include "solid/utility/queue.hpp"
-#include "solid/utility/workpool_common.hpp"
+#include "solid/utility/workpool_base.hpp"
 namespace solid {
 
 extern const LoggerT workpool_logger;

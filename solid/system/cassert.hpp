@@ -18,21 +18,22 @@
 #include <cassert>
 
 #define solid_assert(a) assert((a))
-#define solid_assert_log(a, l)                             \
+
+#define solid_assert_log2(a, l)                            \
     if (static_cast<bool>(a)) {                            \
     } else {                                               \
         solid_log(l, Exception, "(" #a ") assert failed"); \
         assert((a));                                       \
     }
-#define solid_assert_logx(a, l, x)                               \
+#define solid_assert_log3(a, l, x)                               \
     if (static_cast<bool>(a)) {                                  \
     } else {                                                     \
         solid_log(l, Exception, "(" #a ") assert failed " << x); \
         assert((a));                                             \
     }
 
+#define solid_assert_log(...) SOLID_CALL_OVERLOAD(solid_assert_log, __VA_ARGS__)
 #else
 #define solid_assert(a)
-#define solid_assert_log(l, a)
-#define solid_assert_logx(l,a,x)
+#define solid_assert_log(...)
 #endif

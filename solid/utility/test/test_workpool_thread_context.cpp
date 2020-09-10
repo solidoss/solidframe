@@ -88,10 +88,10 @@ int test_workpool_thread_context(int argc, char* argv[])
         if (pwp != nullptr) {
             pwp.load()->dumpStatistics();
         }
-	solid_log(logger, Error, "Waited too much. Wait some more for workpool internal checkpoints to fire...");
-	this_thread::sleep_for(chrono::seconds(100));
-	
-	solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
+        solid_log(logger, Error, "Waited too much. Wait some more for workpool internal checkpoints to fire...");
+        this_thread::sleep_for(chrono::seconds(100));
+
+        solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }
     solid_log(logger, Verbose, "after async wait");
 

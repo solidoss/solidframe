@@ -1,4 +1,4 @@
-// solid/utility/workpool_common.hpp
+// solid/utility/workpool_base.hpp
 //
 // Copyright (c) 2020 Valentin Palade (vipalade @ gmail . com)
 //

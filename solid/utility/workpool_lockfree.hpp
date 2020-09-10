@@ -26,7 +26,7 @@
 #include "solid/utility/function.hpp"
 #include "solid/utility/functiontraits.hpp"
 #include "solid/utility/queue_lockfree.hpp"
-#include "solid/utility/workpool_common.hpp"
+#include "solid/utility/workpool_base.hpp"
 
 namespace solid {
 namespace lockfree {
@@ -387,13 +387,13 @@ bool WorkPool<Job, QNBits, Base>::doWorkerWake(WorkerStub* _pws)
                 pworker_stub->wake();
                 return true;
             } else {
-                solid_assert_logx(expect_state == WorkerStub::StateE::WaitCancel, workpool_logger, "expect state not WaitCancel but: " << static_cast<int>(expect_state) << " count " << loop_count);
+                solid_assert_log(expect_state == WorkerStub::StateE::WaitCancel, workpool_logger, "expect state not WaitCancel but: " << static_cast<int>(expect_state) << " count " << loop_count);
                 if (pworker_stub->state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Cancel)) {
                     //solid_dbg(workpool_logger, Warning, "worker canceled");
                     do_break = false;
                     break;
                 } else {
-                    solid_assert_logx(expect_state == WorkerStub::StateE::Wait, workpool_logger, "expect state not Wait but: " << static_cast<int>(expect_state) << " count " << loop_count);
+                    solid_assert_log(expect_state == WorkerStub::StateE::Wait, workpool_logger, "expect state not Wait but: " << static_cast<int>(expect_state) << " count " << loop_count);
                     //solid_dbg(workpool_logger, Warning, "force notify: "<<pworker_stub<< " count "<<count);
                     continue; //try wake another thread
                 }
@@ -447,7 +447,7 @@ bool WorkPool<Job, QNBits, Base>::doJobPop(WorkerStub& _rws, const size_t thr_id
     if (_rws.state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Wait)) {
         //did_push = false;
     } else {
-        solid_assert_logx(expect_state == WorkerStub::StateE::Cancel, workpool_logger, "expect state not Cancel but: " << static_cast<int>(expect_state));
+        solid_assert_log(expect_state == WorkerStub::StateE::Cancel, workpool_logger, "expect state not Cancel but: " << static_cast<int>(expect_state));
         _rws.state_.store(WorkerStub::StateE::Wait);
         //solid_dbg(workpool_logger, Verbose, "push_worker: "<<&_rws);
         doWorkerPush(_rws, thr_id_);
@@ -462,7 +462,7 @@ bool WorkPool<Job, QNBits, Base>::doJobPop(WorkerStub& _rws, const size_t thr_id
             //solid_dbg(workpool_logger, Verbose, "push_worker: "<<&_rws <<" state = "<<static_cast<int>(_rws.state_.load()));
             auto       expect_state = WorkerStub::StateE::Notify;
             const bool ok           = _rws.state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Wait);
-            solid_assert_logx(ok, workpool_logger, "expect state not Notify, but: " << static_cast<int>(expect_state));
+            solid_assert_log(ok, workpool_logger, "expect state not Notify, but: " << static_cast<int>(expect_state));
             doWorkerPush(_rws, thr_id_);
             continue;
         } else if (job_q_ptr_->pop(_rjob)) {
@@ -478,7 +478,7 @@ bool WorkPool<Job, QNBits, Base>::doJobPop(WorkerStub& _rws, const size_t thr_id
     if (_rws.state_.compare_exchange_strong(expect_state, WorkerStub::StateE::WaitCancel)) {
 
     } else {
-        solid_assert_logx(expect_state == WorkerStub::StateE::Notify, workpool_logger, "expect state not Notify but: " << static_cast<int>(expect_state));
+        solid_assert_log(expect_state == WorkerStub::StateE::Notify, workpool_logger, "expect state not Notify but: " << static_cast<int>(expect_state));
         _rws.state_.store(WorkerStub::StateE::Cancel);
         //solid_dbg(workpool_logger, Warning, "already notified");
         if (doWorkerWake(&_rws)) {
@@ -523,7 +523,7 @@ bool WorkPool<Job, QNBits, Base>::doWorkerPop(WorkerStub*& _rpws)
         //if(stacked_ok){
         //    _rpws->pop_thr_id_ = std::this_thread::get_id();
         //}
-        //solid_assert_logx(stacked_ok, workpool_logger, "last pop thr "<<_rpws->pop_thr_id_<<" vs "<<std::this_thread::get_id());
+        //solid_assert_log(stacked_ok, workpool_logger, "last pop thr "<<_rpws->pop_thr_id_<<" vs "<<std::this_thread::get_id());
         //((void)stacked_ok);
         return true;
     } else {
