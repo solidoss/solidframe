@@ -42,12 +42,12 @@ int test_workpool_thread_context(int argc, char* argv[])
 {
     install_crash_handler();
     solid::log_start(std::cerr, {".*:EWXS", "test_context:VIEWS"});
-    using CallPoolT  = CallPool<void(Context&)>;
+    using CallPoolT  = CallPool<void(Context&), workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<90>>;
     using AtomicPWPT = std::atomic<CallPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
 
-    int                 wait_seconds = 200;
+    int                 wait_seconds = 100;
     int                 loop_cnt     = 5;
     const size_t        cnt{5000000};
     std::atomic<size_t> val{0};
@@ -65,17 +65,17 @@ int test_workpool_thread_context(int argc, char* argv[])
                     WorkPoolConfiguration(), 0,
                     Context("simple text", 0UL)};
 
-                solid_log(generic_logger, Verbose, "wp started");
+                solid_log(logger, Verbose, "wp started");
                 pwp = &wp;
                 for (size_t i = 0; i < cnt; ++i) {
                     auto l = [i, &val](Context& _rctx) {
-                        //this_thread::sleep_for(std::chrono::seconds(2));
                         ++_rctx.count_;
                         val += i;
                     };
                     wp.push(l);
                 };
                 pwp = nullptr;
+                solid_log(logger, Verbose, "completed all pushes - wating for workpool to terminate");
             }
             solid_log(logger, Verbose, "after loop");
             solid_check(v == val, "val = " << val << " v = " << v);
@@ -86,8 +86,11 @@ int test_workpool_thread_context(int argc, char* argv[])
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         if (pwp != nullptr) {
-            //pwp.load()->dumpStatistics();
+            pwp.load()->dumpStatistics();
         }
+        solid_log(logger, Error, "Waited too much. Wait some more for workpool internal checkpoints to fire...");
+        this_thread::sleep_for(chrono::seconds(100));
+
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }
     solid_log(logger, Verbose, "after async wait");

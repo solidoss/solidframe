@@ -52,7 +52,7 @@ InitStub initarray[] = {
     {8192000, true, {frame::mprpc::MessageFlagsE::Synchronous}},
     {4096000, true, 0},
     {2048000, false, 0}, //not caceled
-    {1024000, true, 0},
+    {10240000, true, 0},
     {512000, false, {frame::mprpc::MessageFlagsE::Synchronous}}, //not canceled
     {2560000, true, 0},
     {1280000, true, 0},
@@ -222,8 +222,8 @@ void server_receive_message(frame::mprpc::ConnectionContext& _rctx, std::shared_
     }
 
     size_t idx = static_cast<Message&>(*_rmsgptr).idx;
-    
-    solid_check(!initarray[idx % initarraysize].cancel, "message "<<idx<<" should have been canceled");
+
+    solid_check(!initarray[idx % initarraysize].cancel, "message " << idx << " should have been canceled");
 
     transfered_size += _rmsgptr->str.size();
     ++transfered_count;
