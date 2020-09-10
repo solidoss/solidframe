@@ -256,7 +256,7 @@ private:
 
     bool doWait(WorkerStub& _rws)
     {
-        size_t             count = 64;
+        size_t             count = 128;
         WorkerStub::StateE state;
         while ((state = _rws.state_.load(/*std::memory_order_acquire*/)) == WorkerStub::StateE::Wait && count--) {
             std::this_thread::yield();

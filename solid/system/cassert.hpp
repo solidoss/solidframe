@@ -34,4 +34,5 @@
 #else
 #define solid_assert(a)
 #define solid_assert_log(l, a)
+#define solid_assert_logx(l,a,x)
 #endif
