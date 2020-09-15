@@ -25,9 +25,9 @@ struct AccountContext;
 struct ConnectionContext;
 struct DeviceContext;
 
-using AccountCallPoolT    = CallPool<void(AccountContext&), workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<100>>;
-using ConnectionCallPoolT = CallPool<void(ConnectionContext&), workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<100>>;
-using DeviceCallPoolT     = CallPool<void(DeviceContext&), workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<100>>;
+using AccountCallPoolT    = CallPool<void(AccountContext&), workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<30>>;
+using ConnectionCallPoolT = CallPool<void(ConnectionContext&), workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<30>>;
+using DeviceCallPoolT     = CallPool<void(DeviceContext&), workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<30>>;
 
 struct GlobalContext {
     atomic<bool>       stopping_;
@@ -159,10 +159,9 @@ void DeviceContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat_
             } else if (_rctx.conn_cnt_.fetch_sub(1) == 1) {
                 //last connection
                 _rctx.rprom_.set_value();
-                //solid_dbg(workpool_logger, Warning, "DONE - notify "<<_acc<<' '<<_acc_con<<' ' <<_repeat_count);
+                solid_dbg(workpool_logger, Warning, "DONE - notify "<<_acc<<' '<<_acc_con<<' ' <<_repeat_count);
             } else if (_rctx.conn_cnt_ < 0) {
-                solid_dbg(workpool_logger, Warning, "DONE - notify " << _acc << ' ' << _acc_con << ' ' << _repeat_count);
-                solid_assert(false);
+                solid_assert_log(false, workpool_logger, "DONE - notify " << _acc << ' ' << _acc_con << ' ' << _repeat_count);
             }
         });
     exit();
@@ -253,6 +252,9 @@ int test_event_stress_wp(int argc, char* argv[])
                     device_cp.dumpStatistics();
                     solid_dbg(workpool_logger, Statistic, "Account pool:");
                     account_cp.dumpStatistics();
+                    solid_dbg(workpool_logger, Warning, "sleep - wait for locked threads");
+                    this_thread::sleep_for(chrono::seconds(100));
+                    solid_dbg(workpool_logger, Warning, "wake - waited for locked threads");
                     //we must throw here otherwise it will crash because workpool(s) is/are used after destroy
                     solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
                 }
