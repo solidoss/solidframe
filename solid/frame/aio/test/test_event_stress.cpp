@@ -220,8 +220,9 @@ int test_event_stress(int argc, char* argv[])
         account_service.notifyAll(make_event(GenericEvents::Resume, CreateTupleT(make_tuple(std::ref(device_scheduler), std::ref(device_service), account_device_count))));
 
         connection_service.notifyAll(make_event(GenericEvents::Resume));
-
-        solid_check(prom.get_future().wait_for(chrono::seconds(wait_seconds)) == future_status::ready);
+        
+        auto fut = prom.get_future();
+        solid_check(fut.wait_for(chrono::seconds(wait_seconds)) == future_status::ready);
     };
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {

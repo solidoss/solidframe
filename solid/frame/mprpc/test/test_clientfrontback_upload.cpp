@@ -513,7 +513,8 @@ int test_clientfrontback_upload(int argc, char* argv[])
             mprpc_front_client.sendRequest("localhost", msg_ptr, front::on_client_receive_first_response);
         }
 
-        solid_check(prom.get_future().wait_for(chrono::seconds(150)) == future_status::ready, "Taking too long - waited 150 secs");
+        auto fut = prom.get_future();
+        solid_check(fut.wait_for(chrono::seconds(150)) == future_status::ready, "Taking too long - waited 150 secs");
         solid_log(logger, Info, "Done upload");
         check_files(file_vec, "client_storage", "server_storage");
         solid_log(logger, Info, "Done file checking - exiting");
