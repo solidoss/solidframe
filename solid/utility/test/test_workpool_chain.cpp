@@ -23,10 +23,10 @@ int test_workpool_chain(int argc, char* argv[])
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
 
-    const int           wait_seconds = 500;
+    const int           wait_seconds = 300;
     int                 loop_cnt     = 2;
     size_t              start_thr    = 0;
-    const size_t        cnt{5000000};
+    const size_t        cnt{1000000};
     const size_t        v = (((cnt - 1) * cnt)) / 2;
     std::atomic<size_t> val{0};
     AtomicPWPT          pwp{nullptr};
