@@ -47,20 +47,20 @@ if(OPENSSL_FOUND)
         ${SYSTEM_BASIC_LIBRARIES}
     )
     
-    add_test(NAME TestAioEventStress100_100    COMMAND  test_aio test_event_stress 100 100)
-    add_test(NAME TestEventStressWP100_100     COMMAND  test_aio test_event_stress_wp 0 100 100)
+    add_test(NAME TestAioEventStress100_100         COMMAND  test_aio test_event_stress 100 100)
+    add_test(NAME TestEventStressWP00_100_100       COMMAND  test_aio test_event_stress_wp 0 100 100)
     
-    add_test(NAME TestAioEventStress100_1000   COMMAND  test_aio test_event_stress 100 1000)
-    add_test(NAME TestEventStressWP100_1000    COMMAND  test_aio test_event_stress_wp 0 100 1000)
+    add_test(NAME TestAioEventStress100_1000        COMMAND  test_aio test_event_stress 100 1000)
+    add_test(NAME TestEventStressWP00_100_1000      COMMAND  test_aio test_event_stress_wp 0 100 1000)
     
-    add_test(NAME TestAioEventStress100_10000  COMMAND  test_aio test_event_stress 100 10000)
+    add_test(NAME TestAioEventStress100_10000       COMMAND  test_aio test_event_stress 100 10000)
     
-    #add_test(NAME TestEventStressWP1_100_10000   COMMAND  test_aio test_event_stress_wp 1 100 10000)
-    add_test(NAME TestEventStressWP2_100_10000   COMMAND  test_aio test_event_stress_wp 2 100 10000)
-    add_test(NAME TestEventStressWP4_100_10000   COMMAND  test_aio test_event_stress_wp 4 100 10000)
-    add_test(NAME TestEventStressWP8_100_10000   COMMAND  test_aio test_event_stress_wp 8 100 10000)
-    add_test(NAME TestEventStressWP16100_10000   COMMAND  test_aio test_event_stress_wp 16 100 10000)
-    #add_test(NAME TestEventStressWP100_10000     COMMAND  test_aio test_event_stress_wp 0 100 1000)
+    #add_test(NAME TestEventStressWP1_100_10000     COMMAND  test_aio test_event_stress_wp 1 100 10000)
+    add_test(NAME TestEventStressWP02_100_10000     COMMAND  test_aio test_event_stress_wp 2 100 10000)
+    add_test(NAME TestEventStressWP04_100_10000     COMMAND  test_aio test_event_stress_wp 4 100 10000)
+    add_test(NAME TestEventStressWP08_100_10000     COMMAND  test_aio test_event_stress_wp 8 100 10000)
+    add_test(NAME TestEventStressWP10_100_10000     COMMAND  test_aio test_event_stress_wp 16 100 10000)
+    #add_test(NAME TestEventStressWP100_10000       COMMAND  test_aio test_event_stress_wp 0 100 1000)
 
     add_test(NAME TestAioEchoTcpStress1        COMMAND  test_aio test_echo_tcp_stress 1)
     add_test(NAME TestAioEchoTcpStress2        COMMAND  test_aio test_echo_tcp_stress 2)

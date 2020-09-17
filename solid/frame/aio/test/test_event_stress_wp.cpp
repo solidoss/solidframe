@@ -273,8 +273,8 @@ int test_event_stress_wp(int argc, char* argv[])
         delete[] p;
     };
     auto fut = async(launch::async, lambda);
-    if (fut.wait_for(chrono::seconds(wait_seconds + 10)) != future_status::ready) {
-        solid_throw(" Test is taking too long - waited " << wait_seconds + 10 << " secs");
+    if (fut.wait_for(chrono::seconds(wait_seconds + 110)) != future_status::ready) {
+        solid_throw(" Test is taking too long - waited " << wait_seconds + 110 << " secs");
     }
 
     return 0;
