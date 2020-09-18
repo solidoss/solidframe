@@ -44,7 +44,7 @@ int test_workpool(int argc, char* argv[])
     solid::log_start(std::cerr, {".*:VIEWXS"});
 
     cout << "usage: " << argv[0] << " JOB_COUNT WAIT_SECONDS QUEUE_SIZE PRODUCER_COUNT CONSUMER_COUNT PUSH_SLEEP_MSECS JOB_SLEEP_MSECS" << endl;
-    using WorkPoolT  = WorkPool<size_t>;
+    using WorkPoolT  = WorkPool<size_t, workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<10>>;
     using AtomicPWPT = std::atomic<WorkPoolT*>;
 
     size_t        job_count        = 5000000;
@@ -125,15 +125,21 @@ int test_workpool(int argc, char* argv[])
         } else {
             producer_lambda();
         }
+        solid_log(generic_logger, Warning, "producers done");
         pwp = nullptr;
     };
+    
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         if (pwp != nullptr) {
             pwp.load()->dumpStatistics();
         }
+
+        this_thread::sleep_for(chrono::seconds(12));
+
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }
+
     const size_t v = (((job_count - 1) * job_count) / 2) * (producer_count == 0 ? 1 : producer_count);
 
     solid_log(generic_logger, Warning, "val = " << val << " expected val = " << v);

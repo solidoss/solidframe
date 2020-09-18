@@ -601,7 +601,6 @@ void WorkPool<Job, QNBits, Base>::doStart(
             _job_handler_fnc, _args...);
     };
 
-    solid_dbg(workpool_logger, Verbose, this << " start " << _start_wkr_cnt << " " << Base::config_.max_worker_count_ << ' ' << Base::config_.max_job_queue_size_);
     if (_start_wkr_cnt > Base::config_.max_worker_count_) {
         _start_wkr_cnt = Base::config_.max_worker_count_;
     }
@@ -610,6 +609,9 @@ void WorkPool<Job, QNBits, Base>::doStart(
 
     if (running_.compare_exchange_strong(expect, true)) {
         Base::config_       = _cfg;
+        
+        solid_dbg(workpool_logger, Verbose, this << " start " << _start_wkr_cnt << " " << Base::config_.max_worker_count_ << ' ' << Base::config_.max_job_queue_size_);
+
         worker_factory_fnc_ = lambda;
         job_q_ptr_.reset(new JobQueueT(Base::config_.max_job_queue_size_));
         {
