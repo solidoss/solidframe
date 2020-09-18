@@ -87,7 +87,7 @@ int test_workpool(int argc, char* argv[])
     }
 
     auto lambda = [&]() {
-        WorkPool<size_t> wp{
+        WorkPoolT wp{
             WorkPoolConfiguration(consumer_count, queue_size <= 0 ? std::numeric_limits<size_t>::max() : queue_size),
             1,
             [job_sleep_msecs](size_t _v, Context&& _rctx) {
