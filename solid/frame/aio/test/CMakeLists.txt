@@ -59,7 +59,7 @@ if(OPENSSL_FOUND)
     add_test(NAME TestEventStressWP02_100_10000     COMMAND  test_aio test_event_stress_wp 2 100 10000)
     add_test(NAME TestEventStressWP04_100_10000     COMMAND  test_aio test_event_stress_wp 4 100 10000)
     add_test(NAME TestEventStressWP08_100_10000     COMMAND  test_aio test_event_stress_wp 8 100 10000)
-    add_test(NAME TestEventStressWP10_100_10000     COMMAND  test_aio test_event_stress_wp 16 100 10000)
+    add_test(NAME TestEventStressWP10_100_10000     COMMAND  test_aio test_event_stress_wp 10 100 10000)
     #add_test(NAME TestEventStressWP100_10000       COMMAND  test_aio test_event_stress_wp 0 100 1000)
 
     add_test(NAME TestAioEchoTcpStress1        COMMAND  test_aio test_echo_tcp_stress 1)

@@ -31,11 +31,15 @@ matrix:
       dist: bionic
       sudo: false
       compiler: gcc
+      virt: lxd
+      group: edge
     - os: linux
       arch: arm64-graviton2
       dist: bionic
       sudo: false
       compiler: clang
+      virt: lxd
+      group: edge
     - os: osx
       compiler: clang
     - os: osx
