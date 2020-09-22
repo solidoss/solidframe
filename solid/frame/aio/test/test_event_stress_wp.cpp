@@ -268,6 +268,11 @@ int test_event_stress_wp(int argc, char* argv[])
             solid_dbg(workpool_logger, Statistic, "acc_ctx done");
             dev_ctx.wait();
             solid_dbg(workpool_logger, Statistic, "dev_ctx done");
+
+            //need explicit stop because pools use contexts which are destroyed before pools
+            account_cp.stop();
+            device_cp.stop();
+            connection_cp.stop();
         }
         int* p = new int[1000];
         delete[] p;
