@@ -608,8 +608,8 @@ void WorkPool<Job, QNBits, Base>::doStart(
     bool expect = false;
 
     if (running_.compare_exchange_strong(expect, true)) {
-        Base::config_       = _cfg;
-        
+        Base::config_ = _cfg;
+
         solid_dbg(workpool_logger, Verbose, this << " start " << _start_wkr_cnt << " " << Base::config_.max_worker_count_ << ' ' << Base::config_.max_job_queue_size_);
 
         worker_factory_fnc_ = lambda;

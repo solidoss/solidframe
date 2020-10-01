@@ -128,7 +128,7 @@ int test_workpool(int argc, char* argv[])
         solid_log(generic_logger, Warning, "producers done");
         pwp = nullptr;
     };
-    
+
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         if (pwp != nullptr) {

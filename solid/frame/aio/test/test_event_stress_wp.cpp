@@ -159,7 +159,7 @@ void DeviceContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat_
             } else if (_rctx.conn_cnt_.fetch_sub(1) == 1) {
                 //last connection
                 _rctx.rprom_.set_value();
-                solid_dbg(workpool_logger, Warning, "DONE - notify "<<_acc<<' '<<_acc_con<<' ' <<_repeat_count);
+                solid_dbg(workpool_logger, Warning, "DONE - notify " << _acc << ' ' << _acc_con << ' ' << _repeat_count);
             } else if (_rctx.conn_cnt_ < 0) {
                 solid_assert_log(false, workpool_logger, "DONE - notify " << _acc << ' ' << _acc_con << ' ' << _repeat_count);
             }

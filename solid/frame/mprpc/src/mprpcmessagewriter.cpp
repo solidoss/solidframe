@@ -66,7 +66,7 @@ void MessageWriter::doWriteQueuePushBack(const size_t _msgidx, const int _line)
         write_inner_list_.pushBack(_msgidx);
         write_queue_back_index_ = _msgidx;
     } else {
-        solid_assert_log(write_queue_back_index_ != InvalidIndex(), logger, " msgidx = "<< _msgidx <<"  write_inner_list.size = "<<write_inner_list_.size());
+        solid_assert_log(write_queue_back_index_ != InvalidIndex(), logger, " msgidx = " << _msgidx << "  write_inner_list.size = " << write_inner_list_.size());
         write_inner_list_.insertAfter(write_queue_back_index_, _msgidx);
         write_queue_back_index_ = _msgidx;
     }
@@ -98,7 +98,7 @@ void MessageWriter::doWriteQueueErase(const size_t _msgidx, const int _line)
 
     if (_msgidx == write_queue_back_index_) {
         write_queue_back_index_ = write_inner_list_.nextIndex(_msgidx);
-        if(write_queue_back_index_ == InvalidIndex()){
+        if (write_queue_back_index_ == InvalidIndex()) {
             write_queue_back_index_ = write_inner_list_.backIndex();
         }
     }
