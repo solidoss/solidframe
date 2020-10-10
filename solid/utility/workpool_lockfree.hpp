@@ -652,9 +652,8 @@ bool WorkPool<Job, QNBits, Base>::doRegisterWorker(WorkerStub& _rws, const size_
         }
         return true;
     }
-    if (thr_cnt_.fetch_sub(1) == 1) {
-        thr_cnd_.notify_all();
-    }
+    --thr_cnt_;
+    thr_cnd_.notify_all();
     return false;
 }
 //-----------------------------------------------------------------------------
