@@ -67,15 +67,11 @@ target_include_directories(solid_system PUBLIC
     $<BUILD_INTERFACE:${SolidFrame_SOURCE_DIR}>
     $<BUILD_INTERFACE:${SolidFrame_BINARY_DIR}>
     $<INSTALL_INTERFACE:include>
-    PRIVATE src
+    PRIVATE src "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
 
 add_dependencies(solid_system versioning)
-
-include_directories(
-    "${CMAKE_CURRENT_BINARY_DIR}"
-)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/configuration_impl.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/configuration_impl.hpp)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version_impl.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/version_impl.hpp)
