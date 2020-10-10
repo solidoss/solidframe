@@ -1,5 +1,6 @@
 add_custom_target(versioning
-    COMMAND ${CMAKE_COMMAND} -DINFILE="${CMAKE_CURRENT_SOURCE_DIR}/src/version.cpp.in"  -DOUTFILE="${CMAKE_CURRENT_BINARY_DIR}/version.cpp" -DPROJECT_ROOT_DIR="${SolidFrame_SOURCE_DIR}" -P "${SolidFrame_SOURCE_DIR}/cmake/version_configure_file.cmake"
+    COMMAND ${CMAKE_COMMAND} -DINFILE="${CMAKE_CURRENT_SOURCE_DIR}/src/version.cpp.in"  -DOUTFILE="${CMAKE_CURRENT_BINARY_DIR}/version.cpp.tmp" -DPROJECT_ROOT_DIR="${SolidFrame_SOURCE_DIR}" -P "${SolidFrame_SOURCE_DIR}/cmake/version_configure_file.cmake"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_BINARY_DIR}/version.cpp.tmp" "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
 )
 
 set(Sources

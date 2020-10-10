@@ -1,4 +1,6 @@
-#find_package (Git)
+
+find_package (Git)
+
 if (GIT_FOUND)
     message("git found: ${GIT_EXECUTABLE} with version ${GIT_VERSION_STRING}")
 
