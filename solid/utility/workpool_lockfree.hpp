@@ -674,10 +674,8 @@ void WorkPool<Job, QNBits, Base>::doUnregisterWorker(WorkerStub& _rws, const siz
     } else {
         thr_cnd_.wait(lock, [this]() { return thr_cnt_ <= stopping_thr_cnt_; });
     }
-
-    if (thr_cnt_.fetch_sub(1) == 1) {
-        thr_cnd_.notify_all();
-    }
+    --thr_cnt_;
+    thr_cnd_.notify_all();
 }
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

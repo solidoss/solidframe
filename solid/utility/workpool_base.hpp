@@ -16,6 +16,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <thread>
+#include "solid/system/cassert.hpp"
 
 namespace solid {
 
@@ -56,7 +57,7 @@ protected:
     template <class Predicate>
     void wait(std::condition_variable& _rcv, std::unique_lock<std::mutex>& _rlock, Predicate _predicate)
     {
-        solid_check_log(_rcv.wait_for(_rlock, std::chrono::seconds(WaitSeconds), _predicate), generic_logger, "condition locked waited " << WaitSeconds << " seconds");
+        solid_assert_log(_rcv.wait_for(_rlock, std::chrono::seconds(WaitSeconds), _predicate), generic_logger, "condition locked waited " << WaitSeconds << " seconds");
     }
 };
 
@@ -69,7 +70,7 @@ protected:
     template <class Predicate>
     void wait(std::condition_variable& _rcv, std::unique_lock<std::mutex>& _rlock, Predicate _predicate)
     {
-        solid_check_log(_rcv.wait_for(_rlock, std::chrono::seconds(WaitSeconds), _predicate), generic_logger, "condition locked waited " << WaitSeconds << " seconds");
+        solid_assert_log(_rcv.wait_for(_rlock, std::chrono::seconds(WaitSeconds), _predicate), generic_logger, "condition locked waited " << WaitSeconds << " seconds");
     }
 };
 

@@ -23,13 +23,13 @@
     if (static_cast<bool>(a)) {                            \
     } else {                                               \
         solid_log(l, Exception, "(" #a ") assert failed"); \
-        assert((a));                                       \
+        assert((false));                                       \
     }
 #define solid_assert_log3(a, l, x)                               \
     if (static_cast<bool>(a)) {                                  \
     } else {                                                     \
         solid_log(l, Exception, "(" #a ") assert failed " << x); \
-        assert((a));                                             \
+        assert((false));                                             \
     }
 
 #define solid_assert_log(...) SOLID_CALL_OVERLOAD(solid_assert_log, __VA_ARGS__)

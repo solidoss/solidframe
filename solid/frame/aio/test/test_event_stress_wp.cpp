@@ -173,7 +173,7 @@ int test_event_stress_wp(int argc, char* argv[])
 {
     //install_crash_handler();
 
-    solid::log_start(std::cerr, {".*:EWXS"});
+    solid::log_start(std::cout, {".*:EWXS"});
 
     size_t account_count            = 10000;
     size_t account_connection_count = 10;
@@ -205,6 +205,7 @@ int test_event_stress_wp(int argc, char* argv[])
     if (thread_count == 0) {
         thread_count = thread::hardware_concurrency();
     }
+    
     (void)account_device_count;
 
     auto lambda = [&]() {
