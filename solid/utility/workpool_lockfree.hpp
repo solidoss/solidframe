@@ -102,7 +102,7 @@ struct ThreadStub {
 //-----------------------------------------------------------------------------
 
 template <typename Job, size_t QNBits = 10, typename Base = solid::impl::WorkPoolBase>
-class WorkPool : protected Base {
+class WorkPool : public Base {
     using ThisT          = WorkPool<Job, QNBits, Base>;
     using WorkerFactoryT = std::function<std::thread(const size_t)>;
     using ThreadVectorT  = std::vector<ThreadStub>;
@@ -320,9 +320,9 @@ bool WorkPool<Job, QNBits, Base>::tryPush(const JT& _jb)
 {
     solid_check(running_.load(std::memory_order_relaxed));
     const size_t qsz     = doJobPush(_jb, false /*wait*/);
-    const size_t thr_cnt = thr_cnt_.load();
 
     if (qsz != InvalidSize()) {
+        const size_t thr_cnt = thr_cnt_.load();
         if (thr_cnt < Base::config_.max_worker_count_ && qsz > thr_cnt) {
             std::lock_guard<std::mutex> lock(thr_mtx_);
             solid_check(running_.load(std::memory_order_relaxed));
@@ -345,9 +345,9 @@ bool WorkPool<Job, QNBits, Base>::tryPush(JT&& _jb)
 {
     solid_check(running_.load(std::memory_order_relaxed));
     const size_t qsz     = doJobPush(std::move(_jb), false /*wait*/);
-    const size_t thr_cnt = thr_cnt_.load();
 
     if (qsz != InvalidSize()) {
+        const size_t thr_cnt = thr_cnt_.load();
         if (thr_cnt < Base::config_.max_worker_count_ && qsz > thr_cnt) {
             std::lock_guard<std::mutex> lock(thr_mtx_);
             solid_check(running_.load(std::memory_order_relaxed));
@@ -532,6 +532,8 @@ bool WorkPool<Job, QNBits, Base>::doWorkerPop(WorkerStub*& _rpws)
     }
 }
 //-----------------------------------------------------------------------------
+static std::atomic<int> loop_cnt{0};
+
 template <typename Job, size_t QNBits, typename Base>
 void WorkPool<Job, QNBits, Base>::doStop()
 {
@@ -541,7 +543,7 @@ void WorkPool<Job, QNBits, Base>::doStop()
     } else {
         return;
     }
-    {
+    { 
         std::unique_lock<std::mutex> lock(thr_mtx_);
 
         for (auto& t : thr_vec_) {
@@ -583,8 +585,12 @@ void WorkPool<Job, QNBits, Base>::doStart(
                 uint64_t   job_count = 0;
                 Job        job;
                 WorkerStub stub;
-                if (!doRegisterWorker(stub, _id))
+                if (!doRegisterWorker(stub, _id)){
+                    solid_dbg(workpool_logger, Warning, this << " worker rejected");
                     return;
+                }
+                
+                solid_dbg(workpool_logger, Warning, this << " worker started");
 
                 while (doJobPop(stub, _id, job)) {
                     _job_handler_fnc(job, std::forward<Args>(_args)...);
@@ -593,7 +599,7 @@ void WorkPool<Job, QNBits, Base>::doStart(
 
                 doUnregisterWorker(stub, _id);
 
-                solid_dbg(workpool_logger, Warning, this << " worker exited after handling " << job_count << " jobs");
+                solid_dbg(workpool_logger, Warning, this << " worker stopping after handling " << job_count << " jobs");
                 solid_statistic_max(statistic_.max_jobs_on_thread_, job_count);
                 solid_statistic_min(statistic_.min_jobs_on_thread_, job_count);
             },
@@ -663,7 +669,7 @@ void WorkPool<Job, QNBits, Base>::doUnregisterWorker(WorkerStub& _rws, const siz
     std::unique_lock<std::mutex> lock(thr_mtx_);
     ++stopping_thr_cnt_;
 
-    if (stopping_thr_cnt_ == thr_cnt_) {
+    if (stopping_thr_cnt_ >= thr_cnt_) {
         thr_cnd_.notify_all();
     } else {
         thr_cnd_.wait(lock, [this]() { return thr_cnt_ <= stopping_thr_cnt_; });
