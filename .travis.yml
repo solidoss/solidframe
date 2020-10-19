@@ -8,6 +8,7 @@ branches:
 language: cpp
 matrix:
   include:
+    # bionic
     - os: linux
       dist: bionic
       sudo: false
@@ -36,6 +37,39 @@ matrix:
     - os: linux
       arch: arm64-graviton2
       dist: bionic
+      sudo: false
+      compiler: clang
+      virt: lxd
+      group: edge
+    # focal
+    - os: linux
+      dist: focal
+      sudo: false
+      compiler: gcc
+    - os: linux
+      dist: focal
+      sudo: false
+      compiler: clang
+    - os: linux
+      arch: arm64
+      dist: focal
+      sudo: false
+      compiler: gcc
+    - os: linux
+      arch: arm64
+      dist: focal
+      sudo: false
+      compiler: clang
+    - os: linux
+      arch: arm64-graviton2
+      dist: focal
+      sudo: false
+      compiler: gcc
+      virt: lxd
+      group: edge
+    - os: linux
+      arch: arm64-graviton2
+      dist: focal
       sudo: false
       compiler: clang
       virt: lxd
