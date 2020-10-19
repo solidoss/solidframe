@@ -173,7 +173,7 @@ int test_event_stress_wp(int argc, char* argv[])
 {
     //install_crash_handler();
 
-    solid::log_start(std::cout, {".*:EWXS"});
+    solid::log_start(std::cerr, {".*:EWXS"});
 
     size_t account_count            = 10000;
     size_t account_connection_count = 10;
@@ -205,7 +205,7 @@ int test_event_stress_wp(int argc, char* argv[])
     if (thread_count == 0) {
         thread_count = thread::hardware_concurrency();
     }
-    
+
     (void)account_device_count;
 
     auto lambda = [&]() {
@@ -272,11 +272,11 @@ int test_event_stress_wp(int argc, char* argv[])
 
             //need explicit stop because pools use contexts which are destroyed before pools
             account_cp.stop();
-            solid_dbg(workpool_logger, Statistic, "account pool stopped "<<&account_cp);
+            solid_dbg(workpool_logger, Statistic, "account pool stopped " << &account_cp);
             device_cp.stop();
-            solid_dbg(workpool_logger, Statistic, "device pool stopped "<<&device_cp);
+            solid_dbg(workpool_logger, Statistic, "device pool stopped " << &device_cp);
             connection_cp.stop();
-            solid_dbg(workpool_logger, Statistic, "connection pool stopped "<<&connection_cp);
+            solid_dbg(workpool_logger, Statistic, "connection pool stopped " << &connection_cp);
         }
         int* p = new int[1000];
         delete[] p;

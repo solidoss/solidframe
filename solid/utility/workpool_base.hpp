@@ -10,13 +10,13 @@
 
 #pragma once
 
+#include "solid/system/cassert.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/system/log.hpp"
 #include "solid/utility/queue_lockfree.hpp"
 #include <condition_variable>
 #include <mutex>
 #include <thread>
-#include "solid/system/cassert.hpp"
 
 namespace solid {
 

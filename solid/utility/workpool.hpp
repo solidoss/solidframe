@@ -28,6 +28,7 @@ using WorkPool = locking::WorkPool<Job, QNBits, Base>;
 
 template <typename Job, size_t QNBits = workpoll_default_node_capacity_bit_count, typename Base = impl::WorkPoolBase>
 using WorkPool = lockfree::WorkPool<Job, QNBits, Base>;
+
 #endif
 
 template <class, size_t QNBits = workpoll_default_node_capacity_bit_count, typename Base = impl::WorkPoolBase>
