@@ -303,7 +303,7 @@ const char* MessageReader::doConsumeMessage(
                     _pbufpos += message_size;
 
                     if (rv >= 0) {
-                        if (rv <= static_cast<int>(message_size)) {
+                        if (rv <= static_cast<int>(message_size) && rmsgstub.message_ptr_) {
 
                             if ((_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0u) {
                                 if (rmsgstub.deserializer_ptr_->empty()) {
