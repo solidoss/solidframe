@@ -233,6 +233,9 @@ if(NOT NO_EXTERNAL)
 
         include(cmake/build_openssl.cmake)
     else()
+        if(EXTERNAL_LIB_DIR STREQUAL "")
+            set(EXTERNAL_LIB_DIR "${EXTERNAL_DIR}/lib")
+        endif()
         #define dummy targets
         add_custom_target(build-openssl)
 
@@ -263,10 +266,6 @@ endif()
 
 if(ON_CROSS)
     set(SOLID_TEST_NONE TRUE)
-endif()
-
-if(EXTERNAL_LIB_DIR STREQUAL "")
-    set(EXTERNAL_LIB_DIR "${EXTERNAL_DIR}/lib")
 endif()
 
 #-----------------------------------------------------------------
