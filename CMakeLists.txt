@@ -35,9 +35,11 @@ endif()
 #-----------------------------------------------------------------
 
 set(EXTERNAL_DIR "${EXTERNAL_DIR}" CACHE PATH "External dependencies directory")
+set(EXTERNAL_LIB_DIR "${EXTERNAL_LIB_DIR}" CACHE PATH "External dependencies library directory")
 
-message("Install path: \"${CMAKE_INSTALL_PREFIX}\"")
-message("External path: \"${EXTERNAL_DIR}\"")
+message("Install directory: \"${CMAKE_INSTALL_PREFIX}\"")
+message("External directory: \"${EXTERNAL_DIR}\"")
+message("External library directory: \"${EXTERNAL_LIB_DIR}\"")
 
 #-----------------------------------------------------------------
 # Prepare the definitions for build types
@@ -226,7 +228,7 @@ if(NOT NO_EXTERNAL)
 
     include_directories(${CMAKE_BINARY_DIR}/external/include)
 
-    if(EXTERNAL_DIR STREQUAL "")
+    if(EXTERNAL_DIR STREQUAL "" OR NOT EXISTS ${EXTERNAL_DIR})
         set(EXTERNAL_DIR "${CMAKE_CURRENT_BINARY_DIR}/external")
 
         include(cmake/build_openssl.cmake)
@@ -263,6 +265,10 @@ if(ON_CROSS)
     set(SOLID_TEST_NONE TRUE)
 endif()
 
+if(EXTERNAL_LIB_DIR STREQUAL "")
+    set(EXTERNAL_LIB_DIR "${EXTERNAL_DIR}/lib")
+endif()
+
 #-----------------------------------------------------------------
 # C++ Standard
 #-----------------------------------------------------------------
@@ -291,7 +297,7 @@ include_directories(
 # Global link directories
 #-----------------------------------------------------------------
 link_directories(
-    "${EXTERNAL_DIR}/lib"
+    ${EXTERNAL_LIB_DIR}
 )
 
 #-----------------------------------------------------------------
