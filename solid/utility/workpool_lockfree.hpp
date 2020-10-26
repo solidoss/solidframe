@@ -378,7 +378,9 @@ bool WorkPool<Job, QNBits, Base>::doWorkerWake(WorkerStub* _pws)
             auto expect_state = WorkerStub::StateE::Wait;
             if (pworker_stub->state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Notify)) {
                 //solid_dbg(workpool_logger, Warning, "wake worker");
-                std::lock_guard<std::mutex> lock(pworker_stub->mtx_);
+                {
+                    std::lock_guard<std::mutex> lock(pworker_stub->mtx_);
+                }
                 pworker_stub->cnd_.notify_one();
                 return true;
             } else {
@@ -544,7 +546,9 @@ void WorkPool<Job, QNBits, Base>::doStop()
         for (auto& t : thr_vec_) {
             if (t.pworker_) {
                 solid_dbg(workpool_logger, Warning, this << " worker wake " << t.thread_.get_id());
-                std::lock_guard<std::mutex> lock(t.pworker_->mtx_);
+                {
+                    std::lock_guard<std::mutex> lock(t.pworker_->mtx_);
+                }
                 t.pworker_->cnd_.notify_one();
             }
         }
