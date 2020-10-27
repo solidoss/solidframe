@@ -8,7 +8,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
-        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_dependencies(example_echo_server build-cxxopts)
@@ -44,7 +43,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
-        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (example_secure_echo_client example_secure_echo_client.cpp)
@@ -59,7 +57,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
-        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (example_echo_auto_client example_echo_auto_client.cpp)

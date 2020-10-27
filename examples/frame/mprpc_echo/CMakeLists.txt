@@ -11,7 +11,6 @@
 #   ${BOOST_PROGRAM_OPTIONS_LIB}
 #   ${BOOST_SYSTEM_LIB}
 #   ${SYSTEM_BASIC_LIBRARIES}
-#   ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
 # )
 
 #if(SOLID_ON_WINDOWS)
@@ -51,7 +50,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
-        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 endif()
 

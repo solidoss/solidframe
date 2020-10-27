@@ -8,7 +8,6 @@ target_link_libraries (tutorial_mprpc_echo_server
     solid_utility
     solid_system
     ${SYSTEM_BASIC_LIBRARIES}
-    ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
 )
 
 add_executable (tutorial_mprpc_echo_client mprpc_echo_client.cpp mprpc_echo_messages.hpp)
@@ -21,7 +20,6 @@ target_link_libraries (tutorial_mprpc_echo_client
     solid_utility
     solid_system
     ${SYSTEM_BASIC_LIBRARIES}
-    ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
 )
 
 
@@ -35,5 +33,4 @@ target_link_libraries (tutorial_mprpc_echo_client_pool
     solid_utility
     solid_system
     ${SYSTEM_BASIC_LIBRARIES}
-    ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
 )

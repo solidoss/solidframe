@@ -19,7 +19,7 @@ if(OPENSSL_FOUND)
         add_dependencies(solid_frame_aio_openssl build-openssl)
     endif()
 
-    target_link_libraries(solid_frame_aio_openssl solid_frame_aio OpenSSL::SSL OpenSSL::Crypto)
+    target_link_libraries(solid_frame_aio_openssl PUBLIC solid_frame_aio OpenSSL::SSL OpenSSL::Crypto PRIVATE ${CMAKE_DL_LIBS})
 
     target_include_directories(solid_frame_aio_openssl PUBLIC
         $<BUILD_INTERFACE:${SolidFrame_SOURCE_DIR}>

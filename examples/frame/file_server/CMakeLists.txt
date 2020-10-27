@@ -11,7 +11,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
-        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 endif()
 

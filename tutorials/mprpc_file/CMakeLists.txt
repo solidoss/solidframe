@@ -20,7 +20,6 @@ if(cxx17fs)
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
-        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
         ${STDFS_LIB}
     )
 
@@ -34,7 +33,6 @@ if(cxx17fs)
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
-        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 else()
     message("C++17 filesystem not found - mprpc_file tutorial not available")

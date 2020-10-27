@@ -86,7 +86,6 @@ set(SOLID_VERSION_MINOR ${PROJECT_VERSION_MINOR})
 set(SOLID_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 
 set(SYSTEM_BASIC_LIBRARIES "")
-set(SYSTEM_DYNAMIC_LOAD_LIBRARY "")
 
 #-----------------------------------------------------------------
 # Per OS configuration
@@ -173,8 +172,6 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
         message("Atomic library found: ${ATOMIC_LIBRARY}")
         list(APPEND SYSTEM_BASIC_LIBRARIES atomic)
     endif()
-    
-    set(SYSTEM_DYNAMIC_LOAD_LIBRARY dl)
 endif(CMAKE_SYSTEM MATCHES "Linux*")
 
 if(CMAKE_SYSTEM MATCHES "Windows*")
@@ -209,7 +206,6 @@ if(CMAKE_SYSTEM MATCHES "Android*")
     )
 
     set(SYSTEM_BASIC_LIBRARIES rt)
-    set(SYSTEM_DYNAMIC_LOAD_LIBRARY dl)
 endif(CMAKE_SYSTEM MATCHES "Android*")
 
 if(NOT ON_FOUND)

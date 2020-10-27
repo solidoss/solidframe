@@ -9,7 +9,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
-        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (example_relay_server_bi example_relay_server_bi.cpp)
@@ -22,7 +21,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
-        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (example_relay_server_bi_cp example_relay_server_bi_cp.cpp)
@@ -35,7 +33,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
-        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (example_relay_server_bi_sh example_relay_server_bi_sh.cpp)
@@ -48,7 +45,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
-        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (example_relay_server_bi_ex example_relay_server_bi_ex.cpp)
@@ -61,7 +57,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
-        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
 endif()
