@@ -24,7 +24,11 @@ if(SOLID_ON_WINDOWS)
     )
 
     set(OPENSSL_FOUND TRUE)
-    set(OPENSSL_LIBRARIES libssl libcrypto)
+    
+    add_library(OpenSSL::SSL STATIC IMPORTED)
+    set_target_properties(OpenSSL::SSL PROPERTIES IMPORTED_LOCATION ${EXTERNAL_DIR}/lib/libssl.lib)
+    add_library(OpenSSL::Crypto STATIC IMPORTED)
+    set_target_properties(OpenSSL::Crypto PROPERTIES IMPORTED_LOCATION ${EXTERNAL_DIR}/lib/libcrypto.lib)
 else()
     ExternalProject_Add(
         build-openssl
@@ -44,7 +48,12 @@ else()
     )
 
     set(OPENSSL_FOUND TRUE)
-    set(OPENSSL_LIBRARIES ssl crypto)
+    
+    add_library(OpenSSL::SSL STATIC IMPORTED)
+    set_target_properties(OpenSSL::SSL PROPERTIES IMPORTED_LOCATION ${EXTERNAL_DIR}/lib/libssl.a)
+    
+    add_library(OpenSSL::Crypto STATIC IMPORTED)
+    set_target_properties(OpenSSL::Crypto PROPERTIES IMPORTED_LOCATION ${EXTERNAL_DIR}/lib/libcrypto.a)
 endif()
 
 

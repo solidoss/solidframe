@@ -36,7 +36,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${SNAPPY_LIB}
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_BASIC_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
@@ -54,7 +53,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${SNAPPY_LIB}
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_BASIC_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )

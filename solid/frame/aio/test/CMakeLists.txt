@@ -42,7 +42,6 @@ if(OPENSSL_FOUND)
         solid_frame
         solid_utility
         solid_system
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
         ${SYSTEM_BASIC_LIBRARIES}
     )

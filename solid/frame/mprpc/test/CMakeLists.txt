@@ -45,7 +45,6 @@ if(OPENSSL_FOUND)
         solid_serialization_v2
         solid_utility
         solid_system
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
         ${SYSTEM_BASIC_LIBRARIES}
     )
@@ -88,7 +87,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${SNAPPY_LIB}
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
         ${SYSTEM_BASIC_LIBRARIES}
     )
@@ -161,7 +159,6 @@ if(OPENSSL_FOUND)
         solid_serialization_v2
         solid_utility
         solid_system
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
         ${SYSTEM_BASIC_LIBRARIES}
     )
@@ -191,7 +188,6 @@ if(OPENSSL_FOUND)
         solid_serialization_v2
         solid_utility
         solid_system
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
         ${SYSTEM_BASIC_LIBRARIES}
     )
@@ -221,7 +217,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${SNAPPY_LIB}
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
         ${SYSTEM_BASIC_LIBRARIES}
     )
@@ -264,7 +259,6 @@ if(OPENSSL_FOUND)
         solid_serialization_v2
         solid_utility
         solid_system
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
         ${SYSTEM_BASIC_LIBRARIES}
     )
@@ -292,7 +286,6 @@ if(OPENSSL_FOUND)
         solid_serialization_v2
         solid_utility
         solid_system
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
         ${SYSTEM_BASIC_LIBRARIES}
     )
@@ -326,7 +319,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${SNAPPY_LIB}
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
         ${SYSTEM_BASIC_LIBRARIES}
     )
@@ -358,7 +350,6 @@ if(OPENSSL_FOUND)
         solid_serialization_v2
         solid_utility
         solid_system
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
         ${SYSTEM_BASIC_LIBRARIES}
     )
@@ -386,7 +377,6 @@ if(OPENSSL_FOUND)
         solid_utility
         solid_system
         ${SNAPPY_LIB}
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
         ${SYSTEM_BASIC_LIBRARIES}
     )

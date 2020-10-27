@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 #-----------------------------------------------------------------
 # The project
 #-----------------------------------------------------------------
@@ -30,6 +30,9 @@ else()
     add_link_options(${EXTRA_LINK_OPTIONS})
 endif()
 
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads REQUIRED)
 #-----------------------------------------------------------------
 # Prepare the external path
 #-----------------------------------------------------------------
@@ -113,7 +116,7 @@ if(CMAKE_SYSTEM MATCHES "FreeBSD*")
         "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-O3;-g3>"
     )
 
-    set(SYSTEM_BASIC_LIBRARIES pmc pthread rt)
+    set(SYSTEM_BASIC_LIBRARIES pmc rt Threads::Threads)
     
     find_library(EXECINFO_LIBRARY NAMES execinfo)
     
@@ -137,7 +140,7 @@ if(CMAKE_SYSTEM MATCHES "Darwin*")
     
     string(APPEND CMAKE_EXE_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
     
-    set(SYSTEM_BASIC_LIBRARIES pthread)
+    set(SYSTEM_BASIC_LIBRARIES Threads::Threads)
 endif(CMAKE_SYSTEM MATCHES "Darwin*")
 
 if(CMAKE_SYSTEM MATCHES "Linux*")
@@ -162,7 +165,7 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
         )
     endif()
     
-    set(SYSTEM_BASIC_LIBRARIES pthread rt)
+    set(SYSTEM_BASIC_LIBRARIES Threads::Threads rt)
     
     find_library(ATOMIC_LIBRARY NAMES atomic atomic.so.1 libatomic.so.1)
     
@@ -205,7 +208,7 @@ if(CMAKE_SYSTEM MATCHES "Android*")
         "$<$<CONFIG:MAINTAIN>:-Wall;-O3;-g3>"
     )
 
-    set(SYSTEM_BASIC_LIBRARIES pthread rt)
+    set(SYSTEM_BASIC_LIBRARIES rt)
     set(SYSTEM_DYNAMIC_LOAD_LIBRARY dl)
 endif(CMAKE_SYSTEM MATCHES "Android*")
 

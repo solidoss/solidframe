@@ -10,7 +10,6 @@ if(OPENSSL_FOUND)
         solid_serialization_v1
         solid_utility
         solid_system
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_BASIC_LIBRARIES}
         ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
