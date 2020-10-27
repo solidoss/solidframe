@@ -35,11 +35,9 @@ endif()
 #-----------------------------------------------------------------
 
 set(EXTERNAL_DIR "${EXTERNAL_DIR}" CACHE PATH "External dependencies directory")
-set(EXTERNAL_LIB_DIR "${EXTERNAL_LIB_DIR}" CACHE PATH "External dependencies library directory")
 
 message("Install directory: \"${CMAKE_INSTALL_PREFIX}\"")
 message("External directory: \"${EXTERNAL_DIR}\"")
-message("External library directory: \"${EXTERNAL_LIB_DIR}\"")
 
 #-----------------------------------------------------------------
 # Prepare the definitions for build types
@@ -220,6 +218,10 @@ endif(NOT ON_FOUND)
 # Find external libraries
 #-----------------------------------------------------------------
 
+if(ON_ANDROID)
+    set(EXTERNAL_DIR "${EXTERNAL_DIR}/${ANDROID_ABI}")
+endif()
+
 if(NOT NO_EXTERNAL)
     include(ExternalProject)
     
@@ -230,29 +232,19 @@ if(NOT NO_EXTERNAL)
 
     if(EXTERNAL_DIR STREQUAL "" OR NOT EXISTS ${EXTERNAL_DIR})
         set(EXTERNAL_DIR "${CMAKE_CURRENT_BINARY_DIR}/external")
-        set(EXTERNAL_LIB_DIR "${EXTERNAL_DIR}/lib")
 
         include(cmake/build_openssl.cmake)
     else()
-        if(EXTERNAL_LIB_DIR STREQUAL "")
-            set(EXTERNAL_LIB_DIR "${EXTERNAL_DIR}/lib")
-        endif()
         #define dummy targets
         add_custom_target(build-openssl)
 
         include(cmake/find_openssl.cmake)
+        
+        include_directories(${EXTERNAL_DIR}/include)
     endif()
 
 else()
     set(OPENSSL_FOUND TRUE)
-endif()
-
-#-----------------------------------------------------------------
-# install prefix
-#-----------------------------------------------------------------
-
-if(ON_ANDROID)
-    set(EXTERNAL_DIR "${EXTERNAL_DIR}/${ANDROID_ABI}")
 endif()
 
 #-----------------------------------------------------------------
@@ -273,15 +265,7 @@ endif()
 # C++ Standard
 #-----------------------------------------------------------------
 
-if (CMAKE_VERSION VERSION_LESS "3.1")
-    set (CMAKE_CXX_FLAGS "--std=c++14 ${CMAKE_CXX_FLAGS}")
-else ()
-    set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard version to use (default is 14)")
-endif ()
-
-#-----------------------------------------------------------------
-
-#-----------------------------------------------------------------
+set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard version to use (default is 14)")
 
 #-----------------------------------------------------------------
 # Global include directories
@@ -289,15 +273,13 @@ endif ()
 include_directories(
     "${SolidFrame_SOURCE_DIR}"
     "${CMAKE_CURRENT_BINARY_DIR}"
-    "${EXTERNAL_DIR}/include"
 )
-#-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
 # Global link directories
 #-----------------------------------------------------------------
 link_directories(
-    ${EXTERNAL_LIB_DIR}
+    ${EXTERNAL_DIR}/lib
 )
 
 #-----------------------------------------------------------------
