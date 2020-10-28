@@ -128,6 +128,7 @@ protected:
             if (written >= 0) {
                 _n -= written;
                 _s += written;
+                rsz_ += written;
             } else {
                 return false;
             }

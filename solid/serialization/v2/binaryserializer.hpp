@@ -752,6 +752,10 @@ private:
 
             const std::bitset<N>& bs = *reinterpret_cast<const std::bitset<N>*>(_rr.ptr_);
 
+            if ((towrite & 7) != 0) {
+                *(_rs.pcrt_ + (towrite >> 3)) = 0; //reset the last byte entirely - valgrind complains about it
+            }
+
             for (size_t i = 0; i < towrite; ++i) {
                 store_bit_at(reinterpret_cast<uint8_t*>(_rs.pcrt_), i, bs[static_cast<size_t>(_rr.data_ + i)]);
             }
