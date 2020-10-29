@@ -83,7 +83,7 @@ matrix:
 install:
     - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install strawberryperl; fi
     - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install nasm; fi
-    - if [[ "${TRAVIS_CPU_ARCH}" == "Arm64" ]]; then
+    - if [[ "${TRAVIS_CPU_ARCH}" == "arm64" ]]; then
         sudo apt-get remove cmake;
         sudo snap install cmake --classic;
         cmake --version;
