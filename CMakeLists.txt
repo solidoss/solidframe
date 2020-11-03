@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 #-----------------------------------------------------------------
 # The project
 #-----------------------------------------------------------------
@@ -8,9 +8,7 @@ message("SolidFrame version: ${PROJECT_VERSION} - ${PROJECT_VERSION_MAJOR}.${PRO
 #-----------------------------------------------------------------
 # Set policies
 #-----------------------------------------------------------------
-if(NOT ${CMAKE_VERSION} VERSION_LESS "3.12.0") 
-    cmake_policy(SET CMP0074 NEW)
-endif()
+cmake_policy(SET CMP0074 NEW)
 
 #-----------------------------------------------------------------
 
