@@ -24,6 +24,7 @@
 #include "solid/utility/event.hpp"
 
 #include <functional>
+#include <future>
 #include <iostream>
 #include <signal.h>
 #include <sstream>
@@ -99,7 +100,10 @@ protected:
         , sendcnt(0)
     {
     }
-    ~Connection() override {}
+    ~Connection() override
+    {
+        solid_dbg(generic_logger, Error, this << " server " << recvcnt << " " << sendcnt);
+    }
     void        onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
     static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
     static void onSend(frame::aio::ReactorContext& _rctx);
@@ -216,6 +220,7 @@ protected:
     }
     ~Connection() override
     {
+        solid_dbg(generic_logger, Error, this << " client " << recvcnt << " " << sendcnt);
     }
 
 private:
@@ -409,7 +414,10 @@ public:
         , crtid(-1)
     {
     }
-    ~Connection() override {}
+    ~Connection() override
+    {
+        solid_dbg(generic_logger, Error, this << " relay " << recvcnt << " " << sendcnt);
+    }
 
 protected:
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
@@ -470,7 +478,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
         }
     }
 
-    {
+    auto lambda = [&]() -> int {
         AioSchedulerT        srv_sch;
         frame::Manager       srv_mgr;
         SecureContextT       srv_secure_ctx{SecureContextT::create()};
@@ -603,14 +611,22 @@ int test_echo_tcp_stress(int argc, char* argv[])
             unique_lock<mutex> lock(mtx);
 
             if (!cnd.wait_for(lock, std::chrono::seconds(wait_seconds), []() { return !running; })) {
-                solid_throw("Process is taking too long.");
+                //solid_throw("Process is taking too long.");
+                solid_dbg(generic_logger, Error, "Process is taking too long.");
+                return -1;
             }
             cout << "Received " << recv_count / 1024 << "KB on " << connection_count << " connections" << endl;
             solid_check(recv_count != 0);
         }
+        return 0;
+    };
+
+    auto fut = async(launch::async, lambda);
+    if (fut.wait_for(chrono::seconds(wait_seconds + 10)) != future_status::ready) {
+        solid_throw(" Test is taking too long - waited " << wait_seconds + 10 << " secs");
     }
 
-    return 0;
+    return fut.get();
 }
 
 //-----------------------------------------------------------------------------
@@ -675,7 +691,8 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             break;
         }
         --repeatcnt;
-    } while (repeatcnt != 0u && sock.accept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }, _rsd));
+    } while (repeatcnt != 0u && sock.accept(
+                 _rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }, _rsd));
 
     if (repeatcnt == 0u) {
         sock.postAccept(
@@ -733,6 +750,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     if (repeatcnt == 0) {
         rthis.postRecvSome(_rctx); //fully asynchronous call
     }
+    //this_thread::sleep_for(chrono::microseconds(500));
 }
 
 /*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx)
@@ -911,6 +929,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                 rthis.doSend(_rctx);
             } else {
                 solid_check(rthis.recvcnt == rthis.sendcnt);
+                solid_dbg(generic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt);
                 rthis.postStop(_rctx);
             }
         }
@@ -981,7 +1000,8 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             break;
         }
         --repeatcnt;
-    } while (repeatcnt != 0u && sock.accept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }, _rsd));
+    } while (repeatcnt != 0u && sock.accept(
+                 _rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }, _rsd));
 
     if (repeatcnt == 0u) {
         sock.postAccept(
