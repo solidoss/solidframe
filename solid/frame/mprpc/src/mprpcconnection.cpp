@@ -522,13 +522,16 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
         if (can_stop) {
             solid_assert_log(has_no_message, logger);
             solid_dbg(logger, Info, this << ' ' << this->id() << " postStop");
+            
+            this->relay_id_.clear(); //the connection was unregistered from RelayEngine on Service::connectionStopping
+            
             auto lambda = [msg_b = std::move(msg_bundle), pool_msg_id](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) mutable {
                 Connection& rthis = static_cast<Connection&>(_rctx.actor());
                 rthis.onStopped(_rctx, pool_msg_id, msg_b);
             };
-            //can stop rightaway - we will handle the last message
-            //from service on onStopped method
-            //there might be events pending which will be delivered, but after this call
+            //Can stop rightaway - we will handle the last message
+            //from service on onStopped method.
+            //There might be events pending which will be delivered, but after this call
             postStop(_rctx, std::move(lambda));
             //no event get posted
         } else if (has_no_message) {
@@ -567,6 +570,61 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
                 });
         }
     } //if(!isStopping())
+}
+//-----------------------------------------------------------------------------
+void Connection::doContinueStopping(
+    frame::aio::ReactorContext& _rctx,
+    const Event&                _revent)
+{
+    
+    ErrorConditionT   tmp_error(error());
+    ActorIdT          actuid(uid(_rctx));
+    ulong             seconds_to_wait = 0;
+    MessageBundle     msg_bundle;
+    MessageId         pool_msg_id;
+    Event             event(_revent);
+    ConnectionContext conctx(service(_rctx), *this);
+    const bool        can_stop = service(_rctx).connectionStopping(conctx, actuid, seconds_to_wait, pool_msg_id, &msg_bundle, event, tmp_error);
+    
+    solid_dbg(logger, Info, this << ' ' << this->id() << ' ' << can_stop);
+    
+    if (can_stop) {
+        //can stop rightaway
+        solid_dbg(logger, Info, this << ' ' << this->id() << " postStop");
+        
+        this->relay_id_.clear(); //the connection was unregistered from RelayEngine on Service::connectionStopping
+        
+        auto lambda = [msg_bundle = std::move(msg_bundle), pool_msg_id](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) mutable {
+            Connection& rthis = static_cast<Connection&>(_rctx.actor());
+            rthis.onStopped(_rctx, pool_msg_id, msg_bundle);
+        };
+        //Can stop rightaway - we will handle the last message
+        //from service on onStopped method.
+        //There might be events pending which will be delivered, but after this call
+        postStop(_rctx, std::move(lambda));
+        //no event get posted
+    } else {
+        if (msg_bundle.message_ptr || !solid_function_empty(msg_bundle.complete_fnc)) {
+            doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
+        }
+        if (seconds_to_wait != 0u) {
+            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << seconds_to_wait << " seconds");
+            timer_.waitFor(_rctx,
+                           std::chrono::seconds(seconds_to_wait),
+                           [_revent](frame::aio::ReactorContext& _rctx) {
+                               Connection& rthis = static_cast<Connection&>(_rctx.actor());
+                               rthis.doContinueStopping(_rctx, _revent);
+                           });
+        } else {
+            post(
+                _rctx,
+                 [](frame::aio::ReactorContext& _rctx, Event&& _revent) {
+                     Connection& rthis = static_cast<Connection&>(_rctx.actor());
+                     rthis.doContinueStopping(_rctx, _revent);
+                 },
+                 std::move(event));
+        }
+    }
 }
 //-----------------------------------------------------------------------------
 struct Connection::Sender : MessageWriter::Sender {
@@ -663,55 +721,6 @@ void Connection::doCompleteAllMessages(
     }
 }
 //-----------------------------------------------------------------------------
-void Connection::doContinueStopping(
-    frame::aio::ReactorContext& _rctx,
-    const Event&                _revent)
-{
-
-    ErrorConditionT   tmp_error(error());
-    ActorIdT          actuid(uid(_rctx));
-    ulong             seconds_to_wait = 0;
-    MessageBundle     msg_bundle;
-    MessageId         pool_msg_id;
-    Event             event(_revent);
-    ConnectionContext conctx(service(_rctx), *this);
-    const bool        can_stop = service(_rctx).connectionStopping(conctx, actuid, seconds_to_wait, pool_msg_id, &msg_bundle, event, tmp_error);
-
-    solid_dbg(logger, Info, this << ' ' << this->id() << ' ' << can_stop);
-
-    if (can_stop) {
-        //can stop rightaway
-        solid_dbg(logger, Info, this << ' ' << this->id() << " postStop");
-        postStop(_rctx,
-            [msg_bundle = std::move(msg_bundle), pool_msg_id](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) mutable {
-                Connection& rthis = static_cast<Connection&>(_rctx.actor());
-                rthis.onStopped(_rctx, pool_msg_id, msg_bundle);
-            }); //there might be events pending which will be delivered, but after this call
-        //no event get posted
-    } else {
-        if (msg_bundle.message_ptr || !solid_function_empty(msg_bundle.complete_fnc)) {
-            doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
-        }
-        if (seconds_to_wait != 0u) {
-            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << seconds_to_wait << " seconds");
-            timer_.waitFor(_rctx,
-                std::chrono::seconds(seconds_to_wait),
-                [_revent](frame::aio::ReactorContext& _rctx) {
-                    Connection& rthis = static_cast<Connection&>(_rctx.actor());
-                    rthis.doContinueStopping(_rctx, _revent);
-                });
-        } else {
-            post(
-                _rctx,
-                [](frame::aio::ReactorContext& _rctx, Event&& _revent) {
-                    Connection& rthis = static_cast<Connection&>(_rctx.actor());
-                    rthis.doContinueStopping(_rctx, _revent);
-                },
-                std::move(event));
-        }
-    }
-}
-//-----------------------------------------------------------------------------
 void Connection::onStopped(
     frame::aio::ReactorContext& _rctx,
     MessageId const&            _rpool_msg_id,
@@ -720,8 +729,6 @@ void Connection::onStopped(
 
     ActorIdT          actuid(uid(_rctx));
     ConnectionContext conctx(service(_rctx), *this);
-
-    this->relay_id_.clear(); //the connection was unregistered from RelayEngine on Service::connectionStopping
 
     service(_rctx).connectionStop(conctx);
 
@@ -1276,34 +1283,44 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, Event& 
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventRelayNew(frame::aio::ReactorContext& _rctx, Event& /*_revent*/)
 {
-    flags_.set(FlagsE::PollRelayEngine);
-    doSend(_rctx);
+    //The connection may get unregistered from RelayEngine (see Service::connectionStopping)
+    //after an Relay* event get posted but before it being handled by connection.
+    //That is why we need to check if the relay_id_ is valid.
+    if(relay_id_.isValid()){
+        flags_.set(FlagsE::PollRelayEngine);
+        doSend(_rctx);
+    }
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event& /*_revent*/)
 {
-    Configuration const& config      = service(_rctx).configuration();
-    size_t               ack_buf_cnt = 0;
-    const auto           done_lambda = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
-        if (_rbuf.use_count() == 1) {
-            ++ack_buf_cnt;
-            this->recv_buf_vec_.emplace_back(std::move(_rbuf));
+    //The connection may get unregistered from RelayEngine (see Service::connectionStopping)
+    //after an Relay* event get posted but before it being handled by connection.
+    //That is why we need to check if the relay_id_ is valid.
+    if(relay_id_.isValid()){
+        Configuration const& config      = service(_rctx).configuration();
+        size_t               ack_buf_cnt = 0;
+        const auto           done_lambda = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
+            if (_rbuf.use_count() == 1) {
+                ++ack_buf_cnt;
+                this->recv_buf_vec_.emplace_back(std::move(_rbuf));
+            }
+        };
+        const auto cancel_lambda = [this](const MessageHeader& _rmsghdr) {
+            //we must request the remote side to stop sending the message
+            solid_dbg(logger, Info, this << " cancel_remote_msg sreqid =  " << _rmsghdr.sender_request_id_ << " rreqid = " << _rmsghdr.recipient_request_id_);
+            //cancel_remote_msg_vec_.push_back(_rmsghdr.recipient_request_id_);
+            //we do nothing here because the message cancel will be discovered onto messagereader
+            //when calling receiveRelayBody which will return false
+        };
+
+        config.relayEngine().pollDone(relay_id_, done_lambda, cancel_lambda);
+
+        if (ack_buf_cnt != 0u || !cancel_remote_msg_vec_.empty()) {
+            solid_dbg(logger, Info, this << " ack_buf_cnt = " << ack_buf_cnt << " cancel_remote_msg_vec_size = " << cancel_remote_msg_vec_.size());
+            ackd_buf_count_ += static_cast<uint8_t>(ack_buf_cnt);
+            doSend(_rctx);
         }
-    };
-    const auto cancel_lambda = [this](const MessageHeader& _rmsghdr) {
-        //we must request the remote side to stop sending the message
-        solid_dbg(logger, Info, this << " cancel_remote_msg sreqid =  " << _rmsghdr.sender_request_id_ << " rreqid = " << _rmsghdr.recipient_request_id_);
-        //cancel_remote_msg_vec_.push_back(_rmsghdr.recipient_request_id_);
-        //we do nothing here because the message cancel will be discovered onto messagereader
-        //when calling receiveRelayBody which will return false
-    };
-
-    config.relayEngine().pollDone(relay_id_, done_lambda, cancel_lambda);
-
-    if (ack_buf_cnt != 0u || !cancel_remote_msg_vec_.empty()) {
-        solid_dbg(logger, Info, this << " ack_buf_cnt = " << ack_buf_cnt << " cancel_remote_msg_vec_size = " << cancel_remote_msg_vec_.size());
-        ackd_buf_count_ += static_cast<uint8_t>(ack_buf_cnt);
-        doSend(_rctx);
     }
 }
 //-----------------------------------------------------------------------------

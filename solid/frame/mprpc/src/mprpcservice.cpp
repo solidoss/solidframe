@@ -1809,10 +1809,11 @@ bool Service::connectionStopping(
         ppool->on_event_fnc(_rconctx, pool_event_category.event(PoolEvents::PoolDisconnect), _rerror);
     }
     if (retval && _rconctx.relayId().isValid()) {
-        //we must call relayEngine.stopConnection here instead of on Service::connectionStop
-        //because at that point, the connection actor, because the call to Service::connectionStop
-        //is made after connection postStop, the connection cannot receive notifications anymore
-        //and relay engines requires that all registered connections can be notified
+        //must call relayEngine.stopConnection here instead-of on Service::connectionStop
+        //because at that point, the connection actor cannot receive notifications
+        //as the call to Service::connectionStop is made after connection postStop 
+        //and relay engines requires that all registered connections can be notified.
+        //See note on Connection::doHandleEventRelayNew and Connection::doHandleEventRelayDone
         configuration().relayEngine().stopConnection(_rconctx.relayId());
     }
     return retval;
