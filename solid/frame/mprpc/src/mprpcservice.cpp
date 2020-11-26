@@ -1811,7 +1811,7 @@ bool Service::connectionStopping(
     if (retval && _rconctx.relayId().isValid()) {
         //must call relayEngine.stopConnection here instead-of on Service::connectionStop
         //because at that point, the connection actor cannot receive notifications
-        //as the call to Service::connectionStop is made after connection postStop 
+        //as the call to Service::connectionStop is made after connection postStop
         //and relay engines requires that all registered connections can be notified.
         //See note on Connection::doHandleEventRelayNew and Connection::doHandleEventRelayDone
         configuration().relayEngine().stopConnection(_rconctx.relayId());

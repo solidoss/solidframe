@@ -522,9 +522,9 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
         if (can_stop) {
             solid_assert_log(has_no_message, logger);
             solid_dbg(logger, Info, this << ' ' << this->id() << " postStop");
-            
+
             this->relay_id_.clear(); //the connection was unregistered from RelayEngine on Service::connectionStopping
-            
+
             auto lambda = [msg_b = std::move(msg_bundle), pool_msg_id](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) mutable {
                 Connection& rthis = static_cast<Connection&>(_rctx.actor());
                 rthis.onStopped(_rctx, pool_msg_id, msg_b);
@@ -576,7 +576,7 @@ void Connection::doContinueStopping(
     frame::aio::ReactorContext& _rctx,
     const Event&                _revent)
 {
-    
+
     ErrorConditionT   tmp_error(error());
     ActorIdT          actuid(uid(_rctx));
     ulong             seconds_to_wait = 0;
@@ -585,15 +585,15 @@ void Connection::doContinueStopping(
     Event             event(_revent);
     ConnectionContext conctx(service(_rctx), *this);
     const bool        can_stop = service(_rctx).connectionStopping(conctx, actuid, seconds_to_wait, pool_msg_id, &msg_bundle, event, tmp_error);
-    
+
     solid_dbg(logger, Info, this << ' ' << this->id() << ' ' << can_stop);
-    
+
     if (can_stop) {
         //can stop rightaway
         solid_dbg(logger, Info, this << ' ' << this->id() << " postStop");
-        
+
         this->relay_id_.clear(); //the connection was unregistered from RelayEngine on Service::connectionStopping
-        
+
         auto lambda = [msg_bundle = std::move(msg_bundle), pool_msg_id](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) mutable {
             Connection& rthis = static_cast<Connection&>(_rctx.actor());
             rthis.onStopped(_rctx, pool_msg_id, msg_bundle);
@@ -610,19 +610,19 @@ void Connection::doContinueStopping(
         if (seconds_to_wait != 0u) {
             solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << seconds_to_wait << " seconds");
             timer_.waitFor(_rctx,
-                           std::chrono::seconds(seconds_to_wait),
-                           [_revent](frame::aio::ReactorContext& _rctx) {
-                               Connection& rthis = static_cast<Connection&>(_rctx.actor());
-                               rthis.doContinueStopping(_rctx, _revent);
-                           });
+                std::chrono::seconds(seconds_to_wait),
+                [_revent](frame::aio::ReactorContext& _rctx) {
+                    Connection& rthis = static_cast<Connection&>(_rctx.actor());
+                    rthis.doContinueStopping(_rctx, _revent);
+                });
         } else {
             post(
                 _rctx,
-                 [](frame::aio::ReactorContext& _rctx, Event&& _revent) {
-                     Connection& rthis = static_cast<Connection&>(_rctx.actor());
-                     rthis.doContinueStopping(_rctx, _revent);
-                 },
-                 std::move(event));
+                [](frame::aio::ReactorContext& _rctx, Event&& _revent) {
+                    Connection& rthis = static_cast<Connection&>(_rctx.actor());
+                    rthis.doContinueStopping(_rctx, _revent);
+                },
+                std::move(event));
         }
     }
 }
@@ -1286,7 +1286,7 @@ void Connection::doHandleEventRelayNew(frame::aio::ReactorContext& _rctx, Event&
     //The connection may get unregistered from RelayEngine (see Service::connectionStopping)
     //after an Relay* event get posted but before it being handled by connection.
     //That is why we need to check if the relay_id_ is valid.
-    if(relay_id_.isValid()){
+    if (relay_id_.isValid()) {
         flags_.set(FlagsE::PollRelayEngine);
         doSend(_rctx);
     }
@@ -1297,7 +1297,7 @@ void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event
     //The connection may get unregistered from RelayEngine (see Service::connectionStopping)
     //after an Relay* event get posted but before it being handled by connection.
     //That is why we need to check if the relay_id_ is valid.
-    if(relay_id_.isValid()){
+    if (relay_id_.isValid()) {
         Configuration const& config      = service(_rctx).configuration();
         size_t               ack_buf_cnt = 0;
         const auto           done_lambda = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
