@@ -50,7 +50,6 @@ protected:
     NonCopyable& operator=(NonCopyable&&) = delete;
 
     NonCopyable() = default;
-    ~NonCopyable(){}
 };
 
 using ssize_t = std::make_signed<size_t>::type;
