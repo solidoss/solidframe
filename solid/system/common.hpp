@@ -44,11 +44,13 @@ struct TypeToType {
 
 class NonCopyable {
 protected:
-    NonCopyable() {}
     NonCopyable(const NonCopyable&) = delete;
     NonCopyable(NonCopyable&&)      = delete;
     NonCopyable& operator=(const NonCopyable&) = delete;
     NonCopyable& operator=(NonCopyable&&) = delete;
+
+    NonCopyable() = default;
+    ~NonCopyable(){}
 };
 
 using ssize_t = std::make_signed<size_t>::type;
