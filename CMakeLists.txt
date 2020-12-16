@@ -50,11 +50,15 @@ if(NOT CMAKE_BUILD_TYPE)
     # Set the possible values of build type for cmake-gui
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
         "release" "debug" "maintain")
-    set(CMAKE_CONFIGURATION_TYPES "release")
-    set(CONFIGURATION_TYPE "release")
 endif()
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
+
+if(CMAKE_BUILD_TYPE STREQUAL "release")
+    #force a single configuration type on Windows builds
+    set(CMAKE_CONFIGURATION_TYPES "release")
+    set(CONFIGURATION_TYPE "release")
+endif(CMAKE_BUILD_TYPE STREQUAL "release")
 
 if(CMAKE_BUILD_TYPE STREQUAL "maintain")
     set(CMAKE_VERBOSE_MAKEFILE ON)
