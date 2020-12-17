@@ -15,32 +15,6 @@
 
 namespace solid {
 
-template <typename T>
-inline T tmax(const T& v1, const T& v2)
-{
-    return (v1 < v2) ? v2 : v1;
-}
-template <typename T>
-inline T tmin(const T& v1, const T& v2)
-{
-    return (v1 > v2) ? v2 : v1;
-}
-//! A fast template inline function for exchanging values
-template <typename T>
-void exchange(T& a, T& b, T& tmp)
-{
-    tmp = a;
-    a   = b;
-    b   = tmp;
-}
-//! A fast template inline function for exchanging values
-template <typename T>
-void exchange(T& a, T& b)
-{
-    T tmp(a);
-    a = b;
-    b = tmp;
-}
 
 #if 0
 bool overflow_safe_great(const uint32_t _u1, const uint32_t _u2){
@@ -52,7 +26,7 @@ bool overflow_safe_great(const uint32_t _u1, const uint32_t _u2){
 }
 #endif
 
-inline bool overflow_safe_less(const uint32_t& _u1, const uint32_t& _u2)
+inline constexpr bool overflow_safe_less(const uint32_t& _u1, const uint32_t& _u2)
 {
     if (_u1 < _u2) {
         return (_u2 - _u1) <= (uint32_t)(0xffffffff / 2);
@@ -61,7 +35,7 @@ inline bool overflow_safe_less(const uint32_t& _u1, const uint32_t& _u2)
     }
 }
 
-inline bool overflow_safe_less(const uint64_t& _u1, const uint64_t& _u2)
+inline constexpr bool overflow_safe_less(const uint64_t& _u1, const uint64_t& _u2)
 {
     if (_u1 < _u2) {
         return (_u2 - _u1) <= ((uint64_t)-1) / 2;
@@ -70,7 +44,7 @@ inline bool overflow_safe_less(const uint64_t& _u1, const uint64_t& _u2)
     }
 }
 
-inline uint32_t overflow_safe_max(const uint32_t& _u1, const uint32_t& _u2)
+inline constexpr uint32_t overflow_safe_max(const uint32_t& _u1, const uint32_t& _u2)
 {
     if (overflow_safe_less(_u1, _u2)) {
         return _u2;
@@ -79,7 +53,7 @@ inline uint32_t overflow_safe_max(const uint32_t& _u1, const uint32_t& _u2)
     }
 }
 
-inline uint64_t overflow_safe_max(const uint64_t& _u1, const uint64_t& _u2)
+inline constexpr uint64_t overflow_safe_max(const uint64_t& _u1, const uint64_t& _u2)
 {
     if (overflow_safe_less(_u1, _u2)) {
         return _u2;
@@ -89,7 +63,7 @@ inline uint64_t overflow_safe_max(const uint64_t& _u1, const uint64_t& _u2)
 }
 
 template <typename T>
-inline T circular_distance(const T& _v, const T& _piv, const T& _max)
+inline constexpr T circular_distance(const T& _v, const T& _piv, const T& _max)
 {
     if (_v >= _piv) {
         return _v - _piv;
@@ -98,13 +72,13 @@ inline T circular_distance(const T& _v, const T& _piv, const T& _max)
     }
 }
 
-inline size_t padded_size(const size_t _sz, const size_t _pad)
+inline constexpr size_t padded_size(const size_t _sz, const size_t _pad)
 {
     const size_t pad = (_pad - (_sz % _pad)) % _pad;
     return _sz + pad;
 }
 
-inline size_t fast_padded_size(const size_t _sz, const size_t _bitpad)
+inline constexpr size_t fast_padded_size(const size_t _sz, const size_t _bitpad)
 {
     //return padded_size(_sz, 1<<_bitpad);
     const size_t padv   = static_cast<size_t>(1) << _bitpad;
@@ -156,21 +130,21 @@ inline size_t leading_zero_count(uint8_t x)
     return bit_count(static_cast<uint8_t>(~x));
 }
 
-inline void pack(uint32_t& _v, const uint16_t _v1, const uint16_t _v2)
+inline constexpr  void pack(uint32_t& _v, const uint16_t _v1, const uint16_t _v2)
 {
     _v = _v2;
     _v <<= 16;
     _v |= _v1;
 }
 
-inline uint32_t pack(const uint16_t _v1, const uint16_t _v2)
+inline constexpr uint32_t pack(const uint16_t _v1, const uint16_t _v2)
 {
-    uint32_t v;
+    uint32_t v = 0;
     pack(v, _v1, _v2);
     return v;
 }
 
-inline void unpack(uint16_t& _v1, uint16_t& _v2, const uint32_t _v)
+inline constexpr void unpack(uint16_t& _v1, uint16_t& _v2, const uint32_t _v)
 {
     _v1 = _v & 0xffffUL;
     _v2 = (_v >> 16) & 0xffffUL;
@@ -218,56 +192,51 @@ struct InvalidSize {
 };
 
 template <typename SizeT>
-bool operator==(SizeT const& _index, InvalidIndex const& _invalid)
+constexpr bool operator==(SizeT const& _index, InvalidIndex const& _invalid)
 {
     return _index == static_cast<SizeT>(_invalid);
 }
 
 template <typename SizeT>
-bool operator!=(SizeT const& _index, InvalidIndex const& _invalid)
+constexpr bool operator!=(SizeT const& _index, InvalidIndex const& _invalid)
 {
     return _index != static_cast<SizeT>(_invalid);
 }
 
 template <typename SizeT>
-bool operator==(SizeT const& _index, InvalidSize const& _invalid)
+constexpr bool operator==(SizeT const& _index, InvalidSize const& _invalid)
 {
     return _index == static_cast<SizeT>(_invalid);
 }
 
 template <typename SizeT>
-bool operator!=(SizeT const& _index, InvalidSize const& _invalid)
+constexpr bool operator!=(SizeT const& _index, InvalidSize const& _invalid)
 {
     return _index != static_cast<SizeT>(_invalid);
 }
 
 template <typename SizeT>
-inline bool is_invalid_index(SizeT const& _index)
+constexpr inline bool is_invalid_index(SizeT const& _index)
 {
     return _index == InvalidIndex();
 }
 
 template <typename SizeT>
-inline bool is_valid_index(SizeT const& _index)
+constexpr inline bool is_valid_index(SizeT const& _index)
 {
     return _index != InvalidIndex();
 }
 
 template <typename SizeT>
-inline bool is_invalid_size(SizeT const& _index)
+constexpr inline bool is_invalid_size(SizeT const& _index)
 {
     return _index == InvalidSize();
 }
 
 template <typename SizeT>
-inline bool is_valid_size(SizeT const& _index)
+constexpr inline bool is_valid_size(SizeT const& _index)
 {
     return _index != InvalidSize();
 }
 
 } //namespace solid
-
-constexpr size_t max_size(const size_t _s1, const size_t _s2)
-{
-    return _s1 >= _s2 ? _s1 : _s2;
-}

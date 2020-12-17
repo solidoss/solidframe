@@ -36,7 +36,7 @@ class EventHandlerBase;
 //-----------------------------------------------------------------------------
 
 struct Event {
-    static constexpr size_t any_size = any_min_data_size + max_size(sizeof(void*) + sizeof(uint64_t), sizeof(std::shared_ptr<uint64_t>));
+    static constexpr size_t any_size = any_min_data_size + std::max(sizeof(void*) + sizeof(uint64_t), sizeof(std::shared_ptr<uint64_t>));
 
     using AnyT = Any<any_size>;
 

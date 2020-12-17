@@ -423,7 +423,7 @@ bool Utf8Controller::preparePointer(
 void Utf8Controller::executeOnSignal(shared::StoreBase::Accessor& /*_rsbacc*/, ulong /*_sm*/)
 {
     //We're under Store's mutex lock
-    solid::exchange(impl_->pfilltempwaitvec, impl_->pconstempwaitvec);
+    std::exchange(impl_->pfilltempwaitvec, impl_->pconstempwaitvec);
     impl_->pfilltempwaitvec->clear();
 }
 
