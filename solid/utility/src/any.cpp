@@ -18,11 +18,6 @@ namespace impl {
 /*virtual*/ FunctionValueBase::~FunctionValueBase()
 {
 }
-
-/*virtual*/ AnyValueBase::~AnyValueBase()
-{
-}
-
 } //namespace impl
 
 } //namespace solid

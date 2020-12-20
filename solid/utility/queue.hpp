@@ -31,12 +31,14 @@ class Queue {
     static constexpr const size_t node_size = bits_to_count(NBits);
 
     struct Node {
+        using Storage = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
+
         Node(Node* _pnext = nullptr)
             : next(_pnext)
         {
         }
-        Node*   next;
-        uint8_t data[node_size * sizeof(T)];
+        Storage       data[node_size];
+        Node*         next;
     };
 
     size_t sz;
@@ -120,6 +122,7 @@ public:
             pb = pushNode(pb);
 
         ++sz;
+        
         new (pb) T(std::move(_t));
     }
 
@@ -159,8 +162,8 @@ public:
         while (sz) {
             pop();
         }
-        Node* pn = pf ? reinterpret_cast<Node*>(reinterpret_cast<uint8_t*>(pf) - popsz * sizeof(T) - sizeof(Node*)) : nullptr;
-
+        //Node* pn = pf ? reinterpret_cast<Node*>(reinterpret_cast<uint8_t*>(pf) - popsz * sizeof(T) - sizeof(Node*)) : nullptr;
+        Node* pn = pf ? node(pf, popsz) : nullptr;
         while (ptn) {
             Node* tn = ptn->next;
             solid_assert_log(ptn != pn, generic_logger);
@@ -171,12 +174,18 @@ public:
     }
 
 private:
-    constexpr Node* node(void* _p) const
+    constexpr Node* node(T* _plast_in_node) const
     {
-        return reinterpret_cast<Node*>(static_cast<uint8_t*>(_p) - node_size * sizeof(T) + sizeof(T) - sizeof(Node*));
+        //return reinterpret_cast<Node*>(static_cast<uint8_t*>(_p) - node_size * sizeof(T) + sizeof(T) - sizeof(Node*));
+        return std::launder(reinterpret_cast<Node*>(_plast_in_node - (node_size - 1)));
+    }
+    constexpr Node* node(T* _plast_in_node, size_t _offset) const
+    {
+        //return reinterpret_cast<Node*>(static_cast<uint8_t*>(_p) - node_size * sizeof(T) + sizeof(T) - sizeof(Node*));
+        return std::launder(reinterpret_cast<Node*>(_plast_in_node - (_offset)));
     }
 
-    T* pushNode(void* _p)
+    T* pushNode(T* _p)
     {
         Node* pn = _p ? node(_p) : nullptr;
         if (ptn) {
@@ -185,7 +194,7 @@ private:
             tn->next = nullptr;
             if (pn) {
                 pn->next = tn;
-                return (T*)tn->data;
+                return std::launder(reinterpret_cast<T*>(&pn->data[0]));
             } else {
                 return (pf = (T*)tn->data);
             }
@@ -193,14 +202,14 @@ private:
             if (pn) {
                 pn->next = new Node;
                 pn       = pn->next;
-                return (T*)pn->data;
+                return std::launder(reinterpret_cast<T*>(&pn->data[0]));
             } else {
                 pn = new Node;
-                return (pf = (T*)pn->data);
+                return (pf = std::launder(reinterpret_cast<T*>(&pn->data[0])));
             }
         }
     }
-    T* popNode(void* _p)
+    T* popNode(T* _p)
     {
         solid_assert_log(_p, generic_logger);
         Node* pn  = node(_p);
@@ -208,7 +217,7 @@ private:
         pn->next  = ptn;
         ptn       = pn; //cache the node
         if (ppn) {
-            return (T*)(ppn->data);
+            return std::launder(reinterpret_cast<T*>(&ppn->data[0]));
         } else {
             solid_assert_log(!sz, generic_logger);
             pb = nullptr;

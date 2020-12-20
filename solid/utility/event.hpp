@@ -36,8 +36,7 @@ class EventHandlerBase;
 //-----------------------------------------------------------------------------
 
 struct Event {
-    static constexpr size_t any_size = any_min_data_size + std::max(sizeof(void*) + sizeof(uint64_t), sizeof(std::shared_ptr<uint64_t>));
-
+    static constexpr size_t any_size = sizeof(void*) == 8 ? any_size_from_sizeof(64 - sizeof(void*) - sizeof(uintptr_t)) : any_size_from_sizeof(32 - sizeof(void*) - sizeof(uintptr_t));
     using AnyT = Any<any_size>;
 
     Event();
@@ -75,7 +74,7 @@ private:
     friend class EventHandlerBase;
 
     Event(
-        const size_t             _id,
+        const uintptr_t             _id,
         const EventCategoryBase& _rcategory)
         : pcategory_(&_rcategory)
         , id_(_id)
@@ -84,7 +83,7 @@ private:
 
     template <class T>
     explicit Event(
-        const size_t             _id,
+        const uintptr_t             _id,
         const EventCategoryBase& _rcategory,
         const T&                 _rany_value)
         : pcategory_(&_rcategory)
@@ -95,7 +94,7 @@ private:
 
     template <class T>
     explicit Event(
-        const size_t             _id,
+        const uintptr_t             _id,
         const EventCategoryBase& _rcategory,
         T&&                      _uany_value)
         : pcategory_(&_rcategory)
@@ -106,7 +105,7 @@ private:
 
 private:
     const EventCategoryBase* pcategory_;
-    size_t                   id_;
+    uintptr_t                id_;
     AnyT                     any_;
 };
 
@@ -131,24 +130,24 @@ protected:
 
     virtual ~EventCategoryBase() {}
 
-    Event event(const size_t _idx) const
+    Event event(const uintptr_t _idx) const
     {
         return Event(_idx, *this);
     }
 
     template <typename T>
-    Event event(const size_t _idx, const T& _rany_value) const
+    Event event(const uintptr_t _idx, const T& _rany_value) const
     {
         return Event(_idx, *this, _rany_value);
     }
 
     template <typename T>
-    Event event(const size_t _idx, T&& _uany_value) const
+    Event event(const uintptr_t _idx, T&& _uany_value) const
     {
         return Event(_idx, *this, std::move(_uany_value));
     }
 
-    size_t eventId(const Event& _revt) const
+    uintptr_t eventId(const Event& _revt) const
     {
         return _revt.id_;
     }
@@ -204,7 +203,7 @@ private:
     FunctionT names_fnc_;
 };
 
-enum class GenericEvents {
+enum class GenericEvents: uintptr_t {
     Default,
     Start,
     Stop,
@@ -281,7 +280,7 @@ inline void Event::clear()
 {
     pcategory_ = &generic_event_category;
     id_        = static_cast<size_t>(GenericEvents::Default);
-    any_.clear();
+    any_.reset();
 }
 
 inline bool Event::isDefault() const

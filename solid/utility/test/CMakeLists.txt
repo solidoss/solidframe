@@ -3,6 +3,7 @@ set( UtilityTestSuite
     test_invalid_index.cpp
     test_innerlist.cpp
     test_any.cpp
+    test_queue.cpp
     test_event.cpp
     test_memory_file.cpp
     test_workpool_context.cpp
@@ -65,6 +66,7 @@ add_test(NAME TestUtilityIoFormat                       COMMAND  test_utility te
 add_test(NAME TestUtilityInvalidIndex                   COMMAND  test_utility test_invalid_index)
 add_test(NAME TestUtilityInnerList                      COMMAND  test_utility test_innerlist)
 add_test(NAME TestUtilityAny                            COMMAND  test_utility test_any)
+add_test(NAME TestUtilityQueue                          COMMAND  test_utility test_queue)
 add_test(NAME TestUtilityEvent                          COMMAND  test_utility test_event)
 add_test(NAME TestUtilityMemoryFile                     COMMAND  test_utility test_memory_file)
 add_test(NAME TestUtilityMemoryFile2M                   COMMAND  test_utility test_memory_file 2222222)

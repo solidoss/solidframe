@@ -798,7 +798,7 @@ struct OnRelsolveF {
     void operator()(AddressVectorT&& _raddrvec)
     {
         solid_dbg(logger, Info, "OnResolveF(addrvec of size " << _raddrvec.size() << ")");
-        event.any() = ResolveMessage(std::move(_raddrvec));
+        event.any().emplace<ResolveMessage>(std::move(_raddrvec));
         rm.notify(actuid, std::move(event));
     }
 };

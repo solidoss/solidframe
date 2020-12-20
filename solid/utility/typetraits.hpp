@@ -85,4 +85,12 @@ template <class F, class... Args>
 struct is_callable : std::conditional<is_callable_helper<F, Args...>::value, std::true_type, std::false_type>::type {
 };
 
+template <class _Type, template <class...> class _Template>
+inline constexpr bool is_specialization_v = false;
+template <template <class...> class _Template, class... _Types>
+inline constexpr bool is_specialization_v<_Template<_Types...>, _Template> = true;
+
+template <class _Type, template <class...> class _Template>
+struct is_specialization : std::bool_constant<is_specialization_v<_Type, _Template>> {};
+
 } //namespace solid
