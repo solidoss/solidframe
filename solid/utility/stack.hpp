@@ -112,7 +112,7 @@ public:
             ptop_ = pushNode(ptop_);
         }
 
-        ++size_;n
+        ++size_;
         new (ptop_) T{ std::move(_value) };
     }
 
