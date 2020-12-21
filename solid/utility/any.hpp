@@ -10,14 +10,17 @@
 
 #pragma once
 
-#include "solid/system/exception.hpp"
-#include "solid/system/log.hpp"
-#include "solid/utility/common.hpp"
-#include "solid/utility/typetraits.hpp"
 #include <cstddef>
 #include <typeindex>
 #include <typeinfo>
 #include <utility>
+#include <algorithm>
+
+#include "solid/system/exception.hpp"
+#include "solid/system/log.hpp"
+#include "solid/utility/common.hpp"
+#include "solid/utility/typetraits.hpp"
+
 
 namespace solid {
     inline constexpr size_t AnyDefaultSize = 3*sizeof(void*);
@@ -25,7 +28,11 @@ namespace solid {
     inline constexpr size_t any_size_from_sizeof(const size_t _sizeof){
         return _sizeof - sizeof(void*);
     }
-
+    template<class T>
+    inline constexpr const T& any_max(const T& a, const T& b)
+    {
+        return (a < b) ? b : a;
+    }
     template <size_t DataSize = AnyDefaultSize>
     class Any;
 
@@ -211,7 +218,7 @@ namespace solid {
 template <size_t DataSize>
 class Any {
     static constexpr size_t min_capacity = sizeof(void*) * 3;
-    static constexpr size_t small_capacity = std::max(min_capacity, padded_size(DataSize, sizeof(void*))) - sizeof(void*);
+    static constexpr size_t small_capacity =  any_max(min_capacity, padded_size(DataSize, sizeof(void*))) - sizeof(void*);
     static constexpr size_t big_padding = small_capacity - sizeof(void*);
 
     struct Small {

@@ -25,123 +25,142 @@ namespace solid {
 */
 template <class T, size_t NBits = 5>
 class Stack {
-    enum {
-        NodeMask = bits_to_mask(NBits),
-        NodeSize = bits_to_count(NBits)
-    };
+    static constexpr const size_t node_mask = bits_to_mask(NBits);
+    static constexpr const size_t node_size = bits_to_count(NBits);
+
     struct Node {
+        using Storage = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
+
         Node(Node* _pprev = nullptr)
-            : prev(_pprev)
+            : pprev_(_pprev)
         {
         }
-        Node* prev;
-        char  data[NodeSize * sizeof(T)];
+
+        Storage       data_[node_size];
+        Node* pprev_;
     };
 
+    size_t size_ = 0;
+    T* ptop_ = nullptr;
+    Node* ptop_cached_nodes_ = nullptr;
+
 public:
-    typedef T&       reference;
-    typedef T const& const_reference;
+    using reference = T&;
+    using const_reference = T const&;
 
 public:
     Stack()
-        : sz(0)
-        , p(nullptr)
-        , ptn(nullptr)
     {
     }
-    Stack(Stack&& _rs)
-        : sz(_rs.sz)
-        , p(_rs.p)
-        , ptn(_rs.ptn)
+
+    Stack(Stack&& _rthat)
+        : size_(_rthat.size_)
+        , ptop_(_rthat.ptop_)
+        , ptop_cached_nodes_(_rthat.ptop_cached_nodes_)
     {
-        _rs.sz  = 0;
-        _rs.p   = nullptr;
-        _rs.ptn = nullptr;
+        _rthat.size_  = 0;
+        _rthat.ptop_   = nullptr;
+        _rthat.ptop_cached_nodes_ = nullptr;
     }
     ~Stack()
     {
-        while (sz)
+        while (size_ != 0) {
             pop();
-        while (ptn) {
-            Node* tn = ptn->prev;
-            delete ptn;
-            ptn = tn;
+        }
+
+        while (ptop_cached_nodes_) {
+            Node* pnode = ptop_cached_nodes_->pprev_;
+            delete ptop_cached_nodes_;
+            ptop_cached_nodes_ = pnode;
         }
     }
 
-    Stack& operator=(Stack&& _rs)
+    Stack& operator=(Stack&& _rthat)
     {
-        sz  = _rs.sz;
-        p   = _rs.p;
-        ptn = _rs.ptn;
+        size_  = _rthat.size_;
+        ptop_   = _rthat.ptop_;
+        ptop_cached_nodes_ = _rthat.ptop_cached_nodes_;
 
-        _rs.sz  = 0;
-        _rs.p   = nullptr;
-        _rs.ptn = nullptr;
+        _rthat.size_ = 0;
+        _rthat.ptop_ = nullptr;
+        _rthat.ptop_cached_nodes_ = nullptr;
         return *this;
     }
 
-    bool   empty() const { return !sz; }
-    size_t size() const { return sz; }
-    void   push(const T& _t)
+    bool   empty() const { return !size_; }
+    size_t size() const { return size_; }
+    
+    void   push(const T& _value)
     {
-        if ((sz)&NodeMask)
-            ++p;
-        else
-            p = pushNode(p);
+        if ((size_) & node_mask) {
+            ++ptop_;
+        }
+        else {
+            ptop_ = pushNode(ptop_);
+        }
 
-        ++sz;
-        new (p) T(_t);
+        ++size_;
+        new (ptop_) T{ _value };
     }
 
-    void push(T&& _t)
+    void push(T&& _value)
     {
-        if ((sz)&NodeMask)
-            ++p;
-        else
-            p = pushNode(p);
+        if ((size_) & node_mask) {
+            ++ptop_;
+        }
+        else {
+            ptop_ = pushNode(ptop_);
+        }
 
-        ++sz;
-        new (p) T(std::move(_t));
+        ++size_;n
+        new (ptop_) T{ std::move(_value) };
     }
 
-    reference       top() { return *p; }
-    const_reference top() const { return *p; }
+    reference       top() { return *ptop_; }
+    const_reference top() const { return *ptop_; }
+    
     void            pop()
     {
-        p->~T();
-        if ((--sz) & NodeMask)
-            --p;
-        else
-            p = popNode(p);
+        ptop_->~T();
+        
+        if ((--size_) & node_mask) {
+            --ptop_;
+        }
+        else {
+            ptop_ = popNode(ptop_);
+        }
     }
 
 private:
-    T* pushNode(void* _p)
-    { //_p points to
-        Node* pn = _p ? (Node*)(((char*)_p) - NodeSize * sizeof(T) + sizeof(T) - sizeof(Node*)) : nullptr;
-        if (ptn) {
-            Node* tn = pn;
-            pn       = ptn;
-            ptn      = ptn->prev;
-            pn->prev = tn;
-        } else {
-            pn = new Node(pn);
-        }
-        return (T*)pn->data;
-    }
-    T* popNode(void* _p)
+    constexpr Node* node(T* _plast_in_node, const size_t _index = (node_size - 1)) const
     {
-        //csolid_assert(_p);
-        Node* pn  = ((Node*)(((char*)_p) - sizeof(Node*)));
-        Node* ppn = pn->prev;
-        solid_assert_log(pn != ptn, generic_logger);
-        pn->prev = ptn;
-        ptn      = pn; //cache the node
-        if (ppn) {
-            return (T*)(ppn->data + (NodeSize * sizeof(T) - sizeof(T)));
+        return std::launder(reinterpret_cast<Node*>(_plast_in_node - _index));
+    }
+
+    T* pushNode(T* _pvalue)
+    {   Node* pcurrent_node = _pvalue ? node(_pvalue) : nullptr;
+        if (ptop_cached_nodes_) {
+            Node* pnode = pcurrent_node;
+            pcurrent_node       = ptop_cached_nodes_;
+            ptop_cached_nodes_ = ptop_cached_nodes_->pprev_;
+            pcurrent_node->pprev_ = pnode;
         } else {
-            solid_assert_log(!sz, generic_logger);
+            pcurrent_node = new Node{ pcurrent_node };
+        }
+        return std::launder(reinterpret_cast<T*>(&pcurrent_node->data_[0]));
+    }
+    
+    T* popNode(T* _pvalue)
+    {
+        Node* pcurrent_node = node(_pvalue, 0);
+        Node* pprev_node = pcurrent_node->pprev_;
+        solid_assert_log(pcurrent_node != ptop_cached_nodes_, generic_logger);
+        pcurrent_node->pprev_ = ptop_cached_nodes_;
+        ptop_cached_nodes_ = pcurrent_node; //cache the node
+        if (pprev_node) {
+            return std::launder(reinterpret_cast<T*>(&pprev_node->data_[node_size - 1]));
+        } else {
+            solid_assert_log(!size_, generic_logger);
             return nullptr;
         }
     }
@@ -149,11 +168,7 @@ private:
 private:
     Stack(const Stack&);
     Stack& operator=(const Stack&);
-
-private:
-    size_t sz;
-    T*     p;
-    Node*  ptn;
+    
 };
 
 } //namespace solid
