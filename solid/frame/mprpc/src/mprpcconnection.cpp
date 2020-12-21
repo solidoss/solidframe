@@ -244,7 +244,7 @@ struct RecvRaw {
 /*static*/ Event Connection::eventRecvRaw(ConnectionRecvRawDataCompleteFunctionT&& _ucomplete_fnc)
 {
     Event event = connection_event_category.event(ConnectionEvents::RecvRaw);
-    event.any() = RecvRaw(std::move(_ucomplete_fnc));
+    event.any().emplace<RecvRaw>(std::move(_ucomplete_fnc));
     return event;
 }
 //-----------------------------------------------------------------------------
