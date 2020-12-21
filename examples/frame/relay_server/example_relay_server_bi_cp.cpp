@@ -456,7 +456,7 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
 
         Event ev(make_event(GenericEvents::Raise));
 
-        ev.any() = BufferPairT(rthis.buf[rthis.buf_crt_recv], _sz);
+        ev.any().emplace<BufferPairT>(rthis.buf[rthis.buf_crt_recv], _sz);
 
         _rctx.manager().notify(rthis.peer_actuid, std::move(ev));
 

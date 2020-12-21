@@ -594,7 +594,7 @@ void Connection::onRecvId(frame::aio::ReactorContext& _rctx, size_t _off, size_t
             frame::ActorIdT actid = connection_uid(idx);
             Event           ev(make_event(GenericEvents::Message));
             SocketDevice    sd(sock1.reset(_rctx));
-            ev.any() = MoveMessage(std::move(sd), buf2 + i, _sz - i);
+            ev.any().emplace<MoveMessage>(std::move(sd), buf2 + i, static_cast<uint8_t>(_sz - i));
             solid_log(generic_logger, Info, this << " send move_message with size = " << (_sz - i));
             _rctx.manager().notify(actid, std::move(ev));
             solid_log(generic_logger, Error, this << " postStop");

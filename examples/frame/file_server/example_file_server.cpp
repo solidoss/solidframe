@@ -515,7 +515,7 @@ struct OpenCbk {
     {
         solid_log(generic_logger, Info, "");
         Event ev{generic_event_message};
-        ev.any() = FilePointerMessage(_rptr);
+        ev.any().emplace<FilePointerMessage>(_rptr);
 
         rm.notify(uid, std::move(ev));
     }

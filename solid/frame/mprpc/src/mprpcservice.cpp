@@ -2228,7 +2228,7 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
                 //use the rest of the already resolved addresses
                 Event event = Connection::eventResolve();
 
-                event.any() = ResolveMessage(std::move(rpool.connect_addr_vec));
+                event.any().emplace<ResolveMessage>(std::move(rpool.connect_addr_vec));
 
                 manager().notify(conuid, std::move(event));
             }
