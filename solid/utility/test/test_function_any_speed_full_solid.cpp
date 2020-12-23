@@ -1,4 +1,3 @@
-
 #include "solid/system/log.hpp"
 #include "solid/utility/event.hpp"
 #include "solid/utility/function_new.hpp"

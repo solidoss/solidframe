@@ -2,8 +2,11 @@
 using namespace std;
 using namespace solid;
 
-
-typedef solid_function_t(void(const UniqueId&, Event&&)) EventFunctionT;
+#ifndef SOLID_USE_STD_FUNCTION
+using EventFunctionT = solid::Function<void(const UniqueId&, Event&&), 56>;
+#else
+using EventFunctionT = std::function<void(const UniqueId&, Event&&)>;
+#endif
 
 struct ExecStub {
     template <class F>
@@ -77,8 +80,8 @@ int test_function_any_speed(int argc, char *argv[]){
                         result += *std::any_cast<size_t>(&_revent.any());
 #else
                         result += *_revent.any().cast<size_t>();
-                        result += str.size();
 #endif
+                        result += str.size();
                     },
                     UniqueId{j,static_cast<UniqueT>(i)},
                     make_event(GenericEvents::Default, i)

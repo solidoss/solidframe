@@ -291,7 +291,7 @@ public:
 
     Function() noexcept {}
 
-    Function(nullptr_t) noexcept {}
+    Function(std::nullptr_t) noexcept {}
 
     Function(const ThisT& _other) {
         doCopyFrom(_other);
