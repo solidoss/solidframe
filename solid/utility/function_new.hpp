@@ -134,14 +134,14 @@ namespace solid {
         template <class T, class R, class ...ArgTypes>
         inline constexpr BigRTTI<R, ArgTypes...> big_rtti = {
             &do_invoke<T, R, ArgTypes&&...>,
-            &BigRTTI<R, ArgTypes...>::destroy<T>, &do_copy<T, R, ArgTypes...>, &do_move_big<T, R, ArgTypes...>,
+            &BigRTTI<R, ArgTypes...>::template destroy<T>, &do_copy<T, R, ArgTypes...>, &do_move_big<T, R, ArgTypes...>,
             std::is_copy_constructible_v<T>, std::is_move_constructible_v<T>
         };
 
         template <class T, class R, class ...ArgTypes>
         inline constexpr SmallRTTI<R, ArgTypes...> small_rtti = {
             &do_invoke<T, R, ArgTypes&&...>,
-            &SmallRTTI<R, ArgTypes...>::destroy<T>, &do_copy<T, R, ArgTypes...>, &do_move<T, R, ArgTypes...>,
+            &SmallRTTI<R, ArgTypes...>::template destroy<T>, &do_copy<T, R, ArgTypes...>, &do_move<T, R, ArgTypes...>,
             std::is_copy_constructible_v<T>, std::is_move_constructible_v<T>
         };
 

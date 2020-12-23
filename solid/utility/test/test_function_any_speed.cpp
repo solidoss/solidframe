@@ -56,7 +56,11 @@ using ExecQueueT = Queue<ExecStub>;
 #endif
 
 
+
 int test_function_any_speed(int argc, char *argv[]){
+    cout<<"sizeof(ExecStub) = "<<sizeof(ExecStub)<<endl;
+    cout<<"sizeof(Event) = "<<sizeof(Event)<<endl;
+    cout<<"sizeof(EventFunctionT) = "<<sizeof(EventFunctionT)<<endl;
     size_t repeat_count = 100;
     size_t insert_count = 100000;
 
@@ -67,12 +71,13 @@ int test_function_any_speed(int argc, char *argv[]){
             exeq.push(
                 ExecStub{
                     UniqueId{i,static_cast<UniqueT>(j)},
-                    [&result](const UniqueId &_ruid, Event &&_revent){
+                    [&result, str = to_string(i)](const UniqueId &_ruid, Event &&_revent){
                         result += _ruid.index;
 #ifdef SOLID_EVENT_USE_STD_ANY
                         result += *std::any_cast<size_t>(&_revent.any());
 #else
                         result += *_revent.any().cast<size_t>();
+                        result += str.size();
 #endif
                     },
                     UniqueId{j,static_cast<UniqueT>(i)},
