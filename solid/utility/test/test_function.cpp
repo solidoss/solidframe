@@ -1,4 +1,5 @@
-#include "solid/utility/function.hpp"
+#include "solid/utility/function_new.hpp"
+#include <functional>
 #include <fstream>
 #include <iostream>
 using namespace solid;

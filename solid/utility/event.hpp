@@ -24,7 +24,11 @@
 
 #include "solid/utility/any.hpp"
 #include "solid/utility/common.hpp"
-#include "solid/utility/function.hpp"
+
+#ifdef SOLID_EVENT_USE_STD_ANY
+#include <any>
+#endif
+
 
 namespace solid {
 
@@ -36,9 +40,12 @@ class EventHandlerBase;
 //-----------------------------------------------------------------------------
 
 struct Event {
+#ifdef SOLID_EVENT_USE_STD_ANY
+    using AnyT = std::any;
+#else
     static constexpr size_t any_size = sizeof(void*) == 8 ? any_size_from_sizeof(64 - sizeof(void*) - sizeof(uintptr_t)) : any_size_from_sizeof(32 - sizeof(void*) - sizeof(uintptr_t));
     using AnyT = Any<any_size>;
-
+#endif
     Event();
     Event(Event&&);
     Event(const Event&);
@@ -166,8 +173,8 @@ private:
 
 template <typename EventIds>
 class EventCategory : public EventCategoryBase {
-    using FunctionT = solid_function_t(const char*(const EventIds));
-
+    //using FunctionT = solid_function_t(const char*(const EventIds));
+    using FunctionT = std::function<const char*(const EventIds)>;
 public:
     template <typename F>
     EventCategory(const std::string& _name, F _f)
@@ -330,8 +337,8 @@ protected:
 template <typename RetVal, typename... Args>
 class EventHandler : protected EventHandlerBase {
 public:
-    using FunctionT = solid_function_t(RetVal(Event&, Args...));
-
+    //using FunctionT = solid_function_t(RetVal(Event&, Args...));
+    using FunctionT = std::function<RetVal(Event&, Args...)>;
 private:
     using FunctionVectorT = std::vector<FunctionT>;
     using SizeTPairT      = std::pair<size_t, size_t>;

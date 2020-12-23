@@ -17,6 +17,8 @@ set( UtilityTestSuite
     test_function.cpp
     test_function_perf.cpp
     test_template_function.cpp
+    test_function_any_speed_full_stl.cpp
+    test_function_any_speed_full_solid.cpp
 )
 
 create_test_sourcelist( UtilityTests test_utility.cpp ${UtilityTestSuite})
