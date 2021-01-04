@@ -2,7 +2,6 @@ set(Sources
     src/utility.cpp
     src/memoryfile.cpp
     src/ioformat.cpp
-    src/any.cpp
     src/event.cpp
     src/super.cpp
 )
@@ -25,7 +24,6 @@ set(Headers
     workpool_locking.hpp
     workpool_base.hpp
     function.hpp
-    functiontraits.hpp
     typetraits.hpp
     delegate.hpp
 )
