@@ -15,6 +15,5 @@
 namespace solid {
 namespace serialization {
 
-
 } //namespace serialization
 } //namespace solid

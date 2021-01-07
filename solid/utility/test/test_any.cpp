@@ -66,7 +66,7 @@ void test_any_no_copy_copy(const Any<32>& _rany)
     solid_check(_rany.has_value());
     solid_check(caught_exception);
     caught_exception = false;
-    
+
     Any<32> tmp_any;
 
     try {
@@ -159,8 +159,8 @@ int test_any(int /*argc*/, char* /*argv*/[])
 
 #endif
 
-    Any<>   any0;
-    auto    any32(make_any<string, 32>(string("best string ever")));
+    Any<> any0;
+    auto  any32(make_any<string, 32>(string("best string ever")));
 
     cout << "sizeof(any0) = " << sizeof(any0) << endl;
 
@@ -233,8 +233,8 @@ int test_any(int /*argc*/, char* /*argv*/[])
         solid_check(ptr.use_count() == 0);
     }
     {
-        Any<sizeof(Test)>          any_t{Test{10}};
-        Any<>                      any_0{std::move(any_t)};
+        Any<sizeof(Test)> any_t{Test{10}};
+        Any<>             any_0{std::move(any_t)};
 
         solid_check(any_t.has_value());
         solid_check(any_0.has_value());

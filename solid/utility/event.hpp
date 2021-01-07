@@ -25,7 +25,6 @@
 #include "solid/utility/any.hpp"
 #include "solid/utility/common.hpp"
 
-
 namespace solid {
 
 class EventCategoryBase;
@@ -37,7 +36,7 @@ class EventHandlerBase;
 
 struct Event {
     static constexpr size_t any_size = sizeof(void*) == 8 ? any_size_from_sizeof(64 - sizeof(void*) - sizeof(uintptr_t)) : any_size_from_sizeof(32 - sizeof(void*) - sizeof(uintptr_t));
-    using AnyT = Any<any_size>;
+    using AnyT                       = Any<any_size>;
 
     Event();
     Event(Event&&);
@@ -74,7 +73,7 @@ private:
     friend class EventHandlerBase;
 
     Event(
-        const uintptr_t             _id,
+        const uintptr_t          _id,
         const EventCategoryBase& _rcategory)
         : pcategory_(&_rcategory)
         , id_(_id)
@@ -83,7 +82,7 @@ private:
 
     template <class T>
     explicit Event(
-        const uintptr_t             _id,
+        const uintptr_t          _id,
         const EventCategoryBase& _rcategory,
         const T&                 _rany_value)
         : pcategory_(&_rcategory)
@@ -94,7 +93,7 @@ private:
 
     template <class T>
     explicit Event(
-        const uintptr_t             _id,
+        const uintptr_t          _id,
         const EventCategoryBase& _rcategory,
         T&&                      _uany_value)
         : pcategory_(&_rcategory)
@@ -168,6 +167,7 @@ template <typename EventIds>
 class EventCategory : public EventCategoryBase {
     //using FunctionT = solid_function_t(const char*(const EventIds));
     using FunctionT = std::function<const char*(const EventIds)>;
+
 public:
     template <typename F>
     EventCategory(const std::string& _name, F _f)
@@ -203,7 +203,7 @@ private:
     FunctionT names_fnc_;
 };
 
-enum class GenericEvents: uintptr_t {
+enum class GenericEvents : uintptr_t {
     Default,
     Start,
     Stop,
@@ -332,6 +332,7 @@ class EventHandler : protected EventHandlerBase {
 public:
     //using FunctionT = solid_function_t(RetVal(Event&, Args...));
     using FunctionT = std::function<RetVal(Event&, Args...)>;
+
 private:
     using FunctionVectorT = std::vector<FunctionT>;
     using SizeTPairT      = std::pair<size_t, size_t>;

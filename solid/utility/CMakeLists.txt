@@ -40,6 +40,7 @@ target_include_directories(solid_utility PUBLIC
     PRIVATE src
 )
 target_link_libraries(solid_utility solid_system)
+target_compile_features(solid_utility PUBLIC cxx_std_17)
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/utility)
 install (TARGETS solid_utility DESTINATION lib EXPORT SolidFrameConfig)

@@ -15,7 +15,6 @@
 
 namespace solid {
 
-
 #if 0
 bool overflow_safe_great(const uint32_t _u1, const uint32_t _u2){
     if(_u1 > _u2){
@@ -130,7 +129,7 @@ inline size_t leading_zero_count(uint8_t x)
     return bit_count(static_cast<uint8_t>(~x));
 }
 
-inline constexpr  void pack(uint32_t& _v, const uint16_t _v1, const uint16_t _v2)
+inline constexpr void pack(uint32_t& _v, const uint16_t _v1, const uint16_t _v2)
 {
     _v = _v2;
     _v <<= 16;

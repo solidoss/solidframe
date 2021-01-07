@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdint>
 #include "solid/utility/common.hpp"
+#include <cstdint>
 
 using IndexT  = uint64_t;
 using UniqueT = uint32_t;
@@ -46,4 +46,3 @@ struct UniqueId {
         unique = solid::InvalidIndex();
     }
 };
-

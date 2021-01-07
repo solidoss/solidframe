@@ -27,6 +27,14 @@ add_link_options("SHELL: ${EXTRA_LINK_OPTIONS}")
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
+
+#-----------------------------------------------------------------
+# C++ Standard
+#-----------------------------------------------------------------
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 #-----------------------------------------------------------------
 # Prepare the external path
 #-----------------------------------------------------------------
@@ -257,12 +265,6 @@ endif()
 if(ON_CROSS)
     set(SOLID_TEST_NONE TRUE)
 endif()
-
-#-----------------------------------------------------------------
-# C++ Standard
-#-----------------------------------------------------------------
-
-set(CMAKE_CXX_STANDARD 17)
 
 #-----------------------------------------------------------------
 # Global include directories

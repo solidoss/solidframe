@@ -36,16 +36,16 @@ class Stack {
         {
         }
 
-        Storage       data_[node_size];
-        Node* pprev_;
+        Storage data_[node_size];
+        Node*   pprev_;
     };
 
-    size_t size_ = 0;
-    T* ptop_ = nullptr;
-    Node* ptop_cached_nodes_ = nullptr;
+    size_t size_              = 0;
+    T*     ptop_              = nullptr;
+    Node*  ptop_cached_nodes_ = nullptr;
 
 public:
-    using reference = T&;
+    using reference       = T&;
     using const_reference = T const&;
 
 public:
@@ -58,8 +58,8 @@ public:
         , ptop_(_rthat.ptop_)
         , ptop_cached_nodes_(_rthat.ptop_cached_nodes_)
     {
-        _rthat.size_  = 0;
-        _rthat.ptop_   = nullptr;
+        _rthat.size_              = 0;
+        _rthat.ptop_              = nullptr;
         _rthat.ptop_cached_nodes_ = nullptr;
     }
     ~Stack()
@@ -77,56 +77,53 @@ public:
 
     Stack& operator=(Stack&& _rthat)
     {
-        size_  = _rthat.size_;
-        ptop_   = _rthat.ptop_;
+        size_              = _rthat.size_;
+        ptop_              = _rthat.ptop_;
         ptop_cached_nodes_ = _rthat.ptop_cached_nodes_;
 
-        _rthat.size_ = 0;
-        _rthat.ptop_ = nullptr;
+        _rthat.size_              = 0;
+        _rthat.ptop_              = nullptr;
         _rthat.ptop_cached_nodes_ = nullptr;
         return *this;
     }
 
     bool   empty() const { return !size_; }
     size_t size() const { return size_; }
-    
-    void   push(const T& _value)
+
+    void push(const T& _value)
     {
-        if ((size_) & node_mask) {
+        if ((size_)&node_mask) {
             ++ptop_;
-        }
-        else {
+        } else {
             ptop_ = pushNode(ptop_);
         }
 
         ++size_;
-        new (ptop_) T{ _value };
+        new (ptop_) T{_value};
     }
 
     void push(T&& _value)
     {
-        if ((size_) & node_mask) {
+        if ((size_)&node_mask) {
             ++ptop_;
-        }
-        else {
+        } else {
             ptop_ = pushNode(ptop_);
         }
 
         ++size_;
-        new (ptop_) T{ std::move(_value) };
+        new (ptop_) T{std::move(_value)};
     }
 
     reference       top() { return *ptop_; }
     const_reference top() const { return *ptop_; }
-    
-    void            pop()
+
+    void pop()
     {
         ptop_->~T();
-        
+
         if ((--size_) & node_mask) {
             --ptop_;
-        }
-        else {
+        } else {
             ptop_ = popNode(ptop_);
         }
     }
@@ -138,25 +135,26 @@ private:
     }
 
     T* pushNode(T* _pvalue)
-    {   Node* pcurrent_node = _pvalue ? node(_pvalue) : nullptr;
+    {
+        Node* pcurrent_node = _pvalue ? node(_pvalue) : nullptr;
         if (ptop_cached_nodes_) {
-            Node* pnode = pcurrent_node;
-            pcurrent_node       = ptop_cached_nodes_;
-            ptop_cached_nodes_ = ptop_cached_nodes_->pprev_;
+            Node* pnode           = pcurrent_node;
+            pcurrent_node         = ptop_cached_nodes_;
+            ptop_cached_nodes_    = ptop_cached_nodes_->pprev_;
             pcurrent_node->pprev_ = pnode;
         } else {
-            pcurrent_node = new Node{ pcurrent_node };
+            pcurrent_node = new Node{pcurrent_node};
         }
         return std::launder(reinterpret_cast<T*>(&pcurrent_node->data_[0]));
     }
-    
+
     T* popNode(T* _pvalue)
     {
         Node* pcurrent_node = node(_pvalue, 0);
-        Node* pprev_node = pcurrent_node->pprev_;
+        Node* pprev_node    = pcurrent_node->pprev_;
         solid_assert_log(pcurrent_node != ptop_cached_nodes_, generic_logger);
         pcurrent_node->pprev_ = ptop_cached_nodes_;
-        ptop_cached_nodes_ = pcurrent_node; //cache the node
+        ptop_cached_nodes_    = pcurrent_node; //cache the node
         if (pprev_node) {
             return std::launder(reinterpret_cast<T*>(&pprev_node->data_[node_size - 1]));
         } else {
@@ -168,7 +166,6 @@ private:
 private:
     Stack(const Stack&);
     Stack& operator=(const Stack&);
-    
 };
 
 } //namespace solid

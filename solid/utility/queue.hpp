@@ -37,18 +37,18 @@ class Queue {
             : pnext_(_pnext)
         {
         }
-        Storage       data_[node_size];
-        Node*         pnext_;
+        Storage data_[node_size];
+        Node*   pnext_;
     };
 
-    size_t size_ = 0;
+    size_t size_                   = 0;
     size_t current_node_pop_count_ = 0;
-    T*     pback_ = nullptr;
-    T*     pfront_ = nullptr;
-    Node* ptop_cached_nodes_ = nullptr;
+    T*     pback_                  = nullptr;
+    T*     pfront_                 = nullptr;
+    Node*  ptop_cached_nodes_      = nullptr;
 
 public:
-    using reference = T&;
+    using reference       = T&;
     using const_reference = T const&;
 
 public:
@@ -61,11 +61,11 @@ public:
         , pfront_(_rthat.pfront_)
         , ptop_cached_nodes_(_rthat.ptop_cached_nodes_)
     {
-        _rthat.size_ = 0;
+        _rthat.size_                   = 0;
         _rthat.current_node_pop_count_ = 0;
-        _rthat.pback_ = nullptr;
-        _rthat.pfront_ = nullptr;
-        _rthat.ptop_cached_nodes_ = nullptr;
+        _rthat.pback_                  = nullptr;
+        _rthat.pfront_                 = nullptr;
+        _rthat.ptop_cached_nodes_      = nullptr;
     }
 
     Queue(const Queue&) = delete;
@@ -80,17 +80,17 @@ public:
     {
         clear();
 
-        size_    = _rthat.size_;
+        size_                   = _rthat.size_;
         current_node_pop_count_ = _rthat.current_node_pop_count_;
-        pback_    = _rthat.pback_;
-        pfront_    = _rthat.pfront_;
-        ptop_cached_nodes_ = _rthat.ptop_cached_nodes_;
+        pback_                  = _rthat.pback_;
+        pfront_                 = _rthat.pfront_;
+        ptop_cached_nodes_      = _rthat.ptop_cached_nodes_;
 
-        _rthat.size_ = 0;
+        _rthat.size_                   = 0;
         _rthat.current_node_pop_count_ = 0;
-        _rthat.pback_ = nullptr;
-        _rthat.pfront_ = nullptr;
-        _rthat.ptop_cached_nodes_ = nullptr;
+        _rthat.pback_                  = nullptr;
+        _rthat.pfront_                 = nullptr;
+        _rthat.ptop_cached_nodes_      = nullptr;
         return *this;
     }
 
@@ -101,25 +101,23 @@ public:
     {
         if ((size_ + current_node_pop_count_) & node_mask) {
             ++pback_;
-        }
-        else {
+        } else {
             pback_ = pushNode(pback_);
         }
         ++size_;
-        new (pback_) T{ _value };
+        new (pback_) T{_value};
     }
 
     void push(T&& _value)
     {
         if ((size_ + current_node_pop_count_) & node_mask) {
             ++pback_;
-        }
-        else {
+        } else {
             pback_ = pushNode(pback_);
         }
         ++size_;
-        
-        new (pback_) T{ std::move(_value) };
+
+        new (pback_) T{std::move(_value)};
     }
 
     reference back()
@@ -148,7 +146,7 @@ public:
         if ((++current_node_pop_count_) & node_mask)
             ++pfront_;
         else {
-            pfront_    = popNode(pfront_);
+            pfront_                 = popNode(pfront_);
             current_node_pop_count_ = 0;
         }
     }
@@ -158,7 +156,7 @@ public:
         while (size_ != 0) {
             pop();
         }
-        
+
         Node* pcurrent_node = pfront_ ? node(pfront_, current_node_pop_count_) : nullptr;
         while (ptop_cached_nodes_ != nullptr) {
             Node* pnext_chached_node = ptop_cached_nodes_->pnext_;
@@ -179,9 +177,9 @@ private:
     {
         Node* pcurrent_node = _pvalue ? node(_pvalue) : nullptr;
         if (ptop_cached_nodes_) {
-            Node* pnode = ptop_cached_nodes_;
+            Node* pnode        = ptop_cached_nodes_;
             ptop_cached_nodes_ = ptop_cached_nodes_->pnext_;
-            pnode->pnext_ = nullptr;
+            pnode->pnext_      = nullptr;
             if (pcurrent_node) {
                 pcurrent_node->pnext_ = pnode;
                 return std::launder(reinterpret_cast<T*>(&pnode->data_[0]));
@@ -191,7 +189,7 @@ private:
         } else {
             if (pcurrent_node) {
                 pcurrent_node->pnext_ = new Node;
-                pcurrent_node = pcurrent_node->pnext_;
+                pcurrent_node         = pcurrent_node->pnext_;
                 return std::launder(reinterpret_cast<T*>(&pcurrent_node->data_[0]));
             } else {
                 pcurrent_node = new Node;
@@ -202,10 +200,10 @@ private:
     T* popNode(T* _pvalue)
     {
         solid_assert_log(_pvalue, generic_logger);
-        Node* pcurrent_node  = node(_pvalue);
-        Node* pnext_node = pcurrent_node->pnext_;
-        pcurrent_node->pnext_  = ptop_cached_nodes_;
-        ptop_cached_nodes_ = pcurrent_node; //cache the node
+        Node* pcurrent_node   = node(_pvalue);
+        Node* pnext_node      = pcurrent_node->pnext_;
+        pcurrent_node->pnext_ = ptop_cached_nodes_;
+        ptop_cached_nodes_    = pcurrent_node; //cache the node
         if (pnext_node) {
             return std::launder(reinterpret_cast<T*>(&pnext_node->data_[0]));
         } else {

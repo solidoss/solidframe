@@ -1,21 +1,21 @@
-#include <queue>
-#include <iostream>
 #include "solid/system/log.hpp"
-#include "solid/utility/queue.hpp"
 #include "solid/utility/event.hpp"
 #include "solid/utility/function.hpp"
+#include "solid/utility/queue.hpp"
+#include <iostream>
+#include <queue>
 
 using namespace solid;
 using namespace std;
 
-struct Node{
+struct Node {
     using Storage = typename std::aligned_storage<sizeof(Event), alignof(Event)>::type;
     //unsigned char data[sizeof(Event)];
-    Storage  data[10];
-    void * pv_;
+    Storage data[10];
+    void*   pv_;
 };
 
-using IndexT = uint64_t;
+using IndexT  = uint64_t;
 using UniqueT = uint32_t;
 
 struct UniqueId {
@@ -54,7 +54,7 @@ struct UniqueId {
     }
     void clear()
     {
-        index = InvalidIndex();
+        index  = InvalidIndex();
         unique = InvalidIndex();
     }
 };
@@ -99,37 +99,38 @@ struct ExecStub {
         std::swap(exefnc, _res.exefnc);
     }
 
-    UniqueId                actuid;
-    UniqueId                chnuid;
-    EventFunctionT          exefnc;
-    Event                   event;
+    UniqueId       actuid;
+    UniqueId       chnuid;
+    EventFunctionT exefnc;
+    Event          event;
 };
 
-int test_queue(int args, char *argv[]){
-    
+int test_queue(int args, char* argv[])
+{
+
     solid::log_start(std::cerr, {".*:VIEWXS"});
-    
+
     using EventQueueT = Queue<ExecStub>;
     //using EventQueueT = queue<Event>;
     EventQueueT eventq;
-    
+
     //void * pv;
     //unsigned char buf[sizeof(Event)];
-    
+
     auto pn = new Node;
-    
-    cout<<alignof(Event)<<endl;
-    cout<<pn<<endl;
-    cout<<static_cast<void*>(&pn->data[0])<<endl;
-    cout<<std::launder(reinterpret_cast<Event*>(&pn->data[0]))<<endl;
-    
+
+    cout << alignof(Event) << endl;
+    cout << pn << endl;
+    cout << static_cast<void*>(&pn->data[0]) << endl;
+    cout << std::launder(reinterpret_cast<Event*>(&pn->data[0])) << endl;
+
     new (std::launder(reinterpret_cast<Event*>(&pn->data[0]))) Event(make_event(GenericEvents::Default));
-    
+
     //new (std::launder(reinterpret_cast<Event*>(&pn->data[0]))) Event(make_event(GenericEvents::Default));
-    
+
     size_t v = 0;
-    for(int i = 0; i < 100; ++i){
-        eventq.push(ExecStub(UniqueId(i,i), [](size_t& _sz, Event &&_evt) {++_sz; }, make_event(GenericEvents::Default)));
+    for (int i = 0; i < 100; ++i) {
+        eventq.push(ExecStub(UniqueId(i, i), [](size_t& _sz, Event&& _evt) { ++_sz; }, make_event(GenericEvents::Default)));
     }
 
     while (!eventq.empty()) {

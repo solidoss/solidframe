@@ -19,7 +19,7 @@ struct Event {
     using AnyT = std::any;
 #else
     static constexpr size_t any_size = sizeof(void*) == 8 ? any_size_from_sizeof(64 - sizeof(void*) - sizeof(uintptr_t)) : any_size_from_sizeof(32 - sizeof(void*) - sizeof(uintptr_t));
-    using AnyT = Any<any_size>;
+    using AnyT                       = Any<any_size>;
 #endif
     Event();
     Event(Event&&);
@@ -43,7 +43,7 @@ struct Event {
     void clear();
 
     Event(
-        const uintptr_t             _id,
+        const uintptr_t    _id,
         const std::string& _rcategory)
         : pcategory_(&_rcategory)
         , id_(_id)
@@ -52,9 +52,9 @@ struct Event {
 
     template <class T>
     explicit Event(
-        const uintptr_t             _id,
+        const uintptr_t    _id,
         const std::string& _rcategory,
-        const T&                 _rany_value)
+        const T&           _rany_value)
         : pcategory_(&_rcategory)
         , id_(_id)
         , any_(_rany_value)
@@ -63,9 +63,9 @@ struct Event {
 
     template <class T>
     explicit Event(
-        const uintptr_t             _id,
+        const uintptr_t    _id,
         const std::string& _rcategory,
-        T&&                      _uany_value)
+        T&&                _uany_value)
         : pcategory_(&_rcategory)
         , id_(_id)
         , any_(std::move(_uany_value))
@@ -74,12 +74,11 @@ struct Event {
 
 private:
     const std::string* pcategory_;
-    uintptr_t                id_;
-    AnyT                     any_;
+    uintptr_t          id_;
+    AnyT               any_;
 };
 
-
-enum class GenericEvents: uintptr_t {
+enum class GenericEvents : uintptr_t {
     Default,
     Start,
     Stop,
@@ -144,10 +143,10 @@ struct ExecStub {
         std::swap(exefnc, _res.exefnc);
     }
 
-    UniqueId                actuid;
-    UniqueId                chnuid;
-    EventFunctionT          exefnc;
-    Event                   event;
+    UniqueId       actuid;
+    UniqueId       chnuid;
+    EventFunctionT exefnc;
+    Event          event;
 };
 
 #ifdef USE_STD_QUEUE
@@ -156,23 +155,22 @@ using ExecQueueT = queue<ExecStub>;
 using ExecQueueT = Queue<ExecStub>;
 #endif
 
-
-
-int test_function_any_speed(int argc, char *argv[]){
-    cout<<"sizeof(ExecStub) = "<<sizeof(ExecStub)<<endl;
-    cout<<"sizeof(Event) = "<<sizeof(Event)<<endl;
-    cout<<"sizeof(EventFunctionT) = "<<sizeof(EventFunctionT)<<endl;
+int test_function_any_speed(int argc, char* argv[])
+{
+    cout << "sizeof(ExecStub) = " << sizeof(ExecStub) << endl;
+    cout << "sizeof(Event) = " << sizeof(Event) << endl;
+    cout << "sizeof(EventFunctionT) = " << sizeof(EventFunctionT) << endl;
     size_t repeat_count = 100;
     size_t insert_count = 100000;
 
     ExecQueueT exeq;
     uint64_t   result = 0;
-    for(size_t j = 0; j < repeat_count; ++j){
-        for(size_t i = 0; i < insert_count; ++i){
+    for (size_t j = 0; j < repeat_count; ++j) {
+        for (size_t i = 0; i < insert_count; ++i) {
             exeq.push(
                 ExecStub{
-                    UniqueId{i,static_cast<UniqueT>(j)},
-                    [&result, str = to_string(i)](const UniqueId &_ruid, Event &&_revent){
+                    UniqueId{i, static_cast<UniqueT>(j)},
+                    [&result, str = to_string(i)](const UniqueId& _ruid, Event&& _revent) {
                         result += _ruid.index;
 #ifdef EVENT_USE_STD_ANY
                         result += *std::any_cast<size_t>(&_revent.any());
@@ -181,20 +179,17 @@ int test_function_any_speed(int argc, char *argv[]){
 #endif
                         result += str.size();
                     },
-                    UniqueId{j,static_cast<UniqueT>(i)},
-                    make_event(GenericEvents::Default, i)
-                }
-            );
+                    UniqueId{j, static_cast<UniqueT>(i)},
+                    make_event(GenericEvents::Default, i)});
         }
-        while(!exeq.empty()){
-            auto &rexe = exeq.front();
+        while (!exeq.empty()) {
+            auto& rexe = exeq.front();
             rexe.exefnc(rexe.actuid, std::move(rexe.event));
             exeq.pop();
         }
-
     }
 
-    cout << result<<endl;
+    cout << result << endl;
 
     return 0;
 }

@@ -91,6 +91,7 @@ template <template <class...> class _Template, class... _Types>
 inline constexpr bool is_specialization_v<_Template<_Types...>, _Template> = true;
 
 template <class _Type, template <class...> class _Template>
-struct is_specialization : std::bool_constant<is_specialization_v<_Type, _Template>> {};
+struct is_specialization : std::bool_constant<is_specialization_v<_Type, _Template>> {
+};
 
 } //namespace solid
