@@ -26,6 +26,7 @@ set(Headers
     function.hpp
     typetraits.hpp
     delegate.hpp
+    enummap.hpp
 )
 
 set(Inlines

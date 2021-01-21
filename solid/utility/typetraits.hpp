@@ -2,6 +2,8 @@
 #pragma once
 
 #include <type_traits>
+#include <bitset>
+#include <memory>
 #include <utility>
 
 namespace solid {
@@ -93,5 +95,33 @@ inline constexpr bool is_specialization_v<_Template<_Types...>, _Template> = tru
 template <class _Type, template <class...> class _Template>
 struct is_specialization : std::bool_constant<is_specialization_v<_Type, _Template>> {
 };
+
+
+template <typename T>
+struct is_unique_ptr: std::false_type{};
+
+template <typename T>
+struct is_unique_ptr<std::unique_ptr<T>> : std::true_type{};
+
+template <class T>
+struct is_shared_ptr: std::false_type{};
+
+template <typename T>
+struct is_shared_ptr<std::shared_ptr<T>> : std::true_type{};
+
+template< class T >
+inline constexpr bool is_unique_ptr_v = is_unique_ptr<T>::value;
+
+template< class T >
+inline constexpr bool is_shared_ptr_v = is_shared_ptr<T>::value;
+
+template <typename T>
+struct is_bitset: std::false_type{};
+
+template <size_t Sz>
+struct is_bitset<std::bitset<Sz>>: std::true_type{};
+
+template< class T >
+inline constexpr bool is_bitset_v = is_bitset<T>::value;
 
 } //namespace solid
