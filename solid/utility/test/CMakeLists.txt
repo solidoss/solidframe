@@ -3,6 +3,7 @@ set( UtilityTestSuite
     test_invalid_index.cpp
     test_innerlist.cpp
     test_any.cpp
+    test_queue.cpp
     test_event.cpp
     test_memory_file.cpp
     test_workpool_context.cpp
@@ -16,6 +17,8 @@ set( UtilityTestSuite
     test_function.cpp
     test_function_perf.cpp
     test_template_function.cpp
+    test_function_any_speed_full_solid.cpp
+    test_function_any_speed_full_stl.cpp
 )
 
 create_test_sourcelist( UtilityTests test_utility.cpp ${UtilityTestSuite})
@@ -65,6 +68,7 @@ add_test(NAME TestUtilityIoFormat                       COMMAND  test_utility te
 add_test(NAME TestUtilityInvalidIndex                   COMMAND  test_utility test_invalid_index)
 add_test(NAME TestUtilityInnerList                      COMMAND  test_utility test_innerlist)
 add_test(NAME TestUtilityAny                            COMMAND  test_utility test_any)
+add_test(NAME TestUtilityQueue                          COMMAND  test_utility test_queue)
 add_test(NAME TestUtilityEvent                          COMMAND  test_utility test_event)
 add_test(NAME TestUtilityMemoryFile                     COMMAND  test_utility test_memory_file)
 add_test(NAME TestUtilityMemoryFile2M                   COMMAND  test_utility test_memory_file 2222222)
@@ -72,6 +76,8 @@ add_test(NAME TestUtilityMemoryFile3M                   COMMAND  test_utility te
 add_test(NAME TestUtilityMemoryFile5M                   COMMAND  test_utility test_memory_file 5555555)
 add_test(NAME TestUtilityFunction                       COMMAND  test_utility test_function)
 add_test(NAME TestUtilityTemplateFunction               COMMAND  test_utility test_template_function)
+add_test(NAME TestUtilityFunctionAnySpeedFullSolid      COMMAND  test_utility test_function_any_speed_full_solid)
+add_test(NAME TestUtilityFunctionAnySpeedFullStl        COMMAND  test_utility test_function_any_speed_full_stl)
                     
 #add_test(NAME TestUtilityFunctionPerf_s_0_10000_1000           COMMAND  test_utility test_function_perf s 0 10000 1000)
 #add_test(NAME TestUtilityFunctionPerf_S_0_10000_1000           COMMAND  test_utility test_function_perf S 0 10000 1000)

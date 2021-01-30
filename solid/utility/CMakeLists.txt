@@ -2,7 +2,6 @@ set(Sources
     src/utility.cpp
     src/memoryfile.cpp
     src/ioformat.cpp
-    src/any.cpp
     src/event.cpp
     src/super.cpp
 )
@@ -25,7 +24,6 @@ set(Headers
     workpool_locking.hpp
     workpool_base.hpp
     function.hpp
-    functiontraits.hpp
     typetraits.hpp
     delegate.hpp
 )
@@ -42,6 +40,7 @@ target_include_directories(solid_utility PUBLIC
     PRIVATE src
 )
 target_link_libraries(solid_utility solid_system)
+target_compile_features(solid_utility PUBLIC cxx_std_17)
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/utility)
 install (TARGETS solid_utility DESTINATION lib EXPORT SolidFrameConfig)

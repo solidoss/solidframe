@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 #-----------------------------------------------------------------
 # The project
 #-----------------------------------------------------------------
@@ -22,15 +22,19 @@ add_compile_options("SHELL: ${EXTRA_COMPILE_OPTIONS}")
 
 
 set(EXTRA_LINK_OPTIONS "" CACHE STRING "Extra linker options")
-if (CMAKE_VERSION VERSION_LESS "3.13")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${EXTRA_LINK_OPTIONS}")
-else()
-    add_link_options("SHELL: ${EXTRA_LINK_OPTIONS}")
-endif()
+add_link_options("SHELL: ${EXTRA_LINK_OPTIONS}")
 
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
+
+#-----------------------------------------------------------------
+# C++ Standard
+#-----------------------------------------------------------------
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 #-----------------------------------------------------------------
 # Prepare the external path
 #-----------------------------------------------------------------
@@ -261,12 +265,6 @@ endif()
 if(ON_CROSS)
     set(SOLID_TEST_NONE TRUE)
 endif()
-
-#-----------------------------------------------------------------
-# C++ Standard
-#-----------------------------------------------------------------
-
-set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard version to use (default is 14)")
 
 #-----------------------------------------------------------------
 # Global include directories

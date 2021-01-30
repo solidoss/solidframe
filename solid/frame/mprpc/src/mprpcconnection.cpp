@@ -168,7 +168,7 @@ struct EnterActive {
 /*static*/ Event Connection::eventEnterActive(ConnectionEnterActiveCompleteFunctionT&& _ucomplete_fnc, const size_t _send_buffer_capacity)
 {
     Event event = connection_event_category.event(ConnectionEvents::EnterActive);
-    event.any() = EnterActive(std::move(_ucomplete_fnc), _send_buffer_capacity);
+    event.any().emplace<EnterActive>(std::move(_ucomplete_fnc), _send_buffer_capacity);
     return event;
 }
 //-----------------------------------------------------------------------------
@@ -184,7 +184,7 @@ struct EnterPassive {
 /*static*/ Event Connection::eventEnterPassive(ConnectionEnterPassiveCompleteFunctionT&& _ucomplete_fnc)
 {
     Event event = connection_event_category.event(ConnectionEvents::EnterPassive);
-    event.any() = EnterPassive(std::move(_ucomplete_fnc));
+    event.any().emplace<EnterPassive>(std::move(_ucomplete_fnc));
     return event;
 }
 //-----------------------------------------------------------------------------
@@ -200,14 +200,14 @@ struct StartSecure {
 /*static*/ Event Connection::eventStartSecure(ConnectionSecureHandhakeCompleteFunctionT&& _ucomplete_fnc)
 {
     Event event = connection_event_category.event(ConnectionEvents::StartSecure);
-    event.any() = StartSecure(std::move(_ucomplete_fnc));
+    event.any().emplace<StartSecure>(std::move(_ucomplete_fnc));
     return event;
 }
 //-----------------------------------------------------------------------------
 /*static*/ Event Connection::eventPost(ConnectionPostCompleteFunctionT&& _ucomplete_fnc)
 {
     Event event = connection_event_category.event(ConnectionEvents::Post);
-    event.any() = ConnectionPostCompleteFunctionT(std::move(_ucomplete_fnc));
+    event.any().emplace<ConnectionPostCompleteFunctionT>(std::move(_ucomplete_fnc));
     return event;
 }
 //-----------------------------------------------------------------------------
@@ -228,7 +228,7 @@ struct SendRaw {
 /*static*/ Event Connection::eventSendRaw(ConnectionSendRawDataCompleteFunctionT&& _ucomplete_fnc, std::string&& _udata)
 {
     Event event = connection_event_category.event(ConnectionEvents::SendRaw);
-    event.any() = SendRaw(std::move(_ucomplete_fnc), std::move(_udata));
+    event.any().emplace<SendRaw>(std::move(_ucomplete_fnc), std::move(_udata));
     return event;
 }
 //-----------------------------------------------------------------------------
@@ -244,7 +244,7 @@ struct RecvRaw {
 /*static*/ Event Connection::eventRecvRaw(ConnectionRecvRawDataCompleteFunctionT&& _ucomplete_fnc)
 {
     Event event = connection_event_category.event(ConnectionEvents::RecvRaw);
-    event.any() = RecvRaw(std::move(_ucomplete_fnc));
+    event.any().emplace<RecvRaw>(std::move(_ucomplete_fnc));
     return event;
 }
 //-----------------------------------------------------------------------------
