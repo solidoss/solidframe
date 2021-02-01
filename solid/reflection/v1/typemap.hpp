@@ -32,7 +32,7 @@ inline size_t reflector_index(){
 }
 
 template <class Reflector>
-inline const size_t index = {reflector_index()};
+inline const size_t reflector_index_v = {reflector_index()};
 
 class TypeMapBase: NonCopyable{
     //using VariantT = std::variant<Reflector...>;
@@ -77,15 +77,15 @@ protected:
     
     template <class Reflector>
     size_t reflectorIndex()const{
-        return reflector_index_vec_[index<Reflector>];
+        return reflector_index_vec_[reflector_index_v<Reflector>];
     }
 protected:
     template <class Reflector>
     void reflectorIndex(const size_t _index){
-        if(index<Reflector> >= reflector_index_vec_.size()){
-            reflector_index_vec_.resize(index<Reflector> + 1);
+        if(reflector_index_v<Reflector> >= reflector_index_vec_.size()){
+            reflector_index_vec_.resize(reflector_index_v<Reflector> + 1);
         }
-        reflector_index_vec_[index<Reflector>] = _index;
+        reflector_index_vec_[reflector_index_v<Reflector>] = _index;
     }
     typedef void(*IndexInitFncT)(const size_t);
     
@@ -141,6 +141,15 @@ public:
     template <class Reflector, class Ptr>
     void createAndReflect(Reflector &_rreflector, Ptr& _rptr, const size_t _index)const{
         
+    }
+    
+    template <class T>
+    size_t index(const T* _pvalue) const
+    {
+        solid_check(_pvalue != nullptr);
+        const auto it = type_index_map_.find(std::type_index(typeid(*_pvalue)));
+        solid_check(it != type_index_map_.end(), "Unknown type: "<<typeid(*_pvalue).name());
+        return it->second;
     }
 };
 
