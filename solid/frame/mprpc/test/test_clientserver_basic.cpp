@@ -108,7 +108,7 @@ struct Message : frame::mprpc::Message {
         
         _s.add(_rthis.idx, _rctx, 0, "idx").add(_rthis.str, _rctx, 1, "str");
         
-        if constexpr (!ReflectorT::is_const_reflector::value) {
+        if constexpr (!ReflectorT::is_const_reflector) {
             _rthis.serialized = true;
         }
     }

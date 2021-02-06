@@ -199,7 +199,7 @@ private:
             Ref &rref = *reinterpret_cast<Ref*>(_pref);
             typename Ref::context_type &rctx = *reinterpret_cast<typename Ref::context_type*>(_pctx);
             
-            if constexpr (Ref::is_const_reflector::value){
+            if constexpr (Ref::is_const_reflector){
                 const T& rval = *reinterpret_cast<const T*>(_pval);
                 rref.add(rval, rctx, 0, "");
             }else{

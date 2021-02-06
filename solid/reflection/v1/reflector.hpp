@@ -370,8 +370,8 @@ class Reflector{
     const TypeMapBase           *ptype_map_ = nullptr;
 public:
     using ThisT = Reflector<MetadataVariant, MetadataFactory, Context>;
-    using is_const_reflector = std::false_type;
     using context_type = Context;
+    static constexpr bool is_const_reflector = false;
     
     
     template <class DispatchFunction>
@@ -429,8 +429,8 @@ class ConstReflector{
     const TypeMapBase           *ptype_map_ = nullptr;
 public:
     using ThisT = ConstReflector<MetadataVariant, MetadataFactory, Context>;
-    using is_const_reflector = std::true_type;
     using context_type = Context;
+    static constexpr bool is_const_reflector = true;
     
     template <class DispatchFunction>
     ConstReflector(

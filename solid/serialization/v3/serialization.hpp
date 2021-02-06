@@ -21,8 +21,9 @@ namespace binary{
 template <class MetadataVariant, class MetadataFactory, class Context, typename TypeId>
 class Serializer{
 public:
-    using is_const_reflector = std::true_type;
     using context_type = Context;
+    static constexpr bool is_const_reflector = true;
+    
     
     Serializer(MetadataFactory &_metadata_factory, const reflection::v1::TypeMapBase &_rtype_map){}
     
@@ -72,8 +73,10 @@ public:
 template <class MetadataVariant, class MetadataFactory, class Context, typename TypeId>
 class Deserializer{
 public:
-    using is_const_reflector = std::false_type;
     using context_type = Context;
+    
+    static constexpr bool is_const_reflector = false;
+    
     
     Deserializer(MetadataFactory &_metadata_factory, const reflection::v1::TypeMapBase &_rtype_map){}
     
