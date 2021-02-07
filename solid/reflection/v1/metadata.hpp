@@ -11,6 +11,7 @@
 
 #include <variant>
 #include <limits>
+#include <functional>
 
 #include "solid/reflection/v1/typetraits.hpp"
 #include "solid/reflection/v1/typemap.hpp"
@@ -131,13 +132,48 @@ struct Container{
     }
 };
 
+struct IStream{
+    using ProgressFunctionT = std::function<void(std::istream&, uint64_t, const bool, const size_t, const char*)>;//std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name
+    uint64_t max_size_ = std::numeric_limits<uint64_t>::max();
+    ProgressFunctionT progress_function_;
+    
+    auto& maxSize(const uint64_t _max_size) {
+        max_size_ = _max_size;
+        return *this;
+    }
+    
+    template <class ProgressF>
+    auto& progressFunction(ProgressF _fnc){
+        progress_function_ = _fnc;
+        return *this;
+    }
+};
+
+struct OStream{
+    using ProgressFunctionT = std::function<void(std::ostream&, uint64_t, const bool, const size_t, const char*)>;//std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name
+    uint64_t max_size_ = std::numeric_limits<uint64_t>::max();
+    ProgressFunctionT progress_function_;
+    
+    auto& maxSize(const uint64_t _max_size) {
+        max_size_ = _max_size;
+        return *this;
+    }
+    
+    template <class ProgressF>
+    auto& progressFunction(ProgressF _fnc){
+        progress_function_ = _fnc;
+        return *this;
+    }
+};
 
 struct Variant{
     using VariantT = std::variant<
     Generic, SignedInteger,
     UnsignedInteger, String,
     Container, Enum,
-    Pointer
+    Pointer,
+    IStream,
+    OStream
     >;
     VariantT var_;
     
@@ -174,6 +210,12 @@ struct Variant{
     const auto* pointer()const{
         return std::get_if<Pointer>(&var_);
     }
+    const auto* istream()const{
+        return std::get_if<IStream>(&var_);
+    }
+    const auto* ostream()const{
+        return std::get_if<OStream>(&var_);
+    }
 };
 
 auto    factory = [](const auto &_rt, const TypeMapBase *_ptype_map) -> auto{
@@ -190,6 +232,10 @@ auto    factory = [](const auto &_rt, const TypeMapBase *_ptype_map) -> auto{
         return String{};
     }else if constexpr (solid::is_container<value_t>::value){
         return Container{};
+    }else if constexpr (std::is_base_of_v<std::istream, value_t>){
+        return IStream{};
+    }else if constexpr (std::is_base_of_v<std::ostream, value_t>){
+        return OStream{};
     }else{
         return Generic{};
     }

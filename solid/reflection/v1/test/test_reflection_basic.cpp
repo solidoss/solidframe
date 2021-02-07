@@ -5,6 +5,7 @@
 #include <variant>
 #include <limits>
 #include <unordered_map>
+#include <fstream>
 #include "solid/utility/typetraits.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/reflection/reflection.hpp"
@@ -113,6 +114,8 @@ struct Carrot: Veg{
     }
 };
 
+using VegTupleT = std::tuple<Cucumber, Potato, Carrot>;
+
 const reflection::TypeMapBase *pfruits_map = nullptr;
 
 struct Test{
@@ -173,15 +176,32 @@ struct Test{
     shared_ptr<Veg> vegetable_ptr_;// = make_shared<Cucumber>();
     unique_ptr<Fruit> fruit_ptr_ = make_unique<Apple>();
     shared_ptr<string> guid_ptr_ = make_shared<string>("fasdfasdfweqrweqrwedsfa");
+    ifstream ifs_;
+    ofstream ofs_;
+    VegTupleT   veg_tuple_;
 public:
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
+        using ReflectorT = std::decay_t<decltype(_rr)>;
+        
         _rr.add(_rthis.user_vec_, _rctx, 1, "user_vec");
         _rr.add(_rthis.services_, _rctx, 2, "services");
         _rr.add(_rthis.vegetable_ptr_, _rctx, 4, "vegetable");
         _rr.add(_rthis.fruit_ptr_, _rctx, 5, "fruit", [](auto &_rmeta){_rmeta.map(*pfruits_map);});
         _rr.add(_rthis.guid_ptr_, _rctx, 6, "guid");
+        _rr.add(_rthis.veg_tuple_, _rctx, 7, "veg_tuple");
+        if constexpr (!ReflectorT::is_const_reflector){
+            auto progress_lambda = [&_rctx](std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+                //NOTE: here you can use context.anyTuple for actual implementation
+            };
+            _rr.add(_rthis.ofs_, _rctx, 8, "stream", [&progress_lambda](auto _rmeta){_rmeta.progressFunction(progress_lambda);});
+        }else{
+            auto progress_lambda = [&_rctx](std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+                //NOTE: here you can use context.anyTuple for actual implementation
+            };
+            _rr.add(_rthis.ifs_, _rctx, 8, "stream", [&progress_lambda](auto _rmeta){_rmeta.progressFunction(progress_lambda);});
+        }
     }
 };
 
@@ -242,6 +262,20 @@ struct OStreamVisitor{
                 --indent_;
                 indent();
                 rostream_<<"]"<<endl;
+                break;
+            case tg::IStream:
+                rostream_ << _name <<'('<<_index<<") = <istream>"<<endl;
+                break;
+            case tg::OStream:
+                rostream_ << _name <<'('<<_index<<") = <ostream>"<<endl;
+                break;
+            case tg::Tuple:
+                rostream_ << _name <<'('<<_index<<") = {"<<endl;
+                ++indent_;
+                _rnode.template as<tg::Tuple>()->for_each(std::ref(*this), _rctx);
+                --indent_;
+                indent();
+                rostream_<<"}"<<endl;
                 break;
             case tg::SharedPtr:{
                 rostream_ << _name <<'('<<_index<<") -> ";

@@ -12,7 +12,9 @@
 
 #include <string>
 #include <vector>
-
+#include <istream>
+#include <ostream>
+#include <tuple>
 #include "solid/reflection/v1/typetraits.hpp"
 
 namespace solid{
@@ -29,6 +31,9 @@ enum struct TypeGroupE {
     Enum,
     SharedPtr,
     UniquePtr,
+    Tuple,
+    IStream,
+    OStream,
 };
 
 template <class T>
@@ -53,6 +58,12 @@ constexpr TypeGroupE type_group(){
         return TypeGroupE::Array;
     else if constexpr (std::is_integral_v<T>)
         return TypeGroupE::Basic;
+    else if constexpr (is_tuple<T>::value)
+        return TypeGroupE::Tuple;
+    else if constexpr (std::is_base_of_v<std::istream, T>)
+        return TypeGroupE::IStream;
+    else if constexpr (std::is_base_of_v<std::ostream, T>)
+        return TypeGroupE::OStream;
     else 
         return TypeGroupE::Structure;
 }
@@ -66,6 +77,32 @@ inline void solidReflectV1(R& _rr, std::pair<T1, T2>& _rt, Ctx& _rctx){
 template <class R, class T1, class T2, class Ctx>                                      
 inline void solidReflectV1(R& _rr, std::pair<T1, T2> const & _rt, Ctx& _rctx){
     _rr.add(_rt.first, _rctx, 0, "first").add(_rt.second, _rctx, 1, "second");
+}
+
+template <class R, class Ctx, class Tup, size_t Index = 0>
+inline void solidReflectV1Tuple(R& _rr, Tup &_rt, Ctx& _rctx){
+    if constexpr (Index < std::tuple_size_v<Tup>){
+        _rr.add(std::get<Index>(_rt), _rctx, Index, "tuple_item");
+        solidReflectV1Tuple<R, Ctx, Tup, Index + 1>(_rr, _rt, _rctx);
+    }
+}
+
+template <class R, class Ctx, class ...Args>
+inline void solidReflectV1(R& _rr, std::tuple<Args...> &_rt, Ctx& _rctx){
+    solidReflectV1Tuple(_rr, _rt, _rctx);
+}
+
+template <class R, class Ctx, class Tup, size_t Index = 0>
+inline void solidReflectV1Tuple(R& _rr, Tup const &_rt, Ctx& _rctx){
+    if constexpr (Index < std::tuple_size_v<Tup>){
+        _rr.add(std::get<Index>(_rt), _rctx, Index, "tuple_item");
+        solidReflectV1Tuple<R, Ctx, Tup, Index + 1>(_rr, _rt, _rctx);
+    }
+}
+
+template <class R, class Ctx, class ...Args>
+inline void solidReflectV1(R& _rr, std::tuple<Args...>const &_rt, Ctx& _rctx){
+    solidReflectV1Tuple(_rr, _rt, _rctx);
 }
 
 template <class R, class T, class Ctx>                                      

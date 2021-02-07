@@ -64,6 +64,10 @@ struct is_empty_pack<>:std::true_type{};
 template <class ...Args>
 struct is_empty_pack: std::false_type{};
 
+template <typename> struct is_tuple: std::false_type {};
+
+template <typename ...T> struct is_tuple<std::tuple<T...>>: std::true_type {};
+
 }//namespace v1
 }//namespace reflection
 }//namespace solid

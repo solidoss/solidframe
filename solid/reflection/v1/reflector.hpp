@@ -63,6 +63,8 @@ protected:
     virtual std::ostream& print(std::ostream &_ros) const = 0;
     virtual std::ostream& print(std::ostream &_ros, const EnumMap */*_penum_map*/) const = 0;
     virtual void reset(const std::string_view _name, const TypeMapBase *_ptype_map, ContextT &/*_rctx*/) = 0;
+    virtual std::ostream& ostream() = 0;
+    virtual std::istream& istream() const = 0;
 };
 
 namespace impl{
@@ -205,6 +207,46 @@ protected:
     GroupNode(Reflector &_rreflector, const std::type_info * const _ptype_info):BaseT(_rreflector, TypeGroupE::Unknwon, _ptype_info){}
 };
 
+template <class Reflector>
+class GroupNode<Reflector, TypeGroupE::Tuple>: public BaseNode<Reflector>{
+protected:
+    using ContextT = typename Reflector::context_type;
+    using BaseT = BaseNode<Reflector>;
+    
+    GroupNode(Reflector &_rreflector, const std::type_info * const _ptype_info):BaseT(_rreflector, TypeGroupE::Tuple, _ptype_info){}
+public:
+    template <class DispatchFunction>
+    void for_each(DispatchFunction _dispatch_function, ContextT &_rctx){
+        Reflector new_reflector{this->rreflector_.metadataFactory(), _dispatch_function, this->rreflector_.typeMap()};
+        this->doForEach(new_reflector, _rctx);
+    }
+    
+    template <class DispatchFunction>
+    void for_each(DispatchFunction _dispatch_function, ContextT &_rctx)const{
+        Reflector new_reflector{this->rreflector_.metadataFactory(), _dispatch_function, this->rreflector_.typeMap()};
+        this->doForEach(new_reflector, _rctx);
+    }
+};
+
+template <class Reflector>
+class GroupNode<Reflector, TypeGroupE::IStream>: public BaseNode<Reflector>{
+protected:
+    using BaseT = BaseNode<Reflector>;
+    
+    GroupNode(Reflector &_rreflector, const std::type_info * const _ptype_info):BaseT(_rreflector, TypeGroupE::IStream, _ptype_info){}
+    
+    std::istream& istream() const override = 0;
+};
+
+template <class Reflector>
+class GroupNode<Reflector, TypeGroupE::OStream>: public BaseNode<Reflector>{
+protected:
+    using BaseT = BaseNode<Reflector>;
+    
+    GroupNode(Reflector &_rreflector, const std::type_info * const _ptype_info):BaseT(_rreflector, TypeGroupE::OStream, _ptype_info){}
+    
+    std::ostream& ostream() override = 0;
+};
 
 template <class Reflector>
 class GroupNode<Reflector, TypeGroupE::Structure>: public BaseNode<Reflector>{
@@ -260,7 +302,10 @@ private:
             }
         }else if constexpr (type_group<ValueT>() == TypeGroupE::Structure){
             solidReflectV1(_rreflector, ref_, _rctx);
+        }else if constexpr (type_group<ValueT>() == TypeGroupE::Tuple){
+            solidReflectV1(_rreflector, ref_, _rctx);
         }
+        
     }
     
     void doForEach(Reflector &_rreflector, ContextT &_rctx)const override{
@@ -276,6 +321,8 @@ private:
                 ++i;
             }
         }else if constexpr (type_group<ValueT>() == TypeGroupE::Structure){
+            solidReflectV1(_rreflector, ref_, _rctx);
+        }else if constexpr (type_group<ValueT>() == TypeGroupE::Tuple){
             solidReflectV1(_rreflector, ref_, _rctx);
         }
     }
@@ -349,6 +396,24 @@ private:
             return !ref_;
         }
         return true;
+    }
+    
+    std::ostream& ostream() override{
+        if constexpr (type_group<ValueT>() == TypeGroupE::OStream){
+            return ref_;
+        }else{
+            //NOTE: ugly but safe
+            return *static_cast<std::ostream*>(nullptr);
+        }
+    }
+    
+    std::istream& istream() const override{
+        if constexpr (type_group<ValueT>() == TypeGroupE::IStream){
+            return *const_cast<std::istream*>(static_cast<const std::istream*>(&ref_));
+        }else{
+            //NOTE: ugly but safe
+            return *static_cast<std::istream*>(nullptr);
+        }
     }
 };
 
