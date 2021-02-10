@@ -12,6 +12,7 @@
 
 #include <string_view>
 #include <memory>
+#include <type_traits>
 
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
 #include "solid/frame/mprpc/mprpcprotocol.hpp"
@@ -123,7 +124,33 @@ private:
     }
 };
 
-template <class MetadataVariant, class MetadataFactory, typename TypeId, typename Hash = std::hash<TypeId>>
+template <class T, class Enable = void>
+struct TypeIndexDispatch;
+
+template <class T>
+struct TypeIndexDispatch<T, typename std::enable_if<std::is_integral_v<T>>::type>{
+    using CategoryIndexT = size_t;
+    using TypeIndexT = T;
+};
+
+template <typename> struct is_pair: std::false_type {};
+
+template <typename T1, typename T2> struct is_pair<std::pair<T1,T2>>: std::true_type {};
+
+template <class T>
+struct TypeIndexDispatch<
+        T,
+        typename std::enable_if_t<
+            std::conjunction_v<is_pair<T>::value, std::is_integral_v<T::first_type>, std::is_integral_v<T::second_type>>
+        >
+    >{
+    using CategoryIndexT = typename T::first_type;
+    using TypeIndexT = typename T::second_type;
+};
+
+
+
+template <class MetadataVariant, class MetadataFactory, typename TypeId>
 class Protocol : public mprpc::Protocol{
     struct TypeData {
         template <class F>
@@ -142,9 +169,10 @@ class Protocol : public mprpc::Protocol{
         MessageCompleteFunctionT complete_fnc_;
     };
 
-    using ThisT         = Protocol<MetadataVariant, MetadataFactory, TypeId, Hash>;
-    using PointerT      = std::shared_ptr<ThisT>;
-    using TypeIdT       = TypeId;
+    using ThisT          = Protocol<MetadataVariant, MetadataFactory, TypeId>;
+    using PointerT       = std::shared_ptr<ThisT>;
+    using CategoryIndexT = typename TypeIndexDispatch<TypeId>::CategoryIndexT;
+    using TypeIndexT     = typename TypeIndexDispatch<TypeId>::TypeIndexT;
     using TypeMapT      = TypeMapTT<
         SerializerTT<MetadataVariant, MetadataFactory, TypeId>,
         DeserializerTT<MetadataVariant, MetadataFactory, TypeId>,
@@ -167,18 +195,18 @@ class Protocol : public mprpc::Protocol{
         Proxy(ThisT &_rproto, TypeMap  &_rmap):rproto_(_rproto), rmap_(_rmap){}
         
         template <class T>
-        size_t registerType(const size_t _category, const size_t _id, const std::string_view _name){
+        size_t registerType(const CategoryIndexT _category, const TypeIndexT _id, const std::string_view _name){
             return 0;
         }
         template <class T, class B>
-        size_t registerType(const size_t _category, const size_t _id, const std::string_view _name){
+        size_t registerType(const CategoryIndexT _category, const TypeIndexT _id, const std::string_view _name){
             return 0;
         }
         template <class T, class B>
         void registerCast(){
         }
         template <class T, typename CompleteFnc>
-        size_t registerMessage(const size_t _category, const size_t _id, const std::string_view _name, CompleteFnc _complete_fnc){
+        size_t registerMessage(const CategoryIndexT _category, const TypeIndexT _id, const std::string_view _name, CompleteFnc _complete_fnc){
             using CompleteFncT     = CompleteFnc;
             using CompleteHandlerT = CompleteHandler<CompleteFncT,
                 typename message_complete_traits<CompleteFncT>::send_type,

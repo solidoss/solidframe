@@ -159,10 +159,12 @@ struct Test{
 
         SOLID_REFLECT_V1(_rr, _rthis, _rctx)
         {
-            _rr.add(_rthis.id_, _rctx, 1, "id");
-            _rr.add(_rthis.name_, _rctx, 2, "name");
-            _rr.add(_rthis.ip_vec_, _rctx, 3, "ip_vec");
-            _rr.add(_rthis.figure_, _rctx, 4, "figure", [](auto &_rmeta){_rmeta.map(figure_enum_map);});
+            _rr.add([&_rthis](S &_rr, C &_rctx){
+                _rr.add(_rthis.id_, _rctx, 1, "id");
+                _rr.add(_rthis.name_, _rctx, 2, "name");
+                _rr.add(_rthis.ip_vec_, _rctx, 3, "ip_vec");
+                _rr.add(_rthis.figure_, _rctx, 4, "figure", [](auto &_rmeta){_rmeta.map(figure_enum_map);});
+            }, _rctx);
         }
     } services_[max_service_count] = {
         {1, "one", {"122.122.122.111", "122.122.122.112"}, FigureE::One},

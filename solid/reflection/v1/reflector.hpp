@@ -14,6 +14,7 @@
 #include <typeindex>
 #include <functional>
 #include <utility>
+#include <iostream>
 #include "solid/system/common.hpp"
 #include "solid/utility/delegate.hpp"
 #include "dispatch.hpp"
@@ -27,7 +28,7 @@ namespace v1{
 template <class Reflector>
 class BaseNode{
 protected:
-    using ContextT = typename Reflector::context_type;
+    using ContextT = typename Reflector::ContextT;
     
     const Reflector &rreflector_;
     const TypeGroupE   type_group_;
@@ -87,7 +88,7 @@ public:
 template <class Reflector>
 class GroupNode<Reflector, TypeGroupE::Container>: public BaseNode<Reflector>{
 protected:
-    using ContextT = typename Reflector::context_type;
+    using ContextT = typename Reflector::ContextT;
     using BaseT = BaseNode<Reflector>;
     
     GroupNode(Reflector &_rreflector, const std::type_info * const _ptype_info):BaseT(_rreflector, TypeGroupE::Container, _ptype_info){}
@@ -108,7 +109,7 @@ public:
 template <class Reflector>
 class GroupNode<Reflector, TypeGroupE::Array>: public BaseNode<Reflector>{
 protected:
-    using ContextT = typename Reflector::context_type;
+    using ContextT = typename Reflector::ContextT;
     using BaseT = BaseNode<Reflector>;
     
     GroupNode(Reflector &_rreflector, const std::type_info * const _ptype_info):BaseT(_rreflector, TypeGroupE::Array, _ptype_info){}
@@ -130,7 +131,7 @@ public:
 template <class Reflector>
 class GroupNode<Reflector, TypeGroupE::Enum>: public BaseNode<Reflector>{
 protected:
-    using ContextT = typename Reflector::context_type;
+    using ContextT = typename Reflector::ContextT;
     using BaseT = BaseNode<Reflector>;
     
     GroupNode(Reflector &_rreflector, const std::type_info * const _ptype_info):BaseT(_rreflector, TypeGroupE::Enum, _ptype_info){}
@@ -142,7 +143,7 @@ public:
 template <class Reflector>
 class GroupNode<Reflector, TypeGroupE::SharedPtr>: public BaseNode<Reflector>{
 protected:
-    using ContextT = typename Reflector::context_type;
+    using ContextT = typename Reflector::ContextT;
     using BaseT = BaseNode<Reflector>;
     
     GroupNode(Reflector &_rreflector, const std::type_info * const _ptype_info):BaseT(_rreflector, TypeGroupE::SharedPtr, _ptype_info){}
@@ -169,7 +170,7 @@ public:
 template <class Reflector>
 class GroupNode<Reflector, TypeGroupE::UniquePtr>: public BaseNode<Reflector>{
 protected:
-    using ContextT = typename Reflector::context_type;
+    using ContextT = typename Reflector::ContextT;
     using BaseT = BaseNode<Reflector>;
     
     GroupNode(Reflector &_rreflector, const std::type_info * const _ptype_info):BaseT(_rreflector, TypeGroupE::UniquePtr, _ptype_info){}
@@ -210,7 +211,7 @@ protected:
 template <class Reflector>
 class GroupNode<Reflector, TypeGroupE::Tuple>: public BaseNode<Reflector>{
 protected:
-    using ContextT = typename Reflector::context_type;
+    using ContextT = typename Reflector::ContextT;
     using BaseT = BaseNode<Reflector>;
     
     GroupNode(Reflector &_rreflector, const std::type_info * const _ptype_info):BaseT(_rreflector, TypeGroupE::Tuple, _ptype_info){}
@@ -251,7 +252,7 @@ protected:
 template <class Reflector>
 class GroupNode<Reflector, TypeGroupE::Structure>: public BaseNode<Reflector>{
 protected:
-    using ContextT = typename Reflector::context_type;
+    using ContextT = typename Reflector::ContextT;
     using BaseT = BaseNode<Reflector>;
     
     GroupNode(Reflector &_rreflector, const std::type_info * const _ptype_info):BaseT(_rreflector, TypeGroupE::Structure, _ptype_info){}
@@ -275,7 +276,7 @@ class Node: public GroupNode<Reflector, type_group<std::remove_const_t<T>>()>{
     
     using ValueT = std::remove_const_t<T>;
 public:
-    using ContextT = typename Reflector::context_type;
+    using ContextT = typename Reflector::ContextT;
     using BaseT = GroupNode<Reflector, type_group<std::remove_const_t<T>>()>;
     
     Node(Reflector &_rreflector, T &_ref): BaseT(_rreflector, &typeid(T)), ref_(_ref){}
@@ -403,7 +404,7 @@ private:
             return ref_;
         }else{
             //NOTE: ugly but safe
-            return *static_cast<std::ostream*>(nullptr);
+            return std::cout;
         }
     }
     
@@ -412,7 +413,7 @@ private:
             return *const_cast<std::istream*>(static_cast<const std::istream*>(&ref_));
         }else{
             //NOTE: ugly but safe
-            return *static_cast<std::istream*>(nullptr);
+            return std::cin;
         }
     }
 };
@@ -435,7 +436,7 @@ class Reflector{
     const TypeMapBase           *ptype_map_ = nullptr;
 public:
     using ThisT = Reflector<MetadataVariant, MetadataFactory, Context>;
-    using context_type = Context;
+    using ContextT = Context;
     static constexpr bool is_const_reflector = false;
     
     
@@ -451,26 +452,29 @@ public:
     
     template <typename T, typename F>
     auto& add(T &_rt, Context &_rctx, const size_t _id, const char *const _name, F _f){
-        if constexpr (std::is_invocable_v<T, ThisT &, Context&>){
-            std::invoke(_rt, *this, _rctx);
-        }else{
-            Node<ThisT, T> node{*this, _rt};
-            auto meta = rmetadata_factory_(_rt, ptype_map_);
-            _f(meta);
-            dispatch_function_(node, meta, _id, _name, _rctx);
-        }
+        static_assert(!std::is_invocable_v<T, ThisT &, Context&>, "Parameter should not be invocable");
+
+        Node<ThisT, T> node{*this, _rt};
+        auto meta = rmetadata_factory_(_rt, ptype_map_);
+        _f(meta);
+        dispatch_function_(node, meta, _id, _name, _rctx);
         return *this;
     }
 
     template <typename T>
     auto& add(T &_rt, Context &_rctx, const size_t _id, const char * const _name){
-        if constexpr (std::is_invocable_v<T, ThisT &, Context&>){
-            std::invoke(_rt, *this, _rctx);
-        }else{
-            Node<ThisT, T> node{*this, _rt};
-            auto meta = rmetadata_factory_(_rt, ptype_map_);
-            dispatch_function_(node, meta, _id, _name, _rctx);
-        }
+        static_assert(!std::is_invocable_v<T, ThisT &, Context&>, "Parameter should not be invocable");
+
+        Node<ThisT, T> node{*this, _rt};
+        auto meta = rmetadata_factory_(_rt, ptype_map_);
+        dispatch_function_(node, meta, _id, _name, _rctx);
+        return *this;
+    }
+    
+    template <typename T>
+    auto& add(T &&_rt, Context &_rctx){
+        static_assert(std::is_invocable_v<T, ThisT &, Context&>, "Parameter should be invocable");
+        std::invoke(_rt, *this, _rctx);
         return *this;
     }
     
@@ -484,6 +488,7 @@ public:
     const TypeMapBase* typeMap()const{
         return ptype_map_;
     }
+    
 };
 
 template <class MetadataVariant, class MetadataFactory, class Context = solid::EmptyType>
@@ -494,7 +499,7 @@ class ConstReflector{
     const TypeMapBase           *ptype_map_ = nullptr;
 public:
     using ThisT = ConstReflector<MetadataVariant, MetadataFactory, Context>;
-    using context_type = Context;
+    using ContextT = Context;
     static constexpr bool is_const_reflector = true;
     
     template <class DispatchFunction>
@@ -509,26 +514,29 @@ public:
      
     template <typename T, typename F>
     auto& add(const T &_rt, Context &_rctx, const size_t _id, const char *const _name, F _f){
-        if constexpr (std::is_invocable_v<T, ThisT &, Context&>){
-            std::invoke(_rt, *this, _rctx);
-        }else{
-            Node<ThisT, const T> node{*this, _rt};
-            auto meta = rmetadata_factory_(_rt, ptype_map_);
-            _f(meta);
-            dispatch_function_(node, meta, _id, _name, _rctx);
-        }
+        static_assert(!std::is_invocable_v<T, ThisT &, Context&>, "Parameter should not be invocable");
+
+        Node<ThisT, const T> node{*this, _rt};
+        auto meta = rmetadata_factory_(_rt, ptype_map_);
+        _f(meta);
+        dispatch_function_(node, meta, _id, _name, _rctx);
         return *this;
     }
 
     template <typename T>
     auto& add(const T &_rt, Context &_rctx, const size_t _id, const char * const _name){
-        if constexpr (std::is_invocable_v<T, ThisT &, Context&>){
-            std::invoke(_rt, *this, _rctx);
-        }else{
-            Node<ThisT, const T> node{*this, _rt};
-            auto meta = rmetadata_factory_(_rt, ptype_map_);
-            dispatch_function_(node, meta, _id, _name, _rctx);
-        }
+        static_assert(!std::is_invocable_v<T, ThisT &, Context&>, "Parameter should not be invocable");
+
+        Node<ThisT, const T> node{*this, _rt};
+        auto meta = rmetadata_factory_(_rt, ptype_map_);
+        dispatch_function_(node, meta, _id, _name, _rctx);
+        return *this;
+    }
+    
+    template <typename T>
+    auto& add(T &&_rt, Context &_rctx){
+        static_assert(std::is_invocable_v<T, ThisT &, Context&>, "Parameter should be invocable");
+        std::invoke(_rt, *this, _rctx);
         return *this;
     }
     

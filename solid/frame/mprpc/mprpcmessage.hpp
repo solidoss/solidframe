@@ -17,7 +17,7 @@
 
 #include "solid/frame/mprpc/mprpccontext.hpp"
 #include "solid/frame/mprpc/mprpcmessageflags.hpp"
-
+#include "solid/reflection/v1/reflection.hpp"
 #include <memory>
 #include <type_traits>
 
@@ -136,6 +136,21 @@ struct MessageHeader {
     void solidSerializeV2(S& _rs, frame::mprpc::ConnectionContext& _rctx, const char* _name)
     {
         solidSerializeV2(_rs, _rctx, std::integral_constant<bool, S::is_serializer>(), _name);
+    }
+    
+    SOLID_REFLECT_V1(_rs, _rthis, _rctx)
+    {
+        if constexpr (std::decay_t<decltype(_rs)>::is_const_reflector){
+            const MessageFlagsValueT tmp = _rctx.message_flags.toUnderlyingType();
+            _rs.add(tmp, _rctx, 1, "flags_");
+        }else{
+            _rs.add(_rthis.flags_, _rctx, 1, "flags_");
+        }
+        _rs.add(_rthis.url_, _rctx, 2, "url");
+        _rs.add(_rthis.sender_request_id_.index, _rctx, 3, "sender_request_index");
+        _rs.add(_rthis.sender_request_id_.unique, _rctx, 4, "sender_request_unique");
+        _rs.add(_rthis.recipient_request_id_.index, _rctx, 5, "recipient_request_index");
+        _rs.add(_rthis.recipient_request_id_.unique, _rctx, 6, "recipient_request_unique");
     }
 };
 

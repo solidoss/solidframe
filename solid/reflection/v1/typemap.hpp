@@ -96,7 +96,7 @@ public:
     virtual ~TypeMapBase(){}
 
     template <class Reflector, class T>
-    void reflect(Reflector &_rreflector, T &_rvalue, typename Reflector::context_type &_rctx)const{
+    void reflect(Reflector &_rreflector, T &_rvalue, typename Reflector::ContextT &_rctx)const{
         const size_t reflector_index = reflectorIndex<Reflector>();
         solid_assert(reflector_index != solid::InvalidIndex());
         
@@ -197,7 +197,7 @@ private:
     void doInitTypeReflect(const size_t _type_index, const size_t _index = 0){
         type_vec_[_type_index].reflector_vec_[_index].reflect_fnc_ = [](void *_pref, const void *_pval, void *_pctx){
             Ref &rref = *reinterpret_cast<Ref*>(_pref);
-            typename Ref::context_type &rctx = *reinterpret_cast<typename Ref::context_type*>(_pctx);
+            typename Ref::ContextT &rctx = *reinterpret_cast<typename Ref::ContextT*>(_pctx);
             
             if constexpr (Ref::is_const_reflector){
                 const T& rval = *reinterpret_cast<const T*>(_pval);

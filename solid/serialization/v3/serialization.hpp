@@ -21,7 +21,8 @@ namespace binary{
 template <class MetadataVariant, class MetadataFactory, class Context, typename TypeId>
 class Serializer{
 public:
-    using context_type = Context;
+    using ContextT = Context;
+    using ThisT = Serializer<MetadataVariant, MetadataFactory, Context, Context>;
     static constexpr bool is_const_reflector = true;
     
     
@@ -55,6 +56,13 @@ public:
         return *this;
     }
     
+    template <typename T>
+    auto& add(T &&_rt, Context &_rctx){
+        static_assert(std::is_invocable_v<T, ThisT &, Context&>, "Parameter should be invocable");
+        std::invoke(_rt, *this, _rctx);
+        return *this;
+    }
+    
     const ErrorConditionT& error() const
     {
         static const ErrorConditionT err;
@@ -73,7 +81,8 @@ public:
 template <class MetadataVariant, class MetadataFactory, class Context, typename TypeId>
 class Deserializer{
 public:
-    using context_type = Context;
+    using ContextT = Context;
+    using ThisT = Deserializer<MetadataVariant, MetadataFactory, Context, Context>;
     
     static constexpr bool is_const_reflector = false;
     
@@ -87,6 +96,13 @@ public:
 
     template <typename T>
     auto& add(T &_rt, Context &_rctx, const size_t _id, const char * const _name){
+        return *this;
+    }
+    
+    template <typename T>
+    auto& add(T &&_rt, Context &_rctx){
+        static_assert(std::is_invocable_v<T, ThisT &, Context&>, "Parameter should be invocable");
+        std::invoke(_rt, *this, _rctx);
         return *this;
     }
     

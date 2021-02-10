@@ -218,7 +218,7 @@ struct Variant{
     }
 };
 
-auto    factory = [](const auto &_rt, const TypeMapBase *_ptype_map) -> auto{
+inline constexpr auto    factory = [](const auto &_rt, const TypeMapBase *_ptype_map) -> auto{
     using value_t = std::decay_t<decltype(_rt)>;
     if constexpr (std::is_enum_v<value_t>){
         return Enum{};
