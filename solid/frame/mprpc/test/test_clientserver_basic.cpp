@@ -325,7 +325,7 @@ int test_clientserver_basic(int argc, char* argv[])
             auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto &_rmap){
-                    _rmap.template registerMessage<Message>(0, 1, "Message", server_complete_message);
+                    _rmap.template registerMessage<Message>(1, "Message", server_complete_message);
                 }
             );
             frame::mprpc::Configuration cfg(sch_server, proto);
@@ -370,7 +370,7 @@ int test_clientserver_basic(int argc, char* argv[])
             auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto &_rmap){
-                    _rmap.template registerMessage<Message>(0, 1, "Message", client_complete_message);
+                    _rmap.template registerMessage<Message>(1, "Message", client_complete_message);
                 }
             );
             frame::mprpc::Configuration cfg(sch_client, proto);

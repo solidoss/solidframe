@@ -171,8 +171,6 @@ class Protocol : public mprpc::Protocol{
 
     using ThisT          = Protocol<MetadataVariant, MetadataFactory, TypeId>;
     using PointerT       = std::shared_ptr<ThisT>;
-    using CategoryIndexT = typename TypeIndexDispatch<TypeId>::CategoryIndexT;
-    using TypeIndexT     = typename TypeIndexDispatch<TypeId>::TypeIndexT;
     using TypeMapT      = TypeMapTT<
         SerializerTT<MetadataVariant, MetadataFactory, TypeId>,
         DeserializerTT<MetadataVariant, MetadataFactory, TypeId>,
@@ -186,7 +184,22 @@ class Protocol : public mprpc::Protocol{
     MetadataFactory         metadata_factory_;
     TypeDataVectorT         type_data_vec_;
     TypeMapT                type_map_;
-    
+    template <class T>
+    static auto extract_category(const T &_id){
+        if constexpr (is_pair<T>::value){
+            return _id.first;
+        }else{
+            return 0;
+        }
+    }
+    template <class T>
+    static auto extract_id(const T &_id){
+        if constexpr (is_pair<T>::value){
+            return _id.second;
+        }else{
+            return _id;
+        }
+    }
     template <class TypeMap>
     struct Proxy{
         ThisT    &rproto_;
@@ -195,24 +208,24 @@ class Protocol : public mprpc::Protocol{
         Proxy(ThisT &_rproto, TypeMap  &_rmap):rproto_(_rproto), rmap_(_rmap){}
         
         template <class T>
-        size_t registerType(const CategoryIndexT _category, const TypeIndexT _id, const std::string_view _name){
+        size_t registerType(const TypeId _id, const std::string_view _name){
             return 0;
         }
         template <class T, class B>
-        size_t registerType(const CategoryIndexT _category, const TypeIndexT _id, const std::string_view _name){
+        size_t registerType(const TypeId _id, const std::string_view _name){
             return 0;
         }
         template <class T, class B>
         void registerCast(){
         }
         template <class T, typename CompleteFnc>
-        size_t registerMessage(const CategoryIndexT _category, const TypeIndexT _id, const std::string_view _name, CompleteFnc _complete_fnc){
+        size_t registerMessage(const TypeId _id, const std::string_view _name, CompleteFnc _complete_fnc){
             using CompleteFncT     = CompleteFnc;
             using CompleteHandlerT = CompleteHandler<CompleteFncT,
                 typename message_complete_traits<CompleteFncT>::send_type,
                 typename message_complete_traits<CompleteFncT>::recv_type>;
 
-            const size_t index = rmap_.template registerType<T, mprpc::Message>(_category, _id, _name);
+            const size_t index = rmap_.template registerType<T, mprpc::Message>(extract_category(_id), extract_id(_id), _name);
             if(index >= rproto_.type_data_vec_.size()){
                 rproto_.type_data_vec_.resize(index + 1);
             }
@@ -379,6 +392,15 @@ protected:
 
 template <class MetadataVariant, class TypeId, class MetadataFactory, class InitFunction>
 auto create_protocol(MetadataFactory &&_metadata_factory, InitFunction _init_fnc){
+    if constexpr (is_pair<TypeId>::value){
+        static_assert(is_pair<TypeId>::value && std::is_integral_v<typename TypeId::first_type> && !std::is_same_v<typename TypeId::first_type, bool>
+         && std::is_integral_v<typename TypeId::second_type> && !std::is_same_v<typename TypeId::second_type, bool>,
+         "TypeId can only be either integral (but not bool) or pair of <integral (but not bool)>"
+        );
+    }else{
+        static_assert(std::is_integral_v<TypeId> && !std::is_same_v<TypeId, bool>, "TypeId can only be either integral (but not bool) or pair of <integral (but not bool)>");
+    }
+    
     using ProtocolT = Protocol<MetadataVariant, MetadataFactory, TypeId>;
     return std::make_shared<ProtocolT>(_metadata_factory, _init_fnc);
 }
