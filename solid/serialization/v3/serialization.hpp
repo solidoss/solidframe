@@ -19,7 +19,7 @@ namespace v3{
 namespace binary{
 
 template <class MetadataVariant, class MetadataFactory, class Context, typename TypeId>
-class Serializer{
+class Serializer: NonCopyable{
 public:
     using ContextT = Context;
     using ThisT = Serializer<MetadataVariant, MetadataFactory, Context, Context>;
@@ -79,7 +79,7 @@ public:
 };
 
 template <class MetadataVariant, class MetadataFactory, class Context, typename TypeId>
-class Deserializer{
+class Deserializer: NonCopyable{
 public:
     using ContextT = Context;
     using ThisT = Deserializer<MetadataVariant, MetadataFactory, Context, Context>;

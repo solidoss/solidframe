@@ -124,31 +124,9 @@ private:
     }
 };
 
-template <class T, class Enable = void>
-struct TypeIndexDispatch;
-
-template <class T>
-struct TypeIndexDispatch<T, typename std::enable_if<std::is_integral_v<T>>::type>{
-    using CategoryIndexT = size_t;
-    using TypeIndexT = T;
-};
-
 template <typename> struct is_pair: std::false_type {};
 
 template <typename T1, typename T2> struct is_pair<std::pair<T1,T2>>: std::true_type {};
-
-template <class T>
-struct TypeIndexDispatch<
-        T,
-        typename std::enable_if_t<
-            std::conjunction_v<is_pair<T>::value, std::is_integral_v<T::first_type>, std::is_integral_v<T::second_type>>
-        >
-    >{
-    using CategoryIndexT = typename T::first_type;
-    using TypeIndexT = typename T::second_type;
-};
-
-
 
 template <class MetadataVariant, class MetadataFactory, typename TypeId>
 class Protocol : public mprpc::Protocol{
@@ -248,68 +226,6 @@ public:
     )
     {}
     
-#if 0
-    void null(const TypeId& _rtid)
-    {
-        type_map_.null(_rtid);
-    }
-
-    template <class T>
-    size_t registerType(const TypeId& _rtid)
-    {
-        return type_map_.registerType<T>(_rtid);
-    }
-
-    template <class T, class Allocator>
-    size_t registerType(
-        Allocator     _allocator,
-        const TypeId& _rtid)
-    {
-        return type_map_.template registerType<T>(_allocator, _rtid);
-    }
-
-    template <class Msg, typename CompleteFnc>
-    size_t registerMessage(
-        CompleteFnc   _complete_fnc,
-        const TypeId& _rtid)
-    {
-        using CompleteFncT     = CompleteFnc;
-        using CompleteHandlerT = CompleteHandler<CompleteFncT,
-            typename message_complete_traits<CompleteFncT>::send_type,
-            typename message_complete_traits<CompleteFncT>::recv_type>;
-
-        size_t rv = type_map_.template registerType<Msg>(
-            CompleteHandlerT(std::move(_complete_fnc)), Message::solidSerializeV2<typename TypeMapT::SerializerT, Msg>, Message::solidDeserializeV2<typename TypeMapT::DeserializerT, Msg>,
-            _rtid);
-        registerCast<Msg, mprpc::Message>();
-        return rv;
-    }
-
-    template <class Msg, class Allocator, class CompleteFnc>
-    size_t registerMessage(
-        Allocator     _allocator,
-        CompleteFnc   _complete_fnc,
-        const TypeId& _rtid)
-    {
-        using CompleteFncT     = CompleteFnc;
-        using CompleteHandlerT = CompleteHandler<CompleteFnc,
-            typename message_complete_traits<CompleteFncT>::send_type,
-            typename message_complete_traits<CompleteFncT>::recv_type>;
-
-        size_t rv = type_map_.template registerType<Msg>(
-            CompleteHandlerT(std::move(_complete_fnc)), Message::solidSerializeV2<typename TypeMapT::SerializerT, Msg>, Message::solidDeserializeV2<typename TypeMapT::DeserializerT, Msg>, _allocator,
-            _rtid);
-        registerCast<Msg, mprpc::Message>();
-        return rv;
-    }
-
-    template <class Derived, class Base>
-    void registerCast()
-    {
-        type_map_.template registerCast<Derived, Base>();
-    }
-#endif
-
     char* storeValue(char* _pd, uint8_t _v) const override
     {
         return serialization::v3::binary::store(_pd, _v);
