@@ -366,7 +366,7 @@ private:
         if constexpr (!std::is_const_v<T> && (type_group<ValueT>() == TypeGroupE::SharedPtr || type_group<ValueT>() == TypeGroupE::UniquePtr)){
             solid_check(_ptype_map != nullptr);
             
-            _ptype_map->create(ref_, 0, _name);
+            _ptype_map->create<Reflector>(_rctx, ref_, 0, _name);
         }
     }
     

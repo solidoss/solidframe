@@ -83,6 +83,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio_openssl
         solid_frame
         solid_serialization_v2
+        solid_serialization_v3
         solid_utility
         solid_system
         ${SNAPPY_LIB}

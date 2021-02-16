@@ -432,7 +432,7 @@ public:
     }
 
     template <typename F>
-    bool sendAll(ReactorContext& _rctx, char* _buf, size_t _bufcp, F&& _f)
+    bool sendAll(ReactorContext& _rctx, const char* _buf, size_t _bufcp, F&& _f)
     {
         if (solid_function_empty(send_fnc)) {
             errorClear(_rctx);

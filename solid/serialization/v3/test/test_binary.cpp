@@ -1,8 +1,3 @@
-#include "solid/serialization/v2/serialization.hpp"
-#include "solid/serialization/v2/typetraits.hpp"
-#include "solid/system/exception.hpp"
-#include "solid/utility/any.hpp"
-#include "solid/utility/function.hpp"
 #include <bitset>
 #include <deque>
 #include <fstream>
@@ -15,6 +10,11 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
+#include "solid/serialization/v3/serialization.hpp"
+#include "solid/system/exception.hpp"
+#include "solid/utility/any.hpp"
+#include "solid/utility/function.hpp"
 
 using namespace std;
 using namespace solid;
@@ -31,15 +31,15 @@ struct A {
 };
 
 template <class S, class Ctx>
-void solidSerializeV2(S& _rs, const A& _r, Ctx& _rctx, const char* /*_name*/)
+void solidReflectV1(S& _rs, const A& _r, Ctx& _rctx)
 {
-    _rs.add(_r.a, _rctx, "A.a").add(_r.s, _rctx, "A.s").add(_r.b, _rctx, "A.b");
+    _rs.add(_r.a, _rctx, 1, "A.a").add(_r.s, _rctx, 2, "A.s").add(_r.b, _rctx, 3, "A.b");
 }
 
 template <class S, class Ctx>
-void solidSerializeV2(S& _rs, A& _r, Ctx& _rctx, const char* /*_name*/)
+void solidReflectV1(S& _rs, A& _r, Ctx& _rctx)
 {
-    _rs.add(_r.a, _rctx, "A.a").add(_r.s, _rctx, "A.s").add(_r.b, _rctx, "A.b");
+    _rs.add(_r.a, _rctx, 1, "A.a").add(_r.s, _rctx, 2, "A.s").add(_r.b, _rctx, 3, "A.b");
 }
 
 struct Context {
@@ -71,7 +71,7 @@ class Test {
     uint32_t                 blob64_sz;
     char                     blob64[sizeof(uint64_t)];
 
-    std::ostringstream oss;
+    std::ostringstream      oss;
 
     void populate(bool _b)
     {
@@ -199,96 +199,62 @@ public:
         return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d && s1 == s2 && m == _rt.m && s == _rt.s && um == _rt.um && us == _rt.us && vb == _rt.vb && bs == _rt.bs && vc == _rt.vc;
     }
 
-    template <class S>
-    void solidSerializeV2(S& _rs, Context& _rctx, const char* /*_name*/) const
+    SOLID_REFLECT_V1(_rs, _rthis, _rctx)
     {
-        _rs.add(p, serialization::limit(100), _rctx, "p");
+        _rs.add(_rthis.p, _rctx, 1, "p", [](auto &_rmeta){_rmeta.maxSize(100);});
         _rs
-            .add(b, _rctx, "b")
+            .add(_rthis.b, _rctx, 2, "b")
             .add(
-                [this](S& _rs, Context& _rctx, const char* /*_name*/) {
-                    if (this->b) {
-                        _rs.add(v, _rctx, "v");
+                [_rthis](S& _rs, Context& _rctx, const char* /*_name*/) {
+                    if (_rthis.b) {
+                        _rs.add(_rthis.v, _rctx, 3, "v");
                     } else {
-                        _rs.add(d, _rctx, "d");
+                        _rs.add(_rthis.d, _rctx, 4, "d");
                     }
                 },
-                _rctx, "f");
+                _rctx);
 
         using IFStreamPtrT = std::unique_ptr<std::ifstream>;
 
         IFStreamPtrT pifs(new ifstream);
-        pifs->open(p);
-        _rs
-            .push(
-                [pifs = std::move(pifs)](S& _rs, Context& _rctx, const char* _name) mutable {
-                    _rs.add(
-                        *pifs, serialization::limit(1024 * 128), [](std::istream& _ris, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
-                            solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
-                        },
-                        _rctx, _name);
-                    return true;
-                },
-                _rctx, "s")
-            .add(m, _rctx, "m")
-            .add(s, _rctx, "s")
-            .add(um, serialization::limit(11), _rctx, "um")
-            .add(us, _rctx, "us")
-            .add(a, _rctx, "a");
-        _rs.add(vb, serialization::limit(100), _rctx, "vb");
-        _rs.add(bs, _rctx, "bs");
-        _rs.add(vc, _rctx, "vc");
-        _rs.add(a1, _rctx, "a1");
-        _rs.add(a2, a2_sz, _rctx, "a2");
-        _rs.add(blob, blob_sz, BlobCapacity, _rctx, "blob");
-        _rs.add(blob32, blob32_sz, sizeof(uint32_t), _rctx, "blob32");
-        _rs.add(blob64, blob64_sz, sizeof(uint64_t), _rctx, "blob64");
-        //_rs.add(b, "b").add(v, "v").add(a, "a");
-    }
-
-    template <class S>
-    void solidSerializeV2(S& _rs, Context& _rctx, const char* /*_name*/)
-    {
-        _rs.add(p, serialization::limit(100), _rctx, "p");
-        _rs
-            .add(b, _rctx, "b")
-            .add(
-                [this](S& _rs, Context& _rctx, const char* /*_name*/) {
-                    if (this->b) {
-                        _rs.add(v, _rctx, "v");
-                    } else {
-                        _rs.add(d, _rctx, "d");
-                    }
-                },
-                _rctx, "f")
-            .push(
-                if_then_else<S::is_serializer>(
-                    [](S& _rs, Context& _rctx, const char* /*_name*/) mutable {
-                        return true;
-                    },
-                    [this](S& _rs, Context& _rctx, const char* _name) {
-                        _rs.add(
-                            oss, serialization::limit(1024 * 128), [](std::ostream& _ros, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
-                                solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
-                            },
-                            _rctx, _name);
-                        return true;
-                    }),
-                _rctx, "s")
-            .add(m, _rctx, "m")
-            .add(s, _rctx, "s")
-            .add(um, serialization::limit(11), _rctx, "um")
-            .add(us, _rctx, "us")
-            .add(a, _rctx, "a");
-        _rs.add(vb, serialization::limit(100), _rctx, "vb");
-        _rs.add(bs, _rctx, "bs");
-        _rs.add(vc, _rctx, "vc");
-        _rs.add(a1, _rctx, "a1");
-        _rs.add(a2, a2_sz, _rctx, "a2");
-        _rs.add(blob, blob_sz, BlobCapacity, _rctx, "blob");
-        _rs.add(blob32, blob32_sz, sizeof(uint32_t), _rctx, "blob32");
-        _rs.add(blob64, blob64_sz, sizeof(uint64_t), _rctx, "blob64");
-        //_rs.add(b, _rctx, "b").add(v, _rctx, "v").add(a, _rctx, "a");
+        pifs->open(_rthis.p);
+        
+        if constexpr (!S::is_const_reflector){
+            _rs.add(
+                [_rthis](S& _rs, Context& _rctx) {
+                    auto progress_lambda = [&_rctx](std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+                        //NOTE: here you can use context.anyTuple for actual implementation
+                        solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
+                    };
+                    
+                    _rs.add(_rthis.oss, _rctx, 20, "stream", [&progress_lambda](auto _rmeta){_rmeta.progressFunction(progress_lambda).maxSize(1024*128);});
+                    
+                }, _rctx);
+        }else{
+            _rs.add(
+                [pifs = std::move(pifs)](S& _rs, Context& _rctx) mutable {
+                    auto progress_lambda = [&_rctx](std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+                        //NOTE: here you can use context.anyTuple for actual implementation
+                    };
+                    _rs.add(*pifs, _rctx, 20, "stream", [&progress_lambda](auto _rmeta){_rmeta.progressFunction(progress_lambda).maxSize(1024*128);});
+                }, _rctx
+            );
+        }
+        
+        _rs.add(_rthis.m, _rctx, 5, "m");
+        _rs.add(_rthis.s, _rctx, 6, "s");
+        _rs.add(_rthis.um, _rctx, 7, "um", [](auto &_rmeta){_rmeta.maxSize(11);});
+        _rs.add(_rthis.us, _rctx, 8, "us");
+        _rs.add(_rthis.a, _rctx, 9, "a");
+        _rs.add(_rthis.vb, _rctx, 10, "vb", [](auto &_rmeta){_rmeta.maxSize(100);});
+        _rs.add(_rthis.bs, _rctx, 11, "bs");
+        _rs.add(_rthis.vc, _rctx, 12, "vc");
+        _rs.add(_rthis.a1, _rctx, 13, "a1");
+        _rs.add(_rthis.a2, _rctx, 14, "a2");
+        
+        //_rs.add(blob, blob_sz, BlobCapacity, _rctx, "blob");
+        //_rs.add(blob32, blob32_sz, sizeof(uint32_t), _rctx, "blob32");
+        //_rs.add(blob64, blob64_sz, sizeof(uint64_t), _rctx, "blob64");
     }
 };
 
@@ -343,12 +309,16 @@ int test_binary(int argc, char* argv[])
         archive_path = argv[3];
     }
 
-    using TypeMapT = serialization::TypeMap<uint8_t, Context, serialization::binary::Serializer, serialization::binary::Deserializer, uint64_t>;
-
-    TypeMapT tm;
-
-    tm.null(0);
-    tm.registerType<Test>(1);
+    using ContextT = Context;
+    using SerializerT = serialization::v3::binary::Serializer<reflection::metadata::Variant, decltype(reflection::metadata::factory), ContextT, uint8_t>;
+    using DeserializerT = serialization::v3::binary::Deserializer<reflection::metadata::Variant, decltype(reflection::metadata::factory), ContextT, uint8_t>;
+    
+    const reflection::TypeMap<SerializerT, DeserializerT> key_type_map{
+        [](auto &_rmap){
+            _rmap.template registerType<Test>(0, 1, "Test");
+            
+        }
+    };
 
     {
         const Test                  t{true, input_file_path};
@@ -356,11 +326,11 @@ int test_binary(int argc, char* argv[])
         const std::unique_ptr<Test> tup{new Test(true)};
         std::shared_ptr<Test>       sp1;
         std::unique_ptr<Test>       up1;
-        Context                     ctx;
+        ContextT                    ctx;
         ostringstream               oss;
 
         if (choice != 'l') {
-            typename TypeMapT::SerializerT ser = tm.createSerializer();
+            SerializerT ser{reflection::metadata::factory, key_type_map};
             ofstream                       ofs;
 
             if (!archive_path.empty()) {
@@ -371,8 +341,8 @@ int test_binary(int argc, char* argv[])
 
             ser.run(
                 ros,
-                [&t, &tp, &tup, &sp1, &up1](decltype(ser)& ser, Context& _rctx) {
-                    ser.add(t, _rctx, "t").add(tp, _rctx, "tp").add(tup, _rctx, "tup").add(sp1, _rctx, "sp1").add(up1, _rctx, "up1");
+                [&t, &tp, &tup, &sp1, &up1](decltype(ser)& ser, ContextT& _rctx) {
+                    ser.add(t, _rctx, 1, "t").add(tp, _rctx, 2, "tp").add(tup, _rctx, 3, "tup").add(sp1, _rctx, 4, "sp1").add(up1, _rctx, 5, "up1");
                 },
                 ctx);
 
@@ -391,7 +361,7 @@ int test_binary(int argc, char* argv[])
             }
 
             istringstream                    iss(oss.str());
-            typename TypeMapT::DeserializerT des = tm.createDeserializer();
+            DeserializerT des{reflection::metadata::factory, key_type_map};
 
             istream& ris = ifs.is_open() ? static_cast<istream&>(std::ref(ifs)) : static_cast<istream&>(std::ref(iss));
 
@@ -405,8 +375,8 @@ int test_binary(int argc, char* argv[])
 
             des.run(
                 ris,
-                [&t_c, &tp_c, &tup_c, &sp1_c, &up1_c](decltype(des)& des, Context& ctx) {
-                    des.add(t_c, ctx, "t").add(tp_c, ctx, "tp_c").add(tup_c, ctx, "tup_c").add(sp1_c, ctx, "sp1").add(up1_c, ctx, "up1");
+                [&t_c, &tp_c, &tup_c, &sp1_c, &up1_c](decltype(des)& des, ContextT& ctx) {
+                    des.add(t_c, ctx, 1, "t").add(tp_c, ctx, 2, "tp_c").add(tup_c, ctx, 3, "tup_c").add(sp1_c, ctx, 4, "sp1").add(up1_c, ctx, 5, "up1");
                 },
                 ctx);
 

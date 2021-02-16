@@ -286,6 +286,10 @@ struct Message : std::enable_shared_from_this<Message> {
     {
         header_ = std::move(_umh);
     }
+    
+    void header(frame::mprpc::ConnectionContext& _rctx){
+        header_ = std::move(*_rctx.pmessage_header);
+    }
 
     const MessageHeader& header() const
     {

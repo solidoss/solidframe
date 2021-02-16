@@ -202,8 +202,17 @@ class Protocol : public mprpc::Protocol{
             using CompleteHandlerT = CompleteHandler<CompleteFncT,
                 typename message_complete_traits<CompleteFncT>::send_type,
                 typename message_complete_traits<CompleteFncT>::recv_type>;
-
-            const size_t index = rmap_.template registerType<T, mprpc::Message>(extract_category(_id), extract_id(_id), _name);
+            auto init_lambda = [](auto &_rctx, auto &_rptr){
+                using PtrType = std::decay_t<decltype(_rptr)>;
+                using CtxType = std::decay_t<decltype(_rctx)>;
+                if constexpr (solid::is_shared_ptr_v<PtrType>){
+                    _rptr = std::make_shared<typename PtrType::element_type>();
+                    if constexpr (std::is_same_v<ConnectionContext, CtxType>){
+                        _rptr->header(_rctx);
+                    }
+                }
+            };
+            const size_t index = rmap_.template registerType<T, mprpc::Message>(extract_category(_id), extract_id(_id), _name, init_lambda);
             if(index >= rproto_.type_data_vec_.size()){
                 rproto_.type_data_vec_.resize(index + 1);
             }

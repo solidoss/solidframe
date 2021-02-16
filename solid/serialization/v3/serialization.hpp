@@ -1,6 +1,6 @@
 // solid/serialization/v3/serialization.hpp
 //
-// Copyright (c) 2019 Valentin Palade (vipalade @ gmail . com)
+// Copyright (c) 2021 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -10,14 +10,16 @@
 
 #pragma once
 
+#include "solid/reflection/v1/reflection.hpp"
 #include "solid/serialization/v3/binarybasic.hpp"
-#include "solid/reflection/v1/typemap.hpp"
-
+#include "solid/serialization/v3/binaryserializer.hpp"
+#include "solid/serialization/v3/binarydeserializer.hpp"
 namespace solid {
 namespace serialization {
 namespace v3{
 namespace binary{
 
+#if 0
 template <class MetadataVariant, class MetadataFactory, class Context, typename TypeId>
 class Serializer: NonCopyable{
 public:
@@ -138,13 +140,11 @@ public:
         return true;
     }
 };
-
+#endif
 }//namespace binary
 }//namespace v3
 
 using namespace v3;
-
-
 
 } // namespace serialization
 } // namespace solid
