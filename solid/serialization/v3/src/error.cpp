@@ -23,7 +23,9 @@ enum {
     Error_Limit_String_E,
     Error_Limit_Stream_E,
     Error_Limit_Blob_E,
+    Error_Limit_Array_E,
     Error_Cross_Integer_E,
+    Error_Unknown_Type_E,
 };
 
 class ErrorCategory : public ErrorCategoryT {
@@ -60,8 +62,14 @@ std::string ErrorCategory::message(int _ev) const
     case Error_Limit_Blob_E:
         oss << "Limit blob";
         break;
+    case Error_Limit_Array_E:
+        oss << "Limit array";
+        break;
     case Error_Cross_Integer_E:
         oss << "Cross integer checks failed";
+        break;
+    case Error_Unknown_Type_E:
+        oss << "Unknow type. Type not available in typemap";
         break;
     default:
         oss << "Unknown";
@@ -77,7 +85,8 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_limit_stream(Error_Limit_Stream_E, category);
 /*extern*/ const ErrorConditionT error_limit_blob(Error_Limit_Blob_E, category);
 /*extern*/ const ErrorConditionT error_cross_integer(Error_Cross_Integer_E, category);
-
+/*extern*/ const ErrorConditionT error_unknown_type(Error_Unknown_Type_E, category);
+/*extern*/ const ErrorConditionT error_limit_array(Error_Limit_Blob_E, category);
 } //namespace v3
 } //namespace serialization
 } //namespace solid

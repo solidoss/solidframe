@@ -111,6 +111,7 @@ protected:
         type_vec_.emplace_back();//reserve 0 index for for null
     }
 public:
+    using IdTupleT = std::tuple<size_t, size_t, size_t>;
     virtual ~TypeMapBase(){}
 
     template <typename Reflector, class T>
@@ -140,6 +141,29 @@ public:
         }else{
             solid_throw("Unknown type: "<<typeid(_rvalue).name());
         }
+    }
+    
+    template <typename Reflector, class T>
+    void reflect(Reflector &_rreflector, T &_rvalue, typename Reflector::ContextT &_rctx, const IdTupleT &_id)const{
+        const size_t reflector_index = reflectorIndex<Reflector>();
+        solid_assert(reflector_index != solid::InvalidIndex());
+        
+        const auto &rtypestub = type_vec_[std::get<0>(_id)];
+        size_t cast_index = InvalidIndex{};
+        const auto elem_type_index = std::type_index(typeid(T));
+        if(rtypestub.base_type_index_ == elem_type_index){
+            cast_index = rtypestub.base_cast_index_;
+        }else if(rtypestub.this_type_index_ == elem_type_index){
+            cast_index = rtypestub.this_cast_index_;
+        }else{
+            //need to search for the index
+            const auto it = cast_map_.find(std::make_pair(rtypestub.this_type_index_, elem_type_index));
+            solid_check(it != cast_map_.end());
+            cast_index = it->second;
+        }
+        const auto& rcaststub = cast_vec_[cast_index];
+        
+        rtypestub.reflector_vec_[reflector_index].reflect_fnc_(&_rreflector, &_rvalue, &_rctx, rcaststub.reverse_fnc_);
     }
     
     template <class Reflector, class Ptr>
@@ -264,7 +288,7 @@ public:
         static_assert(solid::is_shared_ptr_v<Ptr> || solid::is_unique_ptr_v<Ptr>);
         
         solid_assert(_category < category_vec_.size());
-        _rptr.reset(nullptr);
+        _rptr.reset();
         const auto it = category_vec_[_category].type_id_map_.find(_id);
         if(it != category_vec_[_category].type_id_map_.end()){
             const TypeStub& rtypestub = type_vec_[it->second];
@@ -310,14 +334,16 @@ public:
     }
 
     template <class T>
-    std::pair<size_t, size_t> id(const T *_pvalue)const{
+    auto id(const T *_pvalue)const{
         if(_pvalue != nullptr){
             const auto it = type_index_map_.find(std::type_index(typeid(*_pvalue)));
-            solid_check(it != type_index_map_.end(), "Unknown type: "<<typeid(*_pvalue).name());
-            return std::pair<size_t, size_t>(std::get<1>(it->second), std::get<2>(it->second));
-        } else {
-            return std::pair<size_t, size_t>(0, 0);
+            //solid_check(it != type_index_map_.end(), "Unknown type: "<<typeid(*_pvalue).name());
+            if(it != type_index_map_.end()){
+                return it->second;
+                //return std::pair<size_t, size_t>(std::get<1>(it->second), std::get<2>(it->second));
+            }
         }
+        return std::make_tuple(static_cast<size_t>(0), static_cast<size_t>(0), static_cast<size_t>(0));
     }
     
 };

@@ -89,12 +89,12 @@ struct UnsignedInteger{
 };
 
 struct String{
-    size_t      max_size_ = -1ULL;
+    size_t      max_size_ = InvalidSize();
     size_t      min_size_ = 0;
     bool        is_sensitive_ = false;
     
     String(
-        const size_t _max_size = -1ULL,
+        const size_t _max_size = InvalidSize(),
         const size_t _min_size = 0,
         const bool _is_sensitive = false
     ): max_size_(_max_size), min_size_(_min_size), is_sensitive_(_is_sensitive){}
@@ -113,12 +113,37 @@ struct String{
     }
 };
 
+struct Array{
+    size_t      max_size_ = InvalidSize();
+    size_t      min_size_ = 0;
+    size_t      size_ = 0;
+    
+    Array(
+        const size_t _size,
+        const size_t _max_size = InvalidSize(),
+        const size_t _min_size = 0
+    ): max_size_(_max_size), min_size_(_min_size), size_(_size){}
+    
+    auto& maxSize(const size_t _max_size) {
+        max_size_ = _max_size;
+        return *this;
+    }
+    auto& minSize(const size_t _min_size) {
+        min_size_ = _min_size;
+        return *this;
+    }
+    auto& size(const size_t _size) {
+        size_ = _size;
+        return *this;
+    }
+};
+
 struct Container{
-    size_t      max_size_ = -1ULL;
+    size_t      max_size_ = InvalidSize();
     size_t      min_size_ = 0;
     
     Container(
-        const size_t _max_size = -1ULL,
+        const size_t _max_size = InvalidSize(),
         const size_t _min_size = 0
     ): max_size_(_max_size), min_size_(_min_size){}
     
@@ -135,10 +160,16 @@ struct Container{
 struct IStream{
     using ProgressFunctionT = std::function<void(std::istream&, uint64_t, const bool, const size_t, const char*)>;//std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name
     uint64_t max_size_ = std::numeric_limits<uint64_t>::max();
+    uint64_t size_ = InvalidSize();
     ProgressFunctionT progress_function_;
     
     auto& maxSize(const uint64_t _max_size) {
         max_size_ = _max_size;
+        return *this;
+    }
+    
+    auto& size(const uint64_t _size) {
+        size_ = _size;
         return *this;
     }
     
@@ -173,7 +204,8 @@ struct Variant{
     Container, Enum,
     Pointer,
     IStream,
-    OStream
+    OStream,
+    Array
     >;
     VariantT var_;
     
@@ -216,6 +248,9 @@ struct Variant{
     const auto* ostream()const{
         return std::get_if<OStream>(&var_);
     }
+    const auto* array()const{
+        return std::get_if<Array>(&var_);
+    }
 };
 
 inline constexpr auto    factory = [](const auto &_rt, const TypeMapBase *_ptype_map) -> auto{
@@ -230,8 +265,12 @@ inline constexpr auto    factory = [](const auto &_rt, const TypeMapBase *_ptype
         return UnsignedInteger{std::numeric_limits<value_t>::max()};
     }else if constexpr (std::is_same_v<value_t, std::string>){
         return String{};
-    }else if constexpr (solid::is_container<value_t>::value){
+    }else if constexpr (solid::is_std_array_v<value_t>){
+        return Array{std::tuple_size_v<value_t>, std::tuple_size_v<value_t>};
+    }else if constexpr (solid::is_container_v<value_t>){
         return Container{};
+    }else if constexpr (solid::is_bitset_v<value_t>){
+        return Generic{};
     }else if constexpr (std::is_base_of_v<std::istream, value_t>){
         return IStream{};
     }else if constexpr (std::is_base_of_v<std::ostream, value_t>){

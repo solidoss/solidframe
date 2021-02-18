@@ -205,7 +205,7 @@ public:
         _rs
             .add(_rthis.b, _rctx, 2, "b")
             .add(
-                [_rthis](S& _rs, Context& _rctx, const char* /*_name*/) {
+                [&_rthis](S& _rs, Context& _rctx) {
                     if (_rthis.b) {
                         _rs.add(_rthis.v, _rctx, 3, "v");
                     } else {
@@ -221,8 +221,8 @@ public:
         
         if constexpr (!S::is_const_reflector){
             _rs.add(
-                [_rthis](S& _rs, Context& _rctx) {
-                    auto progress_lambda = [&_rctx](std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+                [&_rthis](S& _rs, Context& _rctx) {
+                    auto progress_lambda = [/*&_rctx*/](std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                         //NOTE: here you can use context.anyTuple for actual implementation
                         solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
                     };
@@ -233,7 +233,7 @@ public:
         }else{
             _rs.add(
                 [pifs = std::move(pifs)](S& _rs, Context& _rctx) mutable {
-                    auto progress_lambda = [&_rctx](std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+                    auto progress_lambda = [/*&_rctx*/](std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                         //NOTE: here you can use context.anyTuple for actual implementation
                     };
                     _rs.add(*pifs, _rctx, 20, "stream", [&progress_lambda](auto _rmeta){_rmeta.progressFunction(progress_lambda).maxSize(1024*128);});
@@ -341,7 +341,7 @@ int test_binary(int argc, char* argv[])
 
             ser.run(
                 ros,
-                [&t, &tp, &tup, &sp1, &up1](decltype(ser)& ser, ContextT& _rctx) {
+                [&t, &tp, &tup, &sp1, &up1](SerializerT & ser, ContextT& _rctx) {
                     ser.add(t, _rctx, 1, "t").add(tp, _rctx, 2, "tp").add(tup, _rctx, 3, "tup").add(sp1, _rctx, 4, "sp1").add(up1, _rctx, 5, "up1");
                 },
                 ctx);

@@ -72,6 +72,9 @@ struct is_container<
         void>::type> : public std::true_type {
 };
 
+template< class T >
+inline constexpr bool is_container_v = is_container<T>::value;
+
 template <class F, class... Args>
 struct is_callable_helper {
     template <class U>
@@ -123,5 +126,23 @@ struct is_bitset<std::bitset<Sz>>: std::true_type{};
 
 template< class T >
 inline constexpr bool is_bitset_v = is_bitset<T>::value;
+
+template <typename T>
+struct is_std_array: std::false_type{};
+
+template <class T, size_t S>
+struct is_std_array<std::array<T, S>>: std::true_type{};
+
+template< class T >
+inline constexpr bool is_std_array_v = is_std_array<T>::value;
+
+template <typename T>
+struct is_std_pair: std::false_type{};
+
+template <class T1, class T2>
+struct is_std_pair<std::pair<T1, T2>>: std::true_type{};
+
+template< class T >
+inline constexpr bool is_std_pair_v = is_std_pair<T>::value;
 
 } //namespace solid

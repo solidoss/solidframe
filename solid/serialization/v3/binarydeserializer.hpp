@@ -115,7 +115,7 @@ class DeserializerBase : public Base {
     using RunListIteratorT = std::list<Runnable>::const_iterator;
 
 protected:
-    DeserializerBase(const reflection::v1::TypeMapBase &_rtype_map):rtype_map_(_rtype_map){}
+    DeserializerBase(const reflection::v1::TypeMapBase * const _ptype_map):ptype_map_(_ptype_map){}
 
 public:
     static constexpr bool is_const_reflector = false;
@@ -273,48 +273,20 @@ public:
         schedule(std::move(r));
     }
 
-    template <class D, class F>
-    void addFunction(D& _rd, F _f, const char* _name)
-    {
-        solid_dbg(logger, Info, _name);
-        if (isRunEmpty()) {
-            _f(_rd, _name);
-        } else {
-            Runnable r{
-                call_function,
-                [_f](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
-                    const RunListIteratorT old_sentinel = _rd.sentinel();
-
-                    _f(static_cast<D&>(_rd), _rr.name_);
-
-                    const bool is_run_empty = _rd.isRunEmpty();
-                    _rd.sentinel(old_sentinel);
-                    if (is_run_empty) {
-                        return Base::ReturnE::Done;
-                    } else {
-                        _rr.call_ = noop;
-                        return Base::ReturnE::Wait;
-                    }
-                },
-                _name};
-            schedule(std::move(r));
-        }
-    }
-
     template <class D, class F, class Ctx>
-    void addFunction(D& _rd, F _f, Ctx& _rctx, const char* _name)
+    void addFunction(D& _rd, F &&_f, Ctx& _rctx, const char* _name)
     {
         solid_dbg(logger, Info, _name);
         if (isRunEmpty()) {
-            _f(_rd, _rctx, _name);
+            _f(_rd, _rctx);
         } else {
             Runnable r{
                 nullptr,
                 call_function,
-                [_f](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
+                [_f = std::move(_f)](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
                     const RunListIteratorT old_sentinel = _rd.sentinel();
 
-                    _f(static_cast<D&>(_rd), *static_cast<Ctx*>(_pctx), _rr.name_);
+                    _f(static_cast<D&>(_rd), *static_cast<Ctx*>(_pctx));
 
                     const bool is_run_empty = _rd.isRunEmpty();
                     _rd.sentinel(old_sentinel);
@@ -496,7 +468,7 @@ public:
             const RunListIteratorT old_sentinel = _rd.sentinel();
 
             while (_rd.pcrt_ != _rd.pend_ && _rr.size_ != 0) {
-                rd.add(value, rctx, _rr.name_);
+                rd.add(value, rctx, 0, _rr.name_);//TODO: use a propper index
                 --_rr.size_;
 
                 if (_rd.isRunEmpty()) {
@@ -524,15 +496,14 @@ public:
     }
 
     template <class F, class Ctx>
-    void addStream(std::ostream& _ros, const uint64_t _limit, F _f, Ctx& _rctx, const char* _name)
+    void addStream(std::ostream& _ros, const uint64_t _limit, F _f, Ctx& _rctx, const size_t _id, const char* _name)
     {
         uint64_t len    = 0;
-        auto     lambda = [_f = std::move(_f), len, _limit](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
-            Ctx&          rctx = *static_cast<Ctx*>(_pctx);
+        auto     lambda = [_f = std::move(_f), len, _limit, _id](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
             std::ostream& ros  = *const_cast<std::ostream*>(static_cast<const std::ostream*>(_rr.ptr_));
             len += _rr.data_;
 
-            _f(ros, len, _rr.data_ == 0, rctx, _rr.name_);
+            _f(ros, len, _rr.data_ == 0, _id, _rr.name_);
 
             if (len > _limit) {
                 _rd.baseError(error_limit_stream);
@@ -563,21 +534,13 @@ public:
         schedule(std::move(r));
     }
 
-    template <class D, class T, size_t N, class S, class C>
-    void addArray(D& _rd, std::array<T, N>& _rc, S& _rsz, C& _rctx, const char* _name)
+    template <class D, class T, size_t N, class C>
+    void addArray(D& _rd, std::array<T, N>& _rc, const size_t _max_size, C& _rctx, const char* _name)
     {
         _rd.addBasicWithCheck(data_.u64_, _name);
-
+        
         {
-            Runnable r{&_rsz, &load_array_size<S>, 0, 0, _name};
-            if (isRunEmpty()) {
-                load_array_size<S>(*this, r, &_rctx);
-            } else {
-                schedule(std::move(r));
-            }
-        }
-        {
-            Runnable r{&_rc, load_array_start<D, T, N, C>, 0, 0, _name};
+            Runnable r{&_rc, load_array_start<D, T, N, C>, 0, 0, _max_size, _name};
 
             tryRun(std::move(r), &_rctx);
         }
@@ -588,7 +551,7 @@ public:
     {
 
         addBasicWithCheck(data_.u64_, _name);
-
+#if 0
         {
             Runnable r{&_rsz, &load_array_size<T>, 0, 0, _name};
             if (isRunEmpty()) {
@@ -597,7 +560,7 @@ public:
                 schedule(std::move(r));
             }
         }
-
+#endif
         {
             Runnable r{_pv, &load_blob, _cp, 0, _name};
 
@@ -618,7 +581,13 @@ protected:
         pcrt_ = _pbeg;
     }
     long doRun(void* _pctx = nullptr);
-
+    void baseError(const ErrorConditionT& _err)
+    {
+        if (!error_) {
+            error_ = _err;
+            pcrt_ = pbeg_ = pend_ = nullptr;
+        }
+    }
 private:
     friend class TypeMapBase;
     void tryRun(Runnable&& _ur, void* _pctx = nullptr);
@@ -644,14 +613,6 @@ private:
     {
 
         return run_lst_.emplace(sentinel_, std::move(_ur));
-    }
-
-    void baseError(const ErrorConditionT& _err)
-    {
-        if (!error_) {
-            error_ = _err;
-            pcrt_ = pbeg_ = pend_ = nullptr;
-        }
     }
 
     static ReturnE load_bool(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
@@ -893,23 +854,15 @@ private:
         }
         return r;
     }
-    template <class T>
-    static ReturnE load_array_size(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
-    {
-        const uint64_t v  = _rd.data_.u64_;
-        const T        vt = static_cast<T>(v);
-        solid_dbg(logger, Info, "vt = " << vt);
 
-        if (static_cast<uint64_t>(vt) == v) {
-            *reinterpret_cast<T*>(_rr.ptr_) = vt;
-        } else {
-            _rd.baseError(error_cross_integer);
-        }
-        return ReturnE::Done;
-    }
     template <class D, class T, size_t N, class C>
     static ReturnE load_array_start(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
     {
+        if(_rr.limit_ != 0 && _rd.data_.u64_ > _rr.limit_){
+            _rd.baseError(error_limit_array);
+            return ReturnE::Done;
+        }
+        
         _rr.size_ = _rd.data_.u64_;
         _rr.data_ = 0;
         _rr.call_ = load_array_continue<D, T, N, C>;
@@ -926,7 +879,7 @@ private:
         const RunListIteratorT old_sentinel = _rd.sentinel();
 
         while (_rd.pcrt_ != _rd.pend_ && _rr.data_ < _rr.size_) {
-            rd.add(rcontainer[static_cast<size_t>(_rr.data_)], rctx, _rr.name_);
+            rd.add(rcontainer[static_cast<size_t>(_rr.data_)], rctx, 0, _rr.name_);//TODO: add propper index
             ++_rr.data_;
         }
 
@@ -1089,7 +1042,7 @@ protected:
         uint64_t u64_;
         void*    p_;
     } data_;
-    const reflection::v1::TypeMapBase &rtype_map_;
+    const reflection::v1::TypeMapBase *const ptype_map_;
 private:
     const char*      pbeg_;
     const char*      pend_;
@@ -1101,31 +1054,42 @@ private:
 
 template <class MetadataVariant, class MetadataFactory, class Context, typename TypeId>
 class Deserializer: public DeserializerBase{
+    TypeId                      type_id_;
     const MetadataFactory       &rmetadata_factory_;
 public:
     using ContextT = Context;
-    using ThisT = Deserializer<MetadataVariant, MetadataFactory, Context, Context>;
+    using ThisT = Deserializer<MetadataVariant, MetadataFactory, Context, TypeId>;
     
     
     Deserializer(
         MetadataFactory &_rmetadata_factory, const reflection::v1::TypeMapBase &_rtype_map
-    ):DeserializerBase(_rtype_map), rmetadata_factory_(_rmetadata_factory){}
+    ):DeserializerBase(&_rtype_map), rmetadata_factory_(_rmetadata_factory){}
     
+    Deserializer(
+        MetadataFactory &_rmetadata_factory
+    ):DeserializerBase(nullptr), rmetadata_factory_(_rmetadata_factory){}
     
     template <typename T, typename F>
     auto& add(T &_rt, Context &_rctx, const size_t _id, const char *const _name, F _f){
+        auto meta = rmetadata_factory_(_rt, this->ptype_map_);
+        _f(meta);
+        
+        addDispatch(meta, _rt, _rctx, _id, _name);
         return *this;
     }
 
     template <typename T>
     auto& add(T &_rt, Context &_rctx, const size_t _id, const char * const _name){
+        auto meta = rmetadata_factory_(_rt, this->ptype_map_);
+        addDispatch(meta, _rt, _rctx, _id, _name);
         return *this;
     }
     
     template <typename T>
     auto& add(T &&_rt, Context &_rctx){
-        static_assert(std::is_invocable_v<T, ThisT &, Context&>, "Parameter should be invocable");
-        std::invoke(_rt, *this, _rctx);
+        //static_assert(std::is_invocable_v<T, ThisT &, Context&>, "Parameter should be invocable");
+        //std::invoke(_rt, *this, _rctx);
+        this->addFunction(*this, std::forward<T>(_rt), _rctx, "function");
         return *this;
     }
     
@@ -1276,7 +1240,61 @@ public:
     {
         return Base::error();
     }
-
+private:
+    template <class Meta, class T>
+    void addDispatch(const Meta &_meta, T &_rt, ContextT &_rctx, const size_t _id, const char *const _name){
+        static_assert(!std::is_base_of_v<std::istream, T>, "Cannot use std::istream with Deserializer");
+        if constexpr (!is_shared_ptr_v<T> && !is_unique_ptr_v<T>){
+            static_assert(!std::is_pointer_v<T>, "Naked pointer are not supported - use std::shared_ptr or std::unique_ptr");
+        }
+        static_assert(!std::is_array_v<T>, "C style arrays not supported");
+        static_assert(!std::is_floating_point_v<T>, "Floating point values not supported");
+        
+        if constexpr (std::is_base_of_v<std::ostream, T>){
+            addStream(const_cast<T&>(_rt), _meta.max_size_, _meta.progress_function_, _rctx, _id, _name);
+        }else if constexpr (std::is_integral_v<T>){
+            addBasic(_rt, _name);
+        }else if constexpr (is_bitset_v<T>){
+            addBitset(_rt, _name);
+        }else if constexpr (is_shared_ptr_v<T> || is_unique_ptr_v<T>){
+            const auto *ptypemap = _meta.map();
+            solid_assert(ptypemap != nullptr);
+            add(type_id_, _rctx, 1, "type_id");
+            add(
+                [ptypemap, &_rt, this](ThisT &_rthis, ContextT &_rctx){
+                    size_t category = 0;
+                    size_t index;
+                    if constexpr (is_std_pair_v<TypeId>){
+                        category = static_cast<size_t>(type_id_.first);
+                        index = static_cast<size_t>(type_id_.second);
+                    }else{
+                        index = static_cast<size_t>(type_id_);
+                    }
+                    const auto rv = ptypemap->createAndReflect(_rthis, _rt, _rctx, category, index);
+                    if(rv == 0 && index != 0){
+                        baseError(error_unknown_type);
+                    }
+                }, _rctx
+            );
+            
+        }else if constexpr (std::is_same_v<T, std::string>){
+            addBasic(_rt, _meta.max_size_, _name);
+        }else if constexpr (std::is_same_v<T, std::vector<char>>){
+            addVectorChar(_rt, _meta.max_size_, _name);
+        }else if constexpr (std::is_same_v<T, std::vector<bool>>){
+            addVectorBool(_rt, _meta.max_size_, _name);
+        }else if constexpr (is_std_array_v<T>){
+            addArray(*this, _rt, _meta.max_size_, _rctx, _name);
+        }else if constexpr (std::is_array_v<T>){
+            
+            //TODO:
+        }else if constexpr (is_container_v<T>){
+            addContainer(*this, _rt, _meta.max_size_, _rctx, _name);
+        }else{
+            using namespace solid::reflection::v1;
+            solidReflectV1(*this, _rt, _rctx);
+        }
+    }
 };
 
 template <class MetadataVariant, class MetadataFactory, class Context, typename TypeId>

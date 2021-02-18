@@ -52,7 +52,7 @@ constexpr TypeGroupE type_group(){
         return TypeGroupE::Enum;
     if constexpr (is_bitset_v<T>)
         return TypeGroupE::Bitset;
-    else if constexpr (solid::is_container<T>::value)
+    else if constexpr (solid::is_container_v<T>)
         return TypeGroupE::Container;
     else if constexpr (std::is_array<T>::value)
         return TypeGroupE::Array;
@@ -71,7 +71,12 @@ constexpr TypeGroupE type_group(){
 //TODO: maybe you should move the below function unde :: namespace
 template <class R, class T1, class T2, class Ctx>                                      
 inline void solidReflectV1(R& _rr, std::pair<T1, T2>& _rt, Ctx& _rctx){
-    _rr.add(_rt.first, _rctx, 0, "first").add(_rt.second, _rctx, 1, "second");
+    if constexpr (std::is_const_v<T1>){
+        _rr.add(*const_cast<std::remove_const_t<T1>*>(&_rt.first), _rctx, 0, "first");//trick to support std::map::value_type - pair<const Key, Value>
+    }else{
+        _rr.add(_rt.first, _rctx, 0, "first");
+    }
+    _rr.add(_rt.second, _rctx, 1, "second");
 }
 
 template <class R, class T1, class T2, class Ctx>                                      
