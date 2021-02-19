@@ -115,7 +115,7 @@ class DeserializerBase : public Base {
     using RunListIteratorT = std::list<Runnable>::const_iterator;
 
 protected:
-    DeserializerBase(const reflection::v1::TypeMapBase * const _ptype_map):ptype_map_(_ptype_map){}
+    DeserializerBase(const reflection::v1::TypeMapBase * const _ptype_map);
 
 public:
     static constexpr bool is_const_reflector = false;
@@ -1270,9 +1270,14 @@ private:
                     }else{
                         index = static_cast<size_t>(type_id_);
                     }
-                    const auto rv = ptypemap->createAndReflect(_rthis, _rt, _rctx, category, index);
-                    if(rv == 0 && index != 0){
-                        baseError(error_unknown_type);
+                    if(index != 0){
+                        const auto rv = ptypemap->createAndReflect(_rthis, _rt, _rctx, category, index);
+                        if(rv == 0 && index != 0){
+                            baseError(error_unknown_type);
+                        }
+                    }else{
+                        //nullptr
+                        _rt.reset();
                     }
                 }, _rctx
             );

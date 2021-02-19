@@ -18,6 +18,14 @@ namespace v3 {
 namespace binary {
 
 //== Serializer  ==============================================================
+SerializerBase::SerializerBase(const reflection::v1::TypeMapBase * const _ptype_map)
+    : ptype_map_(_ptype_map)
+    , pbeg_(nullptr)
+    , pend_(nullptr)
+    , pcrt_(nullptr)
+    , sentinel_(run_lst_.cend())
+{
+}
 
 std::ostream& SerializerBase::run(std::ostream& _ros, void* _pctx)
 {

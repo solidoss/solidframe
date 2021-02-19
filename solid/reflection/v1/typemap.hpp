@@ -336,8 +336,10 @@ public:
     template <class T>
     auto id(const T *_pvalue)const{
         if(_pvalue != nullptr){
-            const auto it = type_index_map_.find(std::type_index(typeid(*_pvalue)));
+            const auto index = std::type_index(typeid(*_pvalue));
+            const auto it = type_index_map_.find(index);
             //solid_check(it != type_index_map_.end(), "Unknown type: "<<typeid(*_pvalue).name());
+            solid_assert(it != type_index_map_.end());
             if(it != type_index_map_.end()){
                 return it->second;
                 //return std::pair<size_t, size_t>(std::get<1>(it->second), std::get<2>(it->second));

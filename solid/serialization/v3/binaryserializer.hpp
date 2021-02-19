@@ -99,7 +99,7 @@ class SerializerBase : public Base {
     using RunListT         = std::list<Runnable>;
     using RunListIteratorT = std::list<Runnable>::const_iterator;
 protected:
-    SerializerBase(const reflection::v1::TypeMapBase * const _ptype_map):ptype_map_(_ptype_map){}
+    SerializerBase(const reflection::v1::TypeMapBase * const _ptype_map);
 public:
     static constexpr bool is_const_reflector = true;
 
@@ -227,6 +227,7 @@ public: //should be protected
     template <typename T>
     void addBasic(const T& _rb, const char* _name)
     {
+        static_assert(std::is_integral_v<T>, "only integral types are accepted");
         solid_dbg(logger, Info, _name << ' ' << _rb);
         Runnable r{std::addressof(_rb), &store_cross, sizeof(T), static_cast<uint64_t>(_rb), _name};
         if (isRunEmpty()) {
@@ -240,6 +241,7 @@ public: //should be protected
     template <typename T>
     inline void addBasicWithCheck(const T& _rb, const char* _name)
     {
+        static_assert(std::is_integral_v<T>, "only integral types are accepted");
         solid_dbg(logger, Info, _name << ' ' << _rb);
         Runnable r{nullptr, &store_cross_with_check, 0, static_cast<uint64_t>(_rb), _name};
         if (isRunEmpty()) {
@@ -393,7 +395,7 @@ public: //should be protected
     }
 
     template <class F, class Ctx>
-    void addStream(std::istream& _ris, const uint64_t _sz, const uint64_t _limit, F _f, Ctx& /*_rctx*/, const size_t _index, const char* _name)
+    void addStream(std::istream& _ris, const uint64_t _sz, const uint64_t _limit, F &&_f, Ctx& /*_rctx*/, const size_t _index, const char* _name)
     {
         solid_dbg(logger, Info, _name << ' ' << _sz << ' ' << _limit);
 
@@ -949,6 +951,7 @@ private:
         static_assert(!std::is_floating_point_v<T>, "Floating point values not supported");
         
         if constexpr (std::is_base_of_v<std::istream, T>){
+            solid_assert(_meta.progress_function_);
             addStream(const_cast<T&>(_rt), _meta.size_, _meta.max_size_, _meta.progress_function_, _rctx, _id, _name);
         }else if constexpr (std::is_integral_v<T>){
             addBasic(_rt, _name);
@@ -965,8 +968,9 @@ private:
                 type_id_ = static_cast<decltype(type_id_)>(std::get<2>(index_tuple));
             }
             add(type_id_, _rctx, 1, "type_id");
-            ptypemap->reflect(*this, *_rt, _rctx, index_tuple);
-            
+            if(_rt){
+                ptypemap->reflect(*this, *_rt, _rctx, index_tuple);
+            }
         }else if constexpr (std::is_same_v<T, std::string>){
             addBasic(_rt, _meta.max_size_, _name);
         }else if constexpr (std::is_same_v<T, std::vector<char>>){

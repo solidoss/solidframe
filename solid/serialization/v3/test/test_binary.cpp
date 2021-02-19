@@ -179,6 +179,8 @@ public:
                 return false;
             }
         }
+#if 0
+        //blobs not yet supported
         solid_assert(blob_sz == _rt.blob_sz);
         solid_assert(memcmp(blob, _rt.blob, blob_sz) == 0);
         solid_assert(blob32_sz == _rt.blob32_sz);
@@ -195,7 +197,7 @@ public:
             solid::serialization::binary::load(blob64, v);
             solid_assert(v == a.b);
         }
-
+#endif
         return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d && s1 == s2 && m == _rt.m && s == _rt.s && um == _rt.um && us == _rt.us && vb == _rt.vb && bs == _rt.bs && vc == _rt.vc;
     }
 
@@ -227,7 +229,9 @@ public:
                         solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
                     };
                     
-                    _rs.add(_rthis.oss, _rctx, 20, "stream", [&progress_lambda](auto _rmeta){_rmeta.progressFunction(progress_lambda).maxSize(1024*128);});
+                    _rs.add(_rthis.oss, _rctx, 20, "stream", [progress_lambda](auto &_rmeta){
+                        _rmeta.progressFunction(progress_lambda).maxSize(1024*128);
+                    });
                     
                 }, _rctx);
         }else{
@@ -236,7 +240,7 @@ public:
                     auto progress_lambda = [/*&_rctx*/](std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                         //NOTE: here you can use context.anyTuple for actual implementation
                     };
-                    _rs.add(*pifs, _rctx, 20, "stream", [&progress_lambda](auto _rmeta){_rmeta.progressFunction(progress_lambda).maxSize(1024*128);});
+                    _rs.add(*pifs, _rctx, 20, "stream", [progress_lambda](auto &_rmeta){_rmeta.progressFunction(progress_lambda).maxSize(1024*128);});
                 }, _rctx
             );
         }
@@ -250,7 +254,13 @@ public:
         _rs.add(_rthis.bs, _rctx, 11, "bs");
         _rs.add(_rthis.vc, _rctx, 12, "vc");
         _rs.add(_rthis.a1, _rctx, 13, "a1");
-        _rs.add(_rthis.a2, _rctx, 14, "a2");
+        
+        _rs.add(_rthis.a2_sz, _rctx, 14, "a2_sz");
+        
+        _rs.add([&_rthis](S &_rs, Context &_rctx){
+                _rs.add(_rthis.a2, _rctx, 15, "a2", [&_rthis](auto &_rmeta){_rmeta.size(_rthis.a2_sz);});
+        }, _rctx);
+        
         
         //_rs.add(blob, blob_sz, BlobCapacity, _rctx, "blob");
         //_rs.add(blob32, blob32_sz, sizeof(uint32_t), _rctx, "blob32");

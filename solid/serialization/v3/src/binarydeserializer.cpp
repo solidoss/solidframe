@@ -18,6 +18,16 @@ namespace v3 {
 namespace binary {
 
 //== Deserializer  ==============================================================
+
+DeserializerBase::DeserializerBase(const reflection::v1::TypeMapBase * const _ptype_map)
+    : ptype_map_(_ptype_map)
+    , pbeg_(nullptr)
+    , pend_(nullptr)
+    , pcrt_(nullptr)
+    , sentinel_(run_lst_.cend())
+{
+}
+    
 std::istream& DeserializerBase::run(std::istream& _ris, void* /*_pctx*/)
 {
     const size_t    buf_cap = 8 * 1024;

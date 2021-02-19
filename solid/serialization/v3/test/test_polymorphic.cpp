@@ -155,7 +155,7 @@ int test_polymorphic(int /*argc*/, char* /*argv*/[])
             _rmap.template registerType<OrKey, Key>(0, 2, "OrKey");
             _rmap.template registerType<OrVecKey, Key>(0, 3, "OrVec");
             _rmap.template registerType<IntKey, Key>(0, 4, "IntKey");
-            
+            _rmap.template registerType<StringKey, Key>(0, 5, "StringKey");
         }
     };
     

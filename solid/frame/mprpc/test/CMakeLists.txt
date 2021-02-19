@@ -56,6 +56,7 @@ if(OPENSSL_FOUND)
 
     set( mprpcClientServerTestSuite
         test_clientserver_basic.cpp
+        test_clientserver_basic_v2.cpp
         test_clientserver_basic_versioning.cpp
         test_clientserver_versioning.cpp
         test_clientserver_sendrequest.cpp
@@ -90,6 +91,8 @@ if(OPENSSL_FOUND)
         ${SYSTEM_BASIC_LIBRARIES}
     )
 
+    add_test(NAME TestClientServerBasic8Old             COMMAND  test_mprpc_clientserver test_clientserver_basic_v2 8)
+    
     add_test(NAME TestClientServerBasic1                COMMAND  test_mprpc_clientserver test_clientserver_basic 1)
     add_test(NAME TestClientServerBasic2                COMMAND  test_mprpc_clientserver test_clientserver_basic 2)
     add_test(NAME TestClientServerBasic4                COMMAND  test_mprpc_clientserver test_clientserver_basic 4)
