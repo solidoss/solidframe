@@ -146,8 +146,8 @@ int test_polymorphic(int /*argc*/, char* /*argv*/[])
     solid::log_start(std::cerr, {".*:EWX"});
     
     using ContextT = solid::EmptyType;
-    using SerializerT = serialization::v3::binary::Serializer<reflection::metadata::Variant, decltype(reflection::metadata::factory), ContextT, uint8_t>;
-    using DeserializerT = serialization::v3::binary::Deserializer<reflection::metadata::Variant, decltype(reflection::metadata::factory), ContextT, uint8_t>;
+    using SerializerT = serialization::v3::binary::Serializer<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT, uint8_t>;
+    using DeserializerT = serialization::v3::binary::Deserializer<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT, uint8_t>;
     
     const reflection::TypeMap<SerializerT, DeserializerT> key_type_map{
         [](auto &_rmap){

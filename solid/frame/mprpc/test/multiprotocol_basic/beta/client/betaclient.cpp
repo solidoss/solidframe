@@ -81,24 +81,6 @@ void complete_message_third(
     }
 }
 
-struct MessageSetup {
-
-    void operator()(ProtocolT& _rprotocol, solid::TypeToType<beta_protocol::FirstMessage> _rt2t, const TypeIdT& _rtid)
-    {
-        _rprotocol.registerMessage<beta_protocol::FirstMessage>(complete_message_first, _rtid);
-    }
-
-    void operator()(ProtocolT& _rprotocol, solid::TypeToType<beta_protocol::SecondMessage> _rt2t, const TypeIdT& _rtid)
-    {
-        _rprotocol.registerMessage<beta_protocol::SecondMessage>(complete_message_second, _rtid);
-    }
-
-    void operator()(ProtocolT& _rprotocol, solid::TypeToType<beta_protocol::ThirdMessage> _rt2t, const TypeIdT& _rtid)
-    {
-        _rprotocol.registerMessage<beta_protocol::ThirdMessage>(complete_message_third, _rtid);
-    }
-};
-
 std::string make_string(const size_t _sz)
 {
     std::string         str;
@@ -120,11 +102,24 @@ ErrorConditionT start(
     pctx = &_rctx;
 
     if (!mprpcclient_ptr) { //mprpc client initialization
-        auto                        proto = ProtocolT::create();
+        auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, TypeIdT>(
+            reflection::v1::metadata::factory,
+            [](auto &_rmap){
+                auto lambda = [&](const TypeIdT _id, const std::string_view _name, auto const &_rtype){
+                    using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
+                    if constexpr (std::is_same_v<TypeT, beta_protocol::FirstMessage>){
+                         _rmap.template registerMessage<TypeT>(_id, _name, complete_message_first);
+                    }else if constexpr (std::is_same_v<TypeT, beta_protocol::SecondMessage>){
+                         _rmap.template registerMessage<TypeT>(_id, _name, complete_message_second);
+                    }else if constexpr (std::is_same_v<TypeT, beta_protocol::ThirdMessage>){
+                         _rmap.template registerMessage<TypeT>(_id, _name, complete_message_third);
+                    }
+                   
+                };
+                beta_protocol::configure_protocol(lambda);
+            }
+        );
         frame::mprpc::Configuration cfg(_rctx.rsched, proto);
-
-        proto->null(TypeIdT(0, 0));
-        beta_protocol::protocol_setup(MessageSetup(), *proto);
 
         cfg.connection_stop_fnc         = &client_connection_stop;
         cfg.client.connection_start_fnc = &client_connection_start;

@@ -2,7 +2,7 @@
 
 #include "solid/frame/mprpc/mprpccompression_snappy.hpp"
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v2.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
 #include "solid/frame/manager.hpp"
@@ -37,7 +37,6 @@ using namespace solid;
 
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
-using ProtocolT      = frame::mprpc::serialization_v2::Protocol<uint8_t>;
 
 namespace {
 LoggerT logger("test");
@@ -63,31 +62,29 @@ struct UploadRequest : frame::mprpc::Message {
     ~UploadRequest() override
     {
     }
-
-    template <class S>
-    void solidSerializeV2(S& _s, frame::mprpc::ConnectionContext& _rctx, const char* _name) const
+    
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        //on serializer side
-        _s.add(name_, _rctx, "name");
-        auto progress_lambda = [](std::istream& _ris, uint64_t _len, const bool _done, frame::mprpc::ConnectionContext& _rctx, const char* _name) {
-            if (_done) {
-                solid_dbg(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
-            }
-        };
-        _s.add(ifs_, 100 * 1024, progress_lambda, _rctx, "file");
+        _rr.add(_rthis.name_, _rctx, 1, "name");
+        if constexpr (!Reflector::is_const_reflector){
+            auto progress_lambda = [](Context &_rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+                //NOTE: here you can use context.anyTuple for actual implementation
+                if (_done) {
+                    solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
+                }
+            };
+            _rr.add(_rthis.oss_, _rctx, 2, "stream", [&progress_lambda](auto _rmeta){_rmeta.progressFunction(progress_lambda);});
+        }else{
+            auto progress_lambda = [](Context &_rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+                //NOTE: here you can use context.anyTuple for actual implementation
+                if (_done) {
+                    solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
+                }
+            };
+            _rr.add(_rthis.ifs_, _rctx, 2, "stream", [&progress_lambda](auto _rmeta){_rmeta.progressFunction(progress_lambda).maxSize(100*1024);});
+        }
     }
-
-    template <class S>
-    void solidSerializeV2(S& _s, frame::mprpc::ConnectionContext& _rctx, const char* _name)
-    {
-        _s.add(name_, _rctx, "name");
-        auto progress_lambda = [](std::ostream& _ros, uint64_t _len, const bool _done, frame::mprpc::ConnectionContext& _rctx, const char* _name) {
-            if (_done) {
-                solid_dbg(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
-            }
-        };
-        _s.add(oss_, progress_lambda, _rctx, _name);
-    }
+    
 };
 
 struct UploadResponse : frame::mprpc::Message {
@@ -115,9 +112,9 @@ struct UploadResponse : frame::mprpc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, /*_name*/)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.error_, _rctx, "error");
+        _rr.add(_rthis.error_, _rctx, 1, "error");
     }
 };
 
@@ -235,12 +232,14 @@ int test_clientserver_upload_single(int argc, char* argv[])
         std::string server_port;
 
         { //mprpc back_server initialization
-            auto                        proto = ProtocolT::create();
+            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto &_rmap){
+                    _rmap.template registerMessage<UploadRequest>(1, "UploadRequest", on_server_request);
+                    _rmap.template registerMessage<UploadResponse>(2, "UploadResponse", on_server_response);
+                }
+            );
             frame::mprpc::Configuration cfg(sch_server, proto);
-
-            proto->null(0);
-            proto->registerMessage<UploadRequest>(on_server_request, 1);
-            proto->registerMessage<UploadResponse>(on_server_response, 2);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
@@ -276,12 +275,14 @@ int test_clientserver_upload_single(int argc, char* argv[])
         }
 
         { //mprpc front_client initialization
-            auto                        proto = ProtocolT::create();
+            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto &_rmap){
+                    _rmap.template registerMessage<UploadRequest>(1, "UploadRequest", on_client_request);
+                    _rmap.template registerMessage<UploadResponse>(2, "UploadResponse", on_client_response);
+                }
+            );
             frame::mprpc::Configuration cfg(sch_client, proto);
-
-            proto->null(0);
-            proto->registerMessage<UploadRequest>(on_client_request, 1);
-            proto->registerMessage<UploadResponse>(on_client_response, 2);
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 

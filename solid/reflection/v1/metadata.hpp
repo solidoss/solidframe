@@ -157,8 +157,9 @@ struct Container{
     }
 };
 
+template <class Context>
 struct IStream{
-    using ProgressFunctionT = std::function<void(std::istream&, uint64_t, const bool, const size_t, const char*)>;//std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name
+    using ProgressFunctionT = std::function<void(Context &, std::istream&, uint64_t, const bool, const size_t, const char*)>;//std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name
     uint64_t max_size_ = std::numeric_limits<uint64_t>::max();
     uint64_t size_ = InvalidSize();
     ProgressFunctionT progress_function_;
@@ -180,8 +181,9 @@ struct IStream{
     }
 };
 
+template <class Context>
 struct OStream{
-    using ProgressFunctionT = std::function<void(std::ostream&, uint64_t, const bool, const size_t, const char*)>;//std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name
+    using ProgressFunctionT = std::function<void(Context &, std::ostream&, uint64_t, const bool, const size_t, const char*)>;//std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name
     uint64_t max_size_ = std::numeric_limits<uint64_t>::max();
     ProgressFunctionT progress_function_;
     
@@ -197,14 +199,15 @@ struct OStream{
     }
 };
 
+template <class Context>
 struct Variant{
     using VariantT = std::variant<
     Generic, SignedInteger,
     UnsignedInteger, String,
     Container, Enum,
     Pointer,
-    IStream,
-    OStream,
+    IStream<Context>,
+    OStream<Context>,
     Array
     >;
     VariantT var_;
@@ -243,17 +246,17 @@ struct Variant{
         return std::get_if<Pointer>(&var_);
     }
     const auto* istream()const{
-        return std::get_if<IStream>(&var_);
+        return std::get_if<IStream<Context>>(&var_);
     }
     const auto* ostream()const{
-        return std::get_if<OStream>(&var_);
+        return std::get_if<OStream<Context>>(&var_);
     }
     const auto* array()const{
         return std::get_if<Array>(&var_);
     }
 };
 
-inline constexpr auto    factory = [](const auto &_rt, const TypeMapBase *_ptype_map) -> auto{
+inline constexpr auto    factory = [](const auto &_rt, auto &_rctx, const TypeMapBase *_ptype_map) -> auto{
     using value_t = std::decay_t<decltype(_rt)>;
     if constexpr (std::is_enum_v<value_t>){
         return Enum{};
@@ -272,9 +275,9 @@ inline constexpr auto    factory = [](const auto &_rt, const TypeMapBase *_ptype
     }else if constexpr (solid::is_bitset_v<value_t>){
         return Generic{};
     }else if constexpr (std::is_base_of_v<std::istream, value_t>){
-        return IStream{};
+        return IStream<std::decay_t<decltype(_rctx)>>{};
     }else if constexpr (std::is_base_of_v<std::ostream, value_t>){
-        return OStream{};
+        return OStream<std::decay_t<decltype(_rctx)>>{};
     }else{
         return Generic{};
     }

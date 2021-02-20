@@ -395,25 +395,25 @@ public: //should be protected
     }
 
     template <class F, class Ctx>
-    void addStream(std::istream& _ris, const uint64_t _sz, const uint64_t _limit, F &&_f, Ctx& /*_rctx*/, const size_t _index, const char* _name)
+    void addStream(std::istream& _ris, const uint64_t _sz, const uint64_t _limit, F &&_f, Ctx& _rctx, const size_t _index, const char* _name)
     {
         solid_dbg(logger, Info, _name << ' ' << _sz << ' ' << _limit);
 
         auto lambda = [_f = std::move(_f), _limit, _index](SerializerBase& _rs, Runnable& _rr, void* _pctx) {
             std::istream& ris  = *const_cast<std::istream*>(static_cast<const std::istream*>(_rr.ptr_));
-            //Ctx&          rctx = *static_cast<Ctx*>(_pctx);
+            Ctx&          rctx = *static_cast<Ctx*>(_pctx);
             if (_rr.data_ > _limit) {
                 _rs.baseError(error_limit_stream);
                 return ReturnE::Done;
             }
-            _f(ris, _rr.data_, _rr.size_ == 0, _index, _rr.name_);
+            _f(rctx, ris, _rr.data_, _rr.size_ == 0, _index, _rr.name_);
             return ReturnE::Done;
         };
 
         Runnable r{&_ris, &store_stream, _sz, 0, lambda, _name};
 
         if (isRunEmpty()) {
-            if (store_stream(*this, r, nullptr) == ReturnE::Done) {
+            if (store_stream(*this, r, &_rctx) == ReturnE::Done) {
                 return;
             }
         }
@@ -761,7 +761,7 @@ public:
     
     template <typename T, typename F>
     auto& add(const T &_rt, Context &_rctx, const size_t _id, const char *const _name, F _f){
-        auto meta = rmetadata_factory_(_rt, this->ptype_map_);
+        auto meta = rmetadata_factory_(_rt, _rctx, this->ptype_map_);
         _f(meta);
         
         addDispatch(meta, _rt, _rctx, _id, _name);
@@ -770,7 +770,7 @@ public:
 
     template <typename T>
     auto& add(const T &_rt, Context &_rctx, const size_t _id, const char * const _name){
-        auto meta = rmetadata_factory_(_rt, this->ptype_map_);
+        auto meta = rmetadata_factory_(_rt, _rctx, this->ptype_map_);
         addDispatch(meta, _rt, _rctx, _id, _name);
         return *this;
     }

@@ -207,7 +207,7 @@ public:
         _rs
             .add(_rthis.b, _rctx, 2, "b")
             .add(
-                [&_rthis](S& _rs, Context& _rctx) {
+                [&_rthis](Reflector& _rs, Context& _rctx) {
                     if (_rthis.b) {
                         _rs.add(_rthis.v, _rctx, 3, "v");
                     } else {
@@ -221,10 +221,10 @@ public:
         IFStreamPtrT pifs(new ifstream);
         pifs->open(_rthis.p);
         
-        if constexpr (!S::is_const_reflector){
+        if constexpr (!Reflector::is_const_reflector){
             _rs.add(
-                [&_rthis](S& _rs, Context& _rctx) {
-                    auto progress_lambda = [/*&_rctx*/](std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+                [&_rthis](Reflector& _rs, Context& _rctx) {
+                    auto progress_lambda = [](Context &_rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                         //NOTE: here you can use context.anyTuple for actual implementation
                         solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
                     };
@@ -236,8 +236,8 @@ public:
                 }, _rctx);
         }else{
             _rs.add(
-                [pifs = std::move(pifs)](S& _rs, Context& _rctx) mutable {
-                    auto progress_lambda = [/*&_rctx*/](std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+                [pifs = std::move(pifs)](Reflector& _rs, Context& _rctx) mutable {
+                    auto progress_lambda = [](Context &_rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                         //NOTE: here you can use context.anyTuple for actual implementation
                     };
                     _rs.add(*pifs, _rctx, 20, "stream", [progress_lambda](auto &_rmeta){_rmeta.progressFunction(progress_lambda).maxSize(1024*128);});
@@ -257,7 +257,7 @@ public:
         
         _rs.add(_rthis.a2_sz, _rctx, 14, "a2_sz");
         
-        _rs.add([&_rthis](S &_rs, Context &_rctx){
+        _rs.add([&_rthis](Reflector &_rs, Context &_rctx){
                 _rs.add(_rthis.a2, _rctx, 15, "a2", [&_rthis](auto &_rmeta){_rmeta.size(_rthis.a2_sz);});
         }, _rctx);
         
@@ -320,8 +320,8 @@ int test_binary(int argc, char* argv[])
     }
 
     using ContextT = Context;
-    using SerializerT = serialization::v3::binary::Serializer<reflection::metadata::Variant, decltype(reflection::metadata::factory), ContextT, uint8_t>;
-    using DeserializerT = serialization::v3::binary::Deserializer<reflection::metadata::Variant, decltype(reflection::metadata::factory), ContextT, uint8_t>;
+    using SerializerT = serialization::v3::binary::Serializer<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT, uint8_t>;
+    using DeserializerT = serialization::v3::binary::Deserializer<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT, uint8_t>;
     
     const reflection::TypeMap<SerializerT, DeserializerT> key_type_map{
         [](auto &_rmap){

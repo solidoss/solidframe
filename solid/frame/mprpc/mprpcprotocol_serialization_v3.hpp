@@ -315,7 +315,7 @@ protected:
     Protocol() {}
 };
 
-template <class MetadataVariant, class TypeId, class MetadataFactory, class InitFunction>
+template <template <class> class MetadataVariant, class TypeId, class MetadataFactory, class InitFunction>
 auto create_protocol(MetadataFactory &&_metadata_factory, InitFunction _init_fnc){
     if constexpr (is_pair<TypeId>::value){
         static_assert(is_pair<TypeId>::value && std::is_integral_v<typename TypeId::first_type> && !std::is_same_v<typename TypeId::first_type, bool>
@@ -326,7 +326,7 @@ auto create_protocol(MetadataFactory &&_metadata_factory, InitFunction _init_fnc
         static_assert(std::is_integral_v<TypeId> && !std::is_same_v<TypeId, bool>, "TypeId can only be either integral (but not bool) or pair of <integral (but not bool)>");
     }
     
-    using ProtocolT = Protocol<MetadataVariant, MetadataFactory, TypeId>;
+    using ProtocolT = Protocol<MetadataVariant<ConnectionContext>, MetadataFactory, TypeId>;
     return std::make_shared<ProtocolT>(_metadata_factory, _init_fnc);
 }
 

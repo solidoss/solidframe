@@ -42,7 +42,7 @@ if(OPENSSL_FOUND)
         solid_frame_mprpc
         solid_frame_aio
         solid_frame
-        solid_serialization_v2
+        solid_serialization_v3
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
@@ -56,8 +56,6 @@ if(OPENSSL_FOUND)
 
     set( mprpcClientServerTestSuite
         test_clientserver_basic.cpp
-        test_clientserver_basic_v2.cpp
-        test_clientserver_basic_versioning.cpp
         test_clientserver_versioning.cpp
         test_clientserver_sendrequest.cpp
         test_clientserver_cancel_server.cpp
@@ -91,32 +89,28 @@ if(OPENSSL_FOUND)
         ${SYSTEM_BASIC_LIBRARIES}
     )
 
-    add_test(NAME TestClientServerBasic8Old             COMMAND  test_mprpc_clientserver test_clientserver_basic_v2 8)
+    add_test(NAME TestClientServerBasic_1                COMMAND  test_mprpc_clientserver test_clientserver_basic 1)
+    add_test(NAME TestClientServerBasic_2                COMMAND  test_mprpc_clientserver test_clientserver_basic 2)
+    add_test(NAME TestClientServerBasic_4                COMMAND  test_mprpc_clientserver test_clientserver_basic 4)
+    add_test(NAME TestClientServerBasic_8                COMMAND  test_mprpc_clientserver test_clientserver_basic 8)
     
-    add_test(NAME TestClientServerBasic1                COMMAND  test_mprpc_clientserver test_clientserver_basic 1)
-    add_test(NAME TestClientServerBasic2                COMMAND  test_mprpc_clientserver test_clientserver_basic 2)
-    add_test(NAME TestClientServerBasic4                COMMAND  test_mprpc_clientserver test_clientserver_basic 4)
-    add_test(NAME TestClientServerBasic8                COMMAND  test_mprpc_clientserver test_clientserver_basic 8)
-    
-    add_test(NAME TestClientServerBasicVers8            COMMAND  test_mprpc_clientserver test_clientserver_basic_versioning 8)
-    
+    add_test(NAME TestClientServerBasic_1S               COMMAND  test_mprpc_clientserver test_clientserver_basic 1 s)
+    add_test(NAME TestClientServerBasic_2S               COMMAND  test_mprpc_clientserver test_clientserver_basic 2 s)
+    add_test(NAME TestClientServerBasic_4S               COMMAND  test_mprpc_clientserver test_clientserver_basic 4 s)
+    add_test(NAME TestClientServerBasic_8S               COMMAND  test_mprpc_clientserver test_clientserver_basic 8 s)
+
+    add_test(NAME TestClientServerBasic_1C               COMMAND  test_mprpc_clientserver test_clientserver_basic 1 c)
+    add_test(NAME TestClientServerBasic_2C               COMMAND  test_mprpc_clientserver test_clientserver_basic 2 c)
+    add_test(NAME TestClientServerBasic_4C               COMMAND  test_mprpc_clientserver test_clientserver_basic 4 c)
+    add_test(NAME TestClientServerBasic_8C               COMMAND  test_mprpc_clientserver test_clientserver_basic 8 c)
+
+    add_test(NAME TestClientServerBasic_1B               COMMAND  test_mprpc_clientserver test_clientserver_basic 1 b)
+    add_test(NAME TestClientServerBasic_2B               COMMAND  test_mprpc_clientserver test_clientserver_basic 2 b)
+    add_test(NAME TestClientServerBasic_4B               COMMAND  test_mprpc_clientserver test_clientserver_basic 4 b)
+    add_test(NAME TestClientServerBasic_8B               COMMAND  test_mprpc_clientserver test_clientserver_basic 8 b)
+
     add_test(NAME TestClientServerVersioning            COMMAND  test_mprpc_clientserver test_clientserver_versioning)
-
-    add_test(NAME TestClientServerBasic1S               COMMAND  test_mprpc_clientserver test_clientserver_basic 1 s)
-    add_test(NAME TestClientServerBasic2S               COMMAND  test_mprpc_clientserver test_clientserver_basic 2 s)
-    add_test(NAME TestClientServerBasic4S               COMMAND  test_mprpc_clientserver test_clientserver_basic 4 s)
-    add_test(NAME TestClientServerBasic8S               COMMAND  test_mprpc_clientserver test_clientserver_basic 8 s)
-
-    add_test(NAME TestClientServerBasic1C               COMMAND  test_mprpc_clientserver test_clientserver_basic 1 c)
-    add_test(NAME TestClientServerBasic2C               COMMAND  test_mprpc_clientserver test_clientserver_basic 2 c)
-    add_test(NAME TestClientServerBasic4C               COMMAND  test_mprpc_clientserver test_clientserver_basic 4 c)
-    add_test(NAME TestClientServerBasic8C               COMMAND  test_mprpc_clientserver test_clientserver_basic 8 c)
-
-    add_test(NAME TestClientServerBasic1B               COMMAND  test_mprpc_clientserver test_clientserver_basic 1 b)
-    add_test(NAME TestClientServerBasic2B               COMMAND  test_mprpc_clientserver test_clientserver_basic 2 b)
-    add_test(NAME TestClientServerBasic4B               COMMAND  test_mprpc_clientserver test_clientserver_basic 4 b)
-    add_test(NAME TestClientServerBasic8B               COMMAND  test_mprpc_clientserver test_clientserver_basic 8 b)
-
+    
     add_test(NAME TestClientServerSendRequest           COMMAND  test_mprpc_clientserver test_clientserver_sendrequest)
     add_test(NAME TestClientServerSendRequestS          COMMAND  test_mprpc_clientserver test_clientserver_sendrequest 1 s)
     add_test(NAME TestClientServerCancelServer          COMMAND  test_mprpc_clientserver test_clientserver_cancel_server)
@@ -158,7 +152,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
-        solid_serialization_v2
+        solid_serialization_v3
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
@@ -186,7 +180,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
-        solid_serialization_v2
+        solid_serialization_v3
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
@@ -213,7 +207,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
-        solid_serialization_v2
+        solid_serialization_v3
         solid_utility
         solid_system
         ${SNAPPY_LIB}
@@ -255,7 +249,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
-        solid_serialization_v2
+        solid_serialization_v3
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
@@ -281,7 +275,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
-        solid_serialization_v2
+        solid_serialization_v3
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
@@ -312,7 +306,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
-        solid_serialization_v2
+        solid_serialization_v3
         solid_utility
         solid_system
         ${SNAPPY_LIB}
@@ -343,7 +337,7 @@ if(OPENSSL_FOUND)
         solid_frame_mprpc
         solid_frame_aio
         solid_frame
-        solid_serialization_v2
+        solid_serialization_v3
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
@@ -368,7 +362,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
-        solid_serialization_v2
+        solid_serialization_v3
         solid_utility
         solid_system
         ${SNAPPY_LIB}

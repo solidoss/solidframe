@@ -4,8 +4,6 @@
 
 using namespace solid;
 
-using ProtocolT = frame::mprpc::serialization_v2::Protocol<uint8_t>;
-
 namespace {
 
 struct InitStub {
@@ -63,9 +61,9 @@ struct Message : frame::mprpc::Message {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.str, _rctx, "str").add(_rthis.idx, _rctx, "idx");
+        _rr.add(_rthis.idx, _rctx, 0, "idx").add(_rthis.str, _rctx, 1, "str");
     }
 
     void init()
@@ -169,7 +167,7 @@ void complete_message(
         }
     }
 }
-
+template <class ProtocolT>
 struct Receiver : frame::mprpc::MessageReader::Receiver {
     ProtocolT&                                    rprotocol_;
     frame::mprpc::MessageWriter::RequestIdVectorT reqvec;
@@ -224,6 +222,7 @@ struct Receiver : frame::mprpc::MessageReader::Receiver {
     }
 };
 
+template <class ProtocolT>
 struct Sender : frame::mprpc::MessageWriter::Sender {
     ProtocolT& rprotocol_;
 
@@ -272,7 +271,12 @@ int test_protocol_synchronous(int argc, char* argv[])
 
     frame::mprpc::WriterConfiguration mprpcwriterconfig;
     frame::mprpc::ReaderConfiguration mprpcreaderconfig;
-    auto                              mprpcprotocol = ProtocolT::create();
+    auto                              mprpcprotocol = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+        reflection::v1::metadata::factory,
+        [&](auto &_rmap){
+            _rmap.template registerMessage<Message>(1, "Message", complete_message);
+        }
+    );
     frame::mprpc::MessageReader       mprpcmsgreader;
     frame::mprpc::MessageWriter       mprpcmsgwriter;
 
@@ -285,9 +289,6 @@ int test_protocol_synchronous(int argc, char* argv[])
     ctx.mprpcmsgwriter    = &mprpcmsgwriter;
 
     mprpcmsgwriter.prepare(mprpcwriterconfig);
-
-    mprpcprotocol->null(0);
-    mprpcprotocol->registerMessage<::Message>(complete_message, 1);
 
     const size_t start_count = 10;
 
@@ -310,8 +311,9 @@ int test_protocol_synchronous(int argc, char* argv[])
     }
 
     {
-        Receiver rcvr(mprpcreaderconfig, *mprpcprotocol, mprpcconctx);
-        Sender   sndr(mprpcwriterconfig, *mprpcprotocol, mprpcconctx);
+        using ProtocolT = decltype(mprpcprotocol)::element_type;
+        Receiver<ProtocolT> rcvr(mprpcreaderconfig, *mprpcprotocol, mprpcconctx);
+        Sender<ProtocolT>   sndr(mprpcwriterconfig, *mprpcprotocol, mprpcconctx);
 
         mprpcmsgreader.prepare(mprpcreaderconfig);
 

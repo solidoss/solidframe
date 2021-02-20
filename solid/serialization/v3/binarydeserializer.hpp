@@ -501,9 +501,10 @@ public:
         uint64_t len    = 0;
         auto     lambda = [_f = std::move(_f), len, _limit, _id](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
             std::ostream& ros  = *const_cast<std::ostream*>(static_cast<const std::ostream*>(_rr.ptr_));
+            Ctx&          rctx = *static_cast<Ctx*>(_pctx);
             len += _rr.data_;
 
-            _f(ros, len, _rr.data_ == 0, _id, _rr.name_);
+            _f(rctx, ros, len, _rr.data_ == 0, _id, _rr.name_);
 
             if (len > _limit) {
                 _rd.baseError(error_limit_stream);
@@ -1071,7 +1072,7 @@ public:
     
     template <typename T, typename F>
     auto& add(T &_rt, Context &_rctx, const size_t _id, const char *const _name, F _f){
-        auto meta = rmetadata_factory_(_rt, this->ptype_map_);
+        auto meta = rmetadata_factory_(_rt, _rctx, this->ptype_map_);
         _f(meta);
         
         addDispatch(meta, _rt, _rctx, _id, _name);
@@ -1080,7 +1081,7 @@ public:
 
     template <typename T>
     auto& add(T &_rt, Context &_rctx, const size_t _id, const char * const _name){
-        auto meta = rmetadata_factory_(_rt, this->ptype_map_);
+        auto meta = rmetadata_factory_(_rt, _rctx, this->ptype_map_);
         addDispatch(meta, _rt, _rctx, _id, _name);
         return *this;
     }

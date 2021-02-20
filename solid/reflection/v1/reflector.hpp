@@ -455,7 +455,7 @@ public:
         static_assert(!std::is_invocable_v<T, ThisT &, Context&>, "Parameter should not be invocable");
 
         Node<ThisT, T> node{*this, _rt};
-        auto meta = rmetadata_factory_(_rt, ptype_map_);
+        auto meta = rmetadata_factory_(_rt, _rctx, ptype_map_);
         _f(meta);
         dispatch_function_(node, meta, _id, _name, _rctx);
         return *this;
@@ -466,7 +466,7 @@ public:
         static_assert(!std::is_invocable_v<T, ThisT &, Context&>, "Parameter should not be invocable");
 
         Node<ThisT, T> node{*this, _rt};
-        auto meta = rmetadata_factory_(_rt, ptype_map_);
+        auto meta = rmetadata_factory_(_rt, _rctx, ptype_map_);
         dispatch_function_(node, meta, _id, _name, _rctx);
         return *this;
     }
@@ -517,7 +517,7 @@ public:
         static_assert(!std::is_invocable_v<T, ThisT &, Context&>, "Parameter should not be invocable");
 
         Node<ThisT, const T> node{*this, _rt};
-        auto meta = rmetadata_factory_(_rt, ptype_map_);
+        auto meta = rmetadata_factory_(_rt, _rctx, ptype_map_);
         _f(meta);
         dispatch_function_(node, meta, _id, _name, _rctx);
         return *this;
@@ -528,7 +528,7 @@ public:
         static_assert(!std::is_invocable_v<T, ThisT &, Context&>, "Parameter should not be invocable");
 
         Node<ThisT, const T> node{*this, _rt};
-        auto meta = rmetadata_factory_(_rt, ptype_map_);
+        auto meta = rmetadata_factory_(_rt, _rctx, ptype_map_);
         dispatch_function_(node, meta, _id, _name, _rctx);
         return *this;
     }

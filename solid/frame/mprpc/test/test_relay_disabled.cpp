@@ -12,7 +12,7 @@
 
 #include "solid/frame/mprpc/mprpccompression_snappy.hpp"
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v2.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
 #include <condition_variable>
@@ -30,7 +30,6 @@ using namespace solid;
 
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
-using ProtocolT      = frame::mprpc::serialization_v2::Protocol<uint8_t>;
 
 namespace {
 
@@ -106,9 +105,9 @@ struct Register : frame::mprpc::Message {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.err, _rctx, "err").add(_rthis.str, _rctx, "str");
+        _rr.add(_rthis.err, _rctx, 0, "err").add(_rthis.str, _rctx, 1, "str");
     }
 };
 
@@ -136,10 +135,13 @@ struct Message : frame::mprpc::Message {
         //solid_assert(serialized || this->isBackOnSender());
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
-        if (_s.is_serializer) {
+        using ReflectorT = decay_t<decltype(_rr)>;
+        
+        _rr.add(_rthis.idx, _rctx, 0, "idx").add(_rthis.str, _rctx, 1, "str");
+        
+        if constexpr (ReflectorT::is_const_reflector) {
             _rthis.serialized = true;
         }
     }
@@ -371,11 +373,13 @@ int test_relay_disabled(int argc, char* argv[])
                                     ErrorConditionT const&           _rerror) {
             };
 
-            auto                        proto = ProtocolT::create();
+            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto &_rmap){
+                    _rmap.template registerMessage<Register>(1, "Register", con_register);
+                }
+            );
             frame::mprpc::Configuration cfg(sch_relay, proto);
-
-            proto->null(0);
-            proto->registerMessage<Register>(con_register, 1);
 
             cfg.server.listener_address_str      = "0.0.0.0:0";
             cfg.pool_max_active_connection_count = 2 * max_per_pool_connection_count;
@@ -415,11 +419,13 @@ int test_relay_disabled(int argc, char* argv[])
         pmprpcpeerb = &mprpcpeerb;
 
         { //mprpc peera initialization
-            auto                        proto = ProtocolT::create();
+            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto &_rmap){
+                    _rmap.template registerMessage<Message>(2, "Message", peera_complete_message);
+                }
+            );
             frame::mprpc::Configuration cfg(sch_peera, proto);
-
-            proto->null(0);
-            proto->registerMessage<Message>(peera_complete_message, 2);
 
             cfg.connection_stop_fnc           = &peera_connection_stop;
             cfg.client.connection_start_fnc   = &peera_connection_start;
@@ -450,12 +456,14 @@ int test_relay_disabled(int argc, char* argv[])
         }
 
         { //mprpc peerb initialization
-            auto                        proto = ProtocolT::create();
+            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto &_rmap){
+                    _rmap.template registerMessage<Register>(1, "Register", peerb_complete_register);
+                    _rmap.template registerMessage<Message>(2, "Message", peerb_complete_message);
+                }
+            );
             frame::mprpc::Configuration cfg(sch_peerb, proto);
-
-            proto->null(0);
-            proto->registerMessage<Register>(peerb_complete_register, 1);
-            proto->registerMessage<Message>(peerb_complete_message, 2);
 
             cfg.connection_stop_fnc         = &peerb_connection_stop;
             cfg.client.connection_start_fnc = &peerb_connection_start;

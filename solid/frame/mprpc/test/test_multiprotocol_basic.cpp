@@ -11,7 +11,7 @@
 #include "solid/frame/aio/aiotimer.hpp"
 
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v2.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
 #include <condition_variable>
@@ -93,13 +93,15 @@ int test_multiprotocol_basic(int argc, char* argv[])
         std::string server_port;
 
         { //mprpc server initialization
-            auto                        proto = ProtocolT::create();
+            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, TypeIdT>(
+                reflection::v1::metadata::factory,
+                [](auto &_rmap){
+                    gamma_server::register_messages(_rmap);
+                    beta_server::register_messages(_rmap);
+                    alpha_server::register_messages(_rmap);
+                }
+            );
             frame::mprpc::Configuration cfg(sch_server, proto);
-
-            proto->null(TypeIdT(0, 0));
-            gamma_server::register_messages(*proto);
-            beta_server::register_messages(*proto);
-            alpha_server::register_messages(*proto);
 
             cfg.connection_stop_fnc         = &server_connection_stop;
             cfg.server.connection_start_fnc = &server_connection_start;

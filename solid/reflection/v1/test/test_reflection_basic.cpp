@@ -159,7 +159,7 @@ struct Test{
 
         SOLID_REFLECT_V1(_rr, _rthis, _rctx)
         {
-            _rr.add([&_rthis](S &_rr, C &_rctx){
+            _rr.add([&_rthis](Reflector &_rr, Context &_rctx){
                 _rr.add(_rthis.id_, _rctx, 1, "id");
                 _rr.add(_rthis.name_, _rctx, 2, "name");
                 _rr.add(_rthis.ip_vec_, _rctx, 3, "ip_vec");
@@ -194,12 +194,12 @@ public:
         _rr.add(_rthis.guid_ptr_, _rctx, 6, "guid");
         _rr.add(_rthis.veg_tuple_, _rctx, 7, "veg_tuple");
         if constexpr (!ReflectorT::is_const_reflector){
-            auto progress_lambda = [&_rctx](std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+            auto progress_lambda = [](Context &_rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                 //NOTE: here you can use context.anyTuple for actual implementation
             };
             _rr.add(_rthis.ofs_, _rctx, 8, "stream", [&progress_lambda](auto _rmeta){_rmeta.progressFunction(progress_lambda);});
         }else{
-            auto progress_lambda = [&_rctx](std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+            auto progress_lambda = [](Context &_rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                 //NOTE: here you can use context.anyTuple for actual implementation
             };
             _rr.add(_rthis.ifs_, _rctx, 8, "stream", [&progress_lambda](auto _rmeta){_rmeta.progressFunction(progress_lambda);});
@@ -323,8 +323,8 @@ int test_reflection_basic(int argc, char *argv[])
     //static_assert(reflection::is_reflective<Test>::value, "Test must be reflective");
     //static_assert(!reflection::is_reflective<std::string>::value, "std::string must not be reflective");
     using ContextT = solid::EmptyType;
-    using ReflectorT = reflection::ReflectorT<reflection::metadata::Variant, decltype(reflection::metadata::factory), ContextT>;
-    using ConstReflectorT = reflection::ConstReflectorT<reflection::metadata::Variant, decltype(reflection::metadata::factory), ContextT>;
+    using ReflectorT = reflection::ReflectorT<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT>;
+    using ConstReflectorT = reflection::ConstReflectorT<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT>;
     
     const reflection::TypeMap<ReflectorT, ConstReflectorT> fruit_type_map{
         [](auto &_rmap){
@@ -354,7 +354,7 @@ int test_reflection_basic(int argc, char *argv[])
         OStreamVisitor visitor{cout};
         solid::EmptyType context;
         
-        reflection::reflect<reflection::metadata::Variant>(reflection::metadata::factory, test, std::ref(visitor), all_type_map, context);
+        reflection::reflect<reflection::metadata::Variant<ContextT>>(reflection::metadata::factory, test, std::ref(visitor), all_type_map, context);
         cout<<endl;
     }
     
@@ -364,7 +364,7 @@ int test_reflection_basic(int argc, char *argv[])
         OStreamVisitor visitor{cout};
         solid::EmptyType context;
         
-        reflection::const_reflect<reflection::metadata::Variant>(reflection::metadata::factory, test, std::ref(visitor), all_type_map, context);
+        reflection::const_reflect<reflection::metadata::Variant<ContextT>>(reflection::metadata::factory, test, std::ref(visitor), all_type_map, context);
         cout<<endl;
     }
 

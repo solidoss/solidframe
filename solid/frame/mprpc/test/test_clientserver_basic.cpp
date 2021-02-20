@@ -102,11 +102,11 @@ struct Message : frame::mprpc::Message {
         solid_assert(serialized || this->isBackOnSender());
     }
 
-    SOLID_REFLECT_V1(_s, _rthis, _rctx)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        using ReflectorT = decay_t<decltype(_s)>;
+        using ReflectorT = decay_t<decltype(_rr)>;
         
-        _s.add(_rthis.idx, _rctx, 0, "idx").add(_rthis.str, _rctx, 1, "str");
+        _rr.add(_rthis.idx, _rctx, 0, "idx").add(_rthis.str, _rctx, 1, "str");
         
         if constexpr (ReflectorT::is_const_reflector) {
             _rthis.serialized = true;
