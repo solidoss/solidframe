@@ -188,7 +188,7 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
 {
 
     solid::log_start(std::cerr, {".*:EW", "\\*:VIEW"});
-    int connection_count;
+    int connection_count = 10;
 
     if (argc > 1) {
         connection_count = atoi(argv[1]);

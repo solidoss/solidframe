@@ -77,9 +77,9 @@ const AccountDataDequeT account_dq = {
     {"frog_man", "Frog Man", "man.frog@email.com", "PL", "Warsaw", {13, 6, 2006}},
 };
 
-ipc_request::UserData make_user_data(const AccountData& _rad)
+rpc_request::UserData make_user_data(const AccountData& _rad)
 {
-    ipc_request::UserData ud;
+    rpc_request::UserData ud;
     ud.full_name        = _rad.full_name;
     ud.email            = _rad.email;
     ud.country          = _rad.country;
@@ -93,9 +93,9 @@ ipc_request::UserData make_user_data(const AccountData& _rad)
 } //namespace
 
 //-----------------------------------------------------------------------------
-// ipc_request_server - message handling namespace
+// rpc_request_server - message handling namespace
 //-----------------------------------------------------------------------------
-namespace ipc_request_server {
+namespace rpc_request_server {
 
 template <class M>
 void complete_message(
@@ -104,7 +104,7 @@ void complete_message(
     std::shared_ptr<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror);
 
-using namespace ipc_request;
+using namespace rpc_request;
 
 struct PrepareKeyVisitor : RequestKeyVisitor {
     std::vector<std::regex> regexvec;
@@ -247,10 +247,10 @@ struct AccountDataKeyVisitor : RequestKeyConstVisitor {
 };
 
 template <>
-void complete_message<ipc_request::Request>(
+void complete_message<rpc_request::Request>(
     frame::mprpc::ConnectionContext&       _rctx,
-    std::shared_ptr<ipc_request::Request>& _rsent_msg_ptr,
-    std::shared_ptr<ipc_request::Request>& _rrecv_msg_ptr,
+    std::shared_ptr<rpc_request::Request>& _rsent_msg_ptr,
+    std::shared_ptr<rpc_request::Request>& _rrecv_msg_ptr,
     ErrorConditionT const&                 _rerror)
 {
     solid_check(!_rerror);
@@ -263,7 +263,7 @@ void complete_message<ipc_request::Request>(
     }
     cout << endl;
 
-    auto msgptr = std::make_shared<ipc_request::Response>(*_rrecv_msg_ptr);
+    auto msgptr = std::make_shared<rpc_request::Response>(*_rrecv_msg_ptr);
 
     if (_rrecv_msg_ptr->key) {
         PrepareKeyVisitor prep;
@@ -276,7 +276,7 @@ void complete_message<ipc_request::Request>(
             _rrecv_msg_ptr->key->visit(v);
 
             if (v.retval) {
-                msgptr->user_data_map.insert(ipc_request::Response::UserDataMapT::value_type(ad.userid, make_user_data(ad)));
+                msgptr->user_data_map.insert(rpc_request::Response::UserDataMapT::value_type(ad.userid, make_user_data(ad)));
             }
         }
     }
@@ -285,10 +285,10 @@ void complete_message<ipc_request::Request>(
 }
 
 template <>
-void complete_message<ipc_request::Response>(
+void complete_message<rpc_request::Response>(
     frame::mprpc::ConnectionContext&        _rctx,
-    std::shared_ptr<ipc_request::Response>& _rsent_msg_ptr,
-    std::shared_ptr<ipc_request::Response>& _rrecv_msg_ptr,
+    std::shared_ptr<rpc_request::Response>& _rsent_msg_ptr,
+    std::shared_ptr<rpc_request::Response>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
 {
     solid_check(!_rerror);
@@ -296,58 +296,7 @@ void complete_message<ipc_request::Response>(
     solid_check(_rsent_msg_ptr);
 }
 
-struct MessageSetup {
-
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyAnd> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
-    {
-        _rprotocol.registerType<RequestKeyAnd>(_rtid);
-        _rprotocol.registerCast<RequestKeyAnd, RequestKey>();
-    }
-
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyOr> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
-    {
-        _rprotocol.registerType<RequestKeyOr>(_rtid);
-        _rprotocol.registerCast<RequestKeyOr, RequestKey>();
-    }
-
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyAndList> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
-    {
-        _rprotocol.registerType<RequestKeyAndList>(_rtid);
-        _rprotocol.registerCast<RequestKeyAndList, RequestKey>();
-    }
-
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyOrList> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
-    {
-        _rprotocol.registerType<RequestKeyOrList>(_rtid);
-        _rprotocol.registerCast<RequestKeyOrList, RequestKey>();
-    }
-
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyUserIdRegex> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
-    {
-        _rprotocol.registerType<RequestKeyUserIdRegex>(_rtid);
-        _rprotocol.registerCast<RequestKeyUserIdRegex, RequestKey>();
-    }
-
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyEmailRegex> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
-    {
-        _rprotocol.registerType<RequestKeyEmailRegex>(_rtid);
-        _rprotocol.registerCast<RequestKeyEmailRegex, RequestKey>();
-    }
-
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyYearLess> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
-    {
-        _rprotocol.registerType<RequestKeyYearLess>(_rtid);
-        _rprotocol.registerCast<RequestKeyYearLess, RequestKey>();
-    }
-
-    template <class T>
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
-    {
-        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
-    }
-};
-
-} // namespace ipc_request_server
+} // namespace rpc_request_server
 
 //-----------------------------------------------------------------------------
 
@@ -368,16 +317,28 @@ int main(int argc, char* argv[])
 
         AioSchedulerT          scheduler;
         frame::Manager         manager;
-        frame::mprpc::ServiceT ipcservice(manager);
+        frame::mprpc::ServiceT rpcservice(manager);
         ErrorConditionT        err;
 
         scheduler.start(1);
 
         {
-            auto                        proto = ipc_request::ProtocolT::create();
+            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto &_rmap){
+                    auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const &_rtype){
+                        using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
+                        
+                        if constexpr (std::is_base_of_v<rpc_request::RequestKey, TypeT>){
+                            _rmap.template registerType<TypeT, rpc_request::RequestKey>(_id, _name);
+                        }else{
+                            _rmap.template registerMessage<TypeT>(_id, _name, rpc_request_server::complete_message<TypeT>);
+                        }
+                    };
+                    rpc_request::configure_protocol(lambda);
+                }
+            );
             frame::mprpc::Configuration cfg(scheduler, proto);
-
-            ipc_request::protocol_setup(ipc_request_server::MessageSetup(), *proto);
 
             cfg.server.listener_address_str = p.listener_addr;
             cfg.server.listener_address_str += ':';
@@ -398,11 +359,11 @@ int main(int argc, char* argv[])
 
             frame::mprpc::snappy::setup(cfg);
 
-            ipcservice.start(std::move(cfg));
+            rpcservice.start(std::move(cfg));
 
             {
                 std::ostringstream oss;
-                oss << ipcservice.configuration().server.listenerPort();
+                oss << rpcservice.configuration().server.listenerPort();
                 cout << "server listens on port: " << oss.str() << endl;
             }
         }

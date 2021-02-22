@@ -68,9 +68,9 @@ const AccountDataDequeT account_dq = {
     {"frog_man", "Frog Man", "man.frog@email.com", "PL", "Warsaw", {13, 6, 2006}},
 };
 
-ipc_request::UserData make_user_data(const AccountData& _rad)
+rpc_request::UserData make_user_data(const AccountData& _rad)
 {
-    ipc_request::UserData ud;
+    rpc_request::UserData ud;
     ud.full_name        = _rad.full_name;
     ud.email            = _rad.email;
     ud.country          = _rad.country;
@@ -83,7 +83,7 @@ ipc_request::UserData make_user_data(const AccountData& _rad)
 
 } //namespace
 
-namespace ipc_request_server {
+namespace rpc_request_server {
 
 template <class M>
 void complete_message(
@@ -93,23 +93,23 @@ void complete_message(
     ErrorConditionT const&           _rerror);
 
 template <>
-void complete_message<ipc_request::Request>(
+void complete_message<rpc_request::Request>(
     frame::mprpc::ConnectionContext&       _rctx,
-    std::shared_ptr<ipc_request::Request>& _rsent_msg_ptr,
-    std::shared_ptr<ipc_request::Request>& _rrecv_msg_ptr,
+    std::shared_ptr<rpc_request::Request>& _rsent_msg_ptr,
+    std::shared_ptr<rpc_request::Request>& _rrecv_msg_ptr,
     ErrorConditionT const&                 _rerror)
 {
     solid_check(!_rerror);
     solid_check(_rrecv_msg_ptr);
     solid_check(!_rsent_msg_ptr);
 
-    auto msgptr = std::make_shared<ipc_request::Response>(*_rrecv_msg_ptr);
+    auto msgptr = std::make_shared<rpc_request::Response>(*_rrecv_msg_ptr);
 
     std::regex userid_regex(_rrecv_msg_ptr->userid_regex);
 
     for (const auto& ad : account_dq) {
         if (std::regex_match(ad.userid, userid_regex)) {
-            msgptr->user_data_map.insert(ipc_request::Response::UserDataMapT::value_type(ad.userid, make_user_data(ad)));
+            msgptr->user_data_map.insert(rpc_request::Response::UserDataMapT::value_type(ad.userid, make_user_data(ad)));
         }
     }
 
@@ -117,10 +117,10 @@ void complete_message<ipc_request::Request>(
 }
 
 template <>
-void complete_message<ipc_request::Response>(
+void complete_message<rpc_request::Response>(
     frame::mprpc::ConnectionContext&        _rctx,
-    std::shared_ptr<ipc_request::Response>& _rsent_msg_ptr,
-    std::shared_ptr<ipc_request::Response>& _rrecv_msg_ptr,
+    std::shared_ptr<rpc_request::Response>& _rsent_msg_ptr,
+    std::shared_ptr<rpc_request::Response>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
 {
     solid_check(!_rerror);
@@ -128,15 +128,7 @@ void complete_message<ipc_request::Response>(
     solid_check(_rsent_msg_ptr);
 }
 
-struct MessageSetup {
-    template <class T>
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
-    {
-        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
-    }
-};
-
-} // namespace ipc_request_server
+} // namespace rpc_request_server
 
 //-----------------------------------------------------------------------------
 
@@ -157,16 +149,23 @@ int main(int argc, char* argv[])
 
         AioSchedulerT          scheduler;
         frame::Manager         manager;
-        frame::mprpc::ServiceT ipcservice(manager);
+        frame::mprpc::ServiceT rpcservice(manager);
         ErrorConditionT        err;
 
         scheduler.start(1);
 
         {
-            auto                        proto = ipc_request::ProtocolT::create();
+            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto &_rmap){
+                    auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const &_rtype){
+                        using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
+                        _rmap.template registerMessage<TypeT>(_id, _name, rpc_request_server::complete_message<TypeT>);
+                    };
+                    rpc_request::configure_protocol(lambda);
+                }
+            );
             frame::mprpc::Configuration cfg(scheduler, proto);
-
-            ipc_request::protocol_setup(ipc_request_server::MessageSetup(), *proto);
 
             cfg.server.listener_address_str = p.listener_addr;
             cfg.server.listener_address_str += ':';
@@ -174,11 +173,11 @@ int main(int argc, char* argv[])
 
             cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 
-            ipcservice.start(std::move(cfg));
+            rpcservice.start(std::move(cfg));
 
             {
                 std::ostringstream oss;
-                oss << ipcservice.configuration().server.listenerPort();
+                oss << rpcservice.configuration().server.listenerPort();
                 cout << "server listens on port: " << oss.str() << endl;
             }
         }

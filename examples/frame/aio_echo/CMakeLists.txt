@@ -4,7 +4,6 @@ if(OPENSSL_FOUND)
     target_link_libraries (example_echo_server
         solid_frame
         solid_frame_aio
-        solid_serialization_v1
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
@@ -39,7 +38,6 @@ if(OPENSSL_FOUND)
         solid_frame
         solid_frame_aio
         solid_frame_aio_openssl
-        solid_serialization_v1
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
@@ -53,7 +51,6 @@ if(OPENSSL_FOUND)
         solid_frame
         solid_frame_aio
         solid_frame_aio_openssl
-        solid_serialization_v1
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}

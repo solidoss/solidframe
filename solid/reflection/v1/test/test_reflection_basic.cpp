@@ -314,17 +314,13 @@ struct OStreamVisitor{
 
 }//namespace
 
-struct Context{
-
-};
-
 int test_reflection_basic(int argc, char *argv[])
 {
     //static_assert(reflection::is_reflective<Test>::value, "Test must be reflective");
     //static_assert(!reflection::is_reflective<std::string>::value, "std::string must not be reflective");
     using ContextT = solid::EmptyType;
-    using ReflectorT = reflection::ReflectorT<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT>;
-    using ConstReflectorT = reflection::ConstReflectorT<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT>;
+    using ReflectorT = reflection::ReflectorT<reflection::metadata::Variant<ContextT>, std::decay_t<decltype(reflection::metadata::factory)>, ContextT>;
+    using ConstReflectorT = reflection::ConstReflectorT<reflection::metadata::Variant<ContextT>, std::decay_t<decltype(reflection::metadata::factory)>, ContextT>;
     
     const reflection::TypeMap<ReflectorT, ConstReflectorT> fruit_type_map{
         [](auto &_rmap){

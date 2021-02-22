@@ -187,14 +187,15 @@ class Protocol : public mprpc::Protocol{
         
         template <class T>
         size_t registerType(const TypeId _id, const std::string_view _name){
-            return 0;
+            return rmap_.template registerType<T>(extract_category(_id), extract_id(_id), _name);
         }
         template <class T, class B>
         size_t registerType(const TypeId _id, const std::string_view _name){
-            return 0;
+            return rmap_.template registerType<T, B>(extract_category(_id), extract_id(_id), _name);
         }
         template <class T, class B>
         void registerCast(){
+            return rmap_.template registerCast<T, B>();
         }
         template <class T, typename CompleteFnc>
         size_t registerMessage(const TypeId _id, const std::string_view _name, CompleteFnc _complete_fnc){
@@ -216,7 +217,8 @@ class Protocol : public mprpc::Protocol{
             if(index >= rproto_.type_data_vec_.size()){
                 rproto_.type_data_vec_.resize(index + 1);
             }
-            rproto_.type_data_vec_[index].complete_fnc_ = CompleteHandlerT(std::move(_complete_fnc));
+            auto complete_handler = CompleteHandlerT(std::move(_complete_fnc));
+            rproto_.type_data_vec_[index].complete_fnc_ = std::move(complete_handler);
             return index;
         }
     };

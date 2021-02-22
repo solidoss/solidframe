@@ -18,7 +18,7 @@ set(Headers
     mprpcerror.hpp
     mprpcmessage.hpp
     mprpcprotocol.hpp
-    mprpcprotocol_serialization_v1.hpp
+    mprpcprotocol_serialization_v3.hpp
     mprpcprotocol_serialization_v2.hpp
     mprpcservice.hpp
     mprpcsocketstub.hpp

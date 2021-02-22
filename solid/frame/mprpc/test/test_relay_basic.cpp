@@ -406,7 +406,7 @@ int test_relay_basic(int argc, char* argv[])
                                     frame::mprpc::ConnectionContext& _rctx,
                                     std::shared_ptr<Register>&       _rsent_msg_ptr,
                                     std::shared_ptr<Register>&       _rrecv_msg_ptr,
-                                    ErrorConditionT const&           _rerror) {
+                                    ErrorConditionT const&           _rerror) mutable{
                 solid_check(!_rerror);
                 solid_check(*test_ptr == "test", "");
 

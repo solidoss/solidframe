@@ -1,6 +1,6 @@
 #pragma once
 
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v2.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
 #include "solid/system/cassert.hpp"
 #include <deque>
 #include <string>
@@ -9,105 +9,120 @@
 namespace versioning {
 namespace v3 {
 
-struct InitRequest : solid::frame::mprpc::Message {
-    static constexpr uint32_t version = 1;
-
+struct Version{
+    static constexpr uint32_t version = 2;
+    static constexpr uint32_t init_request = 1;
+    static constexpr uint32_t init_response = 1;
+    static constexpr uint32_t request = 3;
+    static constexpr uint32_t response = 2;
+    static constexpr uint32_t response2 = 1;
+        
     uint32_t version_ = version;
+    uint32_t init_request_ = init_request;
+    uint32_t init_response_ = init_response;
+    uint32_t request_ = request;
+    uint32_t response_ = response;
+    uint32_t response2_ = response2;
+    
+    void clear(){
+    }
+    
+    bool operator<=(const Version& _rthat)const{
+        return version_ <= _rthat.version_ &&
+            init_request_ <= _rthat.init_request_ &&
+            init_response_ <= _rthat.init_response_ &&
+            request_ <= _rthat.request_ &&
+            response_ <= _rthat.response_;
+    }
+    
+    SOLID_REFLECT_V1(_s, _rthis, _rctx){
+        _s.add(_rthis.version_, _rctx, 0, "version");
+        _s.add([&_rthis](Reflector& _s, Context& _rctx) {
+            if constexpr (!Reflector::is_const_reflector){
+                if(_rthis.version > Version::version){
+                    _rthis.clear();
+                    return;
+                }
+            }
+            _s.add(_rthis.init_request_, _rctx, 3, "init_request");
+            _s.add(_rthis.init_response_, _rctx, 4, "init_request");
+            _s.add(_rthis.request_, _rctx, 5, "request");
+            _s.add(_rthis.response_, _rctx, 6, "response");
+            if(_rthis.version_ == version){
+                _s.add(_rthis.response2_, _rctx, 7, "response2");
+            }
+        },
+            _rctx);
+    }
+    
+};
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+constexpr Version version;
+    
+struct InitRequest : solid::frame::mprpc::Message {
+    Version version_;
+    
+    SOLID_REFLECT_V1(_s, _rthis, _rctx)
     {
-        solid::serialization::addVersion<InitRequest>(_s, _rthis.version_, "version");
-        _rctx.addVersion(_s);
+        _s.add(_rthis.version_, _rctx, 1, "version");
     }
 };
 
 struct InitResponse : solid::frame::mprpc::Message {
-    static constexpr uint32_t version = 1;
-
-    uint32_t    version_ = version;
     uint32_t    error_   = -1;
     std::string message_;
 
     InitResponse() {}
 
     InitResponse(
-        const InitRequest& _rreq, const uint32_t _version = version)
+        const InitRequest& _rreq)
         : solid::frame::mprpc::Message(_rreq)
-        , version_(_version)
         , error_(-1)
     {
     }
-
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    
+    SOLID_REFLECT_V1(_s, _rthis, _rctx)
     {
-        solid::serialization::addVersion<InitResponse>(_s, _rthis.version_, "version");
-        _rctx.addVersion(_s);
-
-        _s.add([&_rthis](S& _s, solid::frame::mprpc::ConnectionContext& _rctx, const char* /*_name*/) {
-            _s.add(_rthis.error_, _rctx, "error").add(_rthis.message_, _rctx, "message");
-        },
-            _rctx, _name);
+        _s.add(_rthis.error_, _rctx, 1, "error").add(_rthis.message_, _rctx, 2, "message");
     }
 };
 
+
 struct Request : solid::frame::mprpc::Message {
-    static constexpr uint32_t version = 3;
-
-    uint32_t version_ = version;
-
     uint32_t    valuei_; //deprecated
     std::string values_;
-
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    
+    SOLID_REFLECT_V1(_s, _rthis, _rctx)
     {
-        solid::serialization::addVersion<Request>(_s, _rthis.version_, "version");
-
-        _s.add([&_rthis](S& _s, solid::frame::mprpc::ConnectionContext& _rctx, const char* /*_name*/) {
-            if (_s.version(_rthis) == 1) {
-            } else if (_s.version(_rthis) == 2) {
-                _s.add(_rthis.valuei_, _rctx, "value");
-            } else if (_s.version(_rthis) == 3) {
-                _s.add(_rthis.values_, _rctx, "value");
-            }
-        },
-            _rctx, _name);
+        if(_rctx.anyTuple().template getIf<Version>()->request_ == 2){
+             _s.add(_rthis.valuei_, _rctx, 1, "value");
+        }else if(_rctx.anyTuple().template getIf<Version>()->request_ == 3){
+            _s.add(_rthis.values_, _rctx, 1, "value");
+        }
     }
 };
 
 struct Response : solid::frame::mprpc::Message {
-    static constexpr uint32_t version = 2;
-
-    uint32_t    version_ = version;
     uint32_t    error_   = -1;
     std::string message_;
 
     Response() {}
 
     Response(
-        const solid::frame::mprpc::Message& _rreq, const uint32_t _version = version)
+        const solid::frame::mprpc::Message& _rreq)
         : solid::frame::mprpc::Message(_rreq)
-        , version_(_version)
     {
     }
-
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_s, _rthis, _rctx)
     {
-        solid::serialization::addVersion<Response>(_s, _rthis.version_, "version");
-
-        _s.add([&_rthis](S& _s, solid::frame::mprpc::ConnectionContext& _rctx, const char* /*_name*/) {
-            _s.add(_rthis.error_, _rctx, "error");
-            if (_rthis.version_ == 2) {
-                _s.add(_rthis.message_, _rctx, "message");
-            }
-        },
-            _rctx, _name);
+        _s.add(_rthis.error_, _rctx, 1, "error");
+        if(_rctx.anyTuple().template getIf<Version>()->response_ == 2){
+             _s.add(_rthis.message_, _rctx, 2, "message");
+        }
     }
 };
 
 struct Response2 : solid::frame::mprpc::Message {
-    static constexpr uint32_t version = 1;
-
-    uint32_t version_ = version;
     uint32_t error_   = -1;
 
     Response2() {}
@@ -118,32 +133,20 @@ struct Response2 : solid::frame::mprpc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_s, _rthis, _rctx)
     {
-        solid::serialization::addVersion<Response2>(_s, _rthis.version_, "version");
-
-        _s.add([&_rthis](S& _s, solid::frame::mprpc::ConnectionContext& _rctx, const char* /*_name*/) {
-            _s.add(_rthis.error_, _rctx, "error");
-        },
-            _rctx, _name);
+        _s.add(_rthis.error_, _rctx, 1, "error");
     }
 };
 
-using ProtocolT = solid::frame::mprpc::serialization_v2::Protocol<uint8_t>;
-
-template <class R>
-inline void protocol_setup(R _r, ProtocolT& _rproto)
+template <class Reg>
+inline void configure_protocol(Reg _rreg)
 {
-    _rproto.version(1, 2);
-
-    _rproto.null(static_cast<ProtocolT::TypeIdT>(0));
-
-    _r(_rproto, solid::TypeToType<InitRequest>(), 1);
-    _r(_rproto, solid::TypeToType<InitResponse>(), 2);
-
-    _r(_rproto, solid::TypeToType<Request>(), 4);
-    _r(_rproto, solid::TypeToType<Response>(), 5);
-    _r(_rproto, solid::TypeToType<Response2>(), 6);
+    _rreg(1, "InitRequest", solid::TypeToType<InitRequest>());
+    _rreg(2, "InitResponse", solid::TypeToType<InitResponse>());
+    _rreg(4, "Request", solid::TypeToType<Request>());
+    _rreg(5, "Response", solid::TypeToType<Response>());
+    _rreg(6, "Response2", solid::TypeToType<Response2>());
 }
 
 } //namespace v3

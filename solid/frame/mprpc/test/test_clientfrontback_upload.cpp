@@ -77,7 +77,7 @@ struct Request : frame::mprpc::Message {
                     solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
                 }
             };
-            _rr.add(_rthis.oss_, _rctx, 2, "stream", [&progress_lambda](auto _rmeta){_rmeta.progressFunction(progress_lambda);});
+            _rr.add(_rthis.oss_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta){_rmeta.progressFunction(progress_lambda);});
         }else{
             auto progress_lambda = [](Context &_rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                 //NOTE: here you can use context.anyTuple for actual implementation
@@ -85,7 +85,7 @@ struct Request : frame::mprpc::Message {
                     solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
                 }
             };
-            _rr.add(_rthis.ifs_, _rctx, 2, "stream", [&progress_lambda](auto _rmeta){_rmeta.progressFunction(progress_lambda).maxSize(100*1024);});
+            _rr.add(_rthis.ifs_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta){_rmeta.progressFunction(progress_lambda).size(100*1024);});
         }
     }
 };
@@ -188,7 +188,7 @@ struct Request : frame::mprpc::Message {
                     solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
                 }
             };
-            _rr.add(_rthis.oss_, _rctx, 2, "stream", [&progress_lambda](auto _rmeta){_rmeta.progressFunction(progress_lambda);});
+            _rr.add(_rthis.oss_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta){_rmeta.progressFunction(progress_lambda);});
         }else{
             auto progress_lambda = [](Context &_rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                 //NOTE: here you can use context.anyTuple for actual implementation
@@ -196,7 +196,7 @@ struct Request : frame::mprpc::Message {
                     solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
                 }
             };
-            _rr.add(_rthis.iss_, _rctx, 2, "stream", [&progress_lambda](auto _rmeta){_rmeta.progressFunction(progress_lambda);});
+            _rr.add(_rthis.iss_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta){_rmeta.progressFunction(progress_lambda);});
         }
     }
 };

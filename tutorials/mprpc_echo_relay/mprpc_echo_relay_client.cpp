@@ -42,10 +42,10 @@ struct Message : solid::frame::mprpc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.name, _rctx, "name");
-        _s.add(_rthis.data, _rctx, "data");
+        _rr.add(_rthis.name, _rctx, 1, "name");
+        _rr.add(_rthis.data, _rctx, 2, "data");
     }
 };
 
@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
     {
         AioSchedulerT          scheduler;
         frame::Manager         manager;
-        frame::mprpc::ServiceT ipcservice(manager);
+        frame::mprpc::ServiceT rpcservice(manager);
         ErrorConditionT        err;
         CallPool<void()>       cwp{WorkPoolConfiguration(), 1};
         frame::aio::Resolver   resolver(cwp);
@@ -120,22 +120,24 @@ int main(int argc, char* argv[])
                 cout << "Connection stopped" << endl;
             };
 
-            auto                        proto = ProtocolT::create();
+            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto &_rmap){
+                    _rmap.template registerMessage<Register>(1, "Register", con_register);
+                    _rmap.template registerMessage<Message>(2, "Message", on_message);
+                }
+            );
             frame::mprpc::Configuration cfg(scheduler, proto);
-
-            proto->null(null_type_id);
-            proto->registerMessage<Register>(con_register, register_type_id);
-            proto->registerMessage<Message>(on_message, TypeIdT{1, 1});
 
             cfg.client.connection_start_fnc = std::move(on_connection_start);
             cfg.connection_stop_fnc         = std::move(on_connection_stop);
 
             cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, p.server_port.c_str());
 
-            ipcservice.start(std::move(cfg));
+            rpcservice.start(std::move(cfg));
         }
 
-        ipcservice.createConnectionPool(p.server_addr.c_str());
+        rpcservice.createConnectionPool(p.server_addr.c_str());
 
         while (true) {
             string line;
@@ -149,7 +151,7 @@ int main(int argc, char* argv[])
                 size_t offset = line.find(' ');
                 if (offset != string::npos) {
                     recipient = p.server_addr + '/' + line.substr(0, offset);
-                    ipcservice.sendMessage(recipient.c_str(), make_shared<Message>(p.name, line.substr(offset + 1)), {frame::mprpc::MessageFlagsE::AwaitResponse});
+                    rpcservice.sendMessage(recipient.c_str(), make_shared<Message>(p.name, line.substr(offset + 1)), {frame::mprpc::MessageFlagsE::AwaitResponse});
                 } else {
                     cout << "No recipient name specified. E.g:" << endl
                          << "alpha Some text to send" << endl;

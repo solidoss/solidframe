@@ -1,21 +1,3 @@
-#add_executable (example_ipc_echo_stress ipcechostress.cpp)
-
-# target_link_libraries (example_ipc_echo_stress
-#   solid_frame_ipc
-#   solid_frame_aio
-#   solid_frame_aio_openssl
-#   solid_frame_core
-#   solid_serialization_v1
-#   solid_utility
-#   solid_system
-#   ${BOOST_PROGRAM_OPTIONS_LIB}
-#   ${BOOST_SYSTEM_LIB}
-#   ${SYSTEM_BASIC_LIBRARIES}
-# )
-
-#if(SOLID_ON_WINDOWS)
-#    set(SUFFIX "${CMAKE_BUILD_TYPE}")
-#endif()
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/echo-ca-cert.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-server-key.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-server-cert.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-client-key.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-client-cert.pem
@@ -46,7 +28,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
-        solid_serialization_v2
+        solid_serialization_v3
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}

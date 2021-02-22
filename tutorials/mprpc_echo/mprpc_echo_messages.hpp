@@ -2,10 +2,10 @@
 #pragma once
 #include "solid/frame/mprpc/mprpccontext.hpp"
 #include "solid/frame/mprpc/mprpcmessage.hpp"
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v2.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
 #include "solid/system/common.hpp"
 
-namespace ipc_echo {
+namespace rpc_echo {
 
 struct Message : solid::frame::mprpc::Message {
     std::string str;
@@ -17,38 +17,18 @@ struct Message : solid::frame::mprpc::Message {
     {
     }
 
-#if 0
-    template <class S>
-    void solidSerializeV2(S& _s, solid::frame::mprpc::ConnectionContext& _rctx, const char* _name) const
+
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        solidSerializeV2(_s, *this, _rctx, _name);
+        _rr.add(_rthis.str, _rctx, 1, "str");
     }
-    template <class S>
-    void solidSerializeV2(S& _s, solid::frame::mprpc::ConnectionContext& _rctx, const char* _name)
-    {
-        solidSerializeV2(_s, *this, _rctx, _name);
-    }
-    
-    template <class S, class T>
-    static void solidSerializeV2(S &_s, T &_rt, solid::frame::mprpc::ConnectionContext& _rctx, const char* _name){
-        _s.add(_rt.str, _rctx, "str");
-    }
-#else
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
-    {
-        _s.add(_rthis.str, _rctx, "str");
-    }
-#endif
 };
 
-using ProtocolT = solid::frame::mprpc::serialization_v2::Protocol<uint8_t>;
-
-template <class R>
-inline void protocol_setup(R _r, ProtocolT& _rproto)
+template <class Reg>
+inline void configure_protocol(Reg _rreg)
 {
-    _rproto.null(static_cast<ProtocolT::TypeIdT>(0));
-
-    _r(_rproto, solid::TypeToType<Message>(), 1);
+    _rreg(1, "Message", solid::TypeToType<Message>());
 }
 
-} //namespace ipc_echo
+
+} //namespace rpc_echo

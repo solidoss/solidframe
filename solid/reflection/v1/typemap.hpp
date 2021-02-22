@@ -95,6 +95,7 @@ protected:
     
     template <class Reflector>
     size_t reflectorIndex()const{
+        solid_assert(reflector_index_v<Reflector> < reflector_index_vec_.size());
         return reflector_index_vec_[reflector_index_v<Reflector>];
     }
 protected:
@@ -116,7 +117,7 @@ public:
 
     template <typename Reflector, class T>
     void reflect(Reflector &_rreflector, T &_rvalue, typename Reflector::ContextT &_rctx)const{
-        const size_t reflector_index = reflectorIndex<Reflector>();
+        const auto reflector_index = reflectorIndex<Reflector>();
         solid_assert(reflector_index != solid::InvalidIndex());
         
         const auto it = type_index_map_.find(std::type_index(typeid(_rvalue)));
