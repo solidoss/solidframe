@@ -576,30 +576,17 @@ auto *BaseNode<Reflector>::as()const{
     }
 }
 
+
 template <class MetadataVariant, class MetadataFactory, class T, class DispatchFunction, class Context = solid::EmptyType>
-void reflect(MetadataFactory &&_meta_data_factory, T &_rt, DispatchFunction _dispatch_function, Context &_rctx){
-    impl::Reflector<MetadataVariant, std::decay_t<MetadataFactory>, Context> reflector(_meta_data_factory, _dispatch_function);
+void reflect(MetadataFactory &&_meta_data_factory, T &_rt, DispatchFunction _dispatch_function, Context &_rctx, const TypeMapBase * const _ptype_map = nullptr){
+    impl::Reflector<MetadataVariant, std::decay_t<MetadataFactory>, Context> reflector(_meta_data_factory, _dispatch_function, _ptype_map);
     
     reflector.add(_rt, _rctx, 0, "root");
 }
 
 template <class MetadataVariant, class MetadataFactory, class T, class DispatchFunction, class Context = solid::EmptyType>
-void const_reflect(MetadataFactory &&_meta_data_factory, T &_rt, DispatchFunction _dispatch_function, Context &_rctx){
-    impl::ConstReflector<MetadataVariant, std::decay_t<MetadataFactory>, Context> reflector(_meta_data_factory, _dispatch_function);
-    
-    reflector.add(_rt, _rctx, 0, "root");
-}
-
-template <class MetadataVariant, class MetadataFactory, class T, class DispatchFunction, class Context = solid::EmptyType>
-void reflect(MetadataFactory &&_meta_data_factory, T &_rt, DispatchFunction _dispatch_function, const TypeMapBase &_rtype_map, Context &_rctx){
-    impl::Reflector<MetadataVariant, std::decay_t<MetadataFactory>, Context> reflector(_meta_data_factory, _dispatch_function, &_rtype_map);
-    
-    reflector.add(_rt, _rctx, 0, "root");
-}
-
-template <class MetadataVariant, class MetadataFactory, class T, class DispatchFunction, class Context = solid::EmptyType>
-void const_reflect(MetadataFactory &&_meta_data_factory, T &_rt, DispatchFunction _dispatch_function, const TypeMapBase &_rtype_map, Context &_rctx){
-    impl::ConstReflector<MetadataVariant, std::decay_t<MetadataFactory>, Context> reflector(_meta_data_factory, _dispatch_function, &_rtype_map);
+void const_reflect(MetadataFactory &&_meta_data_factory, const T &_rt, DispatchFunction _dispatch_function, Context &_rctx, const TypeMapBase * const _ptype_map = nullptr){
+    impl::ConstReflector<MetadataVariant, std::decay_t<MetadataFactory>, Context> reflector(_meta_data_factory, _dispatch_function, _ptype_map);
     
     reflector.add(_rt, _rctx, 0, "root");
 }

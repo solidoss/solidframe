@@ -326,6 +326,7 @@ int test_clientserver_download(int argc, char* argv[])
 
         auto fut = prom.get_future();
         solid_check(fut.wait_for(chrono::seconds(150)) == future_status::ready, "Taking too long - waited 150 secs");
+        fut.get();
         solid_log(logger, Info, "Done upload");
         check_files(file_vec, "client_storage", "server_storage");
         solid_log(logger, Info, "Done file checking - exiting");

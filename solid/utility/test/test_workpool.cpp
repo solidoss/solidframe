@@ -134,12 +134,11 @@ int test_workpool(int argc, char* argv[])
         if (pwp != nullptr) {
             pwp.load()->dumpStatistics();
         }
-
         this_thread::sleep_for(chrono::seconds(12));
 
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }
-
+    fut.get();
     const size_t v = (((job_count - 1) * job_count) / 2) * (producer_count == 0 ? 1 : producer_count);
 
     solid_log(generic_logger, Warning, "val = " << val << " expected val = " << v);

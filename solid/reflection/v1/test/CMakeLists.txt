@@ -1,6 +1,7 @@
 #==============================================================================
 set( ReflectionTestSuite
     test_reflection_basic.cpp
+    test_reflection_ostream.cpp
 )
 
 create_test_sourcelist( ReflectionTests test_reflection.cpp ${ReflectionTestSuite})
@@ -13,5 +14,6 @@ target_link_libraries(test_reflection
 )
 
 add_test(NAME TestReflectionBasic       COMMAND  test_reflection test_reflection_basic)
+add_test(NAME TestReflectionOStream     COMMAND  test_reflection test_reflection_ostream)
 
 #==============================================================================

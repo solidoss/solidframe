@@ -259,6 +259,7 @@ int test_event_stress_wp(int argc, char* argv[])
                     //we must throw here otherwise it will crash because workpool(s) is/are used after destroy
                     solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
                 }
+                fut.get();
             }
             solid_dbg(workpool_logger, Statistic, "connections done");
             //this_thread::sleep_for(chrono::milliseconds(100));
@@ -285,6 +286,7 @@ int test_event_stress_wp(int argc, char* argv[])
     if (fut.wait_for(chrono::seconds(wait_seconds + 110)) != future_status::ready) {
         solid_throw(" Test is taking too long - waited " << wait_seconds + 110 << " secs");
     }
+    fut.get();
 
     return 0;
 }

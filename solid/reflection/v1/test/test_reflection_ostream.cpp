@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <future>
+#include <stack>
 #include "solid/utility/typetraits.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/reflection/reflection.hpp"
@@ -208,118 +209,39 @@ public:
     }
 };
 
-struct OStreamVisitor{
-    bool        do_indent_ = true;
-    size_t      indent_ = 0;
-    std::ostream &rostream_;
-    OStreamVisitor(std::ostream &_rostream):rostream_(_rostream){}
-    
-    void indent(){
-        for(size_t i = 0; i < indent_; ++i){
-            rostream_<<"    ";
+inline bool is_open_parenthesis(const char _char){
+    return _char == '(' || _char == '[' || _char == '{';
+}
+inline bool is_closing_parenthesis(const char _char){
+    return _char == ')' || _char == ']' || _char == '}';
+}
+inline char get_closing_parenthesis(const char _char){
+    switch(_char){
+        case '(': return ')';
+        case '[': return ']';
+        case '{': return '}';
+        default: return _char;
+    }
+}
+bool check_parentheses(const string &_text){
+    stack<char> stk;
+    for(auto c: _text){
+        if(is_open_parenthesis(c)){
+            stk.push(c);
+        }else if(is_closing_parenthesis(c)){
+            if(!stk.empty() && get_closing_parenthesis(stk.top()) == c){
+                stk.pop();
+            }else{
+                return false;
+            }
         }
     }
-    
-    template <class Node, class Meta, class Ctx>
-    void operator()(Node &_rnode, const Meta &_rmeta, const size_t _index, const char * const _name, Ctx &_rctx){
-        using tg = reflection::TypeGroupE;
-        if(do_indent_){ indent(); }
-        else {do_indent_ = true;}
-        switch(_rnode.typeGroup()){
-            case tg::Basic:{
-                auto &rbasic_node = *_rnode.template as<tg::Basic>();
-                rostream_ << _name <<'('<<_index<<") = ";
-                rbasic_node.print(rostream_);
-                rostream_ << endl;
-            }break;
-            case tg::Bitset:{
-                auto &rbasic_node = *_rnode.template as<tg::Bitset>();
-                rostream_ << _name <<'('<<_index<<") = ";
-                rbasic_node.print(rostream_);
-                rostream_ << endl;
-            }break;
-            case tg::Enum:{
-                auto &renum_node = *_rnode.template as<tg::Enum>();
-                rostream_ << _name <<'('<<_index<<") = ";
-                renum_node.print(rostream_, _rmeta.enumeration()->map());
-                rostream_ << endl;
-            }break;
-            case tg::Structure:
-                rostream_ << _name <<'('<<_index<<") = {"<<endl;
-                ++indent_;
-                _rnode.template as<tg::Structure>()->for_each(std::ref(*this), _rctx);
-                --indent_;
-                indent();
-                rostream_<<"}"<<endl;
-                break;
-            case tg::Container:
-                rostream_ << _name <<'('<<_index<<") = ["<<endl;
-                ++indent_;
-                _rnode.template as<tg::Container>()->for_each(std::ref(*this), _rctx);
-                --indent_;
-                indent();
-                rostream_<<"]"<<endl;
-                break;
-            case tg::Array:
-                rostream_ << _name <<'('<<_index<<") = ["<<endl;
-                ++indent_;
-                _rnode.template as<tg::Array>()->for_each(std::ref(*this), _rctx);
-                --indent_;
-                indent();
-                rostream_<<"]"<<endl;
-                break;
-            case tg::IStream:
-                rostream_ << _name <<'('<<_index<<") = <istream>"<<endl;
-                break;
-            case tg::OStream:
-                rostream_ << _name <<'('<<_index<<") = <ostream>"<<endl;
-                break;
-            case tg::Tuple:
-                rostream_ << _name <<'('<<_index<<") = {"<<endl;
-                ++indent_;
-                _rnode.template as<tg::Tuple>()->for_each(std::ref(*this), _rctx);
-                --indent_;
-                indent();
-                rostream_<<"}"<<endl;
-                break;
-            case tg::SharedPtr:{
-                rostream_ << _name <<'('<<_index<<") -> ";
-                auto &rptr_node = *_rnode.template as<tg::SharedPtr>();
-                if(rptr_node.isNull()){
-                    if constexpr (!std::is_const_v<Node>){
-                        rptr_node.reset("Carrot", _rmeta.pointer()->map(), _rctx);
-                        solid_check(!rptr_node.isNull());
-                    }
-                }
-                if(!rptr_node.isNull()){
-                    do_indent_ = false;
-                    rptr_node.visit(std::ref(*this), _rmeta.pointer()->map(), _rctx);
-                }else{
-                    rostream_ << "nullptr"<<endl;
-                }
-                //rostream_ << endl;
-            }break;
-            case tg::UniquePtr:{
-                rostream_ << _name <<'('<<_index<<") -> ";
-                auto &rptr_node = *_rnode.template as<tg::UniquePtr>();
-                
-                if(!rptr_node.isNull()){
-                    do_indent_ = false;
-                    rptr_node.visit(std::ref(*this), _rmeta.pointer()->map(), _rctx);
-                }else{
-                    rostream_ << "nullptr"<<endl;
-                }
-                //rostream_ << endl;
-            }break;
-            default:
-                break;
-        }
-    }
-};
+    return stk.empty();
+}
 
 }//namespace
 
-int test_reflection_basic(int argc, char *argv[])
+int test_reflection_ostream(int argc, char *argv[])
 {
     const uint32_t wait_seconds = 5;
     //static_assert(reflection::is_reflective<Test>::value, "Test must be reflective");
@@ -349,37 +271,15 @@ int test_reflection_basic(int argc, char *argv[])
     };
     
     pfruits_map = &fruit_type_map;
-    auto lambda = [&](){
+    auto lambda = [&]()
+    {
+        Test test;
+        solid::EmptyType context;
         {
-            Test test;
             ostringstream  oss;
-            OStreamVisitor visitor{oss};
-            solid::EmptyType context;
-            
-            reflection::reflect<reflection::metadata::Variant<ContextT>>(reflection::metadata::factory, test, std::ref(visitor), context, &all_type_map);
+            oss<<reflection::oreflect<reflection::metadata::Variant<ContextT>>(reflection::metadata::factory, test, context, &all_type_map);
             const string result = oss.str();
             cout<<result<<endl;
-            solid_check(result.find("email(3) = gigi@gigi.com") != string::npos);
-            solid_check(result.find("veg_tuple(7) = {") != string::npos);
-            solid_check(result.find("guid(6) -> (0) = fasdfasdfweqrweqrwedsfa") != string::npos);
-            solid_check(result.find("stream(8) = <ostream>") != string::npos);
-            solid_check(result.find("vegetable(4) -> (0) = {") != string::npos);
-            solid_check(result.find("fruit(5) -> (0) = {") != string::npos);
-            solid_check(result.find("name(1) = Carrot") != string::npos);
-            solid_check(result.find("name(1) = Apple") != string::npos);
-            
-        }
-        
-        {
-            Test test;
-            ostringstream  oss;
-            OStreamVisitor visitor{oss};
-            solid::EmptyType context;
-            
-            reflection::const_reflect<reflection::metadata::Variant<ContextT>>(reflection::metadata::factory, test, std::ref(visitor), context, &all_type_map);
-            const string result = oss.str();
-            cout<<result<<endl;
-            
             solid_check(result.find("email(3) = gigi@gigi.com") != string::npos);
             solid_check(result.find("veg_tuple(7) = {") != string::npos);
             solid_check(result.find("guid(6) -> (0) = fasdfasdfweqrweqrwedsfa") != string::npos);
@@ -388,14 +288,31 @@ int test_reflection_basic(int argc, char *argv[])
             solid_check(result.find("fruit(5) -> (0) = {") != string::npos);
             solid_check(result.find("name(1) = Carrot") != string::npos);
             solid_check(result.find("name(1) = Apple") != string::npos);
+            solid_check(check_parentheses(result));
+        }
+        cout<<endl<<"Now, single line:"<<endl;
+        {
+            ostringstream  oss;
+            oss<<reflection::oreflect<reflection::metadata::Variant<ContextT>>(reflection::metadata::factory, test, context, &all_type_map, "", " ");
+            const string result = oss.str();
+            cout<<result<<endl;
+            solid_check(result.find("email(3) = gigi@gigi.com") != string::npos);
+            solid_check(result.find("veg_tuple(7) = {") != string::npos);
+            solid_check(result.find("guid(6) -> (0) = fasdfasdfweqrweqrwedsfa") != string::npos);
+            solid_check(result.find("stream(8) = <istream>") != string::npos);
+            solid_check(result.find("vegetable(4) -> nullptr") != string::npos);
+            solid_check(result.find("fruit(5) -> (0) = {") != string::npos);
+            solid_check(result.find("name(1) = Carrot") != string::npos);
+            solid_check(result.find("name(1) = Apple") != string::npos);
+            solid_check(check_parentheses(result));
         }
     };
     
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
-
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }
     fut.get();
     return 0;
 }
+

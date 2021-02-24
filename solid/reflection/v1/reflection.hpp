@@ -12,6 +12,7 @@
 
 #include "solid/reflection/v1/typetraits.hpp"
 #include "solid/reflection/v1/reflector.hpp"
+#include "solid/reflection/v1/ostreamreflection.hpp"
 #include "solid/reflection/v1/metadata.hpp"
 
 #define SOLID_REFLECT_V1(reflector, rthis, context)           \
