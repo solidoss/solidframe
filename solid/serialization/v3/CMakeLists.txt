@@ -26,7 +26,7 @@ target_include_directories(solid_serialization_v3 PUBLIC
     PRIVATE src
 )
 
-target_link_libraries(solid_serialization_v3 solid_utility solid_system solid_reflection_v1)
+target_link_libraries(solid_serialization_v3 PUBLIC solid_utility solid_system solid_reflection_v1)
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/serialization/v3)
 install (TARGETS solid_serialization_v3 DESTINATION lib EXPORT SolidFrameConfig)

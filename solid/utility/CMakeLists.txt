@@ -39,7 +39,7 @@ target_include_directories(solid_utility PUBLIC
     $<INSTALL_INTERFACE:include>
     PRIVATE src
 )
-target_link_libraries(solid_utility solid_system)
+target_link_libraries(solid_utility PUBLIC solid_system)
 target_compile_features(solid_utility PUBLIC cxx_std_17)
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/utility)

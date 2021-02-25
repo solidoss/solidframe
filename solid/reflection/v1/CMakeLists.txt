@@ -12,11 +12,7 @@ set(Headers
 )
 add_library(solid_reflection_v1 STATIC ${Sources} ${Headers})
 
-target_link_libraries(solid_reflection_v1
-    solid_utility
-    solid_system
-    ${SYSTEM_BASIC_LIBRARIES}
-)
+target_link_libraries(solid_reflection_v1 PUBLIC solid_utility solid_system)
 
 target_include_directories(solid_reflection_v1 PUBLIC
     $<BUILD_INTERFACE:${SolidFrame_SOURCE_DIR}>
