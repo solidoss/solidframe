@@ -104,7 +104,7 @@ public:
     static constexpr bool is_const_reflector = true;
 
     std::ostream& run(std::ostream& _ros, void* _pctx = nullptr);
-    long          run(char* _pbeg, unsigned _sz, void* _pctx = nullptr);
+    ptrdiff_t     run(char* _pbeg, unsigned _sz, void* _pctx = nullptr);
 
     void clear();
 
@@ -517,7 +517,7 @@ protected:
         pend_ = _pbeg + _sz;
         pcrt_ = _pbeg;
     }
-    long doRun(void* _pctx = nullptr);
+    ptrdiff_t doRun(void* _pctx = nullptr);
     void baseError(const ErrorConditionT& _err)
     {
         if (!error_) {
@@ -899,7 +899,7 @@ public:
     }
 #endif
     template <typename F>
-    long run(char* _pbeg, unsigned _sz, F _f, ContextT& _rctx)
+    ptrdiff_t run(char* _pbeg, unsigned _sz, F _f, ContextT& _rctx)
     {
         doPrepareRun(_pbeg, _sz);
         _f(*this, _rctx);
@@ -911,7 +911,7 @@ public:
     {
         const size_t buf_cap = 8 * 1024;
         char         buf[buf_cap];
-        long         len;
+        ptrdiff_t    len;
 
         clear();
 
@@ -926,7 +926,7 @@ public:
         return _ros;
     }
 
-    long run(char* _pbeg, unsigned _sz, ContextT& _rctx)
+    ptrdiff_t run(char* _pbeg, unsigned _sz, ContextT& _rctx)
     {
         return SerializerBase::run(_pbeg, _sz, &_rctx);
     }

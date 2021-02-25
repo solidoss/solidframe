@@ -31,7 +31,7 @@ std::ostream& SerializerBase::run(std::ostream& _ros, void* _pctx)
 {
     const size_t buf_cap = 8 * 1024;
     char         buf[buf_cap];
-    long         len;
+    ptrdiff_t         len;
 
     clear();
 
@@ -41,13 +41,13 @@ std::ostream& SerializerBase::run(std::ostream& _ros, void* _pctx)
     return _ros;
 }
 
-long SerializerBase::run(char* _pbeg, unsigned _sz, void* _pctx)
+ptrdiff_t SerializerBase::run(char* _pbeg, unsigned _sz, void* _pctx)
 {
     doPrepareRun(_pbeg, _sz);
     return doRun(_pctx);
 }
 
-long SerializerBase::doRun(void* _pctx)
+ptrdiff_t SerializerBase::doRun(void* _pctx)
 {
     while (!run_lst_.empty()) {
         Runnable&     rr = run_lst_.front();
@@ -64,7 +64,7 @@ long SerializerBase::doRun(void* _pctx)
         }
     }
 DONE:
-    long rv = error_ ? -1 : pcrt_ - pbeg_;
+    ptrdiff_t rv = error_ ? -1 : pcrt_ - pbeg_;
     pcrt_ = pbeg_ = pend_ = nullptr;
     return rv;
 }

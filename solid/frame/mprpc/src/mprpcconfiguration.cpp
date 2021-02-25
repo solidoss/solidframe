@@ -291,7 +291,7 @@ void Configuration::init()
     relay_enabled                     = false;
 }
 //-----------------------------------------------------------------------------
-size_t Configuration::connectionReconnectTimeoutSeconds(
+ulong Configuration::connectionReconnectTimeoutSeconds(
     const uint8_t _retry_count,
     const bool    _failed_create_connection_actor,
     const bool    _last_connection_was_connected,
@@ -304,8 +304,8 @@ size_t Configuration::connectionReconnectTimeoutSeconds(
     if (_last_connection_was_active || _last_connection_was_connected) {
         return 0; //reconnect right away
     }
-    size_t retry_count   = _retry_count / 2;
-    size_t sleep_seconds = retry_count;
+    ulong retry_count   = _retry_count / 2;
+    ulong sleep_seconds = retry_count;
 
     if (sleep_seconds > connection_timeout_reconnect_seconds) {
         sleep_seconds = connection_timeout_reconnect_seconds;

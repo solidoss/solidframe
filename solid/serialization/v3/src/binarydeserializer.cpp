@@ -43,13 +43,13 @@ std::istream& DeserializerBase::run(std::istream& _ris, void* /*_pctx*/)
     return _ris;
 }
 
-long DeserializerBase::run(const char* _pbeg, unsigned _sz, void* _pctx)
+ptrdiff_t DeserializerBase::run(const char* _pbeg, unsigned _sz, void* _pctx)
 {
     doPrepareRun(_pbeg, _sz);
     return doRun(_pctx);
 }
 
-long DeserializerBase::doRun(void* _pctx)
+ptrdiff_t DeserializerBase::doRun(void* _pctx)
 {
     while (!run_lst_.empty()) {
         Runnable&     rr = run_lst_.front();
@@ -65,7 +65,7 @@ long DeserializerBase::doRun(void* _pctx)
         }
     }
 DONE:
-    long rv = error_ ? -1 : pcrt_ - pbeg_;
+    ptrdiff_t rv = error_ ? -1 : pcrt_ - pbeg_;
     pcrt_ = pbeg_ = pend_ = nullptr;
     return rv;
 }

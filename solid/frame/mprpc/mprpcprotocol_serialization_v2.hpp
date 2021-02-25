@@ -46,19 +46,19 @@ public:
     }
 
 private:
-    long run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessageHeader& _rmsghdr) override
+    ptrdiff_t run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessageHeader& _rmsghdr) override
     {
         return ser_.run(
             _pdata, static_cast<unsigned>(_data_len), [&_rmsghdr](SerializerT& _rs, ConnectionContext& _rctx) { _rs.add(_rmsghdr, _rctx, "message"); }, _rctx);
     }
 
-    long run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr, const size_t /*_msg_type_idx*/) override
+    ptrdiff_t run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr, const size_t /*_msg_type_idx*/) override
     {
         return ser_.run(
             _pdata, static_cast<unsigned>(_data_len), [&_rmsgptr](SerializerT& _rs, ConnectionContext& _rctx) { _rs.add(_rmsgptr, _rctx, "message"); }, _rctx);
     }
 
-    long run(ConnectionContext& _rctx, char* _pdata, size_t _data_len) override
+    ptrdiff_t run(ConnectionContext& _rctx, char* _pdata, size_t _data_len) override
     {
         return ser_.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
@@ -96,18 +96,18 @@ public:
     }
 
 private:
-    long run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, MessageHeader& _rmsghdr) override
+    ptrdiff_t run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, MessageHeader& _rmsghdr) override
     {
         return des_.run(
             _pdata, static_cast<unsigned>(_data_len), [&_rmsghdr](DeserializerT& _rd, ConnectionContext& _rctx) mutable { _rd.add(_rmsghdr, _rctx, "message"); }, _rctx);
     }
 
-    long run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr) override
+    ptrdiff_t run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr) override
     {
         return des_.run(
             _pdata, static_cast<unsigned>(_data_len), [&_rmsgptr](DeserializerT& _rd, ConnectionContext& _rctx) { _rd.add(_rmsgptr, _rctx, "message"); }, _rctx);
     }
-    long run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len) override
+    ptrdiff_t run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len) override
     {
         return des_.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }

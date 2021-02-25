@@ -467,7 +467,7 @@ public:
 
     SendBufferPointerT allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const;
 
-    size_t connectionReconnectTimeoutSeconds(
+    ulong connectionReconnectTimeoutSeconds(
         const uint8_t _retry_count,
         const bool    _failed_create_connection_actor,
         const bool    _last_connection_was_connected,
@@ -546,7 +546,7 @@ public:
 
     } client;
 
-    size_t                        connection_timeout_reconnect_seconds;
+    ulong                         connection_timeout_reconnect_seconds;
     uint32_t                      connection_timeout_inactivity_seconds;
     uint32_t                      connection_timeout_keepalive_seconds;
     uint32_t                      connection_inactivity_keepalive_count; //server error if receives more than inactivity_keepalive_count keep alive messages during inactivity_timeout_seconds interval

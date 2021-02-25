@@ -122,7 +122,7 @@ public:
 
 public:
     std::istream& run(std::istream& _ris, void* _pctx = nullptr);
-    long          run(const char* _pbeg, unsigned _sz, void* _pctx = nullptr);
+    ptrdiff_t     run(const char* _pbeg, unsigned _sz, void* _pctx = nullptr);
 
     void clear();
 
@@ -581,7 +581,7 @@ protected:
         pend_ = _pbeg + _sz;
         pcrt_ = _pbeg;
     }
-    long doRun(void* _pctx = nullptr);
+    ptrdiff_t doRun(void* _pctx = nullptr);
     void baseError(const ErrorConditionT& _err)
     {
         if (!error_) {
@@ -1199,14 +1199,14 @@ public:
     }
 
     template <typename F>
-    long run(const char* _pbeg, unsigned _sz, F _f, ContextT& _rctx)
+    ptrdiff_t run(const char* _pbeg, unsigned _sz, F _f, ContextT& _rctx)
     {
         doPrepareRun(_pbeg, _sz);
         _f(*this, _rctx);
         return doRun(&_rctx);
     }
 
-    long run(const char* _pbeg, unsigned _sz, ContextT& _rctx)
+    ptrdiff_t run(const char* _pbeg, unsigned _sz, ContextT& _rctx)
     {
         return DeserializerBase::run(_pbeg, _sz, &_rctx);
     }
