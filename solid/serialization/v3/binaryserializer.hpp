@@ -54,7 +54,7 @@ class SerializerBase : public Base {
         }
 
         template <class F>
-        Runnable(const void* _ptr, CallbackT _call, F&& _f, const char* _name)
+        Runnable(const void* _ptr, CallbackT _call, const char* _name, F&& _f)
             : ptr_(_ptr)
             , call_(_call)
             , size_(0)
@@ -70,8 +70,8 @@ class SerializerBase : public Base {
             CallbackT   _call,
             uint64_t    _size,
             uint64_t    _data,
-            F&&         _f,
-            const char* _name)
+            const char* _name,
+            F&&         _f)
             : ptr_(_ptr)
             , call_(_call)
             , size_(_size)
@@ -263,11 +263,12 @@ public: //should be protected
             Runnable r{
                 nullptr,
                 call_function,
+                _name,
                 [_f = std::move(_f)](SerializerBase& _rs, Runnable& _rr, void* _pctx) mutable {
                     const RunListIteratorT old_sentinel = _rs.sentinel();
-
+                    
                     _f(static_cast<S&>(_rs), *static_cast<Ctx*>(_pctx));
-
+                    
                     const bool is_run_empty = _rs.isRunEmpty();
                     _rs.sentinel(old_sentinel);
                     if (is_run_empty) {
@@ -276,8 +277,7 @@ public: //should be protected
                         _rr.call_ = noop;
                         return Base::ReturnE::Wait;
                     }
-                },
-                _name};
+                }};
             schedule(std::move(r));
         }
     }
@@ -388,7 +388,7 @@ public: //should be protected
                     }
                 };
 
-                Runnable r{&_rc, call_function, lambda, _name};
+                Runnable r{&_rc, call_function, _name, lambda};
                 schedule(std::move(r));
             }
         }
@@ -410,7 +410,7 @@ public: //should be protected
             return ReturnE::Done;
         };
 
-        Runnable r{&_ris, &store_stream, _sz, 0, lambda, _name};
+        Runnable r{&_ris, &store_stream, _sz, 0, _name, lambda};
 
         if (isRunEmpty()) {
             if (store_stream(*this, r, &_rctx) == ReturnE::Done) {

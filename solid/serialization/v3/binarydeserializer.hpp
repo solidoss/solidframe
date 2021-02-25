@@ -66,7 +66,7 @@ class DeserializerBase : public Base {
         }
 
         template <class F>
-        Runnable(void* _ptr, CallbackT _call, F&& _f, const char* _name)
+        Runnable(void* _ptr, CallbackT _call, const char* _name, F&& _f)
             : ptr_(_ptr)
             , call_(_call)
             , size_(0)
@@ -83,8 +83,8 @@ class DeserializerBase : public Base {
             CallbackT   _call,
             uint64_t    _size,
             uint64_t    _data,
-            F&&         _f,
-            const char* _name)
+            const char* _name,
+            F&&         _f)
             : ptr_(_ptr)
             , call_(_call)
             , size_(_size)
@@ -283,11 +283,12 @@ public:
             Runnable r{
                 nullptr,
                 call_function,
+                _name,
                 [_f = std::move(_f)](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
                     const RunListIteratorT old_sentinel = _rd.sentinel();
-
+                    
                     _f(static_cast<D&>(_rd), *static_cast<Ctx*>(_pctx));
-
+                    
                     const bool is_run_empty = _rd.isRunEmpty();
                     _rd.sentinel(old_sentinel);
                     if (is_run_empty) {
@@ -296,8 +297,7 @@ public:
                         _rr.call_ = noop;
                         return Base::ReturnE::Wait;
                     }
-                },
-                _name};
+                }};
             schedule(std::move(r));
         }
     }
@@ -489,7 +489,7 @@ public:
             return ReturnE::Wait;
         };
 
-        Runnable r{&_rc, call_function, lambda, _name};
+        Runnable r{&_rc, call_function, _name, lambda};
         r.limit_ = _limit;
 
         tryRun(std::move(r), &_rctx);
@@ -512,7 +512,7 @@ public:
             return ReturnE::Done;
         };
 
-        Runnable r{&_ros, &load_stream, 0, 0, lambda, _name};
+        Runnable r{&_ros, &load_stream, 0, 0, _name, lambda};
         if (isRunEmpty()) {
             if (load_stream(*this, r, &_rctx) == ReturnE::Done) {
                 return;
