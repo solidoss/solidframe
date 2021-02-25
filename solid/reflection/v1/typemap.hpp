@@ -26,13 +26,16 @@ namespace solid{
 namespace reflection{
 namespace v1{
 
-inline size_t reflector_index(){
-    static std::atomic<size_t> index{0};
-    return index.fetch_add(1);
-}
+size_t current_index();
+
+//template <class Reflector>
+//inline const size_t reflector_index_v = reflector_index();
 
 template <class Reflector>
-inline const size_t reflector_index_v = {reflector_index()};
+size_t reflector_index(){
+    static const size_t idx = current_index();
+    return idx;
+}
 
 class TypeMapBase: NonCopyable{
     //using VariantT = std::variant<Reflector...>;
@@ -95,16 +98,18 @@ protected:
     
     template <class Reflector>
     size_t reflectorIndex()const{
-        solid_assert(reflector_index_v<Reflector> < reflector_index_vec_.size());
-        return reflector_index_vec_[reflector_index_v<Reflector>];
+        const size_t ref_idx = reflector_index<Reflector>();
+        solid_assert(ref_idx < reflector_index_vec_.size());
+        return reflector_index_vec_[ref_idx];
     }
 protected:
     template <class Reflector>
     void reflectorIndex(const size_t _index){
-        if(reflector_index_v<Reflector> >= reflector_index_vec_.size()){
-            reflector_index_vec_.resize(reflector_index_v<Reflector> + 1);
+        const size_t ref_idx = reflector_index<Reflector>();
+        if(ref_idx >= reflector_index_vec_.size()){
+            reflector_index_vec_.resize(ref_idx + 1);
         }
-        reflector_index_vec_[reflector_index_v<Reflector>] = _index;
+        reflector_index_vec_[ref_idx] = _index;
     }
     typedef void(*IndexInitFncT)(const size_t);
     
@@ -355,7 +360,11 @@ template <class ...Reflector>
 class TypeMap: public TypeMapBase{
     //using VariantT = std::variant<Reflector...>;
     //using TupleT = std::tuple<Reflector...>;
-    static std::vector<size_t> reflector_index_vec;
+
+    static std::vector<size_t>& reflector_index_vector() {
+        static  std::vector<size_t> index_vec;
+        return index_vec;
+    }
     
     template <class T, class ...Rem>
     void initReflectorIndex(const size_t _index = 0){
@@ -476,7 +485,7 @@ private:
         type_vec_.back().this_type_index_ = std::type_index(typeid(T));
         type_vec_.back().base_type_index_ = _base_type_index;
         type_vec_.back().base_cast_index_ = _base_cast_index;
-        type_vec_.back().reflector_vec_.resize(reflector_index_vec.size());
+        type_vec_.back().reflector_vec_.resize(reflector_index_vector().size());
         
         doInitTypeReflect<InitF, T, Reflector...>(_init_f, index);
         return index;
@@ -507,7 +516,7 @@ private:
     }
 public:
     template <class InitFnc>
-    TypeMap(InitFnc _init_fnc):TypeMapBase(reflector_index_vec){
+    TypeMap(InitFnc _init_fnc):TypeMapBase(reflector_index_vector()){
         static struct Init{
             Init(ThisT &_rthis){
                 _rthis.initReflectorIndex<Reflector...>();
@@ -517,9 +526,6 @@ public:
         _init_fnc(proxy);
     }
 };
-
-template <class ...Reflector>
-inline std::vector<size_t> TypeMap<Reflector...>::reflector_index_vec;
 
 }//namespace v1
 }//namespace reflection

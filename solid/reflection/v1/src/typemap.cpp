@@ -14,6 +14,11 @@ namespace solid{
 namespace reflection{
 namespace v1{
 
+size_t current_index(){
+    static std::atomic<size_t> index{0};
+    return index.fetch_add(1);
+}
+
 }//namespace v1
 }//namespace reflection
 }//namespace solid

@@ -160,7 +160,7 @@ private:
 struct ReaderConfiguration;
 struct WriterConfiguration;
 
-class Protocol {
+class Protocol: NonCopyable {
     uint32_t version_major_ = 1;
     uint32_t version_minor_ = 0;
 

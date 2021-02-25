@@ -62,7 +62,7 @@ protected:
     virtual void doVisit(Reflector &/*_rreflector*/, const TypeMapBase*, ContextT &/*_rctx*/) = 0;
     virtual void doVisit(Reflector &/*_rreflector*/, const TypeMapBase*, ContextT &/*_rctx*/) const = 0;
     virtual std::ostream& print(std::ostream &_ros) const = 0;
-    virtual std::ostream& print(std::ostream &_ros, const EnumMap */*_penum_map*/) const = 0;
+    virtual std::ostream& print(std::ostream &_ros, const EnumMap * /*_penum_map*/) const = 0;
     virtual void reset(const std::string_view _name, const TypeMapBase *_ptype_map, ContextT &/*_rctx*/) = 0;
     virtual std::ostream& ostream() = 0;
     virtual std::istream& istream() const = 0;
@@ -137,7 +137,7 @@ protected:
     GroupNode(Reflector &_rreflector, const std::type_info * const _ptype_info):BaseT(_rreflector, TypeGroupE::Enum, _ptype_info){}
 
 public:
-    std::ostream& print(std::ostream &_ros, const EnumMap */*_penum_map*/) const override = 0;
+    std::ostream& print(std::ostream &_ros, const EnumMap * /*_penum_map*/) const override = 0;
 };
 
 template <class Reflector>
