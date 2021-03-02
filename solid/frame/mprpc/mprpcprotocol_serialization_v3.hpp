@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include <string_view>
 #include <memory>
+#include <string_view>
 #include <type_traits>
 
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
@@ -25,7 +25,6 @@ namespace frame {
 namespace mprpc {
 namespace serialization_v3 {
 
-    
 template <class MetadataVariant, class MetadataFactory, typename TypeId>
 using SerializerTT = serialization::v3::binary::Serializer<MetadataVariant, MetadataFactory, ConnectionContext, TypeId>;
 template <class MetadataVariant, class MetadataFactory, typename TypeId>
@@ -33,7 +32,7 @@ using DeserializerTT = serialization::v3::binary::Deserializer<MetadataVariant, 
 
 using TypeMapBaseT = solid::reflection::v1::TypeMapBase;
 
-template <class ...Reflector>
+template <class... Reflector>
 using TypeMapTT = solid::reflection::v1::TypeMap<Reflector...>;
 
 template <class MetadataVariant, class MetadataFactory, typename TypeId>
@@ -42,7 +41,7 @@ class Serializer : public mprpc::Serializer {
     SerializerT ser_;
 
 public:
-    Serializer(MetadataFactory &&_meta_data_factory, const TypeMapBaseT& _rtm)
+    Serializer(MetadataFactory&& _meta_data_factory, const TypeMapBaseT& _rtm)
         : ser_(_meta_data_factory, _rtm)
     {
     }
@@ -87,7 +86,7 @@ class Deserializer : public mprpc::Deserializer {
     DeserializerT des_;
 
 public:
-    Deserializer(MetadataFactory &&_meta_data_factory, const TypeMapBaseT& _rtm)
+    Deserializer(MetadataFactory&& _meta_data_factory, const TypeMapBaseT& _rtm)
         : des_(_meta_data_factory, _rtm)
     {
     }
@@ -108,7 +107,7 @@ private:
     {
         return des_.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
-    
+
     ErrorConditionT error() const override
     {
         return des_.error();
@@ -124,12 +123,16 @@ private:
     }
 };
 
-template <typename> struct is_pair: std::false_type {};
+template <typename>
+struct is_pair : std::false_type {
+};
 
-template <typename T1, typename T2> struct is_pair<std::pair<T1,T2>>: std::true_type {};
+template <typename T1, typename T2>
+struct is_pair<std::pair<T1, T2>> : std::true_type {
+};
 
 template <class MetadataVariant, class MetadataFactory, typename TypeId>
-class Protocol : public mprpc::Protocol{
+class Protocol : public mprpc::Protocol {
     struct TypeData {
         template <class F>
         TypeData(F&& _f)
@@ -147,96 +150,106 @@ class Protocol : public mprpc::Protocol{
         MessageCompleteFunctionT complete_fnc_;
     };
 
-    using ThisT          = Protocol<MetadataVariant, MetadataFactory, TypeId>;
-    using PointerT       = std::shared_ptr<ThisT>;
-    using TypeMapT      = TypeMapTT<
+    using ThisT    = Protocol<MetadataVariant, MetadataFactory, TypeId>;
+    using PointerT = std::shared_ptr<ThisT>;
+    using TypeMapT = TypeMapTT<
         SerializerTT<MetadataVariant, MetadataFactory, TypeId>,
         DeserializerTT<MetadataVariant, MetadataFactory, TypeId>,
         reflection::v1::ReflectorT<MetadataVariant, MetadataFactory, ConnectionContext>,
-        reflection::v1::ConstReflectorT<MetadataVariant, MetadataFactory, ConnectionContext>
-    >;
-    using SerializerT   = Serializer<MetadataVariant, MetadataFactory, TypeId>;
-    using DeserializerT = Deserializer<MetadataVariant, MetadataFactory, TypeId>;
+        reflection::v1::ConstReflectorT<MetadataVariant, MetadataFactory, ConnectionContext>>;
+    using SerializerT     = Serializer<MetadataVariant, MetadataFactory, TypeId>;
+    using DeserializerT   = Deserializer<MetadataVariant, MetadataFactory, TypeId>;
     using TypeDataVectorT = std::vector<TypeData>;
-    
-    MetadataFactory         metadata_factory_;
-    TypeDataVectorT         type_data_vec_;
-    TypeMapT                type_map_;
+
+    MetadataFactory metadata_factory_;
+    TypeDataVectorT type_data_vec_;
+    TypeMapT        type_map_;
     template <class T>
-    static auto extract_category(const T &_id){
-        if constexpr (is_pair<T>::value){
+    static auto extract_category(const T& _id)
+    {
+        if constexpr (is_pair<T>::value) {
             return _id.first;
-        }else{
+        } else {
             return 0;
         }
     }
     template <class T>
-    static auto extract_id(const T &_id){
-        if constexpr (is_pair<T>::value){
+    static auto extract_id(const T& _id)
+    {
+        if constexpr (is_pair<T>::value) {
             return _id.second;
-        }else{
+        } else {
             return _id;
         }
     }
     template <class TypeMap>
-    struct Proxy{
-        ThisT    &rproto_;
-        TypeMap  &rmap_;
-        
-        Proxy(ThisT &_rproto, TypeMap  &_rmap):rproto_(_rproto), rmap_(_rmap){}
-        
+    struct Proxy {
+        ThisT&   rproto_;
+        TypeMap& rmap_;
+
+        Proxy(ThisT& _rproto, TypeMap& _rmap)
+            : rproto_(_rproto)
+            , rmap_(_rmap)
+        {
+        }
+
         template <class T>
-        size_t registerType(const TypeId _id, const std::string_view _name){
+        size_t registerType(const TypeId _id, const std::string_view _name)
+        {
             return rmap_.template registerType<T>(extract_category(_id), extract_id(_id), _name);
         }
         template <class T, class B>
-        size_t registerType(const TypeId _id, const std::string_view _name){
+        size_t registerType(const TypeId _id, const std::string_view _name)
+        {
             return rmap_.template registerType<T, B>(extract_category(_id), extract_id(_id), _name);
         }
         template <class T, class B>
-        void registerCast(){
+        void registerCast()
+        {
             return rmap_.template registerCast<T, B>();
         }
         template <class T, typename CompleteFnc>
-        size_t registerMessage(const TypeId _id, const std::string_view _name, CompleteFnc _complete_fnc){
+        size_t registerMessage(const TypeId _id, const std::string_view _name, CompleteFnc _complete_fnc)
+        {
             using CompleteFncT     = CompleteFnc;
             using CompleteHandlerT = CompleteHandler<CompleteFncT,
                 typename message_complete_traits<CompleteFncT>::send_type,
                 typename message_complete_traits<CompleteFncT>::recv_type>;
-            auto init_lambda = [](auto &_rctx, auto &_rptr){
+            auto init_lambda       = [](auto& _rctx, auto& _rptr) {
                 using PtrType = std::decay_t<decltype(_rptr)>;
                 using CtxType = std::decay_t<decltype(_rctx)>;
-                if constexpr (solid::is_shared_ptr_v<PtrType>){
+                if constexpr (solid::is_shared_ptr_v<PtrType>) {
                     _rptr = std::make_shared<typename PtrType::element_type>();
-                    if constexpr (std::is_same_v<ConnectionContext, CtxType>){
+                    if constexpr (std::is_same_v<ConnectionContext, CtxType>) {
                         _rptr->header(_rctx);
                     }
                 }
             };
             const size_t index = rmap_.template registerType<T, mprpc::Message>(extract_category(_id), extract_id(_id), _name, init_lambda);
-            if(index >= rproto_.type_data_vec_.size()){
+            if (index >= rproto_.type_data_vec_.size()) {
                 rproto_.type_data_vec_.resize(index + 1);
             }
-            auto complete_handler = CompleteHandlerT(std::move(_complete_fnc));
+            auto complete_handler                       = CompleteHandlerT(std::move(_complete_fnc));
             rproto_.type_data_vec_[index].complete_fnc_ = std::move(complete_handler);
             return index;
         }
     };
+
 public:
     template <typename InitFnc>
     Protocol(
-        MetadataFactory &&_rmetadata_factory,
-        InitFnc _init_fnc
-    ):  metadata_factory_(std::forward<MetadataFactory>(_rmetadata_factory))
-    ,   type_map_(
-        [this, _init_fnc](auto &_rmap){
-            //_rmap is typemap::Proxy
-            Proxy<decltype(_rmap)>  proxy(*this, _rmap);
-            _init_fnc(proxy);
-        }
-    )
-    {}
-    
+        MetadataFactory&& _rmetadata_factory,
+        InitFnc           _init_fnc)
+        : metadata_factory_(std::forward<MetadataFactory>(_rmetadata_factory))
+        , type_map_(
+              [this, _init_fnc](auto& _rmap) {
+                  //_rmap is typemap::Proxy
+                  Proxy<decltype(_rmap)> proxy(*this, _rmap);
+                  _init_fnc(proxy);
+              })
+    {
+    }
+
     char* storeValue(char* _pd, uint8_t _v) const override
     {
         return serialization::v3::binary::store(_pd, _v);
@@ -318,21 +331,20 @@ protected:
 };
 
 template <template <class> class MetadataVariant, class TypeId, class MetadataFactory, class InitFunction>
-auto create_protocol(MetadataFactory &&_metadata_factory, InitFunction _init_fnc){
-    if constexpr (is_pair<TypeId>::value){
-        static_assert(is_pair<TypeId>::value && std::is_integral_v<typename TypeId::first_type> && !std::is_same_v<typename TypeId::first_type, bool>
-         && std::is_integral_v<typename TypeId::second_type> && !std::is_same_v<typename TypeId::second_type, bool>,
-         "TypeId can only be either integral (but not bool) or pair of <integral (but not bool)>"
-        );
-    }else{
+auto create_protocol(MetadataFactory&& _metadata_factory, InitFunction _init_fnc)
+{
+    if constexpr (is_pair<TypeId>::value) {
+        static_assert(is_pair<TypeId>::value && std::is_integral_v<typename TypeId::first_type> && !std::is_same_v<typename TypeId::first_type, bool> && std::is_integral_v<typename TypeId::second_type> && !std::is_same_v<typename TypeId::second_type, bool>,
+            "TypeId can only be either integral (but not bool) or pair of <integral (but not bool)>");
+    } else {
         static_assert(std::is_integral_v<TypeId> && !std::is_same_v<TypeId, bool>, "TypeId can only be either integral (but not bool) or pair of <integral (but not bool)>");
     }
-    
+
     using ProtocolT = Protocol<MetadataVariant<ConnectionContext>, MetadataFactory, TypeId>;
     return std::make_shared<ProtocolT>(_metadata_factory, _init_fnc);
 }
 
-} //namespace serialization_v2
+} // namespace serialization_v3
 } //namespace mprpc
 } //namespace frame
 } //namespace solid

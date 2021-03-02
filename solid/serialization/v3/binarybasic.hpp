@@ -508,6 +508,6 @@ inline bool load_bit_from(const uint8_t* _pbeg, const size_t _bit_idx)
 }
 
 } //namespace binary
-} //namespace v2
+} // namespace v3
 } //namespace serialization
 } //namespace solid

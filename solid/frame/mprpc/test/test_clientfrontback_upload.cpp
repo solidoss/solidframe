@@ -65,27 +65,26 @@ struct Request : frame::mprpc::Message {
     ~Request() override
     {
     }
-    
-    
+
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
         _rr.add(_rthis.name_, _rctx, 1, "name");
-        if constexpr (!Reflector::is_const_reflector){
-            auto progress_lambda = [](Context &_rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+        if constexpr (!Reflector::is_const_reflector) {
+            auto progress_lambda = [](Context& _rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                 //NOTE: here you can use context.anyTuple for actual implementation
                 if (_done) {
                     solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
                 }
             };
-            _rr.add(_rthis.oss_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta){_rmeta.progressFunction(progress_lambda);});
-        }else{
-            auto progress_lambda = [](Context &_rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+            _rr.add(_rthis.oss_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda); });
+        } else {
+            auto progress_lambda = [](Context& _rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                 //NOTE: here you can use context.anyTuple for actual implementation
                 if (_done) {
                     solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
                 }
             };
-            _rr.add(_rthis.ifs_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta){_rmeta.progressFunction(progress_lambda).size(100*1024);});
+            _rr.add(_rthis.ifs_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda).size(100 * 1024); });
         }
     }
 };
@@ -177,26 +176,26 @@ struct Request : frame::mprpc::Message {
     ~Request() override
     {
     }
-    
+
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
         _rr.add(_rthis.name_, _rctx, 1, "name");
-        if constexpr (!Reflector::is_const_reflector){
-            auto progress_lambda = [](Context &_rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+        if constexpr (!Reflector::is_const_reflector) {
+            auto progress_lambda = [](Context& _rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                 //NOTE: here you can use context.anyTuple for actual implementation
                 if (_done) {
                     solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
                 }
             };
-            _rr.add(_rthis.oss_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta){_rmeta.progressFunction(progress_lambda);});
-        }else{
-            auto progress_lambda = [](Context &_rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+            _rr.add(_rthis.oss_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda); });
+        } else {
+            auto progress_lambda = [](Context& _rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                 //NOTE: here you can use context.anyTuple for actual implementation
                 if (_done) {
                     solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
                 }
             };
-            _rr.add(_rthis.iss_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta){_rmeta.progressFunction(progress_lambda);});
+            _rr.add(_rthis.iss_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda); });
         }
     }
 };
@@ -348,15 +347,14 @@ int test_clientfrontback_upload(int argc, char* argv[])
         std::string front_port;
 
         { //mprpc back_server initialization
-            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
-                [&](auto &_rmap){
+                [&](auto& _rmap) {
                     _rmap.template registerMessage<back::Request>(1, "Request", back::on_server_receive_first_request);
                     _rmap.template registerMessage<back::Response>(2, "Response", back::on_server_response);
-                }
-            );
+                });
             frame::mprpc::Configuration cfg(sch_back, proto);
-            
+
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
 
@@ -393,13 +391,12 @@ int test_clientfrontback_upload(int argc, char* argv[])
         }
 
         { //mprpc back_client initialization
-            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
-                [&](auto &_rmap){
+                [&](auto& _rmap) {
                     _rmap.template registerMessage<back::Request>(1, "Request", back::on_client_request);
                     _rmap.template registerMessage<back::Response>(2, "Response", back::on_client_response);
-                }
-            );
+                });
             frame::mprpc::Configuration cfg(sch_front, proto);
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
@@ -429,13 +426,12 @@ int test_clientfrontback_upload(int argc, char* argv[])
         }
 
         { //mprpc front_server initialization
-            auto                        proto =frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
-                [&](auto &_rmap){
+                [&](auto& _rmap) {
                     _rmap.template registerMessage<front::Request>(1, "Request", front::on_server_receive_first_request);
                     _rmap.template registerMessage<front::Response>(2, "Response", front::on_server_response);
-                }
-            );
+                });
             frame::mprpc::Configuration cfg(sch_back, proto);
 
             //cfg.recv_buffer_capacity = 1024;
@@ -473,15 +469,14 @@ int test_clientfrontback_upload(int argc, char* argv[])
         }
 
         { //mprpc front_client initialization
-            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
-                [&](auto &_rmap){
+                [&](auto& _rmap) {
                     _rmap.template registerMessage<front::Request>(1, "Request", front::on_client_request);
                     _rmap.template registerMessage<front::Response>(2, "Response", front::on_client_response);
-                }
-            );
+                });
             frame::mprpc::Configuration cfg(sch_front, proto);
-            
+
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 
             cfg.client.name_resolve_fnc       = frame::mprpc::InternetResolverF(resolver, front_port.c_str() /*, SocketInfo::Inet4*/);

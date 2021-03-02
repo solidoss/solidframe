@@ -155,16 +155,15 @@ int main(int argc, char* argv[])
         scheduler.start(1);
 
         {
-            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
-                [&](auto &_rmap){
-                    auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const &_rtype){
+                [&](auto& _rmap) {
+                    auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
                         using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
                         _rmap.template registerMessage<TypeT>(_id, _name, rpc_request_server::complete_message<TypeT>);
                     };
                     rpc_request::configure_protocol(lambda);
-                }
-            );
+                });
             frame::mprpc::Configuration cfg(scheduler, proto);
 
             cfg.server.listener_address_str = p.listener_addr;

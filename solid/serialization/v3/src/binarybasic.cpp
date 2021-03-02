@@ -145,4 +145,3 @@ const char* load_with_check(const char* _ps, const size_t _sz, uint16_t& _val)
 } //namespace v3
 } //namespace serialization
 } //namespace solid
-

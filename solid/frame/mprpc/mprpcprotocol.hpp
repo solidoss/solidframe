@@ -102,9 +102,9 @@ public:
     using PointerT = std::unique_ptr<Deserializer>;
 
     virtual ~Deserializer();
-    virtual ptrdiff_t            run(ConnectionContext&, const char* _pdata, size_t _data_len, MessageHeader& _rmsghdr)   = 0;
-    virtual ptrdiff_t            run(ConnectionContext&, const char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr) = 0;
-    virtual ptrdiff_t            run(ConnectionContext&, const char* _pdata, size_t _data_len)                            = 0;
+    virtual ptrdiff_t       run(ConnectionContext&, const char* _pdata, size_t _data_len, MessageHeader& _rmsghdr)   = 0;
+    virtual ptrdiff_t       run(ConnectionContext&, const char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr) = 0;
+    virtual ptrdiff_t       run(ConnectionContext&, const char* _pdata, size_t _data_len)                            = 0;
     virtual ErrorConditionT error() const                                                                            = 0;
     virtual bool            empty() const                                                                            = 0;
     virtual void            clear()                                                                                  = 0;
@@ -132,9 +132,9 @@ public:
     using PointerT = std::unique_ptr<Serializer>;
 
     virtual ~Serializer();
-    virtual ptrdiff_t            run(ConnectionContext&, char* _pdata, size_t _data_len, MessageHeader& _rmsghdr)                                   = 0;
-    virtual ptrdiff_t            run(ConnectionContext&, char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr, const size_t _msg_type_idx = 0) = 0;
-    virtual ptrdiff_t            run(ConnectionContext&, char* _pdata, size_t _data_len)                                                            = 0;
+    virtual ptrdiff_t       run(ConnectionContext&, char* _pdata, size_t _data_len, MessageHeader& _rmsghdr)                                   = 0;
+    virtual ptrdiff_t       run(ConnectionContext&, char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr, const size_t _msg_type_idx = 0) = 0;
+    virtual ptrdiff_t       run(ConnectionContext&, char* _pdata, size_t _data_len)                                                            = 0;
     virtual ErrorConditionT error() const                                                                                                      = 0;
     virtual bool            empty() const                                                                                                      = 0;
     virtual void            clear()                                                                                                            = 0;
@@ -160,7 +160,7 @@ private:
 struct ReaderConfiguration;
 struct WriterConfiguration;
 
-class Protocol: NonCopyable {
+class Protocol : NonCopyable {
     uint32_t version_major_ = 1;
     uint32_t version_minor_ = 0;
 

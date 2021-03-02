@@ -17,7 +17,6 @@ struct Message : solid::frame::mprpc::Message {
     {
     }
 
-
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
         _rr.add(_rthis.str, _rctx, 1, "str");
@@ -29,6 +28,5 @@ inline void configure_protocol(Reg _rreg)
 {
     _rreg(1, "Message", solid::TypeToType<Message>());
 }
-
 
 } //namespace rpc_echo

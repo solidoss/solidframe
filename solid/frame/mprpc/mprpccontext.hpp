@@ -10,7 +10,6 @@
 
 #pragma once
 
-
 #include <ostream>
 
 #include "solid/system/log.hpp"
@@ -21,7 +20,6 @@
 
 #include "solid/frame/common.hpp"
 #include "solid/frame/mprpc/mprpcmessageflags.hpp"
-
 
 namespace solid {
 namespace frame {
@@ -307,34 +305,27 @@ struct ConnectionContext {
     std::shared_ptr<Message> fetchRequest(Message const& _rmsg) const;
 
     //! Keep any connection data
-    Any<>& any();
+    Any<>&    any();
     AnyTuple& anyTuple();
 
     const ErrorConditionT& error() const;
     const ErrorCodeT&      systemError() const;
-    
-    [[deprecated]]
-    uint32_t const& versionMajor() const;
-    [[deprecated]]
-    uint32_t const& versionMinor() const;
-    
-    [[deprecated]]
-    uint32_t peerVersionMajor() const;
-    [[deprecated]]
-    uint32_t peerVersionMinor() const;
+
+    [[deprecated]] uint32_t const& versionMajor() const;
+    [[deprecated]] uint32_t const& versionMinor() const;
+
+    [[deprecated]] uint32_t peerVersionMajor() const;
+    [[deprecated]] uint32_t peerVersionMinor() const;
 
     template <class SD>
-    [[deprecated]]
-    void addVersion(SD& _rsd)
+    [[deprecated]] void addVersion(SD& _rsd)
     {
         doAddVersion(_rsd, std::integral_constant<bool, SD::is_serializer>());
     }
 
 private:
-    [[deprecated]]
-    uint32_t& peerVersionMajorRef();
-    [[deprecated]]
-    uint32_t& peerVersionMinorRef();
+    [[deprecated]] uint32_t& peerVersionMajorRef();
+    [[deprecated]] uint32_t& peerVersionMinorRef();
 
     //not used for now
     RequestId const& requestId() const
@@ -343,20 +334,16 @@ private:
     }
 
     void relayId(const UniqueId& _relay_id) const;
-    
-    
+
     template <class SD>
-    [[deprecated]]
-    void doAddVersion(SD& _rsd, std::integral_constant<bool, false> _is_deserializer)
+    [[deprecated]] void doAddVersion(SD& _rsd, std::integral_constant<bool, false> _is_deserializer)
     {
         _rsd.add(peerVersionMajorRef(), *this, "protocol_version_major");
         _rsd.add(peerVersionMinorRef(), *this, "protocol_version_minor");
     }
-    
-    
+
     template <class SD>
-    [[deprecated]]
-    void doAddVersion(SD& _rsd, std::integral_constant<bool, true> _is_serializer)
+    [[deprecated]] void doAddVersion(SD& _rsd, std::integral_constant<bool, true> _is_serializer)
     {
         _rsd.add(versionMajor(), *this, "protocol_version_major");
         _rsd.add(versionMinor(), *this, "protocol_version_minor");

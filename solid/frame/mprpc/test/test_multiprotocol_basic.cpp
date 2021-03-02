@@ -93,14 +93,13 @@ int test_multiprotocol_basic(int argc, char* argv[])
         std::string server_port;
 
         { //mprpc server initialization
-            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, TypeIdT>(
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, TypeIdT>(
                 reflection::v1::metadata::factory,
-                [](auto &_rmap){
+                [](auto& _rmap) {
                     gamma_server::register_messages(_rmap);
                     beta_server::register_messages(_rmap);
                     alpha_server::register_messages(_rmap);
-                }
-            );
+                });
             frame::mprpc::Configuration cfg(sch_server, proto);
 
             cfg.connection_stop_fnc         = &server_connection_stop;

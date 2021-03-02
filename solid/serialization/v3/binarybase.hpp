@@ -15,10 +15,10 @@
 #include <utility>
 #include <vector>
 
+#include "solid/reflection/v1/typemap.hpp"
 #include "solid/serialization/v3/error.hpp"
 #include "solid/system/log.hpp"
 #include "solid/utility/common.hpp"
-#include "solid/reflection/v1/typemap.hpp"
 
 namespace solid {
 namespace serialization {
@@ -40,6 +40,7 @@ public:
     {
         return error_;
     }
+
 protected:
     ErrorConditionT error_;
 };
@@ -48,4 +49,3 @@ protected:
 } //namespace v3
 } //namespace serialization
 } //namespace solid
-

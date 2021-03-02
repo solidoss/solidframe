@@ -78,13 +78,12 @@ int main(int argc, char* argv[])
                 }
             };
 
-            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
-                [&](auto &_rmap){
+                [&](auto& _rmap) {
                     _rmap.template registerMessage<Register>(1, "Register", con_register);
-                }
-            );
-            
+                });
+
             frame::mprpc::Configuration cfg(scheduler, relay_engine, proto);
 
             cfg.server.listener_address_str = p.listener_addr;

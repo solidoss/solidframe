@@ -206,14 +206,13 @@ bool restart(
     ErrorConditionT err;
     auto            proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
         reflection::v1::metadata::factory,
-        [&](auto &_rmap){
-            _rmap.template registerMessage<FirstMessage>(1, "FirstMessage", 
+        [&](auto& _rmap) {
+            _rmap.template registerMessage<FirstMessage>(1, "FirstMessage",
                 [](
                     frame::mprpc::ConnectionContext& _rctx,
                     std::shared_ptr<FirstMessage>&   _rsend_msg,
                     std::shared_ptr<FirstMessage>&   _rrecv_msg,
-                    ErrorConditionT const&           _rerr)
-                {
+                    ErrorConditionT const&           _rerr) {
                     if (_rrecv_msg) {
                         solid_log(generic_logger, Info, _rctx.recipientId() << " Message received: is_on_sender: " << _rrecv_msg->isOnSender() << ", is_on_peer: " << _rrecv_msg->isOnPeer() << ", is_back_on_sender: " << _rrecv_msg->isBackOnSender());
                         if (_rrecv_msg->isOnPeer()) {
@@ -222,10 +221,8 @@ bool restart(
                             cout << "Received from " << _rctx.recipientName() << ": " << _rrecv_msg->str << endl;
                         }
                     }
-                }
-            );
-        }
-    );
+                });
+        });
 
     frame::Manager& rm = _ipcsvc.manager();
 
@@ -237,7 +234,7 @@ bool restart(
     _sch.start(thread::hardware_concurrency());
 
     frame::mprpc::Configuration cfg(_sch, proto);
-    
+
     if (params.baseport.size()) {
         cfg.server.listener_address_str = "0.0.0.0:";
         cfg.server.listener_address_str += params.baseport;

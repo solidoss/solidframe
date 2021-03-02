@@ -118,9 +118,9 @@ struct Message : frame::mprpc::Message {
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
         using ReflectorT = decay_t<decltype(_rr)>;
-        
+
         _rr.add(_rthis.idx, _rctx, 0, "idx").add(_rthis.str, _rctx, 1, "str");
-        
+
         if constexpr (ReflectorT::is_const_reflector) {
             _rthis.serialized = true;
         }
@@ -365,12 +365,11 @@ int test_raw_basic(int argc, char* argv[])
         std::string server_port;
 
         { //mprpc server initialization
-            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
-                [&](auto &_rmap){
+                [&](auto& _rmap) {
                     _rmap.template registerMessage<Message>(1, "Message", server_complete_message);
-                }
-            );
+                });
             frame::mprpc::Configuration cfg(sch_server, proto);
 
             cfg.connection_recv_buffer_max_capacity_kb = 1;
@@ -393,12 +392,11 @@ int test_raw_basic(int argc, char* argv[])
         }
 
         { //mprpc client initialization
-            auto                        proto  = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
-                [&](auto &_rmap){
+                [&](auto& _rmap) {
                     _rmap.template registerMessage<Message>(1, "Message", client_complete_message);
-                }
-            );
+                });
             frame::mprpc::Configuration cfg(sch_client, proto);
 
             cfg.connection_recv_buffer_max_capacity_kb = 1;

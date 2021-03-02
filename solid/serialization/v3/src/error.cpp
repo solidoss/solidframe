@@ -90,4 +90,3 @@ std::string ErrorCategory::message(int _ev) const
 } //namespace v3
 } //namespace serialization
 } //namespace solid
-

@@ -67,5 +67,4 @@ inline void configure_protocol(Reg _rreg)
     _rreg({0, 3}, "ThirdMessage", solid::TypeToType<ThirdMessage>());
 }
 
-
 } // namespace alpha_protocol

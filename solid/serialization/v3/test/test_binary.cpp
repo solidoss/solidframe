@@ -71,7 +71,7 @@ class Test {
     uint32_t                 blob64_sz;
     char                     blob64[sizeof(uint64_t)];
 
-    std::ostringstream      oss;
+    std::ostringstream oss;
 
     void populate(bool _b)
     {
@@ -203,7 +203,7 @@ public:
 
     SOLID_REFLECT_V1(_rs, _rthis, _rctx)
     {
-        _rs.add(_rthis.p, _rctx, 1, "p", [](auto &_rmeta){_rmeta.maxSize(100);});
+        _rs.add(_rthis.p, _rctx, 1, "p", [](auto& _rmeta) { _rmeta.maxSize(100); });
         _rs
             .add(_rthis.b, _rctx, 2, "b")
             .add(
@@ -220,48 +220,48 @@ public:
 
         IFStreamPtrT pifs(new ifstream);
         pifs->open(_rthis.p);
-        
-        if constexpr (!Reflector::is_const_reflector){
+
+        if constexpr (!Reflector::is_const_reflector) {
             _rs.add(
                 [&_rthis](Reflector& _rs, Context& _rctx) {
-                    auto progress_lambda = [](Context &_rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+                    auto progress_lambda = [](Context& _rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                         //NOTE: here you can use context.anyTuple for actual implementation
                         solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
                     };
-                    
-                    _rs.add(_rthis.oss, _rctx, 20, "stream", [progress_lambda](auto &_rmeta){
-                        _rmeta.progressFunction(progress_lambda).maxSize(1024*128);
+
+                    _rs.add(_rthis.oss, _rctx, 20, "stream", [progress_lambda](auto& _rmeta) {
+                        _rmeta.progressFunction(progress_lambda).maxSize(1024 * 128);
                     });
-                    
-                }, _rctx);
-        }else{
+                },
+                _rctx);
+        } else {
             _rs.add(
                 [pifs = std::move(pifs)](Reflector& _rs, Context& _rctx) mutable {
-                    auto progress_lambda = [](Context &_rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+                    auto progress_lambda = [](Context& _rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                         //NOTE: here you can use context.anyTuple for actual implementation
                     };
-                    _rs.add(*pifs, _rctx, 20, "stream", [progress_lambda](auto &_rmeta){_rmeta.progressFunction(progress_lambda).maxSize(1024*128);});
-                }, _rctx
-            );
+                    _rs.add(*pifs, _rctx, 20, "stream", [progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda).maxSize(1024 * 128); });
+                },
+                _rctx);
         }
-        
+
         _rs.add(_rthis.m, _rctx, 5, "m");
         _rs.add(_rthis.s, _rctx, 6, "s");
-        _rs.add(_rthis.um, _rctx, 7, "um", [](auto &_rmeta){_rmeta.maxSize(11);});
+        _rs.add(_rthis.um, _rctx, 7, "um", [](auto& _rmeta) { _rmeta.maxSize(11); });
         _rs.add(_rthis.us, _rctx, 8, "us");
         _rs.add(_rthis.a, _rctx, 9, "a");
-        _rs.add(_rthis.vb, _rctx, 10, "vb", [](auto &_rmeta){_rmeta.maxSize(100);});
+        _rs.add(_rthis.vb, _rctx, 10, "vb", [](auto& _rmeta) { _rmeta.maxSize(100); });
         _rs.add(_rthis.bs, _rctx, 11, "bs");
         _rs.add(_rthis.vc, _rctx, 12, "vc");
         _rs.add(_rthis.a1, _rctx, 13, "a1");
-        
+
         _rs.add(_rthis.a2_sz, _rctx, 14, "a2_sz");
-        
-        _rs.add([&_rthis](Reflector &_rs, Context &_rctx){
-                _rs.add(_rthis.a2, _rctx, 15, "a2", [&_rthis](auto &_rmeta){_rmeta.size(_rthis.a2_sz);});
-        }, _rctx);
-        
-        
+
+        _rs.add([&_rthis](Reflector& _rs, Context& _rctx) {
+            _rs.add(_rthis.a2, _rctx, 15, "a2", [&_rthis](auto& _rmeta) { _rmeta.size(_rthis.a2_sz); });
+        },
+            _rctx);
+
         //_rs.add(blob, blob_sz, BlobCapacity, _rctx, "blob");
         //_rs.add(blob32, blob32_sz, sizeof(uint32_t), _rctx, "blob32");
         //_rs.add(blob64, blob64_sz, sizeof(uint64_t), _rctx, "blob64");
@@ -319,16 +319,14 @@ int test_binary(int argc, char* argv[])
         archive_path = argv[3];
     }
 
-    using ContextT = Context;
-    using SerializerT = serialization::v3::binary::Serializer<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT, uint8_t>;
+    using ContextT      = Context;
+    using SerializerT   = serialization::v3::binary::Serializer<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT, uint8_t>;
     using DeserializerT = serialization::v3::binary::Deserializer<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT, uint8_t>;
-    
+
     const reflection::TypeMap<SerializerT, DeserializerT> key_type_map{
-        [](auto &_rmap){
+        [](auto& _rmap) {
             _rmap.template registerType<Test>(0, 1, "Test");
-            
-        }
-    };
+        }};
 
     {
         const Test                  t{true, input_file_path};
@@ -341,7 +339,7 @@ int test_binary(int argc, char* argv[])
 
         if (choice != 'l') {
             SerializerT ser{reflection::metadata::factory, key_type_map};
-            ofstream                       ofs;
+            ofstream    ofs;
 
             if (!archive_path.empty()) {
                 ofs.open(archive_path, ios_base::out | ios_base::binary);
@@ -351,7 +349,7 @@ int test_binary(int argc, char* argv[])
 
             ser.run(
                 ros,
-                [&t, &tp, &tup, &sp1, &up1](SerializerT & ser, ContextT& _rctx) {
+                [&t, &tp, &tup, &sp1, &up1](SerializerT& ser, ContextT& _rctx) {
                     ser.add(t, _rctx, 1, "t").add(tp, _rctx, 2, "tp").add(tup, _rctx, 3, "tup").add(sp1, _rctx, 4, "sp1").add(up1, _rctx, 5, "up1");
                 },
                 ctx);
@@ -370,7 +368,7 @@ int test_binary(int argc, char* argv[])
                 solid_assert(ifs.is_open());
             }
 
-            istringstream                    iss(oss.str());
+            istringstream iss(oss.str());
             DeserializerT des{reflection::metadata::factory, key_type_map};
 
             istream& ris = ifs.is_open() ? static_cast<istream&>(std::ref(ifs)) : static_cast<istream&>(std::ref(iss));

@@ -24,7 +24,7 @@ using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
 //-----------------------------------------------------------------------------
 struct Parameters {
     Parameters()
-        : server_addr("127.0.0.1:3333")//use IP instead of name
+        : server_addr("127.0.0.1:3333") //use IP instead of name
     {
     }
 
@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
 {
     Parameters p;
 
-    solid::log_start(std::cerr, {"solid::frame::mprpc:VIEW", "\\*:VIEW"/*, ".*:VIEW"*/});
+    solid::log_start(std::cerr, {"solid::frame::mprpc:VIEW", "\\*:VIEW" /*, ".*:VIEW"*/});
 
     if (!parseArguments(p, argc, argv))
         return 0;
@@ -82,16 +82,15 @@ int main(int argc, char* argv[])
         scheduler.start(1);
 
         {
-            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
-                [&](auto &_rmap){
-                    auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const &_rtype){
+                [&](auto& _rmap) {
+                    auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
                         using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
                         _rmap.template registerMessage<TypeT>(_id, _name, rpc_echo_client::complete_message<TypeT>);
                     };
                     rpc_echo::configure_protocol(lambda);
-                }
-            );
+                });
             frame::mprpc::Configuration cfg(scheduler, proto);
 
             cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, "3333");

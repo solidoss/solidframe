@@ -102,23 +102,21 @@ ErrorConditionT start(
     pctx = &_rctx;
 
     if (!mprpcclient_ptr) { //mprpc client initialization
-        auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, TypeIdT>(
+        auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, TypeIdT>(
             reflection::v1::metadata::factory,
-            [](auto &_rmap){
-                auto lambda = [&](const TypeIdT _id, const std::string_view _name, auto const &_rtype){
+            [](auto& _rmap) {
+                auto lambda = [&](const TypeIdT _id, const std::string_view _name, auto const& _rtype) {
                     using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
-                    if constexpr (std::is_same_v<TypeT, beta_protocol::FirstMessage>){
-                         _rmap.template registerMessage<TypeT>(_id, _name, complete_message_first);
-                    }else if constexpr (std::is_same_v<TypeT, beta_protocol::SecondMessage>){
-                         _rmap.template registerMessage<TypeT>(_id, _name, complete_message_second);
-                    }else if constexpr (std::is_same_v<TypeT, beta_protocol::ThirdMessage>){
-                         _rmap.template registerMessage<TypeT>(_id, _name, complete_message_third);
+                    if constexpr (std::is_same_v<TypeT, beta_protocol::FirstMessage>) {
+                        _rmap.template registerMessage<TypeT>(_id, _name, complete_message_first);
+                    } else if constexpr (std::is_same_v<TypeT, beta_protocol::SecondMessage>) {
+                        _rmap.template registerMessage<TypeT>(_id, _name, complete_message_second);
+                    } else if constexpr (std::is_same_v<TypeT, beta_protocol::ThirdMessage>) {
+                        _rmap.template registerMessage<TypeT>(_id, _name, complete_message_third);
                     }
-                   
                 };
                 beta_protocol::configure_protocol(lambda);
-            }
-        );
+            });
         frame::mprpc::Configuration cfg(_rctx.rsched, proto);
 
         cfg.connection_stop_fnc         = &client_connection_stop;

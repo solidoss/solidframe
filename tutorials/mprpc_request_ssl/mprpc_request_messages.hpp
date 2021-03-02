@@ -313,7 +313,6 @@ struct Response : solid::frame::mprpc::Message {
     }
 };
 
-
 template <class Reg>
 inline void configure_protocol(Reg _rreg)
 {

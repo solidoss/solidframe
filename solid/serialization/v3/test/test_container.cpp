@@ -104,18 +104,16 @@ int test_container(int /*argc*/, char* /*argv*/[])
 
     solid::log_start(std::cerr, {".*:VIEW"});
 
-    using ContextT = Context;
-    using SerializerT = serialization::v3::binary::Serializer<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT, uint8_t>;
+    using ContextT      = Context;
+    using SerializerT   = serialization::v3::binary::Serializer<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT, uint8_t>;
     using DeserializerT = serialization::v3::binary::Deserializer<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT, uint8_t>;
-    
+
     const reflection::TypeMap<SerializerT, DeserializerT> key_type_map{
-        [](auto &_rmap){
+        [](auto& _rmap) {
             _rmap.template registerType<Test>(0, 1, "Test");
-            
-        }
-    };
-    string   test_data;
-    
+        }};
+    string test_data;
+
     { //serialization
         Context     ctx;
         SerializerT ser{reflection::metadata::factory, key_type_map};

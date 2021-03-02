@@ -133,10 +133,9 @@ struct Context {
 frame::mprpc::ConnectionContext& mprpcconctx(frame::mprpc::TestEntryway::createContext());
 auto                             mprpcprotocol = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
     reflection::v1::metadata::factory,
-    [](auto &_rmap){
+    [](auto& _rmap) {
         _rmap.template registerMessage<Message>(1, "Message", complete_message);
-    }
-);
+    });
 
 template <class ProtocolT>
 struct Sender : frame::mprpc::MessageWriter::Sender {

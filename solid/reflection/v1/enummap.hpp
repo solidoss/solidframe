@@ -10,62 +10,63 @@
 
 #pragma once
 
-
-#include <string_view>
 #include <initializer_list>
-#include <unordered_map>
-#include <type_traits>
 #include <string_view>
+#include <type_traits>
+#include <unordered_map>
 
 #include "solid/utility/common.hpp"
 
-namespace solid{
-namespace reflection{
-namespace v1{
+namespace solid {
+namespace reflection {
+namespace v1 {
 
-class EnumMap: NonCopyable{
-    using DirectMapT = std::unordered_map<int64_t, std::string_view>;
+class EnumMap : NonCopyable {
+    using DirectMapT  = std::unordered_map<int64_t, std::string_view>;
     using ReverseMapT = std::unordered_map<std::string_view, int64_t>;
-    
-    DirectMapT direct_map_;
+
+    DirectMapT  direct_map_;
     ReverseMapT reverse_map_;
+
 public:
     template <class T>
     using InitListT = std::initializer_list<std::pair<T, const char*>>;
-    
+
     template <class T>
-    EnumMap(TypeToType<T> _t, InitListT<T> _init_list){
+    EnumMap(TypeToType<T> _t, InitListT<T> _init_list)
+    {
         static_assert(std::is_enum_v<T>, "T must be an enum");
-        
-        for(const auto &item: _init_list){
+
+        for (const auto& item : _init_list) {
             direct_map_.emplace(static_cast<int64_t>(static_cast<std::underlying_type_t<T>>(item.first)), item.second);
             reverse_map_.emplace(item.second, static_cast<int64_t>(static_cast<std::underlying_type_t<T>>(item.first)));
         }
     }
     template <class T>
-    const char* get(const T _key)const{
+    const char* get(const T _key) const
+    {
         static_assert(std::is_enum_v<T>, "T must be an enum");
         const auto it = direct_map_.find(static_cast<int64_t>(static_cast<std::underlying_type_t<T>>(_key)));
-        if(it != direct_map_.end()){
+        if (it != direct_map_.end()) {
             return it->second.data();
-        }else{
+        } else {
             return nullptr;
         }
     }
-    
+
     template <class T>
-    T get(std::string_view _name)const{
+    T get(std::string_view _name) const
+    {
         static_assert(std::is_enum_v<T>, "T must be an enum");
         const auto it = reverse_map_.find(_name);
-        if(it != reverse_map_.end()){
+        if (it != reverse_map_.end()) {
             return it->second;
-        }else{
+        } else {
             return nullptr;
         }
     }
 };
 
-}//namespace v1
-}//namespace reflection
-}//namespace solid
-
+} //namespace v1
+} //namespace reflection
+} //namespace solid

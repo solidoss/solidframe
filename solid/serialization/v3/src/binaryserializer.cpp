@@ -18,7 +18,7 @@ namespace v3 {
 namespace binary {
 
 //== Serializer  ==============================================================
-SerializerBase::SerializerBase(const reflection::v1::TypeMapBase * const _ptype_map)
+SerializerBase::SerializerBase(const reflection::v1::TypeMapBase* const _ptype_map)
     : ptype_map_(_ptype_map)
     , pbeg_(nullptr)
     , pend_(nullptr)
@@ -31,7 +31,7 @@ std::ostream& SerializerBase::run(std::ostream& _ros, void* _pctx)
 {
     const size_t buf_cap = 8 * 1024;
     char         buf[buf_cap];
-    ptrdiff_t         len;
+    ptrdiff_t    len;
 
     clear();
 

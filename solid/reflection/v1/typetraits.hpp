@@ -11,9 +11,9 @@
 
 #include "solid/utility/typetraits.hpp"
 
-namespace solid{
-namespace reflection{
-namespace v1{
+namespace solid {
+namespace reflection {
+namespace v1 {
 
 template <typename T, typename _ = void>
 struct is_reflective : std::false_type {
@@ -55,19 +55,25 @@ struct is_output_reflector<
         void>::type> : public std::true_type {
 };
 
-template <class ...Args>
+template <class... Args>
 struct is_empty_pack;
 
 template <>
-struct is_empty_pack<>:std::true_type{};
+struct is_empty_pack<> : std::true_type {
+};
 
-template <class ...Args>
-struct is_empty_pack: std::false_type{};
+template <class... Args>
+struct is_empty_pack : std::false_type {
+};
 
-template <typename> struct is_tuple: std::false_type {};
+template <typename>
+struct is_tuple : std::false_type {
+};
 
-template <typename ...T> struct is_tuple<std::tuple<T...>>: std::true_type {};
+template <typename... T>
+struct is_tuple<std::tuple<T...>> : std::true_type {
+};
 
-}//namespace v1
-}//namespace reflection
-}//namespace solid
+} //namespace v1
+} //namespace reflection
+} //namespace solid

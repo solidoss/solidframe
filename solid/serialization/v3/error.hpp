@@ -27,4 +27,3 @@ extern const ErrorConditionT error_unknown_type;
 } //namespace v3
 } //namespace serialization
 } //namespace solid
-

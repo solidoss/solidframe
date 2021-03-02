@@ -115,7 +115,7 @@ class DeserializerBase : public Base {
     using RunListIteratorT = std::list<Runnable>::const_iterator;
 
 protected:
-    DeserializerBase(const reflection::v1::TypeMapBase * const _ptype_map);
+    DeserializerBase(const reflection::v1::TypeMapBase* const _ptype_map);
 
 public:
     static constexpr bool is_const_reflector = false;
@@ -274,7 +274,7 @@ public:
     }
 
     template <class D, class F, class Ctx>
-    void addFunction(D& _rd, F &&_f, Ctx& _rctx, const char* _name)
+    void addFunction(D& _rd, F&& _f, Ctx& _rctx, const char* _name)
     {
         solid_dbg(logger, Info, _name);
         if (isRunEmpty()) {
@@ -286,9 +286,9 @@ public:
                 _name,
                 [_f = std::move(_f)](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
                     const RunListIteratorT old_sentinel = _rd.sentinel();
-                    
+
                     _f(static_cast<D&>(_rd), *static_cast<Ctx*>(_pctx));
-                    
+
                     const bool is_run_empty = _rd.isRunEmpty();
                     _rd.sentinel(old_sentinel);
                     if (is_run_empty) {
@@ -468,7 +468,7 @@ public:
             const RunListIteratorT old_sentinel = _rd.sentinel();
 
             while (_rd.pcrt_ != _rd.pend_ && _rr.size_ != 0) {
-                rd.add(value, rctx, 0, _rr.name_);//TODO: use a propper index
+                rd.add(value, rctx, 0, _rr.name_); //TODO: use a propper index
                 --_rr.size_;
 
                 if (_rd.isRunEmpty()) {
@@ -539,7 +539,7 @@ public:
     void addArray(D& _rd, std::array<T, N>& _rc, const size_t _max_size, C& _rctx, const char* _name)
     {
         _rd.addBasicWithCheck(data_.u64_, _name);
-        
+
         {
             Runnable r{&_rc, load_array_start<D, T, N, C>, 0, 0, _max_size, _name};
 
@@ -574,6 +574,7 @@ public:
             schedule(std::move(r));
         }
     }
+
 protected:
     void doPrepareRun(const char* _pbeg, unsigned _sz)
     {
@@ -582,13 +583,14 @@ protected:
         pcrt_ = _pbeg;
     }
     ptrdiff_t doRun(void* _pctx = nullptr);
-    void baseError(const ErrorConditionT& _err)
+    void      baseError(const ErrorConditionT& _err)
     {
         if (!error_) {
             error_ = _err;
             pcrt_ = pbeg_ = pend_ = nullptr;
         }
     }
+
 private:
     friend class TypeMapBase;
     void tryRun(Runnable&& _ur, void* _pctx = nullptr);
@@ -859,11 +861,11 @@ private:
     template <class D, class T, size_t N, class C>
     static ReturnE load_array_start(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
     {
-        if(_rr.limit_ != 0 && _rd.data_.u64_ > _rr.limit_){
+        if (_rr.limit_ != 0 && _rd.data_.u64_ > _rr.limit_) {
             _rd.baseError(error_limit_array);
             return ReturnE::Done;
         }
-        
+
         _rr.size_ = _rd.data_.u64_;
         _rr.data_ = 0;
         _rr.call_ = load_array_continue<D, T, N, C>;
@@ -880,7 +882,7 @@ private:
         const RunListIteratorT old_sentinel = _rd.sentinel();
 
         while (_rd.pcrt_ != _rd.pend_ && _rr.data_ < _rr.size_) {
-            rd.add(rcontainer[static_cast<size_t>(_rr.data_)], rctx, 0, _rr.name_);//TODO: add propper index
+            rd.add(rcontainer[static_cast<size_t>(_rr.data_)], rctx, 0, _rr.name_); //TODO: add propper index
             ++_rr.data_;
         }
 
@@ -1043,7 +1045,8 @@ protected:
         uint64_t u64_;
         void*    p_;
     } data_;
-    const reflection::v1::TypeMapBase *const ptype_map_;
+    const reflection::v1::TypeMapBase* const ptype_map_;
+
 private:
     const char*      pbeg_;
     const char*      pend_;
@@ -1052,48 +1055,56 @@ private:
     RunListIteratorT sentinel_;
 }; // namespace solid
 
-
 template <class MetadataVariant, class MetadataFactory, class Context, typename TypeId>
-class Deserializer: public DeserializerBase{
-    TypeId                      type_id_;
-    const MetadataFactory       &rmetadata_factory_;
+class Deserializer : public DeserializerBase {
+    TypeId                 type_id_;
+    const MetadataFactory& rmetadata_factory_;
+
 public:
     using ContextT = Context;
-    using ThisT = Deserializer<MetadataVariant, MetadataFactory, Context, TypeId>;
-    
-    
+    using ThisT    = Deserializer<MetadataVariant, MetadataFactory, Context, TypeId>;
+
     Deserializer(
-        MetadataFactory &_rmetadata_factory, const reflection::v1::TypeMapBase &_rtype_map
-    ):DeserializerBase(&_rtype_map), rmetadata_factory_(_rmetadata_factory){}
-    
+        MetadataFactory& _rmetadata_factory, const reflection::v1::TypeMapBase& _rtype_map)
+        : DeserializerBase(&_rtype_map)
+        , rmetadata_factory_(_rmetadata_factory)
+    {
+    }
+
     Deserializer(
-        MetadataFactory &_rmetadata_factory
-    ):DeserializerBase(nullptr), rmetadata_factory_(_rmetadata_factory){}
-    
+        MetadataFactory& _rmetadata_factory)
+        : DeserializerBase(nullptr)
+        , rmetadata_factory_(_rmetadata_factory)
+    {
+    }
+
     template <typename T, typename F>
-    auto& add(T &_rt, Context &_rctx, const size_t _id, const char *const _name, F _f){
+    auto& add(T& _rt, Context& _rctx, const size_t _id, const char* const _name, F _f)
+    {
         auto meta = rmetadata_factory_(_rt, _rctx, this->ptype_map_);
         _f(meta);
-        
+
         addDispatch(meta, _rt, _rctx, _id, _name);
         return *this;
     }
 
     template <typename T>
-    auto& add(T &_rt, Context &_rctx, const size_t _id, const char * const _name){
+    auto& add(T& _rt, Context& _rctx, const size_t _id, const char* const _name)
+    {
         auto meta = rmetadata_factory_(_rt, _rctx, this->ptype_map_);
         addDispatch(meta, _rt, _rctx, _id, _name);
         return *this;
     }
-    
+
     template <typename T>
-    auto& add(T &&_rt, Context &_rctx){
+    auto& add(T&& _rt, Context& _rctx)
+    {
         //static_assert(std::is_invocable_v<T, ThisT &, Context&>, "Parameter should be invocable");
         //std::invoke(_rt, *this, _rctx);
         this->addFunction(*this, std::forward<T>(_rt), _rctx, "function");
         return *this;
     }
-    
+
 #if 0
     template <typename F>
     ThisT& add(std::ostream& _ros, F _f, Ctx& _rctx, const char* _name)
@@ -1241,62 +1252,64 @@ public:
     {
         return Base::error();
     }
+
 private:
     template <class Meta, class T>
-    void addDispatch(const Meta &_meta, T &_rt, ContextT &_rctx, const size_t _id, const char *const _name){
+    void addDispatch(const Meta& _meta, T& _rt, ContextT& _rctx, const size_t _id, const char* const _name)
+    {
         static_assert(!std::is_base_of_v<std::istream, T>, "Cannot use std::istream with Deserializer");
-        if constexpr (!is_shared_ptr_v<T> && !is_unique_ptr_v<T>){
+        if constexpr (!is_shared_ptr_v<T> && !is_unique_ptr_v<T>) {
             static_assert(!std::is_pointer_v<T>, "Naked pointer are not supported - use std::shared_ptr or std::unique_ptr");
         }
         static_assert(!std::is_array_v<T>, "C style arrays not supported");
         static_assert(!std::is_floating_point_v<T>, "Floating point values not supported");
-        
-        if constexpr (std::is_base_of_v<std::ostream, T>){
+
+        if constexpr (std::is_base_of_v<std::ostream, T>) {
             addStream(const_cast<T&>(_rt), _meta.max_size_, _meta.progress_function_, _rctx, _id, _name);
-        }else if constexpr (std::is_integral_v<T>){
+        } else if constexpr (std::is_integral_v<T>) {
             addBasic(_rt, _name);
-        }else if constexpr (is_bitset_v<T>){
+        } else if constexpr (is_bitset_v<T>) {
             addBitset(_rt, _name);
-        }else if constexpr (is_shared_ptr_v<T> || is_unique_ptr_v<T>){
-            const auto *ptypemap = _meta.map();
+        } else if constexpr (is_shared_ptr_v<T> || is_unique_ptr_v<T>) {
+            const auto* ptypemap = _meta.map();
             solid_assert(ptypemap != nullptr);
             add(type_id_, _rctx, 1, "type_id");
             add(
-                [ptypemap, &_rt, this](ThisT &_rthis, ContextT &_rctx){
+                [ptypemap, &_rt, this](ThisT& _rthis, ContextT& _rctx) {
                     size_t category = 0;
                     size_t index;
-                    if constexpr (is_std_pair_v<TypeId>){
+                    if constexpr (is_std_pair_v<TypeId>) {
                         category = static_cast<size_t>(type_id_.first);
-                        index = static_cast<size_t>(type_id_.second);
-                    }else{
+                        index    = static_cast<size_t>(type_id_.second);
+                    } else {
                         index = static_cast<size_t>(type_id_);
                     }
-                    if(index != 0){
+                    if (index != 0) {
                         const auto rv = ptypemap->createAndReflect(_rthis, _rt, _rctx, category, index);
-                        if(rv == 0 && index != 0){
+                        if (rv == 0 && index != 0) {
                             baseError(error_unknown_type);
                         }
-                    }else{
+                    } else {
                         //nullptr
                         _rt.reset();
                     }
-                }, _rctx
-            );
-            
-        }else if constexpr (std::is_same_v<T, std::string>){
+                },
+                _rctx);
+
+        } else if constexpr (std::is_same_v<T, std::string>) {
             addBasic(_rt, _meta.max_size_, _name);
-        }else if constexpr (std::is_same_v<T, std::vector<char>>){
+        } else if constexpr (std::is_same_v<T, std::vector<char>>) {
             addVectorChar(_rt, _meta.max_size_, _name);
-        }else if constexpr (std::is_same_v<T, std::vector<bool>>){
+        } else if constexpr (std::is_same_v<T, std::vector<bool>>) {
             addVectorBool(_rt, _meta.max_size_, _name);
-        }else if constexpr (is_std_array_v<T>){
+        } else if constexpr (is_std_array_v<T>) {
             addArray(*this, _rt, _meta.max_size_, _rctx, _name);
-        }else if constexpr (std::is_array_v<T>){
-            
+        } else if constexpr (std::is_array_v<T>) {
+
             //TODO:
-        }else if constexpr (is_container_v<T>){
+        } else if constexpr (is_container_v<T>) {
             addContainer(*this, _rt, _meta.max_size_, _rctx, _name);
-        }else{
+        } else {
             using namespace solid::reflection::v1;
             solidReflectV1(*this, _rt, _rctx);
         }
@@ -1319,4 +1332,3 @@ inline std::istream& operator>>(std::istream& _ris, std::pair<D&, typename D::Co
 } // namespace v3
 } // namespace serialization
 } // namespace solid
-

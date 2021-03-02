@@ -122,16 +122,15 @@ using namespace versioning::v1;
 
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port)
 {
-    auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+    auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
         reflection::v1::metadata::factory,
-        [&](auto &_rmap){
-            auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const &_rtype){
+        [&](auto& _rmap) {
+            auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
                 using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
                 _rmap.template registerMessage<TypeT>(_id, _name, complete_message<TypeT>);
             };
             configure_protocol(lambda);
-        }
-    );
+        });
     frame::mprpc::Configuration cfg(_rsch, proto);
 
     cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(_rrsv, _server_port.c_str());
@@ -189,16 +188,15 @@ using namespace versioning::v2;
 
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port)
 {
-    auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+    auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
         reflection::v1::metadata::factory,
-        [&](auto &_rmap){
-            auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const &_rtype){
+        [&](auto& _rmap) {
+            auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
                 using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
                 _rmap.template registerMessage<TypeT>(_id, _name, complete_message<TypeT>);
             };
             configure_protocol(lambda);
-        }
-    );
+        });
     frame::mprpc::Configuration cfg(_rsch, proto);
 
     cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(_rrsv, _server_port.c_str());
@@ -259,16 +257,15 @@ using namespace versioning::v3;
 
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port)
 {
-    auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+    auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
         reflection::v1::metadata::factory,
-        [&](auto &_rmap){
-            auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const &_rtype){
+        [&](auto& _rmap) {
+            auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
                 using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
                 _rmap.template registerMessage<TypeT>(_id, _name, complete_message<TypeT>);
             };
             configure_protocol(lambda);
-        }
-    );
+        });
     frame::mprpc::Configuration cfg(_rsch, proto);
     cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(_rrsv, _server_port.c_str());
 
@@ -289,7 +286,7 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
                 }
             }
         };
-        
+
         _rctx.anyTuple() = std::make_tuple(version);
         _rctx.service().sendRequest(_rctx.recipientId(), req_ptr, lambda);
     };
@@ -329,16 +326,15 @@ using namespace versioning::v4;
 
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port)
 {
-    auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+    auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
         reflection::v1::metadata::factory,
-        [&](auto &_rmap){
-            auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const &_rtype){
+        [&](auto& _rmap) {
+            auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
                 using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
                 _rmap.template registerMessage<TypeT>(_id, _name, complete_message<TypeT>);
             };
             configure_protocol(lambda);
-        }
-    );
+        });
     frame::mprpc::Configuration cfg(_rsch, proto);
 
     cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(_rrsv, _server_port.c_str());
@@ -412,28 +408,26 @@ void complete_message(
     ErrorConditionT const& /*_rerror*/)
 {
     solid_log(logger, Info, "Init request: peer [" << _rrecv_msg_ptr->version_.version_ << ']');
-    
+
     auto res_ptr = std::make_shared<InitResponse>(*_rrecv_msg_ptr);
-    
-     _rctx.anyTuple() = std::make_tuple(_rrecv_msg_ptr->version_);
-                        
-    if(
-        _rrecv_msg_ptr->version_ <= version
-    ){
+
+    _rctx.anyTuple() = std::make_tuple(_rrecv_msg_ptr->version_);
+
+    if (
+        _rrecv_msg_ptr->version_ <= version) {
         res_ptr->error_ = 0;
-        auto lambda = [response_ptr = std::move(res_ptr)](frame::mprpc::ConnectionContext& _rctx, ErrorConditionT const& _rerror) mutable {
+        auto lambda     = [response_ptr = std::move(res_ptr)](frame::mprpc::ConnectionContext& _rctx, ErrorConditionT const& _rerror) mutable {
             solid_check(!_rerror, "error activating connection: " << _rerror.message());
 
             _rctx.service().sendResponse(_rctx.recipientId(), response_ptr);
         };
         _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
-    }else{
+    } else {
         res_ptr->error_   = 1;
         res_ptr->message_ = "unsupported version";
         _rctx.service().sendResponse(_rctx.recipientId(), res_ptr);
-        _rctx.service().delayCloseConnectionPool(_rctx.recipientId(),[](frame::mprpc::ConnectionContext& /*_rctx*/){});
+        _rctx.service().delayCloseConnectionPool(_rctx.recipientId(), [](frame::mprpc::ConnectionContext& /*_rctx*/) {});
     }
-
 }
 
 template <>
@@ -443,7 +437,7 @@ void complete_message(
     std::shared_ptr<Request>& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
-    
+
     if (_rctx.anyTuple().getIf<Version>()->version_ == 2) {
         //need to send back Response2
         auto res_ptr    = std::make_shared<Response2>(*_rrecv_msg_ptr);
@@ -470,20 +464,17 @@ void complete_message(
     //catch all
 }
 
-
-
 string configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch)
 {
-    auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+    auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
         reflection::v1::metadata::factory,
-        [&](auto &_rmap){
-            auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const &_rtype){
+        [&](auto& _rmap) {
+            auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
                 using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
                 _rmap.template registerMessage<TypeT>(_id, _name, complete_message<TypeT>);
             };
             configure_protocol(lambda);
-        }
-    );
+        });
     frame::mprpc::Configuration cfg(_rsch, proto);
 
     cfg.server.listener_address_str   = "0.0.0.0:0";

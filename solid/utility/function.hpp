@@ -338,7 +338,7 @@ public:
         *this = ThisT{_other};
         return *this;
     }
-    
+
     ThisT& operator=(ThisT&& _other)
     {
         reset();

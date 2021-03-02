@@ -74,9 +74,9 @@ struct Activate : frame::mprpc::Message {
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
         using ReflectorT = decay_t<decltype(_rr)>;
-        
+
         _rr.add(_rthis.idx, _rctx, 0, "idx").add(_rthis.str, _rctx, 1, "str");
-        
+
         if constexpr (ReflectorT::is_const_reflector) {
             _rthis.serialized = true;
         }
@@ -224,12 +224,11 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
         sch_server.start(1);
 
         { //mprpc server initialization
-            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
-                [&](auto &_rmap){
+                [&](auto& _rmap) {
                     _rmap.template registerMessage<Activate>(1, "Activate", server_complete_message);
-                }
-            );
+                });
             frame::mprpc::Configuration cfg(sch_server, proto);
 
             //cfg.recv_buffer_capacity = 1024;

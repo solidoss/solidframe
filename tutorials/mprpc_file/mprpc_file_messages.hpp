@@ -63,10 +63,10 @@ struct FileRequest : solid::frame::mprpc::Message {
 };
 
 struct FileResponse : solid::frame::mprpc::Message {
-    std::string remote_path;
-    mutable int64_t     remote_file_size;
+    std::string           remote_path;
+    mutable int64_t       remote_file_size;
     mutable std::ifstream ifs;
-    std::ofstream ofs;
+    std::ofstream         ofs;
 
     FileResponse() {}
 
@@ -77,11 +77,11 @@ struct FileResponse : solid::frame::mprpc::Message {
         , remote_file_size(solid::InvalidSize())
     {
     }
-    
+
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        if constexpr( Reflector::is_const_reflector){
-            
+        if constexpr (Reflector::is_const_reflector) {
+
             _rthis.ifs.open(_rthis.remote_path);
             if (_rthis.ifs) {
                 std::streampos pos = _rthis.ifs.tellg();
@@ -90,35 +90,34 @@ struct FileResponse : solid::frame::mprpc::Message {
                 _rthis.ifs.seekg(pos);
                 _rthis.remote_file_size = endpos;
                 _rr.add(_rthis.remote_file_size, _rctx, 1, "remote_file_size");
-                
-                auto progress_lambda = [](Context &_rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+
+                auto progress_lambda = [](Context& _rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                     //NOTE: here you can use context.anyTuple for actual implementation
                 };
-                _rr.add(_rthis.ifs, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta){_rmeta.progressFunction(progress_lambda);});
-                
+                _rr.add(_rthis.ifs, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda); });
+
             } else {
                 _rthis.remote_file_size = solid::InvalidSize();
                 _rr.add(_rthis.remote_file_size, _rctx, 1, "remote_file_size");
             }
-        }else{
+        } else {
             _rr.add(_rthis.remote_file_size, _rctx, 1, "remote_file_size");
             _rr.add(
-                [&_rthis](Reflector &_rr, Context &_rctx){
-                    auto progress_lambda = [](Context &_rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+                [&_rthis](Reflector& _rr, Context& _rctx) {
+                    auto progress_lambda = [](Context& _rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                         //NOTE: here you can use context.anyTuple for actual implementation
                     };
-                    
+
                     if (_rthis.remote_file_size != solid::InvalidIndex()) {
                         const std::string* plocal_path = _rthis.localPath(_rctx);
                         if (plocal_path != nullptr) {
                             _rthis.ofs.open(*plocal_path);
                         }
-                    
-                        _rr.add(_rthis.ofs, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta){_rmeta.progressFunction(progress_lambda);});
+
+                        _rr.add(_rthis.ofs, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda); });
                     }
-                }, _rctx
-            );
-            
+                },
+                _rctx);
         }
     }
 

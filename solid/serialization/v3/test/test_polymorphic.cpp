@@ -144,23 +144,22 @@ int test_polymorphic(int /*argc*/, char* /*argv*/[])
 {
 
     solid::log_start(std::cerr, {".*:EWX"});
-    
-    using ContextT = solid::EmptyType;
-    using SerializerT = serialization::v3::binary::Serializer<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT, uint8_t>;
+
+    using ContextT      = solid::EmptyType;
+    using SerializerT   = serialization::v3::binary::Serializer<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT, uint8_t>;
     using DeserializerT = serialization::v3::binary::Deserializer<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT, uint8_t>;
-    
+
     const reflection::TypeMap<SerializerT, DeserializerT> key_type_map{
-        [](auto &_rmap){
+        [](auto& _rmap) {
             _rmap.template registerType<Command>(0, 1, "Command");
             _rmap.template registerType<OrKey, Key>(0, 2, "OrKey");
             _rmap.template registerType<OrVecKey, Key>(0, 3, "OrVec");
             _rmap.template registerType<IntKey, Key>(0, 4, "IntKey");
             _rmap.template registerType<StringKey, Key>(0, 5, "StringKey");
-        }
-    };
-    
-    string   check_data;
-    string   test_data;
+        }};
+
+    string check_data;
+    string test_data;
 
     { //serialization
         ContextT    ctx;

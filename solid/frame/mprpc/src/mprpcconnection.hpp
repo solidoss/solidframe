@@ -133,9 +133,9 @@ public:
     uint32_t& peerVersionMajor();
     uint32_t& peerVersionMinor();
 
-    Any<>& any();
+    Any<>&    any();
     AnyTuple& anyTuple();
-    
+
     const UniqueId& relayId() const;
 
     void relayId(const UniqueId& _relay_id);

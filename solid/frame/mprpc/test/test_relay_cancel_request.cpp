@@ -172,7 +172,7 @@ struct Message : frame::mprpc::Message {
     {
         return initarray[idx % initarraysize].cancel;
     }
-    
+
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
         _rr.add(_rthis.idx, _rctx, 1, "idx");
@@ -477,12 +477,11 @@ int test_relay_cancel_request(int argc, char* argv[])
                 }
             };
 
-            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
-                [&](auto &_rmap){
+                [&](auto& _rmap) {
                     _rmap.template registerMessage<Register>(1, "Register", con_register);
-                }
-            );
+                });
             frame::mprpc::Configuration cfg(sch_relay, relay_engine, proto);
 
             cfg.server.listener_address_str      = "0.0.0.0:0";
@@ -523,12 +522,11 @@ int test_relay_cancel_request(int argc, char* argv[])
         pmprpcpeerb = &mprpcpeerb;
 
         { //mprpc peera initialization
-            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
-                [&](auto &_rmap){
+                [&](auto& _rmap) {
                     _rmap.template registerMessage<Message>(2, "Message", peera_complete_message);
-                }
-            );
+                });
             frame::mprpc::Configuration cfg(sch_peera, proto);
 
             cfg.connection_stop_fnc           = &peera_connection_stop;
@@ -560,13 +558,12 @@ int test_relay_cancel_request(int argc, char* argv[])
         }
 
         { //mprpc peerb initialization
-            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
-                [&](auto &_rmap){
+                [&](auto& _rmap) {
                     _rmap.template registerMessage<Register>(1, "Register", peerb_complete_register);
                     _rmap.template registerMessage<Message>(2, "Message", peerb_complete_message);
-                }
-            );
+                });
             frame::mprpc::Configuration cfg(sch_peerb, proto);
 
             cfg.connection_stop_fnc         = &peerb_connection_stop;

@@ -84,18 +84,17 @@ int main(int argc, char* argv[])
         scheduler.start(1);
 
         {
-            auto                        proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
-                [&](auto &_rmap){
-                    auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const &_rtype){
+                [&](auto& _rmap) {
+                    auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
                         using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
                         _rmap.template registerMessage<TypeT>(_id, _name, rpc_file_client::complete_message<TypeT>);
                     };
                     rpc_file::configure_protocol(lambda);
-                }
-            );
+                });
             frame::mprpc::Configuration cfg(scheduler, proto);
-            
+
             cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, p.port.c_str());
 
             cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
