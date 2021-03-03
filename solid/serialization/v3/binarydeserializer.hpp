@@ -435,10 +435,10 @@ public:
     {
         solid_dbg(logger, Info, _name);
 
-        typename C::value_type value;
+        typename C::value_type value{};
         bool                   init          = true;
         bool                   parsing_value = false;
-        auto                   lambda        = [value, parsing_value, init](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
+        auto                   lambda        = [value = std::move(value), parsing_value, init](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
             C&   rcontainer = *static_cast<C*>(_rr.ptr_);
             D&   rd         = static_cast<D&>(_rd);
             Ctx& rctx       = *static_cast<Ctx*>(_pctx);
