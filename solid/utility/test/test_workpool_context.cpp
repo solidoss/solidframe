@@ -65,6 +65,7 @@ int test_workpool_context(int argc, char* argv[])
     if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }
+    fut.get();
     solid_log(logger, Verbose, "after async wait");
 
     return 0;

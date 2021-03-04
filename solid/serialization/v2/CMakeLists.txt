@@ -30,7 +30,7 @@ target_include_directories(solid_serialization_v2 PUBLIC
     PRIVATE src
 )
 
-target_link_libraries(solid_serialization_v2 solid_utility solid_system)
+target_link_libraries(solid_serialization_v2 PUBLIC solid_utility solid_system)
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/serialization/v2)
 install (TARGETS solid_serialization_v2 DESTINATION lib EXPORT SolidFrameConfig)

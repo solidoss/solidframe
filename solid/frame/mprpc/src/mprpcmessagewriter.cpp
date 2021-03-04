@@ -675,8 +675,8 @@ char* MessageWriter::doWriteMessageHead(
     _rsender.context().message_flags     = rmsgstub.msgbundle_.message_flags;
     _rsender.context().pmessage_url      = &rmsgstub.msgbundle_.message_url;
 
-    const long rv   = rmsgstub.state_ == MessageStub::StateE::WriteHeadStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos, rmsgstub.msgbundle_.message_ptr->header_) : rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
-    rmsgstub.state_ = MessageStub::StateE::WriteHeadContinue;
+    const ptrdiff_t rv = rmsgstub.state_ == MessageStub::StateE::WriteHeadStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos, rmsgstub.msgbundle_.message_ptr->header_) : rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
+    rmsgstub.state_    = MessageStub::StateE::WriteHeadContinue;
 
     if (rv >= 0) {
         _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(rv));
@@ -721,8 +721,8 @@ char* MessageWriter::doWriteMessageBody(
     _rsender.context().message_flags     = rmsgstub.msgbundle_.message_flags;
     _rsender.context().pmessage_url      = &rmsgstub.msgbundle_.message_url;
 
-    const long rv   = rmsgstub.state_ == MessageStub::StateE::WriteBodyStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos, rmsgstub.msgbundle_.message_ptr, rmsgstub.msgbundle_.message_type_id) : rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
-    rmsgstub.state_ = MessageStub::StateE::WriteBodyContinue;
+    const ptrdiff_t rv = rmsgstub.state_ == MessageStub::StateE::WriteBodyStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos, rmsgstub.msgbundle_.message_ptr, rmsgstub.msgbundle_.message_type_id) : rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
+    rmsgstub.state_    = MessageStub::StateE::WriteBodyContinue;
 
     if (rv >= 0) {
 
@@ -778,8 +778,8 @@ char* MessageWriter::doWriteRelayedHead(
     _rsender.context().message_flags.set(MessageFlagsE::Relayed);
     _rsender.context().pmessage_url = &rmsgstub.prelay_data_->pmessage_header_->url_;
 
-    const long rv   = rmsgstub.state_ == MessageStub::StateE::RelayedHeadStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos, *rmsgstub.prelay_data_->pmessage_header_) : rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
-    rmsgstub.state_ = MessageStub::StateE::RelayedHeadContinue;
+    const ptrdiff_t rv = rmsgstub.state_ == MessageStub::StateE::RelayedHeadStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos, *rmsgstub.prelay_data_->pmessage_header_) : rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
+    rmsgstub.state_    = MessageStub::StateE::RelayedHeadContinue;
 
     if (rv >= 0) {
         _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(rv));

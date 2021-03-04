@@ -193,7 +193,7 @@ RepresentationE do_move(
         _rpbig_rtti = &big_rtti<T, R, ArgTypes...>;
         return RepresentationE::Big;
     } else {
-        solid_throw("Any: contained value not movable");
+        solid_throw("Function: contained value not movable");
         return RepresentationE::None;
     }
 }
@@ -336,6 +336,13 @@ public:
     ThisT& operator=(const ThisT& _other)
     {
         *this = ThisT{_other};
+        return *this;
+    }
+
+    ThisT& operator=(ThisT&& _other)
+    {
+        reset();
+        doMoveFrom(_other);
         return *this;
     }
 

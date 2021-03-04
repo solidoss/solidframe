@@ -328,6 +328,13 @@ public:
         return *this;
     }
 
+    ThisT& operator=(ThisT&& _other)
+    {
+        reset();
+        doMoveFrom(_other);
+        return *this;
+    }
+
     template <size_t Sz>
     ThisT& operator=(const Any<Sz>& _other)
     {

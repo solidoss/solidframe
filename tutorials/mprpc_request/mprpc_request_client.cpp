@@ -29,7 +29,7 @@ struct Parameters {
 };
 
 //-----------------------------------------------------------------------------
-namespace ipc_request_client {
+namespace rpc_request_client {
 
 template <class M>
 void complete_message(
@@ -41,23 +41,15 @@ void complete_message(
     solid_check(false); //this method should not be called
 }
 
-struct MessageSetup {
-    template <class T>
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
-    {
-        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
-    }
-};
-
-} // namespace ipc_request_client
+} // namespace rpc_request_client
 
 namespace {
-ostream& operator<<(ostream& _ros, const ipc_request::Date& _rd)
+ostream& operator<<(ostream& _ros, const rpc_request::Date& _rd)
 {
     _ros << _rd.year << '.' << (int)_rd.month << '.' << (int)_rd.day;
     return _ros;
 }
-ostream& operator<<(ostream& _ros, const ipc_request::UserData& _rud)
+ostream& operator<<(ostream& _ros, const rpc_request::UserData& _rud)
 {
     _ros << _rud.full_name << ", " << _rud.email << ", " << _rud.country << ", " << _rud.city << ", " << _rud.birth_date;
     return _ros;
@@ -82,7 +74,7 @@ int main(int argc, char* argv[])
 
         AioSchedulerT          scheduler;
         frame::Manager         manager;
-        frame::mprpc::ServiceT ipcservice(manager);
+        frame::mprpc::ServiceT rpcservice(manager);
         CallPool<void()>       cwp{WorkPoolConfiguration(), 1};
         frame::aio::Resolver   resolver(cwp);
         ErrorConditionT        err;
@@ -90,19 +82,25 @@ int main(int argc, char* argv[])
         scheduler.start(1);
 
         {
-            auto                        proto = ipc_request::ProtocolT::create();
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto& _rmap) {
+                    auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
+                        using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
+                        _rmap.template registerMessage<TypeT>(_id, _name, rpc_request_client::complete_message<TypeT>);
+                    };
+                    rpc_request::configure_protocol(lambda);
+                });
             frame::mprpc::Configuration cfg(scheduler, proto);
-
-            ipc_request::protocol_setup(ipc_request_client::MessageSetup(), *proto);
 
             cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, p.port.c_str());
 
             cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
 
-            ipcservice.start(std::move(cfg));
+            rpcservice.start(std::move(cfg));
 
             if (err) {
-                cout << "Error starting ipcservice: " << err.message() << endl;
+                cout << "Error starting rpcservice: " << err.message() << endl;
                 return 1;
             }
         }
@@ -127,8 +125,8 @@ int main(int argc, char* argv[])
                     recipient   = line.substr(0, offset);
                     auto lambda = [](
                                       frame::mprpc::ConnectionContext&        _rctx,
-                                      std::shared_ptr<ipc_request::Request>&  _rsent_msg_ptr,
-                                      std::shared_ptr<ipc_request::Response>& _rrecv_msg_ptr,
+                                      std::shared_ptr<rpc_request::Request>&  _rsent_msg_ptr,
+                                      std::shared_ptr<rpc_request::Response>& _rrecv_msg_ptr,
                                       ErrorConditionT const&                  _rerror) {
                         if (_rerror) {
                             cout << "Error sending message to " << _rctx.recipientName() << ". Error: " << _rerror.message() << endl;
@@ -144,9 +142,9 @@ int main(int argc, char* argv[])
                         }
                     };
 
-                    auto req_ptr = make_shared<ipc_request::Request>(line.substr(offset + 1));
+                    auto req_ptr = make_shared<rpc_request::Request>(line.substr(offset + 1));
 
-                    ipcservice.sendRequest(
+                    rpcservice.sendRequest(
                         recipient.c_str(), req_ptr, lambda, 0);
                 } else {
                     cout << "No recipient specified. E.g:" << endl

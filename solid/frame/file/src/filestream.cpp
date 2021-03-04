@@ -127,7 +127,7 @@ void FileBuf::device(FilePointerT& _rptr)
 
 ssize_t FileBuf::writeAll(const char* _s, size_t _n)
 {
-    int     wcnt = 0;
+    ssize_t wcnt = 0;
     ssize_t rv;
     do {
         rv = dev->write(_s, _n, off);

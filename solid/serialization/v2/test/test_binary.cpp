@@ -1,4 +1,4 @@
-#include "solid/serialization/serialization.hpp"
+#include "solid/serialization/v2/serialization.hpp"
 #include "solid/serialization/v2/typetraits.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/utility/any.hpp"

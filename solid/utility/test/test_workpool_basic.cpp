@@ -59,6 +59,7 @@ int test_workpool_basic(int argc, char* argv[])
         }
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }
+    fut.get();
     solid_log(logger, Verbose, "after async wait");
 
     return 0;

@@ -24,7 +24,7 @@ using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
 //-----------------------------------------------------------------------------
 struct Parameters {
     Parameters()
-        : server_addr("localhost:3333")
+        : server_addr("127.0.0.1:3333") //use IP instead of name
     {
     }
 
@@ -32,7 +32,7 @@ struct Parameters {
 };
 
 //-----------------------------------------------------------------------------
-namespace ipc_echo_client {
+namespace rpc_echo_client {
 
 template <class M>
 void complete_message(
@@ -51,14 +51,7 @@ void complete_message(
     cout << "Received from " << _rctx.recipientName() << ": " << _rrecv_msg_ptr->str << endl;
 }
 
-struct MessageSetup {
-    void operator()(ipc_echo::ProtocolT& _rprotocol, TypeToType<ipc_echo::Message> _t2t, const ipc_echo::ProtocolT::TypeIdT& _rtid)
-    {
-        _rprotocol.registerMessage<ipc_echo::Message>(complete_message<ipc_echo::Message>, _rtid);
-    }
-};
-
-} // namespace ipc_echo_client
+} // namespace rpc_echo_client
 
 //-----------------------------------------------------------------------------
 
@@ -72,7 +65,7 @@ int main(int argc, char* argv[])
 {
     Parameters p;
 
-    solid::log_start(std::cerr, {"solid::frame::mprpc:VIEW", "\\*:VIEW"});
+    solid::log_start(std::cerr, {"solid::frame::mprpc:VIEW", "\\*:VIEW" /*, ".*:VIEW"*/});
 
     if (!parseArguments(p, argc, argv))
         return 0;
@@ -81,7 +74,7 @@ int main(int argc, char* argv[])
 
         AioSchedulerT          scheduler;
         frame::Manager         manager;
-        frame::mprpc::ServiceT ipcservice(manager);
+        frame::mprpc::ServiceT rpcservice(manager);
         CallPool<void()>       cwp{WorkPoolConfiguration(), 1};
         frame::aio::Resolver   resolver(cwp);
         ErrorConditionT        err;
@@ -89,20 +82,26 @@ int main(int argc, char* argv[])
         scheduler.start(1);
 
         {
-            auto                        proto = ipc_echo::ProtocolT::create();
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto& _rmap) {
+                    auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
+                        using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
+                        _rmap.template registerMessage<TypeT>(_id, _name, rpc_echo_client::complete_message<TypeT>);
+                    };
+                    rpc_echo::configure_protocol(lambda);
+                });
             frame::mprpc::Configuration cfg(scheduler, proto);
-
-            ipc_echo::protocol_setup(ipc_echo_client::MessageSetup(), *proto);
 
             cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, "3333");
 
             cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
 
-            ipcservice.start(std::move(cfg));
+            rpcservice.start(std::move(cfg));
         }
 
         frame::mprpc::RecipientId recipient_id;
-        ipcservice.createConnectionPool(
+        rpcservice.createConnectionPool(
             p.server_addr.c_str(),
             recipient_id,
             [](frame::mprpc::ConnectionContext& _rctx, Event&& _revt, const ErrorConditionT& _rerr) {
@@ -116,7 +115,7 @@ int main(int argc, char* argv[])
             if (line == "q" || line == "Q" || line == "quit") {
                 break;
             }
-            ipcservice.sendMessage(recipient_id, make_shared<ipc_echo::Message>(std::move(line)), {frame::mprpc::MessageFlagsE::AwaitResponse});
+            rpcservice.sendMessage(recipient_id, make_shared<rpc_echo::Message>(std::move(line)), {frame::mprpc::MessageFlagsE::AwaitResponse});
         }
     }
     return 0;

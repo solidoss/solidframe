@@ -1,9 +1,10 @@
-#include "solid/serialization/v1/binary.hpp"
 #include <iostream>
 #include <map>
 #include <memory>
 #include <sstream>
 #include <vector>
+
+#include "solid/serialization/v3/serialization.hpp"
 
 using namespace solid;
 using namespace std;
@@ -11,6 +12,9 @@ using namespace std;
 struct Key {
     virtual ~Key() {}
     virtual void print(ostream& _ros) const = 0;
+};
+
+struct TypeData {
 };
 
 struct OrKey : Key {
@@ -26,10 +30,9 @@ struct OrKey : Key {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s)
+    SOLID_REFLECT_V1(_s, _rthis, _rctx)
     {
-        _s.push(second, "second").push(first, "first");
+        _s.add(_rthis.first, _rctx, 1, "first").add(_rthis.second, _rctx, 2, "second");
     }
 
     void print(ostream& _ros) const override
@@ -57,10 +60,9 @@ struct OrVecKey : Key {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s)
+    SOLID_REFLECT_V1(_s, _rthis, _rctx)
     {
-        _s.pushContainer(keys, "keys");
+        _s.add(_rthis.keys, _rctx, 1, "keys");
     }
 
     void print(ostream& _ros) const override
@@ -83,10 +85,9 @@ struct IntKey : Key {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s)
+    SOLID_REFLECT_V1(_s, _rthis, _rctx)
     {
-        _s.push(v, "v");
+        _s.add(_rthis.v, _rctx, 1, "v");
     }
 
     void print(ostream& _ros) const override
@@ -104,10 +105,9 @@ struct StringKey : Key {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s)
+    SOLID_REFLECT_V1(_s, _rthis, _rctx)
     {
-        _s.push(v, "v");
+        _s.add(_rthis.v, _rctx, 1, "v");
     }
 
     void print(ostream& _ros) const override
@@ -127,10 +127,9 @@ struct Command {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s)
+    SOLID_REFLECT_V1(_s, _rthis, _rctx)
     {
-        _s.push(key, "key");
+        _s.add(_rthis.key, _rctx, 1, "key");
     }
 
     void print(ostream& _ros) const
@@ -141,34 +140,33 @@ struct Command {
     }
 };
 
-using SerializerT   = serialization::binary::Serializer<void>;
-using DeserializerT = serialization::binary::Deserializer<void>;
-using TypeIdMapT    = serialization::TypeIdMap<SerializerT, DeserializerT>;
-
-int test_polymorphic(int argc, char* argv[])
+int test_polymorphic(int /*argc*/, char* /*argv*/[])
 {
 
     solid::log_start(std::cerr, {".*:EWX"});
 
-    string     check_data;
-    string     test_data;
-    TypeIdMapT typemap;
+    using ContextT      = solid::EmptyType;
+    using SerializerT   = serialization::v3::binary::Serializer<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT, uint8_t>;
+    using DeserializerT = serialization::v3::binary::Deserializer<reflection::metadata::Variant<ContextT>, decltype(reflection::metadata::factory), ContextT, uint8_t>;
 
-    typemap.registerType<Command>(0 /*protocol ID*/);
-    typemap.registerType<OrKey>(0);
-    typemap.registerType<OrVecKey>(0);
-    typemap.registerType<IntKey>(0);
-    typemap.registerType<StringKey>(0);
-    typemap.registerCast<OrKey, Key>();
-    typemap.registerCast<OrVecKey, Key>();
-    typemap.registerCast<IntKey, Key>();
-    typemap.registerCast<StringKey, Key>();
+    const reflection::TypeMap<SerializerT, DeserializerT> key_type_map{
+        [](auto& _rmap) {
+            _rmap.template registerType<Command>(0, 1, "Command");
+            _rmap.template registerType<OrKey, Key>(0, 2, "OrKey");
+            _rmap.template registerType<OrVecKey, Key>(0, 3, "OrVec");
+            _rmap.template registerType<IntKey, Key>(0, 4, "IntKey");
+            _rmap.template registerType<StringKey, Key>(0, 5, "StringKey");
+        }};
+
+    string check_data;
+    string test_data;
 
     { //serialization
-        SerializerT ser(&typemap);
+        ContextT    ctx;
+        SerializerT ser{reflection::metadata::factory, key_type_map};
         const int   bufcp = 64;
         char        buf[bufcp];
-        int         rv;
+        long        rv;
 
         shared_ptr<Command> cmd_ptr = std::make_shared<Command>(
             std::make_shared<OrVecKey>(
@@ -191,20 +189,21 @@ int test_polymorphic(int argc, char* argv[])
 
         cout << "check_data = " << check_data << endl;
 
-        ser.push(cmd_ptr, "cmd_ptr");
+        ser.add(cmd_ptr, ctx, 1, "cmd_ptr");
 
-        while ((rv = ser.run(buf, bufcp)) > 0) {
+        while ((rv = ser.run(buf, bufcp, ctx)) > 0) {
             test_data.append(buf, rv);
         }
     }
     { //deserialization
-        DeserializerT des(&typemap);
+        ContextT      ctx;
+        DeserializerT des{reflection::metadata::factory, key_type_map};
 
         shared_ptr<Command> cmd_ptr;
 
-        des.push(cmd_ptr, "cmd_ptr");
+        des.add(cmd_ptr, ctx, 1, "cmd_ptr");
 
-        int rv = des.run(test_data.data(), test_data.size());
+        long rv = des.run(test_data.data(), test_data.size(), ctx);
 
         solid_check(rv == static_cast<int>(test_data.size()));
 

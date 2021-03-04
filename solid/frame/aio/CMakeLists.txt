@@ -40,7 +40,7 @@ target_include_directories(solid_frame_aio PUBLIC
 )
 
 
-target_link_libraries(solid_frame_aio solid_frame)
+target_link_libraries(solid_frame_aio PUBLIC solid_frame solid_utility solid_system)
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/frame/aio)
 install (TARGETS solid_frame_aio DESTINATION lib EXPORT SolidFrameConfig)

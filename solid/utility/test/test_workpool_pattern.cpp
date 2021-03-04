@@ -99,7 +99,7 @@ int test_workpool_pattern(int argc, char* argv[])
         }
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }
-
+    fut.get();
     solid_check(sum == check_sum, "sum = " << sum << " check_sum = " << check_sum);
 
     solid_log(logger, Verbose, "after async wait");

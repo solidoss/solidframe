@@ -1,9 +1,9 @@
 
 #pragma once
 
-#include <type_traits>
 #include <bitset>
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 namespace solid {
@@ -72,6 +72,9 @@ struct is_container<
         void>::type> : public std::true_type {
 };
 
+template <class T>
+inline constexpr bool is_container_v = is_container<T>::value;
+
 template <class F, class... Args>
 struct is_callable_helper {
     template <class U>
@@ -96,32 +99,59 @@ template <class _Type, template <class...> class _Template>
 struct is_specialization : std::bool_constant<is_specialization_v<_Type, _Template>> {
 };
 
+template <typename T>
+struct is_unique_ptr : std::false_type {
+};
 
 template <typename T>
-struct is_unique_ptr: std::false_type{};
-
-template <typename T>
-struct is_unique_ptr<std::unique_ptr<T>> : std::true_type{};
+struct is_unique_ptr<std::unique_ptr<T>> : std::true_type {
+};
 
 template <class T>
-struct is_shared_ptr: std::false_type{};
+struct is_shared_ptr : std::false_type {
+};
 
 template <typename T>
-struct is_shared_ptr<std::shared_ptr<T>> : std::true_type{};
+struct is_shared_ptr<std::shared_ptr<T>> : std::true_type {
+};
 
-template< class T >
+template <class T>
 inline constexpr bool is_unique_ptr_v = is_unique_ptr<T>::value;
 
-template< class T >
+template <class T>
 inline constexpr bool is_shared_ptr_v = is_shared_ptr<T>::value;
 
 template <typename T>
-struct is_bitset: std::false_type{};
+struct is_bitset : std::false_type {
+};
 
 template <size_t Sz>
-struct is_bitset<std::bitset<Sz>>: std::true_type{};
+struct is_bitset<std::bitset<Sz>> : std::true_type {
+};
 
-template< class T >
+template <class T>
 inline constexpr bool is_bitset_v = is_bitset<T>::value;
+
+template <typename T>
+struct is_std_array : std::false_type {
+};
+
+template <class T, size_t S>
+struct is_std_array<std::array<T, S>> : std::true_type {
+};
+
+template <class T>
+inline constexpr bool is_std_array_v = is_std_array<T>::value;
+
+template <typename T>
+struct is_std_pair : std::false_type {
+};
+
+template <class T1, class T2>
+struct is_std_pair<std::pair<T1, T2>> : std::true_type {
+};
+
+template <class T>
+inline constexpr bool is_std_pair_v = is_std_pair<T>::value;
 
 } //namespace solid

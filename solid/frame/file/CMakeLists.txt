@@ -20,7 +20,7 @@ target_include_directories(solid_frame_file PUBLIC
     PRIVATE src
 )
 
-target_link_libraries(solid_frame_file solid_frame)
+target_link_libraries(solid_frame_file PUBLIC solid_frame)
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/frame/file)
 install (TARGETS solid_frame_file DESTINATION lib EXPORT SolidFrameConfig)

@@ -14,7 +14,7 @@
 #include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v2.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
 #include "solid/system/socketaddress.hpp"
@@ -35,7 +35,6 @@ using namespace solid;
 
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
-using ProtocolT      = solid::frame::mprpc::serialization_v2::Protocol<uint8_t>;
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
@@ -109,24 +108,10 @@ struct FirstMessage : frame::mprpc::Message {
         solid_log(generic_logger, Info, "DELETE ---------------- " << (void*)this);
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.str, _rctx, "data");
+        _rr.add(_rthis.str, _rctx, 1, "str");
     }
-};
-
-struct MessageHandler {
-    frame::mprpc::Service& rsvc;
-    MessageHandler(frame::mprpc::Service& _rsvc)
-        : rsvc(_rsvc)
-    {
-    }
-
-    void operator()(
-        frame::mprpc::ConnectionContext& _rctx,
-        std::shared_ptr<FirstMessage>&   _rsend_msg,
-        std::shared_ptr<FirstMessage>&   _rrecv_msg,
-        ErrorConditionT const&           _rerr);
 };
 
 void connection_stop(frame::mprpc::ConnectionContext& _rctx)
@@ -219,7 +204,25 @@ bool restart(
     AioSchedulerT&          _sch)
 {
     ErrorConditionT err;
-    auto            proto = ProtocolT::create();
+    auto            proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+        reflection::v1::metadata::factory,
+        [&](auto& _rmap) {
+            _rmap.template registerMessage<FirstMessage>(1, "FirstMessage",
+                [](
+                    frame::mprpc::ConnectionContext& _rctx,
+                    std::shared_ptr<FirstMessage>&   _rsend_msg,
+                    std::shared_ptr<FirstMessage>&   _rrecv_msg,
+                    ErrorConditionT const&           _rerr) {
+                    if (_rrecv_msg) {
+                        solid_log(generic_logger, Info, _rctx.recipientId() << " Message received: is_on_sender: " << _rrecv_msg->isOnSender() << ", is_on_peer: " << _rrecv_msg->isOnPeer() << ", is_back_on_sender: " << _rrecv_msg->isBackOnSender());
+                        if (_rrecv_msg->isOnPeer()) {
+                            _rctx.service().sendResponse(_rctx.recipientId(), _rrecv_msg);
+                        } else if (_rrecv_msg->isBackOnSender()) {
+                            cout << "Received from " << _rctx.recipientName() << ": " << _rrecv_msg->str << endl;
+                        }
+                    }
+                });
+        });
 
     frame::Manager& rm = _ipcsvc.manager();
 
@@ -231,9 +234,6 @@ bool restart(
     _sch.start(thread::hardware_concurrency());
 
     frame::mprpc::Configuration cfg(_sch, proto);
-
-    proto->null(0);
-    proto->registerMessage<FirstMessage>(MessageHandler(_ipcsvc), 1);
 
     if (params.baseport.size()) {
         cfg.server.listener_address_str = "0.0.0.0:";
@@ -328,22 +328,6 @@ bool Params::prepare(frame::mprpc::Configuration& _rcfg, string& _err)
 //------------------------------------------------------
 //      FirstMessage
 //------------------------------------------------------
-
-void MessageHandler::operator()(
-    frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<FirstMessage>&   _rsend_msg,
-    std::shared_ptr<FirstMessage>&   _rrecv_msg,
-    ErrorConditionT const&           _rerr)
-{
-    if (_rrecv_msg) {
-        solid_log(generic_logger, Info, _rctx.recipientId() << " Message received: is_on_sender: " << _rrecv_msg->isOnSender() << ", is_on_peer: " << _rrecv_msg->isOnPeer() << ", is_back_on_sender: " << _rrecv_msg->isBackOnSender());
-        if (_rrecv_msg->isOnPeer()) {
-            rsvc.sendResponse(_rctx.recipientId(), _rrecv_msg);
-        } else if (_rrecv_msg->isBackOnSender()) {
-            cout << "Received from " << _rctx.recipientName() << ": " << _rrecv_msg->str << endl;
-        }
-    }
-}
 
 std::string loadFile(const char* _path)
 {

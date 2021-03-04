@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 #-----------------------------------------------------------------
 # The project
 #-----------------------------------------------------------------
-project (SolidFrame VERSION 6.1)
+project (SolidFrame VERSION 7.0)
 
 message("SolidFrame version: ${PROJECT_VERSION} - ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 #-----------------------------------------------------------------
@@ -308,8 +308,9 @@ add_custom_target(libraries
     DEPENDS
     solid_system
     solid_utility
-    solid_serialization_v1
+    solid_reflection_v1
     solid_serialization_v2
+    solid_serialization_v3
     solid_frame
     solid_frame_aio
     solid_frame_aio_openssl

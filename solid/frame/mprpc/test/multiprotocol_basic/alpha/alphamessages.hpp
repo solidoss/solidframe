@@ -19,9 +19,9 @@ struct FirstMessage : solid::frame::mprpc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.str, _rctx, "str").add(_rthis.v, _rctx, "v");
+        _rr.add(_rthis.str, _rctx, 1, "str").add(_rthis.v, _rctx, 2, "v");
     }
 };
 
@@ -36,9 +36,9 @@ struct SecondMessage : solid::frame::mprpc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.str, _rctx, "str").add(_rthis.v, _rctx, "v");
+        _rr.add(_rthis.str, _rctx, 1, "str").add(_rthis.v, _rctx, 2, "v");
     }
 };
 
@@ -53,18 +53,18 @@ struct ThirdMessage : solid::frame::mprpc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.str, _rctx, "str").add(_rthis.v, _rctx, "v");
+        _rr.add(_rthis.str, _rctx, 1, "str").add(_rthis.v, _rctx, 2, "v");
     }
 };
 
-template <class R>
-inline void protocol_setup(R _r, ProtocolT& _rproto)
+template <class Reg>
+inline void configure_protocol(Reg _rreg)
 {
-    _r(_rproto, solid::TypeToType<FirstMessage>(), TypeIdT(0, 1));
-    _r(_rproto, solid::TypeToType<SecondMessage>(), TypeIdT(0, 2));
-    _r(_rproto, solid::TypeToType<ThirdMessage>(), TypeIdT(0, 3));
+    _rreg({0, 1}, "FirstMessage", solid::TypeToType<FirstMessage>());
+    _rreg({0, 2}, "SecondMessage", solid::TypeToType<SecondMessage>());
+    _rreg({0, 3}, "ThirdMessage", solid::TypeToType<ThirdMessage>());
 }
 
 } // namespace alpha_protocol

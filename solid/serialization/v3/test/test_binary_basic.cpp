@@ -1,14 +1,15 @@
-#include "solid/serialization/v1/binarybasic.hpp"
+#include <bitset>
+#include <iostream>
+
+#include "solid/serialization/v3/binarybasic.hpp"
 #include "solid/system/cassert.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/utility/algorithm.hpp"
 #include "solid/utility/common.hpp"
-#include <bitset>
-#include <iostream>
 
 using namespace std;
 using namespace solid;
-using namespace solid::serialization::binary;
+using namespace solid::serialization::v3::binary;
 //---
 
 void print(uint32_t _v)
@@ -32,7 +33,7 @@ bool test(const T& _v, const size_t _estimated_size)
         solid_throw("error");
         return false;
     }
-    char* p = cross::store(tmp, 256, _v);
+    char* p = cross::store_with_check(tmp, 256, _v);
     if (p == nullptr) {
         solid_throw("error");
         return false;
@@ -52,7 +53,7 @@ bool test(const T& _v, const size_t _estimated_size)
 
     const char* cp;
 
-    cp = cross::load(tmp, 256, v);
+    cp = cross::load_with_check(tmp, 256, v);
 
     if (cp == nullptr) {
         solid_throw("error");
@@ -71,9 +72,9 @@ bool test(const T& _v, const size_t _estimated_size)
     return true;
 }
 
-int test_binarybasic(int argc, char* argv[])
+int test_binary_basic(int /*argc*/, char* /*argv*/[])
 {
-    cout << "max uint8_t value with crc: " << (int)max_value_without_crc_8() << endl;
+    cout << "max uint8_t value with crc: " << static_cast<int>(max_value_without_crc_8()) << endl;
 
     print(0);
     print(1);

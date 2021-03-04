@@ -14,6 +14,7 @@
 
 #include "solid/system/flags.hpp"
 #include "solid/utility/any.hpp"
+#include "solid/utility/anytuple.hpp"
 #include "solid/utility/event.hpp"
 #include "solid/utility/queue.hpp"
 
@@ -132,7 +133,8 @@ public:
     uint32_t& peerVersionMajor();
     uint32_t& peerVersionMinor();
 
-    Any<>& any();
+    Any<>&    any();
+    AnyTuple& anyTuple();
 
     const UniqueId& relayId() const;
 
@@ -406,6 +408,7 @@ private:
     ErrorConditionT    error_;
     ErrorCodeT         sys_error_;
     Any<>              any_data_;
+    AnyTuple           any_tuple_;
     char               socket_emplace_buf_[static_cast<size_t>(ConnectionValues::SocketEmplacementSize)];
     SocketStubPtrT     sock_ptr_;
     UniqueId           relay_id_;
@@ -416,6 +419,11 @@ private:
 inline Any<>& Connection::any()
 {
     return any_data_;
+}
+
+inline AnyTuple& Connection::anyTuple()
+{
+    return any_tuple_;
 }
 
 inline MessagePointerT Connection::fetchRequest(Message const& _rmsg) const
