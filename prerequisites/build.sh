@@ -24,7 +24,7 @@ printUsage()
     echo
 }
 
-OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.1.1h.tar.gz"
+OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.1.1j.tar.gz"
 
 SYSTEM=
 BIT64=
@@ -99,10 +99,26 @@ buildOpenssl()
             CC=cc ./config --prefix="$EXT_DIR" --openssldir="ssl_"
         fi
     elif	[ "$SYSTEM" = "Darwin" ] ; then
-        if [ $DEBUG ] ; then
-            ./Configure --prefix="$EXT_DIR" --openssldir="ssl_" darwin64-x86_64-cc
+        arch_name="$(uname -m)"
+        target_name=""
+        if [ "${arch_name}" = "x86_64" ]; then
+            if [ "$(sysctl -in sysctl.proc_translated)" = "1" ]; then
+                echo "Running on Rosetta 2"
+            else
+                echo "Running on native Intel"
+            fi
+            target_name=darwin64-x86_64-cc
+        elif [ "${arch_name}" = "arm64" ]; then
+            echo "Running on ARM"
+            target_name=darwin64-arm64-cc
         else
-            ./Configure --prefix="$EXT_DIR" --openssldir="ssl_" darwin64-x86_64-cc
+            echo "Unknown architecture: ${arch_name}"
+        fi
+
+        if [ $DEBUG ] ; then
+            ./Configure --prefix="$EXT_DIR" --openssldir="ssl_" $target_name
+        else
+            ./Configure --prefix="$EXT_DIR" --openssldir="ssl_" $target_name
         fi
     elif    [[ "$SYSTEM" =~ "MINGW" ]]; then
         if [ "$BIT64" = "true" ]; then
