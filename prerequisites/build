@@ -5,7 +5,7 @@ printUsage()
     echo
     echo "Usage:"
     echo
-    echo "./build.sh [--all] [--openssl] [--boringssl] [--force-download] [--debug] [--64bit] [--no-cleanup] [-h|--help]"
+    echo "./build [--all] [--openssl] [--boringssl] [--force-download] [--debug] [--64bit] [--no-cleanup] [-h|--help]"
     echo
     echo "Examples:"
     echo
@@ -24,7 +24,7 @@ printUsage()
     echo
 }
 
-OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.1.1h.tar.gz"
+OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.1.1k.tar.gz"
 
 SYSTEM=
 BIT64=
