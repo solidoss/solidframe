@@ -15,7 +15,7 @@ foreach (SOURCE_FILE ${ALL_SOURCE_FILES})
 endforeach ()
 
 find_program(CLANG_FORMAT_BIN
-    NAMES clang-format-10 clang-format-9 clang-format-8 clang-format
+    NAMES clang-format-11 clang-format-10 clang-format-9 clang-format-8 clang-format
     PATHS /usr/local/bin /usr/bin
     NO_DEFAULT_PATH
 )

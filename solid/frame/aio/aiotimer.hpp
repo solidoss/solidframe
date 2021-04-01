@@ -52,12 +52,12 @@ class SteadyTimer : public CompletionHandler {
     static void on_dummy(ReactorContext& _rctx)
     {
     }
-    
+
     typedef solid_function_t(void(ReactorContext&)) FunctionT;
 
     FunctionT function_;
     size_t    storeidx_;
-    
+
 public:
     SteadyTimer(
         ActorProxy const& _ract)
@@ -71,12 +71,12 @@ public:
         //MUST call here and not in the ~CompletionHandler
         this->deactivate();
     }
-    
+
     bool hasPending() const
     {
         return !solid_function_empty(function_);
     }
-    
+
     //Returns false when the operation is scheduled for completion. On completion _f(...) will be called.
     //Returns true when operation could not be scheduled for completion - e.g. operation already in progress.
     template <class Rep, class Period, typename F>

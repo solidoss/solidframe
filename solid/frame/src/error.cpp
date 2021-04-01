@@ -63,4 +63,3 @@ std::string ErrorCategory::message(int _ev) const
 
 } //namespace frame
 } //namespace solid
-

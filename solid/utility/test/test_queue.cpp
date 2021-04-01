@@ -130,7 +130,8 @@ int test_queue(int args, char* argv[])
 
     size_t v = 0;
     for (int i = 0; i < 100; ++i) {
-        eventq.push(ExecStub(UniqueId(i, i), [](size_t& _sz, Event&& _evt) { ++_sz; }, make_event(GenericEvents::Default)));
+        eventq.push(ExecStub(
+            UniqueId(i, i), [](size_t& _sz, Event&& _evt) { ++_sz; }, make_event(GenericEvents::Default)));
     }
 
     while (!eventq.empty()) {

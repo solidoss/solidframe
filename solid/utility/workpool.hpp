@@ -51,12 +51,12 @@ public:
         const size_t                 _start_wkr_cnt,
         Args&&... _args)
         : wp_(
-              _cfg,
-              _start_wkr_cnt,
-              [](FunctionT& _rfnc, Args&&... _args) {
-                  _rfnc(std::forward<ArgTypes>(_args)...);
-              },
-              std::forward<Args>(_args)...)
+            _cfg,
+            _start_wkr_cnt,
+            [](FunctionT& _rfnc, Args&&... _args) {
+                _rfnc(std::forward<ArgTypes>(_args)...);
+            },
+            std::forward<Args>(_args)...)
     {
     }
 

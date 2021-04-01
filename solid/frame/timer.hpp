@@ -13,9 +13,9 @@
 #include "solid/system/common.hpp"
 #include "solid/system/socketdevice.hpp"
 
-#include "solid/frame/error.hpp"
 #include "completion.hpp"
 #include "reactorcontext.hpp"
+#include "solid/frame/error.hpp"
 
 namespace solid {
 namespace frame {
@@ -51,7 +51,7 @@ class SteadyTimer : public CompletionHandler {
     static void on_dummy(ReactorContext& _rctx)
     {
     }
-    
+
     typedef solid_function_t(void(ReactorContext&)) FunctionT;
 
     FunctionT function_;
@@ -70,12 +70,12 @@ public:
         //MUST call here and not in the ~CompletionHandler
         this->deactivate();
     }
-    
+
     bool hasPending() const
     {
         return !solid_function_empty(function_);
     }
-    
+
     template <class Rep, class Period, typename F>
     bool waitFor(ReactorContext& _rctx, std::chrono::duration<Rep, Period> const& _rd, F&& _f)
     {
@@ -95,7 +95,7 @@ public:
     {
         doClear(_rctx);
     }
-    
+
     void cancel(ReactorContext& _rctx)
     {
         if (!solid_function_empty(function_)) {
@@ -122,7 +122,6 @@ private:
         remTimer(_rctx, storeidx_);
         storeidx_ = InvalidIndex();
     }
-
 };
 
 } //namespace frame

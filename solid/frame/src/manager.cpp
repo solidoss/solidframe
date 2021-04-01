@@ -413,9 +413,9 @@ Manager::Manager(
     const size_t _actor_chunk_size /* = 0*/
     )
     : impl_(make_pimpl<Data>(
-          _service_mutex_count == 0 ? memory_page_size() / sizeof(std::mutex) : _service_mutex_count,
-          _actor_mutex_count == 0 ? memory_page_size() / sizeof(std::mutex) : _actor_mutex_count,
-          _actor_chunk_size == 0 ? (memory_page_size() - sizeof(ActorChunk)) / sizeof(ActorStub) : _actor_chunk_size))
+        _service_mutex_count == 0 ? memory_page_size() / sizeof(std::mutex) : _service_mutex_count,
+        _actor_mutex_count == 0 ? memory_page_size() / sizeof(std::mutex) : _actor_mutex_count,
+        _actor_chunk_size == 0 ? (memory_page_size() - sizeof(ActorChunk)) / sizeof(ActorStub) : _actor_chunk_size))
 {
     solid_dbg(frame_logger, Verbose, "" << this);
 }
