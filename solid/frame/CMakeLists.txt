@@ -7,6 +7,7 @@ set(Sources
     src/completion.cpp
     src/sharedstore.cpp
     src/manager.cpp
+    src/error.cpp
 )
 
 set(Headers
@@ -25,6 +26,7 @@ set(Headers
     sharedstore.hpp
     timer.hpp
     timestore.hpp
+    error.hpp
 )
 
 set(Inlines

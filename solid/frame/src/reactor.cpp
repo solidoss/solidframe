@@ -656,8 +656,8 @@ bool Reactor::addTimer(CompletionHandler const& _rch, NanoTime const& _rt, size_
 void Reactor::doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx)
 {
     CompletionHandlerStub& rch = impl_->chdq[_chidx];
-    solid_assert_log(static_cast<SteadyTimer*>(rch.pch)->storeidx == _oldidx, frame_logger);
-    static_cast<SteadyTimer*>(rch.pch)->storeidx = _newidx;
+    solid_assert_log(static_cast<SteadyTimer*>(rch.pch)->storeidx_ == _oldidx, frame_logger);
+    static_cast<SteadyTimer*>(rch.pch)->storeidx_ = _newidx;
 }
 
 bool Reactor::remTimer(CompletionHandler const& /*_rch*/, size_t const& _rstoreidx)

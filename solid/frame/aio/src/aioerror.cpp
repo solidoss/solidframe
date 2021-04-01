@@ -20,7 +20,6 @@ namespace {
 enum {
     ErrorResolverDirectE = 1,
     ErrorResolverReverseE,
-    ErrorAlreadyE,
     ErrorDatagramShutdownE,
     ErrorDatagramSystemE,
     ErrorDatagramCreateE,
@@ -67,9 +66,6 @@ std::string ErrorCategory::message(int _ev) const
         break;
     case ErrorResolverReverseE:
         oss << "Resolver: reverse";
-        break;
-    case ErrorAlreadyE:
-        oss << "Opperation already in progress";
         break;
     case ErrorDatagramShutdownE:
         oss << "Datagram: peer shutdown";
@@ -133,8 +129,6 @@ std::string ErrorCategory::message(int _ev) const
 
 /*extern*/ const ErrorCodeT error_resolver_direct(ErrorResolverDirectE, category);
 /*extern*/ const ErrorCodeT error_resolver_reverse(ErrorResolverReverseE, category);
-
-/*extern*/ const ErrorConditionT error_already(ErrorAlreadyE, category);
 
 /*extern*/ const ErrorConditionT error_datagram_shutdown(ErrorDatagramShutdownE, category);
 /*extern*/ const ErrorConditionT error_datagram_system(ErrorDatagramSystemE, category);
