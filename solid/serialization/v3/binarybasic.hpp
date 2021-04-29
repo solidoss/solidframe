@@ -43,8 +43,8 @@ inline char* store(char* _pd, const uint16_t _val, TypeToType<uint16_t> _ff)
     *(pd + 0) = c.bytes_[1];
     *(pd + 1) = c.bytes_[0];
 #else
-    *(pd + 0) = c.bytes_[0];
-    *(pd + 1) = c.bytes_[1];
+    *(pd + 0)   = c.bytes_[0];
+    *(pd + 1)   = c.bytes_[1];
 #endif
     return _pd + 2;
 }
@@ -65,10 +65,10 @@ inline char* store(char* _pd, const uint32_t _val, TypeToType<uint32_t> _ff)
     *(pd + 2) = c.bytes_[1];
     *(pd + 3) = c.bytes_[0];
 #else
-    *(pd + 0) = c.bytes_[0];
-    *(pd + 1) = c.bytes_[1];
-    *(pd + 2) = c.bytes_[2];
-    *(pd + 3) = c.bytes_[3];
+    *(pd + 0)   = c.bytes_[0];
+    *(pd + 1)   = c.bytes_[1];
+    *(pd + 2)   = c.bytes_[2];
+    *(pd + 3)   = c.bytes_[3];
 #endif
     return _pd + 4;
 }
@@ -93,14 +93,14 @@ inline char* store(char* _pd, const uint64_t _val, TypeToType<uint64_t> _ff)
     *(pd + 6) = c.bytes_[1];
     *(pd + 7) = c.bytes_[0];
 #else
-    *(pd + 0) = c.bytes_[0];
-    *(pd + 1) = c.bytes_[1];
-    *(pd + 2) = c.bytes_[2];
-    *(pd + 3) = c.bytes_[3];
-    *(pd + 4) = c.bytes_[4];
-    *(pd + 5) = c.bytes_[5];
-    *(pd + 6) = c.bytes_[6];
-    *(pd + 7) = c.bytes_[7];
+    *(pd + 0)   = c.bytes_[0];
+    *(pd + 1)   = c.bytes_[1];
+    *(pd + 2)   = c.bytes_[2];
+    *(pd + 3)   = c.bytes_[3];
+    *(pd + 4)   = c.bytes_[4];
+    *(pd + 5)   = c.bytes_[5];
+    *(pd + 6)   = c.bytes_[6];
+    *(pd + 7)   = c.bytes_[7];
 #endif
     return _pd + 8;
 }

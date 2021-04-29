@@ -11,6 +11,7 @@
 #pragma once
 
 #include "solid/system/exception.hpp"
+#include "solid/utility/event.hpp"
 #include "solid/utility/function.hpp"
 
 #include "solid/frame/service.hpp"
