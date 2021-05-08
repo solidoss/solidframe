@@ -55,7 +55,7 @@ constexpr TypeGroupE type_group()
         return TypeGroupE::Bitset;
     else if constexpr (solid::is_container_v<T>)
         return TypeGroupE::Container;
-    else if constexpr (std::is_array<T>::value)
+    else if constexpr (std::is_array<T>::value || solid::is_std_array_v<T>)
         return TypeGroupE::Array;
     else if constexpr (std::is_integral_v<T>)
         return TypeGroupE::Basic;
