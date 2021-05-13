@@ -441,7 +441,7 @@ int test_clientfrontback_download(int argc, char* argv[])
                     _rmap.template registerMessage<front::Request>(1, "Request", front::on_server_receive_first_request);
                     _rmap.template registerMessage<front::Response>(2, "Response", front::on_server_response);
                 });
-            frame::mprpc::Configuration cfg(sch_back, proto);
+            frame::mprpc::Configuration cfg(sch_front, proto);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
@@ -484,7 +484,7 @@ int test_clientfrontback_download(int argc, char* argv[])
                     _rmap.template registerMessage<front::Request>(1, "Request", front::on_client_request);
                     _rmap.template registerMessage<front::Response>(2, "Response", front::on_client_response);
                 });
-            frame::mprpc::Configuration cfg(sch_front, proto);
+            frame::mprpc::Configuration cfg(sch_client, proto);
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 
@@ -794,7 +794,8 @@ void on_server_receive_first_request(
     if (!res_ptr->ifs_.eof()) {
         solid_log(logger, Verbose, "Sending " << _rrecv_msg_ptr->name_ << " to " << _rctx.recipientId());
         frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::ResponsePart, frame::mprpc::MessageFlagsE::AwaitResponse};
-        auto                        error = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, on_server_receive_request, flags);
+
+        auto error = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, on_server_receive_request, flags);
         solid_check(!error, "failed send message: " << error.message());
         flags.reset(frame::mprpc::MessageFlagsE::AwaitResponse);
         error = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, flags);

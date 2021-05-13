@@ -1902,7 +1902,7 @@ struct Connection::SenderResponse : Connection::Sender {
         context().request_id    = rresponse_ptr_->requestId();
         context().message_id    = _rpool_msg_id;
 
-        bool must_clear_request = !rresponse_ptr_->isResponsePart(); //do not clear the request if the response is a partial one
+        const bool must_clear_request = !rresponse_ptr_->isResponsePart(); //do not clear the request if the response is a partial one
 
         if (!solid_function_empty(_rmsg_bundle.complete_fnc)) {
             solid_dbg(logger, Info, this);
