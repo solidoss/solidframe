@@ -444,7 +444,6 @@ Socket::Socket(
     , want_write_on_send(false)
 {
     pssl = SSL_new(_rctx.pctx);
-    ::SSL_set_mode(pssl, SSL_MODE_ENABLE_PARTIAL_WRITE);
     ::SSL_set_mode(pssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
     if (device()) {
         int rv = SSL_set_fd(pssl, device().descriptor());
@@ -459,7 +458,6 @@ Socket::Socket(const Context& _rctx)
     , want_write_on_send(false)
 {
     pssl = SSL_new(_rctx.pctx);
-    ::SSL_set_mode(pssl, SSL_MODE_ENABLE_PARTIAL_WRITE);
     ::SSL_set_mode(pssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
 }
 
