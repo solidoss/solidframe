@@ -351,23 +351,23 @@ enum struct ConnectionState {
 struct ReaderConfiguration {
     ReaderConfiguration();
 
-    [[deprecated]] size_t              string_size_limit;
-    [[deprecated]] size_t              container_size_limit;
-    [[deprecated]] uint64_t            stream_size_limit;
-    size_t              max_message_count_multiplex;
-    UncompressFunctionT decompress_fnc;
+    [[deprecated]] size_t   string_size_limit;
+    [[deprecated]] size_t   container_size_limit;
+    [[deprecated]] uint64_t stream_size_limit;
+    size_t                  max_message_count_multiplex;
+    UncompressFunctionT     decompress_fnc;
 };
 
 struct WriterConfiguration {
     WriterConfiguration();
 
-    size_t            max_message_count_multiplex;
-    size_t            max_message_count_response_wait;
-    size_t            max_message_continuous_packet_count;
-    [[deprecated]] size_t            string_size_limit;
-    [[deprecated]] size_t            container_size_limit;
-    [[deprecated]] uint64_t          stream_size_limit;
-    CompressFunctionT inplace_compress_fnc;
+    size_t                  max_message_count_multiplex;
+    size_t                  max_message_count_response_wait;
+    size_t                  max_message_continuous_packet_count;
+    [[deprecated]] size_t   string_size_limit;
+    [[deprecated]] size_t   container_size_limit;
+    [[deprecated]] uint64_t stream_size_limit;
+    CompressFunctionT       inplace_compress_fnc;
 };
 
 struct Configuration {
