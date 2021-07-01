@@ -225,7 +225,7 @@ public:
             _rs.add(
                 [&_rthis](Reflector& _rs, Context& _rctx) {
                     auto progress_lambda = [](Context& _rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
-                        //NOTE: here you can use context.anyTuple for actual implementation
+                        //NOTE: here you can use context.any()for actual implementation
                         solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
                     };
 
@@ -238,7 +238,7 @@ public:
             _rs.add(
                 [pifs = std::move(pifs)](Reflector& _rs, Context& _rctx) mutable {
                     auto progress_lambda = [](Context& _rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
-                        //NOTE: here you can use context.anyTuple for actual implementation
+                        //NOTE: here you can use context.any()for actual implementation
                     };
                     _rs.add(*pifs, _rctx, 20, "stream", [progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda).maxSize(1024 * 128); });
                 },

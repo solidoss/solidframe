@@ -152,7 +152,7 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
                 }
             }
         };
-        _rctx.anyTuple() = std::make_tuple(version);
+        _rctx.any() = std::make_tuple(version);
         _rctx.service().sendRequest(_rctx.recipientId(), req_ptr, lambda);
     };
     cfg.client.connection_start_fnc   = std::move(connection_start_lambda);
@@ -218,7 +218,7 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
                 }
             }
         };
-        _rctx.anyTuple() = std::make_tuple(version);
+        _rctx.any() = std::make_tuple(version);
         _rctx.service().sendRequest(_rctx.recipientId(), req_ptr, lambda);
     };
     cfg.client.connection_start_fnc   = std::move(connection_start_lambda);
@@ -287,7 +287,7 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
             }
         };
 
-        _rctx.anyTuple() = std::make_tuple(version);
+        _rctx.any() = std::make_tuple(version);
         _rctx.service().sendRequest(_rctx.recipientId(), req_ptr, lambda);
     };
     cfg.client.connection_start_fnc   = std::move(connection_start_lambda);
@@ -358,7 +358,7 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
                 solid_check(_rrecv_msg_ptr->error_);
             }
         };
-        _rctx.anyTuple() = std::make_tuple(version);
+        _rctx.any() = std::make_tuple(version);
         _rctx.service().sendRequest(_rctx.recipientId(), req_ptr, lambda);
     };
     cfg.client.connection_start_fnc   = std::move(connection_start_lambda);
@@ -411,7 +411,7 @@ void complete_message(
 
     auto res_ptr = std::make_shared<InitResponse>(*_rrecv_msg_ptr);
 
-    _rctx.anyTuple() = std::make_tuple(_rrecv_msg_ptr->version_);
+    _rctx.any() = std::make_tuple(_rrecv_msg_ptr->version_);
 
     if (
         _rrecv_msg_ptr->version_ <= version) {
@@ -438,16 +438,16 @@ void complete_message(
     ErrorConditionT const& /*_rerror*/)
 {
 
-    if (_rctx.anyTuple().getIf<Version>()->version_ == 2) {
+    if (_rctx.any().get_if<Version>()->version_ == 2) {
         //need to send back Response2
         auto res_ptr    = std::make_shared<Response2>(*_rrecv_msg_ptr);
         res_ptr->error_ = _rrecv_msg_ptr->values_.size();
         _rctx.service().sendResponse(_rctx.recipientId(), res_ptr);
-    } else if (_rctx.anyTuple().getIf<Version>()->request_ == 1) {
+    } else if (_rctx.any().get_if<Version>()->request_ == 1) {
         auto res_ptr    = std::make_shared<Response>(*_rrecv_msg_ptr);
         res_ptr->error_ = 10;
         _rctx.service().sendResponse(_rctx.recipientId(), res_ptr);
-    } else if (_rctx.anyTuple().getIf<Version>()->request_ == 2) {
+    } else if (_rctx.any().get_if<Version>()->request_ == 2) {
         auto res_ptr    = std::make_shared<Response>(*_rrecv_msg_ptr);
         res_ptr->error_ = _rrecv_msg_ptr->valuei_;
         _rctx.service().sendResponse(_rctx.recipientId(), res_ptr);

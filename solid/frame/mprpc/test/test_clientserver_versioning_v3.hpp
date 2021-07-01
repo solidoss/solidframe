@@ -91,9 +91,9 @@ struct Request : solid::frame::mprpc::Message {
 
     SOLID_REFLECT_V1(_s, _rthis, _rctx)
     {
-        if (_rctx.anyTuple().template getIf<Version>()->request_ == 2) {
+        if (_rctx.any().template get_if<Version>()->request_ == 2) {
             _s.add(_rthis.valuei_, _rctx, 1, "value");
-        } else if (_rctx.anyTuple().template getIf<Version>()->request_ == 3) {
+        } else if (_rctx.any().template get_if<Version>()->request_ == 3) {
             _s.add(_rthis.values_, _rctx, 1, "value");
         }
     }
@@ -113,7 +113,7 @@ struct Response : solid::frame::mprpc::Message {
     SOLID_REFLECT_V1(_s, _rthis, _rctx)
     {
         _s.add(_rthis.error_, _rctx, 1, "error");
-        if (_rctx.anyTuple().template getIf<Version>()->response_ == 2) {
+        if (_rctx.any().template get_if<Version>()->response_ == 2) {
             _s.add(_rthis.message_, _rctx, 2, "message");
         }
     }

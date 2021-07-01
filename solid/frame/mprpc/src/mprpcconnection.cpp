@@ -2228,11 +2228,6 @@ Any<>& ConnectionContext::any()
     return rconnection.any();
 }
 //-----------------------------------------------------------------------------
-AnyTuple& ConnectionContext::anyTuple()
-{
-    return rconnection.anyTuple();
-}
-//-----------------------------------------------------------------------------
 MessagePointerT ConnectionContext::fetchRequest(Message const& _rmsg) const
 {
     return rconnection.fetchRequest(_rmsg);

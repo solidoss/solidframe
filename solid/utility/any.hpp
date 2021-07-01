@@ -62,6 +62,7 @@ struct BigRTTI {
     using DestroyFncT = void(void*);
     using CopyFncT    = RepresentationE(const void*, void*, const size_t, const SmallRTTI*&, void*&, const BigRTTI*&);
     using MoveFncT    = RepresentationE(void*, void*, const size_t, const SmallRTTI*&, void*&, const BigRTTI*&);
+    using GetIfFncT   = const void*(const std::type_index&, const void*);
 
     template <class T>
     static void destroy(void* const _what) noexcept
@@ -78,14 +79,17 @@ struct BigRTTI {
     DestroyFncT* pdestroy_fnc_;
     CopyFncT*    pcopy_fnc_;
     MoveFncT*    pmove_fnc_;
+    GetIfFncT*   pget_if_fnc_;
     const bool   is_copyable_;
     const bool   is_movable_;
+    const bool   is_tuple_;
 };
 
 struct SmallRTTI {
     using DestroyFncT = void(void*) noexcept;
     using CopyFncT    = RepresentationE(const void*, void*, const size_t, const SmallRTTI*&, void*&, const BigRTTI*&);
     using MoveFncT    = RepresentationE(void*, void*, const size_t, const SmallRTTI*&, void*&, const BigRTTI*&);
+    using GetIfFncT   = const void*(const std::type_index&, const void*);
 
     template <class T>
     static void destroy(void* const _what) noexcept
@@ -96,8 +100,10 @@ struct SmallRTTI {
     DestroyFncT* pdestroy_fnc_;
     CopyFncT*    pcopy_fnc_;
     MoveFncT*    pmove_fnc_;
+    GetIfFncT*   pget_if_fnc_;
     const bool   is_copyable_;
     const bool   is_movable_;
+    const bool   is_tuple_;
 };
 
 template <class T>
@@ -119,12 +125,15 @@ RepresentationE do_move_big(
     void*& _rpto_big, const BigRTTI*& _rpbig_rtti);
 
 template <class T>
+const void* do_get_if(const std::type_index& _type_index, const void* _pdata);
+
+template <class T>
 inline constexpr BigRTTI big_rtti = {
-    &BigRTTI::destroy<T>, &do_copy<T>, &do_move_big<T>, std::is_copy_constructible_v<T>, std::is_move_constructible_v<T>};
+    &BigRTTI::destroy<T>, &do_copy<T>, &do_move_big<T>, &do_get_if<T>, std::is_copy_constructible_v<T>, std::is_move_constructible_v<T>, is_specialization_v<T, std::tuple>};
 
 template <class T>
 inline constexpr SmallRTTI small_rtti = {
-    &SmallRTTI::destroy<T>, &do_copy<T>, &do_move<T>, std::is_copy_constructible_v<T>, std::is_move_constructible_v<T>};
+    &SmallRTTI::destroy<T>, &do_copy<T>, &do_move<T>, &do_get_if<T>, std::is_copy_constructible_v<T>, std::is_move_constructible_v<T>, is_specialization_v<T, std::tuple>};
 
 template <class T>
 RepresentationE do_copy(
@@ -206,6 +215,30 @@ RepresentationE do_move_big(
         return RepresentationE::Big;
     }
 }
+
+template <typename Tuple, size_t Index = 0>
+const void* tuple_get_if_helper(const Tuple& _rtuple, const std::type_index& _type_index)
+{
+    if constexpr (Index < std::tuple_size_v<Tuple>) {
+        if (_type_index == std::type_index(typeid(std::tuple_element_t<Index, Tuple>))) {
+            return &std::get<Index>(_rtuple);
+        }
+        return tuple_get_if_helper<Tuple, Index + 1>(_rtuple, _type_index);
+    }
+    return nullptr;
+}
+
+template <class T>
+const void* do_get_if(const std::type_index& _type_index, const void* _pdata)
+{
+    if constexpr (is_specialization_v<T, std::tuple>) {
+        return tuple_get_if_helper<>(*static_cast<const T*>(_pdata), _type_index);
+    } else if (std::type_index(typeid(T)) == _type_index) {
+        return _pdata;
+    }
+    return nullptr;
+}
+
 } // namespace any_impl
 
 template <size_t DataSize>
@@ -403,6 +436,12 @@ public:
     {
         return storage_.type_data_ != 0;
     }
+
+    explicit operator bool() const noexcept
+    {
+        return has_value();
+    }
+
     bool empty() const noexcept
     {
         return !has_value();
@@ -435,12 +474,31 @@ public:
         return const_cast<T*>(static_cast<const ThisT*>(this)->cast<T>());
     }
 
+    template <class T>
+    const T* get_if() const noexcept
+    {
+        switch (representation()) {
+        case any_impl::RepresentationE::Small:
+            return static_cast<const T*>(storage_.small_.prtti_->pget_if_fnc_(std::type_index(typeid(T)), &storage_.small_.data_));
+        case any_impl::RepresentationE::Big:
+            return static_cast<const T*>(storage_.small_.prtti_->pget_if_fnc_(std::type_index(typeid(T)), storage_.big_.ptr_));
+        default:
+            return nullptr;
+        }
+    }
+
+    template <class T>
+    T* get_if() noexcept
+    {
+        return const_cast<T*>(static_cast<const ThisT*>(this)->get_if<T>());
+    }
+
     bool is_movable() const
     {
         if (is_small()) {
             return storage_.small_.prtti_->is_movable_;
         } else if (is_big()) {
-            return storage_.big_.prtti_->is_copyable_;
+            return storage_.big_.prtti_->is_movable_;
         }
         return true;
     }
@@ -452,6 +510,16 @@ public:
             return storage_.big_.prtti_->is_copyable_;
         }
         return true;
+    }
+
+    bool is_tuple() const
+    {
+        if (is_small()) {
+            return storage_.small_.prtti_->is_tuple_;
+        } else if (is_big()) {
+            return storage_.big_.prtti_->is_tuple_;
+        }
+        return false;
     }
 
     bool is_small() const

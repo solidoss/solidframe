@@ -166,7 +166,9 @@ int test_any(int /*argc*/, char* /*argv*/[])
 
     solid_check(any32.has_value());
     solid_check(any32.cast<string>() != nullptr);
+    solid_check(any32.get_if<string>() != nullptr);
     solid_check(any32.cast<int>() == nullptr);
+    solid_check(any32.get_if<int>() == nullptr);
 
     cout << "value = " << *any32.cast<string>() << endl;
 
@@ -200,6 +202,7 @@ int test_any(int /*argc*/, char* /*argv*/[])
     solid_check(any16_2.has_value());
 
     solid_check(*any16_2.cast<string>() == *any32.cast<string>());
+    solid_check(*any16_2.get_if<string>() == *any32.get_if<string>());
 
     auto any_nc_0(make_any<TestNoCopy, 32>("a string"));
 
@@ -266,6 +269,7 @@ int test_any(int /*argc*/, char* /*argv*/[])
         solid_check((*any.cast<Array4T>())[1] == 2);
         solid_check((*any.cast<Array4T>())[2] == 3);
         solid_check((*any.cast<Array4T>())[3] == 4);
+        solid_check((*any.get_if<Array4T>())[3] == 4);
         (*any.cast<Array4T>())[3] = 10;
         solid_check((*any.cast<Array4T>())[3] == 10);
     }

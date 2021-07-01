@@ -221,12 +221,12 @@ public:
         _rr.add(_rthis.veg_tuple_, _rctx, 7, "veg_tuple");
         if constexpr (!ReflectorT::is_const_reflector) {
             auto progress_lambda = [](Context& _rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
-                //NOTE: here you can use context.anyTuple for actual implementation
+                //NOTE: here you can use context.any()for actual implementation
             };
             _rr.add(_rthis.ofs_, _rctx, 8, "stream", [&progress_lambda](auto _rmeta) { _rmeta.progressFunction(progress_lambda); });
         } else {
             auto progress_lambda = [](Context& _rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
-                //NOTE: here you can use context.anyTuple for actual implementation
+                //NOTE: here you can use context.any()for actual implementation
             };
             _rr.add(_rthis.ifs_, _rctx, 8, "stream", [&progress_lambda](auto _rmeta) { _rmeta.progressFunction(progress_lambda); });
         }

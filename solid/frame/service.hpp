@@ -90,10 +90,13 @@ public:
 
     bool stopped() const;
 
-    template <class A>
-    A* any()
+    auto& any()
     {
-        return any_.cast<A>();
+        return any_;
+    }
+    const auto& any() const
+    {
+        return any_;
     }
 
 protected:
@@ -139,12 +142,12 @@ inline Service::Service(
     rm_.registerService(*this, _start);
 }
 
-template <typename A>
+template <typename AnyType>
 inline Service::Service(
-    UseServiceShell _force_shell, A&& _a, const bool _start)
+    UseServiceShell _force_shell, AnyType&& _any, const bool _start)
     : rm_(_force_shell.rmanager)
     , idx_(static_cast<size_t>(InvalidIndex()))
-    , any_(std::forward<A>(_a))
+    , any_(std::forward<AnyType>(_any))
 {
     rm_.registerService(*this, _start);
 }
@@ -223,20 +226,20 @@ inline void Service::doStart()
         *this, []() {}, []() {});
 }
 
-template <typename A>
-inline void Service::doStart(A&& _a)
+template <typename AnyType>
+inline void Service::doStart(AnyType&& _any)
 {
-    Any<> a{std::forward<A>(_a)};
+    Any<> any{std::forward<AnyType>(_any)};
     rm_.startService(
-        *this, [this, &a]() { any_ = std::move(a); }, []() {});
+        *this, [this, &any]() { any_ = std::move(any); }, []() {});
 }
 
-template <typename A, typename F>
-inline void Service::doStartWithAny(A&& _a, F&& _f)
+template <typename AnyType, typename F>
+inline void Service::doStartWithAny(AnyType&& _any, F&& _f)
 {
-    Any<> a{std::forward<A>(_a)};
+    Any<> any{std::forward<AnyType>(_any)};
     rm_.startService(
-        *this, [this, &a]() { any_ = std::move(a); }, std::forward<F>(_f));
+        *this, [this, &any]() { any_ = std::move(any); }, std::forward<F>(_f));
 }
 
 template <typename F>

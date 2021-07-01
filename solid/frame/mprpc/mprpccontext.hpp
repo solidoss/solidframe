@@ -16,7 +16,6 @@
 #include "solid/system/socketaddress.hpp"
 
 #include "solid/utility/any.hpp"
-#include "solid/utility/anytuple.hpp"
 
 #include "solid/frame/common.hpp"
 #include "solid/frame/mprpc/mprpcmessageflags.hpp"
@@ -305,8 +304,7 @@ struct ConnectionContext {
     std::shared_ptr<Message> fetchRequest(Message const& _rmsg) const;
 
     //! Keep any connection data
-    Any<>&    any();
-    AnyTuple& anyTuple();
+    Any<>& any();
 
     const ErrorConditionT& error() const;
     const ErrorCodeT&      systemError() const;
