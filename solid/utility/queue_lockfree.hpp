@@ -193,16 +193,18 @@ public:
 
     ~Queue();
 
-    size_t push(const T& _rt, const bool _wait = true)
+    template <bool Wait>
+    size_t push(const T& _rt)
     {
         T* pt = nullptr;
-        return doPush(_rt, std::move(*pt), std::integral_constant<bool, true>(), _wait);
+        return doPush(_rt, std::move(*pt), std::integral_constant<bool, true>(), std::integral_constant<bool, Wait>());
     }
 
-    size_t push(T&& _rt, const bool _wait = true)
+    template <bool Wait>
+    size_t push(T&& _rt)
     {
         T* pt = nullptr;
-        return doPush(*pt, std::move(_rt), std::integral_constant<bool, false>(), _wait);
+        return doPush(*pt, std::move(_rt), std::integral_constant<bool, false>(), std::integral_constant<bool, Wait>());
     }
 
     bool pop(T& _rt);
@@ -272,8 +274,8 @@ private:
         return new (_rn.data_ + (_pos * sizeof(T))) T{std::move(_ut)};
     }
 
-    template <bool IsCopy>
-    size_t doPush(const T& _rt, T&& _ut, std::integral_constant<bool, IsCopy>, const bool _wait);
+    template <bool IsCopy, bool Wait>
+    size_t doPush(const T& _rt, T&& _ut, std::integral_constant<bool, IsCopy>, std::integral_constant<bool, Wait>);
 };
 
 //-----------------------------------------------------------------------------
@@ -303,8 +305,8 @@ Queue<T, NBits, Base>::~Queue()
 }
 //-----------------------------------------------------------------------------
 template <class T, unsigned NBits, typename Base>
-template <bool IsCopy>
-size_t Queue<T, NBits, Base>::doPush(const T& _rt, T&& _ut, std::integral_constant<bool, IsCopy> _is_copy, const bool _wait)
+template <bool IsCopy, bool Wait>
+size_t Queue<T, NBits, Base>::doPush(const T& _rt, T&& _ut, std::integral_constant<bool, IsCopy> _is_copy, std::integral_constant<bool, Wait>)
 {
 
     do {
@@ -333,7 +335,7 @@ size_t Queue<T, NBits, Base>::doPush(const T& _rt, T&& _ut, std::integral_consta
             std::unique_lock<std::mutex> lock(push_end_.mutex_);
 
             if (size_.load() >= max_size_) {
-                if (_wait) {
+                if constexpr (Wait) {
                     solid_dbg(queue_logger, Warning, this << "wait qsz = " << size_.load());
                     solid_statistic_inc(statistic_.push_wait_);
                     push_end_.wait_count_.fetch_add(1);
