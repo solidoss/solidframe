@@ -69,7 +69,6 @@ Device::~Device()
 
 ssize_t Device::read(char* _pb, size_t _bl)
 {
-    solid_assert_log(ok(), generic_logger);
 #ifdef SOLID_ON_WINDOWS
     DWORD cnt;
     if (ReadFile(desc_, _pb, static_cast<DWORD>(_bl), &cnt, nullptr)) {
@@ -84,7 +83,6 @@ ssize_t Device::read(char* _pb, size_t _bl)
 
 ssize_t Device::write(const char* _pb, size_t _bl)
 {
-    solid_assert_log(ok(), generic_logger);
 #ifdef SOLID_ON_WINDOWS
     DWORD cnt;
     /*OVERLAPPED ovp;
@@ -117,7 +115,7 @@ void Device::close()
         CloseHandle(desc_);
 #else
         if (::close(desc_) != 0) {
-            solid_assert_log(errno != EBADF, generic_logger);
+            solid_assert(errno != EBADF);
         }
 #endif
         desc_ = invalidDescriptor();
@@ -126,7 +124,6 @@ void Device::close()
 
 void Device::flush()
 {
-    solid_assert_log(ok(), generic_logger);
 #ifdef SOLID_ON_WINDOWS
     FlushFileBuffers(desc_);
 #else
