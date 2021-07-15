@@ -21,7 +21,7 @@ namespace solid {
 //
 // template <bool B, typename T1, typename T2>
 // typename std::conditional<B, T1, T2>::type make_choice(T1 _t1, T2 _t2){
-//     return make_choice_help(_t1, _t2, std::integral_constant<bool, B>());
+//     return make_choice_help(_t1, _t2, std::bool_constant<B>());
 // }
 
 // ----------------------------------------------------------------------------
@@ -41,7 +41,7 @@ T2 if_then_else_help(T1&& _t1, T2&& _t2, std::false_type _tt)
 template <bool B, typename T1, typename T2>
 typename std::conditional<B, T1, T2>::type if_then_else(T1&& _then, T2&& _else)
 {
-    return if_then_else_help(std::move(_then), std::move(_else), std::integral_constant<bool, B>());
+    return if_then_else_help(std::move(_then), std::move(_else), std::bool_constant<B>());
 }
 
 //https://stackoverflow.com/questions/12042824/how-to-write-a-type-trait-is-container-or-is-vector

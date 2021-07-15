@@ -111,7 +111,7 @@ struct MessageHeader {
     }
 
     template <class S>
-    void solidSerializeV2(S& _rs, frame::mprpc::ConnectionContext& _rctx, std::integral_constant<bool, true> _is_serializer, const char* _name)
+    void solidSerializeV2(S& _rs, frame::mprpc::ConnectionContext& _rctx, std::true_type /*_is_serializer*/, const char* _name)
     {
         solid_check_log(_rctx.pmessage_url, service_logger(), "message url must not be null");
         const MessageFlagsValueT tmp = _rctx.message_flags.toUnderlyingType();
@@ -123,7 +123,7 @@ struct MessageHeader {
     }
 
     template <class S>
-    void solidSerializeV2(S& _rs, frame::mprpc::ConnectionContext& _rctx, std::integral_constant<bool, false> _is_deserializer, const char* _name)
+    void solidSerializeV2(S& _rs, frame::mprpc::ConnectionContext& _rctx, std::false_type /*_is_deserializer*/, const char* _name)
     {
         _rs.add(flags_, _rctx, "flags_").add(url_, _rctx, "url");
         _rs.add(sender_request_id_.index, _rctx, "sender_request_index");
@@ -135,7 +135,7 @@ struct MessageHeader {
     template <class S>
     void solidSerializeV2(S& _rs, frame::mprpc::ConnectionContext& _rctx, const char* _name)
     {
-        solidSerializeV2(_rs, _rctx, std::integral_constant<bool, S::is_serializer>(), _name);
+        solidSerializeV2(_rs, _rctx, std::bool_constant<S::is_serializer>(), _name);
     }
 
     SOLID_REFLECT_V1(_rs, _rthis, _rctx)

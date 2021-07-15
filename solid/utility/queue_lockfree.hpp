@@ -197,14 +197,14 @@ public:
     size_t push(const T& _rt)
     {
         T* pt = nullptr;
-        return doPush(_rt, std::move(*pt), std::integral_constant<bool, true>(), std::integral_constant<bool, Wait>());
+        return doPush(_rt, std::move(*pt), std::true_type(), std::bool_constant<Wait>());
     }
 
     template <bool Wait>
     size_t push(T&& _rt)
     {
         T* pt = nullptr;
-        return doPush(*pt, std::move(_rt), std::integral_constant<bool, false>(), std::integral_constant<bool, Wait>());
+        return doPush(*pt, std::move(_rt), std::false_type(), std::bool_constant<Wait>());
     }
 
     bool pop(T& _rt);
@@ -264,18 +264,18 @@ private:
         return push_end_.nodeAcquire();
     }
 
-    T* doCopyOrMove(Node& _rn, const size_t _pos, const T& _rt, T&& /*_ut*/, std::integral_constant<bool, true>)
+    T* doCopyOrMove(Node& _rn, const size_t _pos, const T& _rt, T&& /*_ut*/, std::true_type)
     {
         return new (_rn.data_ + (_pos * sizeof(T))) T{_rt};
     }
 
-    T* doCopyOrMove(Node& _rn, const size_t _pos, const T& /*_rt*/, T&& _ut, std::integral_constant<bool, false>)
+    T* doCopyOrMove(Node& _rn, const size_t _pos, const T& /*_rt*/, T&& _ut, std::false_type)
     {
         return new (_rn.data_ + (_pos * sizeof(T))) T{std::move(_ut)};
     }
 
     template <bool IsCopy, bool Wait>
-    size_t doPush(const T& _rt, T&& _ut, std::integral_constant<bool, IsCopy>, std::integral_constant<bool, Wait>);
+    size_t doPush(const T& _rt, T&& _ut, std::bool_constant<IsCopy>, std::bool_constant<Wait>);
 };
 
 //-----------------------------------------------------------------------------
@@ -306,7 +306,7 @@ Queue<T, NBits, Base>::~Queue()
 //-----------------------------------------------------------------------------
 template <class T, unsigned NBits, typename Base>
 template <bool IsCopy, bool Wait>
-size_t Queue<T, NBits, Base>::doPush(const T& _rt, T&& _ut, std::integral_constant<bool, IsCopy> _is_copy, std::integral_constant<bool, Wait>)
+size_t Queue<T, NBits, Base>::doPush(const T& _rt, T&& _ut, std::bool_constant<IsCopy> _is_copy, std::bool_constant<Wait>)
 {
 
     do {

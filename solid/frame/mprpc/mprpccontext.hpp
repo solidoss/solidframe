@@ -318,7 +318,7 @@ struct ConnectionContext {
     template <class SD>
     [[deprecated]] void addVersion(SD& _rsd)
     {
-        doAddVersion(_rsd, std::integral_constant<bool, SD::is_serializer>());
+        doAddVersion(_rsd, std::bool_constant<SD::is_serializer>());
     }
 
 private:
@@ -334,14 +334,14 @@ private:
     void relayId(const UniqueId& _relay_id) const;
 
     template <class SD>
-    [[deprecated]] void doAddVersion(SD& _rsd, std::integral_constant<bool, false> _is_deserializer)
+    [[deprecated]] void doAddVersion(SD& _rsd, std::false_type /*_is_deserializer*/)
     {
         _rsd.add(peerVersionMajorRef(), *this, "protocol_version_major");
         _rsd.add(peerVersionMinorRef(), *this, "protocol_version_minor");
     }
 
     template <class SD>
-    [[deprecated]] void doAddVersion(SD& _rsd, std::integral_constant<bool, true> _is_serializer)
+    [[deprecated]] void doAddVersion(SD& _rsd, std::true_type /*_is_serializer*/)
     {
         _rsd.add(versionMajor(), *this, "protocol_version_major");
         _rsd.add(versionMinor(), *this, "protocol_version_minor");
