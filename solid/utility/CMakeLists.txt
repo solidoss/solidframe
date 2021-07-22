@@ -45,6 +45,6 @@ target_compile_features(solid_utility PUBLIC cxx_std_17)
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/utility)
 install (TARGETS solid_utility DESTINATION lib EXPORT SolidFrameConfig)
 
-if(NOT SOLID_TEST_NONE OR SOLID_TEST_UTILITY)
+if(SOLID_TEST_ALL OR SOLID_TEST_UTILITY)
     add_subdirectory(test)
 endif()

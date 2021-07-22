@@ -82,6 +82,6 @@ install (FILES ${CMAKE_CURRENT_BINARY_DIR}/version_impl.hpp DESTINATION include/
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/system)
 install (TARGETS solid_system DESTINATION lib EXPORT SolidFrameConfig)
 
-if(NOT SOLID_TEST_NONE OR SOLID_TEST_SYSTEM)
+if(SOLID_TEST_ALL OR SOLID_TEST_SYSTEM)
     add_subdirectory(test)
 endif()

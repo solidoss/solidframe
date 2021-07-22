@@ -262,10 +262,6 @@ elseif(ON_ANDROID)
     set(SOLID_USE_EVENTFD TRUE)
 endif()
 
-if(ON_CROSS)
-    set(SOLID_TEST_NONE TRUE)
-endif()
-
 #-----------------------------------------------------------------
 # Global include directories
 #-----------------------------------------------------------------
@@ -294,8 +290,13 @@ if(NOT ON_CROSS)
     find_program( MEMORYCHECK_COMMAND valgrind )
     set( MEMORYCHECK_COMMAND_OPTIONS "--trace-children=yes --leak-check=full" )
     set( MEMORYCHECK_SUPPRESSIONS_FILE "${PROJECT_SOURCE_DIR}/cmake/valgrind_suppress.txt" )
+    
+    set(SOLID_TEST_ALL TRUE CACHE BOOL "Enable/Disable all tests")
+    
     enable_testing()
     include(CTest)
+else()
+    set(SOLID_TEST_ALL FALSE)
 endif()
 
 #-----------------------------------------------------------------

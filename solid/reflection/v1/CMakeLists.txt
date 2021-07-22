@@ -23,6 +23,6 @@ target_include_directories(solid_reflection_v1 PUBLIC
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/reflection/v1)
 install (TARGETS solid_reflection_v1 DESTINATION lib EXPORT SolidFrameConfig)
 
-if(NOT SOLID_TEST_NONE OR SOLID_TEST_REFLECTION)
+if(SOLID_TEST_ALL OR SOLID_TEST_REFLECTION)
     add_subdirectory(test)
 endif()

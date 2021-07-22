@@ -47,6 +47,6 @@ target_link_libraries(solid_frame_mprpc PUBLIC solid_frame_aio)
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/frame/mprpc)
 install (TARGETS solid_frame_mprpc DESTINATION lib EXPORT SolidFrameConfig)
 
-if(NOT SOLID_TEST_NONE OR SOLID_TEST_MPRPC)
+if(SOLID_TEST_ALL OR SOLID_TEST_MPRPC)
     add_subdirectory(test)
 endif()
