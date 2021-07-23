@@ -54,8 +54,7 @@ protected:
     friend class CompletionHandler;
     friend class Reactor;
 
-    //! Constructor
-    Actor();
+    Actor() = default;
 
     ActorProxy proxy()
     {

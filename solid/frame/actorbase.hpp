@@ -88,16 +88,5 @@ inline void ActorBase::runId(UniqueId const& _runid)
     runid = _runid;
 }
 
-// inline size_t ActorBase::grabSignalMask(const size_t _leave /* = 0*/)
-// {
-//     return smask.fetch_and(_leave /*, std::memory_order_seq_cst*/);
-// }
-//
-// inline bool ActorBase::notify(const size_t _smask)
-// {
-//     const size_t osm = smask.fetch_or(_smask /*, std::memory_order_seq_cst*/);
-//     return (_smask | osm) != osm;
-// }
-
 } //namespace frame
 } //namespace solid

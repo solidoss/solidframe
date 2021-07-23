@@ -283,6 +283,10 @@ private:
 
 public:
     using ThisT = Function<R(ArgTypes...), DataSize>;
+    static constexpr size_t smallCapacity()
+    {
+        return small_capacity;
+    }
 
     Function() noexcept {}
 

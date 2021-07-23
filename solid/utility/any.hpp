@@ -299,6 +299,11 @@ private:
 public:
     using ThisT = Any<DataSize>;
 
+    static constexpr size_t smallCapacity()
+    {
+        return small_capacity;
+    }
+
     constexpr Any() noexcept {}
 
     Any(const ThisT& _other)

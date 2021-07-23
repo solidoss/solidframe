@@ -25,8 +25,6 @@ namespace aio {
 //----  Actor  ----
 //---------------------------------------------------------------------
 
-Actor::Actor() {}
-
 /*virtual*/ void Actor::onEvent(ReactorContext& /*_rctx*/, Event&& /*_uevent*/)
 {
 }
