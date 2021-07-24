@@ -244,7 +244,7 @@ const void* do_get_if(const std::type_index& _type_index, const void* _pdata)
 template <size_t DataSize>
 class Any {
     static constexpr size_t min_capacity   = sizeof(void*) * 3;
-    static constexpr size_t small_capacity = any_max(min_capacity, padded_size(DataSize, sizeof(void*))) - sizeof(void*);
+    static constexpr size_t small_capacity = any_max(min_capacity, padded_size(DataSize, sizeof(void*)));
     static constexpr size_t big_padding    = small_capacity - sizeof(void*);
 
     struct Small {

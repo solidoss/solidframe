@@ -227,7 +227,7 @@ RepresentationE do_move_big(
 template <class R, class... ArgTypes, size_t DataSize>
 class Function<R(ArgTypes...), DataSize> {
     static constexpr size_t min_capacity   = sizeof(void*) * 3;
-    static constexpr size_t small_capacity = function_max(min_capacity, padded_size(DataSize, sizeof(void*))) - sizeof(void*);
+    static constexpr size_t small_capacity = function_max(min_capacity, padded_size(DataSize, sizeof(void*)));
     static constexpr size_t big_padding    = small_capacity - sizeof(void*);
 
     struct Small {
