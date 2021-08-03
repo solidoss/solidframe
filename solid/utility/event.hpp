@@ -15,13 +15,13 @@
 #include <typeinfo>
 #include <utility>
 
+#include <algorithm>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <queue>
 #include <unordered_map>
 #include <vector>
-#include <algorithm>
 
 #include "solid/utility/any.hpp"
 #include "solid/utility/common.hpp"
