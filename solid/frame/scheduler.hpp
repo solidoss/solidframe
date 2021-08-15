@@ -103,5 +103,11 @@ public:
     }
 };
 
+template <class Actr, class Schd, class Srvc, class... P>
+ActorIdT make_actor(Schd& _rschd, Srvc& _rsrvc, Event&& _revt, ErrorConditionT& _rerr, P&&... _p)
+{
+    return _rschd.startActor(std::make_shared<Actr>(std::forward<P>(_p)...), _rsrvc, std::forward<Event>(_revt), _rerr);
+}
+
 } //namespace frame
 } //namespace solid
