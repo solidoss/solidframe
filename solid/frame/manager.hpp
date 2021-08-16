@@ -83,6 +83,8 @@ public:
 
     bool notify(ActorIdT const& _ruid, Event&& _uevent);
 
+    bool notify(ActorIdT const& _ruid, const Event& _event);
+
     template <class F>
     bool visit(ActorIdT const& _ruid, F _f);
 
@@ -151,8 +153,9 @@ private:
     size_t doForEachServiceActor(const Service& _rservice, const ActorVisitFunctionT _rvisit_fnc);
     size_t doForEachServiceActor(const size_t _chkidx, const ActorVisitFunctionT _rvisit_fnc);
     bool   doVisit(ActorIdT const& _actor_id, const ActorVisitFunctionT _rvisit_fnc);
-    void   doCleanupService(const size_t _service_index, Service& _rservice);
-    void   doStartService(Service& _rservice, const LockedFunctionT& _locked_fnc, const UnlockedFunctionT& _unlocked_fnc);
+
+    void doCleanupService(const size_t _service_index, Service& _rservice);
+    void doStartService(Service& _rservice, const LockedFunctionT& _locked_fnc, const UnlockedFunctionT& _unlocked_fnc);
 
 private:
     struct Data;

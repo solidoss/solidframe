@@ -673,7 +673,16 @@ bool Manager::disableActorVisits(ActorBase& _ractor)
 bool Manager::notify(ActorIdT const& _ruid, Event&& _uevt)
 {
     const auto do_notify_fnc = [&_uevt](VisitContext& _rctx) {
-        return _rctx.raiseActor(std::move(_uevt));
+        return _rctx.raiseActor(std::forward<Event>(_uevt));
+    };
+
+    return doVisit(_ruid, ActorVisitFunctionT{do_notify_fnc});
+}
+
+bool Manager::notify(ActorIdT const& _ruid, const Event& _evt)
+{
+    const auto do_notify_fnc = [&_evt](VisitContext& _rctx) {
+        return _rctx.raiseActor(_evt);
     };
 
     return doVisit(_ruid, ActorVisitFunctionT{do_notify_fnc});
