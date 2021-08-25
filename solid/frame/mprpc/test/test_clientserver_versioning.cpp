@@ -87,12 +87,12 @@ int test_clientserver_versioning(int argc, char* argv[])
     auto port = v3::configure_service(service, scheduler);
 
     v1::configure_service(service_v1, scheduler, resolver, port);
-    v1::send_request(service_v1);
     v2::configure_service(service_v2, scheduler, resolver, port);
-    v2::send_request(service_v2);
     v3::configure_service(service_v3, scheduler, resolver, port);
-    v3::send_request(service_v3);
     v4::configure_service(service_v4, scheduler, resolver, port);
+    v1::send_request(service_v1);
+    v2::send_request(service_v2);
+    v3::send_request(service_v3);
     v4::send_request(service_v4);
 
     unique_lock<mutex> lock(mtx);

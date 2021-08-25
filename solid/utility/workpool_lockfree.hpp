@@ -489,7 +489,7 @@ bool WorkPool<Job, QNBits, Base>::doJobPop(WorkerStub& _rws, const size_t thr_id
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
-void WorkPool<Job, QNBits, Base>::doWorkerPush(WorkerStub& _rws, const size_t _thr_id)
+void __attribute__((no_sanitize("thread"))) WorkPool<Job, QNBits, Base>::doWorkerPush(WorkerStub& _rws, const size_t _thr_id)
 {
     //bool expect = false;
     //const bool stacked_ok = _rws.stacked_.compare_exchange_strong(expect, true);
@@ -507,7 +507,7 @@ void WorkPool<Job, QNBits, Base>::doWorkerPush(WorkerStub& _rws, const size_t _t
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
-bool WorkPool<Job, QNBits, Base>::doWorkerPop(WorkerStub*& _rpws)
+bool __attribute__((no_sanitize("thread"))) WorkPool<Job, QNBits, Base>::doWorkerPop(WorkerStub*& _rpws)
 {
     size_t old_head = worker_head_.load();
     while (old_head != InvalidIndex() && !worker_head_.compare_exchange_weak(old_head, worker(WorkerStub::thrId(old_head)).next_ /*, std::memory_order_acquire, std::memory_order_relaxed*/))
