@@ -489,8 +489,17 @@ bool WorkPool<Job, QNBits, Base>::doJobPop(WorkerStub& _rws, const size_t thr_id
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
-void __attribute__((no_sanitize("thread"))) WorkPool<Job, QNBits, Base>::doWorkerPush(WorkerStub& _rws, const size_t _thr_id)
+void
+#if defined(__SANITIZE_THREAD__)
+    __attribute__((no_sanitize("thread")))
+#elif defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+    __attribute__((no_sanitize("thread")))
+#endif
+#endif
+    WorkPool<Job, QNBits, Base>::doWorkerPush(WorkerStub& _rws, const size_t _thr_id)
 {
+
     //bool expect = false;
     //const bool stacked_ok = _rws.stacked_.compare_exchange_strong(expect, true);
     //solid_assert_log(stacked_ok, workpool_logger);
@@ -507,7 +516,15 @@ void __attribute__((no_sanitize("thread"))) WorkPool<Job, QNBits, Base>::doWorke
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
-bool __attribute__((no_sanitize("thread"))) WorkPool<Job, QNBits, Base>::doWorkerPop(WorkerStub*& _rpws)
+bool
+#if defined(__SANITIZE_THREAD__)
+    __attribute__((no_sanitize("thread")))
+#elif defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+    __attribute__((no_sanitize("thread")))
+#endif
+#endif
+    WorkPool<Job, QNBits, Base>::doWorkerPop(WorkerStub*& _rpws)
 {
     size_t old_head = worker_head_.load();
     while (old_head != InvalidIndex() && !worker_head_.compare_exchange_weak(old_head, worker(WorkerStub::thrId(old_head)).next_ /*, std::memory_order_acquire, std::memory_order_relaxed*/))
