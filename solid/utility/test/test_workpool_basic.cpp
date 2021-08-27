@@ -22,8 +22,11 @@ int test_workpool_basic(int argc, char* argv[])
     using AtomicPWPT = std::atomic<WorkPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
-
+#ifdef SOLID_SANITIZE_THREAD
+    const int           wait_seconds = 1500;
+#else
     const int           wait_seconds = 150;
+#endif
     int                 loop_cnt     = 5;
     const size_t        cnt{5000000};
     const size_t        v = (((cnt - 1) * cnt)) / 2;
