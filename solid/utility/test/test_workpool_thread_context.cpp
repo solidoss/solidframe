@@ -47,11 +47,11 @@ int test_workpool_thread_context(int argc, char* argv[])
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
 #ifdef SOLID_SANITIZE_THREAD
-    int                 wait_seconds = 1000;
+    int wait_seconds = 1000;
 #else
-    int                 wait_seconds = 100;
+    int wait_seconds = 100;
 #endif
-    int                 loop_cnt     = 5;
+    int                 loop_cnt = 5;
     const size_t        cnt{5000000};
     std::atomic<size_t> val{0};
     AtomicPWPT          pwp{nullptr};

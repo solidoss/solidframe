@@ -72,11 +72,11 @@ using ssize_t = std::make_signed<size_t>::type;
 #define SOLID_CALL_OVERLOAD(name, ...) SOLID_GLUE(SOLID_OVERLOAD_MACRO(name, SOLID_COUNT_ARGS_MAX5(__VA_ARGS__)), (__VA_ARGS__))
 
 #if defined(__SANITIZE_THREAD__)
-    #define SOLID_SANITIZE_THREAD
-    #define SOLID_SANITIZE_THREAD_ATTRIBUTE __attribute__((no_sanitize("thread")))
+#define SOLID_SANITIZE_THREAD
+#define SOLID_SANITIZE_THREAD_ATTRIBUTE __attribute__((no_sanitize("thread")))
 #elif defined(__has_feature)
 #if __has_feature(thread_sanitizer)
-    #define SOLID_SANITIZE_THREAD
-    #define SOLID_SANITIZE_THREAD_ATTRIBUTE __attribute__((no_sanitize("thread")))
+#define SOLID_SANITIZE_THREAD
+#define SOLID_SANITIZE_THREAD_ATTRIBUTE __attribute__((no_sanitize("thread")))
 #endif
 #endif

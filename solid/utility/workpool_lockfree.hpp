@@ -45,13 +45,13 @@ struct WorkerStub {
     std::condition_variable cnd_;
     std::mutex              mtx_;
 #ifdef SOLID_USE_ATOMIC_WORKERSTUB_NEXT
-    std::atomic<size_t>     next_ = 0;
+    std::atomic<size_t> next_ = 0;
 #else
-    size_t                  next_ = 0;
+    size_t next_ = 0;
 #endif
-    std::thread::id         pop_thr_id_;
-    std::atomic<size_t>     pop_counter_;
-    uint16_t                aba_counter_ = 0;
+    std::thread::id     pop_thr_id_;
+    std::atomic<size_t> pop_counter_;
+    uint16_t            aba_counter_ = 0;
 
     WorkerStub()
         : state_(StateE::Cancel)
@@ -505,23 +505,22 @@ void WorkPool<Job, QNBits, Base>::doWorkerPush(WorkerStub& _rws, const size_t _t
 
     const size_t aba_id = _rws.abaId(_thr_id);
 #ifdef SOLID_USE_ATOMIC_WORKERSTUB_NEXT
-    auto next =  worker_head_.load(std::memory_order_relaxed);
+    auto next = worker_head_.load(std::memory_order_relaxed);
     _rws.next_.store(next);
     while (!worker_head_.compare_exchange_weak(next, aba_id /*,
         std::memory_order_release,
         std::memory_order_relaxed*/
-        )){
-            _rws.next_.store(next);
-        }
+        )) {
+        _rws.next_.store(next);
+    }
 #else
-    _rws.next_ = worker_head_.load(std::memory_order_relaxed);
+    _rws.next_   = worker_head_.load(std::memory_order_relaxed);
     while (!worker_head_.compare_exchange_weak(_rws.next_, aba_id /*,
         std::memory_order_release,
         std::memory_order_relaxed*/
-        ));
+        ))
+        ;
 #endif
-    
-    
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
@@ -534,7 +533,7 @@ bool WorkPool<Job, QNBits, Base>::doWorkerPop(WorkerStub*& _rpws)
 #else
     while (old_head != InvalidIndex() && !worker_head_.compare_exchange_weak(old_head, worker(WorkerStub::thrId(old_head)).next_ /*, std::memory_order_acquire, std::memory_order_relaxed*/))
         ;
-#endif    
+#endif
 
     if (old_head != InvalidIndex()) {
         _rpws = &worker(WorkerStub::thrId(old_head));
