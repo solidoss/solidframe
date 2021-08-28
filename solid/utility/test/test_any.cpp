@@ -158,12 +158,18 @@ int test_any(int /*argc*/, char* /*argv*/[])
     }
 
 #endif
-
+#if 0
+    for(size_t i = 0; i < 64; ++i){
+        cout<<i<<" small_capacity = "<<any_impl::compute_small_capacity(i)<<endl;
+    }
+#endif
+    
     Any<> any0;
     auto  any32(make_any<string, 32>(string("best string ever")));
 
     cout << "sizeof(any0) = " << sizeof(any0) << endl;
-
+    cout << "sizeof(any32) = " << sizeof(any32) << endl;
+    cout << "sizeof(string) = " << sizeof(string) << endl;
     solid_check(any32.has_value());
     solid_check(any32.cast<string>() != nullptr);
     solid_check(any32.get_if<string>() != nullptr);
@@ -183,12 +189,15 @@ int test_any(int /*argc*/, char* /*argv*/[])
     cout << "value = " << *any0.cast<string>() << endl;
 
     any32 = any0;
-
+    cout <<"any32.is_small = "<<any32.is_small()<<endl;
     solid_check(any32.has_value());
     solid_check(any0.has_value());
 
     Any<16> any16_0(any32);
     Any<16> any16_1(any16_0);
+    
+    cout << "sizeof(any16_0) = " << sizeof(any16_0) << endl;
+    cout <<"any16_0.is_small = "<<any16_0.is_small()<<endl;
 
     solid_check(any32.has_value());
     solid_check(any16_0.has_value());
@@ -239,12 +248,12 @@ int test_any(int /*argc*/, char* /*argv*/[])
         Any<sizeof(Test)> any_t{Test{10}};
         Any<>             any_0{std::move(any_t)};
 
-        solid_check(any_t.has_value());
+        solid_check(!any_t.has_value());
         solid_check(any_0.has_value());
 
         any_t = std::move(any_0);
 
-        solid_check(any_0.has_value());
+        solid_check(!any_0.has_value());
         solid_check(any_t.has_value());
 
         any_0 = Test{5};
