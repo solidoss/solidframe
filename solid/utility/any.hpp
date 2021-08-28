@@ -240,10 +240,11 @@ const void* do_get_if(const std::type_index& _type_index, const void* _pdata)
 }
 
 constexpr size_t compute_small_capacity(const size_t _req_capacity){
-    size_t req_capacity = any_max(_req_capacity, sizeof(max_align_t) - sizeof(uintptr_t) - sizeof(void*));
-    size_t tot_capacity = padded_size(req_capacity + sizeof(uintptr_t) + sizeof(void*), alignof(max_align_t));
+    const size_t end_capacity = sizeof(uintptr_t) + sizeof(void*);
+    const size_t req_capacity = any_max(_req_capacity, any_max(end_capacity, sizeof(max_align_t)) - end_capacity);
+    const size_t tot_capacity = padded_size(req_capacity + sizeof(uintptr_t) + sizeof(void*), alignof(max_align_t));
     
-    return tot_capacity - sizeof(uintptr_t) - sizeof(void*);
+    return tot_capacity - end_capacity;
 }
 
 } // namespace any_impl

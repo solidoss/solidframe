@@ -38,8 +38,7 @@ class EventHandlerBase;
 
 constexpr size_t compute_any_size()
 {
-    size_t sz1 = sizeof(void*) == 8 ? any_size_from_sizeof(64 - sizeof(void*) - sizeof(uintptr_t)) : any_size_from_sizeof(32 - sizeof(void*) - sizeof(uintptr_t));
-    return any_max(sz1, any_max(sizeof(Function<void()>), sizeof(std::function<void()>)));
+    return any_max(sizeof(Function<void()>), sizeof(std::function<void()>));
 }
 
 struct Event {
