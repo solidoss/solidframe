@@ -99,14 +99,15 @@ using StackSizeT = Stack<size_t>;
 
 template <class T>
 class Cache {
-    std::mutex    mutex_;
+    using MutexT = mutex;
+    MutexT        mutex_;
     StackSizeT    index_stk_;
     std::deque<T> dq_;
 
 public:
     T& create(size_t& _rindex)
     {
-        lock_guard<mutex> lock(mutex_);
+        lock_guard<MutexT> lock(mutex_);
         if (!index_stk_.empty()) {
             _rindex = index_stk_.top();
             index_stk_.pop();
@@ -121,7 +122,7 @@ public:
     template <typename F>
     T& create(size_t& _rindex, const F& _rf)
     {
-        lock_guard<mutex> lock(mutex_);
+        lock_guard<MutexT> lock(mutex_);
         if (!index_stk_.empty()) {
             _rindex = index_stk_.top();
             index_stk_.pop();
@@ -138,14 +139,14 @@ public:
 
     void release(const size_t _index)
     {
-        lock_guard<mutex> lock(mutex_);
+        lock_guard<MutexT> lock(mutex_);
         index_stk_.push(_index);
     }
 
     template <typename F>
     void release(const size_t _index, const F& _rf)
     { //Do not pass index as reference!!
-        lock_guard<mutex> lock(mutex_);
+        lock_guard<MutexT> lock(mutex_);
         _rf(_index, dq_[_index]);
         index_stk_.push(_index);
     }
@@ -153,8 +154,9 @@ public:
     template <typename F>
     T& aquire(const size_t _index, const F& _rf)
     {
-        lock_guard<mutex> lock(mutex_);
-        T&                rt = dq_[_index];
+        mutex_.lock();
+        T& rt = dq_[_index];
+        mutex_.unlock();
         _rf(_index, rt);
         return rt;
     }
@@ -162,12 +164,14 @@ public:
     template <typename F>
     T* aquirePointer(const size_t _index, const F& _rf)
     {
-        lock_guard<mutex> lock(mutex_);
+        mutex_.lock();
         if (_index < dq_.size()) {
             T& rt = dq_[_index];
+            mutex_.unlock();
             _rf(_index, rt);
             return &rt;
         } else {
+            mutex_.unlock();
             return nullptr;
         }
     }
@@ -673,7 +677,16 @@ bool Manager::disableActorVisits(ActorBase& _ractor)
 bool Manager::notify(ActorIdT const& _ruid, Event&& _uevt)
 {
     const auto do_notify_fnc = [&_uevt](VisitContext& _rctx) {
-        return _rctx.raiseActor(std::move(_uevt));
+        return _rctx.raiseActor(std::forward<Event>(_uevt));
+    };
+
+    return doVisit(_ruid, ActorVisitFunctionT{do_notify_fnc});
+}
+
+bool Manager::notify(ActorIdT const& _ruid, const Event& _evt)
+{
+    const auto do_notify_fnc = [&_evt](VisitContext& _rctx) {
+        return _rctx.raiseActor(_evt);
     };
 
     return doVisit(_ruid, ActorVisitFunctionT{do_notify_fnc});

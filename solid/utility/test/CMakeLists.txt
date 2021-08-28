@@ -6,6 +6,7 @@ set( UtilityTestSuite
     test_anytuple.cpp
     test_queue.cpp
     test_event.cpp
+    test_event_size.cpp
     test_memory_file.cpp
     test_workpool_context.cpp
     test_workpool_thread_context.cpp

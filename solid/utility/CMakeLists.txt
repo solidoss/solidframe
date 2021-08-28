@@ -3,7 +3,6 @@ set(Sources
     src/memoryfile.cpp
     src/ioformat.cpp
     src/event.cpp
-    src/super.cpp
 )
 
 set(Headers

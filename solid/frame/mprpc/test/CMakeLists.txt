@@ -88,6 +88,13 @@ if(OPENSSL_FOUND)
         ${SYSTEM_BASIC_LIBRARIES}
     )
 
+    if(SOLID_ON_WINDOWS)
+        add_custom_command(TARGET test_mprpc_clientserver POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_SSL_DLL} $<TARGET_FILE_DIR:test_mprpc_clientserver>
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_CRYPTO_DLL} $<TARGET_FILE_DIR:test_mprpc_clientserver>
+        )
+    endif()
+
     add_test(NAME TestClientServerBasic_1                COMMAND  test_mprpc_clientserver test_clientserver_basic 1)
     add_test(NAME TestClientServerBasic_2                COMMAND  test_mprpc_clientserver test_clientserver_basic 2)
     add_test(NAME TestClientServerBasic_4                COMMAND  test_mprpc_clientserver test_clientserver_basic 4)

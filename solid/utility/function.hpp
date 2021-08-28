@@ -222,12 +222,20 @@ RepresentationE do_move_big(
         return RepresentationE::Big;
     }
 }
+
+constexpr size_t compute_small_capacity(const size_t _req_capacity)
+{
+    const size_t end_capacity = sizeof(uintptr_t) + sizeof(void*);
+    const size_t req_capacity = function_max(_req_capacity, function_max(end_capacity, sizeof(max_align_t)) - end_capacity);
+    const size_t tot_capacity = padded_size(req_capacity + sizeof(uintptr_t) + sizeof(void*), alignof(max_align_t));
+
+    return tot_capacity - end_capacity;
+}
 } // namespace fnc_impl
 
 template <class R, class... ArgTypes, size_t DataSize>
 class Function<R(ArgTypes...), DataSize> {
-    static constexpr size_t min_capacity   = sizeof(void*) * 3;
-    static constexpr size_t small_capacity = function_max(min_capacity, padded_size(DataSize, sizeof(void*))) - sizeof(void*);
+    static constexpr size_t small_capacity = fnc_impl::compute_small_capacity(function_max(sizeof(void*) * 3, DataSize));
     static constexpr size_t big_padding    = small_capacity - sizeof(void*);
 
     struct Small {
@@ -283,6 +291,10 @@ private:
 
 public:
     using ThisT = Function<R(ArgTypes...), DataSize>;
+    static constexpr size_t smallCapacity()
+    {
+        return small_capacity;
+    }
 
     Function() noexcept {}
 

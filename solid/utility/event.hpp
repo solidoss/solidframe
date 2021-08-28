@@ -15,6 +15,7 @@
 #include <typeinfo>
 #include <utility>
 
+#include <algorithm>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -24,6 +25,7 @@
 
 #include "solid/utility/any.hpp"
 #include "solid/utility/common.hpp"
+#include "solid/utility/function.hpp"
 
 namespace solid {
 
@@ -34,8 +36,13 @@ class EventHandlerBase;
 //      Event
 //-----------------------------------------------------------------------------
 
+constexpr size_t compute_any_size()
+{
+    return any_max(sizeof(Function<void()>), sizeof(std::function<void()>));
+}
+
 struct Event {
-    static constexpr size_t any_size = sizeof(void*) == 8 ? any_size_from_sizeof(64 - sizeof(void*) - sizeof(uintptr_t)) : any_size_from_sizeof(32 - sizeof(void*) - sizeof(uintptr_t));
+    static constexpr size_t any_size = compute_any_size();
     using AnyT                       = Any<any_size>;
 
     Event();

@@ -239,12 +239,20 @@ const void* do_get_if(const std::type_index& _type_index, const void* _pdata)
     return nullptr;
 }
 
+constexpr size_t compute_small_capacity(const size_t _req_capacity)
+{
+    const size_t end_capacity = sizeof(uintptr_t) + sizeof(void*);
+    const size_t req_capacity = any_max(_req_capacity, any_max(end_capacity, sizeof(max_align_t)) - end_capacity);
+    const size_t tot_capacity = padded_size(req_capacity + sizeof(uintptr_t) + sizeof(void*), alignof(max_align_t));
+
+    return tot_capacity - end_capacity;
+}
+
 } // namespace any_impl
 
 template <size_t DataSize>
 class Any {
-    static constexpr size_t min_capacity   = sizeof(void*) * 3;
-    static constexpr size_t small_capacity = any_max(min_capacity, padded_size(DataSize, sizeof(void*))) - sizeof(void*);
+    static constexpr size_t small_capacity = any_impl::compute_small_capacity(any_max(sizeof(void*) * 3, DataSize));
     static constexpr size_t big_padding    = small_capacity - sizeof(void*);
 
     struct Small {
@@ -298,6 +306,11 @@ private:
 
 public:
     using ThisT = Any<DataSize>;
+
+    static constexpr size_t smallCapacity()
+    {
+        return small_capacity;
+    }
 
     constexpr Any() noexcept {}
 
@@ -544,6 +557,7 @@ private:
                 storage_.small_.data_, small_capacity, storage_.small_.prtti_,
                 storage_.big_.ptr_, storage_.big_.prtti_);
             representation(repr);
+            _other.reset();
         } break;
         case any_impl::RepresentationE::Big: {
             const auto repr = _other.storage_.big_.prtti_->pmove_fnc_(
@@ -553,6 +567,8 @@ private:
             representation(repr);
             if (repr == any_impl::RepresentationE::Big) {
                 _other.storage_.type_data_ = 0;
+            } else {
+                _other.reset();
             }
         } break;
         default:
