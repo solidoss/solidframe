@@ -223,11 +223,12 @@ RepresentationE do_move_big(
     }
 }
 
-constexpr size_t compute_small_capacity(const size_t _req_capacity){
+constexpr size_t compute_small_capacity(const size_t _req_capacity)
+{
     const size_t end_capacity = sizeof(uintptr_t) + sizeof(void*);
     const size_t req_capacity = function_max(_req_capacity, function_max(end_capacity, sizeof(max_align_t)) - end_capacity);
     const size_t tot_capacity = padded_size(req_capacity + sizeof(uintptr_t) + sizeof(void*), alignof(max_align_t));
-    
+
     return tot_capacity - end_capacity;
 }
 } // namespace fnc_impl

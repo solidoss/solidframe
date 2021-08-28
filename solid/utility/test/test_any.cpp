@@ -163,7 +163,7 @@ int test_any(int /*argc*/, char* /*argv*/[])
         cout<<i<<" small_capacity = "<<any_impl::compute_small_capacity(i)<<endl;
     }
 #endif
-    
+
     Any<> any0;
     auto  any32(make_any<string, 32>(string("best string ever")));
 
@@ -189,15 +189,15 @@ int test_any(int /*argc*/, char* /*argv*/[])
     cout << "value = " << *any0.cast<string>() << endl;
 
     any32 = any0;
-    cout <<"any32.is_small = "<<any32.is_small()<<endl;
+    cout << "any32.is_small = " << any32.is_small() << endl;
     solid_check(any32.has_value());
     solid_check(any0.has_value());
 
     Any<16> any16_0(any32);
     Any<16> any16_1(any16_0);
-    
+
     cout << "sizeof(any16_0) = " << sizeof(any16_0) << endl;
-    cout <<"any16_0.is_small = "<<any16_0.is_small()<<endl;
+    cout << "any16_0.is_small = " << any16_0.is_small() << endl;
 
     solid_check(any32.has_value());
     solid_check(any16_0.has_value());
