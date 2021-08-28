@@ -44,6 +44,12 @@ if(OPENSSL_FOUND)
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
     )
+    if(SOLID_ON_WINDOWS)
+        add_custom_command(TARGET test_aio POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_SSL_DLL} $<TARGET_FILE_DIR:test_aio>
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_CRYPTO_DLL} $<TARGET_FILE_DIR:test_aio>
+        )
+    endif()
     
     add_test(NAME TestAioEventStress100_100         COMMAND  test_aio test_event_stress 100 100)
     add_test(NAME TestEventStressWP00_100_100       COMMAND  test_aio test_event_stress_wp 0 100 100)
