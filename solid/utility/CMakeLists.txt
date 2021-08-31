@@ -3,6 +3,7 @@ set(Sources
     src/memoryfile.cpp
     src/ioformat.cpp
     src/event.cpp
+    src/super.cpp
 )
 
 set(Headers
@@ -25,6 +26,7 @@ set(Headers
     function.hpp
     typetraits.hpp
     delegate.hpp
+    super.hpp
 )
 
 set(Inlines
