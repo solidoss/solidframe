@@ -1,4 +1,4 @@
-// solid/utility/workpool_mutex.hpp
+// solid/utility/workpool_locking.hpp
 //
 // Copyright (c) 2007, 2008, 2018 Valentin Palade (vipalade @ gmail . com)
 //

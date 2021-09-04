@@ -10,6 +10,7 @@
 
 #pragma once
 #include "solid/utility/common.hpp"
+#include "solid/utility/function.hpp"
 #include "solid/utility/workpool_lockfree.hpp"
 #include "solid/utility/workpool_locking.hpp"
 
@@ -31,13 +32,16 @@ using WorkPool = lockfree::WorkPool<Job, QNBits, Base>;
 
 #endif
 
-template <class, size_t QNBits = workpoll_default_node_capacity_bit_count, typename Base = impl::WorkPoolBase>
+template <typename Job>
+using DefaultWorkPoolT = WorkPool<Job>;
+
+template <class, size_t FunctionDataSize = function_default_data_size, template <typename> class WorkP = DefaultWorkPoolT>
 class CallPool;
 
-template <class R, class... ArgTypes, size_t QNBits, typename Base>
-class CallPool<R(ArgTypes...), QNBits, Base> {
-    using FunctionT = std::function<R(ArgTypes...)>;
-    using WorkPoolT = WorkPool<FunctionT, QNBits, Base>;
+template <class R, class... ArgTypes, size_t FunctionDataSize, template <typename> class WP>
+class CallPool<R(ArgTypes...), FunctionDataSize, WP> {
+    using FunctionT = Function<R(ArgTypes...), FunctionDataSize>;
+    using WorkPoolT = WP<FunctionT>;
     WorkPoolT wp_;
 
 public:
@@ -66,7 +70,7 @@ public:
         wp_.start(
             _cfg, _start_wkr_cnt,
             [](FunctionT& _rfnc, Args&&... _args) {
-                _rfnc(std::forward<Args>(_args)...);
+                _rfnc(std::forward<ArgTypes>(_args)...);
             },
             std::forward<Args>(_args)...);
     }

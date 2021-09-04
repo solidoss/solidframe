@@ -36,16 +36,21 @@ struct Context {
     }
 };
 
+template <class Job>
+using WorkPoolT = WorkPool<Job, workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<90>>;
+
 } // namespace
 
 int test_workpool_thread_context(int argc, char* argv[])
 {
     install_crash_handler();
     solid::log_start(std::cerr, {".*:EWXS", "test_context:VIEWS"});
-    using CallPoolT  = CallPool<void(Context&), workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<90>>;
+    using CallPoolT  = CallPool<void(Context&), function_default_data_size, WorkPoolT>;
     using AtomicPWPT = std::atomic<CallPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
+
+    solid_log(logger, Warning, "alignof(std::function) = " << alignof(std::function<void(Context&)>));
 #ifdef SOLID_SANITIZE_THREAD
     int wait_seconds = 1000;
 #else

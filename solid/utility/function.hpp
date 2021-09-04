@@ -22,7 +22,7 @@
 #include "solid/utility/typetraits.hpp"
 
 namespace solid {
-inline constexpr size_t FunctionDefaultSize = 3 * sizeof(void*);
+inline constexpr size_t function_default_data_size = 3 * sizeof(void*);
 
 inline constexpr size_t function_size_from_sizeof(const size_t _sizeof)
 {
@@ -33,7 +33,7 @@ inline constexpr const T& function_max(const T& a, const T& b)
 {
     return (a < b) ? b : a;
 }
-template <class, size_t DataSize = FunctionDefaultSize>
+template <class, size_t DataSize = function_default_data_size>
 class Function; //undefined
 
 template <class T>

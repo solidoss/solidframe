@@ -22,7 +22,7 @@
 #include "solid/utility/typetraits.hpp"
 
 namespace solid {
-inline constexpr size_t AnyDefaultSize = 3 * sizeof(void*);
+inline constexpr size_t any_default_data_size = 3 * sizeof(void*);
 
 inline constexpr size_t any_size_from_sizeof(const size_t _sizeof)
 {
@@ -33,7 +33,7 @@ inline constexpr const T& any_max(const T& a, const T& b)
 {
     return (a < b) ? b : a;
 }
-template <size_t DataSize = AnyDefaultSize>
+template <size_t DataSize = any_default_data_size>
 class Any;
 
 template <class T>
@@ -632,12 +632,12 @@ inline void swap(Any<S1>& _a1, Any<S2>& _a2) noexcept
     _a1.swap(_a2);
 }
 
-template <class T, size_t Size = AnyDefaultSize, class... Args>
+template <class T, size_t Size = any_default_data_size, class... Args>
 Any<Size> make_any(Args&&... _args)
 {
     return Any<Size>{std::in_place_type<T>, std::forward<Args>(_args)...};
 }
-template <class T, size_t Size = AnyDefaultSize, class E, class... Args>
+template <class T, size_t Size = any_default_data_size, class E, class... Args>
 Any<Size> make_any(std::initializer_list<E> _ilist, Args&&... _args)
 {
     return Any<Size>{std::in_place_type<T>, _ilist, std::forward<Args>(_args)...};

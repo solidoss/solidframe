@@ -49,12 +49,13 @@ class Queue : protected Base {
     static constexpr const size_t node_size = bits_to_count(NBits);
 
     struct Node {
+        using AlignedStorageT = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
         std::atomic<size_t> push_pos_;
         std::atomic<size_t> push_commit_pos_;
         std::atomic<size_t> pop_pos_;
         std::atomic<size_t> use_cnt_;
         std::atomic<Node*>  next_;
-        uint8_t             data_[node_size * sizeof(T)];
+        AlignedStorageT     data_[node_size];
 
         Node()
             : push_pos_(0)
@@ -266,12 +267,12 @@ private:
 
     T* doCopyOrMove(Node& _rn, const size_t _pos, const T& _rt, T&& /*_ut*/, std::true_type)
     {
-        return new (_rn.data_ + (_pos * sizeof(T))) T{_rt};
+        return new (&_rn.data_[_pos]) T{_rt};
     }
 
     T* doCopyOrMove(Node& _rn, const size_t _pos, const T& /*_rt*/, T&& _ut, std::false_type)
     {
-        return new (_rn.data_ + (_pos * sizeof(T))) T{std::move(_ut)};
+        return new (&_rn.data_[_pos]) T{std::move(_ut)};
     }
 
     template <bool IsCopy, bool Wait>
