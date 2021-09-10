@@ -24,7 +24,7 @@ printUsage()
     echo
 }
 
-OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.1.1l.tar.gz"
+OPENSSL_ADDR="https://www.openssl.org/source/openssl-3.0.0.tar.gz"
 
 SYSTEM=
 BIT64=
@@ -132,7 +132,7 @@ buildOpenssl()
         /c/Strawberry/perl/bin/perl Configure $OPENSSL_TARGET --prefix="$EXT_DIR" --openssldir="ssl_"
     else
         if [ $DEBUG ] ; then
-            ./config -d --prefix="$EXT_DIR" --openssldir="ssl_" no-asm -fno-omit-frame-pointer -fno-inline-functions # -fsanitize=thread
+            ./config -d --prefix="$EXT_DIR" --openssldir="ssl_" #no-asm -fno-omit-frame-pointer -fno-inline-functions -fsanitize=thread
         else
             ./config --prefix="$EXT_DIR" --openssldir="ssl_"
         fi
