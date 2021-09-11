@@ -117,9 +117,9 @@ buildOpenssl()
         fi
 
         if [ $DEBUG ] ; then
-            ./Configure --prefix="$EXT_DIR" --openssldir="ssl_" $target_name
+            ./Configure --prefix="$EXT_DIR" --openssldir="ssl_" $target_name no-unit-test no-tests no-ui-console --libdir=lib
         else
-            ./Configure --prefix="$EXT_DIR" --openssldir="ssl_" $target_name
+            ./Configure --prefix="$EXT_DIR" --openssldir="ssl_" $target_name no-unit-test no-tests no-ui-console --libdir=lib
         fi
     elif    [[ "$SYSTEM" =~ "MINGW" ]]; then
         if [ "$BIT64" = "true" ]; then
@@ -129,12 +129,12 @@ buildOpenssl()
         fi
         # on windows we need to compile the shared library too in order to avoid
         # explicit dependency of CRYPT32.LIB
-        /c/Strawberry/perl/bin/perl Configure $OPENSSL_TARGET --prefix="$EXT_DIR" --openssldir="ssl_"
+        /c/Strawberry/perl/bin/perl Configure $OPENSSL_TARGET --prefix="$EXT_DIR" --openssldir="ssl_" no-unit-test no-tests no-ui-console --libdir=lib
     else
         if [ $DEBUG ] ; then
-            ./config -d --prefix="$EXT_DIR" --openssldir="ssl_" #no-asm -fno-omit-frame-pointer -fno-inline-functions -fsanitize=thread
+            ./config -d --prefix="$EXT_DIR" --openssldir="ssl_" no-unit-test no-tests no-ui-console --libdir=lib #no-asm -fno-omit-frame-pointer -fno-inline-functions -fsanitize=thread
         else
-            ./config --prefix="$EXT_DIR" --openssldir="ssl_"
+            ./config --prefix="$EXT_DIR" --openssldir="ssl_" no-unit-test no-tests no-ui-console --libdir=lib
         fi
     fi
     if    [[ "$SYSTEM" =~ "MINGW" ]]; then
