@@ -8,6 +8,7 @@ set( UtilityTestSuite
     test_event.cpp
     test_event_size.cpp
     test_memory_file.cpp
+    test_workpool_multicast_basic.cpp
     test_workpool_context.cpp
     test_workpool_thread_context.cpp
     test_workpool.cpp
