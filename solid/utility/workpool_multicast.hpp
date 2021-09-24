@@ -33,7 +33,6 @@ template <typename Job, typename MCastJob = Job, size_t QNBits = 10, typename Ba
 class WorkPoolMulticast {
 
     using ThisT          = WorkPoolMulticast<Job, MCastJob, QNBits, Base>;
-    using WorkerFactoryT = std::function<std::thread()>;
     using ThreadVectorT  = std::vector<std::thread>;
     using JobQueueT      = Queue<Job, QNBits>;
     using MCastJobQueueT = Queue<MCastJob, QNBits>;
@@ -41,7 +40,6 @@ class WorkPoolMulticast {
 
     WorkPoolConfiguration   config_;
     AtomicBoolT             running_;
-    WorkerFactoryT          worker_factory_fnc_;
     JobQueueT               job_q_;
     MCastJobQueueT          mcast_job_q_;
     ThreadVectorT           thr_vec_;
@@ -148,9 +146,19 @@ public:
     }
 
 private:
+    struct PopContext{
+        Job      job_;
+        MCastJob mcast_job_;
+        bool     has_job_ = false;
+        bool     has_mcast_job_ = false;
+        bool     has_mcast_update_ = false;
+        
+        //used only on pop
+        bool     is_mcast_job_fetched_ = false;
+    };
     bool doWaitJob(std::unique_lock<std::mutex>& _lock);
 
-    bool pop(Job& _rjob);
+    bool pop(PopContext &_rcontext);
 
     void doStop();
 
@@ -173,7 +181,48 @@ void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::doStart(
     MCastSyncUpdateFnc           _mcast_sync_update_fnc,
     Args&&... _args)
 {
+    bool expect = false;
+
+    if (!running_.compare_exchange_strong(expect, true)) {
+        return;
+    }
     
+    config_             = _cfg;
+
+    {
+        std::lock_guard<std::mutex> lock(mtx_);
+
+        for (size_t i = 0; i < config_.max_worker_count_; ++i) {
+            thr_vec_.emplace_back(
+                std::thread{
+                    [this](JobHandlerFnc _job_handler_fnc, MCastJobHandleFnc _mcast_job_handler_fnc, MCastSyncUpdateFnc _mcast_sync_update_fnc, Args... _args) {
+                        uint64_t job_count = 0;
+                        PopContext pop_context;
+
+                        while (pop(pop_context)) {
+                            //call sync_update first because _mcast_job_handler_fnc might ::move
+                            //the mcast_job
+                            if(pop_context.has_mcast_update_){
+                                _mcast_sync_update_fnc(std::cref(pop_context.mcast_job_), std::forward<Args>(_args)...);
+                            }
+                            if(pop_context.has_mcast_job_){
+                                _mcast_job_handler_fnc(pop_context.mcast_job_, std::forward<Args>(_args)...);
+                            }
+                            if(pop_context.has_job_){
+                                _job_handler_fnc(pop_context.job_, std::forward<Args>(_args)...);
+                                solid_statistic_inc(job_count);
+                            }
+                        }
+
+                        solid_dbg(workpool_logger, Verbose, this << " worker exited after handling " << job_count << " jobs");
+                        solid_statistic_max(statistic_.max_jobs_on_thread_, job_count);
+                        solid_statistic_min(statistic_.min_jobs_on_thread_, job_count);
+                    },
+                    _job_handler_fnc, _mcast_job_handler_fnc, _mcast_sync_update_fnc, _args...
+                }
+            );
+        }
+    }
 }
 //-----------------------------------------------------------------------------
 template <typename Job, typename MCastJob, size_t QNBits, typename Base>
@@ -195,6 +244,52 @@ void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::doStop()
         thr_vec_.clear();
     }
     dumpStatistics();
+}
+//-----------------------------------------------------------------------------
+template <typename Job, typename MCastJob, size_t QNBits, typename Base>
+bool WorkPoolMulticast<Job, MCastJob, QNBits, Base>::doWaitJob(std::unique_lock<std::mutex>& _lock){
+    while (job_q_.empty() && mcast_job_q_.empty() && running_.load(std::memory_order_relaxed)) {
+        sig_cnd_.wait(_lock);
+    }
+    return !job_q_.empty();
+}
+//-----------------------------------------------------------------------------
+template <typename Job, typename MCastJob, size_t QNBits, typename Base>
+bool WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pop(PopContext &_rcontext){
+    std::unique_lock<std::mutex> lock(mtx_);
+    
+    _rcontext.has_job_ = false;
+    _rcontext.has_mcast_job_ = false;
+    _rcontext.has_mcast_update_ = false;
+    
+    if (doWaitJob(lock)) {
+        bool should_notify = false;
+        if(!job_q_.empty()){
+            should_notify  = job_q_.size() == config_.max_job_queue_size_;
+            _rcontext.job_ = std::move(job_q_.front());
+            _rcontext.has_job_ = true;
+            job_q_.pop();
+        }
+#if 0        
+        if(!mcast_job_q_.empty()){
+            if(_rcontext.mcast_fetch_id_ == mcast_current_fetch_id_){
+                ++_rcontext.mcast_fetch_id_;
+                _rcontext.mcast_job_ = mcast_job_q_.front();//copy
+                ++mcast_current_fetched_count_;
+                if(mcast_current_fetched_count_ == config_.max_worker_count_){
+                    _rcontext.has_mcast_update_ = true;
+                    _rcontext.has_mcast_job_ = true;
+                }
+            }
+        }
+#endif        
+
+        if (should_notify){
+            sig_cnd_.notify_all();
+        }
+        return true;
+    }
+    return false;
 }
 //-----------------------------------------------------------------------------
 template <typename Job, typename MCastJob, size_t QNBits, typename Base>
