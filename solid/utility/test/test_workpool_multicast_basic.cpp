@@ -46,10 +46,11 @@ int test_workpool_multicast_basic(int argc, char* argv[])
                 WorkPoolT wp{
                     WorkPoolConfiguration{2},
                     [&val, &all_val](const size_t _v) {
-                        solid_check(thread_local_value == all_val.load());
+                        auto tmp_all_val = all_val.load();
+                        solid_check(thread_local_value == tmp_all_val);
                         val += _v;
                     },
-                    [](const uint32_t _v){//synch handle
+                    [](const uint32_t _v){//synch execute
                         thread_local_value = _v;
                     },
                     [&all_val](const uint32_t _v){//synch update
