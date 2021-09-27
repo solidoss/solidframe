@@ -13,7 +13,7 @@ using namespace std;
 namespace {
 const LoggerT logger("test");
 
-thread_local size_t thread_local_value = 0;
+thread_local uint32_t thread_local_value = 0;
 
 }
 
@@ -33,7 +33,7 @@ int test_workpool_multicast_basic(int argc, char* argv[])
     int                 loop_cnt = 5;
     const size_t        cnt{5000000};
     const size_t        v = (((cnt - 1) * cnt)) / 2;
-    std::atomic<size_t> all_val{0};
+    std::atomic<uint32_t> all_val{0};
     std::atomic<size_t> val{0};
     AtomicPWPT          pwp{nullptr};
 
@@ -42,19 +42,25 @@ int test_workpool_multicast_basic(int argc, char* argv[])
     }
     auto lambda = [&]() {
         for (int i = 0; i < loop_cnt; ++i) {
+            deque<uint32_t> record_dq;
+            record_dq.resize(cnt, -1);
             {
                 WorkPoolT wp{
                     WorkPoolConfiguration{2},
-                    [&val, &all_val](const size_t _v) {
-                        auto tmp_all_val = all_val.load();
-                        solid_check(thread_local_value == tmp_all_val);
+                    [&val, &record_dq](const size_t _v) {
                         val += _v;
+                        solid_check(record_dq[_v] == static_cast<uint32_t>(-1));
+                        record_dq[_v] = thread_local_value;
                     },
-                    [](const uint32_t _v){//synch execute
+                    [&all_val](const uint32_t _v){//synch execute
+                        uint32_t expect = thread_local_value;
+                        all_val.compare_exchange_strong(expect, _v);
+                        
                         thread_local_value = _v;
                     },
                     [&all_val](const uint32_t _v){//synch update
-                        all_val = _v;
+                        auto expect = _v - 1;
+                        all_val.compare_exchange_strong(expect, _v);
                     }
                 };
                 
@@ -67,7 +73,7 @@ int test_workpool_multicast_basic(int argc, char* argv[])
                         barrier.set_value();
                         for(uint32_t i = 0; i < cnt; ++i){
                             if((i % 10) == 0){
-                                wp.pushAllSync(i/10);
+                                wp.pushAllSync(i/10 + 1);
                             }
                         }
                     }, std::move(barrier)
@@ -83,7 +89,13 @@ int test_workpool_multicast_basic(int argc, char* argv[])
                 
                 all_thr.join();
             }
+            
             solid_log(logger, Verbose, "after loop");
+            
+            for(size_t i = 1; i < record_dq.size(); ++i){
+                solid_check(record_dq[i] >= record_dq[i - 1]);
+            }
+            
             solid_check(v == val, "val = " << val << " v = " << v);
             val = 0;
         }
