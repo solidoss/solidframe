@@ -17,7 +17,7 @@ thread_local uint32_t thread_local_value = 0;
 
 } // namespace
 
-int test_workpool_multicast_basic(int argc, char* argv[])
+int test_workpool_multicast_sleep(int argc, char* argv[])
 {
     install_crash_handler();
     solid::log_start(std::cerr, {".*:EWXS", "test:VIEWS"});
@@ -31,7 +31,7 @@ int test_workpool_multicast_basic(int argc, char* argv[])
     const int wait_seconds = 150;
 #endif
     int                   loop_cnt = 5;
-    const size_t          cnt{5000000};
+    const size_t          cnt{1000};
     const size_t          v = (((cnt - 1) * cnt)) / 2;
     std::atomic<uint32_t> all_val{0};
     std::atomic<size_t>   val{0};
@@ -51,12 +51,14 @@ int test_workpool_multicast_basic(int argc, char* argv[])
                         val += _v;
                         solid_check(record_dq[_v] == static_cast<uint32_t>(-1));
                         record_dq[_v] = thread_local_value;
+                        this_thread::sleep_for(chrono::milliseconds(_v % 5) * 10);
                     },
                     [&all_val](const uint32_t _v) { //synch execute
                         uint32_t expect = thread_local_value;
                         all_val.compare_exchange_strong(expect, _v);
 
                         thread_local_value = _v;
+                        this_thread::sleep_for(chrono::milliseconds(_v % 5) * 5);
                     },
                     [&all_val](const uint32_t _v) { //synch update
                         auto expect = _v - 1;
