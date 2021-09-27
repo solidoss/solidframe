@@ -13,6 +13,7 @@
 #include "solid/utility/function.hpp"
 #include "solid/utility/workpool_lockfree.hpp"
 #include "solid/utility/workpool_locking.hpp"
+#include "solid/utility/workpool_multicast.hpp"
 
 //#define SOLID_USE_WORKPOOL_MUTEX
 

@@ -8,6 +8,8 @@ set( UtilityTestSuite
     test_event.cpp
     test_event_size.cpp
     test_memory_file.cpp
+    test_workpool_multicast_basic.cpp
+    test_workpool_multicast_sleep.cpp
     test_workpool_context.cpp
     test_workpool_thread_context.cpp
     test_workpool.cpp
@@ -88,13 +90,16 @@ add_test(NAME TestUtilityFunctionAnySpeedFullStl        COMMAND  test_utility te
 #add_test(NAME TestUtilityFunctionPerf_s_1_10000_1000           COMMAND  test_utility test_function_perf s 1 10000 1000)
 #add_test(NAME TestUtilityFunctionPerf_S_1_10000_1000           COMMAND  test_utility test_function_perf S 1 10000 1000)
 
-add_test(NAME TestUtilityFunctionPerf_s_2_10000_1000     COMMAND  test_utility test_function_perf s 2 10000 1000)
-add_test(NAME TestUtilityFunctionPerf_S_2_10000_1000     COMMAND  test_utility test_function_perf S 2 10000 1000)
+add_test(NAME TestUtilityFunctionPerf_s_2_10000_1000    COMMAND  test_utility test_function_perf s 2 10000 1000)
+add_test(NAME TestUtilityFunctionPerf_S_2_10000_1000    COMMAND  test_utility test_function_perf S 2 10000 1000)
 
 #add_test(NAME TestUtilityFunctionPerf_s_4_10000_1000           COMMAND  test_utility test_function_perf s 4 10000 1000)
 #add_test(NAME TestUtilityFunctionPerf_S_4_10000_1000           COMMAND  test_utility test_function_perf S 4 10000 1000)
 
 #add_test(NAME TestUtilityFunctionPerf_s_16_10000_1000           COMMAND  test_utility test_function_perf s 16 10000 1000)
 #add_test(NAME TestUtilityFunctionPerf_S_16_10000_1000           COMMAND  test_utility test_function_perf S 16 10000 1000)
+
+add_test(NAME TestUtilityWorkPoolMulticastBasic         COMMAND  test_utility test_workpool_multicast_basic)
+add_test(NAME TestUtilityWorkPoolMulticastSleep         COMMAND  test_utility test_workpool_multicast_sleep)
 
 #==============================================================================
