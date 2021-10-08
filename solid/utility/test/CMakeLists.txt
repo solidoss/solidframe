@@ -8,6 +8,7 @@ set( UtilityTestSuite
     test_event.cpp
     test_event_size.cpp
     test_memory_file.cpp
+    test_callpool_multicast_basic.cpp
     test_workpool_multicast_basic.cpp
     test_workpool_multicast_sleep.cpp
     test_workpool_context.cpp
@@ -102,4 +103,5 @@ add_test(NAME TestUtilityFunctionPerf_S_2_10000_1000    COMMAND  test_utility te
 add_test(NAME TestUtilityWorkPoolMulticastBasic         COMMAND  test_utility test_workpool_multicast_basic)
 add_test(NAME TestUtilityWorkPoolMulticastSleep         COMMAND  test_utility test_workpool_multicast_sleep)
 
+add_test(NAME TestUtilityCallPoolMulticastBasic         COMMAND  test_utility test_callpool_multicast_basic)
 #==============================================================================

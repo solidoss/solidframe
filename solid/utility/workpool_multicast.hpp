@@ -351,8 +351,75 @@ bool WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
 //-----------------------------------------------------------------------------
 template <typename Job, typename MCastJob, size_t QNBits, typename Base>
 template <class JT>
+bool WorkPoolMulticast<Job, MCastJob, QNBits, Base>::tryPush(const JT& _jb)
+{
+    size_t qsz;
+    {
+        {
+            std::unique_lock<std::mutex> lock(mtx_);
+
+            if (job_q_.size() < config_.max_job_queue_size_) {
+            } else {
+                return false;
+            }
+
+            job_q_.push(_jb);
+            qsz = job_q_.size();
+        }
+
+        sig_cnd_.notify_one();
+    }
+    solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
+    return true;
+}
+//-----------------------------------------------------------------------------
+template <typename Job, typename MCastJob, size_t QNBits, typename Base>
+template <class JT>
+bool WorkPoolMulticast<Job, MCastJob, QNBits, Base>::tryPush(JT&& _jb)
+{
+    size_t qsz;
+    {
+        {
+            std::unique_lock<std::mutex> lock(mtx_);
+
+            if (job_q_.size() < config_.max_job_queue_size_) {
+            } else {
+                return false;
+            }
+
+            job_q_.push(std::move(_jb));
+            qsz = job_q_.size();
+        }
+
+        sig_cnd_.notify_one();
+    }
+    solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
+    return true;
+}
+//-----------------------------------------------------------------------------
+template <typename Job, typename MCastJob, size_t QNBits, typename Base>
+template <class JT>
 void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::push(const JT& _jb)
 {
+    size_t qsz;
+    {
+        {
+            std::unique_lock<std::mutex> lock(mtx_);
+
+            if (job_q_.size() < config_.max_job_queue_size_) {
+            } else {
+                do {
+                    sig_cnd_.wait(lock);
+                } while (job_q_.size() >= config_.max_job_queue_size_);
+            }
+
+            job_q_.push(_jb);
+            qsz = job_q_.size();
+        }
+
+        sig_cnd_.notify_one();
+    }
+    solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
 }
 //-----------------------------------------------------------------------------
 template <typename Job, typename MCastJob, size_t QNBits, typename Base>
@@ -384,6 +451,28 @@ template <typename Job, typename MCastJob, size_t QNBits, typename Base>
 template <class JT>
 void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pushAllSync(const JT& _jb)
 {
+    size_t qsz;
+    {
+        {
+            std::unique_lock<std::mutex> lock(mtx_);
+
+            if (mcast_job_q_.size() < config_.max_job_queue_size_) {
+            } else {
+                do {
+                    sig_cnd_.wait(lock);
+                } while (mcast_job_q_.size() >= config_.max_job_queue_size_);
+            }
+
+            mcast_job_q_.push(_jb);
+            qsz = mcast_job_q_.size();
+            if (qsz == 1) {
+                ++mcast_current_fetch_id_;
+            }
+        }
+
+        sig_cnd_.notify_one();
+    }
+    solid_statistic_max(statistic_.max_mcast_jobs_in_queue_, qsz);
 }
 //-----------------------------------------------------------------------------
 template <typename Job, typename MCastJob, size_t QNBits, typename Base>
