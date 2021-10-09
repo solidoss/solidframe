@@ -207,12 +207,12 @@ inline void SocketAddressStub::clear()
 }
 inline SocketInfo::Family SocketAddressStub::family() const
 {
-    solid_assert(addr);
+    solid_assert_log(addr, generic_logger);
     return (SocketInfo::Family)addr->sa_family;
 }
 inline bool SocketAddressStub::isInet4() const
 {
-    solid_assert(addr);
+    solid_assert_log(addr, generic_logger);
     if (addr) {
         return addr->sa_family == AF_INET;
     } else {
@@ -221,7 +221,7 @@ inline bool SocketAddressStub::isInet4() const
 }
 inline bool SocketAddressStub::isInet6() const
 {
-    solid_assert(addr);
+    solid_assert_log(addr, generic_logger);
     if (addr) {
         return addr->sa_family == AF_INET6;
     } else {
@@ -230,7 +230,7 @@ inline bool SocketAddressStub::isInet6() const
 }
 inline bool SocketAddressStub::isLocal() const
 {
-    solid_assert(addr);
+    solid_assert_log(addr, generic_logger);
     if (addr) {
         return addr->sa_family == AF_UNIX;
     } else {

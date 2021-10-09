@@ -1,4 +1,4 @@
-// solid/utility/workpool_mutex.hpp
+// solid/utility/workpool_locking.hpp
 //
 // Copyright (c) 2007, 2008, 2018 Valentin Palade (vipalade @ gmail . com)
 //
@@ -19,32 +19,17 @@
 #include <vector>
 
 #include "solid/system/exception.hpp"
-#include "solid/system/log.hpp"
 #include "solid/system/statistic.hpp"
 #include "solid/utility/common.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/functiontraits.hpp"
 #include "solid/utility/queue.hpp"
-
+#include "solid/utility/workpool_base.hpp"
 namespace solid {
 
 extern const LoggerT workpool_logger;
 namespace locking {
 //-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-struct WorkPoolConfiguration {
-    size_t max_worker_count_;
-    size_t max_job_queue_size_;
-
-    explicit WorkPoolConfiguration(
-        const size_t _max_worker_count   = std::thread::hardware_concurrency(),
-        const size_t _max_job_queue_size = std::numeric_limits<size_t>::max())
-        : max_worker_count_(_max_worker_count)
-        , max_job_queue_size_(_max_job_queue_size)
-    {
-    }
-};
 //-----------------------------------------------------------------------------
 //! Pool of threads handling Jobs
 /*!
@@ -68,9 +53,9 @@ struct WorkPoolConfiguration {
 
 //-----------------------------------------------------------------------------
 
-template <typename Job, size_t QNBits = 10>
-class WorkPool : NonCopyable {
-    using ThisT          = WorkPool<Job, QNBits>;
+template <typename Job, size_t QNBits = 10, typename Base = impl::WorkPoolBase>
+class WorkPool : protected Base {
+    using ThisT          = WorkPool<Job, QNBits, Base>;
     using WorkerFactoryT = std::function<std::thread()>;
     using ThreadVectorT  = std::vector<std::thread>;
     using JobQueueT      = Queue<Job, QNBits>;
@@ -111,6 +96,8 @@ class WorkPool : NonCopyable {
     } statistic_;
 #endif
 public:
+    static constexpr size_t node_capacity = bits_to_count(QNBits);
+
     WorkPool()
         : config_()
         , running_(false)
@@ -161,6 +148,12 @@ public:
     template <class JT>
     void push(JT&& _jb);
 
+    template <class JT>
+    bool tryPush(const JT& _jb);
+
+    template <class JT>
+    bool tryPush(JT&& _jb);
+
     void dumpStatistics() const;
 
     void stop()
@@ -184,9 +177,9 @@ private:
 }; //WorkPool
 
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
+template <typename Job, size_t QNBits, typename Base>
 template <class JT>
-void WorkPool<Job, QNBits>::push(const JT& _jb)
+void WorkPool<Job, QNBits, Base>::push(const JT& _jb)
 {
     size_t qsz;
     {
@@ -220,9 +213,9 @@ void WorkPool<Job, QNBits>::push(const JT& _jb)
     solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
+template <typename Job, size_t QNBits, typename Base>
 template <class JT>
-void WorkPool<Job, QNBits>::push(JT&& _jb)
+void WorkPool<Job, QNBits, Base>::push(JT&& _jb)
 {
     size_t qsz;
     {
@@ -256,8 +249,78 @@ void WorkPool<Job, QNBits>::push(JT&& _jb)
     solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
-bool WorkPool<Job, QNBits>::doWaitJob(std::unique_lock<std::mutex>& _lock)
+template <typename Job, size_t QNBits, typename Base>
+template <class JT>
+bool WorkPool<Job, QNBits, Base>::tryPush(const JT& _jb)
+{
+    size_t qsz;
+    {
+        {
+            std::unique_lock<std::mutex> lock(mtx_);
+
+            if (job_q_.size() < config_.max_job_queue_size_) {
+            } else {
+                return false;
+            }
+
+            job_q_.push(_jb);
+            qsz = job_q_.size();
+        }
+
+        sig_cnd_.notify_one();
+
+        const size_t thr_cnt = thr_cnt_.load();
+
+        if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
+            std::lock_guard<std::mutex> lock(thr_mtx_);
+            if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
+                thr_vec_.emplace_back(worker_factory_fnc_());
+                ++thr_cnt_;
+                solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
+            }
+        }
+    }
+    solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
+    return true;
+}
+//-----------------------------------------------------------------------------
+template <typename Job, size_t QNBits, typename Base>
+template <class JT>
+bool WorkPool<Job, QNBits, Base>::tryPush(JT&& _jb)
+{
+    size_t qsz;
+    {
+        {
+            std::unique_lock<std::mutex> lock(mtx_);
+
+            if (job_q_.size() < Base::config_.max_job_queue_size_) {
+            } else {
+                return false;
+            }
+
+            job_q_.push(std::move(_jb));
+            qsz = job_q_.size();
+        }
+
+        sig_cnd_.notify_one();
+
+        const size_t thr_cnt = thr_cnt_.load();
+
+        if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
+            std::lock_guard<std::mutex> lock(thr_mtx_);
+            if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
+                thr_vec_.emplace_back(worker_factory_fnc_());
+                ++thr_cnt_;
+                solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
+            }
+        }
+    }
+    solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
+    return true;
+}
+//-----------------------------------------------------------------------------
+template <typename Job, size_t QNBits, typename Base>
+bool WorkPool<Job, QNBits, Base>::doWaitJob(std::unique_lock<std::mutex>& _lock)
 {
     while (job_q_.empty() && running_.load(std::memory_order_relaxed)) {
         sig_cnd_.wait(_lock);
@@ -265,8 +328,8 @@ bool WorkPool<Job, QNBits>::doWaitJob(std::unique_lock<std::mutex>& _lock)
     return !job_q_.empty();
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
-bool WorkPool<Job, QNBits>::pop(Job& _rjob)
+template <typename Job, size_t QNBits, typename Base>
+bool WorkPool<Job, QNBits, Base>::pop(Job& _rjob)
 {
 
     std::unique_lock<std::mutex> lock(mtx_);
@@ -283,8 +346,8 @@ bool WorkPool<Job, QNBits>::pop(Job& _rjob)
     return false;
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
-void WorkPool<Job, QNBits>::doStop()
+template <typename Job, size_t QNBits, typename Base>
+void WorkPool<Job, QNBits, Base>::doStop()
 {
     bool expect = true;
 
@@ -304,9 +367,9 @@ void WorkPool<Job, QNBits>::doStop()
     dumpStatistics();
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
+template <typename Job, size_t QNBits, typename Base>
 template <class JobHandlerFnc, typename... Args>
-void WorkPool<Job, QNBits>::doStart(
+void WorkPool<Job, QNBits, Base>::doStart(
     const WorkPoolConfiguration& _cfg,
     size_t                       _start_wkr_cnt,
     JobHandlerFnc                _job_handler_fnc,
@@ -354,8 +417,8 @@ void WorkPool<Job, QNBits>::doStart(
     }
 }
 //-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits>
-void WorkPool<Job, QNBits>::dumpStatistics() const
+template <typename Job, size_t QNBits, typename Base>
+void WorkPool<Job, QNBits, Base>::dumpStatistics() const
 {
 #ifdef SOLID_HAS_STATISTICS
     solid_log(workpool_logger, Statistic, "Workpool " << this << " statistic:" << this->statistic_);

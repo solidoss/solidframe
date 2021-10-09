@@ -210,7 +210,7 @@ void StoreBase::raise()
             std::lock_guard<std::mutex> lock(mutex());
             ulong                       sm = 0;
             if (!impl_->pfillerasevec->empty()) {
-                solid::exchange(impl_->pconserasevec, impl_->pfillerasevec);
+                std::exchange(impl_->pconserasevec, impl_->pfillerasevec);
             }
             doExecuteOnSignal(sm);
         }

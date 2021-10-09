@@ -13,9 +13,8 @@
 #include <vector>
 
 #include "solid/frame/common.hpp"
-#include "solid/utility/dynamicpointer.hpp"
-#include "solid/utility/dynamictype.hpp"
 #include <atomic>
+#include <memory>
 
 namespace solid {
 namespace frame {
@@ -26,7 +25,7 @@ class ReactorBase;
 class Actor;
 class CompletionHandler;
 
-class ActorBase : public Dynamic<ActorBase>, NonCopyable {
+class ActorBase : public std::enable_shared_from_this<ActorBase>, NonCopyable {
 public:
     //! Get the id of the actor
     IndexT id() const;
@@ -88,17 +87,6 @@ inline void ActorBase::runId(UniqueId const& _runid)
 {
     runid = _runid;
 }
-
-// inline size_t ActorBase::grabSignalMask(const size_t _leave /* = 0*/)
-// {
-//     return smask.fetch_and(_leave /*, std::memory_order_seq_cst*/);
-// }
-//
-// inline bool ActorBase::notify(const size_t _smask)
-// {
-//     const size_t osm = smask.fetch_or(_smask /*, std::memory_order_seq_cst*/);
-//     return (_smask | osm) != osm;
-// }
 
 } //namespace frame
 } //namespace solid

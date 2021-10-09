@@ -10,7 +10,8 @@
 
 #pragma once
 
-#include "solid/solid_config.hpp"
+#include "solid/system/configuration_impl.hpp"
+#include "solid/system/version.hpp"
 #include <cstdint>
 #include <cstdlib>
 #include <type_traits>
@@ -43,11 +44,12 @@ struct TypeToType {
 
 class NonCopyable {
 protected:
-    NonCopyable() {}
     NonCopyable(const NonCopyable&) = delete;
     NonCopyable(NonCopyable&&)      = delete;
     NonCopyable& operator=(const NonCopyable&) = delete;
     NonCopyable& operator=(NonCopyable&&) = delete;
+
+    NonCopyable() = default;
 };
 
 using ssize_t = std::make_signed<size_t>::type;
@@ -68,3 +70,13 @@ using ssize_t = std::make_signed<size_t>::type;
 #define SOLID_OVERLOAD_MACRO(name, count) SOLID_OVERLOAD_MACRO1(name, count)
 
 #define SOLID_CALL_OVERLOAD(name, ...) SOLID_GLUE(SOLID_OVERLOAD_MACRO(name, SOLID_COUNT_ARGS_MAX5(__VA_ARGS__)), (__VA_ARGS__))
+
+#if defined(__SANITIZE_THREAD__)
+#define SOLID_SANITIZE_THREAD
+#define SOLID_SANITIZE_THREAD_ATTRIBUTE __attribute__((no_sanitize("thread")))
+#elif defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+#define SOLID_SANITIZE_THREAD
+#define SOLID_SANITIZE_THREAD_ATTRIBUTE __attribute__((no_sanitize("thread")))
+#endif
+#endif

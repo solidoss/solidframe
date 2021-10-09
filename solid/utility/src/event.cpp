@@ -58,15 +58,15 @@ std::ostream& operator<<(std::ostream& _ros, Event const& _re)
 
 //-----------------------------------------------------------------------------
 
-extern const Event generic_event_default(make_event(GenericEvents::Default));
-extern const Event generic_event_start(make_event(GenericEvents::Start));
-extern const Event generic_event_stop(make_event(GenericEvents::Stop));
-extern const Event generic_event_raise(make_event(GenericEvents::Raise));
-extern const Event generic_event_message(make_event(GenericEvents::Message));
-extern const Event generic_event_timer(make_event(GenericEvents::Timer));
-extern const Event generic_event_pause(make_event(GenericEvents::Pause));
-extern const Event generic_event_resume(make_event(GenericEvents::Resume));
-extern const Event generic_event_update(make_event(GenericEvents::Update));
-extern const Event generic_event_kill(make_event(GenericEvents::Kill));
+const Event generic_event_default(make_event(GenericEvents::Default));
+const Event generic_event_start(make_event(GenericEvents::Start));
+const Event generic_event_stop(make_event(GenericEvents::Stop));
+const Event generic_event_raise(make_event(GenericEvents::Raise));
+const Event generic_event_message(make_event(GenericEvents::Message));
+const Event generic_event_timer(make_event(GenericEvents::Timer));
+const Event generic_event_pause(make_event(GenericEvents::Pause));
+const Event generic_event_resume(make_event(GenericEvents::Resume));
+const Event generic_event_update(make_event(GenericEvents::Update));
+const Event generic_event_kill(make_event(GenericEvents::Kill));
 
 } //namespace solid

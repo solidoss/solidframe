@@ -15,6 +15,7 @@
 
 #include "completion.hpp"
 #include "reactorcontext.hpp"
+#include "solid/frame/error.hpp"
 
 namespace solid {
 namespace frame {
@@ -41,21 +42,26 @@ class SteadyTimer : public CompletionHandler {
             break;
         case ReactorEventClear:
             rthis.doClear(_rctx);
-            rthis.f = &on_dummy;
+            rthis.function_ = &on_dummy;
             break;
         default:
-            solid_assert(false);
+            solid_assert_log(false, generic_logger);
         }
     }
     static void on_dummy(ReactorContext& _rctx)
     {
     }
 
+    typedef solid_function_t(void(ReactorContext&)) FunctionT;
+
+    FunctionT function_;
+    size_t    storeidx_;
+
 public:
     SteadyTimer(
         ActorProxy const& _ract)
         : CompletionHandler(_ract, SteadyTimer::on_init_completion)
-        , storeidx(InvalidIndex())
+        , storeidx_(InvalidIndex())
     {
     }
 
@@ -64,33 +70,41 @@ public:
         //MUST call here and not in the ~CompletionHandler
         this->deactivate();
     }
-    //Returns false when the operation is scheduled for completion. On completion _f(...) will be called.
-    //Returns true when operation could not be scheduled for completion - e.g. operation already in progress.
+
+    bool hasPending() const
+    {
+        return !solid_function_empty(function_);
+    }
+
     template <class Rep, class Period, typename F>
     bool waitFor(ReactorContext& _rctx, std::chrono::duration<Rep, Period> const& _rd, F&& _f)
     {
         return waitUntil(_rctx, _rctx.steadyTime() + _rd, std::forward<F>(_f));
     }
 
-    //Returns true when the operation completed. Check _rctx.error() for success or fail
-    //Returns false when operation is scheduled for completion. On completion _f(...) will be called.
     template <class Clock, class Duration, typename F>
-    bool waitUntil(ReactorContext& _rctx, std::chrono::time_point<Clock, Duration> const& _rtp, F&& _f)
+    bool waitUntil(ReactorContext& _rctx, std::chrono::time_point<Clock, Duration> const& _rtp, F&& _function)
     {
-        if (solid_function_empty(f)) {
-            f = std::forward<F>(_f);
-            NanoTime steady_nt{time_point_clock_cast<std::chrono::steady_clock>(_rtp)};
-            this->addTimer(_rctx, steady_nt, storeidx);
-            return false;
-        } else {
-            //TODO: set proper error
-            error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
-            return true;
-        }
+        function_ = std::forward<F>(_function);
+        NanoTime steady_nt{time_point_clock_cast<std::chrono::steady_clock>(_rtp)};
+        this->addTimer(_rctx, steady_nt, storeidx_);
+        return false;
     }
-    void cancel(ReactorContext& _rctx)
+
+    void silentCancel(ReactorContext& _rctx)
     {
         doClear(_rctx);
+    }
+
+    void cancel(ReactorContext& _rctx)
+    {
+        if (!solid_function_empty(function_)) {
+            remTimer(_rctx, storeidx_);
+            error(_rctx, error_timer_cancel);
+            doExec(_rctx);
+        } else {
+            doClear(_rctx);
+        }
     }
 
 private:
@@ -98,22 +112,16 @@ private:
     void doExec(ReactorContext& _rctx)
     {
         FunctionT tmpf;
-        std::swap(tmpf, f);
-        storeidx = InvalidIndex();
+        std::swap(tmpf, function_);
+        storeidx_ = InvalidIndex();
         tmpf(_rctx);
     }
     void doClear(ReactorContext& _rctx)
     {
-        solid_function_clear(f);
-        remTimer(_rctx, storeidx);
-        storeidx = InvalidIndex();
+        solid_function_clear(function_);
+        remTimer(_rctx, storeidx_);
+        storeidx_ = InvalidIndex();
     }
-
-private:
-    typedef solid_function_t(void(ReactorContext&)) FunctionT;
-
-    FunctionT f;
-    size_t    storeidx;
 };
 
 } //namespace frame

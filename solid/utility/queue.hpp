@@ -31,45 +31,41 @@ class Queue {
     static constexpr const size_t node_size = bits_to_count(NBits);
 
     struct Node {
+        using Storage = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
+
         Node(Node* _pnext = nullptr)
-            : next(_pnext)
+            : pnext_(_pnext)
         {
         }
-        Node*   next;
-        uint8_t data[node_size * sizeof(T)];
+        Storage data_[node_size];
+        Node*   pnext_;
     };
 
-    size_t sz;
-    size_t popsz;
-    T*     pb; //back
-    T*     pf; //front
-    Node*  ptn; //empty nodes
+    size_t size_                   = 0;
+    size_t current_node_pop_count_ = 0;
+    T*     pback_                  = nullptr;
+    T*     pfront_                 = nullptr;
+    Node*  ptop_cached_nodes_      = nullptr;
 
 public:
-    typedef T&       reference;
-    typedef T const& const_reference;
+    using reference       = T&;
+    using const_reference = T const&;
 
 public:
-    Queue()
-        : sz(0)
-        , popsz(0)
-        , pb(nullptr)
-        , pf(nullptr)
-        , ptn(nullptr)
+    Queue() {}
+
+    Queue(Queue&& _rthat)
+        : size_(_rthat.size_)
+        , current_node_pop_count_(_rthat.current_node_pop_count_)
+        , pback_(_rthat.pback_)
+        , pfront_(_rthat.pfront_)
+        , ptop_cached_nodes_(_rthat.ptop_cached_nodes_)
     {
-    }
-    Queue(Queue&& _rq)
-        : sz(_rq.sz)
-        , popsz(_rq.popsz)
-        , pb(_rq.pb)
-        , pf(_rq.pf)
-        , ptn(_rq.ptn)
-    {
-        _rq.sz    = 0;
-        _rq.popsz = 0;
-        _rq.pb    = nullptr;
-        _rq.pf    = nullptr;
-        _rq.ptn   = nullptr;
+        _rthat.size_                   = 0;
+        _rthat.current_node_pop_count_ = 0;
+        _rthat.pback_                  = nullptr;
+        _rthat.pfront_                 = nullptr;
+        _rthat.ptop_cached_nodes_      = nullptr;
     }
 
     Queue(const Queue&) = delete;
@@ -80,138 +76,139 @@ public:
         clear();
     }
 
-    Queue& operator=(Queue&& _rq)
+    Queue& operator=(Queue&& _rthat)
     {
         clear();
 
-        sz    = _rq.sz;
-        popsz = _rq.popsz;
-        pb    = _rq.pb;
-        pf    = _rq.pf;
-        ptn   = _rq.ptn;
+        size_                   = _rthat.size_;
+        current_node_pop_count_ = _rthat.current_node_pop_count_;
+        pback_                  = _rthat.pback_;
+        pfront_                 = _rthat.pfront_;
+        ptop_cached_nodes_      = _rthat.ptop_cached_nodes_;
 
-        _rq.sz    = 0;
-        _rq.popsz = 0;
-        _rq.pb    = nullptr;
-        _rq.pf    = nullptr;
-        _rq.ptn   = nullptr;
+        _rthat.size_                   = 0;
+        _rthat.current_node_pop_count_ = 0;
+        _rthat.pback_                  = nullptr;
+        _rthat.pfront_                 = nullptr;
+        _rthat.ptop_cached_nodes_      = nullptr;
         return *this;
     }
 
-    bool   empty() const { return !sz; }
-    size_t size() const { return sz; }
+    bool   empty() const { return !size_; }
+    size_t size() const { return size_; }
 
-    void push(const T& _t)
+    void push(const T& _value)
     {
-        if ((sz + popsz) & node_mask)
-            ++pb;
-        else
-            pb = pushNode(pb);
-
-        ++sz;
-        new (pb) T(_t);
+        if ((size_ + current_node_pop_count_) & node_mask) {
+            ++pback_;
+        } else {
+            pback_ = pushNode(pback_);
+        }
+        ++size_;
+        new (pback_) T{_value};
     }
 
-    void push(T&& _t)
+    void push(T&& _value)
     {
-        if ((sz + popsz) & node_mask)
-            ++pb;
-        else
-            pb = pushNode(pb);
+        if ((size_ + current_node_pop_count_) & node_mask) {
+            ++pback_;
+        } else {
+            pback_ = pushNode(pback_);
+        }
+        ++size_;
 
-        ++sz;
-        new (pb) T(std::move(_t));
+        new (pback_) T{std::move(_value)};
     }
 
     reference back()
     {
-        return *pb;
+        return *pback_;
     }
     const_reference back() const
     {
-        return *pb;
-    }
-
-    void pop()
-    {
-        pf->~T();
-        --sz;
-        if ((++popsz) & node_mask)
-            ++pf;
-        else {
-            pf    = popNode(pf);
-            popsz = 0;
-        }
+        return *pback_;
     }
 
     reference front()
     {
-        return *pf;
+        return *pfront_;
     }
 
     const_reference front() const
     {
-        return *pf;
+        return *pfront_;
+    }
+
+    void pop()
+    {
+        pfront_->~T();
+        --size_;
+        if ((++current_node_pop_count_) & node_mask)
+            ++pfront_;
+        else {
+            pfront_                 = popNode(pfront_);
+            current_node_pop_count_ = 0;
+        }
     }
 
     void clear()
     {
-        while (sz) {
+        while (size_ != 0) {
             pop();
         }
-        Node* pn = pf ? reinterpret_cast<Node*>(reinterpret_cast<uint8_t*>(pf) - popsz * sizeof(T) - sizeof(Node*)) : nullptr;
 
-        while (ptn) {
-            Node* tn = ptn->next;
-            solid_assert(ptn != pn);
-            delete ptn;
-            ptn = tn;
+        Node* pcurrent_node = pfront_ ? node(pfront_, current_node_pop_count_) : nullptr;
+        while (ptop_cached_nodes_ != nullptr) {
+            Node* pnext_chached_node = ptop_cached_nodes_->pnext_;
+            solid_assert_log(ptop_cached_nodes_ != pnext_chached_node, generic_logger);
+            delete ptop_cached_nodes_;
+            ptop_cached_nodes_ = pnext_chached_node;
         }
-        delete pn;
+        delete pcurrent_node;
     }
 
 private:
-    constexpr Node* node(void* _p) const
+    constexpr Node* node(T* _plast_in_node, const size_t _index = (node_size - 1)) const
     {
-        return reinterpret_cast<Node*>(static_cast<uint8_t*>(_p) - node_size * sizeof(T) + sizeof(T) - sizeof(Node*));
+        return std::launder(reinterpret_cast<Node*>(_plast_in_node - _index));
     }
 
-    T* pushNode(void* _p)
+    T* pushNode(T* _pvalue)
     {
-        Node* pn = _p ? node(_p) : nullptr;
-        if (ptn) {
-            Node* tn = ptn;
-            ptn      = ptn->next;
-            tn->next = nullptr;
-            if (pn) {
-                pn->next = tn;
-                return (T*)tn->data;
+        Node* pcurrent_node = _pvalue ? node(_pvalue) : nullptr;
+        if (ptop_cached_nodes_) {
+            Node* pnode        = ptop_cached_nodes_;
+            ptop_cached_nodes_ = ptop_cached_nodes_->pnext_;
+            pnode->pnext_      = nullptr;
+            if (pcurrent_node) {
+                pcurrent_node->pnext_ = pnode;
+                return std::launder(reinterpret_cast<T*>(&pnode->data_[0]));
             } else {
-                return (pf = (T*)tn->data);
+                return (pfront_ = std::launder(reinterpret_cast<T*>(&pnode->data_[0])));
             }
         } else {
-            if (pn) {
-                pn->next = new Node;
-                pn       = pn->next;
-                return (T*)pn->data;
+            if (pcurrent_node) {
+                pcurrent_node->pnext_ = new Node;
+                pcurrent_node         = pcurrent_node->pnext_;
+                return std::launder(reinterpret_cast<T*>(&pcurrent_node->data_[0]));
             } else {
-                pn = new Node;
-                return (pf = (T*)pn->data);
+                pcurrent_node = new Node;
+                return (pfront_ = std::launder(reinterpret_cast<T*>(&pcurrent_node->data_[0])));
             }
         }
     }
-    T* popNode(void* _p)
+    T* popNode(T* _pvalue)
     {
-        solid_assert(_p);
-        Node* pn  = node(_p);
-        Node* ppn = pn->next;
-        pn->next  = ptn;
-        ptn       = pn; //cache the node
-        if (ppn) {
-            return (T*)(ppn->data);
+        solid_assert_log(_pvalue, generic_logger);
+        Node* pcurrent_node   = node(_pvalue);
+        Node* pnext_node      = pcurrent_node->pnext_;
+        pcurrent_node->pnext_ = ptop_cached_nodes_;
+        ptop_cached_nodes_    = pcurrent_node; //cache the node
+        if (pnext_node) {
+            return std::launder(reinterpret_cast<T*>(&pnext_node->data_[0]));
         } else {
-            solid_assert(!sz);
-            pb = nullptr;
+            solid_assert_log(!size_, generic_logger);
+            pback_ = nullptr;
             return nullptr;
         }
     }

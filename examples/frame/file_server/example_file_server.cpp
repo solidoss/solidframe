@@ -13,7 +13,6 @@
 
 #include "solid/frame/file/filestream.hpp"
 
-#include "solid/utility/dynamictype.hpp"
 #include "solid/utility/event.hpp"
 
 #include "solid/system/exception.hpp"
@@ -78,7 +77,7 @@ void               term_handler(int signum)
     }
 }
 
-typedef DynamicPointer<frame::file::Store<>> FileStoreSharedPointerT;
+using FileStoreSharedPointerT = std::shared_ptr<frame::file::Store<>>;
 
 FileStoreSharedPointerT filestoreptr;
 
@@ -87,7 +86,7 @@ FileStoreSharedPointerT filestoreptr;
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-class Listener : public Dynamic<Listener, frame::aio::Actor> {
+class Listener : public frame::aio::Actor {
 public:
     Listener(
         frame::Service& _rsvc,
@@ -118,8 +117,7 @@ private:
 
 struct FilePointerMessage;
 
-class Connection : public Dynamic<Connection, frame::aio::Actor> {
-    typedef std::vector<solid::DynamicPointer<>>   DynamicPointerVectorT;
+class Connection : public frame::aio::Actor {
     typedef frame::file::FileIOStream<1024>        IOFileStreamT;
     typedef frame::aio::Stream<frame::aio::Socket> StreamSocketT;
 
@@ -234,7 +232,7 @@ int main(int argc, char* argv[])
                 tempcfg.storagevec.back().maxsize    = 1024 * 10;
                 tempcfg.storagevec.back().removemode = frame::file::RemoveNeverE;
 
-                filestoreptr = new frame::file::Store<>(m, utf8cfg, tempcfg);
+                filestoreptr = std::make_shared<frame::file::Store<>>(m, utf8cfg, tempcfg);
             }
 
             solid::ErrorConditionT err;
@@ -257,7 +255,7 @@ int main(int argc, char* argv[])
                     solid::ErrorConditionT err;
                     solid::frame::ActorIdT actuid;
 
-                    actuid = aiosched.startActor(make_dynamic<Listener>(svc, aiosched, sd), svc, make_event(GenericEvents::Start), err);
+                    actuid = aiosched.startActor(make_shared<Listener>(svc, aiosched, sd), svc, make_event(GenericEvents::Start), err);
                     solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
                 } else {
                     cout << "Error creating listener socket" << endl;
@@ -280,7 +278,7 @@ int main(int argc, char* argv[])
         m.stop();
         aiosched.stop();
         sched.stop();
-        filestoreptr.clear();
+        filestoreptr.reset();
     }
 
     return 0;
@@ -339,7 +337,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
         if (!_rctx.error()) {
             solid::ErrorConditionT err;
 
-            rsch.startActor(make_dynamic<Connection>(_rsd), rsvc, make_event(GenericEvents::Start), err);
+            rsch.startActor(make_shared<Connection>(_rsd), rsvc, make_event(GenericEvents::Start), err);
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
@@ -517,7 +515,7 @@ struct OpenCbk {
     {
         solid_log(generic_logger, Info, "");
         Event ev{generic_event_message};
-        ev.any() = FilePointerMessage(_rptr);
+        ev.any().emplace<FilePointerMessage>(_rptr);
 
         rm.notify(uid, std::move(ev));
     }

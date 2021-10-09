@@ -3,12 +3,12 @@
 
 #include "solid/frame/mprpc/mprpccontext.hpp"
 #include "solid/frame/mprpc/mprpcmessage.hpp"
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v2.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
 #include <map>
 #include <ostream>
 #include <vector>
 
-namespace ipc_request {
+namespace rpc_request {
 
 struct RequestKeyVisitor;
 struct RequestKeyConstVisitor;
@@ -88,9 +88,9 @@ struct RequestKeyAnd : Visitable<RequestKeyAnd> {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.first, _rctx, "first").add(_rthis.second, _rctx, "second");
+        _rr.add(_rthis.first, _rctx, 1, "first").add(_rthis.second, _rctx, 2, "second");
     }
 
     void print(std::ostream& _ros) const override
@@ -120,9 +120,9 @@ struct RequestKeyOr : Visitable<RequestKeyOr> {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.first, _rctx, "first").add(_rthis.second, _rctx, "second");
+        _rr.add(_rthis.first, _rctx, 1, "first").add(_rthis.second, _rctx, 2, "second");
     }
 
     void print(std::ostream& _ros) const override
@@ -148,9 +148,9 @@ struct RequestKeyAndList : Visitable<RequestKeyAndList> {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.key_vec, _rctx, "key_vec");
+        _rr.add(_rthis.key_vec, _rctx, 1, "key_vec");
     }
 
     void print(std::ostream& _ros) const override
@@ -176,9 +176,9 @@ struct RequestKeyOrList : Visitable<RequestKeyOrList> {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.key_vec, _rctx, "key_vec");
+        _rr.add(_rthis.key_vec, _rctx, 1, "key_vec");
     }
 
     void print(std::ostream& _ros) const override
@@ -203,9 +203,9 @@ struct RequestKeyUserIdRegex : Visitable<RequestKeyUserIdRegex> {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.regex, _rctx, "regex");
+        _rr.add(_rthis.regex, _rctx, 1, "regex");
     }
 
     void print(std::ostream& _ros) const override
@@ -224,9 +224,9 @@ struct RequestKeyEmailRegex : Visitable<RequestKeyEmailRegex> {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.regex, _rctx, "regex");
+        _rr.add(_rthis.regex, _rctx, 1, "regex");
     }
 
     void print(std::ostream& _ros) const override
@@ -243,9 +243,9 @@ struct RequestKeyYearLess : Visitable<RequestKeyYearLess> {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.year, _rctx, "year");
+        _rr.add(_rthis.year, _rctx, 1, "year");
     }
 
     void print(std::ostream& _ros) const override
@@ -264,9 +264,9 @@ struct Request : solid::frame::mprpc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.key, _rctx, "key");
+        _rr.add(_rthis.key, _rctx, 1, "key");
     }
 };
 
@@ -275,9 +275,9 @@ struct Date {
     uint8_t  month;
     uint16_t year;
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.day, _rctx, "day").add(_rthis.month, _rctx, "month").add(_rthis.year, _rctx, "year");
+        _rr.add(_rthis.day, _rctx, 1, "day").add(_rthis.month, _rctx, 2, "month").add(_rthis.year, _rctx, 3, "year");
     }
 };
 
@@ -288,10 +288,10 @@ struct UserData {
     std::string city;
     Date        birth_date;
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.full_name, _rctx, "full_name").add(_rthis.email, _rctx, "email").add(_rthis.country, _rctx, "country");
-        _s.add(_rthis.city, _rctx, "city").add(_rthis.birth_date, _rctx, "birth_date");
+        _rr.add(_rthis.full_name, _rctx, 1, "full_name").add(_rthis.email, _rctx, 2, "email").add(_rthis.country, _rctx, 3, "country");
+        _rr.add(_rthis.city, _rctx, 4, "city").add(_rthis.birth_date, _rctx, 5, "birth_date");
     }
 };
 
@@ -307,28 +307,24 @@ struct Response : solid::frame::mprpc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.user_data_map, _rctx, "user_data_map");
+        _rr.add(_rthis.user_data_map, _rctx, 1, "user_data_map");
     }
 };
 
-using ProtocolT = solid::frame::mprpc::serialization_v2::Protocol<uint8_t>;
-
-template <class R>
-inline void protocol_setup(R _r, ProtocolT& _rproto)
+template <class Reg>
+inline void configure_protocol(Reg _rreg)
 {
-    _rproto.null(ProtocolT::TypeIdT(0));
-
-    _r(_rproto, solid::TypeToType<Request>(), 1);
-    _r(_rproto, solid::TypeToType<Response>(), 2);
-    _r(_rproto, solid::TypeToType<RequestKeyAnd>(), 3);
-    _r(_rproto, solid::TypeToType<RequestKeyOr>(), 4);
-    _r(_rproto, solid::TypeToType<RequestKeyAndList>(), 5);
-    _r(_rproto, solid::TypeToType<RequestKeyOrList>(), 6);
-    _r(_rproto, solid::TypeToType<RequestKeyUserIdRegex>(), 7);
-    _r(_rproto, solid::TypeToType<RequestKeyEmailRegex>(), 8);
-    _r(_rproto, solid::TypeToType<RequestKeyYearLess>(), 9);
+    _rreg(1, "Request", solid::TypeToType<Request>());
+    _rreg(2, "Response", solid::TypeToType<Response>());
+    _rreg(3, "RequestKeyAnd", solid::TypeToType<RequestKeyAnd>());
+    _rreg(4, "RequestKeyOr", solid::TypeToType<RequestKeyOr>());
+    _rreg(5, "RequestKeyAndList", solid::TypeToType<RequestKeyAndList>());
+    _rreg(6, "RequestKeyOrList", solid::TypeToType<RequestKeyOrList>());
+    _rreg(7, "RequestKeyUserIdRegex", solid::TypeToType<RequestKeyUserIdRegex>());
+    _rreg(8, "RequestKeyEmailRegex", solid::TypeToType<RequestKeyEmailRegex>());
+    _rreg(9, "RequestKeyYearLess", solid::TypeToType<RequestKeyYearLess>());
 }
 
-} //namespace ipc_request
+} //namespace rpc_request

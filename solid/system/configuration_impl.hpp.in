@@ -1,0 +1,26 @@
+#pragma once
+
+#cmakedefine SOLID_USE_PTHREAD
+#cmakedefine SOLID_USE_EVENTFD
+#cmakedefine SOLID_USE_EPOLL
+#cmakedefine SOLID_USE_KQUEUE
+#cmakedefine SOLID_USE_WSAPOLL
+#cmakedefine SOLID_USE_SAFE_STATIC
+#cmakedefine SOLID_USE_GNU_ATOMIC
+#cmakedefine SOLID_USE_EPOLLRDHUP
+
+#cmakedefine SOLID_ON_WINDOWS
+#cmakedefine SOLID_ON_LINUX
+#cmakedefine SOLID_ON_FREEBSD
+#cmakedefine SOLID_ON_DARWIN
+#cmakedefine SOLID_ON_POSIX
+
+#cmakedefine SOLID_ON_BIG_ENDIAN
+
+#cmakedefine SOLID_HAS_DEBUG
+#cmakedefine SOLID_HAS_NO_INLINES
+#cmakedefine SOLID_HAS_ASSERT
+#cmakedefine SOLID_HAS_STATISTICS
+
+#cmakedefine SOLID_USE_GCC_BSWAP
+

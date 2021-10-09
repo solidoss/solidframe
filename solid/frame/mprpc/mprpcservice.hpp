@@ -11,6 +11,7 @@
 #pragma once
 
 #include "solid/system/exception.hpp"
+#include "solid/utility/event.hpp"
 #include "solid/utility/function.hpp"
 
 #include "solid/frame/service.hpp"
@@ -285,6 +286,11 @@ public:
         RecipientId const& _rrecipient_id,
         CompleteFnc        _complete_fnc);
 
+    template <class CompleteFnc>
+    ErrorConditionT connectionPost(
+        RecipientId const& _rrecipient_id,
+        CompleteFnc        _complete_fnc);
+
     ErrorConditionT cancelMessage(RecipientId const& _rrecipient_id, MessageId const& _rmsg_id);
 
     bool closeConnection(RecipientId const& _rrecipient_id);
@@ -329,6 +335,9 @@ private:
     ErrorConditionT doConnectionNotifyRecvRawData(
         RecipientId const&                       _rrecipient_id,
         ConnectionRecvRawDataCompleteFunctionT&& _ucomplete_fnc);
+    ErrorConditionT doConnectionNotifyPost(
+        RecipientId const&                _rrecipient_id,
+        ConnectionPostCompleteFunctionT&& _ucomplete_fnc);
 
 private:
     friend class Listener;
@@ -833,6 +842,15 @@ ErrorConditionT Service::connectionNotifyEnterActiveState(
 {
     ConnectionEnterActiveCompleteFunctionT complete_fnc(std::move(_complete_fnc));
     return doConnectionNotifyEnterActiveState(_rrecipient_id, std::move(complete_fnc), _send_buffer_capacity);
+}
+//-------------------------------------------------------------------------
+template <class CompleteFnc>
+ErrorConditionT Service::connectionPost(
+    RecipientId const& _rrecipient_id,
+    CompleteFnc        _complete_fnc)
+{
+    ConnectionPostCompleteFunctionT complete_fnc(std::move(_complete_fnc));
+    return doConnectionNotifyPost(_rrecipient_id, std::move(complete_fnc));
 }
 //-------------------------------------------------------------------------
 inline ErrorConditionT Service::connectionNotifyEnterActiveState(

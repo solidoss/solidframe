@@ -11,7 +11,6 @@
 #include "solid/system/cassert.hpp"
 #include <mutex>
 
-#include "solid/system/mutualstore.hpp"
 #include "solid/utility/common.hpp"
 #include "solid/utility/dynamicpointer.hpp"
 #include "solid/utility/dynamictype.hpp"
@@ -27,49 +26,12 @@
 namespace solid {
 
 //---------------------------------------------------------------------
-//      Shared
-//---------------------------------------------------------------------
-
-namespace {
-
-typedef MutualStore<std::mutex> MutexStoreT;
-
-MutexStoreT& mutexStore()
-{
-    static MutexStoreT mtxstore(true, 3, 2, 2);
-    return mtxstore;
-}
-
-// size_t specificId(){
-//  static const size_t id(Thread::specificId());
-//  return id;
-// }
-
-std::mutex& global_mutex()
-{
-    static std::mutex mtx;
-    return mtx;
-}
-
-} //namespace
-
-std::mutex& shared_mutex_safe(const void* _p)
-{
-    std::lock_guard<std::mutex> lock(global_mutex());
-    return mutexStore().safeAt(reinterpret_cast<size_t>(_p));
-}
-std::mutex& shared_mutex(const void* _p)
-{
-    return mutexStore().at(reinterpret_cast<size_t>(_p));
-}
-
-//---------------------------------------------------------------------
 //----  DynamicPointer  ----
 //---------------------------------------------------------------------
 
 void DynamicPointerBase::clear(DynamicBase* _pdyn)
 {
-    solid_assert(_pdyn);
+    solid_assert_log(_pdyn, generic_logger);
     if (_pdyn->release() == 0u) {
         delete _pdyn;
     }
@@ -90,20 +52,6 @@ typedef std::atomic<size_t> AtomicSizeT;
 {
     static AtomicSizeT u{0};
     return u.fetch_add(1 /*, std::memory_order_seq_cst*/);
-}
-
-DynamicBase::~DynamicBase() {}
-
-size_t DynamicBase::use()
-{
-    return usecount.fetch_add(1 /*, std::memory_order_seq_cst*/) + 1;
-    ;
-}
-
-//! Used by DynamicPointer to know if the object must be deleted
-size_t DynamicBase::release()
-{
-    return usecount.fetch_sub(1 /*, std::memory_order_seq_cst*/) - 1;
 }
 
 /*virtual*/ bool DynamicBase::isTypeDynamic(const size_t /*_id*/)

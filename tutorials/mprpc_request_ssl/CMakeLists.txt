@@ -32,13 +32,11 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
-        solid_serialization_v2
+        solid_serialization_v3
         solid_utility
         solid_system
         ${SNAPPY_LIB}
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_BASIC_LIBRARIES}
-        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (tutorial_mprpc_request_ssl_client mprpc_request_client.cpp mprpc_request_messages.hpp)
@@ -50,13 +48,11 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
-        solid_serialization_v2
+        solid_serialization_v3
         solid_utility
         solid_system
         ${SNAPPY_LIB}
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_BASIC_LIBRARIES}
-        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 endif(OPENSSL_FOUND)
 

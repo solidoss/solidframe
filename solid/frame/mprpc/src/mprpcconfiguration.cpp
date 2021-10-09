@@ -94,7 +94,6 @@ size_t default_compress(char*, size_t, ErrorConditionT&)
 size_t default_decompress(char*, const char*, size_t, ErrorConditionT& _rerror)
 {
     //This should never be called
-    solid_assert(false);
     _rerror = error_compression_unavailable;
     return 0;
 }
@@ -111,11 +110,9 @@ SocketStubPtrT default_create_server_socket(Configuration const& _rcfg, frame::a
 
 const char* default_extract_recipient_name(const char* _purl, std::string& _msgurl, std::string& _tmpstr)
 {
-    if (_purl == nullptr) {
-        return nullptr;
-    }
+    solid_assert_log(_purl != nullptr, service_logger());
 
-    const char* p = strchr(_purl, '/');
+    const char* const p = strchr(_purl, '/');
 
     if (p == nullptr) {
         return _purl;
@@ -221,7 +218,7 @@ bool RelayEngine::notifyConnection(Manager& _rm, const ActorIdT& _rrelay_uid, co
     bool& /*_rmore*/
 )
 {
-    solid_throw("should not be called");
+    solid_throw_log(service_logger(), "should not be called");
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void RelayEngine::doCancel(
@@ -231,17 +228,17 @@ bool RelayEngine::notifyConnection(Manager& _rm, const ActorIdT& _rrelay_uid, co
     DoneFunctionT& /*_done_fnc*/
 )
 {
-    solid_throw("should not be called");
+    solid_throw_log(service_logger(), "should not be called");
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void RelayEngine::doPollNew(const UniqueId& /*_rrelay_uid*/, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/)
 {
-    solid_throw("should not be called");
+    solid_throw_log(service_logger(), "should not be called");
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void RelayEngine::doPollDone(const UniqueId& /*_rrelay_uid*/, DoneFunctionT& /*_done_fnc*/, CancelFunctionT& /*_cancel_fnc*/)
 {
-    solid_throw("should not be called");
+    solid_throw_log(service_logger(), "should not be called");
 }
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -252,16 +249,20 @@ void Configuration::init()
 
     connection_recv_buffer_max_capacity_kb = connection_send_buffer_max_capacity_kb = 64;
 
-    connection_inactivity_timeout_seconds = 60 * 10; //ten minutes
-    connection_keepalive_timeout_seconds  = 60 * 5; //five minutes
-    connection_reconnect_timeout_seconds  = 10;
+    connection_timeout_inactivity_seconds = 60 * 10; //ten minutes
+    connection_timeout_keepalive_seconds  = 60 * 5; //five minutes
+    connection_timeout_reconnect_seconds  = 10;
 
     connection_relay_buffer_count = 8;
 
-    connection_inactivity_keepalive_count = 2;
+    //server closes connection when receiving more than connection_inactivity_keepalive_count
+    //keep-alive requests during connection_timeout_inactivity_seconds
+    connection_inactivity_keepalive_count = 10;
 
-    server.connection_start_state  = ConnectionState::Passive;
-    server.connection_start_secure = true;
+    server.connection_start_state                = ConnectionState::Passive;
+    server.connection_start_secure               = true;
+    server.connection_timeout_activation_seconds = 60 * 5;
+    server.connection_timeout_secured_seconds    = 60;
 
     client.connection_start_state  = ConnectionState::Passive;
     client.connection_start_secure = true;
@@ -290,7 +291,7 @@ void Configuration::init()
     relay_enabled                     = false;
 }
 //-----------------------------------------------------------------------------
-size_t Configuration::connectionReconnectTimeoutSeconds(
+ulong Configuration::connectionReconnectTimeoutSeconds(
     const uint8_t _retry_count,
     const bool    _failed_create_connection_actor,
     const bool    _last_connection_was_connected,
@@ -298,16 +299,16 @@ size_t Configuration::connectionReconnectTimeoutSeconds(
     const bool /*_last_connection_was_secured*/) const
 {
     if (_failed_create_connection_actor) {
-        return connection_reconnect_timeout_seconds / 2;
+        return connection_timeout_reconnect_seconds / 2;
     }
     if (_last_connection_was_active || _last_connection_was_connected) {
         return 0; //reconnect right away
     }
-    size_t retry_count   = _retry_count / 2;
-    size_t sleep_seconds = retry_count;
+    ulong retry_count   = _retry_count / 2;
+    ulong sleep_seconds = retry_count;
 
-    if (sleep_seconds > connection_reconnect_timeout_seconds) {
-        sleep_seconds = connection_reconnect_timeout_seconds;
+    if (sleep_seconds > connection_timeout_reconnect_seconds) {
+        sleep_seconds = connection_timeout_reconnect_seconds;
     }
 
     return sleep_seconds; //TODO: add entropy - improve algorithm
@@ -388,7 +389,7 @@ void Configuration::prepare(SocketDevice& _rsd)
             }
         }
 
-        solid_throw("failed to create listener socket device");
+        solid_throw_log(service_logger(), "failed to create listener socket device");
     }
 }
 

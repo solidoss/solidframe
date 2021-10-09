@@ -15,7 +15,7 @@
 namespace solid {
 
 template <typename T>
-using PimplT = const std::unique_ptr<T>;
+using PimplT = std::unique_ptr<T>;
 
 template <typename T, typename... Args>
 std::unique_ptr<T> make_pimpl(Args&&... args)

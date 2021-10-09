@@ -24,6 +24,7 @@
 #include "solid/utility/event.hpp"
 
 #include <functional>
+#include <future>
 #include <iostream>
 #include <signal.h>
 #include <sstream>
@@ -46,14 +47,14 @@ std::string          srv_port_str;
 std::string          rly_port_str;
 bool                 be_secure       = false;
 bool                 use_relay       = false;
-unsigned             wait_seconds    = 100;
+unsigned             wait_seconds    = 200;
 constexpr const bool enable_no_delay = true;
 } //namespace
 //-----------------------------------------------------------------------------
 frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr);
 //-----------------------------------------------------------------------------
 namespace server {
-class Listener final : public Dynamic<Listener, frame::aio::Actor> {
+class Listener final : public frame::aio::Actor {
 public:
     static size_t backlog_size()
     {
@@ -99,7 +100,10 @@ protected:
         , sendcnt(0)
     {
     }
-    ~Connection() override {}
+    ~Connection() override
+    {
+        solid_dbg(generic_logger, Error, this << " server " << recvcnt << " " << sendcnt);
+    }
     void        onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
     static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
     static void onSend(frame::aio::ReactorContext& _rctx);
@@ -216,6 +220,7 @@ protected:
     }
     ~Connection() override
     {
+        solid_dbg(generic_logger, Error, this << " client " << recvcnt << " " << sendcnt);
     }
 
 private:
@@ -373,7 +378,7 @@ void prepareSendData();
 } //namespace client
 
 namespace relay {
-class Listener final : public Dynamic<Listener, frame::aio::Actor> {
+class Listener final : public frame::aio::Actor {
 public:
     Listener(
         frame::Service& _rsvc,
@@ -399,7 +404,7 @@ private:
     ListenerSocketT sock;
 };
 
-class Connection final : public Dynamic<Connection, frame::aio::Actor> {
+class Connection final : public frame::aio::Actor {
 public:
     Connection(SocketDevice&& _rsd)
         : sock1(this->proxy(), std::move(_rsd))
@@ -409,7 +414,10 @@ public:
         , crtid(-1)
     {
     }
-    ~Connection() override {}
+    ~Connection() override
+    {
+        solid_dbg(generic_logger, Error, this << " relay " << recvcnt << " " << sendcnt);
+    }
 
 protected:
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
@@ -438,7 +446,7 @@ protected:
 
 int test_echo_tcp_stress(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {"solid::frame::aio.*:EW", "\\*:VEW", "solid::workpool:EWS"});
+    solid::log_start(std::cerr, {"solid::frame::aio.*:EWX", "\\*:VEW", "solid::workpool:EWXS"});
 
     size_t connection_count = 1;
 
@@ -470,7 +478,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
         }
     }
 
-    {
+    auto lambda = [&]() -> int {
         AioSchedulerT        srv_sch;
         frame::Manager       srv_mgr;
         SecureContextT       srv_secure_ctx{SecureContextT::create()};
@@ -515,7 +523,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
                 solid::frame::ActorIdT actuid;
 
                 actuid = srv_sch.startActor(
-                    make_dynamic<server::Listener>(srv_svc, srv_sch, std::move(sd), be_secure ? &srv_secure_ctx : nullptr),
+                    make_shared<server::Listener>(srv_svc, srv_sch, std::move(sd), be_secure ? &srv_secure_ctx : nullptr),
                     srv_svc, make_event(GenericEvents::Start), err);
                 solid_dbg(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
             } else {
@@ -549,11 +557,10 @@ int test_echo_tcp_stress(int argc, char* argv[])
                         oss << srv_port;
                         rly_port_str = oss.str();
                     }
-                    //DynamicPointer<frame::aio::Actor> actptr(new relay::Listener(rly_svc, rly_sch, std::move(sd)));
                     solid::ErrorConditionT err;
                     solid::frame::ActorIdT actuid;
 
-                    actuid = rly_sch.startActor(make_dynamic<relay::Listener>(rly_svc, rly_sch, std::move(sd)), rly_svc, make_event(GenericEvents::Start), err);
+                    actuid = rly_sch.startActor(make_shared<relay::Listener>(rly_svc, rly_sch, std::move(sd)), rly_svc, make_event(GenericEvents::Start), err);
                     solid_dbg(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
                 } else {
                     cout << "Error creating listener socket" << endl;
@@ -581,16 +588,16 @@ int test_echo_tcp_stress(int argc, char* argv[])
             client::prepareSendData();
 
             for (size_t i = 0; i < connection_count; ++i) {
-                DynamicPointer<frame::aio::Actor> actptr;
-                solid::ErrorConditionT            err;
-                solid::frame::ActorIdT            actuid;
+                shared_ptr<frame::aio::Actor> actptr;
+                solid::ErrorConditionT        err;
+                solid::frame::ActorIdT        actuid;
 
                 if (be_secure) {
-                    actptr = make_dynamic<client::SecureConnection>(i, clt_secure_ctx);
+                    actptr = make_shared<client::SecureConnection>(i, clt_secure_ctx);
                     //actptr.reset(new client::SecureConnection(i, clt_secure_ctx));
                 } else {
                     //actptr.reset(new client::PlainConnection(i));
-                    actptr = make_dynamic<client::PlainConnection>(i);
+                    actptr = make_shared<client::PlainConnection>(i);
                 }
                 ++concnt;
                 actuid = clt_sch.startActor(std::move(actptr), clt_svc, make_event(GenericEvents::Start), err);
@@ -604,14 +611,22 @@ int test_echo_tcp_stress(int argc, char* argv[])
             unique_lock<mutex> lock(mtx);
 
             if (!cnd.wait_for(lock, std::chrono::seconds(wait_seconds), []() { return !running; })) {
-                solid_throw("Process is taking too long.");
+                //solid_throw("Process is taking too long.");
+                solid_dbg(generic_logger, Error, "Process is taking too long.");
+                return -1;
             }
             cout << "Received " << recv_count / 1024 << "KB on " << connection_count << " connections" << endl;
             solid_check(recv_count != 0);
         }
+        return 0;
+    };
+
+    auto fut = async(launch::async, lambda);
+    if (fut.wait_for(chrono::seconds(wait_seconds + 10)) != future_status::ready) {
+        solid_throw(" Test is taking too long - waited " << wait_seconds + 10 << " secs");
     }
 
-    return 0;
+    return fut.get();
 }
 
 //-----------------------------------------------------------------------------
@@ -660,13 +675,13 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             if (enable_no_delay) {
                 _rsd.enableNoDelay();
             }
-            DynamicPointer<frame::aio::Actor> actptr;
-            solid::ErrorConditionT            err;
+            shared_ptr<frame::aio::Actor> actptr;
+            solid::ErrorConditionT        err;
 
             if (psecurectx != nullptr) {
-                actptr = make_dynamic<SecureConnection>(std::move(_rsd), *psecurectx);
+                actptr = make_shared<SecureConnection>(std::move(_rsd), *psecurectx);
             } else {
-                actptr = make_dynamic<PlainConnection>(std::move(_rsd));
+                actptr = make_shared<PlainConnection>(std::move(_rsd));
             }
 
             rsch.startActor(std::move(actptr), rsvc, make_event(GenericEvents::Start), err);
@@ -735,6 +750,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     if (repeatcnt == 0) {
         rthis.postRecvSome(_rctx); //fully asynchronous call
     }
+    //this_thread::sleep_for(chrono::microseconds(500));
 }
 
 /*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx)
@@ -913,6 +929,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                 rthis.doSend(_rctx);
             } else {
                 solid_check(rthis.recvcnt == rthis.sendcnt);
+                solid_dbg(generic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt);
                 rthis.postStop(_rctx);
             }
         }
@@ -976,7 +993,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             }
             solid::ErrorConditionT err;
 
-            rsch.startActor(make_dynamic<Connection>(std::move(_rsd)), rsvc, make_event(GenericEvents::Start), err);
+            rsch.startActor(make_shared<Connection>(std::move(_rsd)), rsvc, make_event(GenericEvents::Start), err);
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));

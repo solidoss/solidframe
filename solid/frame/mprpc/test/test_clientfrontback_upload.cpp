@@ -2,7 +2,7 @@
 
 #include "solid/frame/mprpc/mprpccompression_snappy.hpp"
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v2.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
 #include "solid/frame/manager.hpp"
@@ -33,7 +33,6 @@ using namespace solid;
 
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
-using ProtocolT      = frame::mprpc::serialization_v2::Protocol<uint8_t>;
 
 namespace {
 LoggerT logger("test");
@@ -67,29 +66,26 @@ struct Request : frame::mprpc::Message {
     {
     }
 
-    template <class S>
-    void solidSerializeV2(S& _s, frame::mprpc::ConnectionContext& _rctx, const char* _name) const
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        //on serializer side
-        _s.add(name_, _rctx, "name");
-        auto progress_lambda = [](std::istream& _ris, uint64_t _len, const bool _done, frame::mprpc::ConnectionContext& _rctx, const char* _name) {
-            if (_done) {
-                solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
-            }
-        };
-        _s.add(ifs_, 100 * 1024, progress_lambda, _rctx, "file");
-    }
-
-    template <class S>
-    void solidSerializeV2(S& _s, frame::mprpc::ConnectionContext& _rctx, const char* _name)
-    {
-        _s.add(name_, _rctx, "name");
-        auto progress_lambda = [](std::ostream& _ros, uint64_t _len, const bool _done, frame::mprpc::ConnectionContext& _rctx, const char* _name) {
-            if (_done) {
-                solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
-            }
-        };
-        _s.add(oss_, progress_lambda, _rctx, "file");
+        _rr.add(_rthis.name_, _rctx, 1, "name");
+        if constexpr (!Reflector::is_const_reflector) {
+            auto progress_lambda = [](Context& _rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+                //NOTE: here you can use context.any()for actual implementation
+                if (_done) {
+                    solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
+                }
+            };
+            _rr.add(_rthis.oss_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda); });
+        } else {
+            auto progress_lambda = [](Context& _rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+                //NOTE: here you can use context.any()for actual implementation
+                if (_done) {
+                    solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
+                }
+            };
+            _rr.add(_rthis.ifs_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda).size(100 * 1024); });
+        }
     }
 };
 
@@ -111,9 +107,9 @@ struct Response : frame::mprpc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, /*_name*/)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.error_, _rctx, "error");
+        _rr.add(_rthis.error_, _rctx, 1, "error");
     }
 };
 
@@ -181,29 +177,26 @@ struct Request : frame::mprpc::Message {
     {
     }
 
-    template <class S>
-    void solidSerializeV2(S& _s, frame::mprpc::ConnectionContext& _rctx, const char* _name) const
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        //on serializer side
-        _s.add(name_, _rctx, "name");
-        auto progress_lambda = [](std::istream& _ris, uint64_t _len, const bool _done, frame::mprpc::ConnectionContext& _rctx, const char* _name) {
-            if (_done) {
-                solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
-            }
-        };
-        _s.add(iss_, progress_lambda, _rctx, "file");
-    }
-
-    template <class S>
-    void solidSerializeV2(S& _s, frame::mprpc::ConnectionContext& _rctx, const char* _name)
-    {
-        _s.add(name_, _rctx, "name");
-        auto progress_lambda = [](std::ostream& _ros, uint64_t _len, const bool _done, frame::mprpc::ConnectionContext& _rctx, const char* _name) {
-            if (_done) {
-                solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
-            }
-        };
-        _s.add(oss_, progress_lambda, _rctx, _name);
+        _rr.add(_rthis.name_, _rctx, 1, "name");
+        if constexpr (!Reflector::is_const_reflector) {
+            auto progress_lambda = [](Context& _rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+                //NOTE: here you can use context.any()for actual implementation
+                if (_done) {
+                    solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
+                }
+            };
+            _rr.add(_rthis.oss_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda); });
+        } else {
+            auto progress_lambda = [](Context& _rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+                //NOTE: here you can use context.any()for actual implementation
+                if (_done) {
+                    solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
+                }
+            };
+            _rr.add(_rthis.iss_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda); });
+        }
     }
 };
 
@@ -233,9 +226,9 @@ struct Response : frame::mprpc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, /*_name*/)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.error_, _rctx, "error");
+        _rr.add(_rthis.error_, _rctx, 1, "error");
     }
 };
 
@@ -281,7 +274,7 @@ void check_files(const vector<string>& _file_vec, const char* _path_prefix_clien
 
 int test_clientfrontback_upload(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EW", "test:IEW"});
+    solid::log_start(std::cerr, {".*:EWX", "test:IEW"});
 
     size_t   max_per_pool_connection_count = 1;
     bool     secure                        = false;
@@ -354,12 +347,13 @@ int test_clientfrontback_upload(int argc, char* argv[])
         std::string front_port;
 
         { //mprpc back_server initialization
-            auto                        proto = ProtocolT::create();
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto& _rmap) {
+                    _rmap.template registerMessage<back::Request>(1, "Request", back::on_server_receive_first_request);
+                    _rmap.template registerMessage<back::Response>(2, "Response", back::on_server_response);
+                });
             frame::mprpc::Configuration cfg(sch_back, proto);
-
-            proto->null(0);
-            proto->registerMessage<back::Request>(back::on_server_receive_first_request, 1);
-            proto->registerMessage<back::Response>(back::on_server_response, 2);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
@@ -397,12 +391,13 @@ int test_clientfrontback_upload(int argc, char* argv[])
         }
 
         { //mprpc back_client initialization
-            auto                        proto = ProtocolT::create();
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto& _rmap) {
+                    _rmap.template registerMessage<back::Request>(1, "Request", back::on_client_request);
+                    _rmap.template registerMessage<back::Response>(2, "Response", back::on_client_response);
+                });
             frame::mprpc::Configuration cfg(sch_front, proto);
-
-            proto->null(0);
-            proto->registerMessage<back::Request>(back::on_client_request, 1);
-            proto->registerMessage<back::Response>(back::on_client_response, 2);
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 
@@ -431,12 +426,13 @@ int test_clientfrontback_upload(int argc, char* argv[])
         }
 
         { //mprpc front_server initialization
-            auto                        proto = ProtocolT::create();
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto& _rmap) {
+                    _rmap.template registerMessage<front::Request>(1, "Request", front::on_server_receive_first_request);
+                    _rmap.template registerMessage<front::Response>(2, "Response", front::on_server_response);
+                });
             frame::mprpc::Configuration cfg(sch_back, proto);
-
-            proto->null(0);
-            proto->registerMessage<front::Request>(front::on_server_receive_first_request, 1);
-            proto->registerMessage<front::Response>(front::on_server_response, 2);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
@@ -473,12 +469,13 @@ int test_clientfrontback_upload(int argc, char* argv[])
         }
 
         { //mprpc front_client initialization
-            auto                        proto = ProtocolT::create();
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto& _rmap) {
+                    _rmap.template registerMessage<front::Request>(1, "Request", front::on_client_request);
+                    _rmap.template registerMessage<front::Response>(2, "Response", front::on_client_response);
+                });
             frame::mprpc::Configuration cfg(sch_front, proto);
-
-            proto->null(0);
-            proto->registerMessage<front::Request>(front::on_client_request, 1);
-            proto->registerMessage<front::Response>(front::on_client_response, 2);
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 
@@ -513,7 +510,9 @@ int test_clientfrontback_upload(int argc, char* argv[])
             mprpc_front_client.sendRequest("localhost", msg_ptr, front::on_client_receive_first_response);
         }
 
-        solid_check(prom.get_future().wait_for(chrono::seconds(150)) == future_status::ready, "Taking too long - waited 150 secs");
+        auto fut = prom.get_future();
+        solid_check(fut.wait_for(chrono::seconds(150)) == future_status::ready, "Taking too long - waited 150 secs");
+        fut.get();
         solid_log(logger, Info, "Done upload");
         check_files(file_vec, "client_storage", "server_storage");
         solid_log(logger, Info, "Done file checking - exiting");

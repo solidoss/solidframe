@@ -63,7 +63,7 @@ frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr)
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-class Listener final : public Dynamic<Listener, frame::aio::Actor> {
+class Listener final : public frame::aio::Actor {
 public:
     Listener(
         frame::Service& _rsvc,
@@ -190,7 +190,7 @@ struct EventData {
     }
 };
 
-class Connection final : public Dynamic<Connection, frame::aio::Actor> {
+class Connection final : public frame::aio::Actor {
 public:
     Connection(SocketDevice&& _rsd)
         : sock_(this->proxy(), std::move(_rsd))
@@ -402,7 +402,7 @@ int main(int argc, char* argv[])
                 solid::ErrorConditionT err;
                 solid::frame::ActorIdT actuid;
 
-                actuid = sch.startActor(make_dynamic<Listener>(svc, sch, std::move(sd)), svc, make_event(GenericEvents::Start), err);
+                actuid = sch.startActor(make_shared<Listener>(svc, sch, std::move(sd)), svc, make_event(GenericEvents::Start), err);
                 solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
@@ -489,9 +489,9 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             _rsd.enableNoDelay();
 
             solid::ErrorConditionT err;
-            frame::ActorIdT        actuid = rsch_.startActor(make_dynamic<Connection>(std::move(_rsd)), rsvc_, make_event(GenericEvents::Start), err);
+            frame::ActorIdT        actuid = rsch_.startActor(make_shared<Connection>(std::move(_rsd)), rsvc_, make_event(GenericEvents::Start), err);
 
-            rsch_.startActor(make_dynamic<Connection>(actuid), rsvc_, make_event(GenericEvents::Start), err);
+            rsch_.startActor(make_shared<Connection>(actuid), rsvc_, make_event(GenericEvents::Start), err);
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));

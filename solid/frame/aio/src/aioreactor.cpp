@@ -213,7 +213,6 @@ public:
         : eventhandler(proxy())
         , dummyhandler(proxy(), dummy_completion)
     {
-        use();
     }
 
     void stop()
@@ -435,6 +434,7 @@ struct Reactor::Data {
         , devcnt(0)
         , actcnt(0)
         , timestore(MinEventCapacity)
+        , event_actor_ptr(make_shared<EventActor>())
     {
     }
 #if defined(SOLID_USE_EPOLL)
@@ -524,7 +524,7 @@ struct Reactor::Data {
 
     UniqueId dummyCompletionHandlerUid() const
     {
-        const size_t idx = eventact.dummyhandler.idxreactor;
+        const size_t idx = event_actor_ptr->dummyhandler.idxreactor;
         return UniqueId(idx, chdq[idx].unique);
     }
 
@@ -541,7 +541,7 @@ struct Reactor::Data {
     EventVectorT            eventvec;
     NewTaskVectorT          pushtskvec[2];
     RaiseEventVectorT       raisevec[2];
-    EventActor              eventact;
+    shared_ptr<EventActor>  event_actor_ptr;
     CompletionHandlerDequeT chdq;
     UidVectorT              freeuidvec;
     ActorDequeT             actdq;
@@ -566,7 +566,7 @@ void EventHandler::write(Reactor& _rreactor)
 
     if (kevent(_rreactor.impl_->reactor_fd, &ev, 1, nullptr, 0, nullptr)) {
         solid_dbg(logger, Error, "kevent: " << last_system_error().message());
-        solid_assert(false);
+        solid_assert_log(false, logger);
     }
 #elif defined(SOLID_USE_WSAPOLL)
     const uint32_t v = 1;
@@ -619,16 +619,16 @@ bool Reactor::start()
     }
 #endif
 
-    if (!impl_->eventact.eventhandler.init()) {
+    if (!impl_->event_actor_ptr->eventhandler.init()) {
         return false;
     }
 
     impl_->actdq.push_back(ActorStub());
-    impl_->actdq.back().actptr = &impl_->eventact;
+    impl_->actdq.back().actptr = impl_->event_actor_ptr;
 
     popUid(*impl_->actdq.back().actptr);
 
-    impl_->eventact.registerCompletionHandlers();
+    impl_->event_actor_ptr->registerCompletionHandlers();
 
     impl_->eventvec.resize(MinEventCapacity);
     impl_->eventvec.resize(impl_->eventvec.capacity());
@@ -652,7 +652,7 @@ bool Reactor::start()
         impl_->crtraisevecsz = raisevecsz;
     }
     if (raisevecsz == 1) {
-        impl_->eventact.eventhandler.write(*this);
+        impl_->event_actor_ptr->eventhandler.write(*this);
     }
     return rv;
 }
@@ -672,7 +672,7 @@ bool Reactor::start()
         impl_->crtraisevecsz = raisevecsz;
     }
     if (raisevecsz == 1) {
-        impl_->eventact.eventhandler.write(*this);
+        impl_->event_actor_ptr->eventhandler.write(*this);
     }
     return rv;
 }
@@ -683,7 +683,7 @@ bool Reactor::start()
 {
     solid_dbg(logger, Verbose, "");
     impl_->running = false;
-    impl_->eventact.eventhandler.write(*this);
+    impl_->event_actor_ptr->eventhandler.write(*this);
 }
 
 //-----------------------------------------------------------------------------
@@ -706,7 +706,7 @@ bool Reactor::push(TaskT&& _ract, Service& _rsvc, Event&& _uevent)
     }
 
     if (pushvecsz == 1) {
-        impl_->eventact.eventhandler.write(*this);
+        impl_->event_actor_ptr->eventhandler.write(*this);
     }
     return rv;
 }
@@ -781,7 +781,7 @@ void Reactor::run()
         running = impl_->running || (impl_->actcnt != 0) || !impl_->exeq.empty();
     }
 
-    impl_->eventact.stop();
+    impl_->event_actor_ptr->stop();
     doClearSpecific();
     solid_dbg(logger, Info, "<exit>");
     (void)waitmsec;
@@ -831,7 +831,7 @@ inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events)
         break;
 #endif
     default:
-        solid_assert(false);
+        solid_assert_log(false, logger);
         break;
     }
     return retval;
@@ -884,7 +884,7 @@ inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events, declty
         _revs = 0;
         break;
     default:
-        solid_assert(false);
+        solid_assert_log(false, logger);
         break;
     }
     return retval;
@@ -909,7 +909,7 @@ inline uint32_t reactorRequestsToSystemEvents(const ReactorWaitRequestsE _reques
         evs = EPOLLET | EPOLLIN | EPOLLOUT;
         break;
     default:
-        solid_assert(false);
+        solid_assert_log(false, logger);
     }
     return evs;
 }
@@ -930,7 +930,7 @@ inline uint32_t reactorRequestsToSystemEvents(const ReactorWaitRequestsE _reques
         evs = POLLWRNORM | POLLRDNORM;
         break;
     default:
-        solid_assert(false);
+        solid_assert_log(false, logger);
     }
     return evs;
 }
@@ -1023,7 +1023,7 @@ void Reactor::doStopActor(ReactorContext& _rctx)
 
     this->stopActor(*ras.actptr, ras.psvc->manager());
 
-    ras.actptr.clear();
+    ras.actptr.reset();
     ras.psvc = nullptr;
     ++ras.unique;
     --this->impl_->actcnt;
@@ -1243,7 +1243,7 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
             }
             ActorStub& ras = impl_->actdq[static_cast<size_t>(rnewact.uid.index)];
 
-            solid_assert(ras.unique == rnewact.uid.unique);
+            solid_assert_log(ras.unique == rnewact.uid.unique, logger);
 
             {
                 //NOTE: we must lock the mutex of the actor
@@ -1312,13 +1312,12 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
     ev.events   = reactorRequestsToSystemEvents(_req);
 
     if (epoll_ctl(impl_->reactor_fd, EPOLL_CTL_ADD, _rsd.Device::descriptor(), &ev) != 0) {
-        solid_dbg(logger, Error, "epoll_ctl: " << last_system_error().message());
-        solid_throw("epoll_ctl");
+        solid_throw_log(logger, "epoll_ctl: " << last_system_error().message());
         return false;
     }
     ++impl_->devcnt;
     if (impl_->devcnt == (impl_->eventvec.size() + 1)) {
-        impl_->eventact.post(_rctx, &Reactor::increase_event_vector_size);
+        impl_->event_actor_ptr->post(_rctx, &Reactor::increase_event_vector_size);
     }
 #elif defined(SOLID_USE_KQUEUE)
     int read_flags = EV_ADD;
@@ -1345,18 +1344,18 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
         EV_SET(&ev, _rsd.descriptor(), EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, indexToVoid(_rctx.channel_index_));
         if (kevent(impl_->reactor_fd, &ev, 1, nullptr, 0, nullptr)) {
             solid_dbg(logger, Error, "kevent: " << last_system_error().message());
-            solid_assert(false);
+            solid_assert_log(false, logger);
             return false;
         } else {
             ++impl_->devcnt;
             if (impl_->devcnt == (impl_->eventvec.size() + 1)) {
-                impl_->eventact.post(_rctx, &Reactor::increase_event_vector_size);
+                impl_->event_actor_ptr->post(_rctx, &Reactor::increase_event_vector_size);
             }
         }
         return true;
     }
     default:
-        solid_assert(false);
+        solid_assert_log(false, logger);
         return false;
     }
 
@@ -1365,12 +1364,12 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
     EV_SET(&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags | EV_CLEAR, 0, 0, indexToVoid(_rctx.channel_index_));
     if (kevent(impl_->reactor_fd, ev, 2, nullptr, 0, nullptr)) {
         solid_dbg(logger, Error, "kevent: " << last_system_error().message());
-        solid_assert(false);
+        solid_assert_log(false, logger);
         return false;
     } else {
         ++impl_->devcnt;
         if (impl_->devcnt == (impl_->eventvec.size() + 1)) {
-            impl_->eventact.post(_rctx, &Reactor::increase_event_vector_size);
+            impl_->event_actor_ptr->post(_rctx, &Reactor::increase_event_vector_size);
         }
     }
 #elif defined(SOLID_USE_WSAPOLL)
@@ -1396,8 +1395,7 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
     ev.events   = reactorRequestsToSystemEvents(_req);
 
     if (epoll_ctl(impl_->reactor_fd, EPOLL_CTL_MOD, _rsd.Device::descriptor(), &ev) != 0) {
-        solid_dbg(logger, Error, "epoll_ctl: " << last_system_error().message());
-        solid_throw("epoll_ctl");
+        solid_throw_log(logger, "epoll_ctl: " << last_system_error().message());
         return false;
     }
 #elif defined(SOLID_USE_KQUEUE)
@@ -1429,18 +1427,18 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
 
         if (kevent(impl_->reactor_fd, &ev, 1, nullptr, 0, nullptr)) {
             solid_dbg(logger, Error, "kevent: " << last_system_error().message());
-            solid_assert(false);
+            solid_assert_log(false, logger);
             return false;
         } else {
             ++impl_->devcnt;
             if (impl_->devcnt == (impl_->eventvec.size() + 1)) {
-                impl_->eventact.post(_rctx, &Reactor::increase_event_vector_size);
+                impl_->event_actor_ptr->post(_rctx, &Reactor::increase_event_vector_size);
             }
         }
         return true;
     }
     default:
-        solid_assert(false);
+        solid_assert_log(false, logger);
         return false;
     }
 
@@ -1449,12 +1447,12 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
 
     if (kevent(impl_->reactor_fd, ev, 2, nullptr, 0, nullptr)) {
         solid_dbg(logger, Error, "kevent: " << last_system_error().message());
-        solid_assert(false);
+        solid_assert_log(false, logger);
         return false;
     } else {
         ++impl_->devcnt;
         if (impl_->devcnt == (impl_->eventvec.size() + 1)) {
-            impl_->eventact.post(_rctx, &Reactor::increase_event_vector_size);
+            impl_->event_actor_ptr->post(_rctx, &Reactor::increase_event_vector_size);
         }
     }
 #elif defined(SOLID_USE_WSAPOLL)
@@ -1480,8 +1478,7 @@ bool Reactor::remDevice(CompletionHandler const& _rch, Device const& _rsd)
     }
 
     if (epoll_ctl(impl_->reactor_fd, EPOLL_CTL_DEL, _rsd.Device::descriptor(), &ev) != 0) {
-        solid_dbg(logger, Error, "epoll_ctl: " << last_system_error().message());
-        solid_throw("epoll_ctl");
+        solid_throw_log(logger, "epoll_ctl: " << last_system_error().message());
         return false;
     }
 
@@ -1494,7 +1491,7 @@ bool Reactor::remDevice(CompletionHandler const& _rch, Device const& _rsd)
         EV_SET(&ev[1], _rsd.descriptor(), EVFILT_WRITE, EV_DELETE, 0, 0, 0);
         if (kevent(impl_->reactor_fd, ev, 2, nullptr, 0, nullptr)) {
             solid_dbg(logger, Error, "kevent: " << last_system_error().message());
-            solid_assert(false);
+            solid_assert_log(false, logger);
             return false;
         } else {
             --impl_->devcnt;
@@ -1503,7 +1500,7 @@ bool Reactor::remDevice(CompletionHandler const& _rch, Device const& _rsd)
         EV_SET(ev, _rsd.descriptor(), EVFILT_USER, EV_DELETE, 0, 0, 0);
         if (kevent(impl_->reactor_fd, ev, 1, nullptr, 0, nullptr)) {
             solid_dbg(logger, Error, "kevent: " << last_system_error().message());
-            solid_assert(false);
+            solid_assert_log(false, logger);
             return false;
         } else {
             --impl_->devcnt;
@@ -1524,7 +1521,7 @@ bool Reactor::addTimer(CompletionHandler const& _rch, NanoTime const& _rt, size_
 {
     if (_rstoreidx != InvalidIndex()) {
         size_t idx = impl_->timestore.change(_rstoreidx, _rt);
-        solid_assert(idx == _rch.idxreactor);
+        solid_assert_log(idx == _rch.idxreactor, logger);
     } else {
         _rstoreidx = impl_->timestore.push(_rt, _rch.idxreactor);
     }
@@ -1536,8 +1533,8 @@ bool Reactor::addTimer(CompletionHandler const& _rch, NanoTime const& _rt, size_
 void Reactor::doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx)
 {
     CompletionHandlerStub& rch = impl_->chdq[_chidx];
-    solid_assert(static_cast<SteadyTimer*>(rch.pch)->storeidx == _oldidx);
-    static_cast<SteadyTimer*>(rch.pch)->storeidx = _newidx;
+    solid_assert_log(static_cast<SteadyTimer*>(rch.pch)->storeidx_ == _oldidx, logger);
+    static_cast<SteadyTimer*>(rch.pch)->storeidx_ = _newidx;
 }
 
 //-----------------------------------------------------------------------------
@@ -1605,7 +1602,7 @@ void Reactor::unregisterCompletionHandler(CompletionHandler& _rch)
     }
 
     impl_->chposcache.push(_rch.idxreactor);
-    rcs.pch    = &impl_->eventact.dummyhandler;
+    rcs.pch    = &impl_->event_actor_ptr->dummyhandler;
     rcs.actidx = 0;
     ++rcs.unique;
 }
@@ -1654,14 +1651,19 @@ Service& ReactorContext::service() const
 
 Manager& ReactorContext::manager() const
 {
-    return reactor().service(*this).manager();
+    return service().manager();
 }
 
 //-----------------------------------------------------------------------------
 
 std::mutex& ReactorContext::actorMutex() const
 {
-    return reactor().service(*this).mutex(reactor().actor(*this));
+    return service().mutex(actor());
+}
+//-----------------------------------------------------------------------------
+ActorIdT ReactorContext::actorId() const
+{
+    return service().id(actor());
 }
 
 //-----------------------------------------------------------------------------

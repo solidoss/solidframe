@@ -13,7 +13,6 @@
 #include "aioerror.hpp"
 #include "solid/system/pimpl.hpp"
 #include "solid/system/socketaddress.hpp"
-#include "solid/utility/dynamictype.hpp"
 #include "solid/utility/workpool.hpp"
 #include <string>
 

@@ -14,7 +14,6 @@
 #include "solid/frame/reactorbase.hpp"
 #include "solid/frame/reactorcontext.hpp"
 #include "solid/system/pimpl.hpp"
-#include "solid/utility/dynamicpointer.hpp"
 
 namespace solid {
 struct NanoTime;
@@ -27,7 +26,7 @@ class CompletionHandler;
 struct ChangeTimerIndexCallback;
 struct TimerCallback;
 
-typedef DynamicPointer<Actor> ActorPointerT;
+using ActorPointerT = std::shared_ptr<Actor>;
 
 //!
 /*!

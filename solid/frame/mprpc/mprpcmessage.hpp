@@ -17,7 +17,7 @@
 
 #include "solid/frame/mprpc/mprpccontext.hpp"
 #include "solid/frame/mprpc/mprpcmessageflags.hpp"
-
+#include "solid/reflection/v1/reflection.hpp"
 #include <memory>
 #include <type_traits>
 
@@ -83,7 +83,7 @@ struct MessageHeader {
     void solidSerializeV1(S& _rs, frame::mprpc::ConnectionContext& _rctx)
     {
         if (S::IsSerializer) {
-            //because a message can be sent to multiple destinations (usign DynamicPointer)
+            //because a message can be sent to multiple destinations
             //on serialization we cannot use/modify the values stored by ipc::Message
             //so, we'll use ones store in the context. Because the context is volatile
             //we'll store as values.
@@ -93,7 +93,7 @@ struct MessageHeader {
 
             _rs.pushCross(_rctx.request_id.index, "sender_request_index");
             _rs.pushCross(_rctx.request_id.unique, "sender_request_unique");
-            solid_check(_rctx.pmessage_url, "message url must not be null");
+            solid_check_log(_rctx.pmessage_url, service_logger(), "message url must not be null");
             _rs.push(*_rctx.pmessage_url, "url");
             uint64_t tmp = _rctx.message_flags.toUnderlyingType(); //not nice but safe - better solution in future versions
             _rs.pushCross(tmp, "flags");
@@ -111,9 +111,9 @@ struct MessageHeader {
     }
 
     template <class S>
-    void solidSerializeV2(S& _rs, frame::mprpc::ConnectionContext& _rctx, std::integral_constant<bool, true> _is_serializer, const char* _name)
+    void solidSerializeV2(S& _rs, frame::mprpc::ConnectionContext& _rctx, std::true_type /*_is_serializer*/, const char* _name)
     {
-        solid_check(_rctx.pmessage_url, "message url must not be null");
+        solid_check_log(_rctx.pmessage_url, service_logger(), "message url must not be null");
         const MessageFlagsValueT tmp = _rctx.message_flags.toUnderlyingType();
         _rs.add(tmp, _rctx, "flags").add(*_rctx.pmessage_url, _rctx, "url");
         _rs.add(_rctx.request_id.index, _rctx, "sender_request_index");
@@ -123,7 +123,7 @@ struct MessageHeader {
     }
 
     template <class S>
-    void solidSerializeV2(S& _rs, frame::mprpc::ConnectionContext& _rctx, std::integral_constant<bool, false> _is_deserializer, const char* _name)
+    void solidSerializeV2(S& _rs, frame::mprpc::ConnectionContext& _rctx, std::false_type /*_is_deserializer*/, const char* _name)
     {
         _rs.add(flags_, _rctx, "flags_").add(url_, _rctx, "url");
         _rs.add(sender_request_id_.index, _rctx, "sender_request_index");
@@ -135,7 +135,27 @@ struct MessageHeader {
     template <class S>
     void solidSerializeV2(S& _rs, frame::mprpc::ConnectionContext& _rctx, const char* _name)
     {
-        solidSerializeV2(_rs, _rctx, std::integral_constant<bool, S::is_serializer>(), _name);
+        solidSerializeV2(_rs, _rctx, std::bool_constant<S::is_serializer>(), _name);
+    }
+
+    SOLID_REFLECT_V1(_rs, _rthis, _rctx)
+    {
+        if constexpr (std::decay_t<decltype(_rs)>::is_const_reflector) {
+            const MessageFlagsValueT tmp = _rctx.message_flags.toUnderlyingType();
+            _rs.add(tmp, _rctx, 1, "flags");
+            _rs.add(*_rctx.pmessage_url, _rctx, 2, "url");
+            _rs.add(_rctx.request_id.index, _rctx, 3, "sender_request_index");
+            _rs.add(_rctx.request_id.unique, _rctx, 4, "sender_request_unique");
+            _rs.add(_rthis.sender_request_id_.index, _rctx, 5, "recipient_request_index");
+            _rs.add(_rthis.sender_request_id_.unique, _rctx, 6, "recipient_request_unique");
+        } else {
+            _rs.add(_rthis.flags_, _rctx, 1, "flags");
+            _rs.add(_rthis.url_, _rctx, 2, "url");
+            _rs.add(_rthis.sender_request_id_.index, _rctx, 3, "sender_request_index");
+            _rs.add(_rthis.sender_request_id_.unique, _rctx, 4, "sender_request_unique");
+            _rs.add(_rthis.recipient_request_id_.index, _rctx, 5, "recipient_request_index");
+            _rs.add(_rthis.recipient_request_id_.unique, _rctx, 6, "recipient_request_unique");
+        }
     }
 };
 
@@ -270,6 +290,11 @@ struct Message : std::enable_shared_from_this<Message> {
     void header(const MessageHeader& _umh)
     {
         header_ = std::move(_umh);
+    }
+
+    void header(frame::mprpc::ConnectionContext& _rctx)
+    {
+        header_ = std::move(*_rctx.pmessage_header);
     }
 
     const MessageHeader& header() const

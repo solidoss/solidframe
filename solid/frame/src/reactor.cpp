@@ -58,7 +58,6 @@ public:
     EventActor()
         : dummyhandler(proxy(), dummy_completion)
     {
-        use();
     }
 
     void stop()
@@ -223,6 +222,7 @@ struct Reactor::Data {
         , crtraisevecsz(0)
         , actcnt(0)
         , timestore(MinEventCapacity)
+        , event_actor_ptr(make_shared<EventActor>())
     {
         pcrtpushtskvec = &pushtskvec[1];
         pcrtraisevec   = &raisevec[1];
@@ -258,7 +258,7 @@ struct Reactor::Data {
 
     UniqueId dummyCompletionHandlerUid() const
     {
-        const size_t idx = eventact.dummyhandler.idxreactor;
+        const size_t idx = event_actor_ptr->dummyhandler.idxreactor;
         return UniqueId(idx, chdq[idx].unique);
     }
 
@@ -276,7 +276,7 @@ struct Reactor::Data {
     condition_variable      cnd;
     NewTaskVectorT          pushtskvec[2];
     RaiseEventVectorT       raisevec[2];
-    EventActor              eventact;
+    shared_ptr<EventActor>  event_actor_ptr;
     CompletionHandlerDequeT chdq;
     UidVectorT              freeuidvec;
     ActorDequeT             actdq;
@@ -290,25 +290,25 @@ Reactor::Reactor(
     : ReactorBase(_rsched, _idx)
     , impl_(make_pimpl<Data>())
 {
-    solid_dbg(logger, Verbose, "");
+    solid_dbg(frame_logger, Verbose, "");
 }
 
 Reactor::~Reactor()
 {
-    solid_dbg(logger, Verbose, "");
+    solid_dbg(frame_logger, Verbose, "");
 }
 
 bool Reactor::start()
 {
     doStoreSpecific();
-    solid_dbg(logger, Verbose, "");
+    solid_dbg(frame_logger, Verbose, "");
 
     impl_->actdq.push_back(ActorStub());
-    impl_->actdq.back().actptr = &impl_->eventact;
+    impl_->actdq.back().actptr = impl_->event_actor_ptr;
 
     popUid(*impl_->actdq.back().actptr);
 
-    impl_->eventact.registerCompletionHandlers();
+    impl_->event_actor_ptr->registerCompletionHandlers();
 
     impl_->running = true;
 
@@ -317,7 +317,7 @@ bool Reactor::start()
 
 /*virtual*/ bool Reactor::raise(UniqueId const& _ractuid, Event const& _revent)
 {
-    solid_dbg(logger, Verbose, (void*)this << " uid = " << _ractuid.index << ',' << _ractuid.unique << " event = " << _revent);
+    solid_dbg(frame_logger, Verbose, (void*)this << " uid = " << _ractuid.index << ',' << _ractuid.unique << " event = " << _revent);
     bool   rv         = true;
     size_t raisevecsz = 0;
     {
@@ -335,7 +335,7 @@ bool Reactor::start()
 
 /*virtual*/ bool Reactor::raise(UniqueId const& _ractuid, Event&& _uevent)
 {
-    solid_dbg(logger, Verbose, (void*)this << " uid = " << _ractuid.index << ',' << _ractuid.unique << " event = " << _uevent);
+    solid_dbg(frame_logger, Verbose, (void*)this << " uid = " << _ractuid.index << ',' << _ractuid.unique << " event = " << _uevent);
     bool   rv         = true;
     size_t raisevecsz = 0;
     {
@@ -353,7 +353,7 @@ bool Reactor::start()
 
 /*virtual*/ void Reactor::stop()
 {
-    solid_dbg(logger, Verbose, "");
+    solid_dbg(frame_logger, Verbose, "");
     lock_guard<mutex> lock(impl_->mtx);
     impl_->must_stop = true;
     impl_->cnd.notify_one();
@@ -362,14 +362,14 @@ bool Reactor::start()
 //Called from outside reactor's thread
 bool Reactor::push(TaskT&& _ract, Service& _rsvc, Event const& _revent)
 {
-    solid_dbg(logger, Verbose, (void*)this);
+    solid_dbg(frame_logger, Verbose, (void*)this);
     bool   rv        = true;
     size_t pushvecsz = 0;
     {
         lock_guard<mutex> lock(impl_->mtx);
         const UniqueId    uid = this->popUid(*_ract);
 
-        solid_dbg(logger, Verbose, (void*)this << " uid = " << uid.index << ',' << uid.unique << " event = " << _revent);
+        solid_dbg(frame_logger, Verbose, (void*)this << " uid = " << uid.index << ',' << uid.unique << " event = " << _revent);
 
         impl_->pushtskvec[impl_->crtpushtskvecidx].push_back(NewTaskStub(uid, std::move(_ract), _rsvc, _revent));
         pushvecsz           = impl_->pushtskvec[impl_->crtpushtskvecidx].size();
@@ -384,7 +384,7 @@ bool Reactor::push(TaskT&& _ract, Service& _rsvc, Event const& _revent)
 
 void Reactor::run()
 {
-    solid_dbg(logger, Verbose, "<enter>");
+    solid_dbg(frame_logger, Verbose, "<enter>");
     bool     running = true;
     NanoTime crttime;
 
@@ -404,9 +404,9 @@ void Reactor::run()
 
         running = impl_->running || (impl_->actcnt != 0) || !impl_->exeq.empty();
     }
-    impl_->eventact.stop();
+    impl_->event_actor_ptr->stop();
     doClearSpecific();
-    solid_dbg(logger, Verbose, "<exit>");
+    solid_dbg(frame_logger, Verbose, "<exit>");
 }
 
 UniqueId Reactor::actorUid(ReactorContext const& _rctx) const
@@ -474,7 +474,7 @@ void Reactor::doStopActor(ReactorContext& _rctx)
 
     this->stopActor(*ros.actptr, ros.psvc->manager());
 
-    ros.actptr.clear();
+    ros.actptr.reset();
     ros.psvc = nullptr;
     ++ros.unique;
     --this->impl_->actcnt;
@@ -589,7 +589,7 @@ bool Reactor::doWaitEvent(NanoTime const& _rcrttime)
 
 void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
 {
-    solid_dbg(logger, Verbose, "");
+    solid_dbg(frame_logger, Verbose, "");
 
     NewTaskVectorT&    crtpushvec  = *impl_->pcrtpushtskvec;
     RaiseEventVectorT& crtraisevec = *impl_->pcrtraisevec;
@@ -606,7 +606,7 @@ void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
             }
 
             ActorStub& ros = impl_->actdq[static_cast<size_t>(rnewact.uid.index)];
-            solid_assert(ros.unique == rnewact.uid.unique);
+            solid_assert_log(ros.unique == rnewact.uid.unique, frame_logger);
 
             {
                 //NOTE: we must lock the mutex of the actor
@@ -646,7 +646,7 @@ bool Reactor::addTimer(CompletionHandler const& _rch, NanoTime const& _rt, size_
 {
     if (_rstoreidx != InvalidIndex()) {
         size_t idx = impl_->timestore.change(_rstoreidx, _rt);
-        solid_assert(idx == _rch.idxreactor);
+        solid_assert_log(idx == _rch.idxreactor, frame_logger);
     } else {
         _rstoreidx = impl_->timestore.push(_rt, _rch.idxreactor);
     }
@@ -656,8 +656,8 @@ bool Reactor::addTimer(CompletionHandler const& _rch, NanoTime const& _rt, size_
 void Reactor::doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx)
 {
     CompletionHandlerStub& rch = impl_->chdq[_chidx];
-    solid_assert(static_cast<SteadyTimer*>(rch.pch)->storeidx == _oldidx);
-    static_cast<SteadyTimer*>(rch.pch)->storeidx = _newidx;
+    solid_assert_log(static_cast<SteadyTimer*>(rch.pch)->storeidx_ == _oldidx, frame_logger);
+    static_cast<SteadyTimer*>(rch.pch)->storeidx_ = _newidx;
 }
 
 bool Reactor::remTimer(CompletionHandler const& /*_rch*/, size_t const& _rstoreidx)
@@ -670,7 +670,7 @@ bool Reactor::remTimer(CompletionHandler const& /*_rch*/, size_t const& _rstorei
 
 void Reactor::registerCompletionHandler(CompletionHandler& _rch, Actor const& _ract)
 {
-    solid_dbg(logger, Verbose, "");
+    solid_dbg(frame_logger, Verbose, "");
     size_t idx;
     if (!impl_->chposcache.empty()) {
         idx = impl_->chposcache.top();
@@ -698,7 +698,7 @@ void Reactor::registerCompletionHandler(CompletionHandler& _rch, Actor const& _r
 
 void Reactor::unregisterCompletionHandler(CompletionHandler& _rch)
 {
-    solid_dbg(logger, Verbose, "");
+    solid_dbg(frame_logger, Verbose, "");
     CompletionHandlerStub& rcs = impl_->chdq[_rch.idxreactor];
     {
         NanoTime       dummytime;
@@ -711,7 +711,7 @@ void Reactor::unregisterCompletionHandler(CompletionHandler& _rch)
         _rch.handleCompletion(ctx);
     }
 
-    rcs.pch    = &impl_->eventact.dummyhandler;
+    rcs.pch    = &impl_->event_actor_ptr->dummyhandler;
     rcs.actidx = 0;
     ++rcs.unique;
 }
@@ -734,7 +734,7 @@ void Reactor::doClearSpecific()
 
 /*static*/ Reactor& Reactor::specific()
 {
-    solid_dbg(logger, Verbose, "");
+    solid_dbg(frame_logger, Verbose, "");
     return *safeSpecific();
 }
 
@@ -746,6 +746,9 @@ Actor& ReactorContext::actor() const
 {
     return reactor().actor(*this);
 }
+
+//-----------------------------------------------------------------------------
+
 Service& ReactorContext::service() const
 {
     return reactor().service(*this);
@@ -755,7 +758,14 @@ Service& ReactorContext::service() const
 
 Manager& ReactorContext::manager() const
 {
-    return reactor().service(*this).manager();
+    return service().manager();
+}
+
+//-----------------------------------------------------------------------------
+
+ActorIdT ReactorContext::actorId() const
+{
+    return service().id(actor());
 }
 
 //-----------------------------------------------------------------------------
@@ -769,7 +779,7 @@ UniqueId ReactorContext::actorUid() const
 
 std::mutex& ReactorContext::actorMutex() const
 {
-    return reactor().service(*this).mutex(reactor().actor(*this));
+    return service().mutex(actor());
 }
 
 //-----------------------------------------------------------------------------

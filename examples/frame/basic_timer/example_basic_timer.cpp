@@ -32,7 +32,7 @@ mutex              mtx;
 
 typedef frame::Scheduler<frame::Reactor> SchedulerT;
 
-class BasicActor : public Dynamic<BasicActor, frame::Actor> {
+class BasicActor : public frame::Actor {
 public:
     BasicActor(size_t _repeat = 10)
         : repeat(_repeat)
@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
                 solid::ErrorConditionT err;
                 solid::frame::ActorIdT actuid;
 
-                actuid = s.startActor(make_dynamic<BasicActor>(10UL), svc, make_event(GenericEvents::Start), err);
+                actuid = s.startActor(make_shared<BasicActor>(10UL), svc, make_event(GenericEvents::Start), err);
                 solid_log(generic_logger, Info, "Started BasicActor: " << actuid.index << ',' << actuid.unique);
             }
 

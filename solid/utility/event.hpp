@@ -15,6 +15,7 @@
 #include <typeinfo>
 #include <utility>
 
+#include <algorithm>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -35,10 +36,14 @@ class EventHandlerBase;
 //      Event
 //-----------------------------------------------------------------------------
 
-struct Event {
-    static constexpr size_t any_size = any_min_data_size + max_size(sizeof(void*) + sizeof(uint64_t), sizeof(std::shared_ptr<uint64_t>));
+constexpr size_t compute_any_size()
+{
+    return any_max(sizeof(Function<void()>), sizeof(std::function<void()>));
+}
 
-    using AnyT = Any<any_size>;
+struct Event {
+    static constexpr size_t any_size = compute_any_size();
+    using AnyT                       = Any<any_size>;
 
     Event();
     Event(Event&&);
@@ -75,7 +80,7 @@ private:
     friend class EventHandlerBase;
 
     Event(
-        const size_t             _id,
+        const uintptr_t          _id,
         const EventCategoryBase& _rcategory)
         : pcategory_(&_rcategory)
         , id_(_id)
@@ -84,7 +89,7 @@ private:
 
     template <class T>
     explicit Event(
-        const size_t             _id,
+        const uintptr_t          _id,
         const EventCategoryBase& _rcategory,
         const T&                 _rany_value)
         : pcategory_(&_rcategory)
@@ -95,7 +100,7 @@ private:
 
     template <class T>
     explicit Event(
-        const size_t             _id,
+        const uintptr_t          _id,
         const EventCategoryBase& _rcategory,
         T&&                      _uany_value)
         : pcategory_(&_rcategory)
@@ -106,7 +111,7 @@ private:
 
 private:
     const EventCategoryBase* pcategory_;
-    size_t                   id_;
+    uintptr_t                id_;
     AnyT                     any_;
 };
 
@@ -131,24 +136,24 @@ protected:
 
     virtual ~EventCategoryBase() {}
 
-    Event event(const size_t _idx) const
+    Event event(const uintptr_t _idx) const
     {
         return Event(_idx, *this);
     }
 
     template <typename T>
-    Event event(const size_t _idx, const T& _rany_value) const
+    Event event(const uintptr_t _idx, const T& _rany_value) const
     {
         return Event(_idx, *this, _rany_value);
     }
 
     template <typename T>
-    Event event(const size_t _idx, T&& _uany_value) const
+    Event event(const uintptr_t _idx, T&& _uany_value) const
     {
         return Event(_idx, *this, std::move(_uany_value));
     }
 
-    size_t eventId(const Event& _revt) const
+    uintptr_t eventId(const Event& _revt) const
     {
         return _revt.id_;
     }
@@ -167,7 +172,8 @@ private:
 
 template <typename EventIds>
 class EventCategory : public EventCategoryBase {
-    using FunctionT = solid_function_t(const char*(const EventIds));
+    //using FunctionT = solid_function_t(const char*(const EventIds));
+    using FunctionT = std::function<const char*(const EventIds)>;
 
 public:
     template <typename F>
@@ -204,7 +210,7 @@ private:
     FunctionT names_fnc_;
 };
 
-enum class GenericEvents {
+enum class GenericEvents : uintptr_t {
     Default,
     Start,
     Stop,
@@ -281,7 +287,7 @@ inline void Event::clear()
 {
     pcategory_ = &generic_event_category;
     id_        = static_cast<size_t>(GenericEvents::Default);
-    any_.clear();
+    any_.reset();
 }
 
 inline bool Event::isDefault() const
@@ -331,7 +337,8 @@ protected:
 template <typename RetVal, typename... Args>
 class EventHandler : protected EventHandlerBase {
 public:
-    using FunctionT = solid_function_t(RetVal(Event&, Args...));
+    //using FunctionT = solid_function_t(RetVal(Event&, Args...));
+    using FunctionT = std::function<RetVal(Event&, Args...)>;
 
 private:
     using FunctionVectorT = std::vector<FunctionT>;

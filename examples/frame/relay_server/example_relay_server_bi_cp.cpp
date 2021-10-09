@@ -64,7 +64,7 @@ frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr)
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-class Listener : public Dynamic<Listener, frame::aio::Actor> {
+class Listener : public frame::aio::Actor {
 public:
     Listener(
         frame::Service& _rsvc,
@@ -93,7 +93,7 @@ private:
     ListenerSocketT sock;
 };
 
-class Connection : public Dynamic<Connection, frame::aio::Actor> {
+class Connection : public frame::aio::Actor {
 public:
     Connection(SocketDevice&& _rsd)
         : sock(this->proxy(), std::move(_rsd))
@@ -203,7 +203,7 @@ int main(int argc, char* argv[])
                 solid::ErrorConditionT err;
                 solid::frame::ActorIdT actuid;
 
-                actuid = sch.startActor(make_dynamic<Listener>(svc, sch, std::move(sd)), svc, make_event(GenericEvents::Start), err);
+                actuid = sch.startActor(make_shared<Listener>(svc, sch, std::move(sd)), svc, make_event(GenericEvents::Start), err);
                 solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
@@ -290,8 +290,8 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             _rsd.enableNoDelay();
 
             solid::ErrorConditionT err;
-            frame::ActorIdT        actuid = rsch.startActor(make_dynamic<Connection>(std::move(_rsd)), rsvc, make_event(GenericEvents::Start), err);
-            rsch.startActor(make_dynamic<Connection>(actuid), rsvc, make_event(GenericEvents::Start), err);
+            frame::ActorIdT        actuid = rsch.startActor(make_shared<Connection>(std::move(_rsd)), rsvc, make_event(GenericEvents::Start), err);
+            rsch.startActor(make_shared<Connection>(actuid), rsvc, make_event(GenericEvents::Start), err);
 
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
@@ -456,7 +456,7 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
 
         Event ev(make_event(GenericEvents::Raise));
 
-        ev.any() = BufferPairT(rthis.buf[rthis.buf_crt_recv], _sz);
+        ev.any().emplace<BufferPairT>(rthis.buf[rthis.buf_crt_recv], _sz);
 
         _rctx.manager().notify(rthis.peer_actuid, std::move(ev));
 

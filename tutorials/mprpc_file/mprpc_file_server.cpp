@@ -42,7 +42,7 @@ struct Parameters {
 
 } //namespace
 
-namespace ipc_file_server {
+namespace rpc_file_server {
 
 template <class M>
 void complete_message(
@@ -52,17 +52,17 @@ void complete_message(
     ErrorConditionT const&           _rerror);
 
 template <>
-void complete_message<ipc_file::ListRequest>(
+void complete_message<rpc_file::ListRequest>(
     frame::mprpc::ConnectionContext&        _rctx,
-    std::shared_ptr<ipc_file::ListRequest>& _rsent_msg_ptr,
-    std::shared_ptr<ipc_file::ListRequest>& _rrecv_msg_ptr,
+    std::shared_ptr<rpc_file::ListRequest>& _rsent_msg_ptr,
+    std::shared_ptr<rpc_file::ListRequest>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
 {
     solid_check(!_rerror);
     solid_check(_rrecv_msg_ptr);
     solid_check(!_rsent_msg_ptr);
 
-    auto msgptr = std::make_shared<ipc_file::ListResponse>(*_rrecv_msg_ptr);
+    auto msgptr = std::make_shared<rpc_file::ListResponse>(*_rrecv_msg_ptr);
 
     fs::path fs_path(_rrecv_msg_ptr->path.c_str() /*, fs::native*/);
 
@@ -84,10 +84,10 @@ void complete_message<ipc_file::ListRequest>(
 }
 
 template <>
-void complete_message<ipc_file::ListResponse>(
+void complete_message<rpc_file::ListResponse>(
     frame::mprpc::ConnectionContext&         _rctx,
-    std::shared_ptr<ipc_file::ListResponse>& _rsent_msg_ptr,
-    std::shared_ptr<ipc_file::ListResponse>& _rrecv_msg_ptr,
+    std::shared_ptr<rpc_file::ListResponse>& _rsent_msg_ptr,
+    std::shared_ptr<rpc_file::ListResponse>& _rrecv_msg_ptr,
     ErrorConditionT const&                   _rerror)
 {
     solid_check(!_rerror);
@@ -96,19 +96,19 @@ void complete_message<ipc_file::ListResponse>(
 }
 
 template <>
-void complete_message<ipc_file::FileRequest>(
+void complete_message<rpc_file::FileRequest>(
     frame::mprpc::ConnectionContext&        _rctx,
-    std::shared_ptr<ipc_file::FileRequest>& _rsent_msg_ptr,
-    std::shared_ptr<ipc_file::FileRequest>& _rrecv_msg_ptr,
+    std::shared_ptr<rpc_file::FileRequest>& _rsent_msg_ptr,
+    std::shared_ptr<rpc_file::FileRequest>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
 {
     solid_check(!_rerror);
     solid_check(_rrecv_msg_ptr);
     solid_check(!_rsent_msg_ptr);
 
-    auto msgptr = std::make_shared<ipc_file::FileResponse>(*_rrecv_msg_ptr);
+    auto msgptr = std::make_shared<rpc_file::FileResponse>(*_rrecv_msg_ptr);
 
-    if (0) {
+    if (false) {
         error_code error;
 
         msgptr->remote_file_size = fs::file_size(fs::path(_rrecv_msg_ptr->remote_path), error);
@@ -118,10 +118,10 @@ void complete_message<ipc_file::FileRequest>(
 }
 
 template <>
-void complete_message<ipc_file::FileResponse>(
+void complete_message<rpc_file::FileResponse>(
     frame::mprpc::ConnectionContext&         _rctx,
-    std::shared_ptr<ipc_file::FileResponse>& _rsent_msg_ptr,
-    std::shared_ptr<ipc_file::FileResponse>& _rrecv_msg_ptr,
+    std::shared_ptr<rpc_file::FileResponse>& _rsent_msg_ptr,
+    std::shared_ptr<rpc_file::FileResponse>& _rrecv_msg_ptr,
     ErrorConditionT const&                   _rerror)
 {
     solid_check(!_rerror);
@@ -129,15 +129,7 @@ void complete_message<ipc_file::FileResponse>(
     solid_check(_rsent_msg_ptr);
 }
 
-struct MessageSetup {
-    template <class T>
-    void operator()(ipc_file::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_file::ProtocolT::TypeIdT& _rtid)
-    {
-        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
-    }
-};
-
-} // namespace ipc_file_server
+} // namespace rpc_file_server
 
 //-----------------------------------------------------------------------------
 
@@ -158,16 +150,22 @@ int main(int argc, char* argv[])
 
         AioSchedulerT          scheduler;
         frame::Manager         manager;
-        frame::mprpc::ServiceT ipcservice(manager);
+        frame::mprpc::ServiceT rpcservice(manager);
         ErrorConditionT        err;
 
         scheduler.start(1);
 
         {
-            auto                        proto = ipc_file::ProtocolT::create();
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto& _rmap) {
+                    auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
+                        using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
+                        _rmap.template registerMessage<TypeT>(_id, _name, rpc_file_server::complete_message<TypeT>);
+                    };
+                    rpc_file::configure_protocol(lambda);
+                });
             frame::mprpc::Configuration cfg(scheduler, proto);
-
-            ipc_file::protocol_setup(ipc_file_server::MessageSetup(), *proto);
 
             cfg.server.listener_address_str = p.listener_addr;
             cfg.server.listener_address_str += ':';
@@ -175,11 +173,11 @@ int main(int argc, char* argv[])
 
             cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 
-            ipcservice.start(std::move(cfg));
+            rpcservice.start(std::move(cfg));
 
             {
                 std::ostringstream oss;
-                oss << ipcservice.configuration().server.listenerPort();
+                oss << rpcservice.configuration().server.listenerPort();
                 cout << "server listens on port: " << oss.str() << endl;
             }
         }

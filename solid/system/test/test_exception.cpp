@@ -37,29 +37,35 @@ std::string ErrorCategory::message(int _ev) const
     return oss.str();
 }
 
+const char* test_null(const char* _pt)
+{
+    return _pt != nullptr ? _pt : "nullptr";
+}
+
 const solid::ErrorConditionT error_test{1, category};
 } //namespace
 
 int test_exception(int argc, char* argv[])
 {
+    solid::log_start(cerr, {".*:VIEWX"});
     bool        is_ok = false;
     std::string check_str;
     std::string check_condition_str;
 
     {
         ostringstream oss;
-        const int     line = 62;
-        oss << '[' << __FILE__ << '(' << line << ")][" << SOLID_FUNCTION_NAME << "] (argc == 0) check failed: some error: " << argc << " " << argv[0] << " " << argv[1];
+        const int     line = 68;
+        oss << '[' << __FILE__ << '(' << line << ")][" << SOLID_FUNCTION_NAME << "] (argc == 0) check failed: some error: " << argc << " " << argv[0] << " " << test_null(argv[1]);
         check_str = oss.str();
     }
     {
         ostringstream oss;
-        const int     line = 71;
+        const int     line = 77;
         oss << '[' << __FILE__ << '(' << line << ")][" << SOLID_FUNCTION_NAME << "] error_test:" << error_test.message();
         check_condition_str = oss.str();
     }
     try {
-        solid_check(argc == 0, "some error: " << argc << " " << argv[0] << " " << argv[1]);
+        solid_check_log(argc == 0, solid::generic_logger, "some error: " << argc << " " << argv[0] << " " << test_null(argv[1]));
     } catch (std::runtime_error& _rerr) {
         is_ok = true;
         cout << check_str << endl;
@@ -76,7 +82,7 @@ int test_exception(int argc, char* argv[])
         solid_assert(_rerr.error() == error_test);
     }
 
-    solid_assert(is_ok);
+    solid_assert_log(is_ok, solid::generic_logger);
 
     return 0;
 }

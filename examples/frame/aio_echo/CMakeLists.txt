@@ -4,11 +4,9 @@ if(OPENSSL_FOUND)
     target_link_libraries (example_echo_server
         solid_frame
         solid_frame_aio
-        solid_serialization_v1
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
-        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_dependencies(example_echo_server build-cxxopts)
@@ -40,12 +38,9 @@ if(OPENSSL_FOUND)
         solid_frame
         solid_frame_aio
         solid_frame_aio_openssl
-        solid_serialization_v1
         solid_utility
         solid_system
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_BASIC_LIBRARIES}
-        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (example_secure_echo_client example_secure_echo_client.cpp)
@@ -56,12 +51,9 @@ if(OPENSSL_FOUND)
         solid_frame
         solid_frame_aio
         solid_frame_aio_openssl
-        solid_serialization_v1
         solid_utility
         solid_system
-        ${OPENSSL_LIBRARIES}
         ${SYSTEM_BASIC_LIBRARIES}
-        ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
     )
 
     add_executable (example_echo_auto_client example_echo_auto_client.cpp)

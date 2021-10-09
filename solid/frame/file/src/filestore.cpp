@@ -423,7 +423,7 @@ bool Utf8Controller::preparePointer(
 void Utf8Controller::executeOnSignal(shared::StoreBase::Accessor& /*_rsbacc*/, ulong /*_sm*/)
 {
     //We're under Store's mutex lock
-    solid::exchange(impl_->pfilltempwaitvec, impl_->pconstempwaitvec);
+    std::exchange(impl_->pfilltempwaitvec, impl_->pconstempwaitvec);
     impl_->pfilltempwaitvec->clear();
 }
 
@@ -571,14 +571,14 @@ void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor& _rsbacc, const s
             }
         }
 
-        solid_assert(it != impl_->tempwaitdq.end());
+        solid_assert_log(it != impl_->tempwaitdq.end(), logger);
         if (rstrg.waitsizefirst == 0) {
             rstrg.waitsizefirst = it->size;
         }
         if (!rstrg.canDeliver()) {
             break;
         }
-        solid_assert(rstrg.waitsizefirst == it->size);
+        solid_assert_log(rstrg.waitsizefirst == it->size, logger);
         --rstrg.waitcount;
         rstrg.waitsizefirst = 0;
         doPrepareOpenTemp(*it->pfile, it->size, _storeid);

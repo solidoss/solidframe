@@ -38,6 +38,7 @@ enum class ConnectionEvents {
     Stopping,
     RelayNew,
     RelayDone,
+    Post,
     Invalid,
 };
 
@@ -75,6 +76,8 @@ const EventCategory<ConnectionEvents> connection_event_category{
             return "RelayNew";
         case ConnectionEvents::RelayDone:
             return "RelayDone";
+        case ConnectionEvents::Post:
+            return "Post";
         case ConnectionEvents::Invalid:
             return "Invalid";
         default:
@@ -83,6 +86,12 @@ const EventCategory<ConnectionEvents> connection_event_category{
     }};
 
 } //namespace
+
+void ResolveMessage::popAddress()
+{
+    solid_assert_log(addrvec.size(), logger);
+    addrvec.pop_back();
+}
 
 //-----------------------------------------------------------------------------
 inline Service& Connection::service(frame::aio::ReactorContext& _rctx) const
@@ -159,7 +168,7 @@ struct EnterActive {
 /*static*/ Event Connection::eventEnterActive(ConnectionEnterActiveCompleteFunctionT&& _ucomplete_fnc, const size_t _send_buffer_capacity)
 {
     Event event = connection_event_category.event(ConnectionEvents::EnterActive);
-    event.any() = EnterActive(std::move(_ucomplete_fnc), _send_buffer_capacity);
+    event.any().emplace<EnterActive>(std::move(_ucomplete_fnc), _send_buffer_capacity);
     return event;
 }
 //-----------------------------------------------------------------------------
@@ -175,7 +184,7 @@ struct EnterPassive {
 /*static*/ Event Connection::eventEnterPassive(ConnectionEnterPassiveCompleteFunctionT&& _ucomplete_fnc)
 {
     Event event = connection_event_category.event(ConnectionEvents::EnterPassive);
-    event.any() = EnterPassive(std::move(_ucomplete_fnc));
+    event.any().emplace<EnterPassive>(std::move(_ucomplete_fnc));
     return event;
 }
 //-----------------------------------------------------------------------------
@@ -191,7 +200,14 @@ struct StartSecure {
 /*static*/ Event Connection::eventStartSecure(ConnectionSecureHandhakeCompleteFunctionT&& _ucomplete_fnc)
 {
     Event event = connection_event_category.event(ConnectionEvents::StartSecure);
-    event.any() = StartSecure(std::move(_ucomplete_fnc));
+    event.any().emplace<StartSecure>(std::move(_ucomplete_fnc));
+    return event;
+}
+//-----------------------------------------------------------------------------
+/*static*/ Event Connection::eventPost(ConnectionPostCompleteFunctionT&& _ucomplete_fnc)
+{
+    Event event = connection_event_category.event(ConnectionEvents::Post);
+    event.any().emplace<ConnectionPostCompleteFunctionT>(std::move(_ucomplete_fnc));
     return event;
 }
 //-----------------------------------------------------------------------------
@@ -212,7 +228,7 @@ struct SendRaw {
 /*static*/ Event Connection::eventSendRaw(ConnectionSendRawDataCompleteFunctionT&& _ucomplete_fnc, std::string&& _udata)
 {
     Event event = connection_event_category.event(ConnectionEvents::SendRaw);
-    event.any() = SendRaw(std::move(_ucomplete_fnc), std::move(_udata));
+    event.any().emplace<SendRaw>(std::move(_ucomplete_fnc), std::move(_udata));
     return event;
 }
 //-----------------------------------------------------------------------------
@@ -228,7 +244,7 @@ struct RecvRaw {
 /*static*/ Event Connection::eventRecvRaw(ConnectionRecvRawDataCompleteFunctionT&& _ucomplete_fnc)
 {
     Event event = connection_event_category.event(ConnectionEvents::RecvRaw);
-    event.any() = RecvRaw(std::move(_ucomplete_fnc));
+    event.any().emplace<RecvRaw>(std::move(_ucomplete_fnc));
     return event;
 }
 //-----------------------------------------------------------------------------
@@ -368,7 +384,8 @@ bool Connection::isConnected() const
 //-----------------------------------------------------------------------------
 bool Connection::isSecured() const
 {
-    return false;
+    return flags_.has(FlagsE::Secure);
+    ;
 }
 //-----------------------------------------------------------------------------
 bool Connection::shouldSendKeepalive() const
@@ -429,6 +446,7 @@ void Connection::doStart(frame::aio::ReactorContext& _rctx, const bool _is_incom
         if (!start_secure) {
             service(_rctx).onIncomingConnectionStart(conctx);
         }
+        doResetTimerStart(_rctx);
     } else {
         flags_.set(FlagsE::Connected);
         config.client.socket_device_setup_fnc(sock_ptr_->device());
@@ -502,15 +520,18 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
         const bool        can_stop       = service(_rctx).connectionStopping(conctx, actuid, seconds_to_wait, pool_msg_id, has_no_message ? &msg_bundle : nullptr, event, tmp_error);
 
         if (can_stop) {
-            solid_assert(has_no_message);
+            solid_assert_log(has_no_message, logger);
             solid_dbg(logger, Info, this << ' ' << this->id() << " postStop");
+
+            this->relay_id_.clear(); //the connection was unregistered from RelayEngine on Service::connectionStopping
+
             auto lambda = [msg_b = std::move(msg_bundle), pool_msg_id](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) mutable {
                 Connection& rthis = static_cast<Connection&>(_rctx.actor());
                 rthis.onStopped(_rctx, pool_msg_id, msg_b);
             };
-            //can stop rightaway - we will handle the last message
-            //from service on onStopped method
-            //there might be events pending which will be delivered, but after this call
+            //Can stop rightaway - we will handle the last message
+            //from service on onStopped method.
+            //There might be events pending which will be delivered, but after this call
             postStop(_rctx, std::move(lambda));
             //no event get posted
         } else if (has_no_message) {
@@ -540,7 +561,7 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
         } else {
             //we have initiated the stopping process but we cannot finish it right away because
             //we have some local messages to handle
-            solid_assert(event.empty());
+            solid_assert_log(event.empty(), logger);
             size_t offset = 0;
             post(_rctx,
                 [offset](frame::aio::ReactorContext& _rctx, Event&& _revent) {
@@ -549,6 +570,61 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
                 });
         }
     } //if(!isStopping())
+}
+//-----------------------------------------------------------------------------
+void Connection::doContinueStopping(
+    frame::aio::ReactorContext& _rctx,
+    const Event&                _revent)
+{
+
+    ErrorConditionT   tmp_error(error());
+    ActorIdT          actuid(uid(_rctx));
+    ulong             seconds_to_wait = 0;
+    MessageBundle     msg_bundle;
+    MessageId         pool_msg_id;
+    Event             event(_revent);
+    ConnectionContext conctx(service(_rctx), *this);
+    const bool        can_stop = service(_rctx).connectionStopping(conctx, actuid, seconds_to_wait, pool_msg_id, &msg_bundle, event, tmp_error);
+
+    solid_dbg(logger, Info, this << ' ' << this->id() << ' ' << can_stop);
+
+    if (can_stop) {
+        //can stop rightaway
+        solid_dbg(logger, Info, this << ' ' << this->id() << " postStop");
+
+        this->relay_id_.clear(); //the connection was unregistered from RelayEngine on Service::connectionStopping
+
+        auto lambda = [msg_bundle = std::move(msg_bundle), pool_msg_id](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) mutable {
+            Connection& rthis = static_cast<Connection&>(_rctx.actor());
+            rthis.onStopped(_rctx, pool_msg_id, msg_bundle);
+        };
+        //Can stop rightaway - we will handle the last message
+        //from service on onStopped method.
+        //There might be events pending which will be delivered, but after this call
+        postStop(_rctx, std::move(lambda));
+        //no event get posted
+    } else {
+        if (msg_bundle.message_ptr || !solid_function_empty(msg_bundle.complete_fnc)) {
+            doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
+        }
+        if (seconds_to_wait != 0u) {
+            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << seconds_to_wait << " seconds");
+            timer_.waitFor(_rctx,
+                std::chrono::seconds(seconds_to_wait),
+                [_revent](frame::aio::ReactorContext& _rctx) {
+                    Connection& rthis = static_cast<Connection&>(_rctx.actor());
+                    rthis.doContinueStopping(_rctx, _revent);
+                });
+        } else {
+            post(
+                _rctx,
+                [](frame::aio::ReactorContext& _rctx, Event&& _revent) {
+                    Connection& rthis = static_cast<Connection&>(_rctx.actor());
+                    rthis.doContinueStopping(_rctx, _revent);
+                },
+                std::move(event));
+        }
+    }
 }
 //-----------------------------------------------------------------------------
 struct Connection::Sender : MessageWriter::Sender {
@@ -631,7 +707,7 @@ void Connection::doCompleteAllMessages(
         post(
             _rctx,
             [_offset](frame::aio::ReactorContext& _rctx, Event&& _revent) {
-                solid_assert(_revent.empty());
+                solid_assert_log(_revent.empty(), logger);
                 Connection& rthis = static_cast<Connection&>(_rctx.actor());
                 rthis.doCompleteAllMessages(_rctx, _offset);
             });
@@ -642,55 +718,6 @@ void Connection::doCompleteAllMessages(
                 Connection& rthis = static_cast<Connection&>(_rctx.actor());
                 rthis.doContinueStopping(_rctx, _revent);
             });
-    }
-}
-//-----------------------------------------------------------------------------
-void Connection::doContinueStopping(
-    frame::aio::ReactorContext& _rctx,
-    const Event&                _revent)
-{
-
-    ErrorConditionT   tmp_error(error());
-    ActorIdT          actuid(uid(_rctx));
-    ulong             seconds_to_wait = 0;
-    MessageBundle     msg_bundle;
-    MessageId         pool_msg_id;
-    Event             event(_revent);
-    ConnectionContext conctx(service(_rctx), *this);
-    const bool        can_stop = service(_rctx).connectionStopping(conctx, actuid, seconds_to_wait, pool_msg_id, &msg_bundle, event, tmp_error);
-
-    solid_dbg(logger, Info, this << ' ' << this->id() << ' ' << can_stop);
-
-    if (can_stop) {
-        //can stop rightaway
-        solid_dbg(logger, Info, this << ' ' << this->id() << " postStop");
-        postStop(_rctx,
-            [msg_bundle = std::move(msg_bundle), pool_msg_id](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) mutable {
-                Connection& rthis = static_cast<Connection&>(_rctx.actor());
-                rthis.onStopped(_rctx, pool_msg_id, msg_bundle);
-            }); //there might be events pending which will be delivered, but after this call
-        //no event get posted
-    } else {
-        if (msg_bundle.message_ptr || !solid_function_empty(msg_bundle.complete_fnc)) {
-            doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
-        }
-        if (seconds_to_wait != 0u) {
-            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << seconds_to_wait << " seconds");
-            timer_.waitFor(_rctx,
-                std::chrono::seconds(seconds_to_wait),
-                [_revent](frame::aio::ReactorContext& _rctx) {
-                    Connection& rthis = static_cast<Connection&>(_rctx.actor());
-                    rthis.doContinueStopping(_rctx, _revent);
-                });
-        } else {
-            post(
-                _rctx,
-                [](frame::aio::ReactorContext& _rctx, Event&& _revent) {
-                    Connection& rthis = static_cast<Connection&>(_rctx.actor());
-                    rthis.doContinueStopping(_rctx, _revent);
-                },
-                std::move(event));
-        }
     }
 }
 //-----------------------------------------------------------------------------
@@ -791,6 +818,10 @@ void Connection::onStopped(
                     [](Event& _revt, Connection& _rcon, frame::aio::ReactorContext& _rctx) {
                         _rcon.doHandleEventRelayDone(_rctx, _revt);
                     }},
+                {connection_event_category.event(ConnectionEvents::Post),
+                    [](Event& _revt, Connection& _rcon, frame::aio::ReactorContext& _rctx) {
+                        _rcon.doHandleEventPost(_rctx, _revt);
+                    }},
                 {connection_event_category.event(ConnectionEvents::Stopping),
                     [](Event& _revt, Connection& _rcon, frame::aio::ReactorContext& _rctx) {
                         solid_dbg(logger, Info, &_rcon << ' ' << _rcon.id() << " cancel timer");
@@ -856,7 +887,7 @@ void Connection::doHandleEventResolve(
             }
         }
     } else {
-        solid_assert(false);
+        solid_assert_log(false, logger);
     }
 }
 //-----------------------------------------------------------------------------
@@ -888,7 +919,7 @@ void Connection::doHandleEventNewConnMessage(frame::aio::ReactorContext& _rctx, 
 {
 
     MessageId* pmsgid = _revent.any().cast<MessageId>();
-    solid_assert(pmsgid);
+    solid_assert_log(pmsgid, logger);
 
     if (pmsgid != nullptr) {
 
@@ -912,7 +943,7 @@ void Connection::doHandleEventCancelConnMessage(frame::aio::ReactorContext& _rct
 {
 
     MessageId* pmsgid = _revent.any().cast<MessageId>();
-    solid_assert(pmsgid);
+    solid_assert_log(pmsgid, logger);
 
     if (pmsgid != nullptr) {
         ConnectionContext    conctx(service(_rctx), *this);
@@ -926,7 +957,7 @@ void Connection::doHandleEventCancelPoolMessage(frame::aio::ReactorContext& _rct
 {
 
     MessageId* pmsgid = _revent.any().cast<MessageId>();
-    solid_assert(pmsgid);
+    solid_assert_log(pmsgid, logger);
 
     if (pmsgid != nullptr) {
         MessageBundle msg_bundle;
@@ -941,7 +972,7 @@ void Connection::doHandleEventClosePoolMessage(frame::aio::ReactorContext& _rctx
 {
 
     MessageId* pmsgid = _revent.any().cast<MessageId>();
-    solid_assert(pmsgid);
+    solid_assert_log(pmsgid, logger);
 
     if (pmsgid != nullptr) {
         MessageBundle msg_bundle;
@@ -1096,7 +1127,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
             rthis.doStop(_rctx, error_connection_invalid_state); //TODO: add new error
         }
     } else {
-
+        rthis.flags_.set(FlagsE::Secure);
         rthis.service(_rctx).onOutgoingConnectionStart(conctx);
 
         solid_dbg(logger, Verbose, &rthis << "");
@@ -1148,7 +1179,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
             rthis.doStop(_rctx, error_connection_invalid_state); //TODO: add new error
         }
     } else {
-
+        rthis.flags_.set(FlagsE::Secure);
         rthis.service(_rctx).onIncomingConnectionStart(conctx);
 
         solid_dbg(logger, Verbose, &rthis << "");
@@ -1182,7 +1213,7 @@ void Connection::doHandleEventSendRaw(frame::aio::ReactorContext& _rctx, Event& 
     SendRaw*          pdata = _revent.any().cast<SendRaw>();
     ConnectionContext conctx(service(_rctx), *this);
 
-    solid_assert(pdata);
+    solid_assert_log(pdata, logger);
 
     if (this->isRawState() && pdata != nullptr) {
 
@@ -1217,7 +1248,7 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, Event& 
     ConnectionContext conctx(service(_rctx), *this);
     size_t            used_size = 0;
 
-    solid_assert(pdata);
+    solid_assert_log(pdata, logger);
 
     solid_dbg(logger, Info, this);
 
@@ -1241,7 +1272,7 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, Event& 
             if (cons_buf_off_ == recv_buf_off_) {
                 cons_buf_off_ = recv_buf_off_ = 0;
             } else {
-                solid_assert(cons_buf_off_ < recv_buf_off_);
+                solid_assert_log(cons_buf_off_ < recv_buf_off_, logger);
             }
         }
     } else if (pdata != nullptr) {
@@ -1252,35 +1283,53 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, Event& 
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventRelayNew(frame::aio::ReactorContext& _rctx, Event& /*_revent*/)
 {
-    flags_.set(FlagsE::PollRelayEngine);
-    doSend(_rctx);
+    //The connection may get unregistered from RelayEngine (see Service::connectionStopping)
+    //after an Relay* event get posted but before it being handled by connection.
+    //That is why we need to check if the relay_id_ is valid.
+    if (relay_id_.isValid()) {
+        flags_.set(FlagsE::PollRelayEngine);
+        doSend(_rctx);
+    }
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event& /*_revent*/)
 {
-    Configuration const& config      = service(_rctx).configuration();
-    size_t               ack_buf_cnt = 0;
-    const auto           done_lambda = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
-        if (_rbuf.use_count() == 1) {
-            ++ack_buf_cnt;
-            this->recv_buf_vec_.emplace_back(std::move(_rbuf));
+    //The connection may get unregistered from RelayEngine (see Service::connectionStopping)
+    //after an Relay* event get posted but before it being handled by connection.
+    //That is why we need to check if the relay_id_ is valid.
+    if (relay_id_.isValid()) {
+        Configuration const& config      = service(_rctx).configuration();
+        size_t               ack_buf_cnt = 0;
+        const auto           done_lambda = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
+            if (_rbuf.use_count() == 1) {
+                ++ack_buf_cnt;
+                this->recv_buf_vec_.emplace_back(std::move(_rbuf));
+            }
+        };
+        const auto cancel_lambda = [this](const MessageHeader& _rmsghdr) {
+            //we must request the remote side to stop sending the message
+            solid_dbg(logger, Info, this << " cancel_remote_msg sreqid =  " << _rmsghdr.sender_request_id_ << " rreqid = " << _rmsghdr.recipient_request_id_);
+            //cancel_remote_msg_vec_.push_back(_rmsghdr.recipient_request_id_);
+            //we do nothing here because the message cancel will be discovered onto messagereader
+            //when calling receiveRelayBody which will return false
+        };
+
+        config.relayEngine().pollDone(relay_id_, done_lambda, cancel_lambda);
+
+        if (ack_buf_cnt != 0u || !cancel_remote_msg_vec_.empty()) {
+            solid_dbg(logger, Info, this << " ack_buf_cnt = " << ack_buf_cnt << " cancel_remote_msg_vec_size = " << cancel_remote_msg_vec_.size());
+            ackd_buf_count_ += static_cast<uint8_t>(ack_buf_cnt);
+            doSend(_rctx);
         }
-    };
-    const auto cancel_lambda = [this](const MessageHeader& _rmsghdr) {
-        //we must request the remote side to stop sending the message
-        solid_dbg(logger, Info, this << " cancel_remote_msg sreqid =  " << _rmsghdr.sender_request_id_ << " rreqid = " << _rmsghdr.recipient_request_id_);
-        //cancel_remote_msg_vec_.push_back(_rmsghdr.recipient_request_id_);
-        //we do nothing here because the message cancel will be discovered onto messagereader
-        //when calling receiveRelayBody which will return false
-    };
-
-    config.relayEngine().pollDone(relay_id_, done_lambda, cancel_lambda);
-
-    if (ack_buf_cnt != 0u || !cancel_remote_msg_vec_.empty()) {
-        solid_dbg(logger, Info, this << " ack_buf_cnt = " << ack_buf_cnt << " cancel_remote_msg_vec_size = " << cancel_remote_msg_vec_.size());
-        ackd_buf_count_ += static_cast<uint8_t>(ack_buf_cnt);
-        doSend(_rctx);
     }
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventPost(frame::aio::ReactorContext& _rctx, Event& _revent)
+{
+    ConnectionContext                conctx(service(_rctx), *this);
+    ConnectionPostCompleteFunctionT* pdata = _revent.any().cast<ConnectionPostCompleteFunctionT>();
+    solid_check(pdata != nullptr);
+    (*pdata)(conctx);
 }
 //-----------------------------------------------------------------------------
 void Connection::doResetTimerStart(frame::aio::ReactorContext& _rctx)
@@ -1289,21 +1338,32 @@ void Connection::doResetTimerStart(frame::aio::ReactorContext& _rctx)
     Configuration const& config = service(_rctx).configuration();
 
     if (isServer()) {
-        if (config.connection_inactivity_timeout_seconds != 0u) {
-            recv_keepalive_count_ = 0;
-            flags_.reset(FlagsE::HasActivity);
 
-            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.connection_inactivity_timeout_seconds << " seconds");
+        if (isActiveState()) {
+            if (config.connection_timeout_inactivity_seconds != 0u) {
+                recv_keepalive_count_ = 0;
+                flags_.reset(FlagsE::HasActivity);
 
-            timer_.waitFor(_rctx, std::chrono::seconds(config.connection_inactivity_timeout_seconds), onTimerInactivity);
+                solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.connection_timeout_inactivity_seconds << " seconds");
+
+                timer_.waitFor(_rctx, std::chrono::seconds(config.connection_timeout_inactivity_seconds), onTimerInactivity);
+            }
+        } else if (config.server.connection_start_secure && !isSecured() && config.server.connection_timeout_secured_seconds != 0u) { //wait for secure handshake
+            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.server.connection_timeout_secured_seconds << " seconds");
+
+            timer_.waitFor(_rctx, std::chrono::seconds(config.server.connection_timeout_secured_seconds), onTimerWaitSecured);
+        } else if (config.server.connection_timeout_activation_seconds != 0u) { //wait for activate
+            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.server.connection_timeout_activation_seconds << " seconds");
+
+            timer_.waitFor(_rctx, std::chrono::seconds(config.server.connection_timeout_activation_seconds), onTimerWaitActivation);
         }
     } else { //client
-        if (config.connection_keepalive_timeout_seconds != 0u) {
+        if (config.connection_timeout_keepalive_seconds != 0u) {
             flags_.set(FlagsE::WaitKeepAliveTimer);
 
-            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.connection_keepalive_timeout_seconds << " seconds");
+            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.connection_timeout_keepalive_seconds << " seconds");
 
-            timer_.waitFor(_rctx, std::chrono::seconds(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
+            timer_.waitFor(_rctx, std::chrono::seconds(config.connection_timeout_keepalive_seconds), onTimerKeepalive);
         }
     }
 }
@@ -1314,15 +1374,15 @@ void Connection::doResetTimerSend(frame::aio::ReactorContext& _rctx)
     Configuration const& config = service(_rctx).configuration();
 
     if (isServer()) {
-        if (config.connection_inactivity_timeout_seconds != 0u) {
+        if (config.connection_timeout_inactivity_seconds != 0u) {
             flags_.set(FlagsE::HasActivity);
         }
     } else { //client
-        if (config.connection_keepalive_timeout_seconds != 0u && isWaitingKeepAliveTimer()) {
+        if (config.connection_timeout_keepalive_seconds != 0u && isWaitingKeepAliveTimer()) {
 
-            solid_dbg(logger, Verbose, this << ' ' << this->id() << " wait for " << config.connection_keepalive_timeout_seconds << " seconds");
+            solid_dbg(logger, Verbose, this << ' ' << this->id() << " wait for " << config.connection_timeout_keepalive_seconds << " seconds");
 
-            timer_.waitFor(_rctx, std::chrono::seconds(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
+            timer_.waitFor(_rctx, std::chrono::seconds(config.connection_timeout_keepalive_seconds), onTimerKeepalive);
         }
     }
 }
@@ -1333,19 +1393,44 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
     Configuration const& config = service(_rctx).configuration();
 
     if (isServer()) {
-        if (config.connection_inactivity_timeout_seconds != 0u) {
+        if (config.connection_timeout_inactivity_seconds != 0u) {
             flags_.set(FlagsE::HasActivity);
         }
     } else { //client
-        if (config.connection_keepalive_timeout_seconds != 0u && !isWaitingKeepAliveTimer()) {
+        if (config.connection_timeout_keepalive_seconds != 0u && !isWaitingKeepAliveTimer()) {
             flags_.set(FlagsE::WaitKeepAliveTimer);
 
-            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.connection_keepalive_timeout_seconds << " seconds");
+            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.connection_timeout_keepalive_seconds << " seconds");
 
-            timer_.waitFor(_rctx, std::chrono::seconds(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
+            timer_.waitFor(_rctx, std::chrono::seconds(config.connection_timeout_keepalive_seconds), onTimerKeepalive);
         }
     }
 }
+//-----------------------------------------------------------------------------
+/*static*/ void Connection::onTimerWaitSecured(frame::aio::ReactorContext& _rctx)
+{
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
+
+    solid_dbg(logger, Info, &rthis << " " << rthis.flags_.toString() << " " << rthis.recv_keepalive_count_);
+    solid_assert(rthis.isServer());
+
+    if (!rthis.isSecured()) {
+        rthis.doStop(_rctx, error_connection_inactivity_timeout);
+    }
+}
+
+//-----------------------------------------------------------------------------
+/*static*/ void Connection::onTimerWaitActivation(frame::aio::ReactorContext& _rctx)
+{
+    Connection& rthis = static_cast<Connection&>(_rctx.actor());
+
+    solid_dbg(logger, Info, &rthis << " " << rthis.flags_.toString() << " " << rthis.recv_keepalive_count_);
+    solid_assert(rthis.isServer());
+    if (!rthis.isActiveState()) {
+        rthis.doStop(_rctx, error_connection_inactivity_timeout);
+    }
+}
+
 //-----------------------------------------------------------------------------
 /*static*/ void Connection::onTimerInactivity(frame::aio::ReactorContext& _rctx)
 {
@@ -1360,9 +1445,9 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
 
         Configuration const& config = rthis.service(_rctx).configuration();
 
-        solid_dbg(logger, Info, &rthis << ' ' << rthis.id() << " wait for " << config.connection_inactivity_timeout_seconds << " seconds");
+        solid_dbg(logger, Info, &rthis << ' ' << rthis.id() << " wait for " << config.connection_timeout_inactivity_seconds << " seconds");
 
-        rthis.timer_.waitFor(_rctx, std::chrono::seconds(config.connection_inactivity_timeout_seconds), onTimerInactivity);
+        rthis.timer_.waitFor(_rctx, std::chrono::seconds(config.connection_timeout_inactivity_seconds), onTimerInactivity);
     } else {
         rthis.doStop(_rctx, error_connection_inactivity_timeout);
     }
@@ -1373,7 +1458,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
 
     Connection& rthis = static_cast<Connection&>(_rctx.actor());
 
-    solid_assert(!rthis.isServer());
+    solid_assert_log(!rthis.isServer(), logger);
     rthis.flags_.set(FlagsE::Keepalive);
     rthis.flags_.reset(FlagsE::WaitKeepAliveTimer);
     solid_dbg(logger, Info, &rthis << " post send");
@@ -1387,7 +1472,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
     SendRaw*          pdata = _revent.any().cast<SendRaw>();
     ConnectionContext conctx(rthis.service(_rctx), rthis);
 
-    solid_assert(pdata);
+    solid_assert_log(pdata, logger);
 
     if (pdata != nullptr) {
 
@@ -1423,7 +1508,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
     RecvRaw*          pdata = _revent.any().cast<RecvRaw>();
     ConnectionContext conctx(rthis.service(_rctx), rthis);
 
-    solid_assert(pdata);
+    solid_assert_log(pdata, logger);
 
     if (pdata != nullptr) {
 
@@ -1470,7 +1555,7 @@ void Connection::doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint
     } else {
         //tried to relay received messages/message parts - but all failed
         //so we need to ack the buffer
-        solid_assert(recv_buf_.use_count());
+        solid_assert_log(recv_buf_.use_count(), logger);
         solid_dbg(logger, Info, this << " send accept for " << (int)_request_buffer_ack_count << " buffers");
 
         if (ackd_buf_count_ == 0) {
@@ -1623,7 +1708,7 @@ struct Connection::Receiver : MessageReader::Receiver {
         --repeatcnt;
         rthis.doOptimizeRecvBuffer();
 
-        solid_assert(rthis.recv_buf_);
+        solid_assert_log(rthis.recv_buf_, logger);
 
         pbuf = rthis.recv_buf_->data() + rthis.recv_buf_off_;
 
@@ -1637,7 +1722,7 @@ struct Connection::Receiver : MessageReader::Receiver {
 
     if (repeatcnt == 0) {
         bool rv = rthis.postRecvSome(_rctx, pbuf, bufsz); //fully asynchronous call
-        solid_assert(!rv);
+        solid_assert_log(!rv, logger);
         (void)rv;
     }
 }
@@ -1817,7 +1902,7 @@ struct Connection::SenderResponse : Connection::Sender {
         context().request_id    = rresponse_ptr_->requestId();
         context().message_id    = _rpool_msg_id;
 
-        bool must_clear_request = !rresponse_ptr_->isResponsePart(); //do not clear the request if the response is a partial one
+        const bool must_clear_request = !rresponse_ptr_->isResponsePart(); //do not clear the request if the response is a partial one
 
         if (!solid_function_empty(_rmsg_bundle.complete_fnc)) {
             solid_dbg(logger, Info, this);
@@ -1945,7 +2030,7 @@ void Connection::doCompleteKeepalive(frame::aio::ReactorContext& _rctx)
 
         ++recv_keepalive_count_;
 
-        solid_dbg(logger, Verbose, this << "recv_keep_alive_count = " << recv_keepalive_count_);
+        solid_dbg(logger, Verbose, this << " recv_keep_alive_count = " << recv_keepalive_count_);
 
         if (recv_keepalive_count_ < config.connection_inactivity_keepalive_count) {
             flags_.set(FlagsE::Keepalive);

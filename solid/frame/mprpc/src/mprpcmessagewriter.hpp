@@ -227,7 +227,7 @@ private:
             ++unique_;
             packet_count_ = 0;
 
-            solid_assert(prelay_data_ == nullptr);
+            solid_assert_log(prelay_data_ == nullptr, generic_logger);
             serializer_ptr_ = nullptr;
 
             pool_msg_id_.clear();

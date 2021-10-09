@@ -1,4 +1,4 @@
-#include "solid/serialization/serialization.hpp"
+#include "solid/serialization/v2/serialization.hpp"
 #include "solid/serialization/v2/typetraits.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/utility/any.hpp"
@@ -202,6 +202,7 @@ public:
     template <class S>
     void solidSerializeV2(S& _rs, Context& _rctx, const char* /*_name*/) const
     {
+        _rs.add(p, serialization::limit(100), _rctx, "p");
         _rs
             .add(b, _rctx, "b")
             .add(
@@ -222,7 +223,7 @@ public:
             .push(
                 [pifs = std::move(pifs)](S& _rs, Context& _rctx, const char* _name) mutable {
                     _rs.add(
-                        *pifs, [](std::istream& _ris, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
+                        *pifs, serialization::limit(1024 * 128), [](std::istream& _ris, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
                             solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
                         },
                         _rctx, _name);
@@ -231,10 +232,10 @@ public:
                 _rctx, "s")
             .add(m, _rctx, "m")
             .add(s, _rctx, "s")
-            .add(um, _rctx, "um")
+            .add(um, serialization::limit(11), _rctx, "um")
             .add(us, _rctx, "us")
             .add(a, _rctx, "a");
-        _rs.add(vb, _rctx, "vb");
+        _rs.add(vb, serialization::limit(100), _rctx, "vb");
         _rs.add(bs, _rctx, "bs");
         _rs.add(vc, _rctx, "vc");
         _rs.add(a1, _rctx, "a1");
@@ -248,6 +249,7 @@ public:
     template <class S>
     void solidSerializeV2(S& _rs, Context& _rctx, const char* /*_name*/)
     {
+        _rs.add(p, serialization::limit(100), _rctx, "p");
         _rs
             .add(b, _rctx, "b")
             .add(
@@ -266,7 +268,7 @@ public:
                     },
                     [this](S& _rs, Context& _rctx, const char* _name) {
                         _rs.add(
-                            oss, [](std::ostream& _ros, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
+                            oss, serialization::limit(1024 * 128), [](std::ostream& _ros, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
                                 solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
                             },
                             _rctx, _name);
@@ -275,10 +277,10 @@ public:
                 _rctx, "s")
             .add(m, _rctx, "m")
             .add(s, _rctx, "s")
-            .add(um, _rctx, "um")
+            .add(um, serialization::limit(11), _rctx, "um")
             .add(us, _rctx, "us")
             .add(a, _rctx, "a");
-        _rs.add(vb, _rctx, "vb");
+        _rs.add(vb, serialization::limit(100), _rctx, "vb");
         _rs.add(bs, _rctx, "bs");
         _rs.add(vc, _rctx, "vc");
         _rs.add(a1, _rctx, "a1");
@@ -292,7 +294,7 @@ public:
 
 int test_binary(int argc, char* argv[])
 {
-    solid::log_start(std::cout, {".*:EW"});
+    solid::log_start(std::cerr, {".*:EWX"});
     //solid::log_start(argv[0], {".*:VIEW"}, true, 2, 1024 * 1024);
 
     std::string input_file_path;
@@ -373,6 +375,8 @@ int test_binary(int argc, char* argv[])
                     ser.add(t, _rctx, "t").add(tp, _rctx, "tp").add(tup, _rctx, "tup").add(sp1, _rctx, "sp1").add(up1, _rctx, "up1");
                 },
                 ctx);
+
+            solid_check(!ser.error(), "check failed: " << ser.error().message());
         }
 
         if (choice != 's') {

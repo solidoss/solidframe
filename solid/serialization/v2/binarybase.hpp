@@ -23,9 +23,26 @@
 namespace solid {
 namespace serialization {
 namespace v2 {
-namespace binary {
+
+struct Limit {
+    uint64_t value_ = InvalidSize();
+
+private:
+    Limit(const uint64_t _value)
+        : value_(_value)
+    {
+    }
+    friend Limit limit(const uint64_t _value);
+};
+
+inline Limit limit(const uint64_t _value = InvalidSize())
+{
+    return Limit{_value};
+}
 
 extern const LoggerT logger;
+
+namespace binary {
 
 struct Limits {
     Limits(
@@ -82,6 +99,12 @@ struct Limits {
 
 class Base : public v2::Base {
 public:
+    enum struct ReturnE {
+        Done = 0,
+        Continue,
+        Wait
+    };
+
     const ErrorConditionT& error() const
     {
         return error_;
@@ -92,11 +115,10 @@ public:
         return limits_;
     }
 
-    enum struct ReturnE {
-        Done = 0,
-        Continue,
-        Wait
-    };
+    void limits(const Limits& _limits)
+    {
+        limits_ = _limits;
+    }
 
     template <class T>
     uint32_t version(const T& /*_rt*/)
@@ -183,6 +205,29 @@ SOLID_SERIALIZATION_BASIC(uint64_t);
 SOLID_SERIALIZATION_BASIC(bool);
 SOLID_SERIALIZATION_BASIC(std::string);
 
+//string with limit
+
+template <class S>
+inline void solidSerializeV2(S& _rs, const std::string& _rt, const uint64_t _limit, const char* _name)
+{
+    _rs.addBasic(_rt, _limit, _name);
+}
+template <class S>
+inline void solidSerializeV2(S& _rs, std::string& _rt, const uint64_t _limit, const char* _name)
+{
+    _rs.addBasic(_rt, _limit, _name);
+}
+template <class S, class Ctx>
+inline void solidSerializeV2(S& _rs, std::string& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+{
+    _rs.addBasic(_rt, _limit, _name);
+}
+template <class S, class Ctx>
+inline void solidSerializeV2(S& _rs, const std::string& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+{
+    _rs.addBasic(_rt, _limit, _name);
+}
+
 //bitset ----------------------------------------------------------------------
 
 template <class S, size_t N>
@@ -253,6 +298,29 @@ inline void solidSerializeV2(S& _rs, const std::vector<bool, A>& _rt, Ctx& _rctx
     _rs.addVectorBool(_rt, _name);
 }
 
+//with limit
+
+template <class S, class A>
+inline void solidSerializeV2(S& _rs, const std::vector<bool, A>& _rt, const uint64_t _limit, const char* _name)
+{
+    _rs.addVectorBool(_rt, _limit, _name);
+}
+template <class S, class A>
+inline void solidSerializeV2(S& _rs, std::vector<bool, A>& _rt, const uint64_t _limit, const char* _name)
+{
+    _rs.addVectorBool(_rt, _limit, _name);
+}
+template <class S, class A, class Ctx>
+inline void solidSerializeV2(S& _rs, std::vector<bool, A>& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+{
+    _rs.addVectorBool(_rt, _limit, _name);
+}
+template <class S, class A, class Ctx>
+inline void solidSerializeV2(S& _rs, const std::vector<bool, A>& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+{
+    _rs.addVectorBool(_rt, _limit, _name);
+}
+
 //vector<char> ----------------------------------------------------------------
 
 template <class S, class A>
@@ -276,7 +344,30 @@ inline void solidSerializeV2(S& _rs, const std::vector<char, A>& _rt, Ctx& _rctx
     _rs.addVectorChar(_rt, _name);
 }
 
-//vector<char> ----------------------------------------------------------------
+//with limit
+
+template <class S, class A>
+inline void solidSerializeV2(S& _rs, const std::vector<char, A>& _rt, const uint64_t _limit, const char* _name)
+{
+    _rs.addVectorChar(_rt, _limit, _name);
+}
+template <class S, class A>
+inline void solidSerializeV2(S& _rs, std::vector<char, A>& _rt, const uint64_t _limit, const char* _name)
+{
+    _rs.addVectorChar(_rt, _limit, _name);
+}
+template <class S, class A, class Ctx>
+inline void solidSerializeV2(S& _rs, std::vector<char, A>& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+{
+    _rs.addVectorChar(_rt, _limit, _name);
+}
+template <class S, class A, class Ctx>
+inline void solidSerializeV2(S& _rs, const std::vector<char, A>& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+{
+    _rs.addVectorChar(_rt, _limit, _name);
+}
+
+//vector<uint8_t> ----------------------------------------------------------------
 
 template <class S, class A>
 inline void solidSerializeV2(S& _rs, const std::vector<uint8_t, A>& _rt, const char* _name)
@@ -297,6 +388,29 @@ template <class S, class A, class Ctx>
 inline void solidSerializeV2(S& _rs, const std::vector<uint8_t, A>& _rt, Ctx& _rctx, const char* _name)
 {
     _rs.addVectorChar(_rt, _name);
+}
+
+//with limit
+
+template <class S, class A>
+inline void solidSerializeV2(S& _rs, const std::vector<uint8_t, A>& _rt, const uint64_t _limit, const char* _name)
+{
+    _rs.addVectorChar(_rt, _limit, _name);
+}
+template <class S, class A>
+inline void solidSerializeV2(S& _rs, std::vector<uint8_t, A>& _rt, const uint64_t _limit, const char* _name)
+{
+    _rs.addVectorChar(_rt, _limit, _name);
+}
+template <class S, class A, class Ctx>
+inline void solidSerializeV2(S& _rs, std::vector<uint8_t, A>& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+{
+    _rs.addVectorChar(_rt, _limit, _name);
+}
+template <class S, class A, class Ctx>
+inline void solidSerializeV2(S& _rs, const std::vector<uint8_t, A>& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+{
+    _rs.addVectorChar(_rt, _limit, _name);
 }
 
 //pair ------------------------------------------------------------------------
@@ -341,6 +455,8 @@ inline void solidSerializeV2IsFunction(S& _rs, const T& _rt, Ctx& _rctx, const c
     _rs.addFunction(_rs, _rt, _rctx, _name);
 }
 
+//- container dispatch
+
 template <class S, class T>
 inline void solidSerializeV2IsContainer(S& _rs, const T& _rt, const char* _name, std::true_type)
 {
@@ -382,6 +498,34 @@ inline void solidSerializeV2IsContainer(S& _rs, const T& _rt, Ctx& _rctx, const 
 {
     _rt.solidSerializeV2(_rs, _rctx, _name);
 }
+
+//- container with limit
+
+template <class S, class T>
+inline void solidSerializeV2IsContainer(S& _rs, const T& _rt, const uint64_t _limit, const char* _name, std::true_type)
+{
+    _rs.addContainer(_rs, _rt, _limit, _name);
+}
+
+template <class S, class T, class Ctx>
+inline void solidSerializeV2IsContainer(S& _rs, const T& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name, std::true_type)
+{
+    _rs.addContainer(_rs, _rt, _limit, _rctx, _name);
+}
+
+template <class S, class T, class Ctx>
+inline void solidSerializeV2IsContainer(S& _rs, T& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name, std::true_type)
+{
+    _rs.addContainer(_rs, _rt, _limit, _rctx, _name);
+}
+
+template <class S, class T>
+inline void solidSerializeV2IsContainer(S& _rs, T& _rt, const uint64_t _limit, const char* _name, std::true_type)
+{
+    _rs.addContainer(_rs, _rt, _limit, _name);
+}
+
+//- function dispatch
 
 template <class S, class T>
 inline void solidSerializeV2IsFunction(S& _rs, T& _rt, const char* _name, std::false_type)
@@ -449,6 +593,8 @@ inline void solidSerializeV2(S& _rs, const std::unique_ptr<T, D>& _rp, Ctx& _rct
     _rs.addPointer(_rp, _rctx, _name);
 }
 
+// dispatching
+
 template <class S, class T>
 inline void solidSerializeV2(S& _rs, T& _rt, const char* _name)
 {
@@ -471,6 +617,32 @@ template <class S, class T, class Ctx>
 inline void solidSerializeV2(S& _rs, const T& _rt, Ctx& _rctx, const char* _name)
 {
     solidSerializeV2IsFunction(_rs, _rt, _rctx, _name, is_callable<T, S&, Ctx&, const char*>());
+}
+
+//with limits
+
+template <class S, class T>
+inline void solidSerializeV2(S& _rs, T& _rt, const uint64_t _limit, const char* _name)
+{
+    solidSerializeV2IsContainer(_rs, _rt, _limit, _name, is_container<T>());
+}
+
+template <class S, class T, class Ctx>
+inline void solidSerializeV2(S& _rs, T& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+{
+    solidSerializeV2IsContainer(_rs, _rt, _limit, _rctx, _name, is_container<T>());
+}
+
+template <class S, class T>
+inline void solidSerializeV2(S& _rs, const T& _rt, const uint64_t _limit, const char* _name)
+{
+    solidSerializeV2IsContainer(_rs, _rt, _limit, _name, is_container<T>());
+}
+
+template <class S, class T, class Ctx>
+inline void solidSerializeV2(S& _rs, const T& _rt, const uint64_t _limit, Ctx& _rctx, const char* _name)
+{
+    solidSerializeV2IsContainer(_rs, _rt, _limit, _rctx, _name, is_container<T>());
 }
 
 // == SerializePush ===========================================================

@@ -3,18 +3,27 @@ set( UtilityTestSuite
     test_invalid_index.cpp
     test_innerlist.cpp
     test_any.cpp
+    test_anytuple.cpp
+    test_queue.cpp
     test_event.cpp
+    test_event_size.cpp
     test_memory_file.cpp
+    test_callpool_multicast_basic.cpp
+    test_workpool_multicast_basic.cpp
+    test_workpool_multicast_sleep.cpp
     test_workpool_context.cpp
     test_workpool_thread_context.cpp
     test_workpool.cpp
     test_workpool_basic.cpp
     test_workpool_chain.cpp
     test_workpool_pattern.cpp
+    test_workpool_try.cpp
     test_ioformat.cpp
     test_function.cpp
     test_function_perf.cpp
     test_template_function.cpp
+    test_function_any_speed_full_solid.cpp
+    test_function_any_speed_full_stl.cpp
 )
 
 create_test_sourcelist( UtilityTests test_utility.cpp ${UtilityTestSuite})
@@ -31,9 +40,16 @@ add_test(NAME TestUtilityWorkPoolThreadContext          COMMAND  test_utility te
 add_test(NAME TestUtilityWorkPoolContext                COMMAND  test_utility test_workpool_context)
 add_test(NAME TestUtilityWorkPoolPattern                COMMAND  test_utility test_workpool_pattern)
 add_test(NAME TestUtilityWorkPoolBasic                  COMMAND  test_utility test_workpool_basic)
-add_test(NAME TestUtilityWorkPoolChain                  COMMAND  test_utility test_workpool_chain)
-add_test(NAME TestUtilityWorkPoolChain1                 COMMAND  test_utility test_workpool_chain 1)
+add_test(NAME TestUtilityWorkPoolTry                    COMMAND  test_utility test_workpool_try)
+#add_test(NAME TestUtilityWorkPoolChain1                 COMMAND  test_utility test_workpool_chain 1)
 add_test(NAME TestUtilityWorkPoolChain2                 COMMAND  test_utility test_workpool_chain 2)
+add_test(NAME TestUtilityWorkPoolChain4                 COMMAND  test_utility test_workpool_chain 4)
+add_test(NAME TestUtilityWorkPoolChain8                 COMMAND  test_utility test_workpool_chain 8)
+add_test(NAME TestUtilityWorkPoolChain15                COMMAND  test_utility test_workpool_chain 15)
+#add_test(NAME TestUtilityWorkPoolChain                  COMMAND  test_utility test_workpool_chain)
+#add_test(NAME TestUtilityWorkPoolChain0_1               COMMAND  test_utility test_workpool_chain 0 1)
+#add_test(NAME TestUtilityWorkPoolChain0_2               COMMAND  test_utility test_workpool_chain 0 2)
+
 # test_workpool args: JOB_COUNT WAIT_SECONDS QUEUE_SIZE PRODUCER_COUNT CONSUMER_COUNT PUSH_SLEEP_MSECS JOB_SLEEP_MSECS
 add_test(NAME TestUtilityWorkPool                       COMMAND  test_utility test_workpool)
 
@@ -57,6 +73,8 @@ add_test(NAME TestUtilityIoFormat                       COMMAND  test_utility te
 add_test(NAME TestUtilityInvalidIndex                   COMMAND  test_utility test_invalid_index)
 add_test(NAME TestUtilityInnerList                      COMMAND  test_utility test_innerlist)
 add_test(NAME TestUtilityAny                            COMMAND  test_utility test_any)
+add_test(NAME TestUtilityAnyTuple                       COMMAND  test_utility test_anytuple)
+add_test(NAME TestUtilityQueue                          COMMAND  test_utility test_queue)
 add_test(NAME TestUtilityEvent                          COMMAND  test_utility test_event)
 add_test(NAME TestUtilityMemoryFile                     COMMAND  test_utility test_memory_file)
 add_test(NAME TestUtilityMemoryFile2M                   COMMAND  test_utility test_memory_file 2222222)
@@ -64,6 +82,8 @@ add_test(NAME TestUtilityMemoryFile3M                   COMMAND  test_utility te
 add_test(NAME TestUtilityMemoryFile5M                   COMMAND  test_utility test_memory_file 5555555)
 add_test(NAME TestUtilityFunction                       COMMAND  test_utility test_function)
 add_test(NAME TestUtilityTemplateFunction               COMMAND  test_utility test_template_function)
+add_test(NAME TestUtilityFunctionAnySpeedFullSolid      COMMAND  test_utility test_function_any_speed_full_solid)
+add_test(NAME TestUtilityFunctionAnySpeedFullStl        COMMAND  test_utility test_function_any_speed_full_stl)
                     
 #add_test(NAME TestUtilityFunctionPerf_s_0_10000_1000           COMMAND  test_utility test_function_perf s 0 10000 1000)
 #add_test(NAME TestUtilityFunctionPerf_S_0_10000_1000           COMMAND  test_utility test_function_perf S 0 10000 1000)
@@ -71,8 +91,8 @@ add_test(NAME TestUtilityTemplateFunction               COMMAND  test_utility te
 #add_test(NAME TestUtilityFunctionPerf_s_1_10000_1000           COMMAND  test_utility test_function_perf s 1 10000 1000)
 #add_test(NAME TestUtilityFunctionPerf_S_1_10000_1000           COMMAND  test_utility test_function_perf S 1 10000 1000)
 
-add_test(NAME TestUtilityFunctionPerf_s_2_10000_1000     COMMAND  test_utility test_function_perf s 2 10000 1000)
-add_test(NAME TestUtilityFunctionPerf_S_2_10000_1000     COMMAND  test_utility test_function_perf S 2 10000 1000)
+add_test(NAME TestUtilityFunctionPerf_s_2_10000_1000    COMMAND  test_utility test_function_perf s 2 10000 1000)
+add_test(NAME TestUtilityFunctionPerf_S_2_10000_1000    COMMAND  test_utility test_function_perf S 2 10000 1000)
 
 #add_test(NAME TestUtilityFunctionPerf_s_4_10000_1000           COMMAND  test_utility test_function_perf s 4 10000 1000)
 #add_test(NAME TestUtilityFunctionPerf_S_4_10000_1000           COMMAND  test_utility test_function_perf S 4 10000 1000)
@@ -80,4 +100,8 @@ add_test(NAME TestUtilityFunctionPerf_S_2_10000_1000     COMMAND  test_utility t
 #add_test(NAME TestUtilityFunctionPerf_s_16_10000_1000           COMMAND  test_utility test_function_perf s 16 10000 1000)
 #add_test(NAME TestUtilityFunctionPerf_S_16_10000_1000           COMMAND  test_utility test_function_perf S 16 10000 1000)
 
+add_test(NAME TestUtilityWorkPoolMulticastBasic         COMMAND  test_utility test_workpool_multicast_basic)
+add_test(NAME TestUtilityWorkPoolMulticastSleep         COMMAND  test_utility test_workpool_multicast_sleep)
+
+add_test(NAME TestUtilityCallPoolMulticastBasic         COMMAND  test_utility test_callpool_multicast_basic)
 #==============================================================================

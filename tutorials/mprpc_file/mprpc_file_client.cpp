@@ -29,7 +29,7 @@ struct Parameters {
 };
 
 //-----------------------------------------------------------------------------
-namespace ipc_file_client {
+namespace rpc_file_client {
 
 template <class M>
 void complete_message(
@@ -41,15 +41,7 @@ void complete_message(
     solid_check(false); //this method should not be called
 }
 
-struct MessageSetup {
-    template <class T>
-    void operator()(ipc_file::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_file::ProtocolT::TypeIdT& _rtid)
-    {
-        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
-    }
-};
-
-} // namespace ipc_file_client
+} // namespace rpc_file_client
 
 namespace {
 streampos file_size(const std::string& _path)
@@ -84,7 +76,7 @@ int main(int argc, char* argv[])
 
         AioSchedulerT          scheduler;
         frame::Manager         manager;
-        frame::mprpc::ServiceT ipcservice(manager);
+        frame::mprpc::ServiceT rpcservice(manager);
         CallPool<void()>       cwp{WorkPoolConfiguration(), 1};
         frame::aio::Resolver   resolver(cwp);
         ErrorConditionT        err;
@@ -92,16 +84,22 @@ int main(int argc, char* argv[])
         scheduler.start(1);
 
         {
-            auto                        proto = ipc_file::ProtocolT::create();
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto& _rmap) {
+                    auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
+                        using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
+                        _rmap.template registerMessage<TypeT>(_id, _name, rpc_file_client::complete_message<TypeT>);
+                    };
+                    rpc_file::configure_protocol(lambda);
+                });
             frame::mprpc::Configuration cfg(scheduler, proto);
-
-            ipc_file::protocol_setup(ipc_file_client::MessageSetup(), *proto);
 
             cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, p.port.c_str());
 
             cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
 
-            ipcservice.start(std::move(cfg));
+            rpcservice.start(std::move(cfg));
         }
 
         cout << "Expect lines like:" << endl;
@@ -139,12 +137,12 @@ int main(int argc, char* argv[])
                         std::string path;
                         iss >> path;
 
-                        ipcservice.sendRequest(
-                            recipient.c_str(), make_shared<ipc_file::ListRequest>(std::move(path)),
+                        rpcservice.sendRequest(
+                            recipient.c_str(), make_shared<rpc_file::ListRequest>(std::move(path)),
                             [](
                                 frame::mprpc::ConnectionContext&         _rctx,
-                                std::shared_ptr<ipc_file::ListRequest>&  _rsent_msg_ptr,
-                                std::shared_ptr<ipc_file::ListResponse>& _rrecv_msg_ptr,
+                                std::shared_ptr<rpc_file::ListRequest>&  _rsent_msg_ptr,
+                                std::shared_ptr<rpc_file::ListResponse>& _rrecv_msg_ptr,
                                 ErrorConditionT const&                   _rerror) {
                                 if (_rerror) {
                                     cout << "Error sending message to " << _rctx.recipientName() << ". Error: " << _rerror.message() << endl;
@@ -171,12 +169,12 @@ int main(int argc, char* argv[])
 
                         iss >> remote_path >> local_path;
 
-                        ipcservice.sendRequest(
-                            recipient.c_str(), make_shared<ipc_file::FileRequest>(std::move(remote_path), std::move(local_path)),
+                        rpcservice.sendRequest(
+                            recipient.c_str(), make_shared<rpc_file::FileRequest>(std::move(remote_path), std::move(local_path)),
                             [](
                                 frame::mprpc::ConnectionContext&         _rctx,
-                                std::shared_ptr<ipc_file::FileRequest>&  _rsent_msg_ptr,
-                                std::shared_ptr<ipc_file::FileResponse>& _rrecv_msg_ptr,
+                                std::shared_ptr<rpc_file::FileRequest>&  _rsent_msg_ptr,
+                                std::shared_ptr<rpc_file::FileResponse>& _rrecv_msg_ptr,
                                 ErrorConditionT const&                   _rerror) {
                                 if (_rerror) {
                                     cout << "Error sending message to " << _rctx.recipientName() << ". Error: " << _rerror.message() << endl;

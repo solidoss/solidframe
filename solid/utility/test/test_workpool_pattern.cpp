@@ -17,7 +17,7 @@ const LoggerT logger("test_pattern");
 int test_workpool_pattern(int argc, char* argv[])
 {
     install_crash_handler();
-    solid::log_start(std::cerr, {".*:EWS", "test_basic:VIEWS"});
+    solid::log_start(std::cerr, {".*:EWXS", "test_basic:VIEWS"});
 
     using WorkPoolT  = WorkPool<size_t>;
     using AtomicPWPT = std::atomic<WorkPoolT*>;
@@ -91,13 +91,15 @@ int test_workpool_pattern(int argc, char* argv[])
             thr.join();
         }
     };
-    if (async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
+
+    auto fut = async(launch::async, lambda);
+    if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         if (pwp != nullptr) {
             pwp.load()->dumpStatistics();
         }
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }
-
+    fut.get();
     solid_check(sum == check_sum, "sum = " << sum << " check_sum = " << check_sum);
 
     solid_log(logger, Verbose, "after async wait");

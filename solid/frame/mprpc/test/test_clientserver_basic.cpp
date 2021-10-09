@@ -2,7 +2,7 @@
 
 #include "solid/frame/mprpc/mprpccompression_snappy.hpp"
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v2.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
 #include "solid/frame/manager.hpp"
@@ -30,7 +30,6 @@ using namespace solid;
 
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
-using ProtocolT      = frame::mprpc::serialization_v2::Protocol<uint8_t>;
 
 namespace {
 
@@ -103,10 +102,13 @@ struct Message : frame::mprpc::Message {
         solid_assert(serialized || this->isBackOnSender());
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, /*_name*/)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
-        if (_s.is_serializer) {
+        using ReflectorT = decay_t<decltype(_rr)>;
+
+        _rr.add(_rthis.idx, _rctx, 0, "idx").add(_rthis.str, _rctx, 1, "str");
+
+        if constexpr (ReflectorT::is_const_reflector) {
             _rthis.serialized = true;
         }
     }
@@ -183,7 +185,7 @@ void client_complete_message(
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
-    solid_dbg(generic_logger, Info, _rctx.recipientId());
+    solid_dbg(generic_logger, Info, _rctx.recipientId() << " " << crtbackidx << " " << writecount);
 
     if (_rsent_msg_ptr) {
         if (!_rerror) {
@@ -219,7 +221,7 @@ void server_complete_message(
     ErrorConditionT const& /*_rerror*/)
 {
     if (_rrecv_msg_ptr) {
-        solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId());
+        solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " " << crtreadidx << " " << writecount);
 
         if (!_rrecv_msg_ptr->check()) {
             solid_throw("Message check failed.");
@@ -241,7 +243,7 @@ void server_complete_message(
         solid_dbg(generic_logger, Info, crtreadidx);
         if (crtwriteidx < writecount) {
             err = pmprpcclient->sendMessage(
-                "localhost", std::make_shared<Message>(crtwriteidx++),
+                "", std::make_shared<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
             solid_check(!err, "Connection id should not be invalid! " << err.message());
         }
@@ -256,7 +258,8 @@ void server_complete_message(
 int test_clientserver_basic(int argc, char* argv[])
 {
 
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {".*:EWX"});
+    //solid::log_start(std::cerr, {"solid::frame::mprpc.*:EWX", "\\*:VIEWX"});
 
     size_t max_per_pool_connection_count = 1;
 
@@ -320,11 +323,12 @@ int test_clientserver_basic(int argc, char* argv[])
         std::string server_port;
 
         { //mprpc server initialization
-            auto                        proto = ProtocolT::create();
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto& _rmap) {
+                    _rmap.template registerMessage<Message>(1, "Message", server_complete_message);
+                });
             frame::mprpc::Configuration cfg(sch_server, proto);
-
-            proto->null(0);
-            proto->registerMessage<Message>(server_complete_message, 1);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
@@ -362,11 +366,12 @@ int test_clientserver_basic(int argc, char* argv[])
         }
 
         { //mprpc client initialization
-            auto                        proto = ProtocolT::create();
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto& _rmap) {
+                    _rmap.template registerMessage<Message>(1, "Message", client_complete_message);
+                });
             frame::mprpc::Configuration cfg(sch_client, proto);
-
-            proto->null(0);
-            proto->registerMessage<Message>(client_complete_message, 1);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
@@ -376,7 +381,7 @@ int test_clientserver_basic(int argc, char* argv[])
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 
-            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/);
+            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF{resolver, server_port};
 
             if (secure) {
                 solid_dbg(generic_logger, Info, "Configure SSL client ------------------------------------");
@@ -406,7 +411,7 @@ int test_clientserver_basic(int argc, char* argv[])
 
         for (; crtwriteidx < start_count;) {
             mprpcclient.sendMessage(
-                "localhost", std::make_shared<Message>(crtwriteidx++),
+                "", std::make_shared<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 

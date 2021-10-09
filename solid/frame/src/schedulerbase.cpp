@@ -29,6 +29,7 @@ namespace solid {
 namespace frame {
 
 namespace {
+const LoggerT logger("solid::frame::scheduler");
 
 class ErrorCategory : public ErrorCategoryT {
 public:
@@ -184,7 +185,7 @@ void SchedulerBase::doStart(
     {
         unique_lock<mutex> lock(impl_->mtx);
 
-        solid_check(impl_->status != StatusRunningE, "Scheduler already running");
+        solid_check_log(impl_->status != StatusRunningE, logger, "Scheduler already running");
 
         if (impl_->status != StatusStoppedE || impl_->stopwaitcnt != 0u) {
             do {
@@ -253,7 +254,7 @@ void SchedulerBase::doStart(
     lock_guard<mutex> lock(impl_->mtx);
     impl_->status = StatusStoppedE;
     impl_->cnd.notify_all();
-    solid_throw("Failed starting worker");
+    solid_throw_log(logger, "Failed starting worker");
 }
 
 void SchedulerBase::doStop(bool _wait /* = true*/)

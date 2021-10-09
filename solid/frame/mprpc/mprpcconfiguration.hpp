@@ -114,21 +114,15 @@ std::ostream& operator<<(std::ostream& _ros, const RelayDataFlagsT& _flags);
 
 struct RelayData {
     RecvBufferPointerT    bufptr_;
-    const char*           pdata_;
-    size_t                data_size_;
-    RelayData*            pnext_;
+    const char*           pdata_     = nullptr;
+    size_t                data_size_ = 0;
+    RelayData*            pnext_     = nullptr;
     RelayDataFlagsT       flags_;
-    MessageHeader::FlagsT message_flags_;
-    MessageHeader*        pmessage_header_;
+    MessageHeader::FlagsT message_flags_   = 0;
+    MessageHeader*        pmessage_header_ = nullptr;
 
-    RelayData()
-        : pdata_(nullptr)
-        , data_size_(0)
-        , pnext_(nullptr)
-        , message_flags_(0)
-        , pmessage_header_(nullptr)
-    {
-    }
+    RelayData() {}
+
     RelayData(
         RelayData&& _rrelmsg)
         : bufptr_(std::move(_rrelmsg.bufptr_))
@@ -196,9 +190,6 @@ private:
         : bufptr_(_bufptr)
         , pdata_(_pdata)
         , data_size_(_data_size)
-        , pnext_(nullptr)
-        , message_flags_(0)
-        , pmessage_header_(nullptr)
     {
         if (_is_last) {
             flags_.set(RelayDataFlagsE::Last);
@@ -343,6 +334,7 @@ using UncompressFunctionT                       = solid_function_t(size_t(char*,
 using ExtractRecipientNameFunctionT             = solid_function_t(const char*(const char*, std::string&, std::string&));
 using AioSchedulerT                             = frame::Scheduler<frame::aio::Reactor>;
 using ConnectionEnterActiveCompleteFunctionT    = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
+using ConnectionPostCompleteFunctionT           = solid_function_t(void(ConnectionContext&));
 using ConnectionEnterPassiveCompleteFunctionT   = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
 using ConnectionSecureHandhakeCompleteFunctionT = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
 using ConnectionSendRawDataCompleteFunctionT    = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
@@ -359,26 +351,23 @@ enum struct ConnectionState {
 struct ReaderConfiguration {
     ReaderConfiguration();
 
-    size_t   string_size_limit;
-    size_t   container_size_limit;
-    uint64_t stream_size_limit;
-
-    size_t              max_message_count_multiplex;
-    UncompressFunctionT decompress_fnc;
+    [[deprecated]] size_t   string_size_limit;
+    [[deprecated]] size_t   container_size_limit;
+    [[deprecated]] uint64_t stream_size_limit;
+    size_t                  max_message_count_multiplex;
+    UncompressFunctionT     decompress_fnc;
 };
 
 struct WriterConfiguration {
     WriterConfiguration();
 
-    size_t max_message_count_multiplex;
-    size_t max_message_count_response_wait;
-    size_t max_message_continuous_packet_count;
-
-    size_t   string_size_limit;
-    size_t   container_size_limit;
-    uint64_t stream_size_limit;
-
-    CompressFunctionT inplace_compress_fnc;
+    size_t                  max_message_count_multiplex;
+    size_t                  max_message_count_response_wait;
+    size_t                  max_message_continuous_packet_count;
+    [[deprecated]] size_t   string_size_limit;
+    [[deprecated]] size_t   container_size_limit;
+    [[deprecated]] uint64_t stream_size_limit;
+    CompressFunctionT       inplace_compress_fnc;
 };
 
 struct Configuration {
@@ -456,19 +445,19 @@ public:
         return !isServer() && isClient();
     }
 
-    void limitString(const size_t _sz)
+    [[deprecated]] void limitString(const size_t _sz)
     {
         reader.string_size_limit = _sz;
         writer.string_size_limit = _sz;
     }
 
-    void limitContainer(const size_t _sz)
+    [[deprecated]] void limitContainer(const size_t _sz)
     {
         reader.container_size_limit = _sz;
         writer.container_size_limit = _sz;
     }
 
-    void limitStream(const uint64_t _sz)
+    [[deprecated]] void limitStream(const uint64_t _sz)
     {
         reader.stream_size_limit = _sz;
         writer.stream_size_limit = _sz;
@@ -478,7 +467,7 @@ public:
 
     SendBufferPointerT allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const;
 
-    size_t connectionReconnectTimeoutSeconds(
+    ulong connectionReconnectTimeoutSeconds(
         const uint8_t _retry_count,
         const bool    _failed_create_connection_actor,
         const bool    _last_connection_was_connected,
@@ -518,6 +507,8 @@ public:
         bool                               connection_start_secure;
         ConnectionStartFunctionT           connection_start_fnc;
         ConnectionSecureHandshakeFunctionT connection_on_secure_handshake_fnc;
+        uint32_t                           connection_timeout_activation_seconds;
+        uint32_t                           connection_timeout_secured_seconds;
         ServerSetupSocketDeviceFunctionT   socket_device_setup_fnc;
         std::string                        listener_address_str;
         std::string                        listener_service_str;
@@ -555,9 +546,9 @@ public:
 
     } client;
 
-    size_t                        connection_reconnect_timeout_seconds;
-    uint32_t                      connection_inactivity_timeout_seconds;
-    uint32_t                      connection_keepalive_timeout_seconds;
+    ulong                         connection_timeout_reconnect_seconds;
+    uint32_t                      connection_timeout_inactivity_seconds;
+    uint32_t                      connection_timeout_keepalive_seconds;
     uint32_t                      connection_inactivity_keepalive_count; //server error if receives more than inactivity_keepalive_count keep alive messages during inactivity_timeout_seconds interval
     uint8_t                       connection_recv_buffer_start_capacity_kb;
     uint8_t                       connection_recv_buffer_max_capacity_kb;
@@ -600,18 +591,34 @@ private:
     }
 };
 
-struct InternetResolverF {
-    aio::Resolver&     rresolver;
-    std::string        default_service;
-    SocketInfo::Family family;
+class InternetResolverF {
+    aio::Resolver&           rresolver_;
+    const std::string        default_host_;
+    const std::string        default_service_;
+    const SocketInfo::Family family_;
 
+public:
     InternetResolverF(
         aio::Resolver&     _rresolver,
         const char*        _default_service,
-        SocketInfo::Family _family = SocketInfo::AnyFamily)
-        : rresolver(_rresolver)
-        , default_service(_default_service)
-        , family(_family)
+        const char*        _default_host = "localhost",
+        SocketInfo::Family _family       = SocketInfo::AnyFamily)
+        : rresolver_(_rresolver)
+        , default_host_(_default_host)
+        , default_service_(_default_service)
+        , family_(_family)
+    {
+    }
+
+    InternetResolverF(
+        aio::Resolver&     _rresolver,
+        const std::string& _default_service,
+        const std::string& _default_host = "localhost",
+        SocketInfo::Family _family       = SocketInfo::AnyFamily)
+        : rresolver_(_rresolver)
+        , default_host_(_default_host)
+        , default_service_(_default_service)
+        , family_(_family)
     {
     }
 

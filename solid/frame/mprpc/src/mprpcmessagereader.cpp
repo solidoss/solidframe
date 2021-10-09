@@ -65,17 +65,16 @@ size_t MessageReader::read(
         if (state_ == StateE::ReadPacketBody) {
             //try read the data
             const char* tmpbufpos = packet_header.load(pbufpos, _receiver.protocol());
+            if (!packet_header.isOk()) {
+                _rerror = error_reader_invalid_packet_header;
+                solid_dbg(logger, Error, _rerror.message());
+                break;
+            }
             if (static_cast<size_t>(pbufend - tmpbufpos) >= packet_header.size()) {
                 pbufpos = tmpbufpos;
             } else {
                 break;
             }
-        }
-
-        if (!packet_header.isOk()) {
-            _rerror = error_reader_invalid_packet_header;
-            solid_assert(false);
-            break;
         }
 
         //parse the data
@@ -88,7 +87,7 @@ size_t MessageReader::read(
         if (!_rerror) {
             pbufpos += packet_header.size();
         } else {
-            solid_assert(false);
+            solid_dbg(logger, Error, "consume packet: " << _rerror.message());
             break;
         }
         state_ = StateE::ReadPacketHead;
@@ -116,7 +115,7 @@ void MessageReader::doConsumePacket(
             pbufpos = tmpbuf;
             pbufend = tmpbuf + uncompressed_size;
         } else {
-            solid_assert(false);
+            solid_dbg(logger, Error, "decompressing: " << _rerror.message());
             return;
         }
     }
@@ -152,7 +151,6 @@ void MessageReader::doConsumePacket(
                 pbufpos = doConsumeMessage(pbufpos, pbufend, message_idx, cmd, _receiver, _rerror);
             } else {
                 _rerror = error_reader_protocol;
-                solid_assert(false);
                 return;
             }
             break;
@@ -161,14 +159,13 @@ void MessageReader::doConsumePacket(
             solid_dbg(logger, Error, "CancelMessage " << message_idx);
             if (pbufpos != nullptr && message_idx < message_vec_.size()) {
                 MessageStub& rmsgstub = message_vec_[message_idx];
-                solid_assert(rmsgstub.state_ != MessageStub::StateE::NotStarted);
+                solid_assert_log(rmsgstub.state_ != MessageStub::StateE::NotStarted, logger);
                 if (rmsgstub.state_ == MessageStub::StateE::RelayBody) {
                     _receiver.cancelRelayed(rmsgstub.relay_id);
                 }
                 rmsgstub.clear();
             } else {
                 _rerror = error_reader_protocol;
-                solid_assert(false);
             }
             break;
         case PacketHeader::CommandE::Update:
@@ -181,9 +178,8 @@ void MessageReader::doConsumePacket(
                 solid_dbg(logger, Verbose, "CancelRequest: " << requid);
                 _receiver.receiveCancelRequest(requid);
             } else {
-                solid_dbg(logger, Verbose, "CancelRequest - error parsing requestid");
+                solid_dbg(logger, Error, "parsing requestid");
                 _rerror = error_reader_protocol;
-                solid_assert(false);
             }
         } break;
         case PacketHeader::CommandE::AckdCount:
@@ -195,7 +191,6 @@ void MessageReader::doConsumePacket(
                 _receiver.receiveAckCount(count);
             } else {
                 _rerror = error_reader_protocol;
-                solid_assert(false);
             }
             break;
         default:
@@ -235,7 +230,7 @@ const char* MessageReader::doConsumeMessage(
             if (message_size <= static_cast<size_t>(_pbufend - _pbufpos)) {
                 _receiver.context().pmessage_header = &rmsgstub.message_header_;
 
-                const long rv = rmsgstub.state_ == MessageStub::StateE::ReadHeadStart ? rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size, rmsgstub.message_header_) : rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size);
+                const ptrdiff_t rv = rmsgstub.state_ == MessageStub::StateE::ReadHeadStart ? rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size, rmsgstub.message_header_) : rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size);
 
                 rmsgstub.state_ = MessageStub::StateE::ReadHeadContinue;
                 _pbufpos += message_size;
@@ -263,6 +258,7 @@ const char* MessageReader::doConsumeMessage(
                                 solid_dbg(logger, Info, "Read Body");
                                 rmsgstub.state_ = MessageStub::StateE::ReadBodyStart;
                                 rmsgstub.deserializer_ptr_->clear();
+                                _receiver.protocol().reconfigure(*rmsgstub.deserializer_ptr_, _receiver.configuration());
                             } else {
                                 solid_dbg(logger, Info, "Relay message");
                                 rmsgstub.state_ = MessageStub::StateE::RelayStart;
@@ -276,7 +272,7 @@ const char* MessageReader::doConsumeMessage(
                     _pbufpos = _pbufend;
                     cache(rmsgstub.deserializer_ptr_);
                     rmsgstub.clear();
-                    solid_assert(false);
+                    solid_dbg(logger, Error, "deserializing: " << _rerror.message());
                     break;
                 }
             }
@@ -301,7 +297,7 @@ const char* MessageReader::doConsumeMessage(
 
                     _receiver.context().pmessage_header = &rmsgstub.message_header_;
 
-                    const long rv = rmsgstub.state_ == MessageStub::StateE::ReadBodyStart ? rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size, rmsgstub.message_ptr_) : rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size);
+                    const ptrdiff_t rv = rmsgstub.state_ == MessageStub::StateE::ReadBodyStart ? rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size, rmsgstub.message_ptr_) : rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size);
 
                     rmsgstub.state_ = MessageStub::StateE::ReadBodyContinue;
                     _pbufpos += message_size;
@@ -310,7 +306,7 @@ const char* MessageReader::doConsumeMessage(
                         if (rv <= static_cast<int>(message_size)) {
 
                             if ((_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0u) {
-                                if (rmsgstub.deserializer_ptr_->empty()) {
+                                if (rmsgstub.deserializer_ptr_->empty() && rmsgstub.message_ptr_) {
                                     //done parsing the message body
                                     MessagePointerT msgptr{std::move(rmsgstub.message_ptr_)};
                                     cache(rmsgstub.deserializer_ptr_);
@@ -320,14 +316,14 @@ const char* MessageReader::doConsumeMessage(
                                     break;
                                 }
                                 //fail: protocol error
-                                solid_assert(false);
+                                solid_dbg(logger, Error, "protocol");
                             } else if (!rmsgstub.deserializer_ptr_->empty()) {
                                 break;
                             } else {
-                                solid_assert(false);
+                                solid_dbg(logger, Error, "protocol");
                             }
                         } else {
-                            solid_assert(false);
+                            solid_dbg(logger, Error, "protocol");
                         }
                     } else {
                         _rerror = rmsgstub.deserializer_ptr_->error();
@@ -335,14 +331,13 @@ const char* MessageReader::doConsumeMessage(
                         cache(rmsgstub.deserializer_ptr_);
                         _pbufpos = _pbufend;
                         rmsgstub.clear();
-                        solid_assert(false);
                         break;
                     }
                 } else {
-                    solid_assert(false);
+                    solid_dbg(logger, Error, "protocol");
                 }
             } else {
-                solid_assert(false);
+                solid_dbg(logger, Error, "protocol");
             }
 
             //protocol error
@@ -370,9 +365,9 @@ const char* MessageReader::doConsumeMessage(
                 }
                 break;
             }
-            solid_assert(false);
+            solid_dbg(logger, Error, "protocol");
         } else {
-            solid_assert(false);
+            solid_dbg(logger, Error, "protocol");
         }
 
         //protocol error
@@ -402,7 +397,7 @@ const char* MessageReader::doConsumeMessage(
         }
         //protocol error
         _rerror = error_reader_protocol;
-        solid_assert(false);
+        solid_dbg(logger, Error, "protocol");
         _pbufpos = _pbufend;
         rmsgstub.clear();
         break;
@@ -427,7 +422,7 @@ const char* MessageReader::doConsumeMessage(
         }
         //protocol error
         _rerror = error_reader_protocol;
-        solid_assert(false);
+        solid_dbg(logger, Error, "protocol");
         _pbufpos = _pbufend;
         rmsgstub.clear();
         break;
@@ -444,7 +439,7 @@ const char* MessageReader::doConsumeMessage(
         }
         //protocol error
         _rerror = error_reader_protocol;
-        solid_assert(false);
+        solid_dbg(logger, Error, "protocol");
         _pbufpos = _pbufend;
         rmsgstub.clear();
         break;
@@ -471,15 +466,15 @@ const char* MessageReader::doConsumeMessage(
         }
         //protocol error
         _rerror = error_reader_protocol;
-        solid_assert(false);
+        solid_dbg(logger, Error, "protocol");
         _pbufpos = _pbufend;
         rmsgstub.clear();
         break;
     default:
-        solid_check(false, "Invalid message state: " << (int)rmsgstub.state_);
+        solid_check_log(false, logger, "Invalid message state: " << (int)rmsgstub.state_);
         break;
     }
-    solid_assert(!_rerror || (_rerror && _pbufpos == _pbufend));
+    solid_assert_log(!_rerror || (_rerror && _pbufpos == _pbufend), logger);
     return _pbufpos;
 }
 //-----------------------------------------------------------------------------

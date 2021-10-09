@@ -22,12 +22,12 @@ namespace mprpc {
 namespace serialization_v2 {
 
 template <typename TypeId, class Ctx>
-using SerializerTT = serialization::binary::Serializer<TypeId, Ctx>;
+using SerializerTT = serialization::v2::binary::Serializer<TypeId, Ctx>;
 template <typename TypeId, class Ctx>
-using DeserializerTT = serialization::binary::Deserializer<TypeId, Ctx>;
-template <typename TypeId, typename Data>
-using TypeMapTT = serialization::TypeMap<TypeId, ConnectionContext, SerializerTT, DeserializerTT, Data>;
-using LimitsT   = serialization::binary::Limits;
+using DeserializerTT = serialization::v2::binary::Deserializer<TypeId, Ctx>;
+template <typename TypeId, typename Data, typename Hash = std::hash<TypeId>>
+using TypeMapTT = serialization::v2::TypeMap<TypeId, ConnectionContext, SerializerTT, DeserializerTT, Data, Hash>;
+using LimitsT   = serialization::v2::binary::Limits;
 
 template <class S>
 class Serializer : public mprpc::Serializer {
@@ -42,23 +42,23 @@ public:
     }
     void limits(const LimitsT& _rl)
     {
-        ser_.limits(_rl, "");
+        ser_.limits(_rl);
     }
 
 private:
-    long run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessageHeader& _rmsghdr) override
+    ptrdiff_t run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessageHeader& _rmsghdr) override
     {
         return ser_.run(
             _pdata, static_cast<unsigned>(_data_len), [&_rmsghdr](SerializerT& _rs, ConnectionContext& _rctx) { _rs.add(_rmsghdr, _rctx, "message"); }, _rctx);
     }
 
-    long run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr, const size_t /*_msg_type_idx*/) override
+    ptrdiff_t run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr, const size_t /*_msg_type_idx*/) override
     {
         return ser_.run(
             _pdata, static_cast<unsigned>(_data_len), [&_rmsgptr](SerializerT& _rs, ConnectionContext& _rctx) { _rs.add(_rmsgptr, _rctx, "message"); }, _rctx);
     }
 
-    long run(ConnectionContext& _rctx, char* _pdata, size_t _data_len) override
+    ptrdiff_t run(ConnectionContext& _rctx, char* _pdata, size_t _data_len) override
     {
         return ser_.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
@@ -92,22 +92,22 @@ public:
     }
     void limits(const LimitsT& _rl)
     {
-        des_.limits(_rl, "");
+        des_.limits(_rl);
     }
 
 private:
-    long run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, MessageHeader& _rmsghdr) override
+    ptrdiff_t run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, MessageHeader& _rmsghdr) override
     {
         return des_.run(
             _pdata, static_cast<unsigned>(_data_len), [&_rmsghdr](DeserializerT& _rd, ConnectionContext& _rctx) mutable { _rd.add(_rmsghdr, _rctx, "message"); }, _rctx);
     }
 
-    long run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr) override
+    ptrdiff_t run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr) override
     {
         return des_.run(
             _pdata, static_cast<unsigned>(_data_len), [&_rmsgptr](DeserializerT& _rd, ConnectionContext& _rctx) { _rd.add(_rmsgptr, _rctx, "message"); }, _rctx);
     }
-    long run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len) override
+    ptrdiff_t run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len) override
     {
         return des_.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
@@ -126,8 +126,8 @@ private:
     }
 };
 
-template <typename TypeId>
-struct Protocol : public mprpc::Protocol, std::enable_shared_from_this<Protocol<TypeId>> {
+template <typename TypeId, typename Hash = std::hash<TypeId>>
+struct Protocol : public mprpc::Protocol, std::enable_shared_from_this<Protocol<TypeId, Hash>> {
     struct TypeData {
         template <class F>
         TypeData(F&& _f)
@@ -145,10 +145,10 @@ struct Protocol : public mprpc::Protocol, std::enable_shared_from_this<Protocol<
         MessageCompleteFunctionT complete_fnc_;
     };
 
-    using ThisT         = Protocol<TypeId>;
+    using ThisT         = Protocol<TypeId, Hash>;
     using PointerT      = std::shared_ptr<ThisT>;
     using TypeIdT       = TypeId;
-    using TypeMapT      = TypeMapTT<TypeIdT, TypeData>;
+    using TypeMapT      = TypeMapTT<TypeIdT, TypeData, Hash>;
     using SerializerT   = Serializer<typename TypeMapT::SerializerT>;
     using DeserializerT = Deserializer<typename TypeMapT::DeserializerT>;
 
@@ -234,45 +234,45 @@ struct Protocol : public mprpc::Protocol, std::enable_shared_from_this<Protocol<
 
     char* storeValue(char* _pd, uint8_t _v) const override
     {
-        return serialization::binary::store(_pd, _v);
+        return serialization::v2::binary::store(_pd, _v);
     }
     char* storeValue(char* _pd, uint16_t _v) const override
     {
-        return serialization::binary::store(_pd, _v);
+        return serialization::v2::binary::store(_pd, _v);
     }
     char* storeValue(char* _pd, uint32_t _v) const override
     {
-        return serialization::binary::store(_pd, _v);
+        return serialization::v2::binary::store(_pd, _v);
     }
     char* storeValue(char* _pd, uint64_t _v) const override
     {
-        return serialization::binary::store(_pd, _v);
+        return serialization::v2::binary::store(_pd, _v);
     }
 
     char* storeCrossValue(char* _pd, const size_t _sz, uint32_t _v) const override
     {
-        return serialization::binary::cross::store_with_check(_pd, _sz, _v);
+        return serialization::v2::binary::cross::store_with_check(_pd, _sz, _v);
     }
 
     const char* loadValue(const char* _ps, uint8_t& _v) const override
     {
-        return serialization::binary::load(_ps, _v);
+        return serialization::v2::binary::load(_ps, _v);
     }
     const char* loadValue(const char* _ps, uint16_t& _v) const override
     {
-        return serialization::binary::load(_ps, _v);
+        return serialization::v2::binary::load(_ps, _v);
     }
     const char* loadValue(const char* _ps, uint32_t& _v) const override
     {
-        return serialization::binary::load(_ps, _v);
+        return serialization::v2::binary::load(_ps, _v);
     }
     const char* loadValue(const char* _ps, uint64_t& _v) const override
     {
-        return serialization::binary::load(_ps, _v);
+        return serialization::v2::binary::load(_ps, _v);
     }
     const char* loadCrossValue(const char* _ps, const size_t _sz, uint32_t& _v) const override
     {
-        return serialization::binary::cross::load_with_check(_ps, _sz, _v);
+        return serialization::v2::binary::cross::load_with_check(_ps, _sz, _v);
     }
 
     size_t typeIndex(const Message* _pmsg) const override

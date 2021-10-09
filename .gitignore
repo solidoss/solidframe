@@ -1,5 +1,6 @@
 # Build
 .kdev4/
+.vs/
 build/
 *.kdev4
 .vscode/

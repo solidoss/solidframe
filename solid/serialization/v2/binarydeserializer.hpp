@@ -47,6 +47,23 @@ class DeserializerBase : public Base {
             , size_(_size)
             , data_(_data)
             , name_(_name)
+            , limit_(0)
+        {
+        }
+
+        Runnable(
+            void*       _ptr,
+            CallbackT   _call,
+            uint64_t    _size,
+            uint64_t    _data,
+            uint64_t    _limit,
+            const char* _name)
+            : ptr_(_ptr)
+            , call_(_call)
+            , size_(_size)
+            , data_(_data)
+            , name_(_name)
+            , limit_(_limit)
         {
         }
 
@@ -58,6 +75,7 @@ class DeserializerBase : public Base {
             , data_(0)
             , name_(_name)
             , fnc_(std::move(_f))
+            , limit_(0)
         {
         }
 
@@ -75,6 +93,7 @@ class DeserializerBase : public Base {
             , data_(_data)
             , name_(_name)
             , fnc_(std::move(_f))
+            , limit_(0)
         {
         }
 
@@ -91,6 +110,7 @@ class DeserializerBase : public Base {
         uint64_t    data_;
         const char* name_;
         FunctionT   fnc_;
+        uint64_t    limit_;
     };
 
     using RunListT         = std::list<Runnable>;
@@ -109,12 +129,6 @@ public:
     long          run(const char* _pbeg, unsigned _sz, void* _pctx = nullptr);
 
     void clear();
-
-    void limits(const Limits& _rlimits, const char* _name);
-
-    void limitString(const size_t _sz, const char* _name);
-    void limitContainer(const size_t _sz, const char* _name);
-    void limitStream(const uint64_t _sz, const char* _name);
 
     const ErrorConditionT& error() const
     {
@@ -169,10 +183,10 @@ public:
     }
 
     template <typename A>
-    inline void addVectorBool(std::vector<bool, A>& _rv, const char* _name)
+    inline void addVectorBool(std::vector<bool, A>& _rv, const uint64_t _limit, const char* _name)
     {
         solid_dbg(logger, Info, _name);
-        Runnable r{&_rv, &load_vector_bool<A>, 0, 0, _name};
+        Runnable r{&_rv, &load_vector_bool<A>, 0, 0, _limit, _name};
 
         if (isRunEmpty()) {
             if (load_vector_bool<A>(*this, r, nullptr) == ReturnE::Done) {
@@ -181,6 +195,12 @@ public:
         }
 
         schedule(std::move(r));
+    }
+
+    template <typename A>
+    inline void addVectorBool(std::vector<bool, A>& _rv, const char* _name)
+    {
+        addVectorBool(_rv, limits().container(), _name);
     }
 
     template <size_t N>
@@ -230,10 +250,10 @@ public:
         schedule(std::move(r));
     }
 
-    void addBasic(std::string& _rb, const char* _name)
+    void addBasic(std::string& _rb, const uint64_t _limit, const char* _name)
     {
         solid_dbg(logger, Info, _name);
-        Runnable r{&_rb, &load_string, 0, 0, _name};
+        Runnable r{&_rb, &load_string, 0, 0, _limit, _name};
 
         _rb.clear(); //necessary otherwise map<string, something> would not work on gcc5.3
 
@@ -246,11 +266,16 @@ public:
         schedule(std::move(r));
     }
 
+    void addBasic(std::string& _rb, const char* _name)
+    {
+        addBasic(_rb, limits().string(), _name);
+    }
+
     template <typename T, class A>
-    void addVectorChar(std::vector<T, A>& _rb, const char* _name)
+    void addVectorChar(std::vector<T, A>& _rb, const uint64_t _limit, const char* _name)
     {
         solid_dbg(logger, Info, _name);
-        Runnable r{&_rb, &load_vector_char<T, A>, 0, 0, _name};
+        Runnable r{&_rb, &load_vector_char<T, A>, 0, 0, _limit, _name};
 
         _rb.clear(); //necessary otherwise map<string, something> would not work on gcc5.3
 
@@ -261,6 +286,12 @@ public:
         }
 
         schedule(std::move(r));
+    }
+
+    template <typename T, class A>
+    void addVectorChar(std::vector<T, A>& _rb, const char* _name)
+    {
+        addVectorChar(_rb, limits().container(), _name);
     }
 
     template <class D, class F>
@@ -385,7 +416,7 @@ public:
     }
 
     template <class D, class C>
-    void addContainer(D& _rd, C& _rc, const char* _name)
+    void addContainer(D& _rd, C& _rc, const uint64_t _limit, const char* _name)
     {
         solid_dbg(logger, Info, _name);
 
@@ -399,7 +430,7 @@ public:
             if (init) {
                 init                                = false;
                 const RunListIteratorT old_sentinel = _rd.sentinel();
-                solid_assert(_rd.isRunEmpty());
+                solid_assert_log(_rd.isRunEmpty(), logger);
 
                 rd.addBasicWithCheck(_rr.size_, _rr.name_);
 
@@ -413,8 +444,8 @@ public:
             if (parsing_value) {
                 rcontainer.insert(rcontainer.end(), std::move(value));
                 parsing_value = false;
-            } else if (rd.limits().hasContainer() && _rr.size_ > rd.limits().container()) {
-                _rd.baseError(error_limit_stream);
+            } else if (_rr.size_ > _rr.limit_) {
+                _rd.baseError(error_limit_container);
                 return ReturnE::Done;
             }
 
@@ -429,7 +460,7 @@ public:
                     rcontainer.insert(rcontainer.end(), std::move(value));
                 } else {
                     parsing_value = true;
-                    solid_check(_rd.pcrt_ == _rd.pend_, "buffer not empty");
+                    solid_check_log(_rd.pcrt_ == _rd.pend_, logger, "buffer not empty");
                 }
             }
 
@@ -443,19 +474,26 @@ public:
         };
 
         Runnable r{&_rc, call_function, lambda, _name};
+        r.limit_ = _limit;
 
         tryRun(std::move(r));
     }
 
+    template <class D, class C>
+    void addContainer(D& _rd, C& _rc, const char* _name)
+    {
+        addContainer(_rd, _rc, limits().container(), _name);
+    }
+
     template <class D, class C, class Ctx>
-    void addContainer(D& _rd, C& _rc, Ctx& _rctx, const char* _name)
+    void addContainer(D& _rd, C& _rc, const uint64_t _limit, Ctx& _rctx, const char* _name)
     {
         solid_dbg(logger, Info, _name);
 
-        typename C::value_type value;
+        typename C::value_type value{};
         bool                   init          = true;
         bool                   parsing_value = false;
-        auto                   lambda        = [value, parsing_value, init](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
+        auto                   lambda        = [value = std::move(value), parsing_value, init](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
             C&   rcontainer = *static_cast<C*>(_rr.ptr_);
             D&   rd         = static_cast<D&>(_rd);
             Ctx& rctx       = *static_cast<Ctx*>(_pctx);
@@ -463,7 +501,7 @@ public:
             if (init) {
                 init                                = false;
                 const RunListIteratorT old_sentinel = _rd.sentinel();
-                solid_assert(_rd.isRunEmpty());
+                solid_assert_log(_rd.isRunEmpty(), logger);
 
                 rd.addBasicWithCheck(_rr.size_, _rr.name_);
 
@@ -477,8 +515,8 @@ public:
             if (parsing_value) {
                 rcontainer.insert(rcontainer.end(), std::move(value));
                 parsing_value = false;
-            } else if (rd.limits().hasContainer() && _rr.size_ > rd.limits().container()) {
-                _rd.baseError(error_limit_stream);
+            } else if (_rr.size_ > _rr.limit_) {
+                _rd.baseError(error_limit_container);
                 return ReturnE::Done;
             }
 
@@ -493,7 +531,7 @@ public:
                     rcontainer.insert(rcontainer.end(), std::move(value));
                 } else {
                     parsing_value = true;
-                    solid_check(_rd.pcrt_ == _rd.pend_, "buffer not empty");
+                    solid_check_log(_rd.pcrt_ == _rd.pend_, logger, "buffer not empty");
                 }
             }
 
@@ -507,22 +545,29 @@ public:
         };
 
         Runnable r{&_rc, call_function, lambda, _name};
+        r.limit_ = _limit;
 
         tryRun(std::move(r), &_rctx);
     }
 
+    template <class D, class C, class Ctx>
+    void addContainer(D& _rd, C& _rc, Ctx& _rctx, const char* _name)
+    {
+        addContainer(_rd, _rc, limits().container(), _rctx, _name);
+    }
+
     template <class F, class Ctx>
-    void addStream(std::ostream& _ros, F _f, Ctx& _rctx, const char* _name)
+    void addStream(std::ostream& _ros, const uint64_t _limit, F _f, Ctx& _rctx, const char* _name)
     {
         uint64_t len    = 0;
-        auto     lambda = [_f = std::move(_f), len](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
+        auto     lambda = [_f = std::move(_f), len, _limit](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
             Ctx&          rctx = *static_cast<Ctx*>(_pctx);
             std::ostream& ros  = *const_cast<std::ostream*>(static_cast<const std::ostream*>(_rr.ptr_));
             len += _rr.data_;
 
             _f(ros, len, _rr.data_ == 0, rctx, _rr.name_);
 
-            if (_rd.Base::limits().hasStream() && len > _rd.Base::limits().stream()) {
+            if (len > _limit) {
                 _rd.baseError(error_limit_stream);
             }
             return ReturnE::Done;
@@ -707,7 +752,7 @@ private:
                     --_rr.size_;
 
                     size_t toread = _rd.pend_ - _rd.pcrt_;
-                    solid_check(toread <= _rr.size_, "Should not happen");
+                    solid_check_log(toread <= _rr.size_, logger, "Should not happen");
                     memcpy(_rd.data_.buf_ + _rr.data_, _rd.pcrt_, toread);
                     _rd.pcrt_ += toread;
                     _rr.size_ -= toread;
@@ -716,7 +761,7 @@ private:
                 }
             } else {
                 size_t toread = _rd.pend_ - _rd.pcrt_;
-                solid_check(toread >= _rr.size_, "Should not happen");
+                solid_check_log(toread >= _rr.size_, logger, "Should not happen");
                 if (toread > _rr.size_) {
                     toread = static_cast<size_t>(_rr.size_);
                 }
@@ -768,9 +813,9 @@ private:
 
         if (r == ReturnE::Done && _rd.data_.u64_ != 0) {
             _rr.size_ = _rd.data_.u64_;
-            solid_dbg(logger, Info, "size = " << _rr.size_);
+            solid_dbg(logger, Info, "size = " << _rr.size_ << ' ' << _rr.limit_);
 
-            if (_rd.Base::limits().hasContainer() && _rr.size_ > _rd.Base::limits().container()) {
+            if (_rr.size_ > _rr.limit_) {
                 _rd.baseError(error_limit_container);
                 return ReturnE::Done;
             }
@@ -824,7 +869,7 @@ private:
             _rr.size_ = _rd.data_.u64_;
             solid_dbg(logger, Info, "size = " << _rr.size_);
 
-            if (_rr.size_ > N || (_rd.Base::limits().hasContainer() && _rr.size_ > _rd.Base::limits().container())) {
+            if (_rr.size_ > N) {
                 _rd.baseError(error_limit_container);
                 return ReturnE::Done;
             }
@@ -880,7 +925,7 @@ private:
             _rr.size_ = _rd.data_.u64_;
             solid_dbg(logger, Info, "size = " << _rr.size_);
 
-            if (_rd.Base::limits().hasString() && _rr.size_ > _rd.Base::limits().string()) {
+            if (_rr.size_ > _rr.limit_) {
                 _rd.baseError(error_limit_string);
                 return ReturnE::Done;
             }
@@ -1002,7 +1047,7 @@ private:
         if (r == ReturnE::Done && data_.u64_ != 0) {
             _rr.size_ = data_.u64_;
 
-            if (Base::limits().hasString() && _rr.size_ > Base::limits().string()) {
+            if (_rr.size_ > _rr.limit_) {
                 baseError(error_limit_string);
                 return ReturnE::Done;
             }
@@ -1253,7 +1298,14 @@ public:
     template <typename F>
     ThisT& add(std::ostream& _ros, F _f, Ctx& _rctx, const char* _name)
     {
-        addStream(_ros, _f, _rctx, _name);
+        addStream(_ros, limits().stream(), _f, _rctx, _name);
+        return *this;
+    }
+
+    template <typename F>
+    ThisT& add(std::ostream& _ros, const Limit _limit, F _f, Ctx& _rctx, const char* _name)
+    {
+        addStream(_ros, _limit.value_, _f, _rctx, _name);
         return *this;
     }
 
@@ -1268,6 +1320,20 @@ public:
     ThisT& add(const T& _rt, Ctx& _rctx, const char* _name)
     {
         solidSerializeV2(*this, _rt, _rctx, _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& add(T& _rt, const Limit _limit, Ctx& _rctx, const char* _name)
+    {
+        solidSerializeV2(*this, _rt, _limit.value_, _rctx, _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& add(const T& _rt, const Limit _limit, Ctx& _rctx, const char* _name)
+    {
+        solidSerializeV2(*this, _rt, _limit.value_, _rctx, _name);
         return *this;
     }
 
@@ -1296,35 +1362,6 @@ public:
     ThisT& push(T&& _rt, Ctx& _rctx, const char* _name)
     {
         solidSerializePushV2(*this, std::move(_rt), _rctx, _name);
-        return *this;
-    }
-
-    const Limits& limits() const
-    {
-        return Base::limits();
-    }
-
-    ThisT& limits(const Limits& _rlimits, const char* _name)
-    {
-        DeserializerBase::limits(_rlimits, _name);
-        return *this;
-    }
-
-    ThisT& limitString(const size_t _sz, const char* _name)
-    {
-        DeserializerBase::limitString(_sz, _name);
-        return *this;
-    }
-
-    ThisT& limitContainer(const size_t _sz, const char* _name)
-    {
-        DeserializerBase::limitContainer(_sz, _name);
-        return *this;
-    }
-
-    ThisT& limitStream(const uint64_t _sz, const char* _name)
-    {
-        DeserializerBase::limitStream(_sz, _name);
         return *this;
     }
 

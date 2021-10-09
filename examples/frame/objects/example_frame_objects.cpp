@@ -37,7 +37,7 @@ struct GlobalId {
     uint16_t group_unique;
 };
 
-class BasicActor : public Dynamic<BasicActor, frame::Actor> {
+class BasicActor : public frame::Actor {
     enum Status : uint8_t {
         StatusInMemory,
         StatusCompressed,
@@ -50,7 +50,6 @@ public:
         , status_(StatusInMemory)
         , active_(false)
     {
-        DynamicBase::use();
     }
 
 private:
@@ -64,7 +63,8 @@ private:
     GlobalId           id_;
 };
 
-using ActorDequeT = std::deque<BasicActor>;
+using ActorPointerT = std::shared_ptr<BasicActor>;
+using ActorDequeT   = std::deque<ActorPointerT>;
 
 namespace {
 ActorDequeT        actdq;
@@ -95,10 +95,10 @@ int main(int argc, char* argv[])
 
             for (size_t i = 0; i < cnt; ++i) {
 
-                actdq.emplace_back();
+                actdq.emplace_back(make_shared<BasicActor>());
 
-                DynamicPointer<frame::Actor> actptr(&actdq.back());
-                solid::frame::ActorIdT       actuid;
+                shared_ptr<frame::Actor> actptr(actdq.back());
+                solid::frame::ActorIdT   actuid;
                 {
                     lock_guard<mutex> lock(mtx);
 

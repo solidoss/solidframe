@@ -36,6 +36,7 @@
 #include "solid/system/directory.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/system/filedevice.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/socketdevice.hpp"
 #include "solid/system/socketinfo.hpp"
 
@@ -68,7 +69,6 @@ Device::~Device()
 
 ssize_t Device::read(char* _pb, size_t _bl)
 {
-    solid_assert(ok());
 #ifdef SOLID_ON_WINDOWS
     DWORD cnt;
     if (ReadFile(desc_, _pb, static_cast<DWORD>(_bl), &cnt, nullptr)) {
@@ -83,7 +83,6 @@ ssize_t Device::read(char* _pb, size_t _bl)
 
 ssize_t Device::write(const char* _pb, size_t _bl)
 {
-    solid_assert(ok());
 #ifdef SOLID_ON_WINDOWS
     DWORD cnt;
     /*OVERLAPPED ovp;
@@ -125,7 +124,6 @@ void Device::close()
 
 void Device::flush()
 {
-    solid_assert(ok());
 #ifdef SOLID_ON_WINDOWS
     FlushFileBuffers(desc_);
 #else
@@ -384,7 +382,7 @@ struct Starter {
         WORD wVersionRequested;
         wVersionRequested = MAKEWORD(2, 2);
         int err           = WSAStartup(wVersionRequested, &wsaData);
-        solid_check(err == 0, "Error WSAStartup: " << err);
+        solid_check_log(err == 0, generic_logger, "Error WSAStartup: " << err);
     }
     ~Starter()
     {

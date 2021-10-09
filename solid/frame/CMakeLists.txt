@@ -7,6 +7,7 @@ set(Sources
     src/completion.cpp
     src/sharedstore.cpp
     src/manager.cpp
+    src/error.cpp
 )
 
 set(Headers
@@ -25,6 +26,7 @@ set(Headers
     sharedstore.hpp
     timer.hpp
     timestore.hpp
+    error.hpp
 )
 
 set(Inlines
@@ -39,7 +41,7 @@ target_include_directories(solid_frame PUBLIC
     PRIVATE src
 )
 
-target_link_libraries(solid_frame solid_utility)
+target_link_libraries(solid_frame PUBLIC solid_utility solid_system)
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/frame)
 install (TARGETS solid_frame DESTINATION lib EXPORT SolidFrameConfig)

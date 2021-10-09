@@ -18,7 +18,7 @@ set(Headers
     mprpcerror.hpp
     mprpcmessage.hpp
     mprpcprotocol.hpp
-    mprpcprotocol_serialization_v1.hpp
+    mprpcprotocol_serialization_v3.hpp
     mprpcprotocol_serialization_v2.hpp
     mprpcservice.hpp
     mprpcsocketstub.hpp
@@ -42,11 +42,11 @@ target_include_directories(solid_frame_mprpc PUBLIC
     PRIVATE src
 )
 
-target_link_libraries(solid_frame_mprpc solid_frame_aio)
+target_link_libraries(solid_frame_mprpc PUBLIC solid_frame_aio)
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/frame/mprpc)
 install (TARGETS solid_frame_mprpc DESTINATION lib EXPORT SolidFrameConfig)
 
-if(NOT SOLID_TEST_NONE OR SOLID_TEST_MPRPC)
+if(SOLID_TEST_ALL OR SOLID_TEST_MPRPC)
     add_subdirectory(test)
 endif()

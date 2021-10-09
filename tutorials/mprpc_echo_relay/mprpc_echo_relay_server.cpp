@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
         AioSchedulerT                         scheduler;
         frame::Manager                        manager;
         frame::mprpc::relay::SingleNameEngine relay_engine(manager); //before relay service because it must outlive it
-        frame::mprpc::ServiceT                ipcservice(manager);
+        frame::mprpc::ServiceT                rpcservice(manager);
         ErrorConditionT                       err;
 
         scheduler.start(1);
@@ -78,11 +78,13 @@ int main(int argc, char* argv[])
                 }
             };
 
-            auto                        proto = ProtocolT::create();
-            frame::mprpc::Configuration cfg(scheduler, relay_engine, proto);
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto& _rmap) {
+                    _rmap.template registerMessage<Register>(1, "Register", con_register);
+                });
 
-            proto->null(null_type_id);
-            proto->registerMessage<Register>(con_register, register_type_id);
+            frame::mprpc::Configuration cfg(scheduler, relay_engine, proto);
 
             cfg.server.listener_address_str = p.listener_addr;
             cfg.server.listener_address_str += ':';
@@ -91,11 +93,11 @@ int main(int argc, char* argv[])
 
             cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 
-            ipcservice.start(std::move(cfg));
+            rpcservice.start(std::move(cfg));
 
             {
                 std::ostringstream oss;
-                oss << ipcservice.configuration().server.listenerPort();
+                oss << rpcservice.configuration().server.listenerPort();
                 cout << "server listens on port: " << oss.str() << endl;
             }
         }

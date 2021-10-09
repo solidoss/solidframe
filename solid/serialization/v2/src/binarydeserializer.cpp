@@ -17,8 +17,6 @@ namespace serialization {
 namespace v2 {
 namespace binary {
 
-const LoggerT logger{"solid::serialization::v2::binary"};
-
 //== Deserializer  ==============================================================
 DeserializerBase::DeserializerBase(const TypeMapBase& _rtype_map, const Limits& _rlimits)
     : Base(_rlimits)
@@ -98,84 +96,6 @@ void DeserializerBase::tryRun(Runnable&& _ur, void* _pctx)
         if (v == ReturnE::Done) {
             run_lst_.pop_front();
         }
-    }
-}
-
-void DeserializerBase::limits(const Limits& _rlimits, const char* _name)
-{
-    solid_dbg(logger, Info, _name);
-    if (isRunEmpty()) {
-        limits_ = _rlimits;
-    } else {
-        Runnable r{
-            nullptr,
-            call_function,
-            [_rlimits](DeserializerBase& _rd, Runnable& /*_rr*/, void* /*_pctx*/) {
-                _rd.limits_ = _rlimits;
-                return Base::ReturnE::Done;
-            },
-            _name};
-        schedule(std::move(r));
-    }
-}
-
-void DeserializerBase::limitString(const size_t _sz, const char* _name)
-{
-    solid_dbg(logger, Info, _name);
-    if (isRunEmpty()) {
-        limits_.stringlimit_ = _sz;
-    } else {
-        Runnable r{
-            nullptr,
-            call_function,
-            _sz,
-            0,
-            [](DeserializerBase& _rs, Runnable& _rr, void* /*_pctx*/) {
-                _rs.limits_.stringlimit_ = static_cast<size_t>(_rr.size_);
-                return Base::ReturnE::Done;
-            },
-            _name};
-        schedule(std::move(r));
-    }
-}
-
-void DeserializerBase::limitContainer(const size_t _sz, const char* _name)
-{
-    solid_dbg(logger, Info, _name);
-    if (isRunEmpty()) {
-        limits_.containerlimit_ = _sz;
-    } else {
-        Runnable r{
-            nullptr,
-            call_function,
-            _sz,
-            0,
-            [](DeserializerBase& _rs, Runnable& _rr, void* /*_pctx*/) {
-                _rs.limits_.containerlimit_ = static_cast<size_t>(_rr.size_);
-                return Base::ReturnE::Done;
-            },
-            _name};
-        schedule(std::move(r));
-    }
-}
-
-void DeserializerBase::limitStream(const uint64_t _sz, const char* _name)
-{
-    solid_dbg(logger, Info, _name);
-    if (isRunEmpty()) {
-        limits_.streamlimit_ = _sz;
-    } else {
-        Runnable r{
-            nullptr,
-            call_function,
-            _sz,
-            0,
-            [](DeserializerBase& _rs, Runnable& _rr, void* /*_pctx*/) {
-                _rs.limits_.streamlimit_ = static_cast<size_t>(_rr.size_);
-                return Base::ReturnE::Done;
-            },
-            _name};
-        schedule(std::move(r));
     }
 }
 
@@ -281,17 +201,18 @@ Base::ReturnE DeserializerBase::load_stream_chunk(DeserializerBase& _rd, Runnabl
             len = static_cast<size_t>(_rr.size_);
         }
 
-        ros.write(_rd.pcrt_, len);
-
-        _rr.size_ -= len;
-        _rd.pcrt_ += len;
-
         _rr.data_ = len;
+
         _rr.fnc_(_rd, _rr, _pctx);
 
         if (_rd.error()) {
             return ReturnE::Done;
         }
+
+        ros.write(_rd.pcrt_, len);
+
+        _rd.pcrt_ += len;
+        _rr.size_ -= len;
 
         if (_rr.size_ == 0) {
             _rr.call_ = load_stream;

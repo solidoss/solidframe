@@ -241,9 +241,9 @@ inline SocketStubPtrT create_client_socket(mprpc::Configuration const& _rcfg, fr
 {
 
     if (sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)) {
-        return SocketStubPtrT(new SocketStub(_rproxy, _rcfg.client.secure_any.constCast<ClientConfiguration>()->context), SocketStub::delete_deleter);
+        return SocketStubPtrT(new SocketStub(_rproxy, const_cast<ClientConfiguration*>(_rcfg.client.secure_any.cast<ClientConfiguration>())->context), SocketStub::delete_deleter);
     } else {
-        return SocketStubPtrT(new (_emplace_buf) SocketStub(_rproxy, _rcfg.client.secure_any.constCast<ClientConfiguration>()->context), SocketStub::emplace_deleter);
+        return SocketStubPtrT(new (_emplace_buf) SocketStub(_rproxy, const_cast<ClientConfiguration*>(_rcfg.client.secure_any.cast<ClientConfiguration>())->context), SocketStub::emplace_deleter);
     }
 }
 
@@ -251,9 +251,9 @@ inline SocketStubPtrT create_server_socket(mprpc::Configuration const& _rcfg, fr
 {
 
     if (sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)) {
-        return SocketStubPtrT(new SocketStub(_rproxy, std::move(_usd), _rcfg.server.secure_any.constCast<ServerConfiguration>()->context), SocketStub::delete_deleter);
+        return SocketStubPtrT(new SocketStub(_rproxy, std::move(_usd), const_cast<ServerConfiguration*>(_rcfg.server.secure_any.cast<ServerConfiguration>())->context), SocketStub::delete_deleter);
     } else {
-        return SocketStubPtrT(new (_emplace_buf) SocketStub(_rproxy, std::move(_usd), _rcfg.server.secure_any.constCast<ServerConfiguration>()->context), SocketStub::emplace_deleter);
+        return SocketStubPtrT(new (_emplace_buf) SocketStub(_rproxy, std::move(_usd), const_cast<ServerConfiguration*>(_rcfg.server.secure_any.cast<ServerConfiguration>())->context), SocketStub::emplace_deleter);
     }
 }
 
@@ -292,7 +292,7 @@ struct NameCheckSecureStart {
     {
         if (!name.empty()) {
             _rsock.secureSetCheckHostName(_rctx, name);
-            solid_check(!_rctx.error());
+            solid_check_log(!_rctx.error(), service_logger());
         } else {
             _rsock.secureSetCheckHostName(_rctx, _rconctx.recipientName());
         }
@@ -316,7 +316,7 @@ inline void setup_client(
 {
 
     if (_rcfg.client.secure_any.empty()) {
-        _rcfg.client.secure_any = make_any<0, ClientConfiguration>();
+        _rcfg.client.secure_any = make_any<ClientConfiguration>();
     }
 
     _rcfg.client.connection_create_socket_fnc = &create_client_socket;
@@ -342,7 +342,7 @@ inline void setup_server(
 {
 
     if (_rcfg.server.secure_any.empty()) {
-        _rcfg.server.secure_any = make_any<0, ServerConfiguration>();
+        _rcfg.server.secure_any = make_any<ServerConfiguration>();
     }
 
     _rcfg.server.connection_create_socket_fnc = &create_server_socket;

@@ -131,7 +131,18 @@ struct PacketHeader {
     {
         return flags_ & static_cast<uint8_t>(FlagE::Compressed);
     }
-    bool isOk() const;
+    bool isOk() const
+    {
+        switch (static_cast<TypeE>(type_)) {
+        case TypeE::Data:
+        case TypeE::KeepAlive:
+            break;
+        default:
+            return false;
+        }
+
+        return size() <= Protocol::MaxPacketDataSize;
+    }
 
     char* store(char* _pc, const Protocol& _rproto) const
     {

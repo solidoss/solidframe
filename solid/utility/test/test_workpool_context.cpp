@@ -32,7 +32,7 @@ struct Context {
 
 int test_workpool_context(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EWS", "test_context:VIEWS"});
+    solid::log_start(std::cerr, {".*:EWXS", "test_context:VIEWS"});
 
     int          wait_seconds = 500;
     int          loop_cnt     = 5;
@@ -60,9 +60,12 @@ int test_workpool_context(int argc, char* argv[])
         }
 #endif
     };
-    if (async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
+
+    auto fut = async(launch::async, lambda);
+    if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }
+    fut.get();
     solid_log(logger, Verbose, "after async wait");
 
     return 0;

@@ -128,6 +128,7 @@ protected:
             if (written >= 0) {
                 _n -= written;
                 _s += written;
+                rsz_ += written;
             } else {
                 return false;
             }
@@ -739,6 +740,12 @@ void LogCategory::parse(LogAtomicFlagsBackT& _ror_flags, LogAtomicFlagsBackT& _r
             break;
         case 'R':
             _ror_flags |= (1UL << static_cast<LogAtomicFlagsBackT>(LogFlags::Raw));
+            break;
+        case 'x':
+            _rand_flags |= (1UL << static_cast<LogAtomicFlagsBackT>(LogFlags::Exception));
+            break;
+        case 'X':
+            _ror_flags |= (1UL << static_cast<LogAtomicFlagsBackT>(LogFlags::Exception));
             break;
         default:
             break;

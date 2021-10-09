@@ -1,34 +1,32 @@
 set(Sources
     src/utility.cpp
-    src/dynamictype.cpp
     src/memoryfile.cpp
     src/ioformat.cpp
-    src/any.cpp
     src/event.cpp
-    src/workpool.cpp
+    src/super.cpp
 )
 
 set(Headers
     algorithm.hpp
     any.hpp
     common.hpp
-    dynamicpointer.hpp
-    dynamictype.hpp
     event.hpp
     innerlist.hpp
     ioformat.hpp
     memoryfile.hpp
     queue.hpp
+    queue_lockfree.hpp
     sharedmutex.hpp
     stack.hpp
     string.hpp
     workpool.hpp
     workpool_lockfree.hpp
     workpool_locking.hpp
+    workpool_base.hpp
     function.hpp
-    functiontraits.hpp
     typetraits.hpp
     delegate.hpp
+    super.hpp
 )
 
 set(Inlines
@@ -42,11 +40,12 @@ target_include_directories(solid_utility PUBLIC
     $<INSTALL_INTERFACE:include>
     PRIVATE src
 )
-target_link_libraries(solid_utility solid_system)
+target_link_libraries(solid_utility PUBLIC solid_system)
+target_compile_features(solid_utility PUBLIC cxx_std_17)
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/utility)
 install (TARGETS solid_utility DESTINATION lib EXPORT SolidFrameConfig)
 
-if(NOT SOLID_TEST_NONE OR SOLID_TEST_UTILITY)
+if(SOLID_TEST_ALL OR SOLID_TEST_UTILITY)
     add_subdirectory(test)
 endif()

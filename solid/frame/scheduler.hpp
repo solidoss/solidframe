@@ -12,7 +12,6 @@
 
 #include "solid/frame/manager.hpp"
 #include "solid/frame/schedulerbase.hpp"
-#include "solid/utility/dynamicpointer.hpp"
 
 namespace solid {
 namespace frame {
@@ -22,8 +21,8 @@ class Service;
 template <class R>
 class Scheduler : private SchedulerBase {
 public:
-    typedef typename R::ActorT     ActorT;
-    typedef DynamicPointer<ActorT> ActorPointerT;
+    using ActorT        = typename R::ActorT;
+    using ActorPointerT = std::shared_ptr<ActorT>;
 
 private:
     typedef R ReactorT;
@@ -103,6 +102,12 @@ public:
         return doStartActor(*_ractptr, _rsvc, fct, _rerr);
     }
 };
+
+template <class Actr, class Schd, class Srvc, class... P>
+ActorIdT make_actor(Schd& _rschd, Srvc& _rsrvc, Event&& _revt, ErrorConditionT& _rerr, P&&... _p)
+{
+    return _rschd.startActor(std::make_shared<Actr>(std::forward<P>(_p)...), _rsrvc, std::forward<Event>(_revt), _rerr);
+}
 
 } //namespace frame
 } //namespace solid

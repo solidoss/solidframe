@@ -17,14 +17,17 @@ const LoggerT logger("test_basic");
 int test_workpool_basic(int argc, char* argv[])
 {
     install_crash_handler();
-    solid::log_start(std::cerr, {".*:EWS", "test_basic:VIEWS"});
+    solid::log_start(std::cerr, {".*:EWXS", "test_basic:VIEWS"});
     using WorkPoolT  = WorkPool<size_t>;
     using AtomicPWPT = std::atomic<WorkPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
-
-    const int           wait_seconds = 500;
-    int                 loop_cnt     = 5;
+#ifdef SOLID_SANITIZE_THREAD
+    const int wait_seconds = 1500;
+#else
+    const int wait_seconds = 150;
+#endif
+    int                 loop_cnt = 5;
     const size_t        cnt{5000000};
     const size_t        v = (((cnt - 1) * cnt)) / 2;
     std::atomic<size_t> val{0};
@@ -52,12 +55,14 @@ int test_workpool_basic(int argc, char* argv[])
             val = 0;
         }
     };
-    if (async(launch::async, lambda).wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
+    auto fut = async(launch::async, lambda);
+    if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         if (pwp != nullptr) {
             pwp.load()->dumpStatistics();
         }
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }
+    fut.get();
     solid_log(logger, Verbose, "after async wait");
 
     return 0;

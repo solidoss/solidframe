@@ -106,7 +106,7 @@ void CompletionHandler::deactivate()
         idxreactor = InvalidIndex();
     }
     if (isActive()) {
-        solid_throw("FATAL: CompletionHandler deleted/deactivated outside actor's reactor!");
+        solid_throw_log(generic_logger, "FATAL: CompletionHandler deleted/deactivated outside actor's reactor!");
     }
 }
 

@@ -2,11 +2,13 @@ branches:
   only:
     - master
     - work
+    - wp
     - travis
 
 language: cpp
 matrix:
   include:
+    # bionic
     - os: linux
       dist: bionic
       sudo: false
@@ -15,6 +17,63 @@ matrix:
       dist: bionic
       sudo: false
       compiler: clang
+    - os: linux
+      arch: arm64
+      dist: bionic
+      sudo: false
+      compiler: gcc
+    - os: linux
+      arch: arm64
+      dist: bionic
+      sudo: false
+      compiler: clang
+    - os: linux
+      arch: arm64-graviton2
+      dist: bionic
+      sudo: false
+      compiler: gcc
+      virt: lxd
+      group: edge
+    - os: linux
+      arch: arm64-graviton2
+      dist: bionic
+      sudo: false
+      compiler: clang
+      virt: lxd
+      group: edge
+    # focal
+    - os: linux
+      dist: focal
+      sudo: false
+      compiler: gcc
+    - os: linux
+      dist: focal
+      sudo: false
+      compiler: clang
+    - os: linux
+      arch: arm64
+      dist: focal
+      sudo: false
+      compiler: gcc
+    - os: linux
+      arch: arm64
+      dist: focal
+      sudo: false
+      compiler: clang
+    - os: linux
+      arch: arm64-graviton2
+      dist: focal
+      sudo: false
+      compiler: gcc
+      virt: lxd
+      group: edge
+    - os: linux
+      arch: arm64-graviton2
+      dist: focal
+      sudo: false
+      compiler: clang
+      virt: lxd
+      group: edge
     - os: osx
       compiler: clang
     - os: osx
@@ -24,16 +83,22 @@ matrix:
 install:
     - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install strawberryperl; fi
     - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install nasm; fi
+    - if [[ "${TRAVIS_CPU_ARCH}" == "arm64" ]]; then
+        sudo apt-get remove cmake;
+        sudo snap install cmake --classic;
+        cmake --version;
+      fi
 script:
-    - if [ "$TRAVIS_OS_NAME" == "linux" ]; then echo "nproc = " $(nproc); fi
+    - if [ "$TRAVIS_OS_NAME" == "osx" ]; then alias nproc="sysctl -n hw.logicalcpu"; fi
+    - echo "nproc = " $(nproc)
     - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure -b maintain && cd build/maintain && make -j$(nproc) && make Experimental; fi
     - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure -b maintain && cd build/maintain && make -j$(nproc) && make Experimental; fi
     - if [ "$TRAVIS_OS_NAME" == "windows" ]; then export PATH=$PATH:"c:\Program Files\NASM"; fi
     - if [ "$TRAVIS_OS_NAME" == "windows" ]; then unset CC && unset CXX; fi
-    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then prerequisites/run_in_visual_studio_2017_environment.sh amd64 bash ./configure -b maintain -f mnt -g "Visual Studio 15 2017 Win64"; fi
+    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then prerequisites/run_in_visual_studio_2017_environment.sh amd64 "bash ./configure -b maintain -f mnt -g "Visual Studio 15 2017 Win64""; fi
     - if [ "$TRAVIS_OS_NAME" == "windows" ]; then cd build/mnt; fi
-    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then travis_wait 20 ../../prerequisites/run_in_visual_studio_2017_environment.sh amd64 bash -c "PATH=\"${PATH}\":\"c:\Program Files\NASM\" cmake --build . --config release --target build-openssl && exit"; fi
-    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then cmake --build . --config release --target Experimental; fi
+    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then travis_wait 20 ../../prerequisites/run_in_visual_studio_2017_environment.sh amd64 "bash -c "cmake --build . --config RelWithDebInfo --target build-openssl""; fi
+    - if [ "$TRAVIS_OS_NAME" == "windows" ]; then cmake --build . --config RelWithDebInfo --target Experimental; fi
     
     # - if [ "$TRAVIS_OS_NAME" == "windows" ]; then travis_wait 30 ../../prerequisites/run_in_visual_studio_2017_environment.sh amd64 bash -c "cmake --build . --config release --target build-boost && exit"; fi
     # - if [ "$TRAVIS_OS_NAME" == "windows" ]; then cat external/openssl/src/build-openssl-stamp/build-openssl-configure-err.log; fi

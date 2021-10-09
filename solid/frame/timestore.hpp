@@ -35,7 +35,7 @@ public:
 
     size_t push(NanoTime const& _rt, ValueT const& _rv)
     {
-        solid_assert(_rv != InvalidIndex());
+        solid_assert_log(_rv != InvalidIndex(), generic_logger);
         const size_t rv = tv.size();
         tv.push_back(TimePairT(_rt, _rv));
         if (_rt < mint) {
@@ -49,7 +49,7 @@ public:
     {
         const size_t oldidx = tv.size() - 1;
         tv[_idx]            = tv.back();
-        solid_assert(!tv.empty());
+        solid_assert_log(!tv.empty(), generic_logger);
         tv.pop_back();
         if (_idx < tv.size()) {
             _rf(tv[_idx].second, _idx, oldidx);

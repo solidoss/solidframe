@@ -1,7 +1,7 @@
 #include "solid/frame/mprpc/mprpcsocketstub_openssl.hpp"
 
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v2.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
 #include "solid/frame/manager.hpp"
@@ -29,7 +29,6 @@ using namespace solid;
 
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
-using ProtocolT      = frame::mprpc::serialization_v2::Protocol<uint8_t>;
 
 namespace {
 
@@ -98,9 +97,9 @@ struct Request : frame::mprpc::Message {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, /*_name*/)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
+        _rr.add(_rthis.idx, _rctx, 0, "idx").add(_rthis.str, _rctx, 1, "str");
     }
 
     void init()
@@ -160,9 +159,9 @@ struct Response : frame::mprpc::Message {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, /*_name*/)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
+        _rr.add(_rthis.idx, _rctx, 0, "idx").add(_rthis.str, _rctx, 1, "str");
     }
 };
 
@@ -346,7 +345,7 @@ void server_complete_response(
 
 int test_clientserver_sendrequest(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {".*:EWX"});
 
     size_t max_per_pool_connection_count = 1;
 
@@ -393,12 +392,13 @@ int test_clientserver_sendrequest(int argc, char* argv[])
         std::string server_port;
 
         { //mprpc server initialization
-            auto                        proto = ProtocolT::create();
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto& _rmap) {
+                    _rmap.template registerMessage<Request>(1, "Request", server_complete_request);
+                    _rmap.template registerMessage<Response>(2, "Response", server_complete_response);
+                });
             frame::mprpc::Configuration cfg(sch_server, proto);
-
-            proto->null(0);
-            proto->registerMessage<Request>(server_complete_request, 1);
-            proto->registerMessage<Response>(server_complete_response, 2);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
@@ -432,12 +432,13 @@ int test_clientserver_sendrequest(int argc, char* argv[])
         }
 
         { //mprpc client initialization
-            auto                        proto = ProtocolT::create();
+            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
+                reflection::v1::metadata::factory,
+                [&](auto& _rmap) {
+                    _rmap.template registerMessage<Request>(1, "Request", client_complete_request);
+                    _rmap.template registerMessage<Response>(2, "Response", client_complete_response);
+                });
             frame::mprpc::Configuration cfg(sch_client, proto);
-
-            proto->null(0);
-            proto->registerMessage<Request>(client_complete_request, 1);
-            proto->registerMessage<Response>(client_complete_response, 2);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;

@@ -11,6 +11,7 @@
 #pragma once
 
 #include "solid/system/common.hpp"
+#include "solid/system/log.hpp"
 
 #ifdef SOLID_HAS_ASSERT
 
@@ -18,27 +19,21 @@
 
 #define solid_assert(a) assert((a))
 
+#define solid_assert_log2(a, l)                            \
+    if (static_cast<bool>(a)) {                            \
+    } else {                                               \
+        solid_log(l, Exception, "(" #a ") assert failed"); \
+        assert((false));                                   \
+    }
+#define solid_assert_log3(a, l, x)                               \
+    if (static_cast<bool>(a)) {                                  \
+    } else {                                                     \
+        solid_log(l, Exception, "(" #a ") assert failed " << x); \
+        assert((false));                                         \
+    }
+
+#define solid_assert_log(...) SOLID_CALL_OVERLOAD(solid_assert_log, __VA_ARGS__)
 #else
 #define solid_assert(a)
-
+#define solid_assert_log(...)
 #endif
-
-namespace solid {
-
-template <bool B>
-struct static_test;
-
-template <>
-struct static_test<true> {
-    static void ok()
-    {
-    }
-};
-
-template <>
-struct static_test<false> {
-};
-
-} //namespace solid
-
-#define cstatic_assert(e) solid::static_test<(e)>::ok()

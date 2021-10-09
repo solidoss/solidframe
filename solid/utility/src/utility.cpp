@@ -8,12 +8,23 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "solid/system/exception.hpp"
+#include "solid/system/log.hpp"
+#include "solid/system/mutualstore.hpp"
 #include "solid/utility/algorithm.hpp"
 #include "solid/utility/common.hpp"
+#include "solid/utility/queue_lockfree.hpp"
 #include "solid/utility/string.hpp"
+#include "solid/utility/workpool.hpp"
+#include <mutex>
 #include <sstream>
 
 namespace solid {
+
+const LoggerT workpool_logger{"solid::workpool"};
+
+namespace lockfree {
+const LoggerT queue_logger{"solid::lockfree::queue"};
+}
 
 const uint8_t reverted_chars[] = {
     0x00, 0x80, 0x40, 0xC0, 0x20, 0xA0, 0x60, 0xE0, 0x10, 0x90,
@@ -83,7 +94,7 @@ size_t bit_count(const uint64_t _v)
 uint64_t make_number(std::string _str)
 {
 
-    solid_check(!_str.empty(), "Empty string");
+    solid_check_log(!_str.empty(), generic_logger, "Empty string");
     uint64_t mul = 1;
     if (isupper(_str.back()) != 0) {
         switch (_str.back()) {
@@ -100,7 +111,7 @@ uint64_t make_number(std::string _str)
             mul = 1024ULL * 1024 * 1024 * 1024;
             break;
         default:
-            solid_throw("Unknown multiplier: " << _str.back());
+            solid_throw_log(generic_logger, "Unknown multiplier: " << _str.back());
         }
         _str.pop_back();
     }
@@ -119,7 +130,7 @@ uint64_t make_number(std::string _str)
             mul = 1000ULL * 1000 * 1000 * 1000;
             break;
         default:
-            solid_throw("Unknown multiplier: " << _str.back());
+            solid_throw_log(generic_logger, "Unknown multiplier: " << _str.back());
         }
         _str.pop_back();
     }
@@ -127,6 +138,43 @@ uint64_t make_number(std::string _str)
     uint64_t           n;
     iss >> n;
     return n * mul;
+}
+
+//---------------------------------------------------------------------
+//      Shared
+//---------------------------------------------------------------------
+
+namespace {
+
+typedef MutualStore<std::mutex> MutexStoreT;
+
+MutexStoreT& mutexStore()
+{
+    static MutexStoreT mtxstore(true, 3, 2, 2);
+    return mtxstore;
+}
+
+// size_t specificId(){
+//  static const size_t id(Thread::specificId());
+//  return id;
+// }
+
+std::mutex& global_mutex()
+{
+    static std::mutex mtx;
+    return mtx;
+}
+
+} //namespace
+
+std::mutex& shared_mutex_safe(const void* _p)
+{
+    std::lock_guard<std::mutex> lock(global_mutex());
+    return mutexStore().safeAt(reinterpret_cast<size_t>(_p));
+}
+std::mutex& shared_mutex(const void* _p)
+{
+    return mutexStore().at(reinterpret_cast<size_t>(_p));
 }
 
 } //namespace solid
