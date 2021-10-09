@@ -49,6 +49,10 @@ protected:
     {
         _rcv.wait(_rlock, _predicate);
     }
+
+    void wait(std::condition_variable& _rcv, std::unique_lock<std::mutex>& _rlock){
+        _rcv.wait(_rlock);
+    }
 };
 
 template <size_t WaitSeconds>
@@ -71,6 +75,10 @@ protected:
     void wait(std::condition_variable& _rcv, std::unique_lock<std::mutex>& _rlock, Predicate _predicate)
     {
         solid_check_log(_rcv.wait_for(_rlock, std::chrono::seconds(WaitSeconds), _predicate), workpool_logger, "condition locked waited " << WaitSeconds << " seconds");
+    }
+
+    void wait(std::condition_variable& _rcv, std::unique_lock<std::mutex>& _rlock){
+        solid_check_log(_rcv.wait_for(_rlock, std::chrono::seconds(WaitSeconds)) != std::cv_status::timeout, workpool_logger, "condition locked waited " << WaitSeconds << " seconds");
     }
 };
 

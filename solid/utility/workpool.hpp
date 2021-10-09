@@ -111,7 +111,10 @@ public:
     }
 };
 
-template <class, size_t FunctionDataSize = function_default_data_size, template <typename, typename> class WorkP = WorkPoolMulticast>
+template <typename Job, typename MCastJob>
+using DefaultWorkPoolMulticastT = WorkPoolMulticast<Job, MCastJob>;
+
+template <class, size_t FunctionDataSize = function_default_data_size, template <typename, typename> class WorkP = DefaultWorkPoolMulticastT>
 class CallPoolMulticast;
 
 template <class... ArgTypes, size_t FunctionDataSize, template <typename, typename> class WP>

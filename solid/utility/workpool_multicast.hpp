@@ -30,7 +30,7 @@ namespace solid {
 extern const LoggerT workpool_logger;
 
 template <typename Job, typename MCastJob = Job, size_t QNBits = 10, typename Base = impl::WorkPoolBase>
-class WorkPoolMulticast {
+class WorkPoolMulticast : protected Base {
 
     using ThisT          = WorkPoolMulticast<Job, MCastJob, QNBits, Base>;
     using ThreadVectorT  = std::vector<std::thread>;
@@ -55,8 +55,8 @@ class WorkPoolMulticast {
         std::atomic<size_t>   max_mcast_jobs_in_queue_;
         std::atomic<uint64_t> max_jobs_on_thread_;
         std::atomic<uint64_t> min_jobs_on_thread_;
-        std::atomic<size_t>   max_mcast_jobs_on_thread_;
-        std::atomic<size_t>   min_mcast_jobs_on_thread_;
+        std::atomic<uint64_t> max_mcast_jobs_on_thread_;
+        std::atomic<uint64_t> min_mcast_jobs_on_thread_;
         std::atomic<size_t>   mcast_updates_;
 
         Statistic()
@@ -342,7 +342,7 @@ bool WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
             if (!running_.load(std::memory_order_relaxed) && mcast_job_q_.empty()) {
                 break;
             }
-            sig_cnd_.wait(lock);
+            Base::wait(sig_cnd_, lock);
         }
         return true;
     }
@@ -409,7 +409,7 @@ void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::push(const JT& _jb)
             if (job_q_.size() < config_.max_job_queue_size_) {
             } else {
                 do {
-                    sig_cnd_.wait(lock);
+                    Base::wait(sig_cnd_, lock);
                 } while (job_q_.size() >= config_.max_job_queue_size_);
             }
 
@@ -434,7 +434,7 @@ void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::push(JT&& _jb)
             if (job_q_.size() < config_.max_job_queue_size_) {
             } else {
                 do {
-                    sig_cnd_.wait(lock);
+                    Base::wait(sig_cnd_, lock);
                 } while (job_q_.size() >= config_.max_job_queue_size_);
             }
 
@@ -459,7 +459,7 @@ void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pushAllSync(const JT& _jb)
             if (mcast_job_q_.size() < config_.max_job_queue_size_) {
             } else {
                 do {
-                    sig_cnd_.wait(lock);
+                    Base::wait(sig_cnd_, lock);
                 } while (mcast_job_q_.size() >= config_.max_job_queue_size_);
             }
 
@@ -487,7 +487,7 @@ void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pushAllSync(JT&& _jb)
             if (mcast_job_q_.size() < config_.max_job_queue_size_) {
             } else {
                 do {
-                    sig_cnd_.wait(lock);
+                    Base::wait(sig_cnd_, lock);
                 } while (mcast_job_q_.size() >= config_.max_job_queue_size_);
             }
 
