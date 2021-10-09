@@ -230,20 +230,20 @@ endif()
 if(NOT NO_EXTERNAL)
     include(ExternalProject)
     
-    include(cmake/build_snappy.cmake)
-    include(cmake/build_cxxopts.cmake)
+    include(cmake/build-snappy.cmake)
+    include(cmake/build-cxxopts.cmake)
 
     include_directories(${CMAKE_BINARY_DIR}/external/include)
 
     if(EXTERNAL_DIR STREQUAL "" OR NOT EXISTS ${EXTERNAL_DIR})
         set(EXTERNAL_DIR "${CMAKE_CURRENT_BINARY_DIR}/external")
 
-        include(cmake/build_openssl.cmake)
+        include(cmake/build-openssl.cmake)
     else()
         #define dummy targets
         add_custom_target(build-openssl)
 
-        include(cmake/find_openssl.cmake)
+        include(cmake/find-openssl.cmake)
         
         include_directories(${EXTERNAL_DIR}/include)
     endif()
