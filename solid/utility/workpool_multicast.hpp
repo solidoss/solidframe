@@ -45,10 +45,8 @@ class WorkPoolMulticast : protected Base {
     ThreadVectorT           thr_vec_;
     std::mutex              mtx_;
     std::condition_variable sig_cnd_;
-    size_t                  mcast_current_fetch_id_    = 0;
-    size_t                  mcast_current_fetch_count_ = 0;
-    size_t                  mcast_current_exec_id_     = 0;
-    size_t                  mcast_current_exec_count_  = 0;
+    size_t                  mcast_current_exec_id_    = 0;
+    size_t                  mcast_current_exec_count_ = 0;
 #ifdef SOLID_HAS_STATISTICS
     struct Statistic : solid::Statistic {
         std::atomic<size_t>   max_jobs_in_queue_;
@@ -304,32 +302,22 @@ bool WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
             job_q_.pop();
         }
         if (!mcast_job_q_.empty()) {
-            if (_rcontext.mcast_fetch_id_ != mcast_current_fetch_id_) {
-                ++_rcontext.mcast_fetch_id_;
-                ++mcast_current_fetch_count_;
-                if (mcast_current_fetch_count_ == config_.max_worker_count_) {
-                    _rcontext.has_mcast_update_ = true;
-                    should_wait                 = false;
-                    should_notify               = true;
-                    mcast_current_exec_id_      = mcast_current_fetch_id_;
-                }
-            }
 
-            if (mcast_current_fetch_count_ == config_.max_worker_count_ && _rcontext.mcast_exec_id_ != mcast_current_exec_id_) {
+            if (_rcontext.mcast_exec_id_ != mcast_current_exec_id_) {
                 ++_rcontext.mcast_exec_id_;
                 _rcontext.has_mcast_execute_ = true;
                 should_wait                  = false;
                 _rcontext.mcast_job_         = mcast_job_q_.front(); //copy
+                _rcontext.has_mcast_update_  = (mcast_current_exec_count_ == 0);
+
                 ++mcast_current_exec_count_;
                 if (mcast_current_exec_count_ == config_.max_worker_count_) {
                     //done with current mcast item
                     mcast_job_q_.pop();
-                    mcast_current_exec_count_  = 0;
-                    mcast_current_fetch_count_ = 0;
-                    should_notify              = true;
+                    mcast_current_exec_count_ = 0;
+                    should_notify             = true;
                     if (!mcast_job_q_.empty()) {
-                        ++mcast_current_fetch_id_;
-                        should_notify = true;
+                        ++mcast_current_exec_id_;
                     }
                 }
             }
@@ -466,7 +454,7 @@ void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pushAllSync(const JT& _jb)
             mcast_job_q_.push(_jb);
             qsz = mcast_job_q_.size();
             if (qsz == 1) {
-                ++mcast_current_fetch_id_;
+                ++mcast_current_exec_id_;
             }
         }
 
@@ -494,7 +482,7 @@ void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pushAllSync(JT&& _jb)
             mcast_job_q_.push(std::move(_jb));
             qsz = mcast_job_q_.size();
             if (qsz == 1) {
-                ++mcast_current_fetch_id_;
+                ++mcast_current_exec_id_;
             }
         }
 
