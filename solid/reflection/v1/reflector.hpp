@@ -448,10 +448,10 @@ private:
                 if (name != nullptr) {
                     _ros << name;
                 } else {
-                    _ros << static_cast<std::underlying_type_t<T>>(ref_);
+                    _ros << to_underlying(ref_);
                 }
             } else {
-                _ros << static_cast<std::underlying_type_t<T>>(ref_);
+                _ros << to_underlying(ref_);
             }
         }
         return _ros;

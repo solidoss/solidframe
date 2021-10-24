@@ -61,7 +61,7 @@ int test_callpool_multicast_basic(int argc, char* argv[])
                         barrier.set_value();
                         for (uint32_t i = 0; i < cnt; ++i) {
                             if ((i % 10) == 0) {
-                                cp.pushAllSync(
+                                cp.pushAll(
                                     [v = (i / 10 + 1)](Context& _rctx, deque<uint32_t>&) {
                                         uint32_t expect = thread_local_value;
                                         _rctx.all_val.compare_exchange_strong(expect, v);

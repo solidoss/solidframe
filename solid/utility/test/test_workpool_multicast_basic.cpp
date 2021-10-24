@@ -72,7 +72,7 @@ int test_workpool_multicast_basic(int argc, char* argv[])
                         barrier.set_value();
                         for (uint32_t i = 0; i < cnt; ++i) {
                             if ((i % 10) == 0) {
-                                wp.pushAllSync(i / 10 + 1);
+                                wp.pushAll(i / 10 + 1);
                             }
                         }
                     },

@@ -38,15 +38,15 @@ public:
         static_assert(std::is_enum_v<T>, "T must be an enum");
 
         for (const auto& item : _init_list) {
-            direct_map_.emplace(static_cast<int64_t>(static_cast<std::underlying_type_t<T>>(item.first)), item.second);
-            reverse_map_.emplace(item.second, static_cast<int64_t>(static_cast<std::underlying_type_t<T>>(item.first)));
+            direct_map_.emplace(static_cast<int64_t>(to_underlying(item.first)), item.second);
+            reverse_map_.emplace(item.second, static_cast<int64_t>(to_underlying(item.first)));
         }
     }
     template <class T>
     const char* get(const T _key) const
     {
         static_assert(std::is_enum_v<T>, "T must be an enum");
-        const auto it = direct_map_.find(static_cast<int64_t>(static_cast<std::underlying_type_t<T>>(_key)));
+        const auto it = direct_map_.find(static_cast<int64_t>(to_underlying(_key)));
         if (it != direct_map_.end()) {
             return it->second.data();
         } else {

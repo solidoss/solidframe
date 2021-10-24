@@ -166,39 +166,39 @@ public:
     }
 
     template <class JT>
-    void push(const JT& _jb)
+    void push(const JT& _jb, const JobType _jb_type = JobType::Asynchronous)
     {
-        wp_.push(_jb);
+        wp_.push(_jb, _jb_type);
     }
 
     template <class JT>
-    void push(JT&& _jb)
+    void push(JT&& _jb, const JobType _jb_type = JobType::Asynchronous)
     {
-        wp_.push(std::forward<JT>(_jb));
+        wp_.push(std::forward<JT>(_jb), _jb_type);
     }
 
     template <class JT>
-    bool tryPush(const JT& _jb)
+    bool tryPush(const JT& _jb, const JobType _jb_type = JobType::Asynchronous)
     {
-        return wp_.tryPush(_jb);
+        return wp_.tryPush(_jb, _jb_type);
     }
 
     template <class JT>
-    bool tryPush(JT&& _jb)
+    bool tryPush(JT&& _jb, const JobType _jb_type = JobType::Asynchronous)
     {
-        return wp_.tryPush(std::forward<JT>(_jb));
+        return wp_.tryPush(std::forward<JT>(_jb), _jb_type);
     }
 
     template <class JT, class UpdateFnc>
-    void pushAllSync(const JT& _jb, const UpdateFnc& _update_fnc)
+    void pushAll(const JT& _jb, const UpdateFnc& _update_fnc, const JobType _jb_type = JobType::Synchronous)
     {
-        wp_.pushAllSync(FunctionPairT(_jb, _update_fnc));
+        wp_.pushAll(FunctionPairT(_jb, _update_fnc), _jb_type);
     }
 
     template <class JT, class UpdateFnc>
-    void pushAllSync(JT&& _jb, UpdateFnc&& _update_fnc)
+    void pushAll(JT&& _jb, UpdateFnc&& _update_fnc, const JobType _jb_type = JobType::Synchronous)
     {
-        wp_.pushAllSync(FunctionPairT(std::forward<JT>(_jb), std::forward<UpdateFnc>(_update_fnc)));
+        wp_.pushAll(FunctionPairT(std::forward<JT>(_jb), std::forward<UpdateFnc>(_update_fnc)), _jb_type);
     }
 
     void stop()
