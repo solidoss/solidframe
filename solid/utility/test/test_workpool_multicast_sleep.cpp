@@ -30,7 +30,7 @@ int test_workpool_multicast_sleep(int argc, char* argv[])
 #else
     const int wait_seconds = 150;
 #endif
-    int                   loop_cnt = 5;
+    int                   loop_cnt = 3;
     const size_t          cnt{1000};
     const size_t          v = (((cnt - 1) * cnt)) / 2;
     std::atomic<uint32_t> all_val{0};

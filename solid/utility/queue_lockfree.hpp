@@ -340,7 +340,6 @@ size_t Queue<T, NBits, Base>::doPush(const T& _rt, T&& _ut, std::bool_constant<I
                     solid_dbg(queue_logger, Warning, this << "wait qsz = " << size_.load());
                     solid_statistic_inc(statistic_.push_wait_);
                     push_end_.wait_count_.fetch_add(1);
-                    //push_end_.condition_.wait(lock, [this]() { return size_.load() < max_size_; });
                     Base::wait(push_end_.condition_, lock, [this]() { return size_.load() < max_size_; });
                     push_end_.wait_count_.fetch_sub(1);
                 } else {

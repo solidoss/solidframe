@@ -188,16 +188,14 @@ void WorkPool<Job, QNBits, Base>::push(const JT& _jb)
 
             if (job_q_.size() < config_.max_job_queue_size_) {
             } else {
-                do {
-                    sig_cnd_.wait(lock);
-                } while (job_q_.size() >= config_.max_job_queue_size_);
+                Base::wait(sig_cnd_, lock, [this]() { return job_q_.size() < config_.max_job_queue_size_; });
             }
 
             job_q_.push(_jb);
             qsz = job_q_.size();
         }
 
-        sig_cnd_.notify_one();
+        sig_cnd_.notify_all(); //using all because sig_cnd_ is job_q_ size limitation
 
         const size_t thr_cnt = thr_cnt_.load();
 
@@ -224,16 +222,14 @@ void WorkPool<Job, QNBits, Base>::push(JT&& _jb)
 
             if (job_q_.size() < config_.max_job_queue_size_) {
             } else {
-                do {
-                    sig_cnd_.wait(lock);
-                } while (job_q_.size() >= config_.max_job_queue_size_);
+                Base::wait(sig_cnd_, lock, [this]() { return job_q_.size() < config_.max_job_queue_size_; });
             }
 
             job_q_.push(std::move(_jb));
             qsz = job_q_.size();
         }
 
-        sig_cnd_.notify_one();
+        sig_cnd_.notify_all(); //using all because sig_cnd_ is job_q_ size limitation
 
         const size_t thr_cnt = thr_cnt_.load();
 
@@ -267,7 +263,7 @@ bool WorkPool<Job, QNBits, Base>::tryPush(const JT& _jb)
             qsz = job_q_.size();
         }
 
-        sig_cnd_.notify_one();
+        sig_cnd_.notify_all(); //using all because sig_cnd_ is job_q_ size limitation
 
         const size_t thr_cnt = thr_cnt_.load();
 
@@ -302,7 +298,7 @@ bool WorkPool<Job, QNBits, Base>::tryPush(JT&& _jb)
             qsz = job_q_.size();
         }
 
-        sig_cnd_.notify_one();
+        sig_cnd_.notify_all(); //using all because sig_cnd_ is job_q_ size limitation
 
         const size_t thr_cnt = thr_cnt_.load();
 
@@ -323,7 +319,7 @@ template <typename Job, size_t QNBits, typename Base>
 bool WorkPool<Job, QNBits, Base>::doWaitJob(std::unique_lock<std::mutex>& _lock)
 {
     while (job_q_.empty() && running_.load(std::memory_order_relaxed)) {
-        sig_cnd_.wait(_lock);
+        Base::wait(sig_cnd_, _lock);
     }
     return !job_q_.empty();
 }
@@ -339,8 +335,9 @@ bool WorkPool<Job, QNBits, Base>::pop(Job& _rjob)
         _rjob               = std::move(job_q_.front());
         job_q_.pop();
 
-        if (was_full)
+        if (was_full) {
             sig_cnd_.notify_all();
+        }
         return true;
     }
     return false;

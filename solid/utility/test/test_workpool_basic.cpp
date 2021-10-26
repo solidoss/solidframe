@@ -25,9 +25,9 @@ int test_workpool_basic(int argc, char* argv[])
 #ifdef SOLID_SANITIZE_THREAD
     const int wait_seconds = 1500;
 #else
-    const int wait_seconds = 150;
+    const int wait_seconds = 200;
 #endif
-    int                 loop_cnt = 5;
+    int                 loop_cnt = 3;
     const size_t        cnt{5000000};
     const size_t        v = (((cnt - 1) * cnt)) / 2;
     std::atomic<size_t> val{0};

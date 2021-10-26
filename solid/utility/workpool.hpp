@@ -15,20 +15,33 @@
 #include "solid/utility/workpool_locking.hpp"
 #include "solid/utility/workpool_multicast.hpp"
 
-//#define SOLID_USE_WORKPOOL_MUTEX
+//#define SOLID_USE_LOCKING_WORKPOOL
 
 namespace solid {
 
 constexpr size_t workpoll_default_node_capacity_bit_count = 10;
 
-#ifdef SOLID_USE_WORKPOOL_MUTEX
+namespace locking {
+template <typename Job, size_t QNBits = workpoll_default_node_capacity_bit_count, typename Base = solid::impl::WorkPoolBase>
+using WorkPoolT = locking::WorkPool<Job, QNBits, Base>;
+} //namespace locking
 
-template <typename Job, size_t QNBits = workpoll_default_node_capacity_bit_count, typename Base = impl::WorkPoolBase>
+namespace lockfree {
+template <typename Job, size_t QNBits = workpoll_default_node_capacity_bit_count, typename Base = solid::impl::WorkPoolBase>
+using WorkPoolT = lockfree::WorkPool<Job, QNBits, Base>;
+} //namespace lockfree
+
+#ifdef SOLID_USE_LOCKING_WORKPOOL
+
+template <typename Job, size_t QNBits = workpoll_default_node_capacity_bit_count, typename Base = solid::impl::WorkPoolBase>
 using WorkPool = locking::WorkPool<Job, QNBits, Base>;
+
+template <typename Job>
+using DefaultWorkPoolT = locking::WorkPoolT<Job>;
 
 #else
 
-template <typename Job, size_t QNBits = workpoll_default_node_capacity_bit_count, typename Base = impl::WorkPoolBase>
+template <typename Job, size_t QNBits = workpoll_default_node_capacity_bit_count, typename Base = solid::impl::WorkPoolBase>
 using WorkPool = lockfree::WorkPool<Job, QNBits, Base>;
 
 #endif
