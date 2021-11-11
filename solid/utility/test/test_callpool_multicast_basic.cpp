@@ -107,7 +107,7 @@ int test_callpool_multicast_basic(int argc, char* argv[])
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         if (pwp != nullptr) {
-            pwp.load()->dumpStatistics();
+            solid_log(logger, Statistic, "Workpool statistic: " << pwp.load()->statistic());
         }
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }

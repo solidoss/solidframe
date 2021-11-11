@@ -250,12 +250,9 @@ int test_event_stress_wp(int argc, char* argv[])
             {
                 auto fut = prom.get_future();
                 if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
-                    solid_dbg(workpool_logger, Statistic, "Connection pool:");
-                    connection_cp.dumpStatistics();
-                    solid_dbg(workpool_logger, Statistic, "Device pool:");
-                    device_cp.dumpStatistics();
-                    solid_dbg(workpool_logger, Statistic, "Account pool:");
-                    account_cp.dumpStatistics();
+                    solid_dbg(workpool_logger, Statistic, "Connection pool: " << connection_cp.statistic());
+                    solid_dbg(workpool_logger, Statistic, "Device pool: " << device_cp.statistic());
+                    solid_dbg(workpool_logger, Statistic, "Account pool: " << account_cp.statistic());
                     solid_dbg(workpool_logger, Warning, "sleep - wait for locked threads");
                     this_thread::sleep_for(chrono::seconds(100));
                     solid_dbg(workpool_logger, Warning, "wake - waited for locked threads");

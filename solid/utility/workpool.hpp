@@ -118,9 +118,9 @@ public:
         wp_.stop();
     }
 
-    void dumpStatistics() const
+    const auto& statistic() const
     {
-        wp_.dumpStatistics();
+        return wp_.statistic();
     }
 };
 
@@ -219,9 +219,9 @@ public:
         wp_.stop();
     }
 
-    void dumpStatistics() const
+    const auto& statistic() const
     {
-        wp_.dumpStatistics();
+        return wp_.statistic();
     }
 };
 

@@ -30,6 +30,16 @@ namespace solid {
 extern const LoggerT workpool_logger;
 namespace locking {
 //-----------------------------------------------------------------------------
+struct WorkPoolStatistic : solid::Statistic {
+    std::atomic<size_t>   max_worker_count_;
+    std::atomic<size_t>   max_jobs_in_queue_;
+    std::atomic<uint64_t> max_jobs_on_thread_;
+    std::atomic<uint64_t> min_jobs_on_thread_;
+
+    WorkPoolStatistic();
+
+    std::ostream& print(std::ostream& _ros) const override;
+};
 //-----------------------------------------------------------------------------
 //! Pool of threads handling Jobs
 /*!
@@ -71,29 +81,7 @@ class WorkPool : protected Base {
     std::mutex              thr_mtx_;
     std::condition_variable sig_cnd_;
 #ifdef SOLID_HAS_STATISTICS
-    struct Statistic : solid::Statistic {
-        std::atomic<size_t>   max_worker_count_;
-        std::atomic<size_t>   max_jobs_in_queue_;
-        std::atomic<uint64_t> max_jobs_on_thread_;
-        std::atomic<uint64_t> min_jobs_on_thread_;
-
-        Statistic()
-            : max_worker_count_(0)
-            , max_jobs_in_queue_(0)
-            , max_jobs_on_thread_(0)
-            , min_jobs_on_thread_(-1)
-        {
-        }
-
-        std::ostream& print(std::ostream& _ros) const override
-        {
-            _ros << " max_worker_count_ = " << max_worker_count_;
-            _ros << " max_jobs_in_queue_ = " << max_jobs_in_queue_;
-            _ros << " max_jobs_on_thread_ = " << max_jobs_on_thread_;
-            _ros << " min_jobs_on_thread_ = " << min_jobs_on_thread_;
-            return _ros;
-        }
-    } statistic_;
+    WorkPoolStatistic statistic_;
 #endif
 public:
     static constexpr size_t node_capacity = bits_to_count(QNBits);
@@ -153,9 +141,12 @@ public:
 
     template <class JT>
     bool tryPush(JT&& _jb);
-
-    void dumpStatistics() const;
-
+#ifdef SOLID_HAS_STATISTICS
+    const WorkPoolStatistic& statistic() const
+    {
+        return statistic_;
+    }
+#endif
     void stop()
     {
         doStop();
@@ -361,7 +352,9 @@ void WorkPool<Job, QNBits, Base>::doStop()
         }
         thr_vec_.clear();
     }
-    dumpStatistics();
+#ifdef SOLID_HAS_STATISTICS
+    solid_log(workpool_logger, Statistic, "Workpool " << this << " statistic:" << this->statistic_);
+#endif
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
@@ -413,15 +406,6 @@ void WorkPool<Job, QNBits, Base>::doStart(
         }
     }
 }
-//-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits, typename Base>
-void WorkPool<Job, QNBits, Base>::dumpStatistics() const
-{
-#ifdef SOLID_HAS_STATISTICS
-    solid_log(workpool_logger, Statistic, "Workpool " << this << " statistic:" << this->statistic_);
-#endif
-}
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 } //namespace locking

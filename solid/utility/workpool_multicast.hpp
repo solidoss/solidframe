@@ -37,6 +37,20 @@ enum struct JobType : uint16_t {
     Count
 };
 
+struct WorkPoolMulticastStatistic : solid::Statistic {
+    std::atomic<size_t>   max_jobs_in_queue_[to_underlying(JobType::Count)];
+    std::atomic<size_t>   max_mcast_jobs_in_queue_;
+    std::atomic<uint64_t> max_jobs_on_thread_;
+    std::atomic<uint64_t> min_jobs_on_thread_;
+    std::atomic<uint64_t> max_mcast_jobs_on_thread_;
+    std::atomic<uint64_t> min_mcast_jobs_on_thread_;
+    std::atomic<size_t>   mcast_updates_;
+
+    WorkPoolMulticastStatistic();
+
+    std::ostream& print(std::ostream& _ros) const override;
+};
+
 template <typename Job, typename MCastJob = Job, size_t QNBits = 10, typename Base = impl::WorkPoolBase>
 class WorkPoolMulticast : protected Base {
 
@@ -57,40 +71,7 @@ class WorkPoolMulticast : protected Base {
     size_t                  mcast_current_exec_count_ = 0;
     bool                    synch_lock_               = false;
 #ifdef SOLID_HAS_STATISTICS
-    struct Statistic : solid::Statistic {
-        std::atomic<size_t>   max_jobs_in_queue_[to_underlying(JobType::Count)];
-        std::atomic<size_t>   max_mcast_jobs_in_queue_;
-        std::atomic<uint64_t> max_jobs_on_thread_;
-        std::atomic<uint64_t> min_jobs_on_thread_;
-        std::atomic<uint64_t> max_mcast_jobs_on_thread_;
-        std::atomic<uint64_t> min_mcast_jobs_on_thread_;
-        std::atomic<size_t>   mcast_updates_;
-
-        Statistic()
-            : max_jobs_in_queue_{0, 0}
-            , max_mcast_jobs_in_queue_(0)
-            , max_jobs_on_thread_(0)
-            , min_jobs_on_thread_(-1)
-            , max_mcast_jobs_on_thread_(0)
-            , min_mcast_jobs_on_thread_(-1)
-            , mcast_updates_(0)
-        {
-        }
-
-        std::ostream& print(std::ostream& _ros) const override
-        {
-            _ros << " max_jobs_in_queue_[Synch] = " << max_jobs_in_queue_[to_underlying(JobType::Synchronous)];
-            _ros << " max_jobs_in_queue_[Async] = " << max_jobs_in_queue_[to_underlying(JobType::Asynchronous)];
-            _ros << " max_mcast_jobs_in_queue_ = " << max_mcast_jobs_in_queue_;
-            _ros << " max_jobs_on_thread_ = " << max_jobs_on_thread_;
-            _ros << " min_jobs_on_thread_ = " << min_jobs_on_thread_;
-            _ros << " max_mcast_jobs_on_thread_ = " << max_mcast_jobs_on_thread_;
-            _ros << " min_mcast_jobs_on_thread_ = " << min_mcast_jobs_on_thread_;
-            _ros << " mcast_updates_ = " << mcast_updates_;
-
-            return _ros;
-        }
-    } statistic_;
+    WorkPoolMulticastStatistic statistic_;
 #endif
 public:
     static constexpr size_t node_capacity = bits_to_count(QNBits);
@@ -159,8 +140,12 @@ public:
     template <class JT>
     void pushAll(JT&& _jb, const JobType _jb_type = JobType::Synchronous);
 
-    void dumpStatistics() const;
-
+#ifdef SOLID_HAS_STATISTICS
+    const WorkPoolMulticastStatistic& statistic() const
+    {
+        return statistic_;
+    }
+#endif
     void stop()
     {
         doStop();
@@ -288,7 +273,9 @@ void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::doStop()
         }
         thr_vec_.clear();
     }
-    dumpStatistics();
+#ifdef SOLID_HAS_STATISTICS
+    solid_log(workpool_logger, Statistic, "WorkPoolMulticast " << this << " statistic:" << this->statistic_);
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -518,11 +505,4 @@ void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pushAll(JT&& _jb, const Job
     solid_statistic_max(statistic_.max_mcast_jobs_in_queue_, qsz);
 }
 //-----------------------------------------------------------------------------
-template <typename Job, typename MCastJob, size_t QNBits, typename Base>
-void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::dumpStatistics() const
-{
-#ifdef SOLID_HAS_STATISTICS
-    solid_log(workpool_logger, Statistic, "WorkPoolMulticast " << this << " statistic:" << this->statistic_);
-#endif
-}
 } //namespace solid

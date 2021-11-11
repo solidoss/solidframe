@@ -132,7 +132,7 @@ int test_workpool(int argc, char* argv[])
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         if (pwp != nullptr) {
-            pwp.load()->dumpStatistics();
+            solid_log(generic_logger, Statistic, "Workpool statistic: " << pwp.load()->statistic());
         }
         this_thread::sleep_for(chrono::seconds(12));
 
