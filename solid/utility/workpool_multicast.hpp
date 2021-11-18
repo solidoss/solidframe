@@ -161,8 +161,7 @@ private:
         bool     has_mcast_update_  = false;
 
         //used only on pop
-        size_t mcast_fetch_id_ = 0;
-        size_t mcast_exec_id_  = 0;
+        size_t mcast_exec_id_ = 0;
     };
 
     bool pop(PopContext& _rcontext);
@@ -282,11 +281,11 @@ void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::doStop()
 template <typename Job, typename MCastJob, size_t QNBits, typename Base>
 bool WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
 {
-    std::unique_lock<std::mutex> lock(mtx_);
-
     _rcontext.has_job_           = false;
     _rcontext.has_mcast_execute_ = false;
     _rcontext.has_mcast_update_  = false;
+
+    std::unique_lock<std::mutex> lock(mtx_);
 
     if (_rcontext.has_synch_job_) {
         job_q_[to_underlying(JobType::Synchronous)].pop();
@@ -299,12 +298,13 @@ bool WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
         bool should_wait   = true;
 
         if (!synch_lock_ && !job_q_[to_underlying(JobType::Synchronous)].empty()) {
-            should_notify      = job_q_[to_underlying(JobType::Synchronous)].size() == config_.max_job_queue_size_;
-            _rcontext.job_     = std::move(job_q_[to_underlying(JobType::Synchronous)].front());
-            _rcontext.has_job_ = true;
-            should_wait        = false;
-            should_notify      = true;
-            synch_lock_        = true;
+            should_notify            = job_q_[to_underlying(JobType::Synchronous)].size() == config_.max_job_queue_size_;
+            _rcontext.job_           = std::move(job_q_[to_underlying(JobType::Synchronous)].front());
+            _rcontext.has_job_       = true;
+            _rcontext.has_synch_job_ = true;
+            should_wait              = false;
+            should_notify            = true;
+            synch_lock_              = true;
         } else if (!job_q_[to_underlying(JobType::Asynchronous)].empty()) {
             should_notify      = job_q_[to_underlying(JobType::Asynchronous)].size() == config_.max_job_queue_size_;
             _rcontext.job_     = std::move(job_q_[to_underlying(JobType::Asynchronous)].front());
@@ -318,10 +318,10 @@ bool WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
 
             if (_rcontext.mcast_exec_id_ != mcast_current_exec_id_) {
                 ++_rcontext.mcast_exec_id_;
-                _rcontext.has_mcast_execute_ = true;
-                should_wait                  = false;
                 _rcontext.mcast_job_         = mcast_job_q_.front(); //copy
+                _rcontext.has_mcast_execute_ = true;
                 _rcontext.has_mcast_update_  = (mcast_current_exec_count_ == 0);
+                should_wait                  = false;
 
                 ++mcast_current_exec_count_;
                 if (mcast_current_exec_count_ == config_.max_worker_count_) {
@@ -345,8 +345,9 @@ bool WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
                 break;
             }
             Base::wait(sig_cnd_, lock);
+        } else {
+            return true;
         }
-        return true;
     }
     return false;
 }
