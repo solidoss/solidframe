@@ -262,8 +262,7 @@ WorkPoolMulticastStatistic::WorkPoolMulticastStatistic()
 
 std::ostream& WorkPoolMulticastStatistic::print(std::ostream& _ros) const
 {
-    _ros << " max_jobs_in_queue_[Synch] = " << max_jobs_in_queue_[to_underlying(JobType::Synchronous)];
-    _ros << " max_jobs_in_queue_[Async] = " << max_jobs_in_queue_[to_underlying(JobType::Asynchronous)];
+    _ros << " max_jobs_in_queue_ = " << max_jobs_in_queue_;
     _ros << " max_mcast_jobs_in_queue_ = " << max_mcast_jobs_in_queue_;
     _ros << " max_jobs_on_thread_ = " << max_jobs_on_thread_;
     _ros << " min_jobs_on_thread_ = " << min_jobs_on_thread_;

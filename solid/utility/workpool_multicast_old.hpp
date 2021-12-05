@@ -25,13 +25,20 @@
 #include "solid/utility/functiontraits.hpp"
 #include "solid/utility/queue.hpp"
 #include "solid/utility/workpool_base.hpp"
-#include "solid/utility/innerlist.hpp"
 
 namespace solid {
 extern const LoggerT workpool_logger;
 
+enum struct JobType : uint16_t {
+    Synchronous = 0,
+    Asynchronous,
+
+    //Add above
+    Count
+};
+
 struct WorkPoolMulticastStatistic : solid::Statistic {
-    std::atomic<size_t>   max_jobs_in_queue_;
+    std::atomic<size_t>   max_jobs_in_queue_[to_underlying(JobType::Count)];
     std::atomic<size_t>   max_mcast_jobs_in_queue_;
     std::atomic<uint64_t> max_jobs_on_thread_;
     std::atomic<uint64_t> min_jobs_on_thread_;
@@ -44,81 +51,18 @@ struct WorkPoolMulticastStatistic : solid::Statistic {
     std::ostream& print(std::ostream& _ros) const override;
 };
 
-template <class WP, class ContextStub>
-class SynchronizationContext{
-    WP              *pwp_ = nullptr;
-    ContextStub     *pctx_ = nullptr;
-    template <typename Job, typename MCastJob, size_t QNBits, typename Base>
-    friend class WorkPoolMulticast;
-    
-    SynchronizationContext(WP *_pwp, ContextStub *_pctx):pwp_(_pwp), pctx_(_pctx){}
-    
-public:
-    SynchronizationContext(){}
-    
-    SynchronizationContext(SynchronizationContext &&_other): pwp_(_other.pwp_), pctx_(_other.pctx_){
-        _other.pwp_ = nullptr;
-        _other.pctx_ = nullptr;
-    }
-    
-    ~SynchronizationContext(){
-        clear();
-    }
-    
-    SynchronizationContext& operator=(SynchronizationContext &&_other){
-        if(this != &_other){
-            clear();
-            pwp_ = _other.pwp_;
-            pctx_ = _other.pctx_;
-        }
-        return *this;
-    }
-    
-    void clear(){
-        if(!empty()){
-            pwp_->release(pctx_);
-        }
-    }
-    
-    bool empty()const{
-        return pwp_ == nullptr;
-    }
-};
-
-/*
-NOTE:
-    - a node (index) from the JobDqT can be in either:
-        empty_node_list_
-        node_list_
-        ContextStub->node_list_
-*/
-
 template <typename Job, typename MCastJob = Job, size_t QNBits = 10, typename Base = impl::WorkPoolBase>
 class WorkPoolMulticast : protected Base {
-    struct ContextStub;
-    
-    struct JobNode: inner::Node<1>{
-        Job job_;
-        ContextStub *pctx_ = nullptr;
-    };
-    
+
     using ThisT          = WorkPoolMulticast<Job, MCastJob, QNBits, Base>;
     using ThreadVectorT  = std::vector<std::thread>;
-    using JobDqT         = std::deque<JobNode>;
-    using InnerListT     = inner::List<JobDqT, 0>;
+    using JobQueueT      = Queue<Job, QNBits>;
     using MCastJobQueueT = Queue<MCastJob, QNBits>;
     using AtomicBoolT    = std::atomic<bool>;
-    
-    struct ContextStub{
-        size_t      use_count_ = 0;
-        InnerListT  node_list_;
-    };
-    
+
     WorkPoolConfiguration   config_;
     AtomicBoolT             running_;
-    JobDqT                  job_dq_;
-    InnerListT              empty_node_list_;
-    InnerListT              node_list_;
+    JobQueueT               job_q_[to_underlying(JobType::Count)];
     MCastJobQueueT          mcast_job_q_;
     ThreadVectorT           thr_vec_;
     std::mutex              mtx_;
@@ -129,11 +73,9 @@ class WorkPoolMulticast : protected Base {
 #ifdef SOLID_HAS_STATISTICS
     WorkPoolMulticastStatistic statistic_;
 #endif
-    
 public:
     static constexpr size_t node_capacity = bits_to_count(QNBits);
-    using SynchronizationContextT = SynchronizationContext<ThisT, ContextStub>;
-    
+
     WorkPoolMulticast()
         : config_()
         , running_(false)
@@ -179,28 +121,24 @@ public:
         doStop();
         solid_dbg(workpool_logger, Verbose, this);
     }
-    
-    SynchronizationContextT createSynchronizationContext(){
-        return SynchronizationContextT{this, nullptr};
-    }
 
     template <class JT>
-    void push(const JT& _jb);
+    void push(const JT& _jb, const JobType _jb_type = JobType::Asynchronous);
 
     template <class JT>
-    void push(JT&& _jb);
+    void push(JT&& _jb, const JobType _jb_type = JobType::Asynchronous);
 
     template <class JT>
-    bool tryPush(const JT& _jb);
+    bool tryPush(const JT& _jb, const JobType _jb_type = JobType::Asynchronous);
 
     template <class JT>
-    bool tryPush(JT&& _jb);
+    bool tryPush(JT&& _jb, const JobType _jb_type = JobType::Asynchronous);
 
     template <class JT>
-    void pushAll(const JT& _jb);
+    void pushAll(const JT& _jb, const JobType _jb_type = JobType::Synchronous);
 
     template <class JT>
-    void pushAll(JT&& _jb);
+    void pushAll(JT&& _jb, const JobType _jb_type = JobType::Synchronous);
 
 #ifdef SOLID_HAS_STATISTICS
     const WorkPoolMulticastStatistic& statistic() const
@@ -225,11 +163,7 @@ private:
         //used only on pop
         size_t mcast_exec_id_ = 0;
     };
-    
-    void release(ContextStub *_pctx){
-        //TODO:
-    }
-    
+
     bool pop(PopContext& _rcontext);
 
     void doStop();
@@ -353,83 +287,172 @@ bool WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
 
     std::unique_lock<std::mutex> lock(mtx_);
 
-    
+    if (_rcontext.has_synch_job_) {
+        job_q_[to_underlying(JobType::Synchronous)].pop();
+        _rcontext.has_synch_job_ = false;
+        synch_lock_              = false;
+    }
+
+    while (true) {
+        bool should_notify = false;
+        bool should_wait   = true;
+
+        if (!synch_lock_ && !job_q_[to_underlying(JobType::Synchronous)].empty()) {
+            should_notify            = job_q_[to_underlying(JobType::Synchronous)].size() == config_.max_job_queue_size_;
+            _rcontext.job_           = std::move(job_q_[to_underlying(JobType::Synchronous)].front());
+            _rcontext.has_job_       = true;
+            _rcontext.has_synch_job_ = true;
+            should_wait              = false;
+            should_notify            = true;
+            synch_lock_              = true;
+        } else if (!job_q_[to_underlying(JobType::Asynchronous)].empty()) {
+            should_notify      = job_q_[to_underlying(JobType::Asynchronous)].size() == config_.max_job_queue_size_;
+            _rcontext.job_     = std::move(job_q_[to_underlying(JobType::Asynchronous)].front());
+            _rcontext.has_job_ = true;
+            should_wait        = false;
+            should_notify      = true;
+            job_q_[to_underlying(JobType::Asynchronous)].pop();
+        }
+
+        if (!mcast_job_q_.empty()) {
+
+            if (_rcontext.mcast_exec_id_ != mcast_current_exec_id_) {
+                ++_rcontext.mcast_exec_id_;
+                _rcontext.mcast_job_         = mcast_job_q_.front(); //copy
+                _rcontext.has_mcast_execute_ = true;
+                _rcontext.has_mcast_update_  = (mcast_current_exec_count_ == 0);
+                should_wait                  = false;
+
+                ++mcast_current_exec_count_;
+                if (mcast_current_exec_count_ == config_.max_worker_count_) {
+                    //done with current mcast item
+                    mcast_job_q_.pop();
+                    mcast_current_exec_count_ = 0;
+                    should_notify             = true;
+                    if (!mcast_job_q_.empty()) {
+                        ++mcast_current_exec_id_;
+                    }
+                }
+            }
+        }
+
+        if (should_notify) {
+            sig_cnd_.notify_all();
+        }
+
+        if (should_wait) {
+            if (!running_.load(std::memory_order_relaxed) && mcast_job_q_.empty()) {
+                break;
+            }
+            Base::wait(sig_cnd_, lock);
+        } else {
+            return true;
+        }
+    }
     return false;
 }
 //-----------------------------------------------------------------------------
 template <typename Job, typename MCastJob, size_t QNBits, typename Base>
 template <class JT>
-bool WorkPoolMulticast<Job, MCastJob, QNBits, Base>::tryPush(const JT& _jb)
+bool WorkPoolMulticast<Job, MCastJob, QNBits, Base>::tryPush(const JT& _jb, const JobType _jb_type)
 {
     size_t qsz;
     {
         {
             std::unique_lock<std::mutex> lock(mtx_);
 
-            
+            if (job_q_[to_underlying(_jb_type)].size() < config_.max_job_queue_size_) {
+            } else {
+                return false;
+            }
+
+            job_q_[to_underlying(_jb_type)].push(_jb);
+            qsz = job_q_[to_underlying(_jb_type)].size();
         }
 
         sig_cnd_.notify_all(); //using all because sig_cnd_ is job_q_ size limitation
     }
-    solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
+    solid_statistic_max(statistic_.max_jobs_in_queue_[to_underlying(_jb_type)], qsz);
     return true;
 }
 //-----------------------------------------------------------------------------
 template <typename Job, typename MCastJob, size_t QNBits, typename Base>
 template <class JT>
-bool WorkPoolMulticast<Job, MCastJob, QNBits, Base>::tryPush(JT&& _jb)
+bool WorkPoolMulticast<Job, MCastJob, QNBits, Base>::tryPush(JT&& _jb, const JobType _jb_type)
 {
     size_t qsz;
     {
         {
             std::unique_lock<std::mutex> lock(mtx_);
 
-            
+            if (job_q_[to_underlying(_jb_type)].size() < config_.max_job_queue_size_) {
+            } else {
+                return false;
+            }
+
+            job_q_[to_underlying(_jb_type)].push(std::move(_jb));
+            qsz = job_q_[to_underlying(_jb_type)].size();
         }
 
         sig_cnd_.notify_all(); //using all because sig_cnd_ is job_q_ size limitation
     }
-    solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
+    solid_statistic_max(statistic_.max_jobs_in_queue_[to_underlying(_jb_type)], qsz);
     return true;
 }
 //-----------------------------------------------------------------------------
 template <typename Job, typename MCastJob, size_t QNBits, typename Base>
 template <class JT>
-void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::push(const JT& _jb)
+void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::push(const JT& _jb, const JobType _jb_type)
 {
     size_t qsz;
     {
         {
             std::unique_lock<std::mutex> lock(mtx_);
 
-            
+            if (job_q_[to_underlying(_jb_type)].size() < config_.max_job_queue_size_) {
+            } else {
+                do {
+                    Base::wait(sig_cnd_, lock);
+                } while (job_q_[to_underlying(_jb_type)].size() >= config_.max_job_queue_size_);
+            }
+
+            job_q_[to_underlying(_jb_type)].push(_jb);
+            qsz = job_q_[to_underlying(_jb_type)].size();
         }
 
         sig_cnd_.notify_all(); //using all because sig_cnd_ is job_q_ size limitation
     }
-    solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
+    solid_statistic_max(statistic_.max_jobs_in_queue_[to_underlying(_jb_type)], qsz);
 }
 //-----------------------------------------------------------------------------
 template <typename Job, typename MCastJob, size_t QNBits, typename Base>
 template <class JT>
-void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::push(JT&& _jb)
+void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::push(JT&& _jb, const JobType _jb_type)
 {
     size_t qsz;
     {
         {
             std::unique_lock<std::mutex> lock(mtx_);
 
-            
+            if (job_q_[to_underlying(_jb_type)].size() < config_.max_job_queue_size_) {
+            } else {
+                do {
+                    Base::wait(sig_cnd_, lock);
+                } while (job_q_[to_underlying(_jb_type)].size() >= config_.max_job_queue_size_);
+            }
+
+            job_q_[to_underlying(_jb_type)].push(std::move(_jb));
+            qsz = job_q_[to_underlying(_jb_type)].size();
         }
 
         sig_cnd_.notify_all(); //using all because sig_cnd_ is job_q_ size limitation
     }
-    solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
+    solid_statistic_max(statistic_.max_jobs_in_queue_[to_underlying(_jb_type)], qsz);
 }
 //-----------------------------------------------------------------------------
 template <typename Job, typename MCastJob, size_t QNBits, typename Base>
 template <class JT>
-void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pushAll(const JT& _jb)
+void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pushAll(const JT& _jb, const JobType /*_jb_type*/)
 {
     size_t qsz;
     {
@@ -457,7 +480,7 @@ void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pushAll(const JT& _jb)
 //-----------------------------------------------------------------------------
 template <typename Job, typename MCastJob, size_t QNBits, typename Base>
 template <class JT>
-void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pushAll(JT&& _jb)
+void WorkPoolMulticast<Job, MCastJob, QNBits, Base>::pushAll(JT&& _jb, const JobType /*_jb_type*/)
 {
     size_t qsz;
     {

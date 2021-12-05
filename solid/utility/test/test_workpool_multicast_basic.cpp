@@ -52,13 +52,13 @@ int test_workpool_multicast_basic(int argc, char* argv[])
                         solid_check(record_dq[_v] == static_cast<uint32_t>(-1));
                         record_dq[_v] = thread_local_value;
                     },
-                    [&all_val](const uint32_t _v) { //synch execute
+                    [&all_val](const uint32_t _v) { //mcast execute
                         uint32_t expect = thread_local_value;
                         all_val.compare_exchange_strong(expect, _v);
 
                         thread_local_value = _v;
                     },
-                    [&all_val](const uint32_t _v) { //synch update
+                    [&all_val](const uint32_t _v) { //mcast update
                         auto expect = _v - 1;
                         all_val.compare_exchange_strong(expect, _v);
                     }};
