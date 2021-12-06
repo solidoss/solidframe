@@ -250,7 +250,7 @@ std::ostream& WorkPoolStatistic::print(std::ostream& _ros) const
 } //namespace locking
 
 WorkPoolMulticastStatistic::WorkPoolMulticastStatistic()
-    : max_jobs_in_queue_{0, 0}
+    : max_jobs_in_queue_{0}
     , max_mcast_jobs_in_queue_(0)
     , max_jobs_on_thread_(0)
     , min_jobs_on_thread_(-1)

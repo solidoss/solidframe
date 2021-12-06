@@ -11,6 +11,7 @@ set( UtilityTestSuite
     test_callpool_multicast_basic.cpp
     test_workpool_multicast_basic.cpp
     test_workpool_multicast_sleep.cpp
+    test_workpool_multicast_synchronization_context_basic.cpp
     test_ioformat.cpp
     test_function.cpp
     test_function_perf.cpp
