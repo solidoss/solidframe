@@ -190,7 +190,6 @@ public:
         return wp_.tryPush(std::forward<JT>(_jb));
     }
 
-
     template <class JT, class UpdateFnc>
     void pushAll(JT&& _jb, UpdateFnc&& _update_fnc)
     {

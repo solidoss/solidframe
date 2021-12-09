@@ -21,7 +21,7 @@ int test_workpool_multicast_basic(int argc, char* argv[])
 {
     install_crash_handler();
     solid::log_start(std::cerr, {".*:EWXS", "test:VIEWS"});
-    using WorkPoolT  = WorkPoolMulticast<size_t, uint32_t>;
+    using WorkPoolT  = WorkPoolMulticast<size_t, size_t>;
     using AtomicPWPT = std::atomic<WorkPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
@@ -51,16 +51,19 @@ int test_workpool_multicast_basic(int argc, char* argv[])
                         val += _v;
                         solid_check(record_dq[_v] == static_cast<uint32_t>(-1));
                         record_dq[_v] = thread_local_value;
+                        //solid_log(logger, Verbose, "job "<<_v);
                     },
-                    [&all_val](const uint32_t _v) { //mcast execute
+                    [&all_val](const size_t _v) { //mcast execute
                         uint32_t expect = thread_local_value;
                         all_val.compare_exchange_strong(expect, _v);
 
                         thread_local_value = _v;
+                        //solid_log(logger, Verbose, "mcast");
                     },
-                    [&all_val](const uint32_t _v) { //mcast update
-                        auto expect = _v - 1;
+                    [&all_val](const size_t _v) { //mcast update
+                        uint32_t expect = _v - 1;
                         all_val.compare_exchange_strong(expect, _v);
+                        //solid_log(logger, Verbose, "update");
                     }};
 
                 pwp = &wp;
