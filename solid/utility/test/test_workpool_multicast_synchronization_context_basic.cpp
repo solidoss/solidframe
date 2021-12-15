@@ -33,7 +33,7 @@ struct Record {
 
 int test_workpool_multicast_synchronization_context_basic(int argc, char* argv[])
 {
-    using WorkPoolT = WorkPoolMulticast<Record, uint32_t>;
+    using WorkPoolT = locking::WorkPoolT<Record, uint32_t>;
 
     solid::log_start(std::cerr, {".*:EWXS", "test:VIEWS"});
 

@@ -27,7 +27,7 @@ int test_callpool_multicast_basic(int argc, char* argv[])
     install_crash_handler();
 
     solid::log_start(std::cerr, {".*:EWXS", "test:VIEWS"});
-    using CallPoolT  = CallPoolMulticast<void(Context&, deque<uint32_t>&)>;
+    using CallPoolT  = locking::CallPoolT<void(Context&, deque<uint32_t>&)>;
     using AtomicPWPT = std::atomic<CallPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());

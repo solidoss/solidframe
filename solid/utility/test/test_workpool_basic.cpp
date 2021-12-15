@@ -18,7 +18,14 @@ int test_workpool_basic(int argc, char* argv[])
 {
     install_crash_handler();
     solid::log_start(std::cerr, {".*:EWXS", "test_basic:VIEWS"});
-    using WorkPoolT  = WorkPool<size_t>;
+#if SOLID_WORKPOOL_OPTION == 0
+    using WorkPoolT = lockfree::WorkPool<size_t>;
+#elif SOLID_WORKPOOL_OPTION == 1
+    using WorkPoolT        = locking::WorkPool<size_t>;
+#else
+    using WorkPoolT = locking::WorkPool<size_t, size_t>;
+#endif
+
     using AtomicPWPT = std::atomic<WorkPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
@@ -39,11 +46,20 @@ int test_workpool_basic(int argc, char* argv[])
     auto lambda = [&]() {
         for (int i = 0; i < loop_cnt; ++i) {
             {
-                WorkPoolT wp{
-                    WorkPoolConfiguration(), 2,
-                    [&val](const size_t _v) {
-                        val += _v;
-                    }};
+                WorkPoolT wp
+                {
+                    WorkPoolConfiguration(),
+#if SOLID_WORKPOOL_OPTION < 2
+                        2,
+#endif
+                        [&val](const size_t _v) {
+                            val += _v;
+                        }
+#if SOLID_WORKPOOL_OPTION == 2
+                    ,
+                        [](const size_t) {}, [](const size_t) {}
+#endif
+                };
                 pwp = &wp;
                 for (size_t i = 0; i < cnt; ++i) {
                     wp.push(i);

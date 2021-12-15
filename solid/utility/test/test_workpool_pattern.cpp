@@ -18,8 +18,14 @@ int test_workpool_pattern(int argc, char* argv[])
 {
     install_crash_handler();
     solid::log_start(std::cerr, {".*:EWXS", "test_basic:VIEWS"});
+#if SOLID_WORKPOOL_OPTION == 0
+    using WorkPoolT = lockfree::WorkPoolT<size_t>;
+#elif SOLID_WORKPOOL_OPTION == 1
+    using WorkPoolT = locking::WorkPoolT<size_t>;
+#else
+    using WorkPoolT = locking::WorkPoolT<size_t, size_t>;
+#endif
 
-    using WorkPoolT  = WorkPool<size_t>;
     using AtomicPWPT = std::atomic<WorkPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
@@ -57,18 +63,26 @@ int test_workpool_pattern(int argc, char* argv[])
     const size_t producer_loop_count{producer_pattern.size() * 10};
 
     auto lambda = [&]() {
-        WorkPoolT wp{
+        WorkPoolT wp
+        {
             WorkPoolConfiguration(consumer_cnt),
-            consumer_cnt,
-            [&sum, &consummer_pattern, loop = consummer_pattern[0].first, idx = 0](const size_t _v) mutable {
-                sum += _v;
-                --loop;
-                if (loop == 0) {
-                    this_thread::sleep_for(chrono::milliseconds(consummer_pattern[idx % consummer_pattern.size()].second));
-                    ++idx;
-                    loop = consummer_pattern[idx % consummer_pattern.size()].first;
+#if SOLID_WORKPOOL_OPTION < 2
+                consumer_cnt,
+#endif
+                [&sum, &consummer_pattern, loop = consummer_pattern[0].first, idx = 0](const size_t _v) mutable {
+                    sum += _v;
+                    --loop;
+                    if (loop == 0) {
+                        this_thread::sleep_for(chrono::milliseconds(consummer_pattern[idx % consummer_pattern.size()].second));
+                        ++idx;
+                        loop = consummer_pattern[idx % consummer_pattern.size()].first;
+                    }
                 }
-            }};
+#if SOLID_WORKPOOL_OPTION == 2
+            ,
+                [](const size_t) {}, [](const size_t) {}
+#endif
+        };
 
         vector<thread> thr_vec;
 

@@ -21,7 +21,7 @@ int test_workpool_multicast_basic(int argc, char* argv[])
 {
     install_crash_handler();
     solid::log_start(std::cerr, {".*:EWXS", "test:VIEWS"});
-    using WorkPoolT  = WorkPoolMulticast<size_t, size_t>;
+    using WorkPoolT  = locking::WorkPool<size_t, size_t>;
     using AtomicPWPT = std::atomic<WorkPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());

@@ -247,7 +247,6 @@ std::ostream& WorkPoolStatistic::print(std::ostream& _ros) const
     _ros << " min_jobs_on_thread_ = " << min_jobs_on_thread_;
     return _ros;
 }
-} //namespace locking
 
 WorkPoolMulticastStatistic::WorkPoolMulticastStatistic()
     : max_jobs_in_queue_{0}
@@ -274,5 +273,5 @@ std::ostream& WorkPoolMulticastStatistic::print(std::ostream& _ros) const
 
     return _ros;
 }
-
+} //namespace locking
 } //namespace solid

@@ -18,7 +18,14 @@ int test_workpool_chain(int argc, char* argv[])
 {
     install_crash_handler();
     solid::log_start(std::cerr, {".*:EWXS", "test_basic:VIEWS"});
-    using WorkPoolT  = WorkPool<size_t, workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<100>>;
+#if SOLID_WORKPOOL_OPTION == 0
+    using WorkPoolT = lockfree::WorkPool<size_t, void, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<100>>;
+#elif SOLID_WORKPOOL_OPTION == 1
+    using WorkPoolT = locking::WorkPool<size_t, void, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<100>>;
+#else
+    using WorkPoolT = locking::WorkPool<size_t, size_t, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<100>>;
+#endif
+
     using AtomicPWPT = std::atomic<WorkPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
@@ -54,18 +61,34 @@ int test_workpool_chain(int argc, char* argv[])
     auto lambda = [&]() {
         for (int i = 0; i < loop_cnt; ++i) {
             {
-                WorkPoolT wp_b{
+                WorkPoolT wp_b
+                {
                     WorkPoolConfiguration(thread_count),
-                    start_thr,
-                    [&val](const size_t _v) {
-                        val += _v;
-                    }};
-                WorkPoolT wp_f{
+#if SOLID_WORKPOOL_OPTION < 2
+                        start_thr,
+#endif
+                        [&val](const size_t _v) {
+                            val += _v;
+                        }
+#if SOLID_WORKPOOL_OPTION == 2
+                    ,
+                        [](const size_t) {}, [](const size_t) {}
+#endif
+                };
+                WorkPoolT wp_f
+                {
                     WorkPoolConfiguration(thread_count),
-                    start_thr,
-                    [&wp_b](const size_t _v) {
-                        wp_b.push(_v);
-                    }};
+#if SOLID_WORKPOOL_OPTION < 2
+                        start_thr,
+#endif
+                        [&wp_b](const size_t _v) {
+                            wp_b.push(_v);
+                        }
+#if SOLID_WORKPOOL_OPTION == 2
+                    ,
+                        [](const size_t) {}, [](const size_t) {}
+#endif
+                };
 
                 pwp = &wp_b;
 

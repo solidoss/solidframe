@@ -43,9 +43,22 @@ int test_workpool_context(int argc, char* argv[])
         for (int i = 0; i < loop_cnt; ++i) {
             Context ctx{"test", 1, cnt + 1};
             {
-                CallPool<void(Context&)> wp{
-                    WorkPoolConfiguration(), 2,
-                    std::ref(ctx)};
+#if SOLID_WORKPOOL_OPTION == 0
+                lockfree::CallPoolT<void(Context&), void> wp
+                {
+#elif SOLID_WORKPOOL_OPTION == 1
+                locking::CallPoolT<void(Context&), void> wp
+                {
+#else
+                locking::CallPoolT<void(Context&)> wp
+                {
+#endif
+                    WorkPoolConfiguration(),
+#if SOLID_WORKPOOL_OPTION < 2
+                        2,
+#endif
+                        std::ref(ctx)
+                };
 
                 solid_log(generic_logger, Verbose, "wp started");
                 for (size_t i = 0; i < cnt; ++i) {

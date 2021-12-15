@@ -32,6 +32,9 @@
 
 namespace solid {
 namespace lockfree {
+
+template <typename Job, typename MCastJob = void, size_t QNBits = workpool_default_node_capacity_bit_count, typename Base = solid::impl::WorkPoolBase>
+class WorkPool;
 //-----------------------------------------------------------------------------
 struct WorkerStub {
     enum struct StateE : uint8_t {
@@ -118,9 +121,9 @@ struct WorkPoolStatistic : solid::Statistic {
 
 //-----------------------------------------------------------------------------
 
-template <typename Job, size_t QNBits = 10, typename Base = solid::impl::WorkPoolBase>
-class WorkPool : protected Base {
-    using ThisT          = WorkPool<Job, QNBits, Base>;
+template <typename Job, size_t QNBits, typename Base>
+class WorkPool<Job, void, QNBits, Base> : protected Base {
+    using ThisT          = WorkPool<Job, void, QNBits, Base>;
     using WorkerFactoryT = std::function<std::thread(const size_t)>;
     using ThreadVectorT  = std::vector<ThreadStub>;
     using JobQueueT      = Queue<Job, QNBits, typename Base::QueueBase>;
@@ -270,7 +273,7 @@ private:
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
 template <class JT>
-void WorkPool<Job, QNBits, Base>::push(const JT& _jb)
+void WorkPool<Job, void, QNBits, Base>::push(const JT& _jb)
 {
     solid_check(running_.load(std::memory_order_relaxed));
     const size_t qsz     = doJobPush(_jb, std::true_type());
@@ -290,7 +293,7 @@ void WorkPool<Job, QNBits, Base>::push(const JT& _jb)
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
 template <class JT>
-void WorkPool<Job, QNBits, Base>::push(JT&& _jb)
+void WorkPool<Job, void, QNBits, Base>::push(JT&& _jb)
 {
     solid_check(running_.load(std::memory_order_relaxed));
     const size_t qsz     = doJobPush(std::move(_jb), std::true_type());
@@ -310,7 +313,7 @@ void WorkPool<Job, QNBits, Base>::push(JT&& _jb)
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
 template <class JT>
-bool WorkPool<Job, QNBits, Base>::tryPush(const JT& _jb)
+bool WorkPool<Job, void, QNBits, Base>::tryPush(const JT& _jb)
 {
     solid_check(running_.load(std::memory_order_relaxed));
     const size_t qsz = doJobPush(_jb, std::false_type());
@@ -335,7 +338,7 @@ bool WorkPool<Job, QNBits, Base>::tryPush(const JT& _jb)
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
 template <class JT>
-bool WorkPool<Job, QNBits, Base>::tryPush(JT&& _jb)
+bool WorkPool<Job, void, QNBits, Base>::tryPush(JT&& _jb)
 {
     solid_check(running_.load(std::memory_order_relaxed));
     const size_t qsz = doJobPush(std::move(_jb), std::false_type() /*wait*/);
@@ -359,7 +362,7 @@ bool WorkPool<Job, QNBits, Base>::tryPush(JT&& _jb)
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
-bool WorkPool<Job, QNBits, Base>::doWorkerWake(WorkerStub* _pws)
+bool WorkPool<Job, void, QNBits, Base>::doWorkerWake(WorkerStub* _pws)
 {
     WorkerStub* pworker_stub;
     while (doWorkerPop(pworker_stub)) {
@@ -403,7 +406,7 @@ bool WorkPool<Job, QNBits, Base>::doWorkerWake(WorkerStub* _pws)
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
 template <class JT, bool Wait>
-size_t WorkPool<Job, QNBits, Base>::doJobPush(const JT& _rj, std::bool_constant<Wait>)
+size_t WorkPool<Job, void, QNBits, Base>::doJobPush(const JT& _rj, std::bool_constant<Wait>)
 {
     const size_t sz = job_q_ptr_->template push<Wait>(_rj);
 
@@ -420,7 +423,7 @@ size_t WorkPool<Job, QNBits, Base>::doJobPush(const JT& _rj, std::bool_constant<
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
 template <class JT, bool Wait>
-size_t WorkPool<Job, QNBits, Base>::doJobPush(JT&& _rj, std::bool_constant<Wait>)
+size_t WorkPool<Job, void, QNBits, Base>::doJobPush(JT&& _rj, std::bool_constant<Wait>)
 {
     const size_t sz = job_q_ptr_->template push<Wait>(std::move(_rj));
 
@@ -435,7 +438,7 @@ size_t WorkPool<Job, QNBits, Base>::doJobPush(JT&& _rj, std::bool_constant<Wait>
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
-bool WorkPool<Job, QNBits, Base>::doJobPop(WorkerStub& _rws, const size_t thr_id_, Job& _rjob)
+bool WorkPool<Job, void, QNBits, Base>::doJobPop(WorkerStub& _rws, const size_t thr_id_, Job& _rjob)
 {
     //_rws valid states: Cancel, WaitCancel
     auto expect_state = WorkerStub::StateE::WaitCancel;
@@ -488,7 +491,7 @@ bool WorkPool<Job, QNBits, Base>::doJobPop(WorkerStub& _rws, const size_t thr_id
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
-void WorkPool<Job, QNBits, Base>::doWorkerPush(WorkerStub& _rws, const size_t _thr_id)
+void WorkPool<Job, void, QNBits, Base>::doWorkerPush(WorkerStub& _rws, const size_t _thr_id)
 {
 
     //bool expect = false;
@@ -517,7 +520,7 @@ void WorkPool<Job, QNBits, Base>::doWorkerPush(WorkerStub& _rws, const size_t _t
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
-bool WorkPool<Job, QNBits, Base>::doWorkerPop(WorkerStub*& _rpws)
+bool WorkPool<Job, void, QNBits, Base>::doWorkerPop(WorkerStub*& _rpws)
 {
     size_t old_head = worker_head_.load();
 #ifdef SOLID_USE_ATOMIC_WORKERSTUB_NEXT
@@ -547,7 +550,7 @@ bool WorkPool<Job, QNBits, Base>::doWorkerPop(WorkerStub*& _rpws)
 static std::atomic<int> loop_cnt{0};
 
 template <typename Job, size_t QNBits, typename Base>
-void WorkPool<Job, QNBits, Base>::doStop()
+void WorkPool<Job, void, QNBits, Base>::doStop()
 {
     bool expect = true;
 
@@ -588,7 +591,7 @@ void WorkPool<Job, QNBits, Base>::doStop()
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
 template <class JobHandlerFnc, typename... Args>
-void WorkPool<Job, QNBits, Base>::doStart(
+void WorkPool<Job, void, QNBits, Base>::doStart(
     const WorkPoolConfiguration& _cfg,
     size_t                       _start_wkr_cnt,
     JobHandlerFnc                _job_handler_fnc,
@@ -656,7 +659,7 @@ void WorkPool<Job, QNBits, Base>::doStart(
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
-bool WorkPool<Job, QNBits, Base>::doRegisterWorker(WorkerStub& _rws, const size_t _thr_id)
+bool WorkPool<Job, void, QNBits, Base>::doRegisterWorker(WorkerStub& _rws, const size_t _thr_id)
 {
     std::unique_lock<std::mutex> lock(thr_mtx_);
     if (running_) {
@@ -673,7 +676,7 @@ bool WorkPool<Job, QNBits, Base>::doRegisterWorker(WorkerStub& _rws, const size_
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
-void WorkPool<Job, QNBits, Base>::doUnregisterWorker(WorkerStub& _rws, const size_t _thr_id)
+void WorkPool<Job, void, QNBits, Base>::doUnregisterWorker(WorkerStub& _rws, const size_t _thr_id)
 {
     std::unique_lock<std::mutex> lock(thr_mtx_);
     ++stopping_thr_cnt_;
@@ -689,6 +692,11 @@ void WorkPool<Job, QNBits, Base>::doUnregisterWorker(WorkerStub& _rws, const siz
     }
 }
 //-----------------------------------------------------------------------------
+template <typename Job, typename MCast = void>
+using WorkPoolT = WorkPool<Job, MCast>;
 //-----------------------------------------------------------------------------
+
+template <class Job, class MCast = Job, template <typename, typename> class WP = WorkPoolT, size_t FunctionDataSize = function_default_data_size>
+using CallPoolT = CallPool<Job, MCast, WP, FunctionDataSize>;
 } //namespace lockfree
 } //namespace solid
