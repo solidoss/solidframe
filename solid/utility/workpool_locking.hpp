@@ -425,6 +425,7 @@ struct WorkPoolMulticastStatistic : solid::Statistic {
     std::atomic<uint64_t> min_mcast_jobs_on_thread_;
     std::atomic<size_t>   mcast_updates_;
     std::atomic<size_t>   job_count_;
+    std::atomic<size_t>   max_pop_wait_loop_count_;
 
     WorkPoolMulticastStatistic();
 
@@ -824,11 +825,11 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doStop()
 template <typename Job, typename MCastJob, size_t QNBits, typename Base>
 bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
 {
-    bool                         should_notify = false;
-    std::unique_lock<std::mutex> lock(mtx_);
-
     _rcontext.has_mcast_        = false;
     _rcontext.has_mcast_update_ = false;
+
+    bool                         should_notify = false;
+    std::unique_lock<std::mutex> lock(mtx_);
 
     if (_rcontext.pcontext_) {
         job_list_free_.pushBack(_rcontext.pcontext_->job_list_.popFront());
@@ -846,7 +847,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
         _rcontext.pjob_      = nullptr;
         _rcontext.job_index_ = InvalidIndex();
     }
-
+    size_t wait_loop_count = 0;
     while (true) {
         bool should_wait = true;
 
@@ -884,7 +885,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
             auto& rnode = job_list_.front();
 
             if (rnode.pcontext_ == nullptr) {
-                _rcontext.pjob_      = &job_list_.front().job_;
+                _rcontext.pjob_      = &rnode.job_;
                 _rcontext.job_index_ = job_list_.popFront();
                 should_wait          = false;
             } else if (rnode.pcontext_->job_list_.empty()) {
@@ -912,10 +913,13 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
                 break;
             }
             Base::wait(sig_cnd_, lock);
+            ++wait_loop_count;
         } else {
+            solid_statistic_max(statistic_.max_pop_wait_loop_count_, wait_loop_count);
             return true;
         }
     }
+    solid_statistic_max(statistic_.max_pop_wait_loop_count_, wait_loop_count);
     return false;
 }
 //-----------------------------------------------------------------------------
@@ -959,14 +963,12 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doPush(JT&& _jb, ContextStub* _pctx)
     {
         {
             std::unique_lock<std::mutex> lock(mtx_);
-
             if (job_list_.size() < config_.max_job_queue_size_) {
             } else {
                 do {
                     Base::wait(sig_cnd_, lock);
                 } while (job_list_.size() >= config_.max_job_queue_size_);
             }
-
             if (job_list_free_.empty()) {
                 job_dq_.emplace_back(std::forward<JT>(_jb), _pctx);
                 job_list_.pushBack(job_dq_.size() - 1);
@@ -981,7 +983,6 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doPush(JT&& _jb, ContextStub* _pctx)
             }
             qsz = job_list_.size();
         }
-
         sig_cnd_.notify_all(); //using all because sig_cnd_ is used for job_q_ size limitation
     }
     solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);

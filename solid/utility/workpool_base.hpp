@@ -183,9 +183,12 @@ public:
             _cfg,
             [](FunctionT& _rfnc, Args&&... _args) {
                 _rfnc(std::forward<ArgTypes>(_args)...);
+                _rfnc.reset();
             },
-            [](const FunctionPairT& _rfnc_pair, Args&&... _args) {
+            [](FunctionPairT& _rfnc_pair, Args&&... _args) {
                 _rfnc_pair.first(std::forward<ArgTypes>(_args)...);
+                _rfnc_pair.first.reset();
+                _rfnc_pair.second.reset();
             },
             [](const FunctionPairT& _rfnc_pair, Args&&... _args) {
                 _rfnc_pair.second(std::forward<ArgTypes>(_args)...);
@@ -201,11 +204,14 @@ public:
             _cfg,
             [](FunctionT& _rfnc, Args&&... _args) {
                 _rfnc(std::forward<ArgTypes>(_args)...);
+                _rfnc.reset();
             },
             [](FunctionPairT& _rfnc_pair, Args&&... _args) {
                 _rfnc_pair.first(std::forward<ArgTypes>(_args)...);
+                _rfnc_pair.first.reset();
+                _rfnc_pair.second.reset();
             },
-            [](FunctionPairT& _rfnc_pair, Args&&... _args) {
+            [](const FunctionPairT& _rfnc_pair, Args&&... _args) {
                 _rfnc_pair.second(std::forward<ArgTypes>(_args)...);
             },
             std::forward<Args>(_args)...);

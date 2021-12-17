@@ -80,10 +80,11 @@ int test_workpool_thread_context(int argc, char* argv[])
 
     auto lambda = [&]() {
         for (int i = 0; i < loop_cnt; ++i) {
+            auto start = chrono::steady_clock::now();
             {
                 CallPoolT wp
                 {
-                    WorkPoolConfiguration(),
+                    WorkPoolConfiguration(2),
 #if SOLID_WORKPOOL_OPTION < 2
                         0,
 #endif
@@ -91,7 +92,8 @@ int test_workpool_thread_context(int argc, char* argv[])
                 };
 
                 solid_log(logger, Verbose, "wp started");
-                pwp = &wp;
+                pwp   = &wp;
+                start = chrono::steady_clock::now();
                 for (size_t i = 0; i < cnt; ++i) {
                     auto l = [i, &val](Context& _rctx) {
                         ++_rctx.count_;
@@ -99,10 +101,11 @@ int test_workpool_thread_context(int argc, char* argv[])
                     };
                     wp.push(l);
                 };
+
                 pwp = nullptr;
-                solid_log(logger, Verbose, "completed all pushes - wating for workpool to terminate");
+                solid_log(logger, Verbose, "completed all pushes - wating for workpool to terminate: " << chrono::duration<double>(chrono::steady_clock::now() - start).count());
             }
-            solid_log(logger, Verbose, "after loop");
+            solid_log(logger, Verbose, "after done: " << chrono::duration<double>(chrono::steady_clock::now() - start).count());
             solid_check(v == val, "val = " << val << " v = " << v);
             val = 0;
         }
