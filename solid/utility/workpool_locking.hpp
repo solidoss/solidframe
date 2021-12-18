@@ -137,16 +137,11 @@ public:
     }
 
     template <class JT>
-    void push(const JT& _jb);
-
-    template <class JT>
     void push(JT&& _jb);
 
     template <class JT>
-    bool tryPush(const JT& _jb);
-
-    template <class JT>
     bool tryPush(JT&& _jb);
+
 #ifdef SOLID_HAS_STATISTICS
     const WorkPoolStatistic& statistic() const
     {
@@ -176,40 +171,6 @@ private:
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
 template <class JT>
-void WorkPool<Job, void, QNBits, Base>::push(const JT& _jb)
-{
-    size_t qsz;
-    {
-        {
-            std::unique_lock<std::mutex> lock(mtx_);
-
-            if (job_q_.size() < config_.max_job_queue_size_) {
-            } else {
-                Base::wait(sig_cnd_, lock, [this]() { return job_q_.size() < config_.max_job_queue_size_; });
-            }
-
-            job_q_.push(_jb);
-            qsz = job_q_.size();
-        }
-
-        sig_cnd_.notify_all(); //using all because sig_cnd_ is job_q_ size limitation
-
-        const size_t thr_cnt = thr_cnt_.load();
-
-        if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
-            std::lock_guard<std::mutex> lock(thr_mtx_);
-            if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
-                thr_vec_.emplace_back(worker_factory_fnc_());
-                ++thr_cnt_;
-                solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
-            }
-        }
-    }
-    solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
-}
-//-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits, typename Base>
-template <class JT>
 void WorkPool<Job, void, QNBits, Base>::push(JT&& _jb)
 {
     size_t qsz;
@@ -222,7 +183,7 @@ void WorkPool<Job, void, QNBits, Base>::push(JT&& _jb)
                 Base::wait(sig_cnd_, lock, [this]() { return job_q_.size() < config_.max_job_queue_size_; });
             }
 
-            job_q_.push(std::move(_jb));
+            job_q_.push(std::forward<JT>(_jb));
             qsz = job_q_.size();
         }
 
@@ -240,41 +201,6 @@ void WorkPool<Job, void, QNBits, Base>::push(JT&& _jb)
         }
     }
     solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
-}
-//-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits, typename Base>
-template <class JT>
-bool WorkPool<Job, void, QNBits, Base>::tryPush(const JT& _jb)
-{
-    size_t qsz;
-    {
-        {
-            std::unique_lock<std::mutex> lock(mtx_);
-
-            if (job_q_.size() < config_.max_job_queue_size_) {
-            } else {
-                return false;
-            }
-
-            job_q_.push(_jb);
-            qsz = job_q_.size();
-        }
-
-        sig_cnd_.notify_all(); //using all because sig_cnd_ is job_q_ size limitation
-
-        const size_t thr_cnt = thr_cnt_.load();
-
-        if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
-            std::lock_guard<std::mutex> lock(thr_mtx_);
-            if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
-                thr_vec_.emplace_back(worker_factory_fnc_());
-                ++thr_cnt_;
-                solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
-            }
-        }
-    }
-    solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
-    return true;
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
@@ -291,7 +217,7 @@ bool WorkPool<Job, void, QNBits, Base>::tryPush(JT&& _jb)
                 return false;
             }
 
-            job_q_.push(std::move(_jb));
+            job_q_.push(std::forward<JT>(_jb));
             qsz = job_q_.size();
         }
 
@@ -828,7 +754,8 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
     _rcontext.has_mcast_        = false;
     _rcontext.has_mcast_update_ = false;
 
-    bool                         should_notify = false;
+    bool                         should_notify   = false;
+    size_t                       wait_loop_count = 0;
     std::unique_lock<std::mutex> lock(mtx_);
 
     if (_rcontext.pcontext_) {
@@ -847,7 +774,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
         _rcontext.pjob_      = nullptr;
         _rcontext.job_index_ = InvalidIndex();
     }
-    size_t wait_loop_count = 0;
+
     while (true) {
         bool should_wait = true;
 

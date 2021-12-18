@@ -19,7 +19,7 @@ using unique_lock_t = std::unique_lock<mutex_t>;
 namespace {
 
 mutex_t       mtx;
-const LoggerT logger("test_context");
+const LoggerT logger("test");
 
 struct Context {
     string text_;
@@ -49,7 +49,7 @@ using WorkPoolT = locking::WorkPool<Job, MCast, workpool_default_node_capacity_b
 int test_workpool_thread_context(int argc, char* argv[])
 {
     install_crash_handler();
-    solid::log_start(std::cerr, {".*:EWXS", "test_context:VIEWS"});
+    solid::log_start(std::cerr, {".*:EWXS", "test:VIEWS"});
 #if SOLID_WORKPOOL_OPTION == 0
     using CallPoolT = lockfree::CallPoolT<void(Context&), void, WorkPoolT>;
 #elif SOLID_WORKPOOL_OPTION == 1
@@ -84,7 +84,7 @@ int test_workpool_thread_context(int argc, char* argv[])
             {
                 CallPoolT wp
                 {
-                    WorkPoolConfiguration(2),
+                    WorkPoolConfiguration(1),
 #if SOLID_WORKPOOL_OPTION < 2
                         0,
 #endif
