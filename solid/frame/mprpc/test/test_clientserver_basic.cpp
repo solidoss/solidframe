@@ -1,3 +1,8 @@
+#include <condition_variable>
+#include <iostream>
+#include <mutex>
+#include <thread>
+
 #include "solid/frame/mprpc/mprpcsocketstub_openssl.hpp"
 
 #include "solid/frame/mprpc/mprpccompression_snappy.hpp"
@@ -15,15 +20,11 @@
 #include "solid/frame/aio/aioresolver.hpp"
 #include "solid/frame/aio/aiotimer.hpp"
 
-#include <condition_variable>
-#include <mutex>
-#include <thread>
+#include "solid/utility/workpool.hpp"
 
 #include "solid/system/exception.hpp"
 
 #include "solid/system/log.hpp"
-
-#include <iostream>
 
 using namespace std;
 using namespace solid;
@@ -310,12 +311,12 @@ int test_clientserver_basic(int argc, char* argv[])
         AioSchedulerT sch_client;
         AioSchedulerT sch_server;
 
-        frame::Manager         m;
-        frame::mprpc::ServiceT mprpcserver(m);
-        frame::mprpc::ServiceT mprpcclient(m);
-        ErrorConditionT        err;
-        CallPool<void()>       cwp{WorkPoolConfiguration(), 1};
-        frame::aio::Resolver   resolver(cwp);
+        frame::Manager                    m;
+        frame::mprpc::ServiceT            mprpcserver(m);
+        frame::mprpc::ServiceT            mprpcclient(m);
+        ErrorConditionT                   err;
+        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1), 1};
+        frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
 
         sch_client.start(1);
         sch_server.start(1);

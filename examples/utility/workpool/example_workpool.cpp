@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
 {
     solid::log_start(std::cerr, {".*:VIEW"});
 
-    WorkPool<int> wp{
+    lockfree::WorkPool<int, void> wp{
         WorkPoolConfiguration(), 0,
         [](int _v) {
             solid_log(generic_logger, Info, "v = " << _v);

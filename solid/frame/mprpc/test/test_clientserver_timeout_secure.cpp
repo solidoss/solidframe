@@ -21,8 +21,9 @@
 #include <mutex>
 #include <thread>
 
-#include "solid/system/exception.hpp"
+#include "solid/utility/workpool.hpp"
 
+#include "solid/system/exception.hpp"
 #include "solid/system/log.hpp"
 
 #include <iostream>
@@ -209,14 +210,14 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
     }
 
     {
-        AioSchedulerT          sch_server;
-        AioSchedulerT          sch_client;
-        frame::Manager         m;
-        frame::mprpc::ServiceT mprpcserver(m);
-        ErrorConditionT        err;
-        CallPool<void()>       cwp{WorkPoolConfiguration(), 1};
-        frame::aio::Resolver   resolver(cwp);
-        frame::ServiceT        svc_client{m};
+        AioSchedulerT                     sch_server;
+        AioSchedulerT                     sch_client;
+        frame::Manager                    m;
+        frame::mprpc::ServiceT            mprpcserver(m);
+        ErrorConditionT                   err;
+        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1), 1};
+        frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
+        frame::ServiceT                   svc_client{m};
 
         async_resolver(&resolver);
 

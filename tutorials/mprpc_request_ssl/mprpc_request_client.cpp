@@ -11,6 +11,8 @@
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
 
+#include "solid/utility/workpool.hpp"
+
 #include "solid/frame/aio/aioresolver.hpp"
 
 #include "mprpc_request_messages.hpp"
@@ -89,12 +91,12 @@ int main(int argc, char* argv[])
 
     {
 
-        AioSchedulerT          scheduler;
-        frame::Manager         manager;
-        frame::mprpc::ServiceT rpcservice(manager);
-        CallPool<void()>       cwp{WorkPoolConfiguration(), 1};
-        frame::aio::Resolver   resolver(cwp);
-        ErrorConditionT        err;
+        AioSchedulerT                     scheduler;
+        frame::Manager                    manager;
+        frame::mprpc::ServiceT            rpcservice(manager);
+        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1), 1};
+        frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
+        ErrorConditionT                   err;
 
         scheduler.start(1);
 

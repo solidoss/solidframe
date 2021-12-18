@@ -7,6 +7,8 @@
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
+#include "solid/utility/workpool.hpp"
+
 #include "mprpc_file_messages.hpp"
 
 #include <iostream>
@@ -74,12 +76,12 @@ int main(int argc, char* argv[])
 
     {
 
-        AioSchedulerT          scheduler;
-        frame::Manager         manager;
-        frame::mprpc::ServiceT rpcservice(manager);
-        CallPool<void()>       cwp{WorkPoolConfiguration(), 1};
-        frame::aio::Resolver   resolver(cwp);
-        ErrorConditionT        err;
+        AioSchedulerT                     scheduler;
+        frame::Manager                    manager;
+        frame::mprpc::ServiceT            rpcservice(manager);
+        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1), 1};
+        frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
+        ErrorConditionT                   err;
 
         scheduler.start(1);
 

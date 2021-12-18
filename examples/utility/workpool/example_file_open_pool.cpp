@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
     cout << "fdq size = " << fdq.size() << " total size " << totsz << endl;
     //return 0;
 
-    using WorkPoolT = WorkPool<FileDevice*>;
+    using WorkPoolT = locking::WorkPool<FileDevice*, void>;
 
     WorkPoolT wp{
         solid::WorkPoolConfiguration(), std::thread::hardware_concurrency(),

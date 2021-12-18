@@ -10,11 +10,12 @@
 
 #pragma once
 
+#include <functional>
+#include <string>
+
 #include "aioerror.hpp"
 #include "solid/system/pimpl.hpp"
 #include "solid/system/socketaddress.hpp"
-#include "solid/utility/workpool.hpp"
-#include <string>
 
 namespace solid {
 namespace frame {
@@ -122,9 +123,13 @@ struct ReverseResolveCbk : ReverseResolve {
 };
 
 class Resolver {
+    using PushFunctionT = std::function<void(std::function<void()>&&)>;
+    PushFunctionT push_fnc_;
+
 public:
-    Resolver(CallPool<void()>& _rcwp)
-        : rcwp_(_rcwp)
+    template <class F>
+    Resolver(F _f)
+        : push_fnc_(_f)
     {
     }
     ~Resolver() {}
@@ -139,7 +144,7 @@ public:
         int         _type   = -1,
         int         _proto  = -1)
     {
-        rcwp_.push(DirectResolveCbk<Cbk>(_cbk, _host, _srvc, _flags, _family, _type, _proto));
+        push_fnc_(DirectResolveCbk<Cbk>(_cbk, _host, _srvc, _flags, _family, _type, _proto));
     }
 
     template <class Cbk>
@@ -148,11 +153,8 @@ public:
         const SocketAddressStub& _rsa,
         int                      _flags = 0)
     {
-        rcwp_.push(ReverseResolveCbk<Cbk>(_rsa, _flags));
+        push_fnc_(ReverseResolveCbk<Cbk>(_rsa, _flags));
     }
-
-private:
-    CallPool<void()>& rcwp_;
 };
 
 } //namespace aio

@@ -25,12 +25,12 @@ struct AccountContext;
 struct ConnectionContext;
 struct DeviceContext;
 
-template <class Job>
-using WorkPoolT = WorkPool<Job, workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<30>>;
+template <class Job, class>
+using WorkPoolT = lockfree::WorkPool<Job, void, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<30>>;
 
-using AccountCallPoolT    = CallPool<void(AccountContext&), function_default_data_size, WorkPoolT>;
-using ConnectionCallPoolT = CallPool<void(ConnectionContext&), function_default_data_size, WorkPoolT>;
-using DeviceCallPoolT     = CallPool<void(DeviceContext&), function_default_data_size, WorkPoolT>;
+using AccountCallPoolT    = CallPool<void(AccountContext&), void, WorkPoolT>;
+using ConnectionCallPoolT = CallPool<void(ConnectionContext&), void, WorkPoolT>;
+using DeviceCallPoolT     = CallPool<void(DeviceContext&), void, WorkPoolT>;
 
 struct GlobalContext {
     atomic<bool>       stopping_;
