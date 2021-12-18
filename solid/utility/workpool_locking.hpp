@@ -163,7 +163,7 @@ private:
     template <class JobHandlerFnc, typename... Args>
     void doStart(
         const WorkPoolConfiguration& _cfg,
-        size_t                 _start_wkr_cnt,
+        size_t                       _start_wkr_cnt,
         JobHandlerFnc                _job_handler_fnc,
         Args&&... _args);
 }; //WorkPool
@@ -605,7 +605,7 @@ private:
         if (_pctx) {
             std::lock_guard<std::mutex> lock(mtx_);
             --_pctx->use_count_;
-            if (_pctx->job_list_.empty()) {
+            if (_pctx->job_list_.empty() && _pctx->use_count_ == 0) {
                 free_context_stack_.push(_pctx);
                 sig_cnd_.notify_all();
             }
@@ -810,7 +810,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
         } else if (!job_list_.empty()) {
             //tryPopJob
             should_notify = job_list_.size() == config_.max_job_queue_size_;
-            auto& rnode = job_list_.front();
+            auto& rnode   = job_list_.front();
 
             if (rnode.pcontext_ == nullptr) {
                 _rcontext.pjob_      = &rnode.job_;
