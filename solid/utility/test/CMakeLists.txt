@@ -95,6 +95,7 @@ add_test(NAME TestUtilityFunctionAnySpeedFullStl        COMMAND  test_utility te
 add_test(NAME TestUtilityWorkpoolMulticastBasic         COMMAND  test_utility test_workpool_multicast_basic)
 add_test(NAME TestUtilityWorkpoolMulticastSleep         COMMAND  test_utility test_workpool_multicast_sleep)
 add_test(NAME TestUtilityCallPoolMulticastBasic         COMMAND  test_utility test_callpool_multicast_basic)
+add_test(NAME TestUtilityCallPoolMulticastSynchCtxBasic COMMAND  test_utility test_workpool_multicast_synchronization_context_basic)
 #add_test(NAME TestUtilityFunctionPerf_s_0_10000_1000           COMMAND  test_utility test_function_perf s 0 10000 1000)
 #add_test(NAME TestUtilityFunctionPerf_S_0_10000_1000           COMMAND  test_utility test_function_perf S 0 10000 1000)
 
@@ -198,17 +199,17 @@ add_test(NAME TestWorkPoolMulticastChain15                COMMAND  test_workpool
 add_test(NAME TestWorkPoolMulticast                       COMMAND  test_workpool_multicast test_workpool)
 
 add_test(NAME TestWorkPoolMulticast_0                     COMMAND  test_workpool_multicast test_workpool 1000 10 0 0 1 0 0)
-add_test(NAME TestWorkPoolMulticast_1                     COMMAND  test_workpool_multicast test_workpool 100000 10 100 0 2 0 0)
+add_test(NAME TestWorkPoolMulticast_1                     COMMAND  test_workpool_multicast test_workpool 100000 20 100 0 2 0 0)
 add_test(NAME TestWorkPoolMulticast_2                     COMMAND  test_workpool_multicast test_workpool 10 10 0 0 2 100 0)
 add_test(NAME TestWorkPoolMulticast_3                     COMMAND  test_workpool_multicast test_workpool 10 10 0 0 2 0 100)
 add_test(NAME TestWorkPoolMulticast_4                     COMMAND  test_workpool_multicast test_workpool 1  10 0 0 2 100 100)
 
-add_test(NAME TestWorkPoolMulticast_1_2                   COMMAND  test_workpool_multicast test_workpool 100000 10 100 2 2 0 0)
+add_test(NAME TestWorkPoolMulticast_1_2                   COMMAND  test_workpool_multicast test_workpool 100000 20 100 2 2 0 0)
 add_test(NAME TestWorkPoolMulticast_2_2                   COMMAND  test_workpool_multicast test_workpool 10 10 0 2 2 100 0)
 add_test(NAME TestWorkPoolMulticast_3_2                   COMMAND  test_workpool_multicast test_workpool 10 10 0 2 2 0 100)
 add_test(NAME TestWorkPoolMulticast_4_2                   COMMAND  test_workpool_multicast test_workpool 1  10 0 2 2 100 100)
 
-add_test(NAME TestWorkPoolMulticast_1_4                   COMMAND  test_workpool_multicast test_workpool 100000 10 100 4 4 0 0)
+add_test(NAME TestWorkPoolMulticast_1_4                   COMMAND  test_workpool_multicast test_workpool 100000 20 100 4 4 0 0)
 add_test(NAME TestWorkPoolMulticast_2_4                   COMMAND  test_workpool_multicast test_workpool 10 10 0 4 4 100 0)
 add_test(NAME TestWorkPoolMulticast_3_4                   COMMAND  test_workpool_multicast test_workpool 10 10 0 4 4 0 100)
 add_test(NAME TestWorkPoolMulticast_4_4                   COMMAND  test_workpool_multicast test_workpool 1  10 0 4 4 100 100)

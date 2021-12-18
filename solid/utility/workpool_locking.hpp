@@ -102,7 +102,7 @@ public:
     template <class JobHandleFnc, typename... Args>
     WorkPool(
         const WorkPoolConfiguration& _cfg,
-        const size_t                 _start_wkr_cnt,
+        size_t                       _start_wkr_cnt,
         JobHandleFnc                 _job_handler_fnc,
         Args&&... _args)
         : config_()
@@ -163,7 +163,7 @@ private:
     template <class JobHandlerFnc, typename... Args>
     void doStart(
         const WorkPoolConfiguration& _cfg,
-        const size_t                 _start_wkr_cnt,
+        size_t                 _start_wkr_cnt,
         JobHandlerFnc                _job_handler_fnc,
         Args&&... _args);
 }; //WorkPool
@@ -809,6 +809,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
             _rcontext.pjob_ = &_rcontext.pcontext_->job_list_.front().job_;
         } else if (!job_list_.empty()) {
             //tryPopJob
+            should_notify = job_list_.size() == config_.max_job_queue_size_;
             auto& rnode = job_list_.front();
 
             if (rnode.pcontext_ == nullptr) {
