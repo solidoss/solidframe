@@ -576,7 +576,7 @@ public:
     }
 
 protected:
-    void doPrepareRun(const char* _pbeg, unsigned _sz)
+    void doPrepareRun(const char* _pbeg, size_t _sz)
     {
         pbeg_ = _pbeg;
         pend_ = _pbeg + _sz;

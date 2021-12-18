@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
 
     solid_log(generic_logger, Info, "FileBuf example");
 
-    if (0) {
+    if ((0)) {
 
         frame::file::File         fd;
         frame::file::FilePointerT ptr(&fd);
@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 
         ofs << '[' << ' ' << "this is the most interesting text that was ever written to a file " << 123456789 << ' ' << ']' << endl;
     }
-    if (0) {
+    if ((0)) {
         frame::file::File         fd;
         frame::file::FilePointerT ptr(&fd);
 
@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
         iofs.seekg(100);
         iofs.seekp(100);
     }
-    if (0) {
+    if ((0)) {
         frame::file::File         fd;
         frame::file::FilePointerT ptr(&fd);
         if (!fd.open("test.txt", FileDevice::ReadOnlyE)) {

@@ -309,21 +309,7 @@ struct ConnectionContext {
     const ErrorConditionT& error() const;
     const ErrorCodeT&      systemError() const;
 
-    [[deprecated]] uint32_t const& versionMajor() const;
-    [[deprecated]] uint32_t const& versionMinor() const;
-
-    [[deprecated]] uint32_t peerVersionMajor() const;
-    [[deprecated]] uint32_t peerVersionMinor() const;
-
-    template <class SD>
-    [[deprecated]] void addVersion(SD& _rsd)
-    {
-        doAddVersion(_rsd, std::bool_constant<SD::is_serializer>());
-    }
-
 private:
-    [[deprecated]] uint32_t& peerVersionMajorRef();
-    [[deprecated]] uint32_t& peerVersionMinorRef();
 
     //not used for now
     RequestId const& requestId() const
@@ -332,20 +318,6 @@ private:
     }
 
     void relayId(const UniqueId& _relay_id) const;
-
-    template <class SD>
-    [[deprecated]] void doAddVersion(SD& _rsd, std::false_type /*_is_deserializer*/)
-    {
-        _rsd.add(peerVersionMajorRef(), *this, "protocol_version_major");
-        _rsd.add(peerVersionMinorRef(), *this, "protocol_version_minor");
-    }
-
-    template <class SD>
-    [[deprecated]] void doAddVersion(SD& _rsd, std::true_type /*_is_serializer*/)
-    {
-        _rsd.add(versionMajor(), *this, "protocol_version_major");
-        _rsd.add(versionMinor(), *this, "protocol_version_minor");
-    }
 
 private:
     friend class Connection;

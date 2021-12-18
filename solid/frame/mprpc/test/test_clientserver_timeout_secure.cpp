@@ -117,7 +117,7 @@ public:
 private:
     void connect(frame::aio::ReactorContext& _rctx, SocketAddressStub const& _rsas)
     {
-        if (sock.connect(_rctx, _rsas, [this](frame::aio::ReactorContext& _rctx) {
+        if (sock.connect(_rctx, _rsas, [](frame::aio::ReactorContext& _rctx) {
                 onConnect(_rctx);
             })) {
             onConnect(_rctx);

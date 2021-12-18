@@ -65,7 +65,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "release")
 endif(CMAKE_BUILD_TYPE STREQUAL "release")
 
 if(CMAKE_BUILD_TYPE STREQUAL "maintain")
-    set(CMAKE_VERBOSE_MAKEFILE ON)
+    #set(CMAKE_VERBOSE_MAKEFILE ON)
     set(SOLID_HAS_DEBUG TRUE)
     set(SOLID_HAS_STATISTICS TRUE)
     set(SOLID_HAS_ASSERT TRUE)
@@ -77,7 +77,7 @@ endif(CMAKE_BUILD_TYPE STREQUAL "maintain")
 
 
 if(CMAKE_BUILD_TYPE STREQUAL "debug")
-    set(CMAKE_VERBOSE_MAKEFILE ON)
+    #set(CMAKE_VERBOSE_MAKEFILE ON)
     set(SOLID_HAS_DEBUG TRUE)
     set(SOLID_HAS_NO_INLINES TRUE)
     set(SOLID_HAS_STATISTICS TRUE)
@@ -310,7 +310,6 @@ add_custom_target(libraries
     solid_system
     solid_utility
     solid_reflection_v1
-    solid_serialization_v2
     solid_serialization_v3
     solid_frame
     solid_frame_aio

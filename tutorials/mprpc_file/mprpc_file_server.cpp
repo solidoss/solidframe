@@ -108,7 +108,7 @@ void complete_message<rpc_file::FileRequest>(
 
     auto msgptr = std::make_shared<rpc_file::FileResponse>(*_rrecv_msg_ptr);
 
-    if (false) {
+    if ((false)) {
         error_code error;
 
         msgptr->remote_file_size = fs::file_size(fs::path(_rrecv_msg_ptr->remote_path), error);

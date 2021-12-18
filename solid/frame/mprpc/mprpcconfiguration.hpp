@@ -351,9 +351,6 @@ enum struct ConnectionState {
 struct ReaderConfiguration {
     ReaderConfiguration();
 
-    [[deprecated]] size_t   string_size_limit;
-    [[deprecated]] size_t   container_size_limit;
-    [[deprecated]] uint64_t stream_size_limit;
     size_t                  max_message_count_multiplex;
     UncompressFunctionT     decompress_fnc;
 };
@@ -364,9 +361,6 @@ struct WriterConfiguration {
     size_t                  max_message_count_multiplex;
     size_t                  max_message_count_response_wait;
     size_t                  max_message_continuous_packet_count;
-    [[deprecated]] size_t   string_size_limit;
-    [[deprecated]] size_t   container_size_limit;
-    [[deprecated]] uint64_t stream_size_limit;
     CompressFunctionT       inplace_compress_fnc;
 };
 
@@ -443,24 +437,6 @@ public:
     bool isClientOnly() const
     {
         return !isServer() && isClient();
-    }
-
-    [[deprecated]] void limitString(const size_t _sz)
-    {
-        reader.string_size_limit = _sz;
-        writer.string_size_limit = _sz;
-    }
-
-    [[deprecated]] void limitContainer(const size_t _sz)
-    {
-        reader.container_size_limit = _sz;
-        writer.container_size_limit = _sz;
-    }
-
-    [[deprecated]] void limitStream(const uint64_t _sz)
-    {
-        reader.stream_size_limit = _sz;
-        writer.stream_size_limit = _sz;
     }
 
     RecvBufferPointerT allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) const;

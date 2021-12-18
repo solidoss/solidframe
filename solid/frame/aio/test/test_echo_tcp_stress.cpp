@@ -291,7 +291,7 @@ private:
     }
     void onConnect(frame::aio::ReactorContext& _rctx)
     {
-        if (false) {
+        if ((false)) {
             int rcvsz = 1062000;
             int sndsz = 2626560;
 
@@ -660,7 +660,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
     do {
         if (!_rctx.error()) {
-            if (false) {
+            if ((false)) {
                 int rcvsz = 1062000;
                 int sndsz = 2626560;
 

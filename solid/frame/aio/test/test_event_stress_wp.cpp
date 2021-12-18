@@ -213,7 +213,6 @@ int test_event_stress_wp(int argc, char* argv[])
 
     auto lambda = [&]() {
         {
-            AtomicSizeT         connection_count(0);
             promise<void>       prom;
             ConnectionCallPoolT connection_cp{};
             DeviceCallPoolT     device_cp{};
@@ -241,7 +240,7 @@ int test_event_stress_wp(int argc, char* argv[])
                 }
                 solid_dbg(workpool_logger, Statistic, "producer done");
             };
-            if (0) {
+            if ((0)) {
                 auto fut = async(launch::async, produce_lambda);
                 fut.wait();
             } else {

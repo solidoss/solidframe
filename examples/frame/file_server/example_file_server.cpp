@@ -267,7 +267,7 @@ int main(int argc, char* argv[])
         cout << "Here some examples how to test: " << endl;
         cout << "\t$ nc localhost 2000" << endl;
 
-        if (0) {
+        if ((0)) {
             unique_lock<mutex> lock(mtx);
             while (run) {
                 cnd.wait(lock);

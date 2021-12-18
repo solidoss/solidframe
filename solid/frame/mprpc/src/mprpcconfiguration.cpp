@@ -140,9 +140,6 @@ bool default_setup_socket_device(SocketDevice& _rsd)
 ReaderConfiguration::ReaderConfiguration()
 {
     max_message_count_multiplex = 64 + 128;
-    string_size_limit           = InvalidSize();
-    stream_size_limit           = InvalidSize();
-    container_size_limit        = InvalidSize();
 
     decompress_fnc = &default_decompress;
 }
@@ -153,11 +150,6 @@ WriterConfiguration::WriterConfiguration()
 
     max_message_continuous_packet_count = 4;
     max_message_count_response_wait     = 128;
-
-    string_size_limit    = InvalidSize();
-    stream_size_limit    = InvalidSize();
-    container_size_limit = InvalidSize();
-
     inplace_compress_fnc = &default_compress;
 }
 //-----------------------------------------------------------------------------

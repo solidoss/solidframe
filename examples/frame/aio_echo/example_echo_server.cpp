@@ -281,7 +281,7 @@ int main(int argc, char* argv[])
 #endif
         }
 
-        if (0) {
+        if ((0)) {
             unique_lock<mutex> lock(mtx);
             while (running) {
                 cnd.wait(lock);

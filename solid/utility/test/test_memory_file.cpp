@@ -42,12 +42,12 @@ void test_read_write(size_t _sz, const std::vector<size_t>& _write_size_vec, con
         size_t idx = 0;
         size_t off = 0;
         do {
-            int to_write = static_cast<int>(_write_size_vec[idx % _write_size_vec.size()]);
+            uint32_t to_write = static_cast<int>(_write_size_vec[idx % _write_size_vec.size()]);
             if (to_write > static_cast<int>(instr.size() - off)) {
                 to_write = static_cast<int>(instr.size() - off);
             }
-            int rv = mf.write(instr.data() + off, to_write);
-            solid_check(rv == to_write);
+            ssize_t rv = mf.write(instr.data() + off, to_write);
+            solid_check(rv == static_cast<ssize_t>(to_write));
             off += to_write;
             ++idx;
         } while (off < instr.size());
@@ -59,14 +59,14 @@ void test_read_write(size_t _sz, const std::vector<size_t>& _write_size_vec, con
     {
         std::string   outstr;
         size_t        idx    = 0;
-        constexpr int buf_cp = 10 * 1024;
+        constexpr uint32_t buf_cp = 10 * 1024;
         char          buf[10 * 1024];
         bool          fwd;
         do {
 
-            int to_read = static_cast<int>(_read_size_vec[idx % _read_size_vec.size()]);
+            uint32_t to_read = static_cast<int>(_read_size_vec[idx % _read_size_vec.size()]);
             solid_check(to_read < buf_cp);
-            int rv = mf.read(buf, to_read);
+            ssize_t rv = mf.read(buf, to_read);
             if (rv > 0) {
                 solid_check(rv <= to_read);
                 outstr.append(buf, rv);
