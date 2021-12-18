@@ -84,7 +84,7 @@ int test_workpool_thread_context(int argc, char* argv[])
             {
                 CallPoolT wp
                 {
-                    WorkPoolConfiguration(1),
+                    WorkPoolConfiguration(2),
 #if SOLID_WORKPOOL_OPTION < 2
                         0,
 #endif

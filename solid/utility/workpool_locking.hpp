@@ -629,7 +629,7 @@ private:
         JobHandlerFnc      _job_handler_fnc,
         MCastJobHandleFnc  _mcast_job_handler_fnc,
         MCastSyncUpdateFnc _mcast_sync_update_fnc,
-        Args... _args);
+        Args&&... _args);
 
     template <class JT>
     void doPush(JT&& _jb, ContextStub* _pctx);
@@ -691,7 +691,7 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doRun(
     JobHandlerFnc      _job_handler_fnc,
     MCastJobHandleFnc  _mcast_job_handler_fnc,
     MCastSyncUpdateFnc _mcast_sync_update_fnc,
-    Args... _args)
+    Args&&... _args)
 {
     uint64_t job_count          = 0;
     uint64_t mcast_job_count    = 0;
@@ -707,8 +707,8 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doRun(
             ++mcast_update_count;
         }
         if (pop_context.has_mcast_) {
-            ++mcast_job_count;
             _mcast_job_handler_fnc(pop_context.mcast_job_, std::forward<Args>(_args)...);
+            ++mcast_job_count;
         }
         if (pop_context.pjob_) {
             _job_handler_fnc(*pop_context.pjob_, std::forward<Args>(_args)...);
