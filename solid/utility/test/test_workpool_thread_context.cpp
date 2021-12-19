@@ -51,11 +51,11 @@ int test_workpool_thread_context(int argc, char* argv[])
     install_crash_handler();
     solid::log_start(std::cerr, {".*:EWXS", "test:VIEWS"});
 #if SOLID_WORKPOOL_OPTION == 0
-    using CallPoolT = lockfree::CallPoolT<void(Context&), void, WorkPoolT>;
+    using CallPoolT = lockfree::CallPoolT<void(Context&), void, function_default_data_size, WorkPoolT>;
 #elif SOLID_WORKPOOL_OPTION == 1
-    using CallPoolT  = locking::CallPoolT<void(Context&), void, WorkPoolT>;
+    using CallPoolT  = locking::CallPoolT<void(Context&), void, function_default_data_size, WorkPoolT>;
 #else
-    using CallPoolT = locking::CallPoolT<void(Context&), void(Context&), WorkPoolT>;
+    using CallPoolT = locking::CallPoolT<void(Context&), void(Context&), function_default_data_size, WorkPoolT>;
 #endif
 
     using AtomicPWPT = std::atomic<CallPoolT*>;

@@ -150,7 +150,7 @@ WriterConfiguration::WriterConfiguration()
 
     max_message_continuous_packet_count = 4;
     max_message_count_response_wait     = 128;
-    inplace_compress_fnc = &default_compress;
+    inplace_compress_fnc                = &default_compress;
 }
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

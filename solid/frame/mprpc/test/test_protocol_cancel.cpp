@@ -37,8 +37,8 @@ std::string  pattern;
 const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
 uint32_t crtwriteidx = 0;
-size_t crtreadidx  = 0;
-size_t writecount  = 0;
+size_t   crtreadidx  = 0;
+size_t   writecount  = 0;
 
 MessageIdVectorT message_uid_vec;
 

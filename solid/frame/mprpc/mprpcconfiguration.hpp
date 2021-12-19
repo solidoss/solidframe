@@ -351,17 +351,17 @@ enum struct ConnectionState {
 struct ReaderConfiguration {
     ReaderConfiguration();
 
-    size_t                  max_message_count_multiplex;
-    UncompressFunctionT     decompress_fnc;
+    size_t              max_message_count_multiplex;
+    UncompressFunctionT decompress_fnc;
 };
 
 struct WriterConfiguration {
     WriterConfiguration();
 
-    size_t                  max_message_count_multiplex;
-    size_t                  max_message_count_response_wait;
-    size_t                  max_message_continuous_packet_count;
-    CompressFunctionT       inplace_compress_fnc;
+    size_t            max_message_count_multiplex;
+    size_t            max_message_count_response_wait;
+    size_t            max_message_continuous_packet_count;
+    CompressFunctionT inplace_compress_fnc;
 };
 
 struct Configuration {

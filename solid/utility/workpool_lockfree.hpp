@@ -696,7 +696,7 @@ template <typename Job, typename MCast = void>
 using WorkPoolT = WorkPool<Job, MCast>;
 //-----------------------------------------------------------------------------
 
-template <class Job, class MCast = Job, template <typename, typename> class WP = WorkPoolT, size_t FunctionDataSize = function_default_data_size>
-using CallPoolT = CallPool<Job, MCast, WP, FunctionDataSize>;
+template <class Job, class MCast = Job, size_t FunctionDataSize = function_default_data_size, template <typename, typename> class WP = WorkPoolT>
+using CallPoolT = CallPool<Job, MCast, FunctionDataSize, WP>;
 } //namespace lockfree
 } //namespace solid

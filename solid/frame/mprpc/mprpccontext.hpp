@@ -310,7 +310,6 @@ struct ConnectionContext {
     const ErrorCodeT&      systemError() const;
 
 private:
-
     //not used for now
     RequestId const& requestId() const
     {

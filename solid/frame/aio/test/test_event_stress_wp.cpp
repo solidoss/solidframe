@@ -28,9 +28,9 @@ struct DeviceContext;
 template <class Job, class>
 using WorkPoolT = lockfree::WorkPool<Job, void, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<30>>;
 
-using AccountCallPoolT    = CallPool<void(AccountContext&), void, WorkPoolT>;
-using ConnectionCallPoolT = CallPool<void(ConnectionContext&), void, WorkPoolT>;
-using DeviceCallPoolT     = CallPool<void(DeviceContext&), void, WorkPoolT>;
+using AccountCallPoolT    = CallPool<void(AccountContext&), void, function_default_data_size, WorkPoolT>;
+using ConnectionCallPoolT = CallPool<void(ConnectionContext&), void, function_default_data_size, WorkPoolT>;
+using DeviceCallPoolT     = CallPool<void(DeviceContext&), void, function_default_data_size, WorkPoolT>;
 
 struct GlobalContext {
     atomic<bool>       stopping_;

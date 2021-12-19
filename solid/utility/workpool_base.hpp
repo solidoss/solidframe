@@ -88,11 +88,11 @@ protected:
 
 } //namespace impl
 
-template <class Job, class MCast, template <typename, typename> class WP, size_t FunctionDataSize = function_default_data_size>
+template <class Job, class MCast, size_t FunctionDataSize, template <typename, typename> class WP>
 class CallPool;
 
-template <class... ArgTypes, template <typename, typename> class WP, size_t FunctionDataSize>
-class CallPool<void(ArgTypes...), void, WP, FunctionDataSize> {
+template <class... ArgTypes, size_t FunctionDataSize, template <typename, typename> class WP>
+class CallPool<void(ArgTypes...), void, FunctionDataSize, WP> {
     using FunctionT = Function<void(ArgTypes...), FunctionDataSize>;
     using WorkPoolT = WP<FunctionT, void>;
     WorkPoolT wp_;
@@ -163,8 +163,8 @@ public:
     }
 };
 
-template <class... ArgTypes, template <typename, typename> class WP, size_t FunctionDataSize>
-class CallPool<void(ArgTypes...), void(ArgTypes...), WP, FunctionDataSize> {
+template <class... ArgTypes, size_t FunctionDataSize, template <typename, typename> class WP>
+class CallPool<void(ArgTypes...), void(ArgTypes...), FunctionDataSize, WP> {
     using FunctionT     = Function<void(ArgTypes...), FunctionDataSize>;
     using FunctionPairT = std::pair<FunctionT, FunctionT>;
     using WorkPoolT     = WP<FunctionT, FunctionPairT>;

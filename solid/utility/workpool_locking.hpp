@@ -975,7 +975,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::tryPushAll(JT&& _jb)
 template <typename Job, typename MCastJob = void>
 using WorkPoolT = WorkPool<Job, MCastJob>;
 
-template <class Job, class MCast = Job, template <typename, typename> class WP = WorkPoolT, size_t FunctionDataSize = function_default_data_size>
-using CallPoolT = CallPool<Job, MCast, WP, FunctionDataSize>;
+template <class Job, class MCast = Job, size_t FunctionDataSize = function_default_data_size, template <typename, typename> class WP = WorkPoolT>
+using CallPoolT = CallPool<Job, MCast, FunctionDataSize, WP>;
 } //namespace locking
 } //namespace solid
