@@ -67,10 +67,6 @@ int test_callpool_multicast_basic(int argc, char* argv[])
                                         _rctx.all_val.compare_exchange_strong(expect, v);
 
                                         thread_local_value = v;
-                                    },
-                                    [v = (i / 10 + 1)](Context& _rctx, deque<uint32_t>&) {
-                                        auto expect = v - 1;
-                                        _rctx.all_val.compare_exchange_strong(expect, v);
                                     });
                             }
                         }

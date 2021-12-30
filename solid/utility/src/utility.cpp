@@ -255,7 +255,6 @@ WorkPoolMulticastStatistic::WorkPoolMulticastStatistic()
     , min_jobs_on_thread_(-1)
     , max_mcast_jobs_on_thread_(0)
     , min_mcast_jobs_on_thread_(-1)
-    , mcast_updates_(0)
     , job_count_(0)
     , max_pop_wait_loop_count_(0)
 {
@@ -269,7 +268,6 @@ std::ostream& WorkPoolMulticastStatistic::print(std::ostream& _ros) const
     _ros << " min_jobs_on_thread_ = " << min_jobs_on_thread_;
     _ros << " max_mcast_jobs_on_thread_ = " << max_mcast_jobs_on_thread_;
     _ros << " min_mcast_jobs_on_thread_ = " << min_mcast_jobs_on_thread_;
-    _ros << " mcast_updates_ = " << mcast_updates_;
     _ros << " job_count_ = " << job_count_;
     _ros << " max_pop_wait_loop_count_ = " << max_pop_wait_loop_count_;
     return _ros;

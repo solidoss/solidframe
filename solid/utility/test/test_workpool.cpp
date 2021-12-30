@@ -111,7 +111,6 @@ int test_workpool(int argc, char* argv[])
                 },
 #if SOLID_WORKPOOL_OPTION == 2
                 [](size_t, Context&&) {},
-                [](size_t, Context&&) {},
 #endif
                 Context(gdq, gmtx)
         };

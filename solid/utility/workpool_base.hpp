@@ -165,9 +165,8 @@ public:
 
 template <class... ArgTypes, size_t FunctionDataSize, template <typename, typename> class WP>
 class CallPool<void(ArgTypes...), void(ArgTypes...), FunctionDataSize, WP> {
-    using FunctionT     = Function<void(ArgTypes...), FunctionDataSize>;
-    using FunctionPairT = std::pair<FunctionT, FunctionT>;
-    using WorkPoolT     = WP<FunctionT, FunctionPairT>;
+    using FunctionT = Function<void(ArgTypes...), FunctionDataSize>;
+    using WorkPoolT = WP<FunctionT, FunctionT>;
     WorkPoolT wp_;
 
 public:
@@ -185,13 +184,8 @@ public:
                 _rfnc(std::forward<ArgTypes>(_args)...);
                 _rfnc.reset();
             },
-            [](FunctionPairT& _rfnc_pair, Args&&... _args) {
-                _rfnc_pair.first(std::forward<ArgTypes>(_args)...);
-                _rfnc_pair.first.reset();
-                _rfnc_pair.second.reset();
-            },
-            [](const FunctionPairT& _rfnc_pair, Args&&... _args) {
-                _rfnc_pair.second(std::forward<ArgTypes>(_args)...);
+            [](FunctionT& _rfnc, Args&&... _args) {
+                _rfnc(std::forward<ArgTypes>(_args)...);
             },
             std::forward<Args>(_args)...)
     {
@@ -206,13 +200,8 @@ public:
                 _rfnc(std::forward<ArgTypes>(_args)...);
                 _rfnc.reset();
             },
-            [](FunctionPairT& _rfnc_pair, Args&&... _args) {
-                _rfnc_pair.first(std::forward<ArgTypes>(_args)...);
-                _rfnc_pair.first.reset();
-                _rfnc_pair.second.reset();
-            },
-            [](const FunctionPairT& _rfnc_pair, Args&&... _args) {
-                _rfnc_pair.second(std::forward<ArgTypes>(_args)...);
+            [](FunctionT& _rfnc, Args&&... _args) {
+                _rfnc(std::forward<ArgTypes>(_args)...);
             },
             std::forward<Args>(_args)...);
     }
@@ -229,10 +218,10 @@ public:
         return wp_.tryPush(std::forward<JT>(_jb));
     }
 
-    template <class JT, class UpdateFnc>
-    void pushAll(JT&& _jb, UpdateFnc&& _update_fnc)
+    template <class JT>
+    void pushAll(JT&& _jb)
     {
-        wp_.pushAll(FunctionPairT(std::forward<JT>(_jb), std::forward<UpdateFnc>(_update_fnc)));
+        wp_.pushAll(std::forward<JT>(_jb));
     }
 
     void stop()

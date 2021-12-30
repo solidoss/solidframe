@@ -9,6 +9,7 @@ set( UtilityTestSuite
     test_event_size.cpp
     test_memory_file.cpp
     test_callpool_multicast_basic.cpp
+    test_callpool_multicast_pattern.cpp
     test_workpool_multicast_basic.cpp
     test_workpool_multicast_sleep.cpp
     test_workpool_multicast_synchronization_context_basic.cpp
@@ -95,6 +96,7 @@ add_test(NAME TestUtilityFunctionAnySpeedFullStl        COMMAND  test_utility te
 add_test(NAME TestUtilityWorkpoolMulticastBasic         COMMAND  test_utility test_workpool_multicast_basic)
 add_test(NAME TestUtilityWorkpoolMulticastSleep         COMMAND  test_utility test_workpool_multicast_sleep)
 add_test(NAME TestUtilityCallPoolMulticastBasic         COMMAND  test_utility test_callpool_multicast_basic)
+add_test(NAME TestUtilityCallPoolMulticastPattern       COMMAND  test_utility test_callpool_multicast_pattern)
 add_test(NAME TestUtilityCallPoolMulticastSynchCtxBasic COMMAND  test_utility test_workpool_multicast_synchronization_context_basic)
 #add_test(NAME TestUtilityFunctionPerf_s_0_10000_1000           COMMAND  test_utility test_function_perf s 0 10000 1000)
 #add_test(NAME TestUtilityFunctionPerf_S_0_10000_1000           COMMAND  test_utility test_function_perf S 0 10000 1000)

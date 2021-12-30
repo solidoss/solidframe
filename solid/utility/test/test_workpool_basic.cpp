@@ -32,7 +32,7 @@ int test_workpool_basic(int argc, char* argv[])
 #ifdef SOLID_SANITIZE_THREAD
     const int wait_seconds = 1500;
 #else
-    const int wait_seconds = 200;
+    const int wait_seconds = 300;
 #endif
     int                 loop_cnt = 3;
     const size_t        cnt{5000000};
@@ -57,7 +57,7 @@ int test_workpool_basic(int argc, char* argv[])
                         }
 #if SOLID_WORKPOOL_OPTION == 2
                     ,
-                        [](const size_t) {}, [](const size_t) {}
+                        [](const size_t) {}
 #endif
                 };
                 pwp = &wp;

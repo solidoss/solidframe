@@ -59,11 +59,6 @@ int test_workpool_multicast_basic(int argc, char* argv[])
 
                         thread_local_value = _v;
                         //solid_log(logger, Verbose, "mcast");
-                    },
-                    [&all_val](const size_t _v) { //mcast update
-                        uint32_t expect = _v - 1;
-                        all_val.compare_exchange_strong(expect, _v);
-                        //solid_log(logger, Verbose, "update");
                     }};
 
                 pwp = &wp;

@@ -72,7 +72,7 @@ int test_workpool_chain(int argc, char* argv[])
                         }
 #if SOLID_WORKPOOL_OPTION == 2
                     ,
-                        [](const size_t) {}, [](const size_t) {}
+                        [](const size_t) {}
 #endif
                 };
                 WorkPoolT wp_f
@@ -86,7 +86,7 @@ int test_workpool_chain(int argc, char* argv[])
                         }
 #if SOLID_WORKPOOL_OPTION == 2
                     ,
-                        [](const size_t) {}, [](const size_t) {}
+                        [](const size_t) {}
 #endif
                 };
 

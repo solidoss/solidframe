@@ -59,10 +59,6 @@ int test_workpool_multicast_sleep(int argc, char* argv[])
 
                         thread_local_value = _v;
                         this_thread::sleep_for(chrono::milliseconds(_v % 5) * 5);
-                    },
-                    [&all_val](const uint32_t _v) { //synch update
-                        auto expect = _v - 1;
-                        all_val.compare_exchange_strong(expect, _v);
                     }};
 
                 pwp = &wp;

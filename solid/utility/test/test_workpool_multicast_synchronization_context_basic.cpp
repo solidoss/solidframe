@@ -73,9 +73,6 @@ int test_workpool_multicast_synchronization_context_basic(int argc, char* argv[]
             [](const uint32_t _v) { //mcast execute
                 thread_local_value = _v;
                 //solid_log(logger, Verbose, "mcast " << _v);
-            },
-            [](const uint32_t _v) { //mcast update
-                //solid_log(logger, Verbose, "mcast update" << _v);
             }};
         {
             SynchContext synch_contexts[synch_context_count];
