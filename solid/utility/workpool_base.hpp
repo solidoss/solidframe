@@ -174,6 +174,11 @@ public:
 
     CallPool() {}
 
+    auto createSynchronizationContext()
+    {
+        return wp_.createSynchronizationContext();
+    }
+
     template <typename... Args>
     CallPool(
         const WorkPoolConfiguration& _cfg,
