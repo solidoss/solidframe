@@ -64,6 +64,17 @@ struct UniqueId {
     }
 };
 
+inline bool operator<(const UniqueId& _uid1, const UniqueId& _uid2)
+{
+    if (_uid1.index < _uid2.index) {
+        return true;
+    } else if (_uid2.index < _uid1.index) {
+        return false;
+    } else {
+        return _uid1.unique < _uid2.unique;
+    }
+}
+
 using ActorIdT = UniqueId;
 
 std::ostream& operator<<(std::ostream& _ros, UniqueId const& _uid);

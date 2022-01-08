@@ -140,6 +140,17 @@ private:
     ActorIdT         connectionid;
 };
 
+inline bool operator<(RecipientId const& _rec_id1, RecipientId const& _rec_id2)
+{
+    if (_rec_id1.connectionId() < _rec_id2.connectionId()) {
+        return true;
+    } else if (_rec_id2.connectionId() < _rec_id1.connectionId()) {
+        return false;
+    } else {
+        return _rec_id1.poolId() < _rec_id2.poolId();
+    }
+}
+
 inline bool operator==(RecipientId const& _rec_id1, RecipientId const& _rec_id2)
 {
     return _rec_id1.connectionId() == _rec_id2.connectionId() && _rec_id1.poolId() == _rec_id2.poolId();

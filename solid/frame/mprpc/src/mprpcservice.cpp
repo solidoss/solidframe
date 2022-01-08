@@ -1594,6 +1594,14 @@ ErrorConditionT Service::doConnectionNotifyEnterActiveState(
     return error;
 }
 //-----------------------------------------------------------------------------
+void Service::doConnectionNotifyPostAll(
+    ConnectionPostCompleteFunctionT&& _ucomplete_fnc)
+{
+    solid_dbg(logger, Verbose, this);
+
+    this->notifyAll(Connection::eventPost(std::move(_ucomplete_fnc)));
+}
+//-----------------------------------------------------------------------------
 ErrorConditionT Service::doConnectionNotifyPost(
     RecipientId const&                _rrecipient_id,
     ConnectionPostCompleteFunctionT&& _ucomplete_fnc)
