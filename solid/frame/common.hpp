@@ -13,6 +13,7 @@
 #include <ostream>
 #include <utility>
 
+#include "solid/reflection/reflection.hpp"
 #include "solid/system/convertors.hpp"
 #include "solid/utility/common.hpp"
 #include "solid/utility/function.hpp"
@@ -61,6 +62,12 @@ struct UniqueId {
     {
         index  = InvalidIndex();
         unique = InvalidIndex();
+    }
+
+    SOLID_REFLECT_V1(_r, _rthis, _rctx)
+    {
+        _r.add(_rthis.index, _rctx, 1, "index");
+        _r.add(_rthis.unique, _rctx, 2, "unique");
     }
 };
 
