@@ -155,6 +155,7 @@ bool MessageWriter::enqueue(
 {
     if (full(_rconfig)) {
         _rmore = false;
+        solid_dbg(logger, Verbose, "");
         return false;
     }
 
@@ -162,12 +163,15 @@ bool MessageWriter::enqueue(
     //see if we have too many messages waiting for responses
 
     if (_rconn_msg_id.isInvalid()) { //front message data
+        solid_dbg(logger, Verbose, "");
         if (cache_inner_list_.empty()) {
             _rmore = false;
+            solid_dbg(logger, Verbose, "");
             return false;
         }
         if (
             _rprelay_data->isRequest() && ((order_inner_list_.size() - write_inner_list_.size()) >= _rconfig.max_message_count_response_wait)) {
+            solid_dbg(logger, Verbose, "");
             return false;
         }
 
@@ -214,9 +218,11 @@ bool MessageWriter::enqueue(
         doWriteQueuePushBack(msgidx, __LINE__);
         solid_dbg(logger, Verbose, "relayedcancel msg " << msgidx);
         //we do not need the relay_data - leave it to the relay engine to delete it.
+        //TODO:!!!! - we actually need the relay data for pmessage_header_->recipient_request_id_
     } else if (rmsgstub.state_ == MessageStub::StateE::RelayedWait) {
         solid_dbg(logger, Verbose, "relayedcancel erase msg " << msgidx << " state = " << (int)rmsgstub.state_);
         //do nothing - we cannot erase a message stub waiting for response
+        //TODO:!!!! actually we should be able to cancel a message waiting for response
     } else {
         solid_dbg(logger, Verbose, "relayedcancel erase msg " << msgidx << " state = " << (int)rmsgstub.state_);
         order_inner_list_.erase(msgidx);
@@ -857,7 +863,7 @@ char* MessageWriter::doWriteRelayedBody(
                 rmsgstub.state_ = MessageStub::StateE::RelayedWait;
             } else {
                 order_inner_list_.erase(_msgidx);
-                rmsgstub.clear();
+                doUnprepareMessageStub(_msgidx);
             }
         }
     }
@@ -912,10 +918,12 @@ char* MessageWriter::doWriteRelayedCancel(
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
+
+    //TODO: add support for sending also rmsgstub.prelay_data_->pmessage_header_->recipient_request_id_
     solid_check_log(_pbufpos != nullptr, logger, "fail store cross value");
     solid_assert_log(rmsgstub.prelay_data_ == nullptr, logger);
     //_rsender.completeRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
-    //rmsgstub.prelay_data_ = nullptr;
+    //rmsgstub.prelay_data_ = nullptr;msgstub.prelay_data_
 
     solid_assert_log(write_inner_list_.size(), logger);
     doWriteQueueErase(_msgidx, __LINE__);

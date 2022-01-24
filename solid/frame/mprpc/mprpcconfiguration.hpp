@@ -171,10 +171,16 @@ struct RelayData {
     {
         return flags_.has(RelayDataFlagsE::Last);
     }
+    
     bool isMessageLast() const
     {
         return isMessageEnd() && !Message::is_response_part(this->message_flags_);
     }
+
+    bool isMessagePart()const{
+        return Message::is_response_part(this->message_flags_);
+    }
+
     bool isRequest() const
     {
         return Message::is_awaiting_response(this->message_flags_);

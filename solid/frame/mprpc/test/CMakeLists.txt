@@ -300,6 +300,7 @@ if(OPENSSL_FOUND)
         test_relay_close_request.cpp
         test_relay_close_response.cpp
         test_relay_split.cpp
+        test_relay_detect_close.cpp
     )
     #
     create_test_sourcelist( mprpcRelayTests test_mprpc_relay.cpp ${mprpcRelayTestSuite})
