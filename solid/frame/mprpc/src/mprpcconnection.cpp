@@ -1300,7 +1300,8 @@ void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event
     if (relay_id_.isValid()) {
         Configuration const& config      = service(_rctx).configuration();
         size_t               ack_buf_cnt = 0;
-        const auto           done_lambda = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
+
+        const auto done_lambda = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
             if (_rbuf.use_count() == 1) {
                 ++ack_buf_cnt;
                 this->recv_buf_vec_.emplace_back(std::move(_rbuf));
@@ -1309,9 +1310,11 @@ void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event
         const auto cancel_lambda = [this](const MessageHeader& _rmsghdr) {
             //we must request the remote side to stop sending the message
             solid_dbg(logger, Info, this << " cancel_remote_msg sreqid =  " << _rmsghdr.sender_request_id_ << " rreqid = " << _rmsghdr.recipient_request_id_);
-            //cancel_remote_msg_vec_.push_back(_rmsghdr.recipient_request_id_);
+            cancel_remote_msg_vec_.push_back(_rmsghdr.recipient_request_id_);
             //we do nothing here because the message cancel will be discovered onto messagereader
             //when calling receiveRelayBody which will return false
+
+            //TODO:!!!!
         };
 
         config.relayEngine().pollDone(relay_id_, done_lambda, cancel_lambda);
@@ -2007,7 +2010,8 @@ void Connection::doCancelRelayed(
 
     const Configuration& rconfig     = service(_rctx).configuration();
     size_t               ack_buf_cnt = 0;
-    const auto           done_lambda = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
+
+    const auto done_lambda = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
         if (_rbuf.use_count() == 1) {
             ++ack_buf_cnt;
             this->recv_buf_vec_.emplace_back(std::move(_rbuf));
