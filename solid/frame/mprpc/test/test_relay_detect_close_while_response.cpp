@@ -38,15 +38,43 @@ using SecureContextT = frame::aio::openssl::Context;
 
 namespace {
 
-bool               running = true;
-mutex              mtx;
-condition_variable cnd;
+bool                    running = true;
+mutex                   mtx;
+condition_variable      cnd;
+frame::mprpc::ServiceT* pmprpcpeera = nullptr;
 
 void done()
 {
     lock_guard<mutex> lock(mtx);
     running = false;
     cnd.notify_all();
+}
+
+string generate_big_data(const size_t _size)
+{
+    static struct Pattern {
+        string pattern;
+
+        Pattern()
+        {
+            for (int i = 0; i < 127; ++i) {
+                if (isprint(i) && !isblank(i)) {
+                    pattern += static_cast<char>(i);
+                }
+            }
+        }
+    } pattern;
+
+    string str;
+    str.reserve(_size);
+    while (str.size() < _size) {
+        size_t tocopy = _size - str.size();
+        if (tocopy > pattern.pattern.size()) {
+            tocopy = pattern.pattern.size();
+        }
+        str.append(pattern.pattern.data(), tocopy);
+    }
+    return str;
 }
 
 struct Register : frame::mprpc::Message {
@@ -77,6 +105,7 @@ struct Register : frame::mprpc::Message {
 
 struct DetectCloseMessage : frame::mprpc::Message {
     uint32_t idx = 0;
+    string   data_;
 
     DetectCloseMessage() = default;
 
@@ -85,19 +114,36 @@ struct DetectCloseMessage : frame::mprpc::Message {
         , idx(_idx)
     {
     }
+    DetectCloseMessage(frame::mprpc::Message& _rreq, uint32_t _idx, string&& _data)
+        : frame::mprpc::Message(_rreq)
+        , idx(_idx)
+        , data_(std::move(_data))
+    {
+    }
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
         _rr.add(_rthis.idx, _rctx, 0, "idx");
+        _rr.add(_rthis.data_, _rctx, 1, "data");
     }
 };
 
 struct Message : frame::mprpc::Message {
     uint32_t idx = 0;
+    string   data_;
+
+    Message() = default;
+
+    Message(uint32_t _index, string&& _data)
+        : idx(_index)
+        , data_(std::move(_data))
+    {
+    }
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
         _rr.add(_rthis.idx, _rctx, 0, "idx");
+        _rr.add(_rthis.data_, _rctx, 1, "data");
     }
 };
 
@@ -123,10 +169,6 @@ void peera_complete_message(
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
 
     solid_check(_rsent_msg_ptr, "Error: there should be a request message");
-    if (_rrecv_msg_ptr) {
-        _rrecv_msg_ptr->clearHeader();
-        _rctx.service().sendMessage("localhost/b", std::move(_rrecv_msg_ptr), {frame::mprpc::MessageFlagsE::AwaitResponse});
-    }
 }
 
 void peera_complete_detect_close(
@@ -140,6 +182,7 @@ void peera_complete_detect_close(
     if (_rrecv_msg_ptr) {
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " peera received DetectCloseMessage " << _rrecv_msg_ptr->idx);
         solid_check(!_rrecv_msg_ptr->isResponseLast());
+        pmprpcpeera->sendMessage("localhost/b", std::make_shared<Message>(_rrecv_msg_ptr->idx, generate_big_data(1024 * 10)));
     }
 
     if (_rerror == frame::mprpc::error_message_canceled_peer) {
@@ -205,11 +248,7 @@ void peerb_complete_message(
             solid_assert(false);
             solid_throw("Connection id should not be invalid!");
         }
-        ++_rrecv_msg_ptr->idx;
-        if (_rrecv_msg_ptr->idx < 4) {
-            ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
-            (void)err;
-        } else {
+        if (_rrecv_msg_ptr->idx >= 4) {
             ErrorConditionT err = _rctx.service().forceCloseConnectionPool(_rctx.recipientId(), [](frame::mprpc::ConnectionContext& _rctx) {});
             (void)err;
         }
@@ -228,24 +267,24 @@ void peerb_complete_detect_close(
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " received DetectCloseMessage on peerb");
 
         _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 1), {frame::mprpc::MessageFlagsE::ResponsePart});
-        _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 2), {frame::mprpc::MessageFlagsE::ResponsePart});
-        _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 3), {frame::mprpc::MessageFlagsE::ResponsePart});
-        _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 4), {frame::mprpc::MessageFlagsE::ResponsePart});
-        _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 5), {frame::mprpc::MessageFlagsE::ResponsePart});
-        _rrecv_msg_ptr->idx = 6;
+        _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 2, generate_big_data(1024 * 1000)), {frame::mprpc::MessageFlagsE::ResponsePart});
+        _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 3, generate_big_data(1024 * 100)), {frame::mprpc::MessageFlagsE::ResponsePart});
+        _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 4, generate_big_data(1024 * 10)), {frame::mprpc::MessageFlagsE::ResponsePart});
+        _rrecv_msg_ptr->idx   = 5;
+        _rrecv_msg_ptr->data_ = generate_big_data(1024 * 1024 * 100); //100MB
         _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr), {frame::mprpc::MessageFlagsE::ResponsePart});
     }
 }
 //-----------------------------------------------------------------------------
 } //namespace
 
-int test_relay_detect_close(int argc, char* argv[])
+int test_relay_detect_close_while_response(int argc, char* argv[])
 {
 #ifndef SOLID_ON_WINDOWS
     signal(SIGPIPE, SIG_IGN);
 #endif
 
-    solid::log_start(std::cerr, {"solid::frame::mprpc::.*:VIEWX", "\\*:VIEWX"});
+    solid::log_start(std::cerr, {"solid::frame::mprpc::.*:EWX", "\\*:VIEWX"});
 
     size_t max_per_pool_connection_count = 1;
     bool   secure                        = false;
@@ -424,11 +463,8 @@ int test_relay_detect_close(int argc, char* argv[])
         err = mprpcpeerb.createConnectionPool("localhost");
         solid_check(!err, "failed create connection from peerb: " << err.message());
 
+        pmprpcpeera = &mprpcpeera;
         mprpcpeera.sendMessage("localhost/b", std::make_shared<DetectCloseMessage>(), {frame::mprpc::MessageFlagsE::AwaitResponse});
-
-        mprpcpeera.sendMessage(
-            "localhost/b", std::make_shared<Message>(),
-            {frame::mprpc::MessageFlagsE::AwaitResponse});
 
         unique_lock<mutex> lock(mtx);
 

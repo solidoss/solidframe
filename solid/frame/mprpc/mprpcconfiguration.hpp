@@ -78,7 +78,7 @@ struct Buffer;
 
 template <>
 struct Buffer<0> : BufferBase {
-    Buffer(size_t _cp)
+    Buffer(const size_t _cp)
         : BufferBase(new char[_cp], _cp)
     {
     }
@@ -171,13 +171,14 @@ struct RelayData {
     {
         return flags_.has(RelayDataFlagsE::Last);
     }
-    
+
     bool isMessageLast() const
     {
         return isMessageEnd() && !Message::is_response_part(this->message_flags_);
     }
 
-    bool isMessagePart()const{
+    bool isMessagePart() const
+    {
         return Message::is_response_part(this->message_flags_);
     }
 

@@ -301,6 +301,7 @@ if(OPENSSL_FOUND)
         test_relay_close_response.cpp
         test_relay_split.cpp
         test_relay_detect_close.cpp
+        test_relay_detect_close_while_response.cpp
     )
     #
     create_test_sourcelist( mprpcRelayTests test_mprpc_relay.cpp ${mprpcRelayTestSuite})
@@ -320,13 +321,16 @@ if(OPENSSL_FOUND)
         ${SYSTEM_BASIC_LIBRARIES}
     )
 
-    add_test(NAME TestRelayDisabled1        COMMAND  test_mprpc_relay test_relay_disabled 1)
-    add_test(NAME TestRelayBasic1           COMMAND  test_mprpc_relay test_relay_basic 1)
-    add_test(NAME TestRelayCancelRequest1   COMMAND  test_mprpc_relay test_relay_cancel_request 1)
-    add_test(NAME TestRelayCancelResponse1  COMMAND  test_mprpc_relay test_relay_cancel_response 1)
-    add_test(NAME TestRelayCloseRequest1    COMMAND  test_mprpc_relay test_relay_close_request 1)
-    add_test(NAME TestRelayCloseResponse1   COMMAND  test_mprpc_relay test_relay_close_response 1)
-    add_test(NAME TestRelaySplit1           COMMAND  test_mprpc_relay test_relay_split 1)
+    add_test(NAME TestRelayDisabled1                    COMMAND  test_mprpc_relay test_relay_disabled 1)
+    add_test(NAME TestRelayBasic1                       COMMAND  test_mprpc_relay test_relay_basic 1)
+    add_test(NAME TestRelayCancelRequest1               COMMAND  test_mprpc_relay test_relay_cancel_request 1)
+    add_test(NAME TestRelayCancelResponse1              COMMAND  test_mprpc_relay test_relay_cancel_response 1)
+    add_test(NAME TestRelayCloseRequest1                COMMAND  test_mprpc_relay test_relay_close_request 1)
+    add_test(NAME TestRelayCloseResponse1               COMMAND  test_mprpc_relay test_relay_close_response 1)
+    add_test(NAME TestRelaySplit1                       COMMAND  test_mprpc_relay test_relay_split 1)
+    add_test(NAME TestRelayDetectClose                  COMMAND  test_mprpc_relay test_relay_detect_close)
+    add_test(NAME TestRelayDetectCloseWhileResponse     COMMAND  test_mprpc_relay test_relay_detect_close_while_response)
+    
 
     #==============================================================================
 
