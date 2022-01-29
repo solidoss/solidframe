@@ -847,8 +847,8 @@ ErrorConditionT Service::doCreateConnectionPool(
         }
 
         impl_->namemap[rpool.name.c_str()] = pool_index;
-        _rrecipient_id_out.poolid.index    = pool_index;
-        _rrecipient_id_out.poolid.unique   = rpool.unique;
+        _rrecipient_id_out.pool_id_.index  = pool_index;
+        _rrecipient_id_out.pool_id_.unique = rpool.unique;
     } else {
         error = error_service_pool_exists;
     }
@@ -939,11 +939,11 @@ ErrorConditionT Service::doSendMessage(
                 _rcomplete_fnc, _precipient_id_out, _pmsgid_out, _flags, message_url);
         }
     } else if (
-        static_cast<size_t>(_rrecipient_id_in.poolid.index) < impl_->pooldq.size()) {
+        static_cast<size_t>(_rrecipient_id_in.pool_id_.index) < impl_->pooldq.size()) {
         //we cannot check the uid right now because we need a lock on the pool's mutex
         check_uid  = true;
-        pool_index = static_cast<size_t>(_rrecipient_id_in.poolid.index);
-        unique     = _rrecipient_id_in.poolid.unique;
+        pool_index = static_cast<size_t>(_rrecipient_id_in.pool_id_.index);
+        unique     = _rrecipient_id_in.pool_id_.unique;
     } else {
         solid_dbg(logger, Error, this << " recipient does not exist");
         error = error_service_unknown_recipient;
@@ -973,7 +973,7 @@ ErrorConditionT Service::doSendMessage(
     }
 
     if (_precipient_id_out != nullptr) {
-        _precipient_id_out->poolid = ConnectionPoolId(pool_index, rpool.unique);
+        _precipient_id_out->pool_id_ = ConnectionPoolId(pool_index, rpool.unique);
     }
 
     //At this point we can fetch the message from user's pointer
@@ -1150,7 +1150,7 @@ ErrorConditionT Service::doSendMessageToNewPool(
     impl_->namemap[rpool.name.c_str()] = pool_index;
 
     if (_precipient_id_out != nullptr) {
-        _precipient_id_out->poolid = ConnectionPoolId(pool_index, rpool.unique);
+        _precipient_id_out->pool_id_ = ConnectionPoolId(pool_index, rpool.unique);
     }
 
     if (_pmsgid_out != nullptr) {
@@ -1592,6 +1592,14 @@ ErrorConditionT Service::doConnectionNotifyEnterActiveState(
     }
 
     return error;
+}
+//-----------------------------------------------------------------------------
+void Service::doConnectionNotifyPostAll(
+    ConnectionPostCompleteFunctionT&& _ucomplete_fnc)
+{
+    solid_dbg(logger, Verbose, this);
+
+    this->notifyAll(Connection::eventPost(std::move(_ucomplete_fnc)));
 }
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::doConnectionNotifyPost(

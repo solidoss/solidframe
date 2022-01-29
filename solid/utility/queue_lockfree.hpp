@@ -43,6 +43,21 @@ protected:
 };
 } //namespace impl
 
+struct QueueStatistic : solid::Statistic {
+    std::atomic<size_t> push_count_;
+    std::atomic<size_t> push_node_count_;
+    std::atomic<size_t> pop_count_;
+    std::atomic<size_t> pop_node_count_;
+    std::atomic<size_t> new_node_count_;
+    std::atomic<size_t> del_node_count_;
+    std::atomic<size_t> push_notif_;
+    std::atomic<size_t> push_wait_;
+
+    QueueStatistic();
+
+    std::ostream& print(std::ostream& _ros) const override;
+};
+
 template <class T, unsigned NBits = 5, typename Base = impl::QueueBase>
 class Queue : protected Base {
     static constexpr const size_t node_mask = bits_to_mask(NBits);
@@ -143,49 +158,24 @@ class Queue : protected Base {
     End                 push_end_;
     std::atomic<Node*>  pempty_;
 #ifdef SOLID_HAS_STATISTICS
-    struct Statistic : solid::Statistic {
-        std::atomic<size_t> push_count_;
-        std::atomic<size_t> push_node_count_;
-        std::atomic<size_t> pop_count_;
-        std::atomic<size_t> pop_node_count_;
-        std::atomic<size_t> new_node_count_;
-        std::atomic<size_t> del_node_count_;
-        std::atomic<size_t> push_notif_;
-        std::atomic<size_t> push_wait_;
-
-        Statistic()
-            : push_count_(0)
-            , push_node_count_(0)
-            , pop_count_(0)
-            , pop_node_count_(0)
-            , new_node_count_(0)
-            , del_node_count_(0)
-            , push_notif_(0)
-            , push_wait_(0)
-        {
-        }
-
-        std::ostream& print(std::ostream& _ros) const override
-        {
-            _ros << " push_count = " << push_count_;
-            _ros << " pop_count = " << pop_count_;
-            _ros << " pop_node_count = " << pop_node_count_;
-            _ros << " push_node_count = " << push_node_count_;
-            _ros << " new_node_count = " << new_node_count_;
-            _ros << " del_node_count = " << del_node_count_;
-            _ros << " push_notif = " << push_notif_;
-            _ros << " push_wait = " << push_wait_;
-            return _ros;
-        }
-    } statistic_;
+    QueueStatistic& rstatistic_;
 #endif
 public:
     static constexpr size_t node_capacity = node_size;
 
-    Queue(const size_t _max_size = InvalidSize())
+    Queue(
+#ifdef SOLID_HAS_STATISTICS
+        QueueStatistic& _rstatistic,
+#endif
+        const size_t _max_size = InvalidSize()
+
+            )
         : max_size_(_max_size)
         , size_(0)
         , pempty_(nullptr)
+#ifdef SOLID_HAS_STATISTICS
+        , rstatistic_(_rstatistic)
+#endif
     {
         Node* pn = newNode();
         pop_end_.nodeExchange(pn);
@@ -210,19 +200,17 @@ public:
 
     bool pop(T& _rt);
 
-    void dumpStatistics() const;
-
 private:
     Node* newNode()
     {
         Node* pold = popEmptyNode();
         if (pold == nullptr) {
             pold = new Node;
-            solid_statistic_inc(statistic_.new_node_count_);
+            solid_statistic_inc(rstatistic_.new_node_count_);
         } else {
             pold->next_.store(nullptr);
         }
-        solid_statistic_inc(statistic_.pop_node_count_);
+        solid_statistic_inc(rstatistic_.pop_node_count_);
         return pold;
     }
 
@@ -242,7 +230,7 @@ private:
         while (!pempty_.compare_exchange_weak(pcrt, _pn)) {
             _pn->next_ = pcrt;
         }
-        solid_statistic_inc(statistic_.push_node_count_);
+        solid_statistic_inc(rstatistic_.push_node_count_);
     }
 
     void nodeRelease(Node* _pn, const int _line)
@@ -280,13 +268,6 @@ private:
 };
 
 //-----------------------------------------------------------------------------
-template <class T, unsigned NBits, typename Base>
-void Queue<T, NBits, Base>::dumpStatistics() const
-{
-#ifdef SOLID_HAS_STATISTICS
-    solid_dbg(queue_logger, Statistic, "Queue: " << this << " statistic:" << this->statistic_);
-#endif
-}
 
 template <class T, unsigned NBits, typename Base>
 Queue<T, NBits, Base>::~Queue()
@@ -298,11 +279,13 @@ Queue<T, NBits, Base>::~Queue()
     Node* pn;
     while ((pn = popEmptyNode())) {
         delete pn;
-        solid_statistic_inc(statistic_.del_node_count_);
+        solid_statistic_inc(rstatistic_.del_node_count_);
     }
 
     solid_dbg(queue_logger, Verbose, this);
-    dumpStatistics();
+#ifdef SOLID_HAS_STATISTICS
+    solid_log(queue_logger, Statistic, "lockfree::Queue " << this << " statistic:" << this->rstatistic_);
+#endif
 }
 //-----------------------------------------------------------------------------
 template <class T, unsigned NBits, typename Base>
@@ -329,7 +312,7 @@ size_t Queue<T, NBits, Base>::doPush(const T& _rt, T&& _ut, std::bool_constant<I
                 }
             }
             nodeRelease(pn, __LINE__);
-            solid_statistic_inc(statistic_.push_count_);
+            solid_statistic_inc(rstatistic_.push_count_);
             return sz;
         } else {
             //overflow
@@ -338,9 +321,8 @@ size_t Queue<T, NBits, Base>::doPush(const T& _rt, T&& _ut, std::bool_constant<I
             if (size_.load() >= max_size_) {
                 if constexpr (Wait) {
                     solid_dbg(queue_logger, Warning, this << "wait qsz = " << size_.load());
-                    solid_statistic_inc(statistic_.push_wait_);
+                    solid_statistic_inc(rstatistic_.push_wait_);
                     push_end_.wait_count_.fetch_add(1);
-                    //push_end_.condition_.wait(lock, [this]() { return size_.load() < max_size_; });
                     Base::wait(push_end_.condition_, lock, [this]() { return size_.load() < max_size_; });
                     push_end_.wait_count_.fetch_sub(1);
                 } else {
@@ -388,11 +370,11 @@ bool Queue<T, NBits, Base>::pop(T& _rt)
             std::atomic_thread_fence(std::memory_order_acquire);
 
             _rt = std::move(pn->item(pos));
-            solid_statistic_inc(statistic_.pop_count_);
+            solid_statistic_inc(rstatistic_.pop_count_);
             const size_t qsz = size_.fetch_sub(1);
             if (qsz == max_size_) {
                 solid_dbg(queue_logger, Warning, this << " qsz = " << qsz);
-                solid_statistic_inc(statistic_.push_notif_);
+                solid_statistic_inc(rstatistic_.push_notif_);
                 std::unique_lock<std::mutex> lock(push_end_.mutex_);
                 push_end_.condition_.notify_all();
             }

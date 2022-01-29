@@ -20,6 +20,8 @@
 #include "solid/frame/common.hpp"
 #include "solid/frame/mprpc/mprpcmessageflags.hpp"
 
+#include "solid/reflection/reflection.hpp"
+
 namespace solid {
 namespace frame {
 
@@ -39,6 +41,8 @@ class EngineCore;
 
 const LoggerT& service_logger();
 
+struct ConnectionContext;
+
 //! A structure to uniquely indetify an IPC connection pool
 /*!
     <b>Overview:</b><br>
@@ -55,20 +59,35 @@ struct ConnectionPoolId : UniqueId {
     }
 };
 
-struct RecipientId {
+class RecipientId {
+    friend class Service;
+    friend class Connection;
+    friend struct ConnectionContext;
 
+    ConnectionPoolId pool_id_;
+    ActorIdT         connection_id_;
+
+    RecipientId(
+        const ConnectionPoolId& _pool_id,
+        const ActorIdT&         _connection_id)
+        : pool_id_(_pool_id)
+        , connection_id_(_connection_id)
+    {
+    }
+
+public:
     RecipientId() {}
 
     RecipientId(
-        const RecipientId& _rid)
-        : poolid(_rid.poolid)
-        , connectionid(_rid.connectionid)
+        const RecipientId& _other)
+        : pool_id_(_other.pool_id_)
+        , connection_id_(_other.connection_id_)
     {
     }
 
     explicit RecipientId(
-        const ActorIdT& _rconid)
-        : connectionid(_rconid)
+        const ActorIdT& _connection_id)
+        : connection_id_(_connection_id)
     {
     }
 
@@ -89,56 +108,57 @@ struct RecipientId {
 
     bool isInvalidConnection() const
     {
-        return connectionid.isInvalid();
+        return connection_id_.isInvalid();
     }
 
     bool isValidConnection() const
     {
-        return connectionid.isValid();
+        return connection_id_.isValid();
     }
 
     bool isInvalidPool() const
     {
-        return poolid.isInvalid();
+        return pool_id_.isInvalid();
     }
 
     bool isValidPool() const
     {
-        return poolid.isValid();
+        return pool_id_.isValid();
     }
 
     ConnectionPoolId const& poolId() const
     {
-        return poolid;
+        return pool_id_;
     }
 
     ActorIdT const& connectionId() const
     {
-        return connectionid;
+        return connection_id_;
     }
 
     void clear()
     {
-        poolid.clear();
-        connectionid.clear();
+        pool_id_.clear();
+        connection_id_.clear();
     }
 
-private:
-    friend class Service;
-    friend class Connection;
-    friend struct ConnectionContext;
-
-    RecipientId(
-        const ConnectionPoolId& _rpoolid,
-        const ActorIdT&         _rconid)
-        : poolid(_rpoolid)
-        , connectionid(_rconid)
+    SOLID_REFLECT_V1(_r, _rthis, _rctx)
     {
+        _r.add(_rthis.pool_id_, _rctx, 1, "pool_id");
+        _r.add(_rthis.connection_id_, _rctx, 2, "connection_id");
     }
-
-    ConnectionPoolId poolid;
-    ActorIdT         connectionid;
 };
+
+inline bool operator<(RecipientId const& _rec_id1, RecipientId const& _rec_id2)
+{
+    if (_rec_id1.connectionId() < _rec_id2.connectionId()) {
+        return true;
+    } else if (_rec_id2.connectionId() < _rec_id1.connectionId()) {
+        return false;
+    } else {
+        return _rec_id1.poolId() < _rec_id2.poolId();
+    }
+}
 
 inline bool operator==(RecipientId const& _rec_id1, RecipientId const& _rec_id2)
 {
@@ -309,22 +329,7 @@ struct ConnectionContext {
     const ErrorConditionT& error() const;
     const ErrorCodeT&      systemError() const;
 
-    [[deprecated]] uint32_t const& versionMajor() const;
-    [[deprecated]] uint32_t const& versionMinor() const;
-
-    [[deprecated]] uint32_t peerVersionMajor() const;
-    [[deprecated]] uint32_t peerVersionMinor() const;
-
-    template <class SD>
-    [[deprecated]] void addVersion(SD& _rsd)
-    {
-        doAddVersion(_rsd, std::bool_constant<SD::is_serializer>());
-    }
-
 private:
-    [[deprecated]] uint32_t& peerVersionMajorRef();
-    [[deprecated]] uint32_t& peerVersionMinorRef();
-
     //not used for now
     RequestId const& requestId() const
     {
@@ -332,20 +337,6 @@ private:
     }
 
     void relayId(const UniqueId& _relay_id) const;
-
-    template <class SD>
-    [[deprecated]] void doAddVersion(SD& _rsd, std::false_type /*_is_deserializer*/)
-    {
-        _rsd.add(peerVersionMajorRef(), *this, "protocol_version_major");
-        _rsd.add(peerVersionMinorRef(), *this, "protocol_version_minor");
-    }
-
-    template <class SD>
-    [[deprecated]] void doAddVersion(SD& _rsd, std::true_type /*_is_serializer*/)
-    {
-        _rsd.add(versionMajor(), *this, "protocol_version_major");
-        _rsd.add(versionMinor(), *this, "protocol_version_minor");
-    }
 
 private:
     friend class Connection;

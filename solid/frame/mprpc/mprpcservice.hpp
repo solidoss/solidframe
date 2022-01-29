@@ -291,6 +291,10 @@ public:
         RecipientId const& _rrecipient_id,
         CompleteFnc        _complete_fnc);
 
+    template <class CompleteFnc>
+    void connectionPostAll(
+        CompleteFnc _complete_fnc);
+
     ErrorConditionT cancelMessage(RecipientId const& _rrecipient_id, MessageId const& _rmsg_id);
 
     bool closeConnection(RecipientId const& _rrecipient_id);
@@ -337,6 +341,8 @@ private:
         ConnectionRecvRawDataCompleteFunctionT&& _ucomplete_fnc);
     ErrorConditionT doConnectionNotifyPost(
         RecipientId const&                _rrecipient_id,
+        ConnectionPostCompleteFunctionT&& _ucomplete_fnc);
+    void doConnectionNotifyPostAll(
         ConnectionPostCompleteFunctionT&& _ucomplete_fnc);
 
 private:
@@ -851,6 +857,14 @@ ErrorConditionT Service::connectionPost(
 {
     ConnectionPostCompleteFunctionT complete_fnc(std::move(_complete_fnc));
     return doConnectionNotifyPost(_rrecipient_id, std::move(complete_fnc));
+}
+//-------------------------------------------------------------------------
+template <class CompleteFnc>
+void Service::connectionPostAll(
+    CompleteFnc _complete_fnc)
+{
+    ConnectionPostCompleteFunctionT complete_fnc(std::move(_complete_fnc));
+    doConnectionNotifyPostAll(std::move(complete_fnc));
 }
 //-------------------------------------------------------------------------
 inline ErrorConditionT Service::connectionNotifyEnterActiveState(

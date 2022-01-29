@@ -21,7 +21,7 @@ int test_workpool_multicast_basic(int argc, char* argv[])
 {
     install_crash_handler();
     solid::log_start(std::cerr, {".*:EWXS", "test:VIEWS"});
-    using WorkPoolT  = WorkPoolMulticast<size_t, uint32_t>;
+    using WorkPoolT  = locking::WorkPool<size_t, size_t>;
     using AtomicPWPT = std::atomic<WorkPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
@@ -51,16 +51,14 @@ int test_workpool_multicast_basic(int argc, char* argv[])
                         val += _v;
                         solid_check(record_dq[_v] == static_cast<uint32_t>(-1));
                         record_dq[_v] = thread_local_value;
+                        //solid_log(logger, Verbose, "job "<<_v);
                     },
-                    [&all_val](const uint32_t _v) { //synch execute
+                    [&all_val](const size_t _v) { //mcast execute
                         uint32_t expect = thread_local_value;
                         all_val.compare_exchange_strong(expect, _v);
 
                         thread_local_value = _v;
-                    },
-                    [&all_val](const uint32_t _v) { //synch update
-                        auto expect = _v - 1;
-                        all_val.compare_exchange_strong(expect, _v);
+                        //solid_log(logger, Verbose, "mcast");
                     }};
 
                 pwp = &wp;
@@ -72,7 +70,7 @@ int test_workpool_multicast_basic(int argc, char* argv[])
                         barrier.set_value();
                         for (uint32_t i = 0; i < cnt; ++i) {
                             if ((i % 10) == 0) {
-                                wp.pushAllSync(i / 10 + 1);
+                                wp.pushAll(i / 10 + 1);
                             }
                         }
                     },
@@ -103,7 +101,7 @@ int test_workpool_multicast_basic(int argc, char* argv[])
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         if (pwp != nullptr) {
-            pwp.load()->dumpStatistics();
+            solid_log(logger, Statistic, "Workpool statistic: " << pwp.load()->statistic());
         }
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }

@@ -18,6 +18,7 @@
 #include <thread>
 
 #include "solid/utility/event.hpp"
+#include "solid/utility/workpool.hpp"
 
 #include "cxxopts.hpp"
 
@@ -216,8 +217,8 @@ int main(int argc, char* argv[])
             3,
             1024 * 1024 * 64);
     }
-    CallPool<void()>     cwp{WorkPoolConfiguration(), 1};
-    frame::aio::Resolver resolver(cwp);
+    lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1), 1};
+    frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
 
     async_resolver(&resolver);
     {
@@ -249,7 +250,7 @@ int main(int argc, char* argv[])
             }
         }
 
-        if (0) {
+        if ((0)) {
             unique_lock<mutex> lock(mtx);
             while (running) {
                 cnd.wait(lock);
@@ -324,7 +325,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
     solid_log(generic_logger, Info, "");
-    unsigned repeatcnt = SocketInfo::max_listen_backlog_size();
+    size_t repeatcnt = SocketInfo::max_listen_backlog_size();
 
     do {
         if (!_rctx.error()) {

@@ -19,7 +19,7 @@ using unique_lock_t = std::unique_lock<mutex_t>;
 namespace {
 
 mutex_t       mtx;
-const LoggerT logger("test_context");
+const LoggerT logger("test");
 
 struct Context {
     string text_;
@@ -35,17 +35,29 @@ struct Context {
         solid_log(generic_logger, Verbose, this << " count = " << count_);
     }
 };
-
-template <class Job>
-using WorkPoolT = WorkPool<Job, workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<90>>;
+template <class Job, class MCast>
+#if SOLID_WORKPOOL_OPTION == 0
+using WorkPoolT = lockfree::WorkPool<Job, void, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<90>>;
+#elif SOLID_WORKPOOL_OPTION == 1
+using WorkPoolT = locking::WorkPool<Job, void, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<90>>;
+#else
+using WorkPoolT = locking::WorkPool<Job, MCast, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<90>>;
+#endif
 
 } // namespace
 
 int test_workpool_thread_context(int argc, char* argv[])
 {
     install_crash_handler();
-    solid::log_start(std::cerr, {".*:EWXS", "test_context:VIEWS"});
-    using CallPoolT  = CallPool<void(Context&), function_default_data_size, WorkPoolT>;
+    solid::log_start(std::cerr, {".*:EWXS", "test:VIEWS"});
+#if SOLID_WORKPOOL_OPTION == 0
+    using CallPoolT = lockfree::CallPoolT<void(Context&), void, function_default_data_size, WorkPoolT>;
+#elif SOLID_WORKPOOL_OPTION == 1
+    using CallPoolT  = locking::CallPoolT<void(Context&), void, function_default_data_size, WorkPoolT>;
+#else
+    using CallPoolT = locking::CallPoolT<void(Context&), void(Context&), function_default_data_size, WorkPoolT>;
+#endif
+
     using AtomicPWPT = std::atomic<CallPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
@@ -54,9 +66,9 @@ int test_workpool_thread_context(int argc, char* argv[])
 #ifdef SOLID_SANITIZE_THREAD
     int wait_seconds = 1000;
 #else
-    int wait_seconds = 100;
+    int wait_seconds = 200;
 #endif
-    int                 loop_cnt = 5;
+    int                 loop_cnt = 3;
     const size_t        cnt{5000000};
     std::atomic<size_t> val{0};
     AtomicPWPT          pwp{nullptr};
@@ -68,13 +80,20 @@ int test_workpool_thread_context(int argc, char* argv[])
 
     auto lambda = [&]() {
         for (int i = 0; i < loop_cnt; ++i) {
+            auto start = chrono::steady_clock::now();
             {
-                CallPoolT wp{
-                    WorkPoolConfiguration(), 0,
-                    Context("simple text", 0UL)};
+                CallPoolT wp
+                {
+                    WorkPoolConfiguration(2),
+#if SOLID_WORKPOOL_OPTION < 2
+                        0,
+#endif
+                        Context("simple text", 0UL)
+                };
 
                 solid_log(logger, Verbose, "wp started");
-                pwp = &wp;
+                pwp   = &wp;
+                start = chrono::steady_clock::now();
                 for (size_t i = 0; i < cnt; ++i) {
                     auto l = [i, &val](Context& _rctx) {
                         ++_rctx.count_;
@@ -82,10 +101,11 @@ int test_workpool_thread_context(int argc, char* argv[])
                     };
                     wp.push(l);
                 };
+
                 pwp = nullptr;
-                solid_log(logger, Verbose, "completed all pushes - wating for workpool to terminate");
+                solid_log(logger, Verbose, "completed all pushes - wating for workpool to terminate: " << chrono::duration<double>(chrono::steady_clock::now() - start).count());
             }
-            solid_log(logger, Verbose, "after loop");
+            solid_log(logger, Verbose, "after done: " << chrono::duration<double>(chrono::steady_clock::now() - start).count());
             solid_check(v == val, "val = " << val << " v = " << v);
             val = 0;
         }
@@ -94,7 +114,7 @@ int test_workpool_thread_context(int argc, char* argv[])
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         if (pwp != nullptr) {
-            pwp.load()->dumpStatistics();
+            solid_log(logger, Statistic, "Workpool statistic: " << pwp.load()->statistic());
         }
         solid_log(logger, Error, "Waited too much. Wait some more for workpool internal checkpoints to fire...");
         this_thread::sleep_for(chrono::seconds(100));

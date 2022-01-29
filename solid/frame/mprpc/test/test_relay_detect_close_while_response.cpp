@@ -28,6 +28,8 @@
 
 #include <iostream>
 
+#include <signal.h>
+
 using namespace std;
 using namespace solid;
 
@@ -36,77 +38,43 @@ using SecureContextT = frame::aio::openssl::Context;
 
 namespace {
 
-struct InitStub {
-    size_t                      size;
-    frame::mprpc::MessageFlagsT flags;
-    bool                        cancel;
-};
+bool                    running = true;
+mutex                   mtx;
+condition_variable      cnd;
+frame::mprpc::ServiceT* pmprpcpeera = nullptr;
 
-InitStub initarray[] = {
-    {100, 0, false},
-    {10000000, 0, true}, //
-    {200, 0, false},
-    {400, 0, false},
-    {800, 0, false},
-    {1000, 0, false},
-    {2000, 0, false},
-    {4000, 0, false},
-    {8000, 0, false},
-    {16000, 0, false},
-    {32000, 0, false},
-    {64000, 0, false},
-    {128000, 0, false},
-    {256000, 0, false},
-    {512000, 0, false},
-    {10240000, 0, true}, //
-    {20480000, 0, false},
-    {40960000, 0, true}, //
-    {81920000, 0, false},
-    {16384000, 0, true}}; //
-
-using MessageIdT       = std::pair<frame::mprpc::RecipientId, frame::mprpc::MessageId>;
-using MessageIdVectorT = std::deque<MessageIdT>;
-
-std::string            pattern;
-const size_t           initarraysize = sizeof(initarray) / sizeof(InitStub);
-std::atomic<size_t>    crtwriteidx(0);
-std::atomic<size_t>    writecount(0);
-std::atomic<size_t>    created_count(0);
-std::atomic<size_t>    cancelable_created_count(0);
-std::atomic<size_t>    cancelable_deleted_count(0);
-std::atomic<size_t>    canceled_count(0);
-std::atomic<size_t>    response_count(0);
-std::atomic<size_t>    connection_count(0);
-std::atomic<bool>      running{true};
-mutex                  mtx;
-condition_variable     cnd;
-frame::mprpc::Service* pmprpcpeera = nullptr;
-frame::mprpc::Service* pmprpcpeerb = nullptr;
-std::atomic<uint64_t>  transfered_size(0);
-std::atomic<size_t>    transfered_count(0);
-MessageIdVectorT       msgid_vec;
-
-bool try_stop()
+void done()
 {
-    //writecount messages were sent by peera
-    //cancelable_created_count were realy canceld on peera
-    //2xcancelable_created_count == cancelable_deleted_count
-    //
-    solid_dbg(generic_logger, Error, "writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " cancelable_created_cnt = " << cancelable_created_count << " cancelable_deleted_cnt = " << cancelable_deleted_count << " response_cnt = " << response_count);
-    if (
-        crtwriteidx >= writecount && canceled_count == cancelable_created_count && 2 * cancelable_created_count == cancelable_deleted_count && response_count == (writecount - canceled_count)) {
-        lock_guard<mutex> lock(mtx);
-        running = false;
-        cnd.notify_one();
-        return true;
-    }
-    return false;
+    lock_guard<mutex> lock(mtx);
+    running = false;
+    cnd.notify_all();
 }
 
-size_t real_size(size_t _sz)
+string generate_big_data(const size_t _size)
 {
-    //offset + (align - (offset mod align)) mod align
-    return _sz + ((sizeof(uint64_t) - (_sz % sizeof(uint64_t))) % sizeof(uint64_t));
+    static struct Pattern {
+        string pattern;
+
+        Pattern()
+        {
+            for (int i = 0; i < 127; ++i) {
+                if (isprint(i) && !isblank(i)) {
+                    pattern += static_cast<char>(i);
+                }
+            }
+        }
+    } pattern;
+
+    string str;
+    str.reserve(_size);
+    while (str.size() < _size) {
+        size_t tocopy = _size - str.size();
+        if (tocopy > pattern.pattern.size()) {
+            tocopy = pattern.pattern.size();
+        }
+        str.append(pattern.pattern.data(), tocopy);
+    }
+    return str;
 }
 
 struct Register : frame::mprpc::Message {
@@ -135,101 +103,47 @@ struct Register : frame::mprpc::Message {
     }
 };
 
-struct Message : frame::mprpc::Message {
-    uint32_t     idx;
-    std::string  str;
-    mutable bool serialized;
+struct DetectCloseMessage : frame::mprpc::Message {
+    uint32_t idx = 0;
+    string   data_;
 
-    Message(uint32_t _idx)
-        : idx(_idx)
-        , serialized(false)
-    {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
-        init();
-        ++created_count;
-        if (cancelable()) {
-            ++cancelable_created_count;
-        }
-    }
-    Message()
-        : serialized(false)
-    {
-        ++created_count;
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
-    }
-    ~Message()
-    {
-        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this << " idx = " << idx);
+    DetectCloseMessage() = default;
 
-        if (cancelable()) {
-            ++cancelable_deleted_count;
-        } else {
-            solid_assert(serialized || this->isBackOnSender());
-        }
-        try_stop();
-    }
-
-    bool cancelable() const
+    DetectCloseMessage(frame::mprpc::Message& _rreq, uint32_t _idx)
+        : frame::mprpc::Message(_rreq)
+        , idx(_idx)
     {
-        return initarray[idx % initarraysize].cancel;
+    }
+    DetectCloseMessage(frame::mprpc::Message& _rreq, uint32_t _idx, string&& _data)
+        : frame::mprpc::Message(_rreq)
+        , idx(_idx)
+        , data_(std::move(_data))
+    {
     }
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _rr.add(_rthis.idx, _rctx, 1, "idx");
+        _rr.add(_rthis.idx, _rctx, 0, "idx");
+        _rr.add(_rthis.data_, _rctx, 1, "data");
+    }
+};
 
-        if (_rthis.isOnPeer()) {
-            _rr.add([&_rthis](Reflector& _rr, frame::mprpc::ConnectionContext& _rctx) {
-                if (_rthis.cancelable()) {
-                    solid_dbg(generic_logger, Error, "Cancel message: " << _rthis.idx << " " << msgid_vec[_rthis.idx].second);
-                    //we're on the peerb,
-                    //we now cancel the message on peer a
-                    pmprpcpeera->cancelMessage(msgid_vec[_rthis.idx].first, msgid_vec[_rthis.idx].second);
-                }
-            },
-                _rctx);
-        }
+struct Message : frame::mprpc::Message {
+    uint32_t idx = 0;
+    string   data_;
 
-        _rr.add(_rthis.str, _rctx, 2, "str");
+    Message() = default;
 
-        if constexpr (Reflector::is_const_reflector) {
-            _rthis.serialized = true;
-        }
+    Message(uint32_t _index, string&& _data)
+        : idx(_index)
+        , data_(std::move(_data))
+    {
     }
 
-    void init()
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        const size_t sz = real_size(initarray[idx % initarraysize].size);
-        str.resize(sz);
-        const size_t    count        = sz / sizeof(uint64_t);
-        uint64_t*       pu           = reinterpret_cast<uint64_t*>(const_cast<char*>(str.data()));
-        const uint64_t* pup          = reinterpret_cast<const uint64_t*>(pattern.data());
-        const size_t    pattern_size = pattern.size() / sizeof(uint64_t);
-        for (uint64_t i = 0; i < count; ++i) {
-            pu[i] = pup[(idx + i) % pattern_size]; //pattern[i % pattern.size()];
-        }
-    }
-
-    bool check() const
-    {
-        const size_t sz = real_size(initarray[idx % initarraysize].size);
-        solid_dbg(generic_logger, Info, "str.size = " << str.size() << " should be equal to " << sz);
-        if (sz != str.size()) {
-            return false;
-        }
-        //return true;
-        const size_t    count        = sz / sizeof(uint64_t);
-        const uint64_t* pu           = reinterpret_cast<const uint64_t*>(str.data());
-        const uint64_t* pup          = reinterpret_cast<const uint64_t*>(pattern.data());
-        const size_t    pattern_size = pattern.size() / sizeof(uint64_t);
-
-        for (uint64_t i = 0; i < count; ++i) {
-            if (pu[i] != pup[(i + idx) % pattern_size]) {
-                solid_throw("Message check failed.");
-                return false;
-            }
-        }
-        return true;
+        _rr.add(_rthis.idx, _rctx, 0, "idx");
+        _rr.add(_rthis.data_, _rctx, 1, "data");
     }
 };
 
@@ -245,9 +159,6 @@ void peera_connection_start(frame::mprpc::ConnectionContext& _rctx)
 void peera_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
-    if (!running) {
-        ++connection_count;
-    }
 }
 
 void peera_complete_message(
@@ -256,33 +167,28 @@ void peera_complete_message(
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
-    solid_check(_rsent_msg_ptr, "Error: no request message");
 
-    if (_rsent_msg_ptr->cancelable()) {
-        solid_check(!_rrecv_msg_ptr, "Error: there should be no response");
-        ++canceled_count;
-        return;
-    }
-
-    solid_check(_rrecv_msg_ptr, "Error: no response message");
-    solid_check(!_rerror, "Error sending message: " << _rerror.message());
-
-    solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
-    if (!_rrecv_msg_ptr->check()) {
-        solid_throw("Message check failed.");
-    }
-
-    //cout<< _rmsgptr->str.size()<<'\n';
-    transfered_size += _rrecv_msg_ptr->str.size();
-    ++transfered_count;
-
-    if (!_rrecv_msg_ptr->isBackOnSender()) {
-        solid_throw("Message not back on sender!.");
-    }
-    ++response_count;
-    try_stop();
+    solid_check(_rsent_msg_ptr, "Error: there should be a request message");
 }
 
+void peera_complete_detect_close(
+    frame::mprpc::ConnectionContext&     _rctx,
+    std::shared_ptr<DetectCloseMessage>& _rsent_msg_ptr, std::shared_ptr<DetectCloseMessage>& _rrecv_msg_ptr,
+    ErrorConditionT const& _rerror)
+{
+    static size_t call_count = 0;
+    ++call_count;
+    solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
+    if (_rrecv_msg_ptr) {
+        solid_dbg(generic_logger, Info, _rctx.recipientId() << " peera received DetectCloseMessage " << _rrecv_msg_ptr->idx);
+        solid_check(!_rrecv_msg_ptr->isResponseLast());
+        pmprpcpeera->sendMessage("localhost/b", std::make_shared<Message>(_rrecv_msg_ptr->idx, generate_big_data(1024 * 10)));
+    }
+
+    if (_rerror == frame::mprpc::error_message_canceled_peer) {
+        done();
+    }
+}
 //-----------------------------------------------------------------------------
 //      PeerB
 //-----------------------------------------------------------------------------
@@ -325,12 +231,7 @@ void peerb_complete_message(
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr) {
-        solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
-
-        if (!_rrecv_msg_ptr->check()) {
-            solid_assert(false);
-            solid_throw("Message check failed.");
-        }
+        solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << ' ' << _rrecv_msg_ptr->idx);
 
         if (!_rrecv_msg_ptr->isOnPeer()) {
             solid_assert(false);
@@ -347,80 +248,47 @@ void peerb_complete_message(
             solid_assert(false);
             solid_throw("Connection id should not be invalid!");
         }
-        ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
-
-        solid_assert(!err);
-        solid_check(!err, "Connection id should not be invalid! " << err.message());
-
-        for (int i = 0; i < 2 && crtwriteidx < writecount; ++i) {
-            mtx.lock();
-            msgid_vec.emplace_back();
-            auto& back_msg_id = msgid_vec.back();
-            mtx.unlock();
-            err = pmprpcpeera->sendMessage(
-                "localhost/b", std::make_shared<Message>(crtwriteidx++),
-                back_msg_id.first,
-                back_msg_id.second,
-                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
-
-            solid_check(!err, "Connection id should not be invalid! " << err.message());
+        if (_rrecv_msg_ptr->idx >= 4) {
+            ErrorConditionT err = _rctx.service().forceCloseConnectionPool(_rctx.recipientId(), [](frame::mprpc::ConnectionContext& _rctx) {});
+            (void)err;
         }
     }
     if (_rsent_msg_ptr) {
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
     }
 }
+
+void peerb_complete_detect_close(
+    frame::mprpc::ConnectionContext&     _rctx,
+    std::shared_ptr<DetectCloseMessage>& _rsent_msg_ptr, std::shared_ptr<DetectCloseMessage>& _rrecv_msg_ptr,
+    ErrorConditionT const& _rerror)
+{
+    if (_rrecv_msg_ptr) {
+        solid_dbg(generic_logger, Info, _rctx.recipientId() << " received DetectCloseMessage on peerb");
+
+        _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 1), {frame::mprpc::MessageFlagsE::ResponsePart});
+        _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 2, generate_big_data(1024 * 1000)), {frame::mprpc::MessageFlagsE::ResponsePart});
+        _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 3, generate_big_data(1024 * 100)), {frame::mprpc::MessageFlagsE::ResponsePart});
+        _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 4, generate_big_data(1024 * 10)), {frame::mprpc::MessageFlagsE::ResponsePart});
+        _rrecv_msg_ptr->idx   = 5;
+        _rrecv_msg_ptr->data_ = generate_big_data(1024 * 1024 * 100); //100MB
+        _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr), {frame::mprpc::MessageFlagsE::ResponsePart});
+    }
+}
 //-----------------------------------------------------------------------------
 } //namespace
 
-int test_relay_cancel_request(int argc, char* argv[])
+int test_relay_detect_close_while_response(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EWX"});
+#ifndef SOLID_ON_WINDOWS
+    signal(SIGPIPE, SIG_IGN);
+#endif
+
+    solid::log_start(std::cerr, {"solid::frame::mprpc::.*:EWX", "\\*:VIEWX"});
 
     size_t max_per_pool_connection_count = 1;
-
-    if (argc > 1) {
-        max_per_pool_connection_count = atoi(argv[1]);
-        if (max_per_pool_connection_count == 0) {
-            max_per_pool_connection_count = 1;
-        }
-        if (max_per_pool_connection_count > 100) {
-            max_per_pool_connection_count = 100;
-        }
-    }
-
-    bool secure   = false;
-    bool compress = false;
-
-    if (argc > 2) {
-        if (*argv[2] == 's' || *argv[2] == 'S') {
-            secure = true;
-        }
-        if (*argv[2] == 'c' || *argv[2] == 'C') {
-            compress = true;
-        }
-        if (*argv[2] == 'b' || *argv[2] == 'B') {
-            secure   = true;
-            compress = true;
-        }
-    }
-
-    for (int j = 0; j < 1; ++j) {
-        for (int i = 0; i < 127; ++i) {
-            int c = (i + j) % 127;
-            if (isprint(c) && !isblank(c)) {
-                pattern += static_cast<char>(c);
-            }
-        }
-    }
-
-    size_t sz = real_size(pattern.size());
-
-    if (sz > pattern.size()) {
-        pattern.resize(sz - sizeof(uint64_t));
-    } else if (sz < pattern.size()) {
-        pattern.resize(sz);
-    }
+    bool   secure                        = false;
+    bool   compress                      = false;
 
     {
         AioSchedulerT                         sch_peera;
@@ -439,11 +307,6 @@ int test_relay_cancel_request(int argc, char* argv[])
         sch_peerb.start(1);
         sch_relay.start(1);
 
-        if (err) {
-            solid_dbg(generic_logger, Error, "starting aio relay scheduler: " << err.message());
-            return 1;
-        }
-
         std::string relay_port;
 
         { //mprpc relay initialization
@@ -451,9 +314,6 @@ int test_relay_cancel_request(int argc, char* argv[])
                 solid_dbg(generic_logger, Info, _rctx.recipientId());
             };
             auto con_stop = [](frame::mprpc::ConnectionContext& _rctx) {
-                if (!running) {
-                    ++connection_count;
-                }
             };
             auto con_register = [&relay_engine](
                                     frame::mprpc::ConnectionContext& _rctx,
@@ -486,7 +346,7 @@ int test_relay_cancel_request(int argc, char* argv[])
             frame::mprpc::Configuration cfg(sch_relay, relay_engine, proto);
 
             cfg.server.listener_address_str      = "0.0.0.0:0";
-            cfg.pool_max_active_connection_count = 2 * max_per_pool_connection_count;
+            cfg.pool_max_active_connection_count = 10;
             cfg.connection_stop_fnc              = std::move(con_stop);
             cfg.client.connection_start_fnc      = std::move(con_start);
             cfg.client.connection_start_state    = frame::mprpc::ConnectionState::Active;
@@ -519,14 +379,12 @@ int test_relay_cancel_request(int argc, char* argv[])
             }
         }
 
-        pmprpcpeera = &mprpcpeera;
-        pmprpcpeerb = &mprpcpeerb;
-
         { //mprpc peera initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
                     _rmap.template registerMessage<Message>(2, "Message", peera_complete_message);
+                    _rmap.template registerMessage<DetectCloseMessage>(3, "DetectCloseMessage", peera_complete_detect_close);
                 });
             frame::mprpc::Configuration cfg(sch_peera, proto);
 
@@ -556,6 +414,12 @@ int test_relay_cancel_request(int argc, char* argv[])
             }
 
             mprpcpeera.start(std::move(cfg));
+
+            if (err) {
+                solid_dbg(generic_logger, Error, "starting peera mprpcservice: " << err.message());
+                //exiting
+                return 1;
+            }
         }
 
         { //mprpc peerb initialization
@@ -564,6 +428,7 @@ int test_relay_cancel_request(int argc, char* argv[])
                 [&](auto& _rmap) {
                     _rmap.template registerMessage<Register>(1, "Register", peerb_complete_register);
                     _rmap.template registerMessage<Message>(2, "Message", peerb_complete_message);
+                    _rmap.template registerMessage<DetectCloseMessage>(3, "DetectCloseMessage", peerb_complete_detect_close);
                 });
             frame::mprpc::Configuration cfg(sch_peerb, proto);
 
@@ -594,39 +459,22 @@ int test_relay_cancel_request(int argc, char* argv[])
             mprpcpeerb.start(std::move(cfg));
         }
 
-        const size_t start_count = 10;
-
-        writecount = initarraysize * 2; //start_count;//
-
         //ensure we have provisioned connections on peerb
         err = mprpcpeerb.createConnectionPool("localhost");
         solid_check(!err, "failed create connection from peerb: " << err.message());
 
-        for (; crtwriteidx < start_count;) {
-            mtx.lock();
-            msgid_vec.emplace_back();
-            auto& back_msg_id = msgid_vec.back();
-            mtx.unlock();
-            mprpcpeera.sendMessage(
-                "localhost/b", std::make_shared<Message>(crtwriteidx++),
-                back_msg_id.first,
-                back_msg_id.second,
-                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
-        }
+        pmprpcpeera = &mprpcpeera;
+        mprpcpeera.sendMessage("localhost/b", std::make_shared<DetectCloseMessage>(), {frame::mprpc::MessageFlagsE::AwaitResponse});
 
         unique_lock<mutex> lock(mtx);
 
-        if (!cnd.wait_for(lock, std::chrono::seconds(60 * 3), []() { return !running; })) {
+        if (!cnd.wait_for(lock, std::chrono::seconds(60 * 2), []() { return !running; })) {
             relay_engine.debugDump();
             solid_throw("Process is taking too long.");
         }
     }
 
     //exiting
-
-    std::cout << "Transfered size = " << (transfered_size * 2) / 1024 << "KB" << endl;
-    std::cout << "Transfered count = " << transfered_count << endl;
-    std::cout << "Connection count = " << connection_count << endl;
 
     return 0;
 }

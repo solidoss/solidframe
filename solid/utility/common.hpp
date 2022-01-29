@@ -238,4 +238,10 @@ constexpr inline bool is_valid_size(SizeT const& _index)
     return _index != InvalidSize();
 }
 
+template <class Enum>
+inline constexpr std::underlying_type_t<Enum> to_underlying(const Enum& _val)
+{
+    return static_cast<std::underlying_type_t<Enum>>(_val);
+}
+
 } //namespace solid

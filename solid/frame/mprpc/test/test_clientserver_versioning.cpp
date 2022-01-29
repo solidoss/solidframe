@@ -24,6 +24,8 @@
 #include <mutex>
 #include <thread>
 
+#include "solid/utility/workpool.hpp"
+
 #include "solid/system/exception.hpp"
 
 #include "solid/system/log.hpp"
@@ -72,15 +74,15 @@ int test_clientserver_versioning(int argc, char* argv[])
 
     solid::log_start(std::cerr, {"test:VIEW"});
 
-    AioSchedulerT          scheduler;
-    frame::Manager         manager;
-    CallPool<void()>       cwp{WorkPoolConfiguration(), 1};
-    frame::aio::Resolver   resolver(cwp);
-    frame::mprpc::ServiceT service(manager);
-    frame::mprpc::ServiceT service_v1(manager);
-    frame::mprpc::ServiceT service_v2(manager);
-    frame::mprpc::ServiceT service_v3(manager);
-    frame::mprpc::ServiceT service_v4(manager);
+    AioSchedulerT                     scheduler;
+    frame::Manager                    manager;
+    lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1), 1};
+    frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
+    frame::mprpc::ServiceT            service(manager);
+    frame::mprpc::ServiceT            service_v1(manager);
+    frame::mprpc::ServiceT            service_v2(manager);
+    frame::mprpc::ServiceT            service_v3(manager);
+    frame::mprpc::ServiceT            service_v4(manager);
 
     scheduler.start(1);
 

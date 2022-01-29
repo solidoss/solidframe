@@ -213,6 +213,7 @@ const char* MessageReader::doConsumeMessage(
     uint16_t     message_size = 0;
 
     if ((_cmd & static_cast<uint8_t>(PacketHeader::CommandE::NewMessage)) != 0u) {
+        solid_dbg(logger, Error, "Clear Message " << _msgidx);
         rmsgstub.clear();
     }
 
@@ -271,6 +272,7 @@ const char* MessageReader::doConsumeMessage(
                     _rerror  = rmsgstub.deserializer_ptr_->error();
                     _pbufpos = _pbufend;
                     cache(rmsgstub.deserializer_ptr_);
+                    solid_dbg(logger, Error, "Clear Message " << _msgidx);
                     rmsgstub.clear();
                     solid_dbg(logger, Error, "deserializing: " << _rerror.message());
                     break;
@@ -281,6 +283,7 @@ const char* MessageReader::doConsumeMessage(
         //protocol error
         _rerror  = error_reader_protocol;
         _pbufpos = _pbufend;
+        solid_dbg(logger, Error, "Clear Message " << _msgidx);
         rmsgstub.clear();
         break;
     case MessageStub::StateE::ReadBodyStart:
@@ -310,6 +313,7 @@ const char* MessageReader::doConsumeMessage(
                                     //done parsing the message body
                                     MessagePointerT msgptr{std::move(rmsgstub.message_ptr_)};
                                     cache(rmsgstub.deserializer_ptr_);
+                                    solid_dbg(logger, Error, "Clear Message " << _msgidx);
                                     rmsgstub.clear();
                                     const size_t message_type_id = msgptr ? _receiver.protocol().typeIndex(msgptr.get()) : InvalidIndex();
                                     _receiver.receiveMessage(msgptr, message_type_id);
@@ -330,6 +334,7 @@ const char* MessageReader::doConsumeMessage(
                         solid_dbg(logger, Error, "msgidx = " << _msgidx << " message_size = " << message_size << " error: " << _rerror.message());
                         cache(rmsgstub.deserializer_ptr_);
                         _pbufpos = _pbufend;
+                        solid_dbg(logger, Error, "Clear Message " << _msgidx);
                         rmsgstub.clear();
                         break;
                     }
@@ -361,6 +366,7 @@ const char* MessageReader::doConsumeMessage(
 
                 if ((_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0u) {
                     cache(rmsgstub.deserializer_ptr_);
+                    solid_dbg(logger, Error, "Clear Message " << _msgidx);
                     rmsgstub.clear();
                 }
                 break;
@@ -374,6 +380,7 @@ const char* MessageReader::doConsumeMessage(
         _rerror  = error_reader_protocol;
         _pbufpos = _pbufend;
         rmsgstub.clear();
+        solid_dbg(logger, Error, "Clear Message " << _msgidx);
         break;
     case MessageStub::StateE::RelayStart:
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
@@ -399,6 +406,7 @@ const char* MessageReader::doConsumeMessage(
         _rerror = error_reader_protocol;
         solid_dbg(logger, Error, "protocol");
         _pbufpos = _pbufend;
+        solid_dbg(logger, Error, "Clear Message " << _msgidx);
         rmsgstub.clear();
         break;
     case MessageStub::StateE::RelayBody:
@@ -424,6 +432,7 @@ const char* MessageReader::doConsumeMessage(
         _rerror = error_reader_protocol;
         solid_dbg(logger, Error, "protocol");
         _pbufpos = _pbufend;
+        solid_dbg(logger, Error, "Clear Message " << _msgidx);
         rmsgstub.clear();
         break;
     case MessageStub::StateE::RelayFail:
@@ -433,6 +442,7 @@ const char* MessageReader::doConsumeMessage(
             _pbufpos += message_size;
             const bool is_message_end = (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0;
             if (is_message_end) {
+                solid_dbg(logger, Error, "Clear Message " << _msgidx);
                 rmsgstub.clear();
             }
             break;
@@ -441,6 +451,7 @@ const char* MessageReader::doConsumeMessage(
         _rerror = error_reader_protocol;
         solid_dbg(logger, Error, "protocol");
         _pbufpos = _pbufend;
+        solid_dbg(logger, Error, "Clear Message " << _msgidx);
         rmsgstub.clear();
         break;
     case MessageStub::StateE::RelayResponse:
@@ -468,6 +479,7 @@ const char* MessageReader::doConsumeMessage(
         _rerror = error_reader_protocol;
         solid_dbg(logger, Error, "protocol");
         _pbufpos = _pbufend;
+        solid_dbg(logger, Error, "Clear Message " << _msgidx);
         rmsgstub.clear();
         break;
     default:

@@ -93,7 +93,7 @@ class Test {
         if (_b) {
             for (size_t i = 0; i < 100; ++i) {
                 v.emplace_back();
-                v.back().a = i;
+                v.back().a = static_cast<int32_t>(i);
                 v.back().b = 100 - i;
                 v.back().s = to_string(v.back().a) + " - " + to_string(v.back().b);
                 a.s += v.back().s;
@@ -103,7 +103,7 @@ class Test {
         } else {
             for (size_t i = 0; i < 100; ++i) {
                 d.emplace_back();
-                d.back().a = i;
+                d.back().a = static_cast<int32_t>(i);
                 d.back().b = 100 - i;
                 d.back().s = to_string(d.back().a) + " - " + to_string(d.back().b);
                 a.s += d.back().s;
@@ -113,7 +113,7 @@ class Test {
         }
         for (size_t i = 0; i < 10; ++i) {
             A a;
-            a.a = i;
+            a.a = static_cast<int32_t>(i);
             a.b = 10 - i;
             a.s = to_string(a.a) + ' ' + to_string(a.b);
             blb += a.s;
@@ -134,7 +134,7 @@ class Test {
 
         solid_assert(blb.size() < BlobCapacity);
         memcpy(blob, blb.data(), blb.size());
-        blob_sz = blb.size();
+        blob_sz = static_cast<uint32_t>(blb.size());
     }
 
 public:

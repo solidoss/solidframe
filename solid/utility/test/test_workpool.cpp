@@ -44,7 +44,13 @@ int test_workpool(int argc, char* argv[])
     solid::log_start(std::cerr, {".*:IEWXS"});
 
     cout << "usage: " << argv[0] << " JOB_COUNT WAIT_SECONDS QUEUE_SIZE PRODUCER_COUNT CONSUMER_COUNT PUSH_SLEEP_MSECS JOB_SLEEP_MSECS" << endl;
-    using WorkPoolT  = WorkPool<size_t, workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<10>>;
+#if SOLID_WORKPOOL_OPTION == 0
+    using WorkPoolT = lockfree::WorkPool<size_t, void, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<10>>;
+#elif SOLID_WORKPOOL_OPTION == 1
+    using WorkPoolT = locking::WorkPool<size_t, void, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<10>>;
+#else
+    using WorkPoolT = locking::WorkPool<size_t, size_t, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<10>>;
+#endif
     using AtomicPWPT = std::atomic<WorkPoolT*>;
 
     size_t        job_count        = 5000000;
@@ -87,20 +93,27 @@ int test_workpool(int argc, char* argv[])
     }
 
     auto lambda = [&]() {
-        WorkPoolT wp{
+        WorkPoolT wp
+        {
             WorkPoolConfiguration(consumer_count, queue_size <= 0 ? std::numeric_limits<size_t>::max() : queue_size),
-            1,
-            [job_sleep_msecs](size_t _v, Context&& _rctx) {
-                //solid_check(_rs == "this is a string", "failed string check");
-                val += _v;
-                if (job_sleep_msecs != 0) {
-                    this_thread::sleep_for(chrono::milliseconds(job_sleep_msecs));
-                }
-#ifdef EXTRA_CHECKING
-                _rctx.ldq_.emplace_back(_v);
+#if SOLID_WORKPOOL_OPTION < 2
+                1,
 #endif
-            },
-            Context(gdq, gmtx)};
+                [job_sleep_msecs](size_t _v, Context&& _rctx) {
+                    //solid_check(_rs == "this is a string", "failed string check");
+                    val += _v;
+                    if (job_sleep_msecs != 0) {
+                        this_thread::sleep_for(chrono::milliseconds(job_sleep_msecs));
+                    }
+#ifdef EXTRA_CHECKING
+                    _rctx.ldq_.emplace_back(_v);
+#endif
+                },
+#if SOLID_WORKPOOL_OPTION == 2
+                [](size_t, Context&&) {},
+#endif
+                Context(gdq, gmtx)
+        };
 
         pwp = &wp;
 
@@ -132,7 +145,7 @@ int test_workpool(int argc, char* argv[])
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         if (pwp != nullptr) {
-            pwp.load()->dumpStatistics();
+            solid_log(generic_logger, Statistic, "Workpool statistic: " << pwp.load()->statistic());
         }
         this_thread::sleep_for(chrono::seconds(12));
 

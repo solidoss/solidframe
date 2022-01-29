@@ -18,7 +18,14 @@ int test_workpool_try(int argc, char* argv[])
 {
     install_crash_handler();
     solid::log_start(std::cerr, {".*:EWXS", "test_basic:VIEWS"});
-    using WorkPoolT  = WorkPool<size_t>;
+#if SOLID_WORKPOOL_OPTION == 0
+    using WorkPoolT = lockfree::WorkPoolT<size_t>;
+#elif SOLID_WORKPOOL_OPTION == 1
+    using WorkPoolT = locking::WorkPoolT<size_t>;
+#else
+    using WorkPoolT = locking::WorkPoolT<size_t, size_t>;
+#endif
+
     using AtomicPWPT = std::atomic<WorkPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
@@ -38,11 +45,20 @@ int test_workpool_try(int argc, char* argv[])
             size_t failed_push = 0;
             size_t check_v     = v;
             {
-                WorkPoolT wp{
-                    WorkPoolConfiguration(1, 1000), 1,
-                    [&val](const size_t _v) {
-                        val += _v;
-                    }};
+                WorkPoolT wp
+                {
+                    WorkPoolConfiguration(1, 1000),
+#if SOLID_WORKPOOL_OPTION < 2
+                        1,
+#endif
+                        [&val](const size_t _v) {
+                            val += _v;
+                        }
+#if SOLID_WORKPOOL_OPTION == 2
+                    ,
+                        [](const size_t) {}
+#endif
+                };
                 pwp = &wp;
                 for (size_t i = 0; i < cnt; ++i) {
                     if (!wp.tryPush(i)) {
@@ -62,7 +78,7 @@ int test_workpool_try(int argc, char* argv[])
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         if (pwp != nullptr) {
-            pwp.load()->dumpStatistics();
+            solid_log(logger, Statistic, "Workpool statistic: " << pwp.load()->statistic());
         }
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }

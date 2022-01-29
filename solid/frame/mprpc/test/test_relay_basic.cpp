@@ -21,8 +21,9 @@
 #include <thread>
 #include <unordered_map>
 
-#include "solid/system/exception.hpp"
+#include "solid/utility/workpool.hpp"
 
+#include "solid/system/exception.hpp"
 #include "solid/system/log.hpp"
 
 #include <iostream>
@@ -381,8 +382,8 @@ int test_relay_basic(int argc, char* argv[])
         frame::mprpc::ServiceT                mprpcpeera(m);
         frame::mprpc::ServiceT                mprpcpeerb(m);
         ErrorConditionT                       err;
-        CallPool<void()>                      cwp{WorkPoolConfiguration(), 1};
-        frame::aio::Resolver                  resolver(cwp);
+        lockfree::CallPoolT<void(), void>     cwp{WorkPoolConfiguration(1), 1};
+        frame::aio::Resolver                  resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
 
         sch_peera.start(1);
         sch_peerb.start(1);

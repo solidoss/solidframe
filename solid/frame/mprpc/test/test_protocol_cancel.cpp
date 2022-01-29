@@ -36,9 +36,9 @@ typedef std::vector<frame::mprpc::MessageId> MessageIdVectorT;
 std::string  pattern;
 const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
-size_t crtwriteidx = 0;
-size_t crtreadidx  = 0;
-size_t writecount  = 0;
+uint32_t crtwriteidx = 0;
+size_t   crtreadidx  = 0;
+size_t   writecount  = 0;
 
 MessageIdVectorT message_uid_vec;
 
@@ -222,9 +222,9 @@ struct Receiver : frame::mprpc::MessageReader::Receiver {
     {
     }
 
-    void fillRequestVector(size_t _m = 10)
+    void fillRequestVector(uint32_t _m = 10)
     {
-        for (size_t i = 0; i < _m; ++i) {
+        for (uint32_t i = 0; i < _m; ++i) {
             reqvec.push_back(frame::mprpc::RequestId(i, i));
         }
     }

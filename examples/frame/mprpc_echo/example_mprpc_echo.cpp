@@ -17,6 +17,8 @@
 #include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
+#include "solid/utility/workpool.hpp"
+
 #include "solid/system/socketaddress.hpp"
 #include <condition_variable>
 #include <mutex>
@@ -167,11 +169,11 @@ int main(int argc, char* argv[])
     {
         AioSchedulerT sch;
 
-        frame::Manager         m;
-        frame::mprpc::ServiceT ipcsvc(m);
-        ErrorConditionT        err;
-        CallPool<void()>       cwp{WorkPoolConfiguration(), 1};
-        frame::aio::Resolver   resolver(cwp);
+        frame::Manager                    m;
+        frame::mprpc::ServiceT            ipcsvc(m);
+        ErrorConditionT                   err;
+        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1), 1};
+        frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
 
         if (!restart(ipcsvc, resolver, sch)) {
             return 1;

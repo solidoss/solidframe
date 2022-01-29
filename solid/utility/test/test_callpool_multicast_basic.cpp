@@ -27,7 +27,7 @@ int test_callpool_multicast_basic(int argc, char* argv[])
     install_crash_handler();
 
     solid::log_start(std::cerr, {".*:EWXS", "test:VIEWS"});
-    using CallPoolT  = CallPoolMulticast<void(Context&, deque<uint32_t>&)>;
+    using CallPoolT  = locking::CallPoolT<void(Context&, deque<uint32_t>&)>;
     using AtomicPWPT = std::atomic<CallPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
@@ -61,16 +61,12 @@ int test_callpool_multicast_basic(int argc, char* argv[])
                         barrier.set_value();
                         for (uint32_t i = 0; i < cnt; ++i) {
                             if ((i % 10) == 0) {
-                                cp.pushAllSync(
+                                cp.pushAll(
                                     [v = (i / 10 + 1)](Context& _rctx, deque<uint32_t>&) {
                                         uint32_t expect = thread_local_value;
                                         _rctx.all_val.compare_exchange_strong(expect, v);
 
                                         thread_local_value = v;
-                                    },
-                                    [v = (i / 10 + 1)](Context& _rctx, deque<uint32_t>&) {
-                                        auto expect = v - 1;
-                                        _rctx.all_val.compare_exchange_strong(expect, v);
                                     });
                             }
                         }
@@ -107,7 +103,7 @@ int test_callpool_multicast_basic(int argc, char* argv[])
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         if (pwp != nullptr) {
-            pwp.load()->dumpStatistics();
+            solid_log(logger, Statistic, "Workpool statistic: " << pwp.load()->statistic());
         }
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }

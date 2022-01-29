@@ -25,12 +25,12 @@ struct AccountContext;
 struct ConnectionContext;
 struct DeviceContext;
 
-template <class Job>
-using WorkPoolT = WorkPool<Job, workpoll_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<30>>;
+template <class Job, class>
+using WorkPoolT = lockfree::WorkPool<Job, void, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<30>>;
 
-using AccountCallPoolT    = CallPool<void(AccountContext&), function_default_data_size, WorkPoolT>;
-using ConnectionCallPoolT = CallPool<void(ConnectionContext&), function_default_data_size, WorkPoolT>;
-using DeviceCallPoolT     = CallPool<void(DeviceContext&), function_default_data_size, WorkPoolT>;
+using AccountCallPoolT    = CallPool<void(AccountContext&), void, function_default_data_size, WorkPoolT>;
+using ConnectionCallPoolT = CallPool<void(ConnectionContext&), void, function_default_data_size, WorkPoolT>;
+using DeviceCallPoolT     = CallPool<void(DeviceContext&), void, function_default_data_size, WorkPoolT>;
 
 struct GlobalContext {
     atomic<bool>       stopping_;
@@ -213,7 +213,6 @@ int test_event_stress_wp(int argc, char* argv[])
 
     auto lambda = [&]() {
         {
-            AtomicSizeT         connection_count(0);
             promise<void>       prom;
             ConnectionCallPoolT connection_cp{};
             DeviceCallPoolT     device_cp{};
@@ -241,7 +240,7 @@ int test_event_stress_wp(int argc, char* argv[])
                 }
                 solid_dbg(workpool_logger, Statistic, "producer done");
             };
-            if (0) {
+            if ((0)) {
                 auto fut = async(launch::async, produce_lambda);
                 fut.wait();
             } else {
@@ -250,12 +249,9 @@ int test_event_stress_wp(int argc, char* argv[])
             {
                 auto fut = prom.get_future();
                 if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
-                    solid_dbg(workpool_logger, Statistic, "Connection pool:");
-                    connection_cp.dumpStatistics();
-                    solid_dbg(workpool_logger, Statistic, "Device pool:");
-                    device_cp.dumpStatistics();
-                    solid_dbg(workpool_logger, Statistic, "Account pool:");
-                    account_cp.dumpStatistics();
+                    solid_dbg(workpool_logger, Statistic, "Connection pool: " << connection_cp.statistic());
+                    solid_dbg(workpool_logger, Statistic, "Device pool: " << device_cp.statistic());
+                    solid_dbg(workpool_logger, Statistic, "Account pool: " << account_cp.statistic());
                     solid_dbg(workpool_logger, Warning, "sleep - wait for locked threads");
                     this_thread::sleep_for(chrono::seconds(100));
                     solid_dbg(workpool_logger, Warning, "wake - waited for locked threads");

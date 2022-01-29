@@ -155,6 +155,7 @@ bool MessageWriter::enqueue(
 {
     if (full(_rconfig)) {
         _rmore = false;
+        solid_dbg(logger, Verbose, "");
         return false;
     }
 
@@ -162,12 +163,15 @@ bool MessageWriter::enqueue(
     //see if we have too many messages waiting for responses
 
     if (_rconn_msg_id.isInvalid()) { //front message data
+        solid_dbg(logger, Verbose, "");
         if (cache_inner_list_.empty()) {
             _rmore = false;
+            solid_dbg(logger, Verbose, "");
             return false;
         }
         if (
             _rprelay_data->isRequest() && ((order_inner_list_.size() - write_inner_list_.size()) >= _rconfig.max_message_count_response_wait)) {
+            solid_dbg(logger, Verbose, "");
             return false;
         }
 
@@ -178,7 +182,7 @@ bool MessageWriter::enqueue(
         msgidx = _rconn_msg_id.index;
         solid_assert_log(message_vec_[msgidx].unique_ == _rconn_msg_id.unique, logger);
         if (message_vec_[msgidx].unique_ != _rconn_msg_id.unique || message_vec_[msgidx].prelay_data_ != nullptr) {
-            solid_dbg(logger, Verbose, "Relay Data cannot be accepted righ now for msgidx = " << msgidx);
+            solid_dbg(logger, Verbose, this << " Relay Data cannot be accepted righ now for msgidx = " << msgidx);
             //the relay data cannot be accepted right now - will be tried later
             return false;
         }
@@ -190,7 +194,7 @@ bool MessageWriter::enqueue(
 
     if (_rprelay_data->pdata_ != nullptr) {
 
-        solid_dbg(logger, Verbose, msgidx << " relay_data.flags " << _rprelay_data->flags_ << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
+        solid_dbg(logger, Verbose, this << " " << msgidx << " relay_data.flags " << _rprelay_data->flags_ << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
 
         if (_rprelay_data->isMessageBegin()) {
             rmsgstub.state_                         = MessageStub::StateE::RelayedStart;
@@ -206,19 +210,21 @@ bool MessageWriter::enqueue(
         doWriteQueuePushBack(msgidx, __LINE__);
     } else if (rmsgstub.state_ < MessageStub::StateE::RelayedWait) {
         solid_assert_log(rmsgstub.relay_size_ == 0, logger);
-        solid_dbg(logger, Error, "" << msgidx << " uid = " << rmsgstub.unique_ << " state = " << (int)rmsgstub.state_);
+        solid_dbg(logger, Error, this << " " << msgidx << " uid = " << rmsgstub.unique_ << " state = " << (int)rmsgstub.state_);
         //called from relay engine on cancel request from the reader (RR - see mprpcrelayengine.cpp) side of the link.
         //after the current function call, the MessageStub in the RelayEngine is distroyed.
         //we need to forward the cancel on the connection
         rmsgstub.state_ = MessageStub::StateE::RelayedCancel;
         doWriteQueuePushBack(msgidx, __LINE__);
-        solid_dbg(logger, Verbose, "relayedcancel msg " << msgidx);
+        solid_dbg(logger, Verbose, this << " relayedcancel msg " << msgidx);
         //we do not need the relay_data - leave it to the relay engine to delete it.
+        //TODO:!!!! - we actually need the relay data for pmessage_header_->recipient_request_id_
     } else if (rmsgstub.state_ == MessageStub::StateE::RelayedWait) {
-        solid_dbg(logger, Verbose, "relayedcancel erase msg " << msgidx << " state = " << (int)rmsgstub.state_);
+        solid_dbg(logger, Verbose, this << " relayedcancel erase msg " << msgidx << " state = " << (int)rmsgstub.state_);
         //do nothing - we cannot erase a message stub waiting for response
+        //TODO:!!!! actually we should be able to cancel a message waiting for response
     } else {
-        solid_dbg(logger, Verbose, "relayedcancel erase msg " << msgidx << " state = " << (int)rmsgstub.state_);
+        solid_dbg(logger, Verbose, this << " relayedcancel erase msg " << msgidx << " state = " << (int)rmsgstub.state_);
         order_inner_list_.erase(msgidx);
         doUnprepareMessageStub(msgidx);
     }
@@ -299,7 +305,7 @@ void MessageWriter::doCancel(
     const bool   _force)
 {
 
-    solid_dbg(logger, Verbose, "" << _msgidx);
+    solid_dbg(logger, Verbose, this << " " << _msgidx);
 
     MessageStub& rmsgstub = message_vec_[_msgidx];
 
@@ -845,6 +851,7 @@ char* MessageWriter::doWriteRelayedBody(
         const bool is_message_last = rmsgstub.prelay_data_->isMessageLast();
         const bool is_request      = rmsgstub.prelay_data_->isRequest(); //Message::is_waiting_response(rmsgstub.prelay_data_->pmessage_header_->flags_);
 
+        solid_dbg(logger, Verbose, this << " completeRelayed " << _msgidx << " is_end = " << is_message_end << " is_last " << is_message_last << " is_req = " << is_request);
         _rsender.completeRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
         rmsgstub.prelay_data_ = nullptr; //when prelay_data_ is null we consider the message not in write_inner_list_
 
@@ -857,7 +864,7 @@ char* MessageWriter::doWriteRelayedBody(
                 rmsgstub.state_ = MessageStub::StateE::RelayedWait;
             } else {
                 order_inner_list_.erase(_msgidx);
-                rmsgstub.clear();
+                doUnprepareMessageStub(_msgidx);
             }
         }
     }
@@ -912,10 +919,12 @@ char* MessageWriter::doWriteRelayedCancel(
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
+
+    //TODO: add support for sending also rmsgstub.prelay_data_->pmessage_header_->recipient_request_id_
     solid_check_log(_pbufpos != nullptr, logger, "fail store cross value");
     solid_assert_log(rmsgstub.prelay_data_ == nullptr, logger);
     //_rsender.completeRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
-    //rmsgstub.prelay_data_ = nullptr;
+    //rmsgstub.prelay_data_ = nullptr;msgstub.prelay_data_
 
     solid_assert_log(write_inner_list_.size(), logger);
     doWriteQueueErase(_msgidx, __LINE__);

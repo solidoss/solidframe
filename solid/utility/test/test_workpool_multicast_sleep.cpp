@@ -21,7 +21,7 @@ int test_workpool_multicast_sleep(int argc, char* argv[])
 {
     install_crash_handler();
     solid::log_start(std::cerr, {".*:EWXS", "test:VIEWS"});
-    using WorkPoolT  = WorkPoolMulticast<size_t, uint32_t>;
+    using WorkPoolT  = locking::WorkPoolT<size_t, uint32_t>;
     using AtomicPWPT = std::atomic<WorkPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
@@ -30,7 +30,7 @@ int test_workpool_multicast_sleep(int argc, char* argv[])
 #else
     const int wait_seconds = 150;
 #endif
-    int                   loop_cnt = 5;
+    int                   loop_cnt = 3;
     const size_t          cnt{1000};
     const size_t          v = (((cnt - 1) * cnt)) / 2;
     std::atomic<uint32_t> all_val{0};
@@ -59,10 +59,6 @@ int test_workpool_multicast_sleep(int argc, char* argv[])
 
                         thread_local_value = _v;
                         this_thread::sleep_for(chrono::milliseconds(_v % 5) * 5);
-                    },
-                    [&all_val](const uint32_t _v) { //synch update
-                        auto expect = _v - 1;
-                        all_val.compare_exchange_strong(expect, _v);
                     }};
 
                 pwp = &wp;
@@ -74,7 +70,7 @@ int test_workpool_multicast_sleep(int argc, char* argv[])
                         barrier.set_value();
                         for (uint32_t i = 0; i < cnt; ++i) {
                             if ((i % 10) == 0) {
-                                wp.pushAllSync(i / 10 + 1);
+                                wp.pushAll(i / 10 + 1);
                             }
                         }
                     },
@@ -105,7 +101,7 @@ int test_workpool_multicast_sleep(int argc, char* argv[])
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         if (pwp != nullptr) {
-            pwp.load()->dumpStatistics();
+            solid_log(logger, Statistic, "Workpool statistic: " << pwp.load()->statistic());
         }
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
     }

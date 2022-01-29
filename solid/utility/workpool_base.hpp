@@ -22,6 +22,8 @@ namespace solid {
 
 extern const LoggerT workpool_logger;
 //-----------------------------------------------------------------------------
+constexpr size_t workpool_default_node_capacity_bit_count = 10;
+//-----------------------------------------------------------------------------
 
 struct WorkPoolConfiguration {
     size_t max_worker_count_;
@@ -85,5 +87,157 @@ protected:
 };
 
 } //namespace impl
+
+template <class Job, class MCast, size_t FunctionDataSize, template <typename, typename> class WP>
+class CallPool;
+
+template <class... ArgTypes, size_t FunctionDataSize, template <typename, typename> class WP>
+class CallPool<void(ArgTypes...), void, FunctionDataSize, WP> {
+    using FunctionT = Function<void(ArgTypes...), FunctionDataSize>;
+    using WorkPoolT = WP<FunctionT, void>;
+    WorkPoolT wp_;
+
+public:
+    static constexpr size_t node_capacity = WorkPoolT::node_capacity;
+
+    CallPool() {}
+
+    template <typename... Args>
+    CallPool(
+        const WorkPoolConfiguration& _cfg,
+        const size_t                 _start_wkr_cnt,
+        Args&&... _args)
+        : wp_(
+            _cfg,
+            _start_wkr_cnt,
+            [](FunctionT& _rfnc, Args&&... _args) {
+                _rfnc(std::forward<ArgTypes>(_args)...);
+            },
+            std::forward<Args>(_args)...)
+    {
+    }
+
+    template <typename... Args>
+    void start(const WorkPoolConfiguration& _cfg, const size_t _start_wkr_cnt, Args... _args)
+    {
+        wp_.start(
+            _cfg, _start_wkr_cnt,
+            [](FunctionT& _rfnc, Args&&... _args) {
+                _rfnc(std::forward<ArgTypes>(_args)...);
+            },
+            std::forward<Args>(_args)...);
+    }
+
+    template <class JT>
+    void push(const JT& _jb)
+    {
+        wp_.push(_jb);
+    }
+
+    template <class JT>
+    void push(JT&& _jb)
+    {
+        wp_.push(std::forward<JT>(_jb));
+    }
+
+    template <class JT>
+    bool tryPush(const JT& _jb)
+    {
+        return wp_.tryPush(_jb);
+    }
+
+    template <class JT>
+    bool tryPush(JT&& _jb)
+    {
+        return wp_.tryPush(std::forward<JT>(_jb));
+    }
+
+    void stop()
+    {
+        wp_.stop();
+    }
+
+    const auto& statistic() const
+    {
+        return wp_.statistic();
+    }
+};
+
+template <class... ArgTypes, size_t FunctionDataSize, template <typename, typename> class WP>
+class CallPool<void(ArgTypes...), void(ArgTypes...), FunctionDataSize, WP> {
+    using FunctionT = Function<void(ArgTypes...), FunctionDataSize>;
+    using WorkPoolT = WP<FunctionT, FunctionT>;
+    WorkPoolT wp_;
+
+public:
+    static constexpr size_t node_capacity = WorkPoolT::node_capacity;
+
+    CallPool() {}
+
+    auto createSynchronizationContext()
+    {
+        return wp_.createSynchronizationContext();
+    }
+
+    template <typename... Args>
+    CallPool(
+        const WorkPoolConfiguration& _cfg,
+        Args&&... _args)
+        : wp_(
+            _cfg,
+            [](FunctionT& _rfnc, Args&&... _args) {
+                _rfnc(std::forward<ArgTypes>(_args)...);
+                _rfnc.reset();
+            },
+            [](FunctionT& _rfnc, Args&&... _args) {
+                _rfnc(std::forward<ArgTypes>(_args)...);
+            },
+            std::forward<Args>(_args)...)
+    {
+    }
+
+    template <typename... Args>
+    void start(const WorkPoolConfiguration& _cfg, Args... _args)
+    {
+        wp_.start(
+            _cfg,
+            [](FunctionT& _rfnc, Args&&... _args) {
+                _rfnc(std::forward<ArgTypes>(_args)...);
+                _rfnc.reset();
+            },
+            [](FunctionT& _rfnc, Args&&... _args) {
+                _rfnc(std::forward<ArgTypes>(_args)...);
+            },
+            std::forward<Args>(_args)...);
+    }
+
+    template <class JT>
+    void push(JT&& _jb)
+    {
+        wp_.push(std::forward<JT>(_jb));
+    }
+
+    template <class JT>
+    bool tryPush(JT&& _jb)
+    {
+        return wp_.tryPush(std::forward<JT>(_jb));
+    }
+
+    template <class JT>
+    void pushAll(JT&& _jb)
+    {
+        wp_.pushAll(std::forward<JT>(_jb));
+    }
+
+    void stop()
+    {
+        wp_.stop();
+    }
+
+    const auto& statistic() const
+    {
+        return wp_.statistic();
+    }
+};
 
 } //namespace solid
