@@ -92,5 +92,34 @@ if(OPENSSL_FOUND)
     
 
     #==============================================================================
+
+    set( testPerfSuite
+        test_perf_actor_aio.cpp
+        test_perf_actor_frame.cpp
+        test_perf_workpool_lockfree.cpp
+        test_perf_workpool_synch_context.cpp
+    )
+    #
+    create_test_sourcelist( perfTests test_perf.cpp ${testPerfSuite})
+
+    add_executable(test_perf ${perfTests})
+    add_dependencies(test_perf aio_test_copy_certs build-openssl)
+
+    target_link_libraries(test_perf
+        solid_frame_aio
+        solid_frame_aio_openssl
+        solid_frame
+        solid_utility
+        solid_system
+        ${SYSTEM_BASIC_LIBRARIES}
+    )
+    if(SOLID_ON_WINDOWS)
+        add_custom_command(TARGET test_aio POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_SSL_DLL} $<TARGET_FILE_DIR:test_aio>
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_CRYPTO_DLL} $<TARGET_FILE_DIR:test_aio>
+        )
+    endif()
+    
+    add_test(NAME TestPerfActorAio         COMMAND  test_aio test_perf_actor_aio 4 1000000 4)
 endif(OPENSSL_FOUND)
 
