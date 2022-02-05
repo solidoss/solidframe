@@ -921,7 +921,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
                 solid_statistic_max(statistic_.max_pop_wait_loop_count_, wait_loop_count);
                 return false;
             }
-            if (wait_loop_count < 4) {
+            if (wait_loop_count < 4) { //TODO: magic number!!!
                 Base::wait(sig_cnd_, lock);
                 ++wait_loop_count;
             } else {
@@ -935,7 +935,6 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
     }
     lock.unlock();
     solid_statistic_max(statistic_.max_pop_wait_loop_count_, wait_loop_count);
-    std::this_thread::yield();
     return true;
 }
 //-----------------------------------------------------------------------------
