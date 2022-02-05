@@ -186,9 +186,9 @@ void WorkPool<Job, void, QNBits, Base>::push(JT&& _jb)
             job_q_.push(std::forward<JT>(_jb));
             qsz = job_q_.size();
         }
-
-        sig_cnd_.notify_all(); //using all because sig_cnd_ is job_q_ size limitation
-
+        if(qsz == 1){
+            sig_cnd_.notify_all(); //using all because sig_cnd_ is job_q_ size limitation
+        }
         const size_t thr_cnt = thr_cnt_.load();
 
         if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
@@ -220,8 +220,10 @@ bool WorkPool<Job, void, QNBits, Base>::tryPush(JT&& _jb)
             job_q_.push(std::forward<JT>(_jb));
             qsz = job_q_.size();
         }
-
-        sig_cnd_.notify_all(); //using all because sig_cnd_ is job_q_ size limitation
+        
+        if(qsz == 1){
+            sig_cnd_.notify_all(); //using all because sig_cnd_ is job_q_ size limitation
+        }
 
         const size_t thr_cnt = thr_cnt_.load();
 
@@ -849,10 +851,11 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
         bool should_fetch_mcast = _rcontext.mcast_exec_id_ != mcast_push_id_;
 
         if (_rcontext.pcontext_) {
-            if (_rcontext.pcontext_->job_list_.front().mcast_id_ == _rcontext.mcast_exec_id_ || _rcontext.pcontext_->job_list_.front().mcast_id_ == (_rcontext.mcast_exec_id_ + 1)) {
+            const auto front_mcast_id = _rcontext.pcontext_->job_list_.front().mcast_id_;
+            if (front_mcast_id == _rcontext.mcast_exec_id_ || front_mcast_id == (_rcontext.mcast_exec_id_ + 1)) {
                 should_wait        = false;
                 _rcontext.pjob_    = &_rcontext.pcontext_->job_list_.front().job();
-                should_fetch_mcast = _rcontext.pcontext_->job_list_.front().mcast_id_ != _rcontext.mcast_exec_id_;
+                should_fetch_mcast = front_mcast_id != _rcontext.mcast_exec_id_;
             }
         } else if (!job_list_.empty()) {
             //tryPopJob
@@ -953,8 +956,9 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::doTryPush(JT&& _jb, ContextStub* _pc
             }
             qsz = job_list_.size();
         }
-
-        sig_cnd_.notify_all(); //using all because sig_cnd_ is used for job_q_ size limitation
+        if(qsz == 1){
+            sig_cnd_.notify_all(); //using all because sig_cnd_ is used for job_q_ size limitation
+        }
     }
     solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
     return true;
@@ -989,7 +993,9 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doPush(JT&& _jb, ContextStub* _pctx)
             }
             qsz = job_list_.size();
         }
-        sig_cnd_.notify_all(); //using all because sig_cnd_ is used for job_q_ size limitation
+        if(qsz == 1){
+            sig_cnd_.notify_all(); //using all because sig_cnd_ is used for job_q_ size limitation
+        }
     }
     solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
 }
@@ -1020,8 +1026,9 @@ void WorkPool<Job, MCastJob, QNBits, Base>::pushAll(JT&& _jb)
             qsz = mcast_list_.size();
             ++mcast_push_id_;
         }
-
-        sig_cnd_.notify_all(); //using all because sig_cnd_ is used for job_q_ size limitation
+        if(qsz == 1){
+            sig_cnd_.notify_all(); //using all because sig_cnd_ is used for job_q_ size limitation
+        }
     }
     solid_statistic_max(statistic_.max_mcast_jobs_in_queue_, qsz);
 }
@@ -1051,8 +1058,9 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::tryPushAll(JT&& _jb)
             qsz = mcast_list_.size();
             ++mcast_push_id_;
         }
-
-        sig_cnd_.notify_all(); //using all because sig_cnd_ is used for job_q_ size limitation
+        if(qsz == 1){
+            sig_cnd_.notify_all(); //using all because sig_cnd_ is used for job_q_ size limitation
+        }
     }
     solid_statistic_max(statistic_.max_mcast_jobs_in_queue_, qsz);
     return true;

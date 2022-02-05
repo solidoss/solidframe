@@ -56,7 +56,7 @@ int test_perf_workpool_synch_context(int argc, char* argv[])
     }
 
     auto lambda = [&]() {
-        
+        auto start = std::chrono::steady_clock::now();
         WorkPoolT wp{
             WorkPoolConfiguration{thread_count},
 #ifdef NO_CONTEXT
@@ -96,6 +96,11 @@ int test_perf_workpool_synch_context(int argc, char* argv[])
                 wp.push(make_event(GenericEvents::Raise, i));
             }
 #endif
+        }
+        {
+            auto end = std::chrono::steady_clock::now();
+            std::chrono::duration<double> diff = end - start;
+            solid_log(logger, Verbose, "Duration after push "<<diff.count());
         }
     };
 

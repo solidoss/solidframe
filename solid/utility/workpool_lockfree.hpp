@@ -194,13 +194,7 @@ public:
     }
 
     template <class JT>
-    void push(const JT& _jb);
-
-    template <class JT>
     void push(JT&& _jb);
-
-    template <class JT>
-    bool tryPush(const JT& _jb);
 
     template <class JT>
     bool tryPush(JT&& _jb);
@@ -222,8 +216,6 @@ public:
     }
 
 private:
-    template <class JT, bool Wait>
-    size_t doJobPush(const JT& _rj, std::bool_constant<Wait>);
     template <class JT, bool Wait>
     size_t doJobPush(JT&& _uj, std::bool_constant<Wait>);
 
@@ -273,30 +265,10 @@ private:
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
 template <class JT>
-void WorkPool<Job, void, QNBits, Base>::push(const JT& _jb)
-{
-    solid_check(running_.load(std::memory_order_relaxed));
-    const size_t qsz     = doJobPush(_jb, std::true_type());
-    const size_t thr_cnt = thr_cnt_.load();
-
-    if (thr_cnt < Base::config_.max_worker_count_ && qsz > thr_cnt) {
-        std::lock_guard<std::mutex> lock(thr_mtx_);
-        solid_check(running_.load(std::memory_order_relaxed));
-        if (qsz > thr_vec_.size() && thr_vec_.size() < Base::config_.max_worker_count_) {
-            ++thr_cnt_;
-            thr_vec_.emplace_back(worker_factory_fnc_(thr_vec_.size()));
-            solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
-        }
-    }
-    solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
-}
-//-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits, typename Base>
-template <class JT>
 void WorkPool<Job, void, QNBits, Base>::push(JT&& _jb)
 {
     solid_check(running_.load(std::memory_order_relaxed));
-    const size_t qsz     = doJobPush(std::move(_jb), std::true_type());
+    const size_t qsz     = doJobPush(std::forward<JT>(_jb), std::true_type());
     const size_t thr_cnt = thr_cnt_.load();
 
     if (thr_cnt < Base::config_.max_worker_count_ && qsz > thr_cnt) {
@@ -309,31 +281,6 @@ void WorkPool<Job, void, QNBits, Base>::push(JT&& _jb)
         }
     }
     solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
-}
-//-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits, typename Base>
-template <class JT>
-bool WorkPool<Job, void, QNBits, Base>::tryPush(const JT& _jb)
-{
-    solid_check(running_.load(std::memory_order_relaxed));
-    const size_t qsz = doJobPush(_jb, std::false_type());
-
-    if (qsz != InvalidSize()) {
-        const size_t thr_cnt = thr_cnt_.load();
-        if (thr_cnt < Base::config_.max_worker_count_ && qsz > thr_cnt) {
-            std::lock_guard<std::mutex> lock(thr_mtx_);
-            solid_check(running_.load(std::memory_order_relaxed));
-            if (qsz > thr_vec_.size() && thr_vec_.size() < Base::config_.max_worker_count_) {
-                ++thr_cnt_;
-                thr_vec_.emplace_back(worker_factory_fnc_(thr_vec_.size()));
-                solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
-            }
-        }
-        solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
-        return true;
-    } else {
-        return false;
-    }
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
@@ -341,7 +288,7 @@ template <class JT>
 bool WorkPool<Job, void, QNBits, Base>::tryPush(JT&& _jb)
 {
     solid_check(running_.load(std::memory_order_relaxed));
-    const size_t qsz = doJobPush(std::move(_jb), std::false_type() /*wait*/);
+    const size_t qsz = doJobPush(std::forward<JT>(_jb), std::false_type() /*wait*/);
 
     if (qsz != InvalidSize()) {
         const size_t thr_cnt = thr_cnt_.load();
@@ -403,29 +350,13 @@ bool WorkPool<Job, void, QNBits, Base>::doWorkerWake(WorkerStub* _pws)
     }
     return false;
 }
-//-----------------------------------------------------------------------------
-template <typename Job, size_t QNBits, typename Base>
-template <class JT, bool Wait>
-size_t WorkPool<Job, void, QNBits, Base>::doJobPush(const JT& _rj, std::bool_constant<Wait>)
-{
-    const size_t sz = job_q_ptr_->template push<Wait>(_rj);
-
-    if (sz != InvalidSize()) {
-        if (doWorkerWake()) {
-
-        } else {
-            //solid_dbg(workpool_logger, Verbose, "no worker notified - "<<sz);
-        }
-    }
-    return sz;
-}
 
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
 template <class JT, bool Wait>
 size_t WorkPool<Job, void, QNBits, Base>::doJobPush(JT&& _rj, std::bool_constant<Wait>)
 {
-    const size_t sz = job_q_ptr_->template push<Wait>(std::move(_rj));
+    const size_t sz = job_q_ptr_->template push<Wait>(std::forward<JT>(_rj));
 
     if (sz != InvalidSize()) {
         if (doWorkerWake()) {
