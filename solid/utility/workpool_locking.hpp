@@ -881,7 +881,6 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
                     //we have a job on a currently running synchronization context
                     rnode.pcontext_->job_list_.pushBack(job_list_.popFront());
                     --rnode.pcontext_->use_count_;
-                    should_wait        = false; //don't want to keep the lock for too long
                     should_fetch_mcast = false;
                 }
             }
@@ -909,6 +908,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
         }
 
         if (should_notify) {
+            should_notify = false;
             sig_cnd_.notify_all();
         }
 
@@ -917,17 +917,26 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
             if (
                 !running_.load(std::memory_order_relaxed) && mcast_list_.size() == 1 && mcast_list_.front().exec_cnt_ == config_.max_worker_count_ && job_list_.empty() && context_dq_.size() == free_context_stack_.size() //all contexts have been released
             ) {
+                lock.unlock();
+                solid_statistic_max(statistic_.max_pop_wait_loop_count_, wait_loop_count);
+                return false;
+            }
+            if (wait_loop_count < 4) {
+                Base::wait(sig_cnd_, lock);
+                ++wait_loop_count;
+            } else {
                 break;
             }
-            Base::wait(sig_cnd_, lock);
-            ++wait_loop_count;
         } else {
+            lock.unlock();
             solid_statistic_max(statistic_.max_pop_wait_loop_count_, wait_loop_count);
             return true;
         }
     }
+    lock.unlock();
     solid_statistic_max(statistic_.max_pop_wait_loop_count_, wait_loop_count);
-    return false;
+    std::this_thread::yield();
+    return true;
 }
 //-----------------------------------------------------------------------------
 template <typename Job, typename MCastJob, size_t QNBits, typename Base>
