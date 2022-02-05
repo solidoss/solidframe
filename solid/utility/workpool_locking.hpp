@@ -186,7 +186,7 @@ void WorkPool<Job, void, QNBits, Base>::push(JT&& _jb)
             job_q_.push(std::forward<JT>(_jb));
             qsz = job_q_.size();
         }
-        if(qsz == 1){
+        if (qsz == 1) {
             sig_cnd_.notify_all(); //using all because sig_cnd_ is job_q_ size limitation
         }
         const size_t thr_cnt = thr_cnt_.load();
@@ -220,8 +220,8 @@ bool WorkPool<Job, void, QNBits, Base>::tryPush(JT&& _jb)
             job_q_.push(std::forward<JT>(_jb));
             qsz = job_q_.size();
         }
-        
-        if(qsz == 1){
+
+        if (qsz == 1) {
             sig_cnd_.notify_all(); //using all because sig_cnd_ is job_q_ size limitation
         }
 
@@ -956,7 +956,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::doTryPush(JT&& _jb, ContextStub* _pc
             }
             qsz = job_list_.size();
         }
-        if(qsz == 1){
+        if (qsz == 1) {
             sig_cnd_.notify_all(); //using all because sig_cnd_ is used for job_q_ size limitation
         }
     }
@@ -993,7 +993,7 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doPush(JT&& _jb, ContextStub* _pctx)
             }
             qsz = job_list_.size();
         }
-        if(qsz == 1){
+        if (qsz == 1) {
             sig_cnd_.notify_all(); //using all because sig_cnd_ is used for job_q_ size limitation
         }
     }
@@ -1026,7 +1026,7 @@ void WorkPool<Job, MCastJob, QNBits, Base>::pushAll(JT&& _jb)
             qsz = mcast_list_.size();
             ++mcast_push_id_;
         }
-        if(qsz == 1){
+        if (qsz == 1) {
             sig_cnd_.notify_all(); //using all because sig_cnd_ is used for job_q_ size limitation
         }
     }
@@ -1058,7 +1058,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::tryPushAll(JT&& _jb)
             qsz = mcast_list_.size();
             ++mcast_push_id_;
         }
-        if(qsz == 1){
+        if (qsz == 1) {
             sig_cnd_.notify_all(); //using all because sig_cnd_ is used for job_q_ size limitation
         }
     }
