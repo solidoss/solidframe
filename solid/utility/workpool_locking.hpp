@@ -461,7 +461,6 @@ class WorkPool : protected Base {
         {
             pcontext_ = nullptr;
             mcast_id_ = 0;
-            std::destroy_at(std::launder(reinterpret_cast<Job*>(&data_)));
         }
 
         Job& job()
@@ -477,16 +476,16 @@ class WorkPool : protected Base {
 
     struct MCastNode : inner::Node<1> {
         std::aligned_storage_t<sizeof(MCastJob), alignof(MCastJob)> data_;
-        uint16_t                                                    exec_cnt_    = 0;
+        std::atomic<uint16_t>                                       exec_cnt_ ;
         uint16_t                                                    release_cnt_ = 0;
 
         template <class J>
-        MCastNode(J&& _rj)
+        MCastNode(J&& _rj):exec_cnt_(0)
         {
             ::new (&data_) MCastJob(std::forward<J>(_rj));
         }
 
-        MCastNode() {} //this is needed for sentinel
+        MCastNode():exec_cnt_(0){}
 
         MCastJob& job()
         {
@@ -644,8 +643,8 @@ public:
 
 private:
     struct PopContext {
-        MCastJob* pmcast_ = nullptr;
-        Job*      pjob_   = nullptr;
+        MCastNode*  pmcast_ = nullptr;
+        Job*        pjob_   = nullptr;
 
         //used only on pop
         ContextStub* pcontext_      = nullptr;
@@ -762,11 +761,12 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doRun(
 
     while (pop(pop_context)) {
         if (pop_context.pmcast_) {
-            _mcast_job_handler_fnc(*pop_context.pmcast_, std::forward<Args>(_args)...);
+            _mcast_job_handler_fnc(pop_context.pmcast_->job(), std::forward<Args>(_args)...);
             solid_statistic_inc(mcast_job_count);
         }
         if (pop_context.pjob_) {
             _job_handler_fnc(*pop_context.pjob_, std::forward<Args>(_args)...);
+            std::destroy_at(std::launder(pop_context.pjob_));
             solid_statistic_inc(job_count);
         }
     }
@@ -808,6 +808,18 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
 
     bool                         should_notify   = false;
     size_t                       wait_loop_count = 0;
+
+    if (_rcontext.pmcast_) {
+        auto& rmcast_node = *_rcontext.pmcast_;
+        _rcontext.pmcast_ = nullptr;
+        auto exec_cnt = rmcast_node.exec_cnt_.fetch_add(1) + 1;
+        solid_check(exec_cnt <= config_.max_worker_count_);
+        if (exec_cnt == config_.max_worker_count_) {
+            rmcast_node.clear();
+            should_notify = true;
+        }
+    }
+
     std::unique_lock<std::mutex> lock(mtx_);
 
     if (_rcontext.pcontext_) {
@@ -832,7 +844,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
         _rcontext.pjob_      = nullptr;
         _rcontext.job_index_ = InvalidIndex();
     }
-
+#if 0
     if (_rcontext.pmcast_) {
         _rcontext.pmcast_ = nullptr;
 
@@ -845,7 +857,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
             should_notify = true;
         }
     }
-
+#endif
     while (true) {
         bool should_wait        = true;
         bool should_fetch_mcast = _rcontext.mcast_exec_id_ != mcast_push_id_;
@@ -882,6 +894,11 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
                     rnode.pcontext_->job_list_.pushBack(job_list_.popFront());
                     --rnode.pcontext_->use_count_;
                     should_fetch_mcast = false;
+                    if (should_notify) {
+                        should_notify = false;
+                        sig_cnd_.notify_all();
+                    }
+                    continue;
                 }
             }
         }
@@ -903,7 +920,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
 
             ++_rcontext.mcast_exec_id_;
             //solid_log(workpool_logger, Error, _rcontext.mcast_index_<<" "<<_rcontext.mcast_exec_id_);
-            _rcontext.pmcast_ = &mcast_dq_[_rcontext.mcast_index_].job();
+            _rcontext.pmcast_ = &mcast_dq_[_rcontext.mcast_index_];
             should_wait       = false;
         }
 
@@ -914,6 +931,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
 
         if (should_wait) {
             solid_check(!mcast_list_.empty());
+
             if (
                 !running_.load(std::memory_order_relaxed) && mcast_list_.size() == 1 && mcast_list_.front().exec_cnt_ == config_.max_worker_count_ && job_list_.empty() && context_dq_.size() == free_context_stack_.size() //all contexts have been released
             ) {
@@ -921,12 +939,9 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
                 solid_statistic_max(statistic_.max_pop_wait_loop_count_, wait_loop_count);
                 return false;
             }
-            if (wait_loop_count < 4) {
-                Base::wait(sig_cnd_, lock);
-                ++wait_loop_count;
-            } else {
-                break;
-            }
+            
+            Base::wait(sig_cnd_, lock);
+            ++wait_loop_count;
         } else {
             lock.unlock();
             solid_statistic_max(statistic_.max_pop_wait_loop_count_, wait_loop_count);
@@ -935,7 +950,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
     }
     lock.unlock();
     solid_statistic_max(statistic_.max_pop_wait_loop_count_, wait_loop_count);
-    std::this_thread::yield();
+    //std::this_thread::yield();
     return true;
 }
 //-----------------------------------------------------------------------------
