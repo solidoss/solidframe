@@ -119,7 +119,7 @@ public:
 
     void pop()
     {
-        ptop_->~T();
+        std::destroy_at(std::launder(ptop_));
 
         if ((--size_) & node_mask) {
             --ptop_;

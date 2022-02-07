@@ -141,7 +141,7 @@ public:
 
     void pop()
     {
-        pfront_->~T();
+        std::destroy_at(std::launder(pfront_));
         --size_;
         if ((++current_node_pop_count_) & node_mask)
             ++pfront_;
