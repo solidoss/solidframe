@@ -32,7 +32,6 @@ int test_workpool_chain(int argc, char* argv[])
 
     const int           wait_seconds = 300;
     int                 loop_cnt     = 2;
-    size_t              start_thr    = 0;
     const size_t        cnt{1000000};
     const size_t        v = (((cnt - 1) * cnt)) / 2;
     std::atomic<size_t> val{0};
@@ -44,19 +43,13 @@ int test_workpool_chain(int argc, char* argv[])
     }
 
     if (argc > 2) {
-        start_thr = atoi(argv[2]);
-    }
-
-    if (argc > 3) {
-        loop_cnt = atoi(argv[3]);
+        loop_cnt = atoi(argv[2]);
     }
 
     if (thread_count == 0) {
         thread_count = thread::hardware_concurrency();
     }
-    if (start_thr > thread_count) {
-        start_thr = thread_count;
-    }
+    
 
     auto lambda = [&]() {
         for (int i = 0; i < loop_cnt; ++i) {

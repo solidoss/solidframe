@@ -86,7 +86,7 @@ int test_perf_workpool_synch_context(int argc, char* argv[])
 
             for (size_t i = 0; i < event_count; ++i) {
                 auto& rsynch_context = synch_contexts[i % context_count];
-
+                //wp.push(make_event(GenericEvents::Raise, i));
                 rsynch_context.push(make_event(GenericEvents::Raise, i));
             }
 #else
