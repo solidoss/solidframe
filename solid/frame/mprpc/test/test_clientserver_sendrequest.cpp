@@ -385,7 +385,7 @@ int test_clientserver_sendrequest(int argc, char* argv[])
         frame::mprpc::ServiceT            mprpcserver(m);
         frame::mprpc::ServiceT            mprpcclient(m);
         ErrorConditionT                   err;
-        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1), 1};
+        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1)};
         frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
 
         sch_client.start(1);

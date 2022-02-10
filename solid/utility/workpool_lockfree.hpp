@@ -159,7 +159,6 @@ public:
     template <class JobHandleFnc, typename... Args>
     WorkPool(
         const WorkPoolConfiguration& _cfg,
-        const size_t                 _start_wkr_cnt,
         JobHandleFnc                 _job_handler_fnc,
         Args&&... _args)
         : running_(false)
@@ -168,7 +167,7 @@ public:
     {
         doStart(
             _cfg,
-            _start_wkr_cnt,
+            _cfg.max_worker_count_,
             _job_handler_fnc,
             std::forward<Args>(_args)...);
     }
@@ -176,13 +175,12 @@ public:
     template <class JobHandleFnc, typename... Args>
     void start(
         const WorkPoolConfiguration& _cfg,
-        const size_t                 _start_wkr_cnt,
         JobHandleFnc                 _job_handler_fnc,
         Args&&... _args)
     {
         doStart(
             _cfg,
-            _start_wkr_cnt,
+            _cfg.max_worker_count_,
             _job_handler_fnc,
             std::forward<Args>(_args)...);
     }

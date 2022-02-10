@@ -48,9 +48,6 @@ int test_workpool_try(int argc, char* argv[])
                 WorkPoolT wp
                 {
                     WorkPoolConfiguration(1, 1000),
-#if SOLID_WORKPOOL_OPTION < 2
-                        1,
-#endif
                         [&val](const size_t _v) {
                             val += _v;
                         }

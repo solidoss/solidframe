@@ -103,10 +103,10 @@ int main(int argc, char* argv[])
     cout << "fdq size = " << fdq.size() << " total size " << totsz << endl;
     //return 0;
 
-    using WorkPoolT = locking::WorkPool<FileDevice*, void>;
+    using WorkPoolT = lockfree::WorkPool<FileDevice*, void>;
 
     WorkPoolT wp{
-        solid::WorkPoolConfiguration(), std::thread::hardware_concurrency(),
+        solid::WorkPoolConfiguration(),
         [](FileDevice* _pfile, Context&& _rctx) {
             int64_t sz = _pfile->size();
             int     toread;

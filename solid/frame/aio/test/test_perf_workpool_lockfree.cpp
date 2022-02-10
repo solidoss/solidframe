@@ -49,7 +49,6 @@ int test_perf_workpool_lockfree(int argc, char* argv[])
     auto lambda = [&]() {
         WorkPoolT wp{
             WorkPoolConfiguration{thread_count},
-            thread_count,
             [&](Event& _event) {
                 if (_event == generic_event_raise) {
                     ++received_events;

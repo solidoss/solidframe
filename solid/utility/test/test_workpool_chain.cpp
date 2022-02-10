@@ -64,9 +64,6 @@ int test_workpool_chain(int argc, char* argv[])
                 WorkPoolT wp_b
                 {
                     WorkPoolConfiguration(thread_count),
-#if SOLID_WORKPOOL_OPTION < 2
-                        start_thr,
-#endif
                         [&val](const size_t _v) {
                             val += _v;
                         }
@@ -78,9 +75,6 @@ int test_workpool_chain(int argc, char* argv[])
                 WorkPoolT wp_f
                 {
                     WorkPoolConfiguration(thread_count),
-#if SOLID_WORKPOOL_OPTION < 2
-                        start_thr,
-#endif
                         [&wp_b](const size_t _v) {
                             wp_b.push(_v);
                         }

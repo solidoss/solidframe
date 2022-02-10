@@ -82,14 +82,9 @@ int test_workpool_thread_context(int argc, char* argv[])
         for (int i = 0; i < loop_cnt; ++i) {
             auto start = chrono::steady_clock::now();
             {
-                CallPoolT wp
-                {
+                CallPoolT wp{
                     WorkPoolConfiguration(2),
-#if SOLID_WORKPOOL_OPTION < 2
-                        0,
-#endif
-                        Context("simple text", 0UL)
-                };
+                    Context("simple text", 0UL)};
 
                 solid_log(logger, Verbose, "wp started");
                 pwp   = &wp;

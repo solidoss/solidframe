@@ -96,9 +96,6 @@ int test_workpool(int argc, char* argv[])
         WorkPoolT wp
         {
             WorkPoolConfiguration(consumer_count, queue_size <= 0 ? std::numeric_limits<size_t>::max() : queue_size),
-#if SOLID_WORKPOOL_OPTION < 2
-                1,
-#endif
                 [job_sleep_msecs](size_t _v, Context&& _rctx) {
                     //solid_check(_rs == "this is a string", "failed string check");
                     val += _v;

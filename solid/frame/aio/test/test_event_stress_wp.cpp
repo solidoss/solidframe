@@ -224,9 +224,9 @@ int test_event_stress_wp(int argc, char* argv[])
 
             gctx.stopping_ = false;
 
-            account_cp.start(WorkPoolConfiguration(thread_count), 1, std::ref(acc_ctx));
-            connection_cp.start(WorkPoolConfiguration(thread_count), 1, std::ref(conn_ctx));
-            device_cp.start(WorkPoolConfiguration(thread_count), 1, std::ref(dev_ctx));
+            account_cp.start(WorkPoolConfiguration(thread_count), std::ref(acc_ctx));
+            connection_cp.start(WorkPoolConfiguration(thread_count), std::ref(conn_ctx));
+            device_cp.start(WorkPoolConfiguration(thread_count), std::ref(dev_ctx));
 
             conn_ctx.conn_cnt_  = (account_connection_count * account_count);
             auto produce_lambda = [&]() {

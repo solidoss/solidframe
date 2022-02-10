@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
             1024 * 1024 * 64);
     }
 
-    lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1), 1};
+    lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1)};
     frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
 
     async_resolver(&resolver);

@@ -66,9 +66,6 @@ int test_workpool_pattern(int argc, char* argv[])
         WorkPoolT wp
         {
             WorkPoolConfiguration(consumer_cnt),
-#if SOLID_WORKPOOL_OPTION < 2
-                consumer_cnt,
-#endif
                 [&sum, &consummer_pattern, loop = consummer_pattern[0].first, idx = 0](const size_t _v) mutable {
                     sum += _v;
                     --loop;

@@ -484,7 +484,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
         frame::Manager                    srv_mgr;
         SecureContextT                    srv_secure_ctx{SecureContextT::create()};
         frame::ServiceT                   srv_svc{srv_mgr};
-        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1), 1};
+        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1)};
         frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
 
         async_resolver(&resolver);

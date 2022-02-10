@@ -231,22 +231,6 @@ std::ostream& WorkPoolStatistic::print(std::ostream& _ros) const
 } // namespace lockfree
 
 namespace locking {
-WorkPoolStatistic::WorkPoolStatistic()
-    : max_worker_count_(0)
-    , max_jobs_in_queue_(0)
-    , max_jobs_on_thread_(0)
-    , min_jobs_on_thread_(-1)
-{
-}
-
-std::ostream& WorkPoolStatistic::print(std::ostream& _ros) const
-{
-    _ros << " max_worker_count_ = " << max_worker_count_;
-    _ros << " max_jobs_in_queue_ = " << max_jobs_in_queue_;
-    _ros << " max_jobs_on_thread_ = " << max_jobs_on_thread_;
-    _ros << " min_jobs_on_thread_ = " << min_jobs_on_thread_;
-    return _ros;
-}
 
 WorkPoolMulticastStatistic::WorkPoolMulticastStatistic()
     : max_jobs_in_queue_{0}
