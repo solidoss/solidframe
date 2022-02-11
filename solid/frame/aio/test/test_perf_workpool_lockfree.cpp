@@ -45,7 +45,7 @@ int test_perf_workpool_lockfree(int argc, char* argv[])
     if (argc > 3) {
         context_count = stoul(argv[3]);
     }
-
+    (void)context_count;
     auto lambda = [&]() {
         WorkPoolT wp{
             WorkPoolConfiguration{thread_count},
