@@ -76,7 +76,7 @@ int test_clientserver_versioning(int argc, char* argv[])
 
     AioSchedulerT                     scheduler;
     frame::Manager                    manager;
-    lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1), 1};
+    lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1)};
     frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
     frame::mprpc::ServiceT            service(manager);
     frame::mprpc::ServiceT            service_v1(manager);

@@ -172,7 +172,7 @@ int main(int argc, char* argv[])
         frame::Manager                    m;
         frame::mprpc::ServiceT            ipcsvc(m);
         ErrorConditionT                   err;
-        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1), 1};
+        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1)};
         frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
 
         if (!restart(ipcsvc, resolver, sch)) {

@@ -317,7 +317,7 @@ int test_connection_close(int argc, char* argv[])
 
         frame::Manager m;
 
-        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1), 1};
+        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1)};
         frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
         frame::mprpc::ServiceT            mprpcserver(m);
         frame::mprpc::ServiceT            mprpcclient(m);

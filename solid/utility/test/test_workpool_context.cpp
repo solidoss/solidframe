@@ -50,13 +50,9 @@ int test_workpool_context(int argc, char* argv[])
                 locking::CallPoolT<void(Context&), void> wp
                 {
 #else
-                locking::CallPoolT<void(Context&)> wp
-                {
+                locking::CallPoolT<void(Context&)> wp{
 #endif
-                    WorkPoolConfiguration(),
-#if SOLID_WORKPOOL_OPTION < 2
-                        2,
-#endif
+                    WorkPoolConfiguration(2),
                         std::ref(ctx)
                 };
 

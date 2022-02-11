@@ -55,16 +55,6 @@ target_compile_definitions(test_workpool_lockfree PRIVATE SOLID_WORKPOOL_OPTION=
 
 create_test_sourcelist( WorkPoolLockingTests test_workpool_locking.cpp ${WorkPoolTestSuite})
 
-add_executable(test_workpool_locking ${WorkPoolLockingTests})
-
-target_link_libraries(test_workpool_locking
-    solid_utility
-    solid_system
-    ${SYSTEM_BASIC_LIBRARIES}
-)
-
-target_compile_definitions(test_workpool_locking PRIVATE SOLID_WORKPOOL_OPTION=1)
-
 create_test_sourcelist( WorkPoolMulticastTests test_workpool_multicast.cpp ${WorkPoolTestSuite})
 
 add_executable(test_workpool_multicast ${WorkPoolMulticastTests})
@@ -147,40 +137,6 @@ add_test(NAME TestWorkPoolLockfree_1_4                   COMMAND  test_workpool_
 add_test(NAME TestWorkPoolLockfree_2_4                   COMMAND  test_workpool_lockfree test_workpool 10 10 0 4 4 100 0)
 add_test(NAME TestWorkPoolLockfree_3_4                   COMMAND  test_workpool_lockfree test_workpool 10 10 0 4 4 0 100)
 add_test(NAME TestWorkPoolLockfree_4_4                   COMMAND  test_workpool_lockfree test_workpool 1  10 0 4 4 100 100)
-
-### test_workpool_locking
-add_test(NAME TestWorkPoolLockingThreadContext          COMMAND  test_workpool_locking test_workpool_thread_context)
-add_test(NAME TestWorkPoolLockingContext                COMMAND  test_workpool_locking test_workpool_context)
-add_test(NAME TestWorkPoolLockingPattern                COMMAND  test_workpool_locking test_workpool_pattern)
-add_test(NAME TestWorkPoolLockingBasic                  COMMAND  test_workpool_locking test_workpool_basic)
-add_test(NAME TestWorkPoolLockingTry                    COMMAND  test_workpool_locking test_workpool_try)
-#add_test(NAME TestWorkPoolLockingChain1                 COMMAND  test_workpool_locking test_workpool_chain 1)
-add_test(NAME TestWorkPoolLockingChain2                 COMMAND  test_workpool_locking test_workpool_chain 2)
-add_test(NAME TestWorkPoolLockingChain4                 COMMAND  test_workpool_locking test_workpool_chain 4)
-add_test(NAME TestWorkPoolLockingChain8                 COMMAND  test_workpool_locking test_workpool_chain 8)
-add_test(NAME TestWorkPoolLockingChain15                COMMAND  test_workpool_locking test_workpool_chain 15)
-#add_test(NAME TestWorkPoolLockingChain                  COMMAND  test_workpool_locking test_workpool_chain)
-#add_test(NAME TestWorkPoolLockingChain0_1               COMMAND  test_workpool_locking test_workpool_chain 0 1)
-#add_test(NAME TestWorkPoolLockingChain0_2               COMMAND  test_workpool_locking test_workpool_chain 0 2)
-
-# test_workpool args: JOB_COUNT WAIT_SECONDS QUEUE_SIZE PRODUCER_COUNT CONSUMER_COUNT PUSH_SLEEP_MSECS JOB_SLEEP_MSECS
-add_test(NAME TestWorkPoolLocking                       COMMAND  test_workpool_locking test_workpool)
-
-add_test(NAME TestWorkPoolLocking_0                     COMMAND  test_workpool_locking test_workpool 1000 10 0 0 1 0 0)
-add_test(NAME TestWorkPoolLocking_1                     COMMAND  test_workpool_locking test_workpool 100000 10 100 0 2 0 0)
-add_test(NAME TestWorkPoolLocking_2                     COMMAND  test_workpool_locking test_workpool 10 10 0 0 2 100 0)
-add_test(NAME TestWorkPoolLocking_3                     COMMAND  test_workpool_locking test_workpool 10 10 0 0 2 0 100)
-add_test(NAME TestWorkPoolLocking_4                     COMMAND  test_workpool_locking test_workpool 1  10 0 0 2 100 100)
-
-add_test(NAME TestWorkPoolLocking_1_2                   COMMAND  test_workpool_locking test_workpool 100000 10 100 2 2 0 0)
-add_test(NAME TestWorkPoolLocking_2_2                   COMMAND  test_workpool_locking test_workpool 10 10 0 2 2 100 0)
-add_test(NAME TestWorkPoolLocking_3_2                   COMMAND  test_workpool_locking test_workpool 10 10 0 2 2 0 100)
-add_test(NAME TestWorkPoolLocking_4_2                   COMMAND  test_workpool_locking test_workpool 1  10 0 2 2 100 100)
-
-add_test(NAME TestWorkPoolLocking_1_4                   COMMAND  test_workpool_locking test_workpool 100000 10 100 4 4 0 0)
-add_test(NAME TestWorkPoolLocking_2_4                   COMMAND  test_workpool_locking test_workpool 10 10 0 4 4 100 0)
-add_test(NAME TestWorkPoolLocking_3_4                   COMMAND  test_workpool_locking test_workpool 10 10 0 4 4 0 100)
-add_test(NAME TestWorkPoolLocking_4_4                   COMMAND  test_workpool_locking test_workpool 1  10 0 4 4 100 100)
 
 ### test_workpool_multicast
 add_test(NAME TestWorkPoolMulticastThreadContext          COMMAND  test_workpool_multicast test_workpool_thread_context)

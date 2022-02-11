@@ -92,7 +92,11 @@ class Queue : protected Base {
 
         T& item(const size_t _i)
         {
-            return reinterpret_cast<T*>(data_)[_i];
+            return *std::launder(&reinterpret_cast<T*>(data_)[_i]);
+        }
+        void destroy(const size_t _i)
+        {
+            std::destroy_at(std::launder(&reinterpret_cast<T*>(data_)[_i]));
         }
     };
 
@@ -370,6 +374,7 @@ bool Queue<T, NBits, Base>::pop(T& _rt)
             std::atomic_thread_fence(std::memory_order_acquire);
 
             _rt = std::move(pn->item(pos));
+            pn->destroy(pos);
             solid_statistic_inc(rstatistic_.pop_count_);
             const size_t qsz = size_.fetch_sub(1);
             if (qsz == max_size_) {

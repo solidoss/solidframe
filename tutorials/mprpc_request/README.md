@@ -155,7 +155,7 @@ AioSchedulerT           scheduler;
 
 frame::Manager          manager;
 frame::mprpc::ServiceT  ipcservice(manager);
-CallPool<void()>        cwp{WorkPoolConfiguration(), 1};
+CallPool<void()>        cwp{WorkPoolConfiguration(1)};
 frame::aio::Resolver    resolver(cwp);
 
 ErrorConditionT         err;

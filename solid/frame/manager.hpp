@@ -71,9 +71,11 @@ public:
     };
 
     Manager(
-        const size_t _svcmtxcnt     = 0,
-        const size_t _actmtxcnt     = 0,
-        const size_t _actbucketsize = 0);
+        const size_t _service_capacity    = 1024,
+        const size_t _actor_capacity      = 1024 * 1024,
+        const size_t _actor_bucket_size   = 0,
+        const size_t _service_mutex_count = 0,
+        const size_t _actor_mutex_count   = 0);
 
     virtual ~Manager();
 
@@ -97,6 +99,10 @@ public:
     ActorIdT id(const ActorBase& _ractor) const;
 
     Service& service(const ActorBase& _ractor) const;
+    size_t   actorCapacity() const;
+    size_t   actorSize() const;
+    size_t   serviceCapacity() const;
+    size_t   serviceSize() const;
 
 private:
     friend class Service;
@@ -159,7 +165,7 @@ private:
 
 private:
     struct Data;
-    PimplT<Data> impl_;
+    PimplT<Data> pimpl_;
 };
 
 //-----------------------------------------------------------------------------
