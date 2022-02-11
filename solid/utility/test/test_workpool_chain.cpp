@@ -49,7 +49,6 @@ int test_workpool_chain(int argc, char* argv[])
     if (thread_count == 0) {
         thread_count = thread::hardware_concurrency();
     }
-    
 
     auto lambda = [&]() {
         for (int i = 0; i < loop_cnt; ++i) {
