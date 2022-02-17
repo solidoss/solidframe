@@ -557,6 +557,8 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doRun(
     uint64_t job_count       = 0;
     uint64_t mcast_job_count = 0;
 
+    Base::config_.on_thread_start_fnc_();
+
     PopContext pop_context;
     pop_context.plast_mcast_ = mcast_queue_.front(); //the sentinel
 
@@ -579,6 +581,8 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doRun(
     solid_statistic_add(statistic_.job_count_, job_count);
     solid_statistic_max(statistic_.max_mcast_jobs_on_thread_, mcast_job_count);
     solid_statistic_min(statistic_.min_mcast_jobs_on_thread_, mcast_job_count);
+
+    Base::config_.on_thread_stop_fnc_();
 }
 //-----------------------------------------------------------------------------
 template <typename Job, typename MCastJob, size_t QNBits, typename Base>
@@ -789,7 +793,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::doTryPush(JT&& _jb, ContextStub* _pc
             }
         }
         if (qsz <= config_.max_worker_count_) {
-            pop_sig_cnd_.notify_one(); //using all because sig_cnd_ is used for job_q_ size limitation
+            pop_sig_cnd_.notify_one();
         }
         solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
         return true;
@@ -807,7 +811,6 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doPush(JT&& _jb, ContextStub* _pctx)
     pnode->job(std::forward<JT>(_jb));
     pnode->pcontext_ = _pctx;
     size_t qsz;
-    //solid_log(workpool_logger, Error, _pctx<<" "<<pnode);
     {
         std::lock_guard<std::mutex> lock(pop_mtx_);
         job_queue_.push(pnode);
@@ -818,10 +821,9 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doPush(JT&& _jb, ContextStub* _pctx)
             ++_pctx->use_count_;
         }
         if (qsz <= config_.max_worker_count_) {
-            pop_sig_cnd_.notify_one(); //using all because sig_cnd_ is used for job_q_ size limitation
+            pop_sig_cnd_.notify_one();
         }
     }
-    //pop_sig_cnd_.notify_one();
 
     solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
 }

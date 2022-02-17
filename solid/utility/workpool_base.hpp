@@ -15,6 +15,7 @@
 #include "solid/system/log.hpp"
 #include "solid/utility/queue_lockfree.hpp"
 #include <condition_variable>
+#include <functional>
 #include <mutex>
 #include <thread>
 
@@ -26,14 +27,20 @@ constexpr size_t workpool_default_node_capacity_bit_count = 10;
 //-----------------------------------------------------------------------------
 
 struct WorkPoolConfiguration {
-    size_t max_worker_count_;
-    size_t max_job_queue_size_;
+    size_t                max_worker_count_;
+    size_t                max_job_queue_size_;
+    std::function<void()> on_thread_start_fnc_;
+    std::function<void()> on_thread_stop_fnc_;
 
-    explicit WorkPoolConfiguration(
-        const size_t _max_worker_count   = std::thread::hardware_concurrency(),
-        const size_t _max_job_queue_size = std::numeric_limits<size_t>::max())
+    WorkPoolConfiguration(
+        const size_t            _max_worker_count    = std::thread::hardware_concurrency(),
+        const size_t            _max_job_queue_size  = std::numeric_limits<size_t>::max(),
+        std::function<void()>&& _on_thread_start_fnc = []() {},
+        std::function<void()>&& _on_thread_stop_fnc  = []() {})
         : max_worker_count_(_max_worker_count)
         , max_job_queue_size_(_max_job_queue_size)
+        , on_thread_start_fnc_(std::move(_on_thread_start_fnc))
+        , on_thread_stop_fnc_(std::move(_on_thread_stop_fnc))
     {
     }
 };
