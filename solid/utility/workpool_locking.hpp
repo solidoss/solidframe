@@ -35,41 +35,6 @@ namespace locking {
 namespace impl {
 
 template <class T>
-class LockFreeStack {
-    std::atomic<T*> head_;
-
-public:
-    LockFreeStack()
-        : head_(nullptr)
-    {
-    }
-
-    void push(T* _pt)
-    {
-        _pt->pnext_ = head_.load(std::memory_order_relaxed);
-        while (!head_.compare_exchange_weak(_pt->pnext_, _pt, std::memory_order_release, std::memory_order_relaxed))
-            ;
-    }
-
-    T* pop()
-    {
-        auto* pold = head_.load(std::memory_order_relaxed);
-        while (pold && !head_.compare_exchange_strong(pold, pold->pnext_, std::memory_order_relaxed))
-            ;
-        return pold;
-    }
-
-    void clear()
-    {
-        head_.store(nullptr);
-    }
-    bool empty() const
-    {
-        return head_.load(std::memory_order_relaxed) == nullptr;
-    }
-};
-
-template <class T>
 class Stack {
     T* head_;
 
