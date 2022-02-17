@@ -15,14 +15,9 @@ using namespace std;
 namespace {
 const LoggerT logger("test");
 
-//#define NO_CONTEXT
-
-#ifndef NO_CONTEXT
 using WorkPoolT     = locking::WorkPoolT<Event, uint32_t>;
 using SynchContextT = WorkPoolT::SynchronizationContextT;
-#else
-using WorkPoolT = locking::WorkPoolT<Event, void>;
-#endif
+
 atomic<size_t> received_events{0};
 atomic<size_t> accumulate_value{0};
 
@@ -57,43 +52,29 @@ int test_perf_workpool_synch_context(int argc, char* argv[])
         auto      start = std::chrono::steady_clock::now();
         WorkPoolT wp{
             WorkPoolConfiguration{thread_count},
-#ifdef NO_CONTEXT
-            thread_count,
-#endif
             [&](Event& _event) {
                 if (_event == generic_event_raise) {
                     ++received_events;
                     accumulate_value += *_event.any().cast<size_t>();
                 }
                 //solid_log(logger, Verbose, "job " << _r.value_);
-            }
-#ifndef NO_CONTEXT
-            ,
+            },
             [](const uint32_t _v) { //mcast execute
                 //solid_log(logger, Verbose, "mcast " << _v);
             }
-#endif
 
         };
         {
-#ifndef NO_CONTEXT
             vector<SynchContextT> synch_contexts(context_count);
 
-            //we leave the last contex empty for async tasks
             for (size_t i = 0; i < context_count; ++i) {
                 synch_contexts[i] = wp.createSynchronizationContext();
             }
 
             for (size_t i = 0; i < event_count; ++i) {
                 auto& rsynch_context = synch_contexts[i % context_count];
-                //wp.push(make_event(GenericEvents::Raise, i));
                 rsynch_context.push(make_event(GenericEvents::Raise, i));
             }
-#else
-            for (size_t i = 0; i < event_count; ++i) {
-                wp.push(make_event(GenericEvents::Raise, i));
-            }
-#endif
         }
         {
             auto                          end  = std::chrono::steady_clock::now();

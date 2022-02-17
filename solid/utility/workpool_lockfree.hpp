@@ -537,6 +537,8 @@ void WorkPool<Job, void, QNBits, Base>::doStart(
                     solid_dbg(workpool_logger, Warning, this << " worker rejected");
                     return;
                 }
+                Base::config_.on_thread_start_fnc_();
+
                 solid_dbg(workpool_logger, Warning, this << " worker started");
 
                 while (doJobPop(stub, _id, job)) {
@@ -549,6 +551,8 @@ void WorkPool<Job, void, QNBits, Base>::doStart(
                 solid_dbg(workpool_logger, Warning, this << " worker stopping after handling " << job_count << " jobs");
                 solid_statistic_max(statistic_.max_jobs_on_thread_, job_count);
                 solid_statistic_min(statistic_.min_jobs_on_thread_, job_count);
+
+                Base::config_.on_thread_stop_fnc_();
             },
             _id,
             _job_handler_fnc, _args...);
