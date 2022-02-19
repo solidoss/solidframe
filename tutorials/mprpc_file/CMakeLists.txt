@@ -1,4 +1,4 @@
-if(APPLE)
+if(APPLE OR WIN32)
 else()
     set(STDFS_LIB stdc++fs)
 endif()

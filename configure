@@ -70,6 +70,9 @@ print_usage(){
     echo "$ cd build/asan"
     echo "$ make Experimental"
     echo
+    echo "6) create a debug build solution for Visual Studio17 2022 from Git Bash" 
+    echo "./configure -b debug -f debug -e ../external_debug_x64/ -g \"Visual Studio 17 2022\" -A x64"
+    echo
     exit
 }
 

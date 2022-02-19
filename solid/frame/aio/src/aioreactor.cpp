@@ -23,6 +23,11 @@
 #include <sys/types.h>
 
 #elif defined(SOLID_USE_WSAPOLL)
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
 #define WIN32_LEAN_AND_MEAN
 #include <WinSock2.h>
 #endif
