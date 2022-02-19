@@ -213,7 +213,7 @@ const char* MessageReader::doConsumeMessage(
     uint16_t     message_size = 0;
 
     if ((_cmd & static_cast<uint8_t>(PacketHeader::CommandE::NewMessage)) != 0u) {
-        solid_dbg(logger, Error, "Clear Message " << _msgidx);
+        solid_dbg(logger, Verbose, "Clear Message " << _msgidx);
         rmsgstub.clear();
     }
 
@@ -313,7 +313,7 @@ const char* MessageReader::doConsumeMessage(
                                     //done parsing the message body
                                     MessagePointerT msgptr{std::move(rmsgstub.message_ptr_)};
                                     cache(rmsgstub.deserializer_ptr_);
-                                    solid_dbg(logger, Error, "Clear Message " << _msgidx);
+                                    solid_dbg(logger, Verbose, "Clear Message " << _msgidx);
                                     rmsgstub.clear();
                                     const size_t message_type_id = msgptr ? _receiver.protocol().typeIndex(msgptr.get()) : InvalidIndex();
                                     _receiver.receiveMessage(msgptr, message_type_id);

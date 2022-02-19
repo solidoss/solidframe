@@ -410,12 +410,14 @@ void EngineCore::doStopConnection(const size_t _conidx)
             rmsg.sender_con_id_.clear(); //unlink from the sender connection
 
             //clean message relay data
-            RelayData* prd;
-            while ((prd = rmsg.pop()) != nullptr) {
-                impl_->eraseRelayData(prd);
+            {
+                RelayData* prd;
+                while ((prd = rmsg.pop()) != nullptr) {
+                    impl_->eraseRelayData(prd);
+                }
             }
 
-            if (rmsg.receiver_con_id_.isValid()) {
+            if (rmsg.receiver_con_id_.isValid() && impl_->con_dq_[rcv_conidx].id_.isValid()) {
                 switch (rmsg.state_) {
                 case MessageStateE::Relay:
                 case MessageStateE::WaitResponse:
@@ -734,13 +736,10 @@ void EngineCore::doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_
     solid_assert_log(_rrelay_con_uid.isValid(), logger);
     solid_assert_log(impl_->isValid(_rrelay_con_uid), logger);
 
-    const size_t    conidx = static_cast<size_t>(_rrelay_con_uid.index);
-    ConnectionStub& rcon   = impl_->con_dq_[conidx];
-
-    solid_assert_log(rcon.id_.unique == _rrelay_con_uid.unique, logger);
-
-    bool   can_retry = true;
-    size_t msgidx    = rcon.recv_msg_list_.backIndex();
+    const size_t    conidx    = static_cast<size_t>(_rrelay_con_uid.index);
+    ConnectionStub& rcon      = impl_->con_dq_[conidx];
+    bool            can_retry = true;
+    size_t          msgidx    = rcon.recv_msg_list_.backIndex();
 
     solid_dbg(logger, Verbose, _rrelay_con_uid << ' ' << plot(rcon) << " msgidx " << msgidx);
 
