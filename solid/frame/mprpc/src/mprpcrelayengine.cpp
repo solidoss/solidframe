@@ -948,7 +948,9 @@ void EngineCore::doCancel(
     const size_t msgidx = _rengine_msg_id.index;
 
     if (msgidx < impl_->msg_dq_.size() && impl_->msg_dq_[msgidx].unique_ == _rengine_msg_id.unique) {
+
         MessageStub& rmsg = impl_->msg_dq_[msgidx];
+
         //need to findout on which side we are - sender or receiver
         if (rmsg.sender_con_id_ == _rrelay_con_uid && rmsg.state_ != MessageStateE::WaitResponsePart) {
             ConnectionStub& rsndcon = impl_->con_dq_[static_cast<size_t>(rmsg.sender_con_id_.index)];
@@ -1006,7 +1008,8 @@ void EngineCore::doCancel(
 
             solid_assert_log(_prelay_data == nullptr, logger);
             return;
-        } else if (rmsg.state_ == MessageStateE::WaitResponsePart) {
+        } else if (rmsg.state_ == MessageStateE::WaitResponsePart && rmsg.receiver_con_id_ != _rrelay_con_uid) {
+            solid_dbg(logger, Verbose, "WaitResponsePart for msg " << _rengine_msg_id << " with receiver_con_id_ " << rmsg.receiver_con_id_ << " while _rrelay_con_uid " << _rrelay_con_uid);
 
             ConnectionStub& rrcvcon = impl_->con_dq_[static_cast<size_t>(rmsg.receiver_con_id_.index)];
             ConnectionStub& rsndcon = impl_->con_dq_[static_cast<size_t>(rmsg.sender_con_id_.index)];
