@@ -42,6 +42,22 @@ inline void store_min(std::atomic<T>& _rv, const T _nv)
     }
 }
 
+template <class T>
+inline void store_max(T& _rv, const T _nv)
+{
+    if (_rv < _nv) {
+        _rv = _nv;
+    }
+}
+
+template <class T>
+inline void store_min(T& _rv, const T _nv)
+{
+    if (_rv > _nv) {
+        _rv = _nv;
+    }
+}
+
 } //namespace solid
 
 #ifdef SOLID_HAS_STATISTICS
