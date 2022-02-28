@@ -241,11 +241,30 @@ inline Event make_event(const GenericEvents _id, T&& _uany_value)
 {
     return generic_event_category.event(_id, _uany_value);
 }
+
+template <typename Events>
+inline Event make_event(const EventCategory<Events>& _rcategory, const Events _id)
+{
+    return _rcategory.event(_id);
+}
+
+template <typename Events, typename T>
+inline Event make_event(const EventCategory<Events>& _rcategory, const Events _id, const T& _rany_value)
+{
+    return _rcategory.event(_id, _rany_value);
+}
+
+template <typename Events, typename T>
+inline Event make_event(const EventCategory<Events>& _rcategory, const GenericEvents _id, T&& _uany_value)
+{
+    return _rcategory.event(_id, _uany_value);
+}
+
 //-----------------------------------------------------------------------------
 
 inline Event::Event()
     : pcategory_(&generic_event_category)
-    , id_(static_cast<size_t>(GenericEvents::Default))
+    , id_(to_underlying(GenericEvents::Default))
 {
 }
 
@@ -255,7 +274,7 @@ inline Event::Event(Event&& _uevt)
     , any_(std::move(_uevt.any_))
 {
     _uevt.pcategory_ = &generic_event_category;
-    _uevt.id_        = static_cast<size_t>(GenericEvents::Default);
+    _uevt.id_        = to_underlying(GenericEvents::Default);
 }
 
 inline Event::Event(const Event& _revt)
@@ -279,20 +298,20 @@ inline Event& Event::operator=(Event&& _uevt)
     id_              = _uevt.id_;
     any_             = std::move(_uevt.any_);
     _uevt.pcategory_ = &generic_event_category;
-    _uevt.id_        = static_cast<size_t>(GenericEvents::Default);
+    _uevt.id_        = to_underlying(GenericEvents::Default);
     return *this;
 }
 
 inline void Event::clear()
 {
     pcategory_ = &generic_event_category;
-    id_        = static_cast<size_t>(GenericEvents::Default);
+    id_        = to_underlying(GenericEvents::Default);
     any_.reset();
 }
 
 inline bool Event::isDefault() const
 {
-    return pcategory_ == &generic_event_category && id_ == static_cast<size_t>(GenericEvents::Default);
+    return pcategory_ == &generic_event_category && id_ == to_underlying(GenericEvents::Default);
 }
 
 inline bool Event::operator==(const Event& _revt) const

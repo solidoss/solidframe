@@ -88,11 +88,11 @@ const LoggerT& service_logger()
 using NameMapT      = std::unordered_map<const char*, size_t, CStringHash, CStringEqual>;
 using ActorIdQueueT = Queue<ActorIdT>;
 
-/*extern*/ const Event pool_event_connection_start    = pool_event_category.event(PoolEvents::ConnectionStart);
-/*extern*/ const Event pool_event_connection_activate = pool_event_category.event(PoolEvents::ConnectionActivate);
-/*extern*/ const Event pool_event_connection_stop     = pool_event_category.event(PoolEvents::ConnectionStop);
-/*extern*/ const Event pool_event_pool_disconnect     = pool_event_category.event(PoolEvents::PoolDisconnect);
-/*extern*/ const Event pool_event_pool_stop           = pool_event_category.event(PoolEvents::PoolStop);
+/*extern*/ const Event pool_event_connection_start    = make_event(pool_event_category, PoolEvents::ConnectionStart);
+/*extern*/ const Event pool_event_connection_activate = make_event(pool_event_category, PoolEvents::ConnectionActivate);
+/*extern*/ const Event pool_event_connection_stop     = make_event(pool_event_category, PoolEvents::ConnectionStop);
+/*extern*/ const Event pool_event_pool_disconnect     = make_event(pool_event_category, PoolEvents::PoolDisconnect);
+/*extern*/ const Event pool_event_pool_stop           = make_event(pool_event_category, PoolEvents::PoolStop);
 
 enum {
     InnerLinkOrder = 0,
@@ -1814,7 +1814,7 @@ bool Service::connectionStopping(
         //the call is safe because the current method is called from within a connection and
         // the connection pool entry is released when the last connection calls
         // Service::connectionStop
-        ppool->on_event_fnc(_rconctx, pool_event_category.event(PoolEvents::PoolDisconnect), _rerror);
+        ppool->on_event_fnc(_rconctx, make_event(pool_event_category, PoolEvents::PoolDisconnect), _rerror);
     }
     if (retval && _rconctx.relayId().isValid()) {
         //must call relayEngine.stopConnection here instead-of on Service::connectionStop
@@ -2171,7 +2171,7 @@ void Service::connectionStop(ConnectionContext& _rconctx)
 
         //do not call callback under lock
         if (!solid_function_empty(rpool.on_event_fnc) && _rconctx.connection().isConnected()) {
-            rpool.on_event_fnc(_rconctx, pool_event_category.event(PoolEvents::ConnectionStop), ErrorConditionT());
+            rpool.on_event_fnc(_rconctx, make_event(pool_event_category, PoolEvents::ConnectionStop), ErrorConditionT());
         }
 
         configuration().connection_stop_fnc(_rconctx);
@@ -2196,7 +2196,7 @@ void Service::connectionStop(ConnectionContext& _rconctx)
         }
     }
     if (!solid_function_empty(on_event_fnc)) {
-        on_event_fnc(_rconctx, pool_event_category.event(PoolEvents::PoolStop), ErrorConditionT());
+        on_event_fnc(_rconctx, make_event(pool_event_category, PoolEvents::PoolStop), ErrorConditionT());
     }
 }
 //-----------------------------------------------------------------------------
@@ -2401,7 +2401,7 @@ ErrorConditionT Service::activateConnection(ConnectionContext& _rconctx, ActorId
     }
 
     if (pconpool != nullptr) {
-        pconpool->on_event_fnc(_rconctx, pool_event_category.event(PoolEvents::ConnectionActivate), error);
+        pconpool->on_event_fnc(_rconctx, make_event(pool_event_category, PoolEvents::ConnectionActivate), error);
     }
     return error;
 }
@@ -2482,7 +2482,7 @@ void Service::onOutgoingConnectionStart(ConnectionContext& _rconctx)
     if (ppool != nullptr) {
         //it should be safe using the pool right now because it is used
         // from within a pool's connection
-        ppool->on_event_fnc(_rconctx, pool_event_category.event(PoolEvents::ConnectionStart), ErrorConditionT());
+        ppool->on_event_fnc(_rconctx, make_event(pool_event_category, PoolEvents::ConnectionStart), ErrorConditionT());
     }
 }
 //-----------------------------------------------------------------------------

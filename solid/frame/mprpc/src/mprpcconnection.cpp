@@ -107,50 +107,42 @@ inline ActorIdT Connection::uid(frame::aio::ReactorContext& _rctx) const
 
 /*static*/ Event Connection::eventResolve()
 {
-    return connection_event_category.event(ConnectionEvents::Resolve);
+    return make_event(connection_event_category, ConnectionEvents::Resolve);
 }
 //-----------------------------------------------------------------------------
 /*static*/ Event Connection::eventNewMessage()
 {
-    return connection_event_category.event(ConnectionEvents::NewPoolMessage);
+    return make_event(connection_event_category, ConnectionEvents::NewPoolMessage);
 }
 //-----------------------------------------------------------------------------
 /*static*/ Event Connection::eventNewQueueMessage()
 {
-    return connection_event_category.event(ConnectionEvents::NewPoolQueueMessage);
+    return make_event(connection_event_category, ConnectionEvents::NewPoolQueueMessage);
 }
 //-----------------------------------------------------------------------------
 /*static*/ Event Connection::eventNewMessage(const MessageId& _rmsgid)
 {
-    Event event = connection_event_category.event(ConnectionEvents::NewConnMessage);
-    event.any() = _rmsgid;
-    return event;
+    return make_event(connection_event_category, ConnectionEvents::NewConnMessage, _rmsgid);
 }
 //-----------------------------------------------------------------------------
 /*static*/ Event Connection::eventCancelConnMessage(const MessageId& _rmsgid)
 {
-    Event event = connection_event_category.event(ConnectionEvents::CancelConnMessage);
-    event.any() = _rmsgid;
-    return event;
+    return make_event(connection_event_category, ConnectionEvents::CancelConnMessage, _rmsgid);
 }
 //-----------------------------------------------------------------------------
 /*static*/ Event Connection::eventCancelPoolMessage(const MessageId& _rmsgid)
 {
-    Event event = connection_event_category.event(ConnectionEvents::CancelPoolMessage);
-    event.any() = _rmsgid;
-    return event;
+    return make_event(connection_event_category, ConnectionEvents::CancelPoolMessage, _rmsgid);
 }
 //-----------------------------------------------------------------------------
 /*static*/ Event Connection::eventClosePoolMessage(const MessageId& _rmsgid)
 {
-    Event event = connection_event_category.event(ConnectionEvents::ClosePoolMessage);
-    event.any() = _rmsgid;
-    return event;
+    return make_event(connection_event_category, ConnectionEvents::ClosePoolMessage, _rmsgid);
 }
 //-----------------------------------------------------------------------------
 /*static*/ Event Connection::eventStopping()
 {
-    return connection_event_category.event(ConnectionEvents::Stopping);
+    return make_event(connection_event_category, ConnectionEvents::Stopping);
 }
 //-----------------------------------------------------------------------------
 struct EnterActive {
