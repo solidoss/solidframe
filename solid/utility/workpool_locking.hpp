@@ -36,37 +36,32 @@ namespace impl {
 
 template <class T>
 class Stack {
-    T* head_;
+    T* phead_ = nullptr;
 
 public:
-    Stack()
-        : head_(nullptr)
-    {
-    }
-
     void push(T* _pt)
     {
-        _pt->pnext_ = head_;
-        head_       = _pt;
+        _pt->pnext_ = phead_;
+        phead_      = _pt;
     }
 
     T* pop()
     {
-        auto* pold = head_;
+        auto* pold = phead_;
         if (pold) {
-            head_ = pold->pnext_;
+            phead_ = pold->pnext_;
         }
         return pold;
     }
 
     void clear()
     {
-        head_ = nullptr;
+        phead_ = nullptr;
     }
 
     bool empty() const
     {
-        return head_ == nullptr;
+        return phead_ == nullptr;
     }
 };
 
