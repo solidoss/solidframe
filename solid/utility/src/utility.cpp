@@ -234,12 +234,15 @@ namespace locking {
 
 WorkPoolMulticastStatistic::WorkPoolMulticastStatistic()
     : max_jobs_in_queue_{0}
-    , max_mcast_jobs_in_queue_(0)
+    , max_mcast_in_queue_(0)
     , max_jobs_on_thread_(0)
     , min_jobs_on_thread_(-1)
-    , max_mcast_jobs_on_thread_(0)
-    , min_mcast_jobs_on_thread_(-1)
-    , job_count_(0)
+    , max_mcast_on_thread_(0)
+    , min_mcast_on_thread_(-1)
+    , push_job_count_(0)
+    , push_mcast_count_(0)
+    , pop_job_count_(0)
+    , pop_mcast_count_(0)
     , max_pop_wait_loop_count_(0)
 {
 }
@@ -247,12 +250,15 @@ WorkPoolMulticastStatistic::WorkPoolMulticastStatistic()
 std::ostream& WorkPoolMulticastStatistic::print(std::ostream& _ros) const
 {
     _ros << " max_jobs_in_queue_ = " << max_jobs_in_queue_;
-    _ros << " max_mcast_jobs_in_queue_ = " << max_mcast_jobs_in_queue_;
+    _ros << " max_mcast_in_queue_ = " << max_mcast_in_queue_;
     _ros << " max_jobs_on_thread_ = " << max_jobs_on_thread_;
     _ros << " min_jobs_on_thread_ = " << min_jobs_on_thread_;
-    _ros << " max_mcast_jobs_on_thread_ = " << max_mcast_jobs_on_thread_;
-    _ros << " min_mcast_jobs_on_thread_ = " << min_mcast_jobs_on_thread_;
-    _ros << " job_count_ = " << job_count_;
+    _ros << " max_mcast_on_thread_ = " << max_mcast_on_thread_;
+    _ros << " min_mcast_on_thread_ = " << min_mcast_on_thread_;
+    _ros << " push_job_count_ = " << push_job_count_;
+    _ros << " pop_job_count_ = " << pop_job_count_;
+    _ros << " push_mcast_count_ = " << push_mcast_count_;
+    _ros << " pop_mcast_count_ = " << pop_mcast_count_;
     _ros << " max_pop_wait_loop_count_ = " << max_pop_wait_loop_count_;
     return _ros;
 }

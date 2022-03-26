@@ -121,12 +121,15 @@ class WorkPool;
 //-----------------------------------------------------------------------------
 struct WorkPoolMulticastStatistic : solid::Statistic {
     std::atomic<size_t>   max_jobs_in_queue_;
-    std::atomic<size_t>   max_mcast_jobs_in_queue_;
+    std::atomic<size_t>   max_mcast_in_queue_;
     std::atomic<uint64_t> max_jobs_on_thread_;
     std::atomic<uint64_t> min_jobs_on_thread_;
-    std::atomic<uint64_t> max_mcast_jobs_on_thread_;
-    std::atomic<uint64_t> min_mcast_jobs_on_thread_;
-    std::atomic<size_t>   job_count_;
+    std::atomic<uint64_t> max_mcast_on_thread_;
+    std::atomic<uint64_t> min_mcast_on_thread_;
+    std::atomic<size_t>   push_job_count_;
+    std::atomic<size_t>   push_mcast_count_;
+    std::atomic<size_t>   pop_job_count_;
+    std::atomic<size_t>   pop_mcast_count_;
     std::atomic<size_t>   max_pop_wait_loop_count_;
 
     WorkPoolMulticastStatistic();
@@ -514,8 +517,8 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doRun(
     MCastJobHandleFnc _mcast_job_handler_fnc,
     Args&&... _args)
 {
-    uint64_t job_count       = 0;
-    uint64_t mcast_job_count = 0;
+    uint64_t job_count   = 0;
+    uint64_t mcast_count = 0;
 
     Base::config_.on_thread_start_fnc_();
 
@@ -525,22 +528,23 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doRun(
     while (pop(pop_context)) {
         if (pop_context.pmcast_) {
             _mcast_job_handler_fnc(pop_context.pmcast_->job(), std::forward<Args>(_args)...);
-            solid_statistic_inc(mcast_job_count);
+            solid_statistic_inc(mcast_count);
+            solid_statistic_inc(statistic_.pop_mcast_count_);
         }
         if (pop_context.pjob_) {
             _job_handler_fnc(pop_context.pjob_->job(), std::forward<Args>(_args)...);
             solid_statistic_inc(job_count);
+            solid_statistic_inc(statistic_.pop_job_count_);
         } else if (!pop_context.pmcast_) {
             std::this_thread::yield();
         }
     }
 
-    solid_dbg(workpool_logger, Verbose, this << " worker exited after handling " << job_count << " jobs");
+    solid_dbg(workpool_logger, Verbose, this << " worker exited after handling " << job_count << " jobs and " << mcast_count << " mcasts");
     solid_statistic_max(statistic_.max_jobs_on_thread_, job_count);
     solid_statistic_min(statistic_.min_jobs_on_thread_, job_count);
-    solid_statistic_add(statistic_.job_count_, job_count);
-    solid_statistic_max(statistic_.max_mcast_jobs_on_thread_, mcast_job_count);
-    solid_statistic_min(statistic_.min_mcast_jobs_on_thread_, mcast_job_count);
+    solid_statistic_max(statistic_.max_mcast_on_thread_, mcast_count);
+    solid_statistic_min(statistic_.min_mcast_on_thread_, mcast_count);
 
     Base::config_.on_thread_stop_fnc_();
 }
@@ -554,14 +558,16 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doStop()
     } else {
         return;
     }
-    {
-        pop_sig_cnd_.notify_all();
 
-        for (auto& t : thr_vec_) {
-            t.join();
-        }
-        thr_vec_.clear();
+    {
+        std::lock_guard<std::mutex> lock(pop_mtx_);
+        pop_sig_cnd_.notify_all();
     }
+
+    for (auto& t : thr_vec_) {
+        t.join();
+    }
+    thr_vec_.clear();
 #ifdef SOLID_HAS_STATISTICS
     solid_log(workpool_logger, Statistic, "WorkPool " << this << " statistic:" << this->statistic_);
 #endif
@@ -582,7 +588,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
     size_t wait_loop_count     = 0;
     size_t continue_loop_count = 0;
 
-    //Try destroy the MCast object, before aquiring lock
+    //Try destroy the MCast object, before acquiring lock
     if (_rcontext.pmcast_) {
         auto& rmcast_node     = *_rcontext.pmcast_;
         _rcontext.pmcast_     = nullptr;
@@ -755,6 +761,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::doTryPush(JT&& _jb, ContextStub* _pc
         if (qsz <= config_.max_worker_count_) {
             pop_sig_cnd_.notify_one();
         }
+        solid_statistic_inc(statistic_.push_job_count_);
         solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
         return true;
     } else {
@@ -784,7 +791,7 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doPush(JT&& _jb, ContextStub* _pctx)
             pop_sig_cnd_.notify_one();
         }
     }
-
+    solid_statistic_inc(statistic_.push_job_count_);
     solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
 }
 //-----------------------------------------------------------------------------
@@ -804,7 +811,8 @@ void WorkPool<Job, MCastJob, QNBits, Base>::pushAll(JT&& _jb)
         ++mcast_push_id_;
     }
     pop_sig_cnd_.notify_all();
-    solid_statistic_max(statistic_.max_mcast_jobs_in_queue_, qsz);
+    solid_statistic_inc(statistic_.push_mcast_count_);
+    solid_statistic_max(statistic_.max_mcast_in_queue_, qsz);
 }
 //-----------------------------------------------------------------------------
 template <typename Job, typename MCastJob, size_t QNBits, typename Base>
@@ -824,7 +832,8 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::tryPushAll(JT&& _jb)
             ++mcast_push_id_;
         }
         pop_sig_cnd_.notify_all();
-        solid_statistic_max(statistic_.max_mcast_jobs_in_queue_, qsz);
+        solid_statistic_inc(statistic_.push_mcast_count_);
+        solid_statistic_max(statistic_.max_mcast_in_queue_, qsz);
         return true;
     } else {
         return false;
