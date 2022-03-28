@@ -433,6 +433,9 @@ private:
 
     bool pop(PopContext& _rcontext);
 
+    bool doTryDestroyMcastOnPop(PopContext& _rcontext);
+    bool doTryDestroyJobOnPop(PopContext& _rcontext, std::unique_lock<std::mutex>& _rlock);
+
     void doStop();
 
     template <class JobHandlerFnc, class MCastJobHandleFnc, typename... Args>
@@ -478,12 +481,13 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doStart(
         return;
     }
 
-    Base::config_ = _cfg;
-
     {
-        std::lock_guard<std::mutex> lock(pop_mtx_);
+        std::lock_guard<std::mutex> lock1{pop_mtx_};
         std::lock_guard<std::mutex> lock2{push_mtx_}; //always lock pop_mtx before push_mtx
 
+        Base::config_ = _cfg;
+
+        thr_vec_.clear();
         job_dq_.clear();
         job_queue_.clear();
         free_job_stack_.clear();
@@ -570,23 +574,10 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doStop()
     solid_log(workpool_logger, Statistic, "WorkPool " << this << " statistic:" << this->statistic_);
 #endif
 }
-
 //-----------------------------------------------------------------------------
 template <typename Job, typename MCastJob, size_t QNBits, typename Base>
-bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
+bool WorkPool<Job, MCastJob, QNBits, Base>::doTryDestroyMcastOnPop(PopContext& _rcontext)
 {
-    enum struct RunOptionE {
-        Return,
-        Wait,
-        Continue,
-        Exit,
-    };
-
-    bool   should_notify       = false;
-    size_t wait_loop_count     = 0;
-    size_t continue_loop_count = 0;
-
-    //Try destroy the MCast object, before acquiring lock
     if (_rcontext.pmcast_) {
         auto& rmcast_node     = *_rcontext.pmcast_;
         _rcontext.pmcast_     = nullptr;
@@ -594,18 +585,22 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
         solid_check(exec_cnt <= Base::config_.max_worker_count_);
         if (exec_cnt == Base::config_.max_worker_count_) {
             rmcast_node.destroy();
-            should_notify = true;
+            return true;
         }
     }
-
-    std::unique_lock<std::mutex> lock;
-
+    return false;
+}
+//-----------------------------------------------------------------------------
+template <typename Job, typename MCastJob, size_t QNBits, typename Base>
+bool WorkPool<Job, MCastJob, QNBits, Base>::doTryDestroyJobOnPop(PopContext& _rcontext, std::unique_lock<std::mutex>& _rlock)
+{
+    bool should_notify = false;
     if (_rcontext.pcontext_) {
         if (_rcontext.pjob_) {
             _rcontext.pjob_->destroy();
             _rcontext.pjob_->clear();
 
-            lock = std::move(std::unique_lock<std::mutex>{pop_mtx_});
+            _rlock = std::move(std::unique_lock<std::mutex>{pop_mtx_});
 
             solid_check(_rcontext.pcontext_->job_queue_.pop() == _rcontext.pjob_);
 
@@ -634,10 +629,33 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
             free_job_stack_.push(_rcontext.pjob_);
         }
         push_sig_cnd_.notify_one();
-        lock = std::move(std::unique_lock<std::mutex>{pop_mtx_});
+        _rlock = std::move(std::unique_lock<std::mutex>{pop_mtx_});
     } else {
-        lock = std::move(std::unique_lock<std::mutex>{pop_mtx_});
+        _rlock = std::move(std::unique_lock<std::mutex>{pop_mtx_});
     }
+    return should_notify;
+}
+//-----------------------------------------------------------------------------
+template <typename Job, typename MCastJob, size_t QNBits, typename Base>
+bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
+{
+    enum struct RunOptionE {
+        Return,
+        Wait,
+        Continue,
+        Exit,
+    };
+
+    bool   should_notify       = false;
+    size_t wait_loop_count     = 0;
+    size_t continue_loop_count = 0;
+
+    //Try destroy the MCast object, before acquiring lock
+    should_notify = doTryDestroyMcastOnPop(_rcontext) || should_notify;
+
+    std::unique_lock<std::mutex> lock;
+
+    should_notify = doTryDestroyJobOnPop(_rcontext, lock) || should_notify;
 
     _rcontext.pjob_ = nullptr;
 
