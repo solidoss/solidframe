@@ -20,6 +20,8 @@ struct Context {
     std::atomic<size_t>   val{0};
 };
 
+const size_t worker_count = 2;
+
 } // namespace
 
 int test_callpool_multicast_basic(int argc, char* argv[])
@@ -49,8 +51,16 @@ int test_callpool_multicast_basic(int argc, char* argv[])
         for (int i = 0; i < loop_cnt; ++i) {
             deque<uint32_t> record_dq;
             record_dq.resize(cnt, -1);
+            atomic<size_t> worker_start_count{0};
+            atomic<size_t> worker_stop_count{0};
+            auto           worker_start = [&worker_start_count]() {
+                ++worker_start_count;
+            };
+            auto worker_stop = [&worker_stop_count]() {
+                ++worker_stop_count;
+            };
             {
-                CallPoolT cp{WorkPoolConfiguration{2}, std::ref(context), std::ref(record_dq)};
+                CallPoolT cp{WorkPoolConfiguration{worker_count, 0, worker_start, worker_stop}, std::ref(context), std::ref(record_dq)};
 
                 pwp = &cp;
                 std::promise<void> barrier;
@@ -90,6 +100,8 @@ int test_callpool_multicast_basic(int argc, char* argv[])
             }
 
             solid_log(logger, Verbose, "after loop");
+
+            solid_check(worker_start_count == worker_count && worker_stop_count == worker_count);
 
             for (size_t i = 1; i < record_dq.size(); ++i) {
                 solid_check(record_dq[i] >= record_dq[i - 1]);

@@ -38,7 +38,7 @@ struct WorkPoolConfiguration {
         std::function<void()>&& _on_thread_start_fnc = []() {},
         std::function<void()>&& _on_thread_stop_fnc  = []() {})
         : max_worker_count_(_max_worker_count)
-        , max_job_queue_size_(_max_job_queue_size)
+        , max_job_queue_size_(_max_job_queue_size == 0 ? std::numeric_limits<size_t>::max() : _max_job_queue_size)
         , on_thread_start_fnc_(std::move(_on_thread_start_fnc))
         , on_thread_stop_fnc_(std::move(_on_thread_stop_fnc))
     {

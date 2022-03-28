@@ -304,7 +304,6 @@ class WorkPool : protected Base {
     using ContextDqT    = std::deque<ContextStub>;
     using ContextStackT = impl::Stack<ContextStub>;
 
-    WorkPoolConfiguration   config_;
     AtomicBoolT             running_;
     JobDqT                  job_dq_;
     JobQueueT               job_queue_;
@@ -334,8 +333,7 @@ public:
     using SynchronizationContextT         = SynchronizationContext<ThisT, ContextStub>;
 
     WorkPool()
-        : config_()
-        , running_(false)
+        : running_(false)
     {
     }
 
@@ -345,8 +343,7 @@ public:
         JobHandleFnc                 _job_handler_fnc,
         MCastJobHandleFnc            _mcast_job_handler_fnc,
         Args&&... _args)
-        : config_()
-        , running_(false)
+        : running_(false)
     {
         doStart(
             _cfg,
@@ -481,7 +478,7 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doStart(
         return;
     }
 
-    config_ = _cfg;
+    Base::config_ = _cfg;
 
     {
         std::lock_guard<std::mutex> lock(pop_mtx_);
@@ -496,10 +493,10 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doStart(
 
         //mcast sentinel.
         mcast_dq_.emplace_back();
-        mcast_dq_.back().exec_cnt_ = config_.max_worker_count_;
+        mcast_dq_.back().exec_cnt_ = Base::config_.max_worker_count_;
         mcast_queue_.push(&mcast_dq_.back());
 
-        for (size_t i = 0; i < config_.max_worker_count_; ++i) {
+        for (size_t i = 0; i < Base::config_.max_worker_count_; ++i) {
             thr_vec_.emplace_back(
                 std::thread{
                     [this](JobHandlerFnc _job_handler_fnc, MCastJobHandleFnc _mcast_job_handler_fnc, Args&&... _args) {
@@ -541,6 +538,7 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doRun(
     }
 
     solid_dbg(workpool_logger, Verbose, this << " worker exited after handling " << job_count << " jobs and " << mcast_count << " mcasts");
+
     solid_statistic_max(statistic_.max_jobs_on_thread_, job_count);
     solid_statistic_min(statistic_.min_jobs_on_thread_, job_count);
     solid_statistic_max(statistic_.max_mcast_on_thread_, mcast_count);
@@ -593,8 +591,8 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
         auto& rmcast_node     = *_rcontext.pmcast_;
         _rcontext.pmcast_     = nullptr;
         const size_t exec_cnt = rmcast_node.exec_cnt_.fetch_add(1) + 1;
-        solid_check(exec_cnt <= config_.max_worker_count_);
-        if (exec_cnt == config_.max_worker_count_) {
+        solid_check(exec_cnt <= Base::config_.max_worker_count_);
+        if (exec_cnt == Base::config_.max_worker_count_) {
             rmcast_node.destroy();
             should_notify = true;
         }
@@ -662,7 +660,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
 
             if (rnode.mcast_id_ == _rcontext.mcast_exec_id_ || rnode.mcast_id_ == (_rcontext.mcast_exec_id_ + 1)) {
 
-                should_notify      = job_queue_size_ == config_.max_job_queue_size_;
+                should_notify      = job_queue_size_ == Base::config_.max_job_queue_size_;
                 should_fetch_mcast = rnode.mcast_id_ != _rcontext.mcast_exec_id_;
 
                 if (rnode.pcontext_ == nullptr) {
@@ -697,7 +695,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
         if (should_fetch_mcast) {
             auto* const pnext_mcast = _rcontext.plast_mcast_->pnext_;
             ++_rcontext.plast_mcast_->release_cnt_;
-            if (_rcontext.plast_mcast_->release_cnt_ == config_.max_worker_count_) {
+            if (_rcontext.plast_mcast_->release_cnt_ == Base::config_.max_worker_count_) {
                 solid_check(_rcontext.plast_mcast_ == mcast_queue_.front());
                 _rcontext.plast_mcast_->release();
                 {
@@ -758,7 +756,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::doTryPush(JT&& _jb, ContextStub* _pc
                 ++_pctx->use_count_;
             }
         }
-        if (qsz <= config_.max_worker_count_) {
+        if (qsz <= Base::config_.max_worker_count_) {
             pop_sig_cnd_.notify_one();
         }
         solid_statistic_inc(statistic_.push_job_count_);
@@ -787,7 +785,7 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doPush(JT&& _jb, ContextStub* _pctx)
         if (_pctx) {
             ++_pctx->use_count_;
         }
-        if (qsz <= config_.max_worker_count_) {
+        if (qsz <= Base::config_.max_worker_count_) {
             pop_sig_cnd_.notify_one();
         }
     }
@@ -863,7 +861,7 @@ typename WorkPool<Job, MCastJob, QNBits, Base>::JobNode* WorkPool<Job, MCastJob,
     auto*                        pnode = free_job_stack_.pop();
     if (pnode) {
     } else {
-        if (job_dq_.size() < config_.max_job_queue_size_) {
+        if (job_dq_.size() < Base::config_.max_job_queue_size_) {
             job_dq_.emplace_back();
             pnode = &job_dq_.back();
         }
@@ -878,7 +876,7 @@ typename WorkPool<Job, MCastJob, QNBits, Base>::JobNode* WorkPool<Job, MCastJob,
     auto*                        pnode = free_job_stack_.pop();
     if (pnode) {
     } else {
-        if (job_dq_.size() < config_.max_job_queue_size_) {
+        if (job_dq_.size() < Base::config_.max_job_queue_size_) {
             job_dq_.emplace_back();
             pnode = &job_dq_.back();
         } else {
@@ -897,7 +895,7 @@ typename WorkPool<Job, MCastJob, QNBits, Base>::MCastNode* WorkPool<Job, MCastJo
     auto*                        pnode = free_mcast_stack_.pop();
     if (pnode) {
     } else {
-        if (mcast_dq_.size() < config_.max_job_queue_size_) {
+        if (mcast_dq_.size() < Base::config_.max_job_queue_size_) {
             mcast_dq_.emplace_back();
             pnode = &mcast_dq_.back();
         }
@@ -912,7 +910,7 @@ typename WorkPool<Job, MCastJob, QNBits, Base>::MCastNode* WorkPool<Job, MCastJo
     auto*                        pnode = free_mcast_stack_.pop();
     if (pnode) {
     } else {
-        if (mcast_dq_.size() < config_.max_job_queue_size_) {
+        if (mcast_dq_.size() < Base::config_.max_job_queue_size_) {
             mcast_dq_.emplace_back();
             pnode = &mcast_dq_.back();
         } else {
