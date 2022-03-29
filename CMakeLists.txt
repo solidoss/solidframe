@@ -62,6 +62,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "release")
     #force a single configuration type on Windows builds
     set(CMAKE_CONFIGURATION_TYPES "release")
     set(CONFIGURATION_TYPE "release")
+    set(SOLID_HAS_STATISTICS TRUE)
 endif(CMAKE_BUILD_TYPE STREQUAL "release")
 
 if(CMAKE_BUILD_TYPE STREQUAL "maintain")

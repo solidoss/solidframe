@@ -67,7 +67,7 @@ size_t MessageReader::read(
             const char* tmpbufpos = packet_header.load(pbufpos, _receiver.protocol());
             if (!packet_header.isOk()) {
                 _rerror = error_reader_invalid_packet_header;
-                solid_dbg(logger, Error, _rerror.message());
+                solid_log(logger, Error, _rerror.message());
                 break;
             }
             if (static_cast<size_t>(pbufend - tmpbufpos) >= packet_header.size()) {
@@ -87,7 +87,7 @@ size_t MessageReader::read(
         if (!_rerror) {
             pbufpos += packet_header.size();
         } else {
-            solid_dbg(logger, Error, "consume packet: " << _rerror.message());
+            solid_log(logger, Error, "consume packet: " << _rerror.message());
             break;
         }
         state_ = StateE::ReadPacketHead;
@@ -115,7 +115,7 @@ void MessageReader::doConsumePacket(
             pbufpos = tmpbuf;
             pbufend = tmpbuf + uncompressed_size;
         } else {
-            solid_dbg(logger, Error, "decompressing: " << _rerror.message());
+            solid_log(logger, Error, "decompressing: " << _rerror.message());
             return;
         }
     }
@@ -125,7 +125,7 @@ void MessageReader::doConsumePacket(
     }
 
     if (_packet_header.isTypeKeepAlive()) {
-        solid_dbg(logger, Verbose, "KeepAliveTypeE");
+        solid_log(logger, Verbose, "KeepAliveTypeE");
         _receiver.receiveKeepAlive();
         return;
     }
@@ -143,7 +143,7 @@ void MessageReader::doConsumePacket(
         case PacketHeader::CommandE::EndMessage:
             pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
             if (pbufpos != nullptr && message_idx < _receiver.configuration().max_message_count_multiplex) {
-                solid_dbg(logger, Verbose, "messagetype = " << (int)cmd << " msgidx = " << message_idx);
+                solid_log(logger, Verbose, "messagetype = " << (int)cmd << " msgidx = " << message_idx);
                 if (message_idx >= message_vec_.size()) {
                     message_vec_.resize(message_idx + 1);
                 }
@@ -156,7 +156,7 @@ void MessageReader::doConsumePacket(
             break;
         case PacketHeader::CommandE::CancelMessage:
             pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
-            solid_dbg(logger, Error, "CancelMessage " << message_idx);
+            solid_log(logger, Error, "CancelMessage " << message_idx);
             if (pbufpos != nullptr && message_idx < message_vec_.size()) {
                 MessageStub& rmsgstub = message_vec_[message_idx];
                 solid_assert_log(rmsgstub.state_ != MessageStub::StateE::NotStarted, logger);
@@ -169,25 +169,25 @@ void MessageReader::doConsumePacket(
             }
             break;
         case PacketHeader::CommandE::Update:
-            solid_dbg(logger, Verbose, "Update");
+            solid_log(logger, Verbose, "Update");
             break;
         case PacketHeader::CommandE::CancelRequest: {
             RequestId requid;
             pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, requid.index);
             if (pbufpos != nullptr && (pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, requid.unique)) != nullptr) {
-                solid_dbg(logger, Verbose, "CancelRequest: " << requid);
+                solid_log(logger, Verbose, "CancelRequest: " << requid);
                 _receiver.receiveCancelRequest(requid);
             } else {
-                solid_dbg(logger, Error, "parsing requestid");
+                solid_log(logger, Error, "parsing requestid");
                 _rerror = error_reader_protocol;
             }
         } break;
         case PacketHeader::CommandE::AckdCount:
-            solid_dbg(logger, Verbose, "AckdCount");
+            solid_log(logger, Verbose, "AckdCount");
             if (pbufpos < pbufend) {
                 uint8_t count = 0;
                 pbufpos       = _receiver.protocol().loadValue(pbufpos, count);
-                solid_dbg(logger, Verbose, "AckdCount " << (int)count);
+                solid_log(logger, Verbose, "AckdCount " << (int)count);
                 _receiver.receiveAckCount(count);
             } else {
                 _rerror = error_reader_protocol;
@@ -213,21 +213,21 @@ const char* MessageReader::doConsumeMessage(
     uint16_t     message_size = 0;
 
     if ((_cmd & static_cast<uint8_t>(PacketHeader::CommandE::NewMessage)) != 0u) {
-        solid_dbg(logger, Verbose, "Clear Message " << _msgidx);
+        solid_log(logger, Verbose, "Clear Message " << _msgidx);
         rmsgstub.clear();
     }
 
     switch (rmsgstub.state_) {
     case MessageStub::StateE::NotStarted:
-        solid_dbg(logger, Verbose, "NotStarted msgidx = " << _msgidx);
+        solid_log(logger, Verbose, "NotStarted msgidx = " << _msgidx);
         rmsgstub.deserializer_ptr_ = createDeserializer(_receiver);
         rmsgstub.state_            = MessageStub::StateE::ReadHeadStart;
     case MessageStub::StateE::ReadHeadStart:
     case MessageStub::StateE::ReadHeadContinue:
-        solid_dbg(logger, Verbose, "ReadHead " << _msgidx);
+        solid_log(logger, Verbose, "ReadHead " << _msgidx);
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
             _pbufpos = _receiver.protocol().loadValue(_pbufpos, message_size);
-            solid_dbg(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << message_size);
+            solid_log(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << message_size);
             if (message_size <= static_cast<size_t>(_pbufend - _pbufpos)) {
                 _receiver.context().pmessage_header = &rmsgstub.message_header_;
 
@@ -244,24 +244,24 @@ const char* MessageReader::doConsumeMessage(
                             const bool           erase_the_awaiting_request = !Message::is_response_part(rmsgstub.message_header_.flags_);
                             const ResponseStateE rsp_state                  = valid_recipient_request_id ? _receiver.checkResponseState(rmsgstub.message_header_, rmsgstub.relay_id, erase_the_awaiting_request) : ResponseStateE::None;
 
-                            solid_dbg(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << message_size << " recipient_req_id = " << rmsgstub.message_header_.recipient_request_id_ << " sender_req_id = " << rmsgstub.message_header_.sender_request_id_ << " url = " << rmsgstub.message_header_.url_ << "rsp_state = " << static_cast<int>(rsp_state));
+                            solid_log(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << message_size << " recipient_req_id = " << rmsgstub.message_header_.recipient_request_id_ << " sender_req_id = " << rmsgstub.message_header_.sender_request_id_ << " url = " << rmsgstub.message_header_.url_ << "rsp_state = " << static_cast<int>(rsp_state));
 
                             if (rsp_state == ResponseStateE::Cancel) {
-                                solid_dbg(logger, Info, "Canceled response");
+                                solid_log(logger, Info, "Canceled response");
                                 rmsgstub.state_ = MessageStub::StateE::IgnoreBody;
                                 cache(rmsgstub.deserializer_ptr_);
                                 rmsgstub.deserializer_ptr_.reset();
                             } else if (rsp_state == ResponseStateE::RelayedWait) {
-                                solid_dbg(logger, Info, "Relayed response");
+                                solid_log(logger, Info, "Relayed response");
                                 rmsgstub.state_ = MessageStub::StateE::RelayResponse;
                                 cache(rmsgstub.deserializer_ptr_);
                             } else if (_receiver.isRelayDisabled() || rmsgstub.message_header_.url_.empty()) {
-                                solid_dbg(logger, Info, "Read Body");
+                                solid_log(logger, Info, "Read Body");
                                 rmsgstub.state_ = MessageStub::StateE::ReadBodyStart;
                                 rmsgstub.deserializer_ptr_->clear();
                                 _receiver.protocol().reconfigure(*rmsgstub.deserializer_ptr_, _receiver.configuration());
                             } else {
-                                solid_dbg(logger, Info, "Relay message");
+                                solid_log(logger, Info, "Relay message");
                                 rmsgstub.state_ = MessageStub::StateE::RelayStart;
                                 cache(rmsgstub.deserializer_ptr_);
                             }
@@ -272,9 +272,9 @@ const char* MessageReader::doConsumeMessage(
                     _rerror  = rmsgstub.deserializer_ptr_->error();
                     _pbufpos = _pbufend;
                     cache(rmsgstub.deserializer_ptr_);
-                    solid_dbg(logger, Error, "Clear Message " << _msgidx);
+                    solid_log(logger, Error, "Clear Message " << _msgidx);
                     rmsgstub.clear();
-                    solid_dbg(logger, Error, "deserializing: " << _rerror.message());
+                    solid_log(logger, Error, "deserializing: " << _rerror.message());
                     break;
                 }
             }
@@ -283,18 +283,18 @@ const char* MessageReader::doConsumeMessage(
         //protocol error
         _rerror  = error_reader_protocol;
         _pbufpos = _pbufend;
-        solid_dbg(logger, Error, "Clear Message " << _msgidx);
+        solid_log(logger, Error, "Clear Message " << _msgidx);
         rmsgstub.clear();
         break;
     case MessageStub::StateE::ReadBodyStart:
     case MessageStub::StateE::ReadBodyContinue:
-        solid_dbg(logger, Verbose, "ReadBody " << _msgidx);
+        solid_log(logger, Verbose, "ReadBody " << _msgidx);
         if (
             (rmsgstub.packet_count_ & 15) != 0 || _receiver.checkResponseState(rmsgstub.message_header_, rmsgstub.relay_id) != ResponseStateE::Cancel) {
             ++rmsgstub.packet_count_;
             if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
                 _pbufpos = _receiver.protocol().loadValue(_pbufpos, message_size);
-                solid_dbg(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << message_size);
+                solid_log(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << message_size);
 
                 if (message_size <= static_cast<size_t>(_pbufend - _pbufpos)) {
 
@@ -313,36 +313,36 @@ const char* MessageReader::doConsumeMessage(
                                     //done parsing the message body
                                     MessagePointerT msgptr{std::move(rmsgstub.message_ptr_)};
                                     cache(rmsgstub.deserializer_ptr_);
-                                    solid_dbg(logger, Verbose, "Clear Message " << _msgidx);
+                                    solid_log(logger, Verbose, "Clear Message " << _msgidx);
                                     rmsgstub.clear();
                                     const size_t message_type_id = msgptr ? _receiver.protocol().typeIndex(msgptr.get()) : InvalidIndex();
                                     _receiver.receiveMessage(msgptr, message_type_id);
                                     break;
                                 }
                                 //fail: protocol error
-                                solid_dbg(logger, Error, "protocol");
+                                solid_log(logger, Error, "protocol");
                             } else if (!rmsgstub.deserializer_ptr_->empty()) {
                                 break;
                             } else {
-                                solid_dbg(logger, Error, "protocol");
+                                solid_log(logger, Error, "protocol");
                             }
                         } else {
-                            solid_dbg(logger, Error, "protocol");
+                            solid_log(logger, Error, "protocol");
                         }
                     } else {
                         _rerror = rmsgstub.deserializer_ptr_->error();
-                        solid_dbg(logger, Error, "msgidx = " << _msgidx << " message_size = " << message_size << " error: " << _rerror.message());
+                        solid_log(logger, Error, "msgidx = " << _msgidx << " message_size = " << message_size << " error: " << _rerror.message());
                         cache(rmsgstub.deserializer_ptr_);
                         _pbufpos = _pbufend;
-                        solid_dbg(logger, Error, "Clear Message " << _msgidx);
+                        solid_log(logger, Error, "Clear Message " << _msgidx);
                         rmsgstub.clear();
                         break;
                     }
                 } else {
-                    solid_dbg(logger, Error, "protocol");
+                    solid_log(logger, Error, "protocol");
                 }
             } else {
-                solid_dbg(logger, Error, "protocol");
+                solid_log(logger, Error, "protocol");
             }
 
             //protocol error
@@ -355,39 +355,39 @@ const char* MessageReader::doConsumeMessage(
         rmsgstub.deserializer_ptr_->clear();
         rmsgstub.deserializer_ptr_.reset();
     case MessageStub::StateE::IgnoreBody:
-        solid_dbg(logger, Verbose, "IgnoreBody " << _msgidx);
+        solid_log(logger, Verbose, "IgnoreBody " << _msgidx);
         ++rmsgstub.packet_count_;
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
             _pbufpos = _receiver.protocol().loadValue(_pbufpos, message_size);
-            solid_dbg(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << message_size);
+            solid_log(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << message_size);
             if (message_size <= static_cast<size_t>(_pbufend - _pbufpos)) {
 
                 _pbufpos += message_size;
 
                 if ((_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0u) {
                     cache(rmsgstub.deserializer_ptr_);
-                    solid_dbg(logger, Error, "Clear Message " << _msgidx);
+                    solid_log(logger, Error, "Clear Message " << _msgidx);
                     rmsgstub.clear();
                 }
                 break;
             }
-            solid_dbg(logger, Error, "protocol");
+            solid_log(logger, Error, "protocol");
         } else {
-            solid_dbg(logger, Error, "protocol");
+            solid_log(logger, Error, "protocol");
         }
 
         //protocol error
         _rerror  = error_reader_protocol;
         _pbufpos = _pbufend;
         rmsgstub.clear();
-        solid_dbg(logger, Error, "Clear Message " << _msgidx);
+        solid_log(logger, Error, "Clear Message " << _msgidx);
         break;
     case MessageStub::StateE::RelayStart:
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
             _pbufpos = _receiver.protocol().loadValue(_pbufpos, message_size);
 
             const bool is_message_end = (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0;
-            solid_dbg(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << message_size << " is_message_end = " << is_message_end);
+            solid_log(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << message_size << " is_message_end = " << is_message_end);
             //TODO:
             if (_receiver.receiveRelayStart(rmsgstub.message_header_, _pbufpos, message_size, rmsgstub.relay_id, is_message_end, _rerror)) {
                 rmsgstub.state_ = MessageStub::StateE::RelayBody;
@@ -404,16 +404,16 @@ const char* MessageReader::doConsumeMessage(
         }
         //protocol error
         _rerror = error_reader_protocol;
-        solid_dbg(logger, Error, "protocol");
+        solid_log(logger, Error, "protocol");
         _pbufpos = _pbufend;
-        solid_dbg(logger, Error, "Clear Message " << _msgidx);
+        solid_log(logger, Error, "Clear Message " << _msgidx);
         rmsgstub.clear();
         break;
     case MessageStub::StateE::RelayBody:
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
             _pbufpos = _receiver.protocol().loadValue(_pbufpos, message_size);
 
-            solid_dbg(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << message_size);
+            solid_log(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << message_size);
             const bool is_message_end = (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0;
 
             if (_receiver.receiveRelayBody(_pbufpos, message_size, rmsgstub.relay_id, is_message_end, _rerror)) {
@@ -430,35 +430,35 @@ const char* MessageReader::doConsumeMessage(
         }
         //protocol error
         _rerror = error_reader_protocol;
-        solid_dbg(logger, Error, "protocol");
+        solid_log(logger, Error, "protocol");
         _pbufpos = _pbufend;
-        solid_dbg(logger, Error, "Clear Message " << _msgidx);
+        solid_log(logger, Error, "Clear Message " << _msgidx);
         rmsgstub.clear();
         break;
     case MessageStub::StateE::RelayFail:
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
             _pbufpos = _receiver.protocol().loadValue(_pbufpos, message_size);
-            solid_dbg(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << message_size);
+            solid_log(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << message_size);
             _pbufpos += message_size;
             const bool is_message_end = (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0;
             if (is_message_end) {
-                solid_dbg(logger, Error, "Clear Message " << _msgidx);
+                solid_log(logger, Error, "Clear Message " << _msgidx);
                 rmsgstub.clear();
             }
             break;
         }
         //protocol error
         _rerror = error_reader_protocol;
-        solid_dbg(logger, Error, "protocol");
+        solid_log(logger, Error, "protocol");
         _pbufpos = _pbufend;
-        solid_dbg(logger, Error, "Clear Message " << _msgidx);
+        solid_log(logger, Error, "Clear Message " << _msgidx);
         rmsgstub.clear();
         break;
     case MessageStub::StateE::RelayResponse:
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
             _pbufpos = _receiver.protocol().loadValue(_pbufpos, message_size);
 
-            solid_dbg(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << message_size);
+            solid_log(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << message_size);
             const bool is_message_end = (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0;
 
             //TODO:
@@ -477,9 +477,9 @@ const char* MessageReader::doConsumeMessage(
         }
         //protocol error
         _rerror = error_reader_protocol;
-        solid_dbg(logger, Error, "protocol");
+        solid_log(logger, Error, "protocol");
         _pbufpos = _pbufend;
-        solid_dbg(logger, Error, "Clear Message " << _msgidx);
+        solid_log(logger, Error, "Clear Message " << _msgidx);
         rmsgstub.clear();
         break;
     default:

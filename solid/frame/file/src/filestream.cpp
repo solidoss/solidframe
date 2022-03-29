@@ -45,7 +45,7 @@ FileBuf::FileBuf(
 }
 FileBuf::~FileBuf()
 {
-    solid_dbg(logger, Info, "");
+    solid_log(logger, Info, "");
     if (dev.get() != nullptr) {
         sync();
         dev.clear();
@@ -54,24 +54,24 @@ FileBuf::~FileBuf()
 
 FilePointerT& FileBuf::device()
 {
-    solid_dbg(logger, Info, "");
+    solid_log(logger, Info, "");
     return dev;
 }
 void FileBuf::device(FilePointerT& _rptr)
 {
-    solid_dbg(logger, Info, "");
+    solid_log(logger, Info, "");
     dev = _rptr;
 }
 
 /*virtual*/ streamsize FileBuf::showmanyc()
 {
-    solid_dbg(logger, Info, "");
+    solid_log(logger, Info, "");
     return 0;
 }
 
 /*virtual*/ FileBuf::int_type FileBuf::underflow()
 {
-    //solid_dbg(logger, Info, "");
+    //solid_log(logger, Info, "");
     if (hasBuf()) {
         if (hasPut()) {
             solid_assert_log(false, logger);
@@ -83,7 +83,7 @@ void FileBuf::device(FilePointerT& _rptr)
             return traits_type::to_int_type(*gptr());
         }
         //refill rbuf
-        solid_dbg(logger, Info, "read " << bufcp << " from " << off);
+        solid_log(logger, Info, "read " << bufcp << " from " << off);
         ssize_t rv = dev->read(buf, bufcp, off);
         if (rv > 0) {
             char* end = buf + rv;
@@ -105,7 +105,7 @@ void FileBuf::device(FilePointerT& _rptr)
 
 /*virtual*/ FileBuf::int_type FileBuf::uflow()
 {
-    //solid_dbg(logger, Info, "");
+    //solid_log(logger, Info, "");
     if (hasBuf()) {
         return streambuf::uflow();
     }
@@ -121,7 +121,7 @@ void FileBuf::device(FilePointerT& _rptr)
 
 /*virtual*/ FileBuf::int_type FileBuf::pbackfail(int_type _c)
 {
-    solid_dbg(logger, Info, "" << _c);
+    solid_log(logger, Info, "" << _c);
     return traits_type::eof();
 }
 
@@ -144,7 +144,7 @@ ssize_t FileBuf::writeAll(const char* _s, size_t _n)
 
 /*virtual*/ FileBuf::int_type FileBuf::overflow(int_type _c)
 {
-    solid_dbg(logger, Info, "" << _c << " off = " << off);
+    solid_log(logger, Info, "" << _c << " off = " << off);
     if (hasBuf()) {
         if (pptr() == nullptr) {
             if (hasGet()) {
@@ -187,7 +187,7 @@ ssize_t FileBuf::writeAll(const char* _s, size_t _n)
     off_type _off, ios_base::seekdir _way,
     ios_base::openmode _mode)
 {
-    solid_dbg(logger, Info, "seekoff = " << _off << " way = " << _way << " mode = " << _mode << " off = " << off);
+    solid_log(logger, Info, "seekoff = " << _off << " way = " << _way << " mode = " << _mode << " off = " << off);
     if (hasBuf()) {
         if (hasPut()) {
             solid_assert_log(!hasGet(), logger);
@@ -238,13 +238,13 @@ ssize_t FileBuf::writeAll(const char* _s, size_t _n)
     pos_type           _pos,
     ios_base::openmode _mode)
 {
-    solid_dbg(logger, Info, "" << _pos);
+    solid_log(logger, Info, "" << _pos);
     return seekoff(_pos, std::ios_base::beg, _mode);
 }
 
 /*virtual*/ int FileBuf::sync()
 {
-    solid_dbg(logger, Info, "");
+    solid_log(logger, Info, "");
     if (hasPut()) {
         flushPut();
     }
@@ -258,7 +258,7 @@ ssize_t FileBuf::writeAll(const char* _s, size_t _n)
 
 /*virtual*/ streamsize FileBuf::xsgetn(char_type* _s, streamsize _n)
 {
-    solid_dbg(logger, Info, "" << _n << " off = " << off);
+    solid_log(logger, Info, "" << _n << " off = " << off);
     if (hasBuf()) {
         if (hasPut()) {
             if (!flushPut()) {
@@ -299,7 +299,7 @@ bool FileBuf::flushPut()
 {
     if (pptr() != epptr()) {
         size_t towrite = pptr() - pbase();
-        solid_dbg(logger, Info, "" << towrite << " off = " << off);
+        solid_log(logger, Info, "" << towrite << " off = " << off);
         ssize_t rv = writeAll(buf, towrite);
         if (static_cast<size_t>(rv) == towrite) {
             off += towrite;
@@ -314,7 +314,7 @@ bool FileBuf::flushPut()
 
 /*virtual*/ streamsize FileBuf::xsputn(const char_type* _s, streamsize _n)
 {
-    solid_dbg(logger, Info, "" << _n << " off = " << off);
+    solid_log(logger, Info, "" << _n << " off = " << off);
     if (hasBuf()) {
         //NOTE: it should work with the following line too
         //return streambuf::xsputn(_s, _n);

@@ -118,7 +118,7 @@ public:
 public: //should be protected
     inline void addBasic(const bool& _rb, const char* _name)
     {
-        solid_dbg(logger, Info, _name);
+        solid_log(logger, Info, _name);
         Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb ? 0xFF : 0xAA), _name};
 
         if (isRunEmpty()) {
@@ -132,7 +132,7 @@ public: //should be protected
 
     inline void addBasic(const int8_t& _rb, const char* _name)
     {
-        solid_dbg(logger, Info, _name);
+        solid_log(logger, Info, _name);
         Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb), _name};
 
         if (isRunEmpty()) {
@@ -146,7 +146,7 @@ public: //should be protected
 
     inline void addBasic(const uint8_t& _rb, const char* _name)
     {
-        solid_dbg(logger, Info, _name);
+        solid_log(logger, Info, _name);
         Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb), _name};
 
         if (isRunEmpty()) {
@@ -160,7 +160,7 @@ public: //should be protected
 
     inline void addBasic(const std::string& _rb, const uint64_t _limit, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rb.size() << ' ' << _limit << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
+        solid_log(logger, Info, _name << ' ' << _rb.size() << ' ' << _limit << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
 
         if (_rb.size() > _limit) {
             baseError(error_limit_string);
@@ -183,7 +183,7 @@ public: //should be protected
     template <typename T, class A>
     inline void addVectorChar(const std::vector<T, A>& _rb, const uint64_t _limit, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rb.size() << ' ' << _limit);
+        solid_log(logger, Info, _name << ' ' << _rb.size() << ' ' << _limit);
 
         if (_rb.size() > _limit) {
             baseError(error_limit_string);
@@ -206,7 +206,7 @@ public: //should be protected
     template <class A>
     inline void addVectorChar(const std::vector<uint8_t, A>& _rb, const uint64_t _limit, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rb.size() << ' ' << _limit);
+        solid_log(logger, Info, _name << ' ' << _rb.size() << ' ' << _limit);
 
         if (_rb.size() > _limit) {
             baseError(error_limit_string);
@@ -230,7 +230,7 @@ public: //should be protected
     void addBasic(const T& _rb, const char* _name)
     {
         static_assert(std::is_integral_v<T>, "only integral types are accepted");
-        solid_dbg(logger, Info, _name << ' ' << _rb);
+        solid_log(logger, Info, _name << ' ' << _rb);
         Runnable r{std::addressof(_rb), &store_cross, sizeof(T), static_cast<uint64_t>(_rb), _name};
         if (isRunEmpty()) {
             if (doStoreCross(r) == ReturnE::Done) {
@@ -244,7 +244,7 @@ public: //should be protected
     inline void addBasicWithCheck(const T& _rb, const char* _name)
     {
         static_assert(std::is_integral_v<T>, "only integral types are accepted");
-        solid_dbg(logger, Info, _name << ' ' << _rb);
+        solid_log(logger, Info, _name << ' ' << _rb);
         Runnable r{nullptr, &store_cross_with_check, 0, static_cast<uint64_t>(_rb), _name};
         if (isRunEmpty()) {
             if (doStoreCrossWithCheck(r) == ReturnE::Done) {
@@ -258,7 +258,7 @@ public: //should be protected
     template <class S, class F, class Ctx>
     void addFunction(S& _rs, F&& _f, Ctx& _rctx, const char* _name)
     {
-        solid_dbg(logger, Info, _name);
+        solid_log(logger, Info, _name);
         if (isRunEmpty() && _rs.pcrt_ != _rs.pend_) {
             _f(_rs, _rctx);
         } else {
@@ -287,7 +287,7 @@ public: //should be protected
     template <class S, class F>
     void pushFunction(S& _rs, F _f, const char* _name)
     {
-        solid_dbg(logger, Info, _name);
+        solid_log(logger, Info, _name);
         auto lambda = [_f = std::move(_f)](SerializerBase& _rs, Runnable& _rr, void* _pctx) mutable {
             const RunListIteratorT old_sentinel = _rs.sentinel();
             const bool             done         = _f(static_cast<S&>(_rs), _rr.name_);
@@ -319,7 +319,7 @@ public: //should be protected
     template <class S, class F, class Ctx>
     void pushFunction(S& _rs, F _f, Ctx& _rctx, const char* _name)
     {
-        solid_dbg(logger, Info, _name);
+        solid_log(logger, Info, _name);
         auto lambda = [_f = std::move(_f)](SerializerBase& _rs, Runnable& _rr, void* _pctx) mutable {
             const RunListIteratorT old_sentinel = _rs.sentinel();
             const bool             done         = _f(static_cast<S&>(_rs), *static_cast<Ctx*>(_pctx), _rr.name_);
@@ -351,7 +351,7 @@ public: //should be protected
     template <class S, class C, class Ctx>
     void addContainer(S& _rs, const C& _rc, const uint64_t _limit, Ctx& _rctx, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rc.size() << ' ' << _limit);
+        solid_log(logger, Info, _name << ' ' << _rc.size() << ' ' << _limit);
 
         if (_rc.size() > _limit) {
             baseError(error_limit_container);
@@ -399,7 +399,7 @@ public: //should be protected
     template <class F, class Ctx>
     void addStream(std::istream& _ris, const uint64_t _sz, const uint64_t _limit, F&& _f, Ctx& _rctx, const size_t _index, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _sz << ' ' << _limit);
+        solid_log(logger, Info, _name << ' ' << _sz << ' ' << _limit);
 
         auto lambda = [_f = std::move(_f), _limit, _index](SerializerBase& _rs, Runnable& _rr, void* _pctx) {
             std::istream& ris  = *const_cast<std::istream*>(static_cast<const std::istream*>(_rr.ptr_));
@@ -459,7 +459,7 @@ public: //should be protected
     template <typename A>
     void addVectorBool(const std::vector<bool, A>& _rc, const uint64_t _limit, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rc.size() << ' ' << _limit);
+        solid_log(logger, Info, _name << ' ' << _rc.size() << ' ' << _limit);
 
         if (_rc.size() > _limit) {
             baseError(error_limit_container);
@@ -482,7 +482,7 @@ public: //should be protected
     template <size_t N>
     void addBitset(const std::bitset<N>& _rc, const char* _name)
     {
-        solid_dbg(logger, Info, _name << ' ' << _rc.size());
+        solid_log(logger, Info, _name << ' ' << _rc.size());
 
         addBasicWithCheck(N, _name);
 
@@ -704,7 +704,7 @@ private:
         if (pcrt_ != pend_) {
             const size_t sz = max_padded_byte_cout(_rr.data_);
             *pcrt_          = static_cast<char>(sz);
-            solid_dbg(logger, Info, "sz = " << sz << " c = " << (int)*pcrt_ << " data = " << _rr.data_)++ pcrt_;
+            solid_log(logger, Info, "sz = " << sz << " c = " << (int)*pcrt_ << " data = " << _rr.data_)++ pcrt_;
             _rr.size_ = sz;
             _rr.call_ = store_binary;
 #ifdef SOLID_ON_BIG_ENDIAN
@@ -883,7 +883,7 @@ public:
     template <class T>
     void addPointer(const std::shared_ptr<T>& _rp, Ctx& _rctx, const char* _name)
     {
-        solid_dbg(logger, Info, _name);
+        solid_log(logger, Info, _name);
         const T*        p = _rp.get();
         ErrorConditionT err;
         const size_t    idx = rtype_map_.id(type_id_, p, err);
@@ -899,7 +899,7 @@ public:
     template <class T, class D>
     void addPointer(const std::unique_ptr<T, D>& _rp, Ctx& _rctx, const char* _name)
     {
-        solid_dbg(logger, Info, _name);
+        solid_log(logger, Info, _name);
         const T*        p = _rp.get();
         ErrorConditionT err;
         const size_t    idx = rtype_map_.id(type_id_, p, err);

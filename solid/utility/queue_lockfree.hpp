@@ -276,7 +276,7 @@ private:
 template <class T, unsigned NBits, typename Base>
 Queue<T, NBits, Base>::~Queue()
 {
-    solid_dbg(queue_logger, Verbose, this);
+    solid_log(queue_logger, Verbose, this);
     nodeRelease(pop_end_.nodeExchange(nullptr), __LINE__);
     nodeRelease(push_end_.nodeExchange(nullptr), __LINE__);
 
@@ -286,7 +286,7 @@ Queue<T, NBits, Base>::~Queue()
         solid_statistic_inc(rstatistic_.del_node_count_);
     }
 
-    solid_dbg(queue_logger, Verbose, this);
+    solid_log(queue_logger, Verbose, this);
 #ifdef SOLID_HAS_STATISTICS
     solid_log(queue_logger, Statistic, "lockfree::Queue " << this << " statistic:" << this->rstatistic_);
 #endif
@@ -324,7 +324,7 @@ size_t Queue<T, NBits, Base>::doPush(const T& _rt, T&& _ut, std::bool_constant<I
 
             if (size_.load() >= max_size_) {
                 if constexpr (Wait) {
-                    solid_dbg(queue_logger, Warning, this << "wait qsz = " << size_.load());
+                    solid_log(queue_logger, Warning, this << "wait qsz = " << size_.load());
                     solid_statistic_inc(rstatistic_.push_wait_);
                     push_end_.wait_count_.fetch_add(1);
                     Base::wait(push_end_.condition_, lock, [this]() { return size_.load() < max_size_; });
@@ -339,7 +339,7 @@ size_t Queue<T, NBits, Base>::doPush(const T& _rt, T&& _ut, std::bool_constant<I
             //the following check is safe because push_end_.pnode_ is
             //modified only under push_end_.mutex_ lock
             if (push_end_.pnode_ == pn) {
-                solid_dbg(queue_logger, Verbose, this << " newNode");
+                solid_log(queue_logger, Verbose, this << " newNode");
                 //ABA cannot happen because pn is locked and cannot be in the empty stack
                 Node* pnewn = newNode();
                 pnewn->use_cnt_.fetch_add(1); //one for ptmpn->next_
@@ -378,7 +378,7 @@ bool Queue<T, NBits, Base>::pop(T& _rt)
             solid_statistic_inc(rstatistic_.pop_count_);
             const size_t qsz = size_.fetch_sub(1);
             if (qsz == max_size_) {
-                solid_dbg(queue_logger, Warning, this << " qsz = " << qsz);
+                solid_log(queue_logger, Warning, this << " qsz = " << qsz);
                 solid_statistic_inc(rstatistic_.push_notif_);
                 std::unique_lock<std::mutex> lock(push_end_.mutex_);
                 push_end_.condition_.notify_all();
@@ -389,17 +389,17 @@ bool Queue<T, NBits, Base>::pop(T& _rt)
                 if (pop_end_.pnode_ == pn) {
                     //ABA cannot happen because pn is locked and cannot be in the empty stack
                     Node* ptmpn = pop_end_.nodeNext();
-                    //solid_dbg(queue_logger, Verbose, this << " move to new node " << pn << " -> " << pn->next_.load()<<" "<<pos<<" "<<pn->push_commit_pos_<< " "<<loop_count);
+                    //solid_log(queue_logger, Verbose, this << " move to new node " << pn << " -> " << pn->next_.load()<<" "<<pos<<" "<<pn->push_commit_pos_<< " "<<loop_count);
                     solid_check_log(ptmpn == pn, queue_logger, ptmpn << " != " << pn);
                     nodeRelease(ptmpn, __LINE__);
                 }
                 nodeRelease(pn, __LINE__);
                 continue;
             } /*else{
-                solid_dbg(queue_logger, Verbose, this << " nothing to pop "<<pn<<" "<<size_<<" "<<pos<<" "<<pn->push_commit_pos_<<" "<<loop_count);
+                solid_log(queue_logger, Verbose, this << " nothing to pop "<<pn<<" "<<size_<<" "<<pos<<" "<<pn->push_commit_pos_<<" "<<loop_count);
             }*/
         } /*else{
-            solid_dbg(queue_logger, Verbose, this << " nothing to pop "<<pn<<" "<<size_<<" "<<pos<<" "<<pn->push_commit_pos_<<" "<<loop_count);
+            solid_log(queue_logger, Verbose, this << " nothing to pop "<<pn<<" "<<size_<<" "<<pos<<" "<<pn->push_commit_pos_<<" "<<loop_count);
         }*/
 
         nodeRelease(pn, __LINE__);

@@ -188,7 +188,7 @@ public:
     ~WorkPool()
     {
         doStop();
-        solid_dbg(workpool_logger, Verbose, this);
+        solid_log(workpool_logger, Verbose, this);
     }
 
     template <class JT>
@@ -311,7 +311,7 @@ bool WorkPool<Job, void, QNBits, Base>::doWorkerWake(WorkerStub* _pws)
 {
     WorkerStub* pworker_stub;
     while (doWorkerPop(pworker_stub)) {
-        //solid_dbg(workpool_logger, Verbose, "pop_worker: "<<pworker_stub);
+        //solid_log(workpool_logger, Verbose, "pop_worker: "<<pworker_stub);
         //pworker_stub valid states: Wait, WaitCancel
         bool   do_break   = true;
         size_t loop_count = 0;
@@ -324,7 +324,7 @@ bool WorkPool<Job, void, QNBits, Base>::doWorkerWake(WorkerStub* _pws)
             }
             auto expect_state = WorkerStub::StateE::Wait;
             if (pworker_stub->state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Notify)) {
-                //solid_dbg(workpool_logger, Warning, "wake worker");
+                //solid_log(workpool_logger, Warning, "wake worker");
                 {
                     std::lock_guard<std::mutex> lock(pworker_stub->mtx_);
                 }
@@ -333,12 +333,12 @@ bool WorkPool<Job, void, QNBits, Base>::doWorkerWake(WorkerStub* _pws)
             } else {
                 solid_assert_log(expect_state == WorkerStub::StateE::WaitCancel, workpool_logger, "expect state not WaitCancel but: " << static_cast<int>(expect_state) << " count " << loop_count);
                 if (pworker_stub->state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Cancel)) {
-                    //solid_dbg(workpool_logger, Warning, "worker canceled");
+                    //solid_log(workpool_logger, Warning, "worker canceled");
                     do_break = false;
                     break;
                 } else {
                     solid_assert_log(expect_state == WorkerStub::StateE::Wait, workpool_logger, "expect state not Wait but: " << static_cast<int>(expect_state) << " count " << loop_count);
-                    //solid_dbg(workpool_logger, Warning, "force notify: "<<pworker_stub<< " count "<<count);
+                    //solid_log(workpool_logger, Warning, "force notify: "<<pworker_stub<< " count "<<count);
                     continue; //try wake another thread
                 }
             }
@@ -360,7 +360,7 @@ size_t WorkPool<Job, void, QNBits, Base>::doJobPush(JT&& _rj, std::bool_constant
         if (doWorkerWake()) {
 
         } else {
-            //solid_dbg(workpool_logger, Verbose, "no worker notified - "<<sz);
+            //solid_log(workpool_logger, Verbose, "no worker notified - "<<sz);
         }
     }
     return sz;
@@ -377,17 +377,17 @@ bool WorkPool<Job, void, QNBits, Base>::doJobPop(WorkerStub& _rws, const size_t 
     } else {
         solid_assert_log(expect_state == WorkerStub::StateE::Cancel, workpool_logger, "expect state not Cancel but: " << static_cast<int>(expect_state));
         _rws.state_.store(WorkerStub::StateE::Wait);
-        //solid_dbg(workpool_logger, Verbose, "push_worker: "<<&_rws);
+        //solid_log(workpool_logger, Verbose, "push_worker: "<<&_rws);
         doWorkerPush(_rws, thr_id_);
     }
     size_t loop_count = 0;
     while (!job_q_ptr_->pop(_rjob)) {
-        //solid_dbg(workpool_logger, Warning, "worker wait "<<did_push<<' '<<loop_count);
+        //solid_log(workpool_logger, Warning, "worker wait "<<did_push<<' '<<loop_count);
         ++loop_count;
         solid_statistic_inc(statistic_.wait_count_);
         solid_statistic_max(statistic_.max_job_pop_loop_, loop_count);
         if (doWait(_rws)) {
-            //solid_dbg(workpool_logger, Verbose, "push_worker: "<<&_rws <<" state = "<<static_cast<int>(_rws.state_.load()));
+            //solid_log(workpool_logger, Verbose, "push_worker: "<<&_rws <<" state = "<<static_cast<int>(_rws.state_.load()));
             auto       expect_state = WorkerStub::StateE::Notify;
             const bool ok           = _rws.state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Wait);
             solid_assert_log(ok, workpool_logger, "expect state not Notify, but: " << static_cast<int>(expect_state));
@@ -396,7 +396,7 @@ bool WorkPool<Job, void, QNBits, Base>::doJobPop(WorkerStub& _rws, const size_t 
         } else if (job_q_ptr_->pop(_rjob)) {
             break;
         } else {
-            //solid_dbg(workpool_logger, Warning, this << " no more waiting");
+            //solid_log(workpool_logger, Warning, this << " no more waiting");
             return false;
         }
     }
@@ -408,11 +408,11 @@ bool WorkPool<Job, void, QNBits, Base>::doJobPop(WorkerStub& _rws, const size_t 
     } else {
         solid_assert_log(expect_state == WorkerStub::StateE::Notify, workpool_logger, "expect state not Notify but: " << static_cast<int>(expect_state));
         _rws.state_.store(WorkerStub::StateE::Cancel);
-        //solid_dbg(workpool_logger, Warning, "already notified");
+        //solid_log(workpool_logger, Warning, "already notified");
         if (doWorkerWake(&_rws)) {
 
         } else {
-            //solid_dbg(workpool_logger, Warning, "no worker notified!");
+            //solid_log(workpool_logger, Warning, "no worker notified!");
         }
     }
 
@@ -492,7 +492,7 @@ void WorkPool<Job, void, QNBits, Base>::doStop()
 
         for (auto& t : thr_vec_) {
             if (t.pworker_) {
-                solid_dbg(workpool_logger, Warning, this << " worker wake " << t.thread_.get_id());
+                solid_log(workpool_logger, Warning, this << " worker wake " << t.thread_.get_id());
                 {
                     std::lock_guard<std::mutex> lock(t.pworker_->mtx_);
                 }
@@ -534,12 +534,12 @@ void WorkPool<Job, void, QNBits, Base>::doStart(
                 Job        job;
                 WorkerStub stub;
                 if (!doRegisterWorker(stub, _id)) {
-                    solid_dbg(workpool_logger, Warning, this << " worker rejected");
+                    solid_log(workpool_logger, Warning, this << " worker rejected");
                     return;
                 }
                 Base::config_.on_thread_start_fnc_();
 
-                solid_dbg(workpool_logger, Warning, this << " worker started");
+                solid_log(workpool_logger, Warning, this << " worker started");
 
                 while (doJobPop(stub, _id, job)) {
                     _job_handler_fnc(job, std::forward<Args>(_args)...);
@@ -548,7 +548,7 @@ void WorkPool<Job, void, QNBits, Base>::doStart(
 
                 doUnregisterWorker(stub, _id);
 
-                solid_dbg(workpool_logger, Warning, this << " worker stopping after handling " << job_count << " jobs");
+                solid_log(workpool_logger, Warning, this << " worker stopping after handling " << job_count << " jobs");
                 solid_statistic_max(statistic_.max_jobs_on_thread_, job_count);
                 solid_statistic_min(statistic_.min_jobs_on_thread_, job_count);
 
@@ -567,7 +567,7 @@ void WorkPool<Job, void, QNBits, Base>::doStart(
     if (running_.compare_exchange_strong(expect, true)) {
         Base::config_ = _cfg;
 
-        solid_dbg(workpool_logger, Verbose, this << " start " << _start_wkr_cnt << " " << Base::config_.max_worker_count_ << ' ' << Base::config_.max_job_queue_size_);
+        solid_log(workpool_logger, Verbose, this << " start " << _start_wkr_cnt << " " << Base::config_.max_worker_count_ << ' ' << Base::config_.max_job_queue_size_);
 
         worker_factory_fnc_ = lambda;
 #ifdef SOLID_HAS_STATISTICS

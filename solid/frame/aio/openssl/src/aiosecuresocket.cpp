@@ -501,7 +501,7 @@ ReactorEventsE Socket::filterReactorEvents(
 {
     switch (_evt) {
     case ReactorEventRecv:
-        //solid_dbg(logger, Info, "EventRecv "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
+        //solid_log(logger, Info, "EventRecv "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
         if (want_read_on_send && want_read_on_recv) {
             return ReactorEventSendRecv;
         } else if (want_read_on_send) {
@@ -511,7 +511,7 @@ ReactorEventsE Socket::filterReactorEvents(
         }
         break;
     case ReactorEventSend:
-        //solid_dbg(logger, Info, "EventSend "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
+        //solid_log(logger, Info, "EventSend "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
         if (want_write_on_send && want_write_on_recv) {
             return ReactorEventRecvSend;
         } else if (want_write_on_recv) {
@@ -521,7 +521,7 @@ ReactorEventsE Socket::filterReactorEvents(
         }
         break;
     case ReactorEventRecvSend:
-        //solid_dbg(logger, Info, "EventRecvSend "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
+        //solid_log(logger, Info, "EventRecvSend "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
         if (want_read_on_send && (want_read_on_recv || want_write_on_recv)) {
             return ReactorEventSendRecv;
         } else if ((want_write_on_send || want_write_on_send) && (want_write_on_recv || want_read_on_recv)) {
@@ -737,7 +737,7 @@ bool Socket::secureConnect(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& 
     clearThisPointer();
     clearContextPointer();
 
-    solid_dbg(logger, Verbose, "ssl_connect rv = " << retval << " ssl_error " << err_cond);
+    solid_log(logger, Verbose, "ssl_connect rv = " << retval << " ssl_error " << err_cond);
 
     switch (err_cond) {
     case SSL_ERROR_NONE:

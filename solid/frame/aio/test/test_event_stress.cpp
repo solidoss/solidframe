@@ -88,7 +88,7 @@ private:
 
 void Account::onEvent(frame::ReactorContext& _rctx, Event&& _revent)
 {
-    solid_dbg(logger, Info, "account " << this << " event: " << _revent);
+    solid_log(logger, Info, "account " << this << " event: " << _revent);
 
     if (_revent == generic_event_start) {
     } else if (_revent == generic_event_resume) {
@@ -99,20 +99,20 @@ void Account::onEvent(frame::ReactorContext& _rctx, Event&& _revent)
         size_t           account_device_count = std::get<2>(*pt);
         ErrorConditionT  err;
 
-        solid_dbg(logger, Info, "Create " << account_device_count << " devices");
+        solid_log(logger, Info, "Create " << account_device_count << " devices");
 
         for (size_t i = 0; i < account_device_count; ++i) {
             device_vec_.emplace_back(device_scheduler.startActor(make_shared<Device>(), device_service, make_event(GenericEvents::Start), err));
         }
     } else if (generic_event_kill == _revent) {
-        solid_dbg(generic_logger, Error, this << " postStop");
+        solid_log(generic_logger, Error, this << " postStop");
         postStop(_rctx);
     } else if (generic_event_message == _revent) {
         RequestTupleT* pt = _revent.any().cast<RequestTupleT>();
         solid_check(pt != nullptr);
         frame::ActorIdT con_id    = std::get<0>(*pt);
         size_t          device_id = std::get<1>(*pt);
-        solid_dbg(logger, Verbose, "actor " << this << " con_id = " << con_id << " device: " << device_id);
+        solid_log(logger, Verbose, "actor " << this << " con_id = " << con_id << " device: " << device_id);
         _rctx.manager().notify(device_vec_[device_id % device_vec_.size()], make_event(GenericEvents::Message, RequestTupleT(*pt)));
     }
 }
@@ -120,20 +120,20 @@ void Account::onEvent(frame::ReactorContext& _rctx, Event&& _revent)
 void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
     const frame::ActorIdT my_id = _rctx.service().id(*this);
-    solid_dbg(logger, Info, "connection " << this << " " << my_id << " event: " << _revent);
+    solid_log(logger, Info, "connection " << this << " " << my_id << " event: " << _revent);
 
     if (_revent == generic_event_resume) {
         _rctx.manager().notify(acc_id_, make_event(GenericEvents::Message, RequestTupleT(make_tuple(my_id, device_id_))));
         ++device_id_;
     } else if (generic_event_kill == _revent) {
-        solid_dbg(generic_logger, Error, this << "ignore kill event");
+        solid_log(generic_logger, Error, this << "ignore kill event");
     } else if (generic_event_message == _revent) {
         ResponseTupleT* pt = _revent.any().cast<ResponseTupleT>();
         solid_check(pt != nullptr);
         size_t value = std::get<0>(*pt);
         value_ += value;
 
-        solid_dbg(logger, Verbose, this << " " << my_id << " recv value = " << value << " repeat_count = " << repeat_count_);
+        solid_log(logger, Verbose, this << " " << my_id << " recv value = " << value << " repeat_count = " << repeat_count_);
 
         --repeat_count_;
         if (repeat_count_ != 0) {
@@ -150,16 +150,16 @@ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 
 void Device::onEvent(frame::ReactorContext& _rctx, Event&& _revent)
 {
-    solid_dbg(logger, Info, "device " << this << " event: " << _revent);
+    solid_log(logger, Info, "device " << this << " event: " << _revent);
 
     if (generic_event_kill == _revent) {
-        solid_dbg(generic_logger, Error, this << " postStop");
+        solid_log(generic_logger, Error, this << " postStop");
         postStop(_rctx);
     } else if (generic_event_message == _revent) {
         RequestTupleT* pt = _revent.any().cast<RequestTupleT>();
         solid_check(pt != nullptr);
         frame::ActorIdT con_id = std::get<0>(*pt);
-        solid_dbg(logger, Verbose, "device " << this << " con_id = " << con_id);
+        solid_log(logger, Verbose, "device " << this << " con_id = " << con_id);
         _rctx.manager().notify(con_id, make_event(GenericEvents::Message, ResponseTupleT(value_)));
         ++value_;
     }

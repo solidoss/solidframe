@@ -214,7 +214,7 @@ void StoreBase::raise()
             }
             doExecuteOnSignal(sm);
         }
-        solid_dbg(logger, Verbose, "");
+        solid_log(logger, Verbose, "");
         if (this->doExecute()) {
             this->post(
                 _rctx,
@@ -234,7 +234,7 @@ void StoreBase::doCacheActorIndex(const size_t _idx)
 
 void StoreBase::doExecuteCache()
 {
-    solid_dbg(logger, Verbose, "");
+    solid_log(logger, Verbose, "");
     for (ExecWaitVectorT::const_iterator it(impl_->exewaitvec.begin()); it != impl_->exewaitvec.end(); ++it) {
         impl_->cachewaitstk.push(it->pw);
     }
@@ -244,7 +244,7 @@ void StoreBase::doExecuteCache()
 
 void* StoreBase::doTryAllocateWait()
 {
-    solid_dbg(logger, Verbose, "");
+    solid_log(logger, Verbose, "");
     if (!impl_->cachewaitstk.empty()) {
         void* rv = impl_->cachewaitstk.top();
         impl_->cachewaitstk.pop();

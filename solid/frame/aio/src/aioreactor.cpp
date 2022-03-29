@@ -159,7 +159,7 @@ private:
 
     do {
         rv = rthis.dev.read(reinterpret_cast<char*>(&v), sizeof(v));
-        solid_dbg(logger, Info, "Read from event " << rv << " value = " << v);
+        solid_log(logger, Info, "Read from event " << rv << " value = " << v);
     } while (rv == sizeof(v));
 #elif defined(SOLID_USE_WSAPOLL)
     constexpr size_t buf_sz = 64;
@@ -181,7 +181,7 @@ bool EventHandler::init()
     dev = Device(eventfd(0, EFD_NONBLOCK));
 
     if (!dev) {
-        solid_dbg(logger, Error, "eventfd: " << last_system_error().message());
+        solid_log(logger, Error, "eventfd: " << last_system_error().message());
         return false;
     }
 #elif defined(SOLID_USE_WSAPOLL)
@@ -565,12 +565,12 @@ void EventHandler::write(Reactor& _rreactor)
 #elif defined(SOLID_USE_KQUEUE)
     struct kevent ev;
 
-    solid_dbg(logger, Verbose, "trigger user event");
+    solid_log(logger, Verbose, "trigger user event");
 
     EV_SET(&ev, dev.descriptor(), EVFILT_USER, 0, NOTE_TRIGGER, 0, indexToVoid(this->indexWithinReactor()));
 
     if (kevent(_rreactor.impl_->reactor_fd, &ev, 1, nullptr, 0, nullptr)) {
-        solid_dbg(logger, Error, "kevent: " << last_system_error().message());
+        solid_log(logger, Error, "kevent: " << last_system_error().message());
         solid_assert_log(false, logger);
     }
 #elif defined(SOLID_USE_WSAPOLL)
@@ -591,14 +591,14 @@ Reactor::Reactor(
     : ReactorBase(_rsched, _idx)
     , impl_(make_pimpl<Data>())
 {
-    solid_dbg(logger, Verbose, "");
+    solid_log(logger, Verbose, "");
 }
 
 //-----------------------------------------------------------------------------
 
 Reactor::~Reactor()
 {
-    solid_dbg(logger, Verbose, "");
+    solid_log(logger, Verbose, "");
 }
 
 //-----------------------------------------------------------------------------
@@ -606,20 +606,20 @@ Reactor::~Reactor()
 bool Reactor::start()
 {
 
-    solid_dbg(logger, Verbose, "");
+    solid_log(logger, Verbose, "");
 
     doStoreSpecific();
 
 #if defined(SOLID_USE_EPOLL)
     impl_->reactor_fd = epoll_create(MinEventCapacity);
     if (impl_->reactor_fd < 0) {
-        solid_dbg(logger, Error, "reactor create: " << last_system_error().message());
+        solid_log(logger, Error, "reactor create: " << last_system_error().message());
         return false;
     }
 #elif defined(SOLID_USE_KQUEUE)
     impl_->reactor_fd = kqueue();
     if (impl_->reactor_fd < 0) {
-        solid_dbg(logger, Error, "reactor create: " << last_system_error().message());
+        solid_log(logger, Error, "reactor create: " << last_system_error().message());
         return false;
     }
 #endif
@@ -646,7 +646,7 @@ bool Reactor::start()
 
 /*virtual*/ bool Reactor::raise(UniqueId const& _ractuid, Event&& _uevent)
 {
-    solid_dbg(logger, Verbose, (void*)this << " uid = " << _ractuid.index << ',' << _ractuid.unique << " event = " << _uevent);
+    solid_log(logger, Verbose, (void*)this << " uid = " << _ractuid.index << ',' << _ractuid.unique << " event = " << _uevent);
     bool   rv         = true;
     size_t raisevecsz = 0;
     {
@@ -666,7 +666,7 @@ bool Reactor::start()
 
 /*virtual*/ bool Reactor::raise(UniqueId const& _ractuid, const Event& _revent)
 {
-    solid_dbg(logger, Verbose, (void*)this << " uid = " << _ractuid.index << ',' << _ractuid.unique << " event = " << _revent);
+    solid_log(logger, Verbose, (void*)this << " uid = " << _ractuid.index << ',' << _ractuid.unique << " event = " << _revent);
     bool   rv         = true;
     size_t raisevecsz = 0;
     {
@@ -686,7 +686,7 @@ bool Reactor::start()
 
 /*virtual*/ void Reactor::stop()
 {
-    solid_dbg(logger, Verbose, "");
+    solid_log(logger, Verbose, "");
     impl_->running = false;
     impl_->event_actor_ptr->eventhandler.write(*this);
 }
@@ -696,14 +696,14 @@ bool Reactor::start()
 //Called from outside reactor's thread
 bool Reactor::push(TaskT&& _ract, Service& _rsvc, Event&& _uevent)
 {
-    solid_dbg(logger, Verbose, (void*)this);
+    solid_log(logger, Verbose, (void*)this);
     bool   rv        = true;
     size_t pushvecsz = 0;
     {
         lock_guard<std::mutex> lock(impl_->mtx);
         const UniqueId         uid = this->popUid(*_ract);
 
-        solid_dbg(logger, Verbose, (void*)this << " uid = " << uid.index << ',' << uid.unique << " event = " << _uevent);
+        solid_log(logger, Verbose, (void*)this << " uid = " << uid.index << ',' << uid.unique << " event = " << _uevent);
 
         impl_->pushtskvec[impl_->crtpushtskvecidx].push_back(NewTaskStub(uid, std::move(_ract), _rsvc, std::move(_uevent)));
         pushvecsz           = impl_->pushtskvec[impl_->crtpushtskvecidx].size();
@@ -732,7 +732,7 @@ bool Reactor::push(TaskT&& _ract, Service& _rsvc, Event&& _uevent)
 */
 void Reactor::run()
 {
-    solid_dbg(logger, Info, "<enter>");
+    solid_log(logger, Info, "<enter>");
     long     selcnt;
     bool     running = true;
     NanoTime crttime;
@@ -746,18 +746,18 @@ void Reactor::run()
 #if defined(SOLID_USE_EPOLL)
         waitmsec = impl_->computeWaitTimeMilliseconds(crttime);
 
-        solid_dbg(logger, Verbose, "epoll_wait msec = " << waitmsec);
+        solid_log(logger, Verbose, "epoll_wait msec = " << waitmsec);
 
         selcnt = epoll_wait(impl_->reactor_fd, impl_->eventvec.data(), static_cast<int>(impl_->eventvec.size()), waitmsec);
 #elif defined(SOLID_USE_KQUEUE)
         waittime = impl_->computeWaitTimeMilliseconds(crttime);
 
-        solid_dbg(logger, Verbose, "kqueue msec = " << waittime.seconds() << ':' << waittime.nanoSeconds());
+        solid_log(logger, Verbose, "kqueue msec = " << waittime.seconds() << ':' << waittime.nanoSeconds());
 
         selcnt = kevent(impl_->reactor_fd, nullptr, 0, impl_->eventvec.data(), static_cast<int>(impl_->eventvec.size()), waittime != NanoTime::maximum ? &waittime : nullptr);
 #elif defined(SOLID_USE_WSAPOLL)
         waitmsec = impl_->computeWaitTimeMilliseconds(crttime);
-        solid_dbg(logger, Verbose, "wsapoll wait msec = " << waitmsec);
+        solid_log(logger, Verbose, "wsapoll wait msec = " << waitmsec);
         selcnt = WSAPoll(impl_->eventvec.data(), impl_->eventvec.size(), waitmsec);
 #endif
         crttime = std::chrono::steady_clock::now();
@@ -770,10 +770,11 @@ void Reactor::run()
             crtload += selcnt;
             doCompleteIo(crttime, selcnt);
         } else if (selcnt < 0 && errno != EINTR) {
-            solid_dbg(logger, Error, "epoll_wait errno  = " << last_system_error().message());
+            solid_log(logger, Error, "epoll_wait errno  = " << last_system_error().message());
             running = false;
+            continue;
         } else {
-            solid_dbg(logger, Verbose, "epoll_wait done");
+            solid_log(logger, Verbose, "epoll_wait done");
         }
 
         crttime = std::chrono::steady_clock::now();
@@ -788,7 +789,7 @@ void Reactor::run()
 
     impl_->event_actor_ptr->stop();
     doClearSpecific();
-    solid_dbg(logger, Info, "<exit>");
+    solid_log(logger, Info, "<exit>");
     (void)waitmsec;
     (void)waittime;
 } // namespace aio
@@ -972,7 +973,7 @@ CompletionHandler* Reactor::completionHandler(ReactorContext const& _rctx) const
 
 void Reactor::doPost(ReactorContext& _rctx, Reactor::EventFunctionT&& _revfn, Event&& _uev)
 {
-    solid_dbg(logger, Verbose, "exeq " << impl_->exeq.size());
+    solid_log(logger, Verbose, "exeq " << impl_->exeq.size());
     impl_->exeq.push(ExecStub(actorUid(_rctx), std::move(_uev)));
     impl_->exeq.back().exefnc = std::move(_revfn);
     impl_->exeq.back().chnuid = impl_->dummyCompletionHandlerUid();
@@ -982,7 +983,7 @@ void Reactor::doPost(ReactorContext& _rctx, Reactor::EventFunctionT&& _revfn, Ev
 
 void Reactor::doPost(ReactorContext& _rctx, Reactor::EventFunctionT&& _revfn, Event&& _uev, CompletionHandler const& _rch)
 {
-    solid_dbg(logger, Verbose, "exeq " << impl_->exeq.size() << ' ' << &_rch);
+    solid_log(logger, Verbose, "exeq " << impl_->exeq.size() << ' ' << &_rch);
     impl_->exeq.push(ExecStub(_rctx.actorUid(), std::move(_uev)));
     impl_->exeq.back().exefnc = std::move(_revfn);
     impl_->exeq.back().chnuid = UniqueId(_rch.idxreactor, impl_->chdq[_rch.idxreactor].unique);
@@ -1041,7 +1042,7 @@ void Reactor::doCompleteIo(NanoTime const& _rcrttime, const size_t _sz)
 {
     ReactorContext ctx(*this, _rcrttime);
 
-    solid_dbg(logger, Verbose, "selcnt = " << _sz);
+    solid_log(logger, Verbose, "selcnt = " << _sz);
 
 #if defined(SOLID_USE_EPOLL)
     for (size_t i = 0; i < _sz; ++i) {
@@ -1183,7 +1184,7 @@ void Reactor::doCompleteExec(NanoTime const& _rcrttime)
 
     while ((sz--) != 0) {
 
-        solid_dbg(logger, Verbose, sz << " qsz = " << impl_->exeq.size());
+        solid_log(logger, Verbose, sz << " qsz = " << impl_->exeq.size());
 
         ExecStub&              rexe(impl_->exeq.front());
         ActorStub&             ras(impl_->actdq[static_cast<size_t>(rexe.actuid.index)]);
@@ -1211,7 +1212,7 @@ void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
 
 void Reactor::doCompleteEvents(ReactorContext const& _rctx)
 {
-    solid_dbg(logger, Verbose, "");
+    solid_log(logger, Verbose, "");
 
     if (impl_->crtpushvecsz != 0u || impl_->crtraisevecsz != 0u) {
         size_t crtpushvecidx;
@@ -1240,7 +1241,7 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
 
         impl_->actcnt += crtpushvec.size();
 
-        solid_dbg(logger, Verbose, impl_->exeq.size());
+        solid_log(logger, Verbose, impl_->exeq.size());
 
         for (auto& rnewact : crtpushvec) {
             if (rnewact.uid.index >= impl_->actdq.size()) {
@@ -1269,14 +1270,14 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
             impl_->exeq.push(ExecStub(rnewact.uid, &call_actor_on_event, impl_->dummyCompletionHandlerUid(), std::move(rnewact.event)));
         }
 
-        solid_dbg(logger, Verbose, impl_->exeq.size());
+        solid_log(logger, Verbose, impl_->exeq.size());
         crtpushvec.clear();
 
         for (auto& revent : crtraisevec) {
             impl_->exeq.push(ExecStub(revent.uid, &call_actor_on_event, impl_->dummyCompletionHandlerUid(), std::move(revent.event)));
         }
 
-        solid_dbg(logger, Verbose, impl_->exeq.size());
+        solid_log(logger, Verbose, impl_->exeq.size());
 
         crtraisevec.clear();
     }
@@ -1295,7 +1296,7 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
 {
     Reactor& rthis = _rctx.reactor();
 
-    solid_dbg(logger, Info, "" << rthis.impl_->devcnt << " >= " << rthis.impl_->eventvec.size());
+    solid_log(logger, Info, "" << rthis.impl_->devcnt << " >= " << rthis.impl_->eventvec.size());
 
     if (rthis.impl_->devcnt >= rthis.impl_->eventvec.size()) {
         rthis.impl_->eventvec.resize(rthis.impl_->devcnt);
@@ -1307,7 +1308,7 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
 
 bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const ReactorWaitRequestsE _req)
 {
-    solid_dbg(logger, Info, _rsd.descriptor());
+    solid_log(logger, Info, _rsd.descriptor());
 
     //solid_assert(_rctx.channel_index_ == _rch.idxreactor);
 
@@ -1348,7 +1349,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
         struct kevent ev;
         EV_SET(&ev, _rsd.descriptor(), EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, indexToVoid(_rctx.channel_index_));
         if (kevent(impl_->reactor_fd, &ev, 1, nullptr, 0, nullptr)) {
-            solid_dbg(logger, Error, "kevent: " << last_system_error().message());
+            solid_log(logger, Error, "kevent: " << last_system_error().message());
             solid_assert_log(false, logger);
             return false;
         } else {
@@ -1368,7 +1369,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
     EV_SET(&ev[0], _rsd.descriptor(), EVFILT_READ, read_flags | EV_CLEAR, 0, 0, indexToVoid(_rctx.channel_index_));
     EV_SET(&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags | EV_CLEAR, 0, 0, indexToVoid(_rctx.channel_index_));
     if (kevent(impl_->reactor_fd, ev, 2, nullptr, 0, nullptr)) {
-        solid_dbg(logger, Error, "kevent: " << last_system_error().message());
+        solid_log(logger, Error, "kevent: " << last_system_error().message());
         solid_assert_log(false, logger);
         return false;
     } else {
@@ -1392,7 +1393,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
 
 bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const ReactorWaitRequestsE _req)
 {
-    solid_dbg(logger, Info, _rsd.descriptor());
+    solid_log(logger, Info, _rsd.descriptor());
 #if defined(SOLID_USE_EPOLL)
     epoll_event ev;
 
@@ -1431,7 +1432,7 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
         EV_SET(&ev, _rsd.descriptor(), EVFILT_USER, EV_ADD, 0, 0, indexToVoid(_rctx.channel_index_));
 
         if (kevent(impl_->reactor_fd, &ev, 1, nullptr, 0, nullptr)) {
-            solid_dbg(logger, Error, "kevent: " << last_system_error().message());
+            solid_log(logger, Error, "kevent: " << last_system_error().message());
             solid_assert_log(false, logger);
             return false;
         } else {
@@ -1451,7 +1452,7 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
     EV_SET(&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags, 0, 0, indexToVoid(_rctx.channel_index_));
 
     if (kevent(impl_->reactor_fd, ev, 2, nullptr, 0, nullptr)) {
-        solid_dbg(logger, Error, "kevent: " << last_system_error().message());
+        solid_log(logger, Error, "kevent: " << last_system_error().message());
         solid_assert_log(false, logger);
         return false;
     } else {
@@ -1474,7 +1475,7 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
 
 bool Reactor::remDevice(CompletionHandler const& _rch, Device const& _rsd)
 {
-    solid_dbg(logger, Info, _rsd.descriptor());
+    solid_log(logger, Info, _rsd.descriptor());
 #if defined(SOLID_USE_EPOLL)
     epoll_event ev;
 
@@ -1495,7 +1496,7 @@ bool Reactor::remDevice(CompletionHandler const& _rch, Device const& _rsd)
         EV_SET(&ev[0], _rsd.descriptor(), EVFILT_READ, EV_DELETE, 0, 0, 0);
         EV_SET(&ev[1], _rsd.descriptor(), EVFILT_WRITE, EV_DELETE, 0, 0, 0);
         if (kevent(impl_->reactor_fd, ev, 2, nullptr, 0, nullptr)) {
-            solid_dbg(logger, Error, "kevent: " << last_system_error().message());
+            solid_log(logger, Error, "kevent: " << last_system_error().message());
             solid_assert_log(false, logger);
             return false;
         } else {
@@ -1504,7 +1505,7 @@ bool Reactor::remDevice(CompletionHandler const& _rch, Device const& _rsd)
     } else {
         EV_SET(ev, _rsd.descriptor(), EVFILT_USER, EV_DELETE, 0, 0, 0);
         if (kevent(impl_->reactor_fd, ev, 1, nullptr, 0, nullptr)) {
-            solid_dbg(logger, Error, "kevent: " << last_system_error().message());
+            solid_log(logger, Error, "kevent: " << last_system_error().message());
             solid_assert_log(false, logger);
             return false;
         } else {
@@ -1573,7 +1574,7 @@ void Reactor::registerCompletionHandler(CompletionHandler& _rch, Actor const& _r
 
     _rch.idxreactor = idx;
 
-    solid_dbg(logger, Info, "idx " << idx << " chdq.size = " << impl_->chdq.size() << " this " << this);
+    solid_log(logger, Info, "idx " << idx << " chdq.size = " << impl_->chdq.size() << " this " << this);
 
     {
         NanoTime       dummytime;
@@ -1591,7 +1592,7 @@ void Reactor::registerCompletionHandler(CompletionHandler& _rch, Actor const& _r
 
 void Reactor::unregisterCompletionHandler(CompletionHandler& _rch)
 {
-    solid_dbg(logger, Info, "");
+    solid_log(logger, Info, "");
 
     CompletionHandlerStub& rcs = impl_->chdq[_rch.idxreactor];
 
@@ -1632,7 +1633,7 @@ void Reactor::doClearSpecific()
 
 /*static*/ Reactor& Reactor::specific()
 {
-    solid_dbg(logger, Verbose, "");
+    solid_log(logger, Verbose, "");
     return *safeSpecific();
 }
 

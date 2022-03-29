@@ -369,12 +369,11 @@ public:
     ~WorkPool()
     {
         doStop();
-        solid_dbg(workpool_logger, Verbose, this);
+        solid_log(workpool_logger, Verbose, this);
     }
 
     SynchronizationContextT createSynchronizationContext()
     {
-
         return SynchronizationContextT{this, doCreateContext()};
     }
 
@@ -541,7 +540,7 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doRun(
         }
     }
 
-    solid_dbg(workpool_logger, Verbose, this << " worker exited after handling " << job_count << " jobs and " << mcast_count << " mcasts");
+    solid_log(workpool_logger, Verbose, this << " worker exited after handling " << job_count << " jobs and " << mcast_count << " mcasts");
 
     solid_statistic_max(statistic_.max_jobs_on_thread_, job_count);
     solid_statistic_min(statistic_.min_jobs_on_thread_, job_count);
@@ -620,6 +619,8 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::doTryDestroyJobOnPop(PopContext& _rc
                 }
                 _rcontext.pcontext_ = nullptr;
             }
+        } else {
+            _rlock = std::move(std::unique_lock<std::mutex>{pop_mtx_});
         }
     } else if (_rcontext.pjob_) {
         _rcontext.pjob_->destroy();

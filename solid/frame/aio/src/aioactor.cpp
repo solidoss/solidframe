@@ -36,7 +36,7 @@ bool Actor::isRunning() const
 
 bool Actor::registerCompletionHandler(CompletionHandler& _rch)
 {
-    solid_dbg(logger, Info, "" << &_rch);
+    solid_log(logger, Info, "" << &_rch);
     _rch.pnext = this->pnext;
     if (_rch.pnext != nullptr) {
         _rch.pnext->pprev = &_rch;
@@ -48,7 +48,7 @@ bool Actor::registerCompletionHandler(CompletionHandler& _rch)
 
 void Actor::registerCompletionHandlers()
 {
-    solid_dbg(logger, Info, "");
+    solid_log(logger, Info, "");
     CompletionHandler* pch = this->pnext;
 
     while (pch != nullptr) {

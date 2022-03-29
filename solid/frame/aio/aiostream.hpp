@@ -74,7 +74,7 @@ class Stream : public CompletionHandler {
     static void on_posted_recv_some(ReactorContext& _rctx, Event const&)
     {
         ThisT& rthis = static_cast<ThisT&>(*completion_handler(_rctx));
-        solid_dbg(logger, Verbose, "");
+        solid_log(logger, Verbose, "");
         rthis.recv_is_posted = false;
         rthis.doRecv(_rctx);
     }
@@ -82,7 +82,7 @@ class Stream : public CompletionHandler {
     static void on_posted_send_all(ReactorContext& _rctx, Event const&)
     {
         ThisT& rthis = static_cast<ThisT&>(*completion_handler(_rctx));
-        solid_dbg(logger, Verbose, "");
+        solid_log(logger, Verbose, "");
         rthis.send_is_posted = false;
         rthis.doSend(_rctx);
     }
@@ -636,7 +636,7 @@ private:
     void doRecv(ReactorContext& _rctx)
     {
         if (!recv_is_posted && !solid_function_empty(recv_fnc)) {
-            solid_dbg(logger, Verbose, "");
+            solid_log(logger, Verbose, "");
             errorClear(_rctx);
 
             recv_fnc(*this, _rctx);
@@ -659,7 +659,7 @@ private:
 
         ssize_t rv = s.recv(_rctx, recv_buf, recv_buf_cp - recv_buf_sz, can_retry, err);
 
-        solid_dbg(logger, Verbose, "recv (" << (recv_buf_cp - recv_buf_sz) << ") = " << rv);
+        solid_log(logger, Verbose, "recv (" << (recv_buf_cp - recv_buf_sz) << ") = " << rv);
 
         if (rv > 0) {
             recv_buf_sz += rv;
@@ -688,7 +688,7 @@ private:
         ErrorCodeT err;
         ssize_t    rv = s.send(_rctx, send_buf, send_buf_cp - send_buf_sz, can_retry, err);
 
-        solid_dbg(logger, Verbose, "send (" << (send_buf_cp - send_buf_sz) << ") = " << rv << ' ' << can_retry);
+        solid_log(logger, Verbose, "send (" << (send_buf_cp - send_buf_sz) << ") = " << rv << ' ' << can_retry);
 
         if (rv > 0) {
             send_buf_sz += rv;

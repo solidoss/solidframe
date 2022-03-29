@@ -155,14 +155,14 @@ void DeviceContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat_
             --repeat_count;
             if (repeat_count) {
                 if (_rctx.conn_cnt_ <= 0) {
-                    solid_dbg(workpool_logger, Warning, "OVERPUSH " << _acc << ' ' << _acc_con << ' ' << repeat_count);
+                    solid_log(workpool_logger, Warning, "OVERPUSH " << _acc << ' ' << _acc_con << ' ' << repeat_count);
                 }
                 solid_assert(_rctx.conn_cnt_ > 0);
                 pctx->pushConnection(_acc, _acc_con, repeat_count);
             } else if (_rctx.conn_cnt_.fetch_sub(1) == 1) {
                 //last connection
                 _rctx.rprom_.set_value();
-                solid_dbg(workpool_logger, Warning, "DONE - notify " << _acc << ' ' << _acc_con << ' ' << _repeat_count);
+                solid_log(workpool_logger, Warning, "DONE - notify " << _acc << ' ' << _acc_con << ' ' << _repeat_count);
             } else if (_rctx.conn_cnt_ < 0) {
                 solid_assert_log(false, workpool_logger, "DONE - notify " << _acc << ' ' << _acc_con << ' ' << _repeat_count);
             }
@@ -238,7 +238,7 @@ int test_event_stress_wp(int argc, char* argv[])
                     };
                     account_cp.push(lambda);
                 }
-                solid_dbg(workpool_logger, Statistic, "producer done");
+                solid_log(workpool_logger, Statistic, "producer done");
             };
             if ((0)) {
                 auto fut = async(launch::async, produce_lambda);
@@ -249,34 +249,34 @@ int test_event_stress_wp(int argc, char* argv[])
             {
                 auto fut = prom.get_future();
                 if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
-                    solid_dbg(workpool_logger, Statistic, "Connection pool: " << connection_cp.statistic());
-                    solid_dbg(workpool_logger, Statistic, "Device pool: " << device_cp.statistic());
-                    solid_dbg(workpool_logger, Statistic, "Account pool: " << account_cp.statistic());
-                    solid_dbg(workpool_logger, Warning, "sleep - wait for locked threads");
+                    solid_log(workpool_logger, Statistic, "Connection pool: " << connection_cp.statistic());
+                    solid_log(workpool_logger, Statistic, "Device pool: " << device_cp.statistic());
+                    solid_log(workpool_logger, Statistic, "Account pool: " << account_cp.statistic());
+                    solid_log(workpool_logger, Warning, "sleep - wait for locked threads");
                     this_thread::sleep_for(chrono::seconds(100));
-                    solid_dbg(workpool_logger, Warning, "wake - waited for locked threads");
+                    solid_log(workpool_logger, Warning, "wake - waited for locked threads");
                     //we must throw here otherwise it will crash because workpool(s) is/are used after destroy
                     solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
                 }
                 fut.get();
             }
-            solid_dbg(workpool_logger, Statistic, "connections done");
+            solid_log(workpool_logger, Statistic, "connections done");
             //this_thread::sleep_for(chrono::milliseconds(100));
             gctx.stopping_ = true;
             conn_ctx.wait();
-            solid_dbg(workpool_logger, Statistic, "conn_ctx done");
+            solid_log(workpool_logger, Statistic, "conn_ctx done");
             acc_ctx.wait();
-            solid_dbg(workpool_logger, Statistic, "acc_ctx done");
+            solid_log(workpool_logger, Statistic, "acc_ctx done");
             dev_ctx.wait();
-            solid_dbg(workpool_logger, Statistic, "dev_ctx done");
+            solid_log(workpool_logger, Statistic, "dev_ctx done");
 
             //need explicit stop because pools use contexts which are destroyed before pools
             account_cp.stop();
-            solid_dbg(workpool_logger, Statistic, "account pool stopped " << &account_cp);
+            solid_log(workpool_logger, Statistic, "account pool stopped " << &account_cp);
             device_cp.stop();
-            solid_dbg(workpool_logger, Statistic, "device pool stopped " << &device_cp);
+            solid_log(workpool_logger, Statistic, "device pool stopped " << &device_cp);
             connection_cp.stop();
-            solid_dbg(workpool_logger, Statistic, "connection pool stopped " << &connection_cp);
+            solid_log(workpool_logger, Statistic, "connection pool stopped " << &connection_cp);
         }
         int* p = new int[1000];
         delete[] p;
