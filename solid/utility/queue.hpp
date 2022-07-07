@@ -68,7 +68,7 @@ public:
         _rthat.ptop_cached_nodes_      = nullptr;
     }
 
-    Queue(const Queue&) = delete;
+    Queue(const Queue&)            = delete;
     Queue& operator=(const Queue&) = delete;
 
     ~Queue()
@@ -203,7 +203,7 @@ private:
         Node* pcurrent_node   = node(_pvalue);
         Node* pnext_node      = pcurrent_node->pnext_;
         pcurrent_node->pnext_ = ptop_cached_nodes_;
-        ptop_cached_nodes_    = pcurrent_node; //cache the node
+        ptop_cached_nodes_    = pcurrent_node; // cache the node
         if (pnext_node) {
             return std::launder(reinterpret_cast<T*>(&pnext_node->data_[0]));
         } else {
@@ -214,4 +214,4 @@ private:
     }
 };
 
-} //namespace solid
+} // namespace solid

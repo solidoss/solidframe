@@ -25,4 +25,4 @@ public:
     static bool renameFile(const char* _from, const char* _to);
 };
 
-} //namespace solid
+} // namespace solid

@@ -34,7 +34,7 @@ inline constexpr const T& function_max(const T& a, const T& b)
     return (a < b) ? b : a;
 }
 template <class, size_t DataSize = function_default_data_size>
-class Function; //undefined
+class Function; // undefined
 
 template <class T>
 struct is_function;
@@ -256,8 +256,8 @@ class Function<R(ArgTypes...), DataSize> {
         };
         uintptr_t type_data_;
     };
-    //static_assert(sizeof(_Storage_t) == _Any_trivial_space_size + sizeof(void*));
-    //static_assert(is_standard_layout_v<_Storage_t>);
+    // static_assert(sizeof(_Storage_t) == _Any_trivial_space_size + sizeof(void*));
+    // static_assert(is_standard_layout_v<_Storage_t>);
 
     union {
         Storage     storage_{};
@@ -544,7 +544,7 @@ private:
 
 //-----------------------------------------------------------------------------
 
-} //namespace solid
+} // namespace solid
 
 #ifdef SOLID_USE_STD_FUNCTION
 

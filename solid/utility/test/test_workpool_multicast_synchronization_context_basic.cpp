@@ -68,16 +68,16 @@ int test_workpool_multicast_synchronization_context_basic(int argc, char* argv[]
                 if (_r.context_id_ != InvalidIndex{}) {
                     solid_check(synch_contexts_validations[_r.context_id_]++ == _r.validation_);
                 }
-                //solid_log(logger, Verbose, "job " << _r.value_);
+                // solid_log(logger, Verbose, "job " << _r.value_);
             },
-            [](const uint32_t _v) { //mcast execute
+            [](const uint32_t _v) { // mcast execute
                 thread_local_value = _v;
-                //solid_log(logger, Verbose, "mcast " << _v);
+                // solid_log(logger, Verbose, "mcast " << _v);
             }};
         {
             SynchContext synch_contexts[synch_context_count];
 
-            //we leave the last contex empty for async tasks
+            // we leave the last contex empty for async tasks
             for (size_t i = 0; i < (synch_context_count - 1); ++i) {
                 synch_contexts[i].ctx_ = wp.createSynchronizationContext();
             }
@@ -92,7 +92,7 @@ int test_workpool_multicast_synchronization_context_basic(int argc, char* argv[]
                 if (!rsynch_context.ctx_.empty()) {
                     rsynch_context.ctx_.push(Record{i, i % synch_context_count, rsynch_context.validation_++});
                 } else {
-                    wp.push(Record{i, InvalidIndex{}}); //async
+                    wp.push(Record{i, InvalidIndex{}}); // async
                 }
             }
         }

@@ -78,7 +78,7 @@ SendBufferPointerT default_allocate_send_buffer(const uint32_t _cp)
     return SendBufferPointerT(new char[_cp]);
 }
 
-//void empty_reset_serializer_limits(ConnectionContext &, serialization::binary::Limits&){}
+// void empty_reset_serializer_limits(ConnectionContext &, serialization::binary::Limits&){}
 
 void empty_connection_stop(ConnectionContext&) {}
 
@@ -93,7 +93,7 @@ size_t default_compress(char*, size_t, ErrorConditionT&)
 
 size_t default_decompress(char*, const char*, size_t, ErrorConditionT& _rerror)
 {
-    //This should never be called
+    // This should never be called
     _rerror = error_compression_unavailable;
     return 0;
 }
@@ -135,7 +135,7 @@ bool default_setup_socket_device(SocketDevice& _rsd)
     return true;
 }
 
-} //namespace
+} // namespace
 
 ReaderConfiguration::ReaderConfiguration()
 {
@@ -241,14 +241,14 @@ void Configuration::init()
 
     connection_recv_buffer_max_capacity_kb = connection_send_buffer_max_capacity_kb = 64;
 
-    connection_timeout_inactivity_seconds = 60 * 10; //ten minutes
-    connection_timeout_keepalive_seconds  = 60 * 5; //five minutes
+    connection_timeout_inactivity_seconds = 60 * 10; // ten minutes
+    connection_timeout_keepalive_seconds  = 60 * 5; // five minutes
     connection_timeout_reconnect_seconds  = 10;
 
     connection_relay_buffer_count = 8;
 
-    //server closes connection when receiving more than connection_inactivity_keepalive_count
-    //keep-alive requests during connection_timeout_inactivity_seconds
+    // server closes connection when receiving more than connection_inactivity_keepalive_count
+    // keep-alive requests during connection_timeout_inactivity_seconds
     connection_inactivity_keepalive_count = 10;
 
     server.connection_start_state                = ConnectionState::Passive;
@@ -294,7 +294,7 @@ ulong Configuration::connectionReconnectTimeoutSeconds(
         return connection_timeout_reconnect_seconds / 2;
     }
     if (_last_connection_was_active || _last_connection_was_connected) {
-        return 0; //reconnect right away
+        return 0; // reconnect right away
     }
     ulong retry_count   = _retry_count / 2;
     ulong sleep_seconds = retry_count;
@@ -303,7 +303,7 @@ ulong Configuration::connectionReconnectTimeoutSeconds(
         sleep_seconds = connection_timeout_reconnect_seconds;
     }
 
-    return sleep_seconds; //TODO: add entropy - improve algorithm
+    return sleep_seconds; // TODO: add entropy - improve algorithm
 }
 //-----------------------------------------------------------------------------
 void Configuration::check() const
@@ -377,7 +377,7 @@ void Configuration::prepare(SocketDevice& _rsd)
             const auto err = sd.prepareAccept(it, SocketInfo::max_listen_backlog_size());
             if (!err) {
                 _rsd = std::move(sd);
-                return; //SUCCESS
+                return; // SUCCESS
             }
         }
 
@@ -406,6 +406,6 @@ SendBufferPointerT Configuration::allocateSendBuffer(uint8_t& _rbuffer_capacity_
     return connection_send_buffer_allocate_fnc(_rbuffer_capacity_kb * 1024);
 }
 //-----------------------------------------------------------------------------
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

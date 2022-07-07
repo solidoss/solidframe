@@ -57,10 +57,10 @@ int test_perf_workpool_synch_context(int argc, char* argv[])
                     ++received_events;
                     accumulate_value += *_event.any().cast<size_t>();
                 }
-                //solid_log(logger, Verbose, "job " << _r.value_);
+                // solid_log(logger, Verbose, "job " << _r.value_);
             },
-            [](const uint32_t _v) { //mcast execute
-                //solid_log(logger, Verbose, "mcast " << _v);
+            [](const uint32_t _v) { // mcast execute
+                // solid_log(logger, Verbose, "mcast " << _v);
             }
 
         };

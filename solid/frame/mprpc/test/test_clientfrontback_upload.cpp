@@ -45,7 +45,7 @@ promise<void>           prom;
 
 namespace back {
 struct Request;
-} //namespace back
+} // namespace back
 
 namespace front {
 
@@ -72,7 +72,7 @@ struct Request : frame::mprpc::Message {
         _rr.add(_rthis.name_, _rctx, 1, "name");
         if constexpr (!Reflector::is_const_reflector) {
             auto progress_lambda = [](Context& _rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
-                //NOTE: here you can use context.any()for actual implementation
+                // NOTE: here you can use context.any()for actual implementation
                 if (_done) {
                     solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
                 }
@@ -80,7 +80,7 @@ struct Request : frame::mprpc::Message {
             _rr.add(_rthis.oss_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda); });
         } else {
             auto progress_lambda = [](Context& _rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
-                //NOTE: here you can use context.any()for actual implementation
+                // NOTE: here you can use context.any()for actual implementation
                 if (_done) {
                     solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
                 }
@@ -153,7 +153,7 @@ void on_client_receive_first_response(
     std::shared_ptr<Response>&       _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror);
 
-} //namespace front
+} // namespace front
 
 namespace back {
 
@@ -183,7 +183,7 @@ struct Request : frame::mprpc::Message {
         _rr.add(_rthis.name_, _rctx, 1, "name");
         if constexpr (!Reflector::is_const_reflector) {
             auto progress_lambda = [](Context& _rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
-                //NOTE: here you can use context.any()for actual implementation
+                // NOTE: here you can use context.any()for actual implementation
                 if (_done) {
                     solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
                 }
@@ -191,7 +191,7 @@ struct Request : frame::mprpc::Message {
             _rr.add(_rthis.oss_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda); });
         } else {
             auto progress_lambda = [](Context& _rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
-                //NOTE: here you can use context.any()for actual implementation
+                // NOTE: here you can use context.any()for actual implementation
                 if (_done) {
                     solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
                 }
@@ -266,12 +266,12 @@ void on_client_response(
     solid_log(logger, Verbose, "back: on message");
 }
 
-} //namespace back
+} // namespace back
 
 void create_files(vector<string>& _file_vec, const char* _path_prefix, uint64_t _count, uint64_t _start_size, uint64_t _increment_size);
 void check_files(const vector<string>& _file_vec, const char* _path_prefix_client, const char* _path_prefix_server);
 
-} //namespace
+} // namespace
 
 int test_clientfrontback_upload(int argc, char* argv[])
 {
@@ -347,7 +347,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
         std::string back_port;
         std::string front_port;
 
-        { //mprpc back_server initialization
+        { // mprpc back_server initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -356,8 +356,8 @@ int test_clientfrontback_upload(int argc, char* argv[])
                 });
             frame::mprpc::Configuration cfg(sch_back, proto);
 
-            //cfg.recv_buffer_capacity = 1024;
-            //cfg.send_buffer_capacity = 1024;
+            // cfg.recv_buffer_capacity = 1024;
+            // cfg.send_buffer_capacity = 1024;
 
             cfg.server.listener_address_str   = "0.0.0.0:0";
             cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
@@ -391,7 +391,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
             }
         }
 
-        { //mprpc back_client initialization
+        { // mprpc back_client initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -426,7 +426,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
             pmprpc_back_client = &mprpc_back_client;
         }
 
-        { //mprpc front_server initialization
+        { // mprpc front_server initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -435,8 +435,8 @@ int test_clientfrontback_upload(int argc, char* argv[])
                 });
             frame::mprpc::Configuration cfg(sch_back, proto);
 
-            //cfg.recv_buffer_capacity = 1024;
-            //cfg.send_buffer_capacity = 1024;
+            // cfg.recv_buffer_capacity = 1024;
+            // cfg.send_buffer_capacity = 1024;
 
             cfg.server.listener_address_str   = "0.0.0.0:0";
             cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
@@ -469,7 +469,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
             pmprpc_front_server = &mprpc_front_server;
         }
 
-        { //mprpc front_client initialization
+        { // mprpc front_client initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -525,7 +525,7 @@ namespace {
 
 size_t real_size(size_t _sz)
 {
-    //offset + (align - (offset mod align)) mod align
+    // offset + (align - (offset mod align)) mod align
     return _sz + ((sizeof(uint64_t) - (_sz % sizeof(uint64_t))) % sizeof(uint64_t));
 }
 
@@ -628,7 +628,7 @@ void on_client_receive_first_response(
     std::shared_ptr<back::Request>&  _rsent_msg_ptr,
     std::shared_ptr<back::Response>& _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror);
-} //namespace back
+} // namespace back
 
 namespace front {
 
@@ -763,7 +763,7 @@ void on_server_receive_first_request(
     pmprpc_back_client->sendRequest("localhost", req_ptr, back::on_client_receive_first_response, flags);
 }
 
-} //namespace front
+} // namespace front
 
 namespace back {
 
@@ -782,7 +782,7 @@ void on_client_receive_first_response(
     res_ptr->req_ptr_        = std::move(_rsent_msg_ptr);
     res_ptr->req_ptr_->header(_rrecv_msg_ptr->header());
 
-    //forward the message to front client
+    // forward the message to front client
     pmprpc_front_server->sendMessage(res_ptr->req_ptr_->recipient_id_, res_ptr, front::on_server_receive_request, flags);
 }
 
@@ -800,7 +800,7 @@ void on_client_receive_response(
     res_ptr->req_ptr_      = std::move(_rsent_msg_ptr);
     res_ptr->req_ptr_->header(_rrecv_msg_ptr->header());
 
-    //forward the message to front client
+    // forward the message to front client
     pmprpc_front_server->sendMessage(res_ptr->req_ptr_->recipient_id_, res_ptr, flags);
 }
 
@@ -813,8 +813,8 @@ void on_server_receive_request(
     std::shared_ptr<Request>&        _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
-    //the server will keep receiving new Requests
-    //we need to send Response every other two chunks
+    // the server will keep receiving new Requests
+    // we need to send Response every other two chunks
     solid_check(_rrecv_msg_ptr);
     std::string s = _rrecv_msg_ptr->oss_.str();
     _rsent_msg_ptr->req_ptr_->ofs_.write(s.data(), s.size());
@@ -858,6 +858,6 @@ void on_server_receive_first_request(
     _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, on_server_receive_request, flags);
 }
 
-} //namespace back
+} // namespace back
 
-} //namespace
+} // namespace

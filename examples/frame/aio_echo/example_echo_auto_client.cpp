@@ -110,7 +110,7 @@ frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr)
     return r;
 }
 
-} //namespace
+} // namespace
 
 class Connection : public frame::aio::Actor {
 public:
@@ -172,7 +172,7 @@ int main(int argc, char* argv[])
     prepareSendData();
 
 #ifndef SOLID_ON_WINDOWS
-    //signal(SIGINT, term_handler); /* Die on SIGTERM */
+    // signal(SIGINT, term_handler); /* Die on SIGTERM */
     signal(SIGPIPE, SIG_IGN);
 #endif
 
@@ -328,7 +328,7 @@ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
     solid_log(generic_logger, Info, "event = " << _revent);
     if (_revent == generic_event_start) {
         if (params.connect_addr_str.size()) {
-            //we must resolve the address then connect
+            // we must resolve the address then connect
             solid_log(generic_logger, Info, "async_resolve = " << params.connect_addr_str << " " << params.connect_port_str);
             async_resolver().requestResolve(
                 ResolvFunc(_rctx.service().manager(), _rctx.service().manager().id(*this)), params.connect_addr_str.c_str(),

@@ -68,7 +68,7 @@ struct UploadRequest : frame::mprpc::Message {
         _rr.add(_rthis.name_, _rctx, 1, "name");
         if constexpr (!Reflector::is_const_reflector) {
             auto progress_lambda = [](Context& _rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
-                //NOTE: here you can use context.any()for actual implementation
+                // NOTE: here you can use context.any()for actual implementation
                 if (_done) {
                     solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
                 }
@@ -76,7 +76,7 @@ struct UploadRequest : frame::mprpc::Message {
             _rr.add(_rthis.oss_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda); });
         } else {
             auto progress_lambda = [](Context& _rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
-                //NOTE: here you can use context.any()for actual implementation
+                // NOTE: here you can use context.any()for actual implementation
                 if (_done) {
                     solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
                 }
@@ -159,7 +159,7 @@ void on_server_response(
 void create_files(vector<string>& _file_vec, const char* _path_prefix, uint64_t _count, uint64_t _start_size, uint64_t _increment_size);
 void check_files(const vector<string>& _file_vec, const char* _path_prefix_client, const char* _path_prefix_server);
 
-} //namespace
+} // namespace
 
 int test_clientserver_upload_single(int argc, char* argv[])
 {
@@ -230,7 +230,7 @@ int test_clientserver_upload_single(int argc, char* argv[])
 
         std::string server_port;
 
-        { //mprpc back_server initialization
+        { // mprpc back_server initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -239,8 +239,8 @@ int test_clientserver_upload_single(int argc, char* argv[])
                 });
             frame::mprpc::Configuration cfg(sch_server, proto);
 
-            //cfg.recv_buffer_capacity = 1024;
-            //cfg.send_buffer_capacity = 1024;
+            // cfg.recv_buffer_capacity = 1024;
+            // cfg.send_buffer_capacity = 1024;
 
             cfg.server.listener_address_str   = "0.0.0.0:0";
             cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
@@ -272,7 +272,7 @@ int test_clientserver_upload_single(int argc, char* argv[])
             }
         }
 
-        { //mprpc front_client initialization
+        { // mprpc front_client initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -328,7 +328,7 @@ namespace {
 
 size_t real_size(size_t _sz)
 {
-    //offset + (align - (offset mod align)) mod align
+    // offset + (align - (offset mod align)) mod align
     return _sz + ((sizeof(uint64_t) - (_sz % sizeof(uint64_t))) % sizeof(uint64_t));
 }
 
@@ -503,8 +503,8 @@ void on_server_chunk(
     std::shared_ptr<UploadRequest>&  _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
-    //the server will keep receiving new UploadRequests
-    //we need to send UploadResponse every other two chunks
+    // the server will keep receiving new UploadRequests
+    // we need to send UploadResponse every other two chunks
     solid_check(_rrecv_msg_ptr);
     std::string s = _rrecv_msg_ptr->oss_.str();
     _rsent_msg_ptr->req_ptr_->ofs_.write(s.data(), s.size());
@@ -546,4 +546,4 @@ void on_server_request(
     _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, on_server_chunk, {frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::Response});
 }
 
-} //namespace
+} // namespace

@@ -127,7 +127,7 @@ private:
     {
         solid_dbg(generic_logger, Info, "event = " << _revent);
         if (_revent == generic_event_start) {
-            //we must resolve the address then connect
+            // we must resolve the address then connect
             solid_dbg(generic_logger, Info, "async_resolve = "
                     << "127.0.0.1"
                     << " " << server_port);
@@ -171,7 +171,7 @@ private:
 
     static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
     {
-        //Connection& rthis = static_cast<Connection&>(_rctx.actor());
+        // Connection& rthis = static_cast<Connection&>(_rctx.actor());
 
         if (_rctx.error()) {
             if (wait_count.fetch_sub(1) == 1) {
@@ -183,7 +183,7 @@ private:
     }
 };
 
-} //namespace
+} // namespace
 
 int test_clientserver_timeout_secure(int argc, char* argv[])
 {
@@ -199,13 +199,13 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
 
     if (argc > 2) {
         if (*argv[2] == 's' || *argv[2] == 'S') {
-            server_option = 's'; //secure
+            server_option = 's'; // secure
         }
         if (*argv[2] == 'p' || *argv[2] == 'P') {
-            server_option = 'p'; //passive
+            server_option = 'p'; // passive
         }
         if (*argv[2] == 'a' || *argv[2] == 'A') {
-            server_option = 'a'; //active
+            server_option = 'a'; // active
         }
     }
 
@@ -224,7 +224,7 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
         sch_client.start(1);
         sch_server.start(1);
 
-        { //mprpc server initialization
+        { // mprpc server initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -232,8 +232,8 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
                 });
             frame::mprpc::Configuration cfg(sch_server, proto);
 
-            //cfg.recv_buffer_capacity = 1024;
-            //cfg.send_buffer_capacity = 1024;
+            // cfg.recv_buffer_capacity = 1024;
+            // cfg.send_buffer_capacity = 1024;
 
             cfg.connection_stop_fnc                   = &server_connection_stop;
             cfg.server.connection_start_fnc           = &server_connection_start;
@@ -296,10 +296,10 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
             solid_throw("Process is taking too long.");
         }
 
-        //m.stop();
+        // m.stop();
     }
 
-    //exiting
+    // exiting
 
     std::cout << "Connection count = " << connection_count << endl;
 

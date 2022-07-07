@@ -159,9 +159,9 @@ std::string stackdump(const char* dump)
 /// string representation of signal ID or Windows exception id
 std::string exit_reason_name(const char* _text, solid::SignalType fatal_id)
 {
-    //if (level == g3::internal::FATAL_EXCEPTION) {
-    //    return stacktrace::exceptionIdToText(fatal_id);
-    //}
+    // if (level == g3::internal::FATAL_EXCEPTION) {
+    //     return stacktrace::exceptionIdToText(fatal_id);
+    // }
 
     switch (fatal_id) {
     case SIGABRT:
@@ -198,7 +198,7 @@ void exit_with_default_signal_handler(solid::SignalType fatal_signal_id)
     // to sinks. We therefore avoid to kill the process here. Instead
     //  it will be the exceptionHandling functions above that
     // will let exception handling continue with: EXCEPTION_CONTINUE_SEARCH
-    //if (g3::internal::FATAL_EXCEPTION == level) {
+    // if (g3::internal::FATAL_EXCEPTION == level) {
     //    gBlockForFatal = false;
     //    return;
     //}

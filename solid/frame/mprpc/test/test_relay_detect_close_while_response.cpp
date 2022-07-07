@@ -243,7 +243,7 @@ void peerb_complete_message(
             solid_throw("Message not relayed!.");
         }
 
-        //send message back
+        // send message back
         if (_rctx.recipientId().isInvalidConnection()) {
             solid_assert(false);
             solid_throw("Connection id should not be invalid!");
@@ -271,12 +271,12 @@ void peerb_complete_detect_close(
         _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 3, generate_big_data(1024 * 100)), {frame::mprpc::MessageFlagsE::ResponsePart});
         _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 4, generate_big_data(1024 * 10)), {frame::mprpc::MessageFlagsE::ResponsePart});
         _rrecv_msg_ptr->idx   = 5;
-        _rrecv_msg_ptr->data_ = generate_big_data(1024 * 1024 * 100); //100MB
+        _rrecv_msg_ptr->data_ = generate_big_data(1024 * 1024 * 100); // 100MB
         _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr), {frame::mprpc::MessageFlagsE::ResponsePart});
     }
 }
 //-----------------------------------------------------------------------------
-} //namespace
+} // namespace
 
 int test_relay_detect_close_while_response(int argc, char* argv[])
 {
@@ -295,7 +295,7 @@ int test_relay_detect_close_while_response(int argc, char* argv[])
         AioSchedulerT                         sch_peerb;
         AioSchedulerT                         sch_relay;
         frame::Manager                        m;
-        frame::mprpc::relay::SingleNameEngine relay_engine(m); //before relay service because it must overlive it
+        frame::mprpc::relay::SingleNameEngine relay_engine(m); // before relay service because it must overlive it
         frame::mprpc::ServiceT                mprpcrelay(m);
         frame::mprpc::ServiceT                mprpcpeera(m);
         frame::mprpc::ServiceT                mprpcpeerb(m);
@@ -309,7 +309,7 @@ int test_relay_detect_close_while_response(int argc, char* argv[])
 
         std::string relay_port;
 
-        { //mprpc relay initialization
+        { // mprpc relay initialization
             auto con_start = [](frame::mprpc::ConnectionContext& _rctx) {
                 solid_dbg(generic_logger, Info, _rctx.recipientId());
             };
@@ -379,7 +379,7 @@ int test_relay_detect_close_while_response(int argc, char* argv[])
             }
         }
 
-        { //mprpc peera initialization
+        { // mprpc peera initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -417,12 +417,12 @@ int test_relay_detect_close_while_response(int argc, char* argv[])
 
             if (err) {
                 solid_dbg(generic_logger, Error, "starting peera mprpcservice: " << err.message());
-                //exiting
+                // exiting
                 return 1;
             }
         }
 
-        { //mprpc peerb initialization
+        { // mprpc peerb initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -459,7 +459,7 @@ int test_relay_detect_close_while_response(int argc, char* argv[])
             mprpcpeerb.start(std::move(cfg));
         }
 
-        //ensure we have provisioned connections on peerb
+        // ensure we have provisioned connections on peerb
         err = mprpcpeerb.createConnectionPool("localhost");
         solid_check(!err, "failed create connection from peerb: " << err.message());
 
@@ -474,7 +474,7 @@ int test_relay_detect_close_while_response(int argc, char* argv[])
         }
     }
 
-    //exiting
+    // exiting
 
     return 0;
 }

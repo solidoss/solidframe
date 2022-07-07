@@ -74,6 +74,6 @@ template <typename... T>
 struct is_tuple<std::tuple<T...>> : std::true_type {
 };
 
-} //namespace v1
-} //namespace reflection
-} //namespace solid
+} // namespace v1
+} // namespace reflection
+} // namespace solid

@@ -111,7 +111,7 @@ std::string ErrorCategory::message(int _ev) const
     return oss.str();
 }
 
-} //namespace
+} // namespace
 
 namespace solid {
 namespace frame {
@@ -120,7 +120,7 @@ namespace openssl {
 
 namespace {
 const LoggerT logger("solid::frame::aio::openssl");
-} //namespace
+} // namespace
 
 struct Starter {
 
@@ -135,7 +135,7 @@ struct Starter {
 
         /* ERR_load_crypto_strings(); */
 
-        //OPENSSL_config(NULL);
+        // OPENSSL_config(NULL);
 #endif
         ::OpenSSL_add_all_algorithms();
     }
@@ -245,7 +245,7 @@ void evp_pkey_deleter(EVP_PKEY* _pkey)
     }
 }
 
-} //namespace
+} // namespace
 
 ErrorCodeT Context::addVerifyAuthority(const unsigned char* _data, const size_t _data_size)
 {
@@ -501,7 +501,7 @@ ReactorEventsE Socket::filterReactorEvents(
 {
     switch (_evt) {
     case ReactorEventRecv:
-        //solid_log(logger, Info, "EventRecv "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
+        // solid_log(logger, Info, "EventRecv "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
         if (want_read_on_send && want_read_on_recv) {
             return ReactorEventSendRecv;
         } else if (want_read_on_send) {
@@ -511,7 +511,7 @@ ReactorEventsE Socket::filterReactorEvents(
         }
         break;
     case ReactorEventSend:
-        //solid_log(logger, Info, "EventSend "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
+        // solid_log(logger, Info, "EventSend "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
         if (want_write_on_send && want_write_on_recv) {
             return ReactorEventRecvSend;
         } else if (want_write_on_recv) {
@@ -521,7 +521,7 @@ ReactorEventsE Socket::filterReactorEvents(
         }
         break;
     case ReactorEventRecvSend:
-        //solid_log(logger, Info, "EventRecvSend "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
+        // solid_log(logger, Info, "EventRecvSend "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
         if (want_read_on_send && (want_read_on_recv || want_write_on_recv)) {
             return ReactorEventSendRecv;
         } else if ((want_write_on_send || want_write_on_send) && (want_write_on_recv || want_read_on_recv)) {
@@ -582,7 +582,7 @@ ssize_t Socket::recv(ReactorContext& _rctx, char* _pb, size_t _bl, bool& _can_re
         if (err_sys) {
             _rerr = err_sys;
         } else {
-            //TODO: find out why this happens
+            // TODO: find out why this happens
             _rerr = solid::error_system;
         }
         solid_assert_log(_rerr, logger);
@@ -592,7 +592,7 @@ ssize_t Socket::recv(ReactorContext& _rctx, char* _pb, size_t _bl, bool& _can_re
         _rerr      = ssl_category.makeError(err_code);
         break;
     case SSL_ERROR_WANT_X509_LOOKUP:
-    //for reschedule, we can return -1 but not set the _rerr
+    // for reschedule, we can return -1 but not set the _rerr
     default:
         solid_assert_log(false, logger);
         break;
@@ -643,7 +643,7 @@ ssize_t Socket::send(ReactorContext& _rctx, const char* _pb, size_t _bl, bool& _
         if (err_sys) {
             _rerr = err_sys;
         } else {
-            //TODO: find out why this happens
+            // TODO: find out why this happens
             _rerr = solid::error_system;
         }
         break;
@@ -652,7 +652,7 @@ ssize_t Socket::send(ReactorContext& _rctx, const char* _pb, size_t _bl, bool& _
         _rerr      = ssl_category.makeError(err_code);
         break;
     case SSL_ERROR_WANT_X509_LOOKUP:
-    //for reschedule, we can return -1 but not set the _rerr
+    // for reschedule, we can return -1 but not set the _rerr
     default:
         solid_assert_log(false, logger);
         break;
@@ -703,7 +703,7 @@ bool Socket::secureAccept(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& _
         if (err_sys) {
             _rerr = err_sys;
         } else {
-            //TODO: find out why this happens
+            // TODO: find out why this happens
             _rerr = solid::error_system;
         }
         break;
@@ -712,7 +712,7 @@ bool Socket::secureAccept(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& _
         _rerr      = ssl_category.makeError(err_code);
         break;
     case SSL_ERROR_WANT_X509_LOOKUP:
-    //for reschedule, we can return -1 but not set the _rerr
+    // for reschedule, we can return -1 but not set the _rerr
     default:
         solid_assert_log(false, logger);
         break;
@@ -765,7 +765,7 @@ bool Socket::secureConnect(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& 
         if (err_sys) {
             _rerr = err_sys;
         } else {
-            //TODO: find out why this happens
+            // TODO: find out why this happens
             _rerr = solid::error_system;
         }
         break;
@@ -774,7 +774,7 @@ bool Socket::secureConnect(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& 
         _rerr      = ssl_category.makeError(err_code);
         break;
     case SSL_ERROR_WANT_X509_LOOKUP:
-    //for reschedule, we can return -1 but not set the _rerr
+    // for reschedule, we can return -1 but not set the _rerr
     default:
         solid_assert_log(false, logger);
         break;
@@ -825,7 +825,7 @@ bool Socket::secureShutdown(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT&
         if (err_sys) {
             _rerr = err_sys;
         } else {
-            //TODO: find out why this happens
+            // TODO: find out why this happens
             _rerr = solid::error_system;
         }
         break;
@@ -834,7 +834,7 @@ bool Socket::secureShutdown(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT&
         _rerr      = ssl_category.makeError(err_code);
         break;
     case SSL_ERROR_WANT_X509_LOOKUP:
-    //for reschedule, we can return -1 but not set the _rerr
+    // for reschedule, we can return -1 but not set the _rerr
     default:
         solid_assert_log(false, logger);
         break;
@@ -937,8 +937,8 @@ ErrorCodeT Socket::setCheckHostName(const std::string& _hostname)
 {
     X509_VERIFY_PARAM* param = SSL_get0_param(pssl);
 
-    //X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
-    if (X509_VERIFY_PARAM_set1_host(param, _hostname.c_str(), _hostname.size()) != 0) { //boringssl requires namelen to be nonzero
+    // X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
+    if (X509_VERIFY_PARAM_set1_host(param, _hostname.c_str(), _hostname.size()) != 0) { // boringssl requires namelen to be nonzero
         return ErrorCodeT();
     }
     return wrapper_category.makeError(WrapperError::SetCheckHostName);
@@ -948,7 +948,7 @@ ErrorCodeT Socket::setCheckEmail(const std::string& _email)
 {
     X509_VERIFY_PARAM* param = SSL_get0_param(pssl);
 
-    if (X509_VERIFY_PARAM_set1_email(param, _email.c_str(), _email.size()) != 0) { //boringssl requires emaillen to be nonzero
+    if (X509_VERIFY_PARAM_set1_email(param, _email.c_str(), _email.size()) != 0) { // boringssl requires emaillen to be nonzero
         return ErrorCodeT();
     }
     return wrapper_category.makeError(WrapperError::SetCheckEmail);
@@ -965,7 +965,7 @@ ErrorCodeT Socket::setCheckIP(const std::string& _ip)
     return wrapper_category.makeError(WrapperError::SetCheckIP);
 }
 
-} //namespace openssl
-} //namespace aio
-} //namespace frame
-} //namespace solid
+} // namespace openssl
+} // namespace aio
+} // namespace frame
+} // namespace solid

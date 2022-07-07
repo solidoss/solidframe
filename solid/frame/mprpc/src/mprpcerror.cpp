@@ -230,7 +230,7 @@ std::string ErrorCategory::message(int _ev) const
     return oss.str();
 }
 
-} //namespace
+} // namespace
 
 /*extern*/ const ErrorConditionT error_connection_inactivity_timeout(ErrorConnectionInactivityTimeoutE, category);
 /*extern*/ const ErrorConditionT error_connection_too_many_keepalive_packets_received(ErrorConnectionTooManyKAPacketsReceivedE, category);
@@ -283,6 +283,6 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_service_invalid_url(ErrorServiceInvalidUrlE, category);
 /*extern*/ const ErrorConditionT error_service_connection_not_needed(ErrorServiceConnectionNotNeededE, category);
 
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

@@ -24,7 +24,7 @@ class Service;
 class ReactorBase;
 class ActorBase;
 
-//typedef FunctorReference<bool, ReactorBase&>  ScheduleFunctorT;
+// typedef FunctorReference<bool, ReactorBase&>  ScheduleFunctorT;
 typedef solid_function_t(bool(ReactorBase&)) ScheduleFunctionT;
 
 //! A base class for all schedulers
@@ -62,5 +62,5 @@ private:
     PimplT<Data> impl_;
 };
 
-} //namespace frame
-} //namespace solid
+} // namespace frame
+} // namespace solid

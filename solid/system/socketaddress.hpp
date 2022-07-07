@@ -31,8 +31,8 @@
 namespace solid {
 
 class SocketDevice;
-//struct sockaddr_in;
-//struct sockaddr_in6;
+// struct sockaddr_in;
+// struct sockaddr_in6;
 //==================================================================
 //! An interator for POSIX addrinfo (see man getaddrinfo)
 /*!
@@ -336,7 +336,7 @@ public:
     SocketAddressInet4(uint32_t _addr, int _port);
     SocketAddressInet4(const DataArrayT& _addr, int _port = 0);
 
-    //SocketAddressInet4& operator=(const ResolveIterator &);
+    // SocketAddressInet4& operator=(const ResolveIterator &);
     SocketAddressInet4& operator=(const SocketAddressStub&);
 
     SocketInfo::Family family() const;
@@ -348,7 +348,7 @@ public:
     socklen_t size() const;
 
     const sockaddr* sockAddr() const;
-    //operator sockaddr*(){return sockAddr();}
+    // operator sockaddr*(){return sockAddr();}
     operator const sockaddr*() const;
 
     void toBinary(DataArrayT& _bin, uint16_t& _port) const;
@@ -501,4 +501,4 @@ private:
 #endif
 //==================================================================
 
-} //namespace solid
+} // namespace solid

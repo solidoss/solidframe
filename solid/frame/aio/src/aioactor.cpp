@@ -63,7 +63,7 @@ bool Actor::doPrepareStop(ReactorContext& _rctx)
         CompletionHandler* pch = this->pnext;
 
         while (pch != nullptr) {
-            pch->pprev = nullptr; //unregister
+            pch->pprev = nullptr; // unregister
             pch->deactivate();
 
             pch = pch->pnext;
@@ -74,6 +74,6 @@ bool Actor::doPrepareStop(ReactorContext& _rctx)
     return false;
 }
 
-} //namespace aio
-} //namespace frame
-} //namespace solid
+} // namespace aio
+} // namespace frame
+} // namespace solid

@@ -27,5 +27,5 @@ void ReverseResolve::doRun(std::string& _rhost, std::string& _rsrvc)
 }
 //-----------------------------------------------------------------------------
 } // namespace aio
-} //namespace frame
-} //namespace solid
+} // namespace frame
+} // namespace solid

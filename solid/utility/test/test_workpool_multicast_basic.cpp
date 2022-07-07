@@ -51,14 +51,14 @@ int test_workpool_multicast_basic(int argc, char* argv[])
                         val += _v;
                         solid_check(record_dq[_v] == static_cast<uint32_t>(-1));
                         record_dq[_v] = thread_local_value;
-                        //solid_log(logger, Verbose, "job "<<_v);
+                        // solid_log(logger, Verbose, "job "<<_v);
                     },
-                    [&all_val](const size_t _v) { //mcast execute
+                    [&all_val](const size_t _v) { // mcast execute
                         uint32_t expect = thread_local_value;
                         all_val.compare_exchange_strong(expect, _v);
 
                         thread_local_value = _v;
-                        //solid_log(logger, Verbose, "mcast");
+                        // solid_log(logger, Verbose, "mcast");
                     }};
 
                 pwp = &wp;

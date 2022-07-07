@@ -31,7 +31,7 @@ struct Params {
     int listener_port;
     int talker_port;
 };
-} //namespace
+} // namespace
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
@@ -223,7 +223,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
             rscheduler.startActor(make_shared<Connection>(std::move(_rsd)), rservice, make_event(GenericEvents::Start), err);
         } else {
-            //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
+            // e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             timer.waitFor(
                 _rctx,
                 std::chrono::seconds(10),
@@ -239,7 +239,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     if (!repeatcnt) {
         sock.postAccept(
             _rctx,
-            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); //fully asynchronous call
+            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); // fully asynchronous call
     }
 }
 
@@ -249,7 +249,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
     if (generic_event_start == _revent) {
-        sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
+        sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); // fully asynchronous call
     } else if (generic_event_kill == _revent) {
         sock.shutdown(_rctx);
         postStop(_rctx);
@@ -278,7 +278,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     } while (repeatcnt && rthis.sock.recvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv, _sz));
 
     if (repeatcnt == 0) {
-        bool rv = rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
+        bool rv = rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); // fully asynchronous call
         solid_assert(!rv);
     }
 }
@@ -287,7 +287,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
     Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
-        rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
+        rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); // fully asynchronous call
     } else {
         rthis.postStop(_rctx);
     }
@@ -302,7 +302,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     if (generic_event_start == _revent) {
         sock.postRecvFrom(
             _rctx, buf, BufferCapacity,
-            [this](frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz) { onRecv(_rctx, _raddr, _sz); }); //fully asynchronous call
+            [this](frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz) { onRecv(_rctx, _raddr, _sz); }); // fully asynchronous call
     } else if (generic_event_kill == _revent) {
         postStop(_rctx);
     }
@@ -333,7 +333,7 @@ void Talker::onRecv(frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, si
     if (repeatcnt == 0) {
         sock.postRecvFrom(
             _rctx, buf, BufferCapacity,
-            [this](frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz) { onRecv(_rctx, _raddr, _sz); }); //fully asynchronous call
+            [this](frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz) { onRecv(_rctx, _raddr, _sz); }); // fully asynchronous call
     }
 }
 
@@ -342,7 +342,7 @@ void Talker::onSend(frame::aio::ReactorContext& _rctx)
     if (!_rctx.error()) {
         sock.postRecvFrom(
             _rctx, buf, BufferCapacity,
-            [this](frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz) { onRecv(_rctx, _raddr, _sz); }); //fully asynchronous call
+            [this](frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz) { onRecv(_rctx, _raddr, _sz); }); // fully asynchronous call
     } else {
         postStop(_rctx);
     }

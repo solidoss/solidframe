@@ -50,6 +50,6 @@ struct TempBase {
     virtual void    flush();
 };
 
-} //namespace file
-} //namespace frame
-} //namespace solid
+} // namespace file
+} // namespace frame
+} // namespace solid

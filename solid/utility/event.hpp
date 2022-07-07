@@ -172,7 +172,7 @@ private:
 
 template <typename EventIds>
 class EventCategory : public EventCategoryBase {
-    //using FunctionT = solid_function_t(const char*(const EventIds));
+    // using FunctionT = solid_function_t(const char*(const EventIds));
     using FunctionT = std::function<const char*(const EventIds)>;
 
 public:
@@ -356,7 +356,7 @@ protected:
 template <typename RetVal, typename... Args>
 class EventHandler : protected EventHandlerBase {
 public:
-    //using FunctionT = solid_function_t(RetVal(Event&, Args...));
+    // using FunctionT = solid_function_t(RetVal(Event&, Args...));
     using FunctionT = std::function<RetVal(Event&, Args...)>;
 
 private:
@@ -439,10 +439,10 @@ public:
     }
 
 private:
-    EventHandler(const EventHandler&) = delete;
-    EventHandler(EventHandler&&)      = delete;
+    EventHandler(const EventHandler&)            = delete;
+    EventHandler(EventHandler&&)                 = delete;
     EventHandler& operator=(const EventHandler&) = delete;
-    EventHandler& operator=(EventHandler&&) = delete;
+    EventHandler& operator=(EventHandler&&)      = delete;
 
 private:
     FunctionT       invalid_event_fnc_;
@@ -450,4 +450,4 @@ private:
     FunctionVectorT function_vec_;
 };
 
-} //namespace solid
+} // namespace solid

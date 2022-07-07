@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
     {
         AioSchedulerT                         scheduler;
         frame::Manager                        manager;
-        frame::mprpc::relay::SingleNameEngine relay_engine(manager); //before relay service because it must outlive it
+        frame::mprpc::relay::SingleNameEngine relay_engine(manager); // before relay service because it must outlive it
         frame::mprpc::ServiceT                rpcservice(manager);
         ErrorConditionT                       err;
 

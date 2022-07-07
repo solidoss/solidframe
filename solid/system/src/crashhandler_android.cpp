@@ -26,7 +26,7 @@ bool should_block_for_fatal_handling()
 }
 
 /** \return signal_name Ref: signum.hpp and \ref installSignalHandler
-      *  or for Windows exception name */
+ *  or for Windows exception name */
 std::string exit_reason_name(const char* _text, SignalType signal_number)
 {
     return "";
@@ -37,6 +37,6 @@ std::string stackdump(const char* dump /* = nullptr*/)
 {
     return "";
 }
-} //namespace internal
+} // namespace internal
 
-} //namespace solid
+} // namespace solid

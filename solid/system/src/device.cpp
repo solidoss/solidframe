@@ -389,7 +389,7 @@ struct Starter {
         WSACleanup();
     }
 } __starter;
-} //namespace
+} // namespace
 #endif
 
 ErrorCodeT last_socket_error()
@@ -480,9 +480,9 @@ void SocketDevice::close()
 ErrorCodeT SocketDevice::create(const ResolveIterator& _rri)
 {
 #ifdef SOLID_ON_WINDOWS
-    //NOTE: must use WSASocket instead of socket because
-    //the latter seems to create the socket with OVERLAPPED support
-    //which will not work with above WriteFile for synchronous IO
+    // NOTE: must use WSASocket instead of socket because
+    // the latter seems to create the socket with OVERLAPPED support
+    // which will not work with above WriteFile for synchronous IO
     SOCKET s = WSASocketW(_rri.family(), _rri.type(), _rri.protocol(), nullptr, 0, WSA_FLAG_OVERLAPPED);
     Device::descriptor((HANDLE)s);
     enableLoopbackFastPath();
@@ -913,7 +913,7 @@ ErrorCodeT SocketDevice::enableLoopbackFastPath()
     uint32_t param = 1;
     DWORD    ret;
     int      rv = WSAIoctl(descriptor(), SIO_LOOPBACK_FAST_PATH /*_WSAIOW(IOC_VENDOR, 16)*/,
-        &param, sizeof(param), NULL, 0, &ret, 0, 0);
+             &param, sizeof(param), NULL, 0, &ret, 0, 0);
     if (rv == 0) {
         return ErrorCodeT();
     }
@@ -1049,7 +1049,7 @@ ErrorCodeT SocketDevice::hasCork(bool& _rrv) const
     }
     return last_socket_error();
 #else
-    //TODO:
+    // TODO:
     (void)_rrv;
     return solid::error_not_implemented;
 #endif
@@ -1177,7 +1177,7 @@ std::ostream& operator<<(std::ostream& _ros, const RemoteEndpointPlot& _ra)
 
 /*static*/ size_t SocketInfo::max_listen_backlog_size()
 {
-    return 128; //TODO: try take the value from the system
+    return 128; // TODO: try take the value from the system
 }
 
-} //namespace solid
+} // namespace solid

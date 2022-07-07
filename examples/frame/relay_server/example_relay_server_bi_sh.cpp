@@ -60,7 +60,7 @@ frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr)
     return r;
 }
 
-} //namespace
+} // namespace
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
@@ -241,7 +241,7 @@ protected:
             rv             = std::move(reventdataptr_);
             reventdataptr_ = std::move(rv->nextptr_);
         } else {
-            //rv = std::make_shared<EventData>();
+            // rv = std::make_shared<EventData>();
             rv = EventDataPtrT(new EventData());
         }
         rv->senderid_ = _rctx.manager().id(*this);
@@ -425,8 +425,8 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
             rsch_.startActor(make_shared<Connection>(actuid), rsvc_, make_event(GenericEvents::Start), err);
         } else {
-            //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
-            //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
+            // e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
+            // timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
             break;
         }
         --repeatcnt;
@@ -435,7 +435,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     if (!repeatcnt) {
         sock_.postAccept(
             _rctx,
-            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); //fully asynchronous call
+            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); // fully asynchronous call
     }
 }
 
@@ -471,7 +471,7 @@ struct ResolvFunc {
         EventDataPtrT& evtdataptr = *_revent.any().cast<EventDataPtrT>();
 
         if (evtdataptr->bufsz_) {
-            //new data to send
+            // new data to send
             solid_log(generic_logger, Info, this << " new data to sent ");
 
             if (pweventdataend_) {
@@ -483,12 +483,12 @@ struct ResolvFunc {
                 sock_.postSendAll(_rctx, weventdatabegptr_->bufptr_->data(), weventdatabegptr_->bufsz_, Connection::onSend);
             }
         } else {
-            //a send ack
+            // a send ack
 
             solid_log(generic_logger, Info, this << " on sent ack event " << sock_.hasPendingRecv());
 
-            //store both the read event data ptr and the bufptr
-            //first store the bufptr
+            // store both the read event data ptr and the bufptr
+            // first store the bufptr
             if (rbufptr_) {
                 evtdataptr->bufptr_->next_ = std::move(rbufptr_->next_);
                 rbufptr_->next_            = std::move(evtdataptr->bufptr_);
@@ -496,7 +496,7 @@ struct ResolvFunc {
                 rbufptr_ = std::move(evtdataptr->bufptr_);
                 sock_.postRecvSome(_rctx, rbufptr_->data(), rbufptr_->capacity(), Connection::onRecv);
             }
-            //then store the event data ptr
+            // then store the event data ptr
             evtdataptr->nextptr_ = std::move(reventdataptr_);
             reventdataptr_       = std::move(evtdataptr);
         }
@@ -504,10 +504,10 @@ struct ResolvFunc {
     } else if (generic_event_start == _revent) {
         if (sock_.device()) {
             sock_.device().enableNoDelay();
-            //the accepted socket
-            //wait for peer to connect
+            // the accepted socket
+            // wait for peer to connect
         } else {
-            //the connecting socket
+            // the connecting socket
             solid_log(generic_logger, Info, "async_resolve = " << params.connect_addr_str << " " << params.connect_port_str);
             async_resolver().requestResolve(
                 ResolvFunc(_rctx.manager(), _rctx.manager().id(*this)), params.connect_addr_str.c_str(),
@@ -531,9 +531,9 @@ struct ResolvFunc {
 
         frame::ActorIdT* ppeer_actuid = _revent.any().cast<frame::ActorIdT>();
         if (ppeer_actuid) {
-            //peer connection established
+            // peer connection established
             peer_actuid_ = *ppeer_actuid;
-            //do the first read
+            // do the first read
             sock_.postRecvSome(_rctx, rbufptr_->data(), rbufptr_->capacity(), Connection::onRecv);
         }
     }
@@ -552,10 +552,10 @@ struct ResolvFunc {
         if (_rctx.manager().notify(rthis.peer_actuid_, std::move(ev))) {
 
             rthis.sock_.device().enableNoDelay();
-            //do the first read
+            // do the first read
             rthis.sock_.postRecvSome(_rctx, rthis.rbufptr_->data(), rthis.rbufptr_->capacity(), Connection::onRecv);
         } else {
-            //peer has died
+            // peer has died
             solid_log(generic_logger, Error, &rthis << " postStop " << _rctx.systemError().message());
             rthis.postStop(_rctx);
         }
@@ -578,7 +578,7 @@ struct ResolvFunc {
         if (rthis.prepareCurrentReadBuffer()) {
             rthis.sock_.postRecvSome(_rctx, rthis.rbufptr_->data(), rthis.rbufptr_->capacity(), Connection::onRecv);
         } else {
-            //no free buffer
+            // no free buffer
         }
 
     } else {

@@ -169,9 +169,9 @@ enum ReactorEventsE {
 
 enum ReactorWaitRequestsE {
     ReactorWaitNone = 0,
-    //Add above!
+    // Add above!
     ReactorWaitError
 };
 
-} //namespace frame
-} //namespace solid
+} // namespace frame
+} // namespace solid

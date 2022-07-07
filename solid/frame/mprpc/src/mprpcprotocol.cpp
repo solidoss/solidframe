@@ -21,6 +21,6 @@ namespace mprpc {
 //-----------------------------------------------------------------------------
 /*virtual*/ Protocol::~Protocol() {}
 //-----------------------------------------------------------------------------
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

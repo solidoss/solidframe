@@ -67,6 +67,6 @@ public:
     }
 };
 
-} //namespace v1
-} //namespace reflection
-} //namespace solid
+} // namespace v1
+} // namespace reflection
+} // namespace solid

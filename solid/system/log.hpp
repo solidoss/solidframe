@@ -94,12 +94,12 @@ public:
     }
 };
 
-} //namespace impl
+} // namespace impl
 
 std::ostream& operator<<(std::ostream& _ros, const LogLineBase& _line);
 
 class LoggerBase : NonCopyable {
-    //friend class Engine;
+    // friend class Engine;
 
     const std::string name_;
     LogAtomicFlagsT   flags_;
@@ -201,7 +201,7 @@ ErrorConditionT log_start(
     const std::vector<std::string>& _rmodule_mask_vec,
     bool                            _buffered = true);
 
-} //namespace solid
+} // namespace solid
 
 #ifndef SOLID_FUNCTION_NAME
 #ifdef SOLID_ON_WINDOWS

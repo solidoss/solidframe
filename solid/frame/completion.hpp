@@ -77,7 +77,7 @@ private:
 
 private:
     ForwardCompletionHandler* pprev;
-    size_t                    idxreactor; //index within reactor
+    size_t                    idxreactor; // index within reactor
     CallbackT                 call;
 };
 
@@ -86,5 +86,5 @@ inline void CompletionHandler::completionCallback(CallbackT _pcbk)
     call = _pcbk;
 }
 
-} //namespace frame
-} //namespace solid
+} // namespace frame
+} // namespace solid

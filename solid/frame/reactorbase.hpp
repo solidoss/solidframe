@@ -100,5 +100,5 @@ inline size_t ReactorBase::runIndex(ActorBase& _ract) const
     return static_cast<const size_t>(_ract.runId().index);
 }
 
-} //namespace frame
-} //namespace solid
+} // namespace frame
+} // namespace solid

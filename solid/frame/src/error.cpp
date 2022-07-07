@@ -56,10 +56,10 @@ std::string ErrorCategory::message(int _ev) const
     return oss.str();
 }
 
-} //namespace
+} // namespace
 
 /*extern*/ const ErrorConditionT error_timer_cancel(ErrorTimerCancelE, category);
 /*extern*/ const ErrorConditionT error_already(ErrorAlreadyE, category);
 
-} //namespace frame
-} //namespace solid
+} // namespace frame
+} // namespace solid

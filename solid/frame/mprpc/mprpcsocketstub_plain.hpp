@@ -69,7 +69,7 @@ private:
 
         } lambda(_pf, _revent);
 
-        //TODO: find solution for costly event copy
+        // TODO: find solution for costly event copy
 
         return sock.postSendAll(_rctx, _pbuf, _bufcp, lambda);
     }
@@ -100,7 +100,7 @@ private:
 
         } lambda(_pf, _revent);
 
-        //TODO: find solution for costly event copy
+        // TODO: find solution for costly event copy
 
         return sock.postRecvSome(_rctx, _pbuf, _bufcp, lambda);
     }
@@ -163,7 +163,7 @@ inline SocketStubPtrT create_server_socket(Configuration const& /*_rcfg*/, frame
     }
 }
 
-} //namespace plain
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace plain
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

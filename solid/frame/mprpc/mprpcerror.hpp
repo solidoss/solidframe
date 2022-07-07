@@ -66,6 +66,6 @@ extern const ErrorConditionT error_service_connection_not_needed;
 extern const ErrorConditionT error_compression_unavailable;
 extern const ErrorConditionT error_compression_engine;
 
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

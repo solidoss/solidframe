@@ -69,4 +69,4 @@ const Event generic_event_resume(make_event(GenericEvents::Resume));
 const Event generic_event_update(make_event(GenericEvents::Update));
 const Event generic_event_kill(make_event(GenericEvents::Kill));
 
-} //namespace solid
+} // namespace solid

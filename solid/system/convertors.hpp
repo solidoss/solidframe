@@ -104,4 +104,4 @@ constexpr
 #endif
 }
 
-} //namespace solid
+} // namespace solid

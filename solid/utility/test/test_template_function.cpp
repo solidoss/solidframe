@@ -7,7 +7,7 @@ using namespace solid;
 namespace {
 class Test {
     using FunctionT = Function<int(std::string&), 32>;
-    //using FunctionT = std::function<int(std::string&)>;
+    // using FunctionT = std::function<int(std::string&)>;
     FunctionT f_;
     template <typename F>
     struct Functor {
@@ -42,7 +42,7 @@ public:
     int operator()(std::string& _str)
     {
         FunctionT f{std::move(f_)};
-        //f = f_;
+        // f = f_;
         return f(_str);
     }
 
@@ -67,7 +67,7 @@ struct Functor {
     }
 };
 
-} //namespace
+} // namespace
 
 int test_template_function(int argc, char* argv[])
 {

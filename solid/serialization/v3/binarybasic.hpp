@@ -105,7 +105,7 @@ inline char* store(char* _pd, const uint64_t _val, TypeToType<uint64_t> _ff)
     return _pd + 8;
 }
 
-} //namespace impl
+} // namespace impl
 
 template <typename T>
 inline char* store(char* _pd, const T _v)
@@ -194,7 +194,7 @@ inline const char* load(const char* _ps, std::array<uint8_t, S>& _val)
     return _ps + S;
 }
 
-//cross integer serialization
+// cross integer serialization
 namespace cross {
 inline size_t size(const char* _ps)
 {
@@ -390,7 +390,7 @@ inline const char* load_with_check(const char* _ps, const size_t _sz, uint32_t& 
                 return nullptr;
             }
 #ifdef SOLID_ON_BIG_ENDIAN
-            _val = v; //swap_bytes(v);
+            _val = v; // swap_bytes(v);
 #else
             _val = v;
 #endif
@@ -466,7 +466,7 @@ inline const char* load_without_check(const char* _ps, const size_t _sz, uint64_
         return nullptr;
     }
 #ifdef SOLID_ON_BIG_ENDIAN
-    _val = v; //swap_bytes(v);
+    _val = v; // swap_bytes(v);
 #else
     _val = v;
 #endif
@@ -487,14 +487,14 @@ inline const char* load_with_check(const char* _ps, const size_t _sz, uint64_t& 
     }
     return nullptr;
 }
-} //namespace cross
+} // namespace cross
 
 inline void store_bit_at(uint8_t* _pbeg, const size_t _bit_idx, const bool _opt)
 {
     _pbeg += (_bit_idx >> 3);
     const size_t  bit_off = _bit_idx & 7;
     const uint8_t opt     = _opt;
-    //clear the bit
+    // clear the bit
     *_pbeg &= ~static_cast<uint8_t>(1 << bit_off);
     *_pbeg |= ((opt & 1) << bit_off);
 }
@@ -507,7 +507,7 @@ inline bool load_bit_from(const uint8_t* _pbeg, const size_t _bit_idx)
     return b[(*_pbeg >> bit_off) & 1];
 }
 
-} //namespace binary
+} // namespace binary
 } // namespace v3
-} //namespace serialization
-} //namespace solid
+} // namespace serialization
+} // namespace solid

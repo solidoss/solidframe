@@ -10,9 +10,9 @@
 
 #pragma once
 
-//NOTE: on Windows, when compiling against BoringSSL
-//we need to include "openssl/ssl.hpp" before any
-//inclusion of Windows.h
+// NOTE: on Windows, when compiling against BoringSSL
+// we need to include "openssl/ssl.hpp" before any
+// inclusion of Windows.h
 #include "solid/frame/aio/openssl/aiosecurecontext.hpp"
 #include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 
@@ -113,7 +113,7 @@ private:
 
         } lambda(_pf, _revent);
 
-        //TODO: find solution for costly event copy
+        // TODO: find solution for costly event copy
 
         return sock.postSendAll(_rctx, _pbuf, _bufcp, lambda);
     }
@@ -144,7 +144,7 @@ private:
 
         } lambda(_pf, _revent);
 
-        //TODO: find solution for costly event copy
+        // TODO: find solution for costly event copy
 
         return sock.postRecvSome(_rctx, _pbuf, _bufcp, lambda);
     }
@@ -259,7 +259,7 @@ inline SocketStubPtrT create_server_socket(mprpc::Configuration const& _rcfg, fr
 
 namespace impl {
 
-} //namespace impl
+} // namespace impl
 
 inline unsigned long basic_secure_start(
     frame::aio::ReactorContext& _rctx, ConnectionContext& _rconctx, StreamSocketT& _rsock, ErrorConditionT& _rerr)
@@ -357,7 +357,7 @@ inline void setup_server(
     rsecure_cfg.connection_verify_fnc         = std::move(_verify_fnc);
 }
 
-} //namespace openssl
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace openssl
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

@@ -37,6 +37,6 @@ enum struct MessageFlagsE : MessageFlagsValueT {
 
 using MessageFlagsT = Flags<MessageFlagsE>;
 
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

@@ -53,7 +53,7 @@ int test_workpool_multicast_sleep(int argc, char* argv[])
                         record_dq[_v] = thread_local_value;
                         this_thread::sleep_for(chrono::milliseconds(_v % 5) * 10);
                     },
-                    [&all_val](const uint32_t _v) { //synch execute
+                    [&all_val](const uint32_t _v) { // synch execute
                         uint32_t expect = thread_local_value;
                         all_val.compare_exchange_strong(expect, _v);
 

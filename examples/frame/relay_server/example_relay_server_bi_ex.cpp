@@ -59,7 +59,7 @@ frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr)
     return r;
 }
 
-} //namespace
+} // namespace
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
@@ -271,7 +271,7 @@ protected:
 
     bool pushSentBuffer(BufferPtrT&& _rbufptr)
     {
-        //under mutex lock
+        // under mutex lock
         if (prpushbufend_) {
             prpushbufend_->next_ = std::move(_rbufptr);
             prpushbufend_        = prpushbufend_->next_.get();
@@ -285,7 +285,7 @@ protected:
 
     bool pushEventDataOnRecv(EventData& _red)
     {
-        //under mutex lock
+        // under mutex lock
         wpush_ed_vec.emplace_back(std::move(_red));
         return wpush_ed_vec.size() == 1;
     }
@@ -494,8 +494,8 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
             rsch_.startActor(make_shared<Connection>(actuid), rsvc_, make_event(GenericEvents::Start), err);
         } else {
-            //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
-            //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
+            // e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
+            // timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
             break;
         }
         --repeatcnt;
@@ -504,7 +504,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     if (!repeatcnt) {
         sock_.postAccept(
             _rctx,
-            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); //fully asynchronous call
+            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); // fully asynchronous call
     }
 }
 
@@ -544,7 +544,7 @@ struct ResolvFunc {
             }
         }
     } else if (generic_event_resume == _revent) {
-        //sent buffers are back
+        // sent buffers are back
         BufferPtrT  tmpbufptr;
         BufferBase* pbufend;
         {
@@ -566,10 +566,10 @@ struct ResolvFunc {
     } else if (generic_event_start == _revent) {
         if (sock_.device()) {
             sock_.device().enableNoDelay();
-            //the accepted socket
-            //wait for peer to connect
+            // the accepted socket
+            // wait for peer to connect
         } else {
-            //the connecting socket
+            // the connecting socket
             solid_log(generic_logger, Info, "async_resolve = " << params.connect_addr_str << " " << params.connect_port_str);
             async_resolver().requestResolve(
                 ResolvFunc(_rctx.manager(), _rctx.manager().id(*this)), params.connect_addr_str.c_str(),
@@ -593,9 +593,9 @@ struct ResolvFunc {
 
         frame::ActorIdT* ppeer_actuid = _revent.any().cast<frame::ActorIdT>();
         if (ppeer_actuid) {
-            //peer connection established
+            // peer connection established
             peer_actuid_ = *ppeer_actuid;
-            //do the first read
+            // do the first read
             sock_.postRecvSome(_rctx, rbufptr_->data(), rbufptr_->capacity(), Connection::onRecv);
         }
     }
@@ -614,10 +614,10 @@ struct ResolvFunc {
         if (_rctx.manager().notify(rthis.peer_actuid_, std::move(ev))) {
 
             rthis.sock_.device().enableNoDelay();
-            //do the first read
+            // do the first read
             rthis.sock_.postRecvSome(_rctx, rthis.rbufptr_->data(), rthis.rbufptr_->capacity(), Connection::onRecv);
         } else {
-            //peer has died
+            // peer has died
             solid_log(generic_logger, Error, &rthis << " postStop " << _rctx.systemError().message());
             rthis.postStop(_rctx);
         }
@@ -640,7 +640,7 @@ struct ResolvFunc {
         if (rthis.prepareCurrentReadBuffer()) {
             rthis.sock_.postRecvSome(_rctx, rthis.rbufptr_->data(), rthis.rbufptr_->capacity(), Connection::onRecv);
         } else {
-            //no free buffer
+            // no free buffer
         }
 
     } else {

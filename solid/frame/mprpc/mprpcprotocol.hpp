@@ -77,10 +77,10 @@ struct CompleteHandler {
         MessagePointerT&       _rres_msg_ptr,
         ErrorConditionT const& _err)
     {
-        //Req                   *prequest = dynamic_cast<Req*>(_rreq_msg_ptr.get());
+        // Req                   *prequest = dynamic_cast<Req*>(_rreq_msg_ptr.get());
         std::shared_ptr<Req> req_msg_ptr(std::dynamic_pointer_cast<Req>(_rreq_msg_ptr));
 
-        //Res                   *presponse = dynamic_cast<Res*>(_rres_msg_ptr.get());
+        // Res                   *presponse = dynamic_cast<Res*>(_rres_msg_ptr.get());
         std::shared_ptr<Res> res_msg_ptr(std::dynamic_pointer_cast<Res>(_rres_msg_ptr));
 
         ErrorConditionT error(_err);
@@ -190,7 +190,7 @@ public:
 
     virtual size_t typeIndex(const Message* _pmsg) const = 0;
 
-    //virtual const TypeStub& operator[](const size_t _idx) const = 0;
+    // virtual const TypeStub& operator[](const size_t _idx) const = 0;
     virtual void complete(const size_t _idx, ConnectionContext&, MessagePointerT&, MessagePointerT&, ErrorConditionT const&) const = 0;
 
     virtual Serializer::PointerT   createSerializer(const WriterConfiguration& _rconf) const   = 0;
@@ -215,6 +215,6 @@ public:
     }
 };
 
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

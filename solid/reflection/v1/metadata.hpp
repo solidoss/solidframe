@@ -192,7 +192,7 @@ struct Container {
 
 template <class Context>
 struct IStream {
-    using ProgressFunctionT     = std::function<void(Context&, std::istream&, uint64_t, const bool, const size_t, const char*)>; //std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name
+    using ProgressFunctionT     = std::function<void(Context&, std::istream&, uint64_t, const bool, const size_t, const char*)>; // std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name
     uint64_t          max_size_ = std::numeric_limits<uint64_t>::max();
     uint64_t          size_     = InvalidSize();
     ProgressFunctionT progress_function_;
@@ -219,7 +219,7 @@ struct IStream {
 
 template <class Context>
 struct OStream {
-    using ProgressFunctionT     = std::function<void(Context&, std::ostream&, uint64_t, const bool, const size_t, const char*)>; //std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name
+    using ProgressFunctionT     = std::function<void(Context&, std::ostream&, uint64_t, const bool, const size_t, const char*)>; // std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name
     uint64_t          max_size_ = std::numeric_limits<uint64_t>::max();
     ProgressFunctionT progress_function_;
 
@@ -333,7 +333,7 @@ inline constexpr auto factory = [](const auto& _rt, auto& _rctx, const TypeMapBa
     }
 };
 
-} //namespace metadata
-} //namespace v1
-} //namespace reflection
-} //namespace solid
+} // namespace metadata
+} // namespace v1
+} // namespace reflection
+} // namespace solid

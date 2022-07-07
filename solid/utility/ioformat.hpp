@@ -87,4 +87,4 @@ std::ostream& operator<<(std::ostream& _ros, Format<Sz> const& _rfmt)
     return _ros;
 }
 
-} //namespace solid
+} // namespace solid

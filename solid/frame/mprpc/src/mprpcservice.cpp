@@ -79,7 +79,7 @@ const EventCategory<PoolEvents> pool_event_category{
             return "unknown";
         }
     }};
-} //namespace
+} // namespace
 const LoggerT& service_logger()
 {
     return logger;
@@ -215,7 +215,7 @@ struct ConnectionPoolStub {
     uint16_t               pending_connection_count;
     uint16_t               active_connection_count;
     uint16_t               stopping_connection_count;
-    std::string            name; //because c_str() pointer is given to connection - name should allways be std::moved
+    std::string            name; // because c_str() pointer is given to connection - name should allways be std::moved
     ActorIdT               main_connection_id;
     MessageVectorT         msgvec;
     MessageOrderInnerListT msgorder_inner_list;
@@ -313,7 +313,7 @@ struct ConnectionPoolStub {
 
         rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rcomplete_fnc, _msg_url);
 
-        //solid_assert_log(rmsgstub.msgbundle.message_ptr.get(), logger);
+        // solid_assert_log(rmsgstub.msgbundle.message_ptr.get(), logger);
 
         return MessageId(idx, rmsgstub.unique);
     }
@@ -825,7 +825,7 @@ ErrorConditionT Service::doCreateConnectionPool(
     }
 
     if (impl_->namemap.find(recipient_name) == impl_->namemap.end()) {
-        //pool does not exist
+        // pool does not exist
         if (!impl_->conpoolcachestk.empty()) {
             pool_index = impl_->conpoolcachestk.top();
             impl_->conpoolcachestk.pop();
@@ -911,7 +911,7 @@ ErrorConditionT Service::doSendMessage(
 
     if (_rrecipient_id_in.isValidConnection()) {
         solid_assert_log(_precipient_id_out == nullptr, logger);
-        //directly send the message to a connection actor
+        // directly send the message to a connection actor
         return doSendMessageToConnection(
             _rrecipient_id_in,
             _rmsgptr,
@@ -940,7 +940,7 @@ ErrorConditionT Service::doSendMessage(
         }
     } else if (
         static_cast<size_t>(_rrecipient_id_in.pool_id_.index) < impl_->pooldq.size()) {
-        //we cannot check the uid right now because we need a lock on the pool's mutex
+        // we cannot check the uid right now because we need a lock on the pool's mutex
         check_uid  = true;
         pool_index = static_cast<size_t>(_rrecipient_id_in.pool_id_.index);
         unique     = _rrecipient_id_in.pool_id_.unique;
@@ -954,7 +954,7 @@ ErrorConditionT Service::doSendMessage(
     ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
     if (check_uid && rpool.unique != unique) {
-        //failed uid check
+        // failed uid check
         solid_log(logger, Error, this << " connection pool does not exist");
         error = error_service_pool_unknown;
         return error;
@@ -976,8 +976,8 @@ ErrorConditionT Service::doSendMessage(
         _precipient_id_out->pool_id_ = ConnectionPoolId(pool_index, rpool.unique);
     }
 
-    //At this point we can fetch the message from user's pointer
-    //because from now on we can call complete on the message
+    // At this point we can fetch the message from user's pointer
+    // because from now on we can call complete on the message
     const MessageId msgid = rpool.pushBackMessage(_rmsgptr, msg_type_idx, _rcomplete_fnc, _flags, message_url);
 
     if (_pmsgid_out != nullptr) {
@@ -1000,7 +1000,7 @@ ErrorConditionT Service::doSendMessage(
 
         if (success) {
             solid_log(logger, Verbose, this << " message " << msgid << " from pool " << pool_index << " sent for canceling to " << rpool.main_connection_id);
-            //erase/unlink the message from any list
+            // erase/unlink the message from any list
             if (rpool.msgorder_inner_list.contains(msgid.index)) {
                 rpool.eraseMessageOrderAsync(msgid.index);
             }
@@ -1046,7 +1046,7 @@ ErrorConditionT Service::doSendMessageToConnection(
     MessageFlagsT             _flags,
     std::string&              _msg_url)
 {
-    //d.mtx must be locked
+    // d.mtx must be locked
 
     solid_log(logger, Verbose, this);
 
@@ -1070,14 +1070,14 @@ ErrorConditionT Service::doSendMessageToConnection(
     lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
     ConnectionPoolStub&    rpool = impl_->pooldq[pool_index];
     solid::ErrorConditionT error;
-    const bool             is_server_side_pool = rpool.isServerSide(); //unnamed pool has a single connection
+    const bool             is_server_side_pool = rpool.isServerSide(); // unnamed pool has a single connection
 
     MessageId msgid;
 
     bool success = false;
 
     if (is_server_side_pool) {
-        //for a server pool we want to enque messages in the pool
+        // for a server pool we want to enque messages in the pool
         //
         msgid   = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, _msg_url);
         success = manager().notify(
@@ -1313,12 +1313,12 @@ ErrorConditionT Service::pollPoolForUpdates(
     bool       connection_may_handle_more_messages        = !_rconnection.isFull(configuration());
     const bool connection_can_handle_synchronous_messages = _ractuid == rpool.main_connection_id;
 
-    //We need to push as many messages as we can to the connection
-    //in order to handle eficiently the situation with multiple small messages.
+    // We need to push as many messages as we can to the connection
+    // in order to handle eficiently the situation with multiple small messages.
 
     if (!_rconnection.pendingMessageVector().empty()) {
-        //connection has pending messages
-        //fetch as many as we can
+        // connection has pending messages
+        // fetch as many as we can
         size_t count = 0;
 
         for (const auto& rmsgid : _rconnection.pendingMessageVector()) {
@@ -1339,7 +1339,7 @@ ErrorConditionT Service::pollPoolForUpdates(
     }
     if (_rconnection.isServer() || _rconnection.isActiveState()) {
         if (connection_can_handle_synchronous_messages) {
-            //use the order inner queue
+            // use the order inner queue
             while (!rpool.msgorder_inner_list.empty() && connection_may_handle_more_messages) {
                 connection_may_handle_more_messages = doTryPushMessageToConnection(
                     _rconnection,
@@ -1350,7 +1350,7 @@ ErrorConditionT Service::pollPoolForUpdates(
 
         } else {
 
-            //use the async inner queue
+            // use the async inner queue
             while (!rpool.msgasync_inner_list.empty() && connection_may_handle_more_messages) {
                 connection_may_handle_more_messages = doTryPushMessageToConnection(
                     _rconnection,
@@ -1359,15 +1359,15 @@ ErrorConditionT Service::pollPoolForUpdates(
                     rpool.msgasync_inner_list.frontIndex());
             }
         }
-        //a connection will either be in conn_waitingq
-        //or it will call pollPoolForUpdates asap.
-        //this is because we need to be able to notify connection about
-        //pool force close imeditely
+        // a connection will either be in conn_waitingq
+        // or it will call pollPoolForUpdates asap.
+        // this is because we need to be able to notify connection about
+        // pool force close imeditely
         if (!_rconnection.isInPoolWaitingQueue()) {
             rpool.conn_waitingq.push(_ractuid);
             _rconnection.setInPoolWaitingQueue();
         }
-    } //if active state
+    } // if active state
     return error;
 }
 //-----------------------------------------------------------------------------
@@ -1396,9 +1396,9 @@ bool Service::doTryNotifyPoolWaitingConnection(const size_t _pool_index)
     ConnectionPoolStub& rpool(impl_->pooldq[_pool_index]);
     bool                success = false;
 
-    //we were not able to handle the message, try notify another connection
+    // we were not able to handle the message, try notify another connection
     while (!success && !rpool.conn_waitingq.empty()) {
-        //a connection is waiting for something to send
+        // a connection is waiting for something to send
         ActorIdT actuid = rpool.conn_waitingq.front();
 
         rpool.conn_waitingq.pop();
@@ -1440,7 +1440,7 @@ ErrorConditionT Service::doDelayCloseConnectionPool(
     const MessageId msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, 0, empty_str);
     (void)msgid;
 
-    //notify all waiting connections about the new message
+    // notify all waiting connections about the new message
     while (!rpool.conn_waitingq.empty()) {
         ActorIdT actuid = rpool.conn_waitingq.front();
 
@@ -1486,8 +1486,8 @@ ErrorConditionT Service::doForceCloseConnectionPool(
     const MessageId msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, {MessageFlagsE::Synchronous}, empty_str);
     (void)msgid;
 
-    //no reason to cancel all messages - they'll be handled on connection stop.
-    //notify all waiting connections about the new message
+    // no reason to cancel all messages - they'll be handled on connection stop.
+    // notify all waiting connections about the new message
     while (!rpool.conn_waitingq.empty()) {
         ActorIdT actuid = rpool.conn_waitingq.front();
 
@@ -1523,7 +1523,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const& _rrecipient_id, Messag
             error = error_service_message_already_canceled;
         } else {
 
-            if (rmsgstub.actid.isValid()) { //message handled by a connection
+            if (rmsgstub.actid.isValid()) { // message handled by a connection
 
                 solid_log(logger, Verbose, this << " message " << _rmsg_id << " from pool " << pool_index << " is handled by connection " << rmsgstub.actid);
 
@@ -1558,7 +1558,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const& _rrecipient_id, Messag
 
                 if (success) {
                     solid_log(logger, Verbose, this << " message " << _rmsg_id << " from pool " << pool_index << " sent for canceling to " << rpool.main_connection_id);
-                    //erase/unlink the message from any list
+                    // erase/unlink the message from any list
                     if (rpool.msgorder_inner_list.contains(_rmsg_id.index)) {
                         rpool.eraseMessageOrderAsync(_rmsg_id.index);
                     }
@@ -1583,8 +1583,8 @@ ErrorConditionT Service::doConnectionNotifyEnterActiveState(
 
     ErrorConditionT error;
     bool            success = manager().notify(
-        _rrecipient_id.connectionId(),
-        Connection::eventEnterActive(std::move(_ucomplete_fnc), _send_buffer_capacity));
+                   _rrecipient_id.connectionId(),
+                   Connection::eventEnterActive(std::move(_ucomplete_fnc), _send_buffer_capacity));
 
     if (!success) {
         solid_log(logger, Warning, this << " failed notify enter active event to " << _rrecipient_id.connectionId());
@@ -1611,8 +1611,8 @@ ErrorConditionT Service::doConnectionNotifyPost(
 
     ErrorConditionT error;
     bool            success = manager().notify(
-        _rrecipient_id.connectionId(),
-        Connection::eventPost(std::move(_ucomplete_fnc)));
+                   _rrecipient_id.connectionId(),
+                   Connection::eventPost(std::move(_ucomplete_fnc)));
 
     if (!success) {
         solid_log(logger, Warning, this << " failed notify enter active event to " << _rrecipient_id.connectionId());
@@ -1631,8 +1631,8 @@ ErrorConditionT Service::doConnectionNotifyStartSecureHandshake(
 
     ErrorConditionT error;
     bool            success = manager().notify(
-        _rrecipient_id.connectionId(),
-        Connection::eventStartSecure(std::move(_ucomplete_fnc)));
+                   _rrecipient_id.connectionId(),
+                   Connection::eventStartSecure(std::move(_ucomplete_fnc)));
 
     if (!success) {
         solid_log(logger, Warning, this << " failed notify start secure event to " << _rrecipient_id.connectionId());
@@ -1651,8 +1651,8 @@ ErrorConditionT Service::doConnectionNotifyEnterPassiveState(
 
     ErrorConditionT error;
     bool            success = manager().notify(
-        _rrecipient_id.connectionId(),
-        Connection::eventEnterPassive(std::move(_ucomplete_fnc)));
+                   _rrecipient_id.connectionId(),
+                   Connection::eventEnterPassive(std::move(_ucomplete_fnc)));
 
     if (!success) {
         solid_log(logger, Warning, this << " failed notify enter passive event to " << _rrecipient_id.connectionId());
@@ -1672,8 +1672,8 @@ ErrorConditionT Service::doConnectionNotifySendRawData(
 
     ErrorConditionT error;
     bool            success = manager().notify(
-        _rrecipient_id.connectionId(),
-        Connection::eventSendRaw(std::move(_ucomplete_fnc), std::move(_rdata)));
+                   _rrecipient_id.connectionId(),
+                   Connection::eventSendRaw(std::move(_ucomplete_fnc), std::move(_rdata)));
 
     if (!success) {
         solid_log(logger, Warning, this << " failed notify send raw event to " << _rrecipient_id.connectionId());
@@ -1692,8 +1692,8 @@ ErrorConditionT Service::doConnectionNotifyRecvRawData(
 
     ErrorConditionT error;
     bool            success = manager().notify(
-        _rrecipient_id.connectionId(),
-        Connection::eventRecvRaw(std::move(_ucomplete_fnc)));
+                   _rrecipient_id.connectionId(),
+                   Connection::eventRecvRaw(std::move(_ucomplete_fnc)));
 
     if (!success) {
         solid_log(logger, Warning, this << " failed notify recv raw event to " << _rrecipient_id.connectionId());
@@ -1736,7 +1736,7 @@ bool Service::fetchCanceledMessage(Connection const& _rcon, MessageId const& _rm
             rpool.eraseMessageOrderAsync(_rmsg_id.index);
         }
 
-        //rmsgstub.msgbundle.message_flags.set(MessageFlagsE::Canceled);
+        // rmsgstub.msgbundle.message_flags.set(MessageFlagsE::Canceled);
         _rmsg_bundle = std::move(rmsgstub.msgbundle);
 
         rmsgstub.clear();
@@ -1811,17 +1811,17 @@ bool Service::connectionStopping(
         }
     }
     if (ppool != nullptr) {
-        //the call is safe because the current method is called from within a connection and
-        // the connection pool entry is released when the last connection calls
-        // Service::connectionStop
+        // the call is safe because the current method is called from within a connection and
+        //  the connection pool entry is released when the last connection calls
+        //  Service::connectionStop
         ppool->on_event_fnc(_rconctx, make_event(pool_event_category, PoolEvents::PoolDisconnect), _rerror);
     }
     if (retval && _rconctx.relayId().isValid()) {
-        //must call relayEngine.stopConnection here instead-of on Service::connectionStop
-        //because at that point, the connection actor cannot receive notifications
-        //as the call to Service::connectionStop is made after connection postStop
-        //and relay engines requires that all registered connections can be notified.
-        //See note on Connection::doHandleEventRelayNew and Connection::doHandleEventRelayDone
+        // must call relayEngine.stopConnection here instead-of on Service::connectionStop
+        // because at that point, the connection actor cannot receive notifications
+        // as the call to Service::connectionStop is made after connection postStop
+        // and relay engines requires that all registered connections can be notified.
+        // See note on Connection::doHandleEventRelayNew and Connection::doHandleEventRelayDone
         configuration().relayEngine().stopConnection(_rconctx.relayId());
     }
     return retval;
@@ -1842,7 +1842,7 @@ bool Service::doNonMainConnectionStopping(
     solid_log(logger, Info, this << ' ' << &_rcon << " pending = " << rpool.pending_connection_count << " active = " << rpool.active_connection_count << " is active = " << _rcon.isActiveState());
 
     if (_rmsg_bundle == nullptr) {
-        //cannot stop the connection right now - the connection has to clean its messages first
+        // cannot stop the connection right now - the connection has to clean its messages first
         return false;
     }
 
@@ -1868,7 +1868,7 @@ bool Service::doNonMainConnectionStopping(
         doTryCreateNewConnectionForPool(pool_index, error);
     }
 
-    return true; //the connection can call connectionStop asap
+    return true; // the connection can call connectionStop asap
 }
 //-----------------------------------------------------------------------------
 bool Service::doMainConnectionStoppingNotLast(
@@ -1885,7 +1885,7 @@ bool Service::doMainConnectionStoppingNotLast(
 
     solid_log(logger, Info, this << ' ' << &_rcon << " pending = " << rpool.pending_connection_count << " active = " << rpool.active_connection_count);
 
-    //it's the main connection but it is not the last one
+    // it's the main connection but it is not the last one
 
     _rseconds_to_wait = 1;
 
@@ -1993,13 +1993,13 @@ bool Service::doMainConnectionStoppingCleanAll(
         ++rpool.stopping_connection_count;
         rpool.resetCleaningAllMessages();
 
-        if (!rpool.name.empty() && !rpool.isClosing()) { //closing pools are already unregistered from namemap
+        if (!rpool.name.empty() && !rpool.isClosing()) { // closing pools are already unregistered from namemap
             impl_->namemap.erase(rpool.name.c_str());
             rpool.setClosing();
             solid_log(logger, Verbose, this << " pool " << pool_index << " set closing");
         }
 
-        return true; //TODO: maybe we should return false
+        return true; // TODO: maybe we should return false
     }
     return false;
 }
@@ -2013,7 +2013,7 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
     ErrorConditionT& /*_rerror*/
 )
 {
-    //the last connection
+    // the last connection
     const size_t        pool_index = static_cast<size_t>(_rcon.poolId().index);
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
 
@@ -2043,12 +2043,12 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
 
         ++rpool.stopping_connection_count;
 
-        if (!rpool.name.empty() && !rpool.isClosing()) { //closing pools are already unregistered from namemap
+        if (!rpool.name.empty() && !rpool.isClosing()) { // closing pools are already unregistered from namemap
             impl_->namemap.erase(rpool.name.c_str());
             rpool.setClosing();
             solid_log(logger, Verbose, this << " pool " << pool_index << " set closing");
         }
-        return true; //the connection can call connectionStop asap
+        return true; // the connection can call connectionStop asap
     }
     return false;
 }
@@ -2062,13 +2062,13 @@ bool Service::doMainConnectionStoppingPrepareCleanAll(
     ErrorConditionT& /*_rerror*/
 )
 {
-    //the last connection - fast closing or server side
+    // the last connection - fast closing or server side
     const size_t        pool_index = static_cast<size_t>(_rcon.poolId().index);
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
 
     solid_log(logger, Info, this << ' ' << &_rcon << " pending = " << rpool.pending_connection_count << " active = " << rpool.active_connection_count);
 
-    if (!rpool.name.empty() && !rpool.isClosing()) { //closing pools are already unregistered from namemap
+    if (!rpool.name.empty() && !rpool.isClosing()) { // closing pools are already unregistered from namemap
         impl_->namemap.erase(rpool.name.c_str());
     }
 
@@ -2169,14 +2169,14 @@ void Service::connectionStop(ConnectionContext& _rconctx)
 
         lock2.unlock();
 
-        //do not call callback under lock
+        // do not call callback under lock
         if (!solid_function_empty(rpool.on_event_fnc) && _rconctx.connection().isConnected()) {
             rpool.on_event_fnc(_rconctx, make_event(pool_event_category, PoolEvents::ConnectionStop), ErrorConditionT());
         }
 
         configuration().connection_stop_fnc(_rconctx);
 
-        //we might need to release the connectionpool entry - so we need the main lock
+        // we might need to release the connectionpool entry - so we need the main lock
         lock_guard<std::mutex> lock(impl_->mtx);
 
         lock2.lock();
@@ -2186,7 +2186,7 @@ void Service::connectionStop(ConnectionContext& _rconctx)
             solid_assert_log(rpool.msgorder_inner_list.empty(), logger);
             impl_->conpoolcachestk.push(pool_index);
 
-            if (!rpool.name.empty() && !rpool.isClosing()) { //closing pools are already unregistered from namemap
+            if (!rpool.name.empty() && !rpool.isClosing()) { // closing pools are already unregistered from namemap
                 impl_->namemap.erase(rpool.name.c_str());
             }
 
@@ -2233,7 +2233,7 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
                 configuration().client.name_resolve_fnc(rpool.name, cbk);
 
             } else {
-                //use the rest of the already resolved addresses
+                // use the rest of the already resolved addresses
                 Event event = Connection::eventResolve();
 
                 event.any().emplace<ResolveMessage>(std::move(rpool.connect_addr_vec));
@@ -2274,7 +2274,7 @@ void Service::forwardResolveMessage(ConnectionPoolId const& _rpoolid, Event& _re
                 solid_log(logger, Info, this << ' ' << conuid << " " << error.message());
             }
         } else {
-            //enough pending connection - cache the addrvec for later use
+            // enough pending connection - cache the addrvec for later use
             rpool.connect_addr_vec = std::move(presolvemsg->addrvec);
         }
     } else {
@@ -2289,7 +2289,7 @@ void Service::doFetchResendableMessagesFromConnection(
 {
 
     solid_log(logger, Verbose, this << " " << &_rcon);
-    //the final front message in msgorder_inner_list should be the oldest one from connection
+    // the final front message in msgorder_inner_list should be the oldest one from connection
     _rcon.fetchResendableMessages(*this,
         [this](
             const ConnectionPoolId& _rpool_id,
@@ -2374,7 +2374,7 @@ ErrorConditionT Service::activateConnection(ConnectionContext& _rconctx, ActorId
             rpool.resetMainConnectionStopping();
             rpool.setMainConnectionActive();
 
-            //return error;
+            // return error;
         } else {
 
             const size_t new_active_connection_count = rpool.active_connection_count + 1;
@@ -2476,12 +2476,12 @@ void Service::onOutgoingConnectionStart(ConnectionContext& _rconctx)
         }
     }
 
-    //first call the more general function
+    // first call the more general function
     configuration().client.connection_start_fnc(_rconctx);
 
     if (ppool != nullptr) {
-        //it should be safe using the pool right now because it is used
-        // from within a pool's connection
+        // it should be safe using the pool right now because it is used
+        //  from within a pool's connection
         ppool->on_event_fnc(_rconctx, make_event(pool_event_category, PoolEvents::ConnectionStart), ErrorConditionT());
     }
 }
@@ -2573,6 +2573,6 @@ std::ostream& operator<<(std::ostream& _ros, MessageId const& _msg_id)
     return _ros;
 }
 //=============================================================================
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

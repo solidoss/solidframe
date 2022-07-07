@@ -39,7 +39,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Prepare the external path
 #-----------------------------------------------------------------
 
-set(EXTERNAL_DIR "${EXTERNAL_DIR}" CACHE PATH "External dependencies directory")
+set(EXTERNAL_DIR "" CACHE PATH "External dependencies directory")
 
 message("Install directory: \"${CMAKE_INSTALL_PREFIX}\"")
 message("External directory: \"${EXTERNAL_DIR}\"")
@@ -87,6 +87,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "debug")
     set(CMAKE_CONFIGURATION_TYPES "debug")
     set(CONFIGURATION_TYPE "debug")
 endif(CMAKE_BUILD_TYPE STREQUAL "debug")
+
+set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}" CACHE STRING
+     "Add the native configuration"
+     FORCE)
+mark_as_advanced(CMAKE_CONFIGURATION_TYPES)
 
 set(SOLID_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
 set(SOLID_VERSION_MINOR ${PROJECT_VERSION_MINOR})

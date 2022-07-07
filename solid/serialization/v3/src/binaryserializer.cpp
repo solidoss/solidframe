@@ -80,7 +80,7 @@ void SerializerBase::tryRun(Runnable&& _ur, void* _pctx)
     const RunListIteratorT it = schedule(std::move(_ur));
 
     if (it == run_lst_.cbegin()) {
-        //we try run the function on spot
+        // we try run the function on spot
         Runnable& rr = run_lst_.front();
         ReturnE   v  = rr.call_(*this, rr, _pctx);
         if (v == ReturnE::Done) {
@@ -150,7 +150,7 @@ Base::ReturnE SerializerBase::store_stream(SerializerBase& _rs, Runnable& _rr, v
     _rs.pcrt_ += toread;
     _rr.data_ += toread;
 
-    const bool done = (toread == 0); //we need to have written a final toread == 0
+    const bool done = (toread == 0); // we need to have written a final toread == 0
 
     if (_rr.size_ != InvalidSize()) {
         _rr.size_ -= toread;
@@ -171,7 +171,7 @@ Base::ReturnE SerializerBase::store_stream(SerializerBase& _rs, Runnable& _rr, v
     return ReturnE::Done;
 }
 
-} //namespace binary
-} //namespace v3
-} //namespace serialization
-} //namespace solid
+} // namespace binary
+} // namespace v3
+} // namespace serialization
+} // namespace solid

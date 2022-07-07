@@ -54,7 +54,7 @@ int test_perf_workpool_lockfree(int argc, char* argv[])
                     ++received_events;
                     accumulate_value += *_event.any().cast<size_t>();
                 }
-                //solid_log(logger, Verbose, "job " << _r.value_);
+                // solid_log(logger, Verbose, "job " << _r.value_);
             }};
         for (size_t i = 0; i < event_count; ++i) {
             wp.push(make_event(GenericEvents::Raise, i));

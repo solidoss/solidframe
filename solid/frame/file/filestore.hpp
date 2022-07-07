@@ -86,8 +86,8 @@ struct File {
         return fd.open(_path, _openflags);
     }
 
-    //We only offer offset based io because in case of shared use
-    //the file offset will be kept by streams
+    // We only offer offset based io because in case of shared use
+    // the file offset will be kept by streams
 
     ssize_t read(char* _pb, size_t _bl, int64_t _off)
     {
@@ -237,7 +237,7 @@ struct Utf8Controller {
     Utf8Controller(const Utf8Configuration& _rfilecfg, const TempConfiguration& _rtempcfg);
     ~Utf8Controller();
 
-    //NOTE: it would have been nice to have all the below methods as protected
+    // NOTE: it would have been nice to have all the below methods as protected
     bool clear(shared::StoreBase::Accessor& _rsbacc, File& _rf, const size_t _idx);
     bool executeBeforeErase(shared::StoreBase::Accessor& _rsbacc);
     void executeOnSignal(shared::StoreBase::Accessor& _rsbacc, ulong _sm);
@@ -320,7 +320,7 @@ public:
     {
     }
 
-    //If a file with _path already exists in the store, the call will be similar with open with truncate openflag
+    // If a file with _path already exists in the store, the call will be similar with open with truncate openflag
     template <class Cmd>
     bool requestCreateFile(Cmd const& _cmd, std::string const& _path, const size_t _openflags = 0, const size_t _flags = 0)
     {
@@ -358,6 +358,6 @@ inline void CreateTempCommandBase::openTemp(Utf8Controller& _rstore, FilePointer
     _rstore.openTemp(*this, _rptr, _rerr);
 }
 
-} //namespace file
-} //namespace frame
-} //namespace solid
+} // namespace file
+} // namespace frame
+} // namespace solid

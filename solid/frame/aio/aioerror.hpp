@@ -39,6 +39,6 @@ extern const ErrorCodeT error_secure_accept;
 extern const ErrorCodeT error_secure_connect;
 extern const ErrorCodeT error_secure_shutdown;
 
-} //namespace aio
-} //namespace frame
-} //namespace solid
+} // namespace aio
+} // namespace frame
+} // namespace solid

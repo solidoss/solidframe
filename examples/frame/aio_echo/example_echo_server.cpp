@@ -138,7 +138,7 @@ protected:
 
 protected:
     typedef frame::aio::Stream<frame::aio::Socket> StreamSocketT;
-    //typedef frame::aio::Timer                         TimerT;
+    // typedef frame::aio::Timer                         TimerT;
     enum { BufferCapacity = 1024 * 2 };
 
     char          buf[BufferCapacity];
@@ -146,7 +146,7 @@ protected:
     uint64_t      recvcnt;
     uint64_t      sendcnt;
     size_t        sendcrt;
-    //TimerT            timer;
+    // TimerT            timer;
 };
 
 class ClientConnection : public Connection {
@@ -290,7 +290,7 @@ int main(int argc, char* argv[])
             cin.ignore();
         }
 
-        //m.stop();
+        // m.stop();
     }
     return 0;
 }
@@ -323,7 +323,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
     solid_log(generic_logger, Info, "event = " << _revent);
     if (generic_event_start == _revent) {
         sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));
-        //sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
+        // sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
         ptimer = new TimerT(this->proxy());
         ptimer->waitUntil(_rctx, _rctx.steadyTime() + std::chrono::seconds(2), [this](frame::aio::ReactorContext& _rctx) { return onTimer(_rctx); });
     } else if (generic_event_kill == _revent) {
@@ -358,8 +358,8 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             cout << "Accepted connection: " << _rsd.descriptor() << endl;
 #endif
         } else {
-            //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
-            //timer.waitFor(_rctx, std::chrono::seconds(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
+            // e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
+            // timer.waitFor(_rctx, std::chrono::seconds(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
             break;
         }
         --repeatcnt;
@@ -368,7 +368,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     if (!repeatcnt) {
         sock.postAccept(
             _rctx,
-            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); //fully asynchronous call
+            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); // fully asynchronous call
     }
 }
 
@@ -380,7 +380,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
     solid_log(generic_logger, Error, this << " event = " << _revent);
     if (generic_event_start == _revent) {
-        sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
+        sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); // fully asynchronous call
     } else if (generic_event_kill == _revent) {
         solid_log(generic_logger, Error, this << " postStop");
         sock.shutdown(_rctx);
@@ -420,7 +420,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     solid_log(generic_logger, Info, &rthis << " " << repeatcnt);
 
     if (repeatcnt == 0) {
-        bool rv = rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
+        bool rv = rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); // fully asynchronous call
         solid_assert(!rv);
     }
 }
@@ -431,7 +431,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, &rthis << " postRecvSome");
         rthis.sendcnt += rthis.sendcrt;
-        rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
+        rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); // fully asynchronous call
     } else {
         solid_log(generic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt);
         rthis.postStop(_rctx);
@@ -472,7 +472,7 @@ void ClientConnection::onConnect(frame::aio::ReactorContext& _rctx)
 {
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, this << " SUCCESS");
-        sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
+        sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); // fully asynchronous call
     } else {
         solid_log(generic_logger, Error, this << " postStop " << recvcnt << " " << sendcnt << " " << _rctx.systemError().message());
         postStop(_rctx);
@@ -489,7 +489,7 @@ void ClientConnection::onConnect(frame::aio::ReactorContext& _rctx)
 {
     solid_log(generic_logger, Info, this << " event = " << _revent);
     if (generic_event_start == _revent) {
-        sock.postRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3)); //fully asynchronous call
+        sock.postRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3)); // fully asynchronous call
     } else if (generic_event_kill == _revent) {
         solid_log(generic_logger, Error, this << " postStop");
         postStop(_rctx);
@@ -520,7 +520,7 @@ void Talker::onRecv(frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, si
 
     solid_log(generic_logger, Info, repeatcnt);
     if (repeatcnt == 0) {
-        bool rv = sock.postRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3)); //fully asynchronous call
+        bool rv = sock.postRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3)); // fully asynchronous call
         solid_assert(!rv);
     }
 }
@@ -528,7 +528,7 @@ void Talker::onRecv(frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, si
 void Talker::onSend(frame::aio::ReactorContext& _rctx)
 {
     if (!_rctx.error()) {
-        sock.postRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3)); //fully asynchronous call
+        sock.postRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3)); // fully asynchronous call
     } else {
         postStop(_rctx);
     }

@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
                 if (_rrecv_msg_ptr) {
                     cout << _rrecv_msg_ptr->name << ": " << _rrecv_msg_ptr->data << endl;
                     if (!_rsent_msg_ptr) {
-                        //we're on peer - echo back the response
+                        // we're on peer - echo back the response
                         _rrecv_msg_ptr->name = p.name;
                         ErrorConditionT err  = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 

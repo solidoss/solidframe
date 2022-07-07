@@ -113,7 +113,7 @@ void connection_unregister(uint32_t _id)
     connection_uid(_id);
 }
 
-} //namespace
+} // namespace
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
@@ -340,8 +340,8 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
             rsch.startActor(make_shared<Connection>(std::move(_rsd)), rsvc, make_event(GenericEvents::Start), err);
         } else {
-            //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
-            //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
+            // e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
+            // timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
             break;
         }
         --repeatcnt;
@@ -350,7 +350,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     if (!repeatcnt) {
         sock.postAccept(
             _rctx,
-            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); //fully asynchronous call
+            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); // fully asynchronous call
     }
 }
 
@@ -408,7 +408,7 @@ struct MoveMessage {
     solid_log(generic_logger, Error, this << " " << _revent);
     if (generic_event_start == _revent) {
         if (params.connect_addr_str.size()) {
-            //we must resolve the address then connect
+            // we must resolve the address then connect
             solid_log(generic_logger, Info, "async_resolve = " << params.connect_addr_str << " " << params.connect_port_str);
             async_resolver().requestResolve(
                 ResolvFunc(_rctx.manager(), _rctx.manager().id(*this)), params.connect_addr_str.c_str(),
@@ -443,7 +443,7 @@ struct MoveMessage {
         if (presolvemsg) {
             if (presolvemsg->empty()) {
                 solid_log(generic_logger, Error, this << " postStop");
-                //sock.shutdown(_rctx);
+                // sock.shutdown(_rctx);
                 postStop(_rctx);
             } else {
                 if (sock2.connect(_rctx, presolvemsg->begin(), std::bind(&Connection::onConnect, this, _1))) {
@@ -498,7 +498,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
     } while (repeatcnt && rthis.sock1.recvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1, _sz));
 
     if (repeatcnt == 0) {
-        bool rv = rthis.sock1.postRecvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1); //fully asynchronous call
+        bool rv = rthis.sock1.postRecvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1); // fully asynchronous call
         solid_assert(!rv);
     }
 }
@@ -529,7 +529,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
     } while (repeatcnt && rthis.sock2.recvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2, _sz));
 
     if (repeatcnt == 0) {
-        bool rv = rthis.sock2.postRecvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2); //fully asynchronous call
+        bool rv = rthis.sock2.postRecvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2); // fully asynchronous call
         solid_assert(!rv);
     }
 }
@@ -585,13 +585,13 @@ void Connection::onRecvId(frame::aio::ReactorContext& _rctx, size_t _off, size_t
             solid_log(generic_logger, Info, this << " received idx = " << idx);
         }
         if (idx == crtid || idx == InvalidIndex()) {
-            //wait for a peer connection
+            // wait for a peer connection
             buf1[0] = _sz - i;
             buf1[1] = i;
             memcpy(buf1 + 1, buf2 + i, _sz - i);
             connection_register(crtid, _rctx.manager().id(*this));
         } else {
-            //move to a peer connection
+            // move to a peer connection
             frame::ActorIdT actid = connection_uid(idx);
             Event           ev(make_event(GenericEvents::Message));
             SocketDevice    sd(sock1.reset(_rctx));
@@ -602,7 +602,7 @@ void Connection::onRecvId(frame::aio::ReactorContext& _rctx, size_t _off, size_t
             postStop(_rctx);
         }
     } else {
-        //not found
+        // not found
         if (_sz < 12) {
             _off = _sz;
             sock1.postRecvSome(_rctx, buf2 + _sz, 12 - _sz, [this, _off](frame::aio::ReactorContext& _rctx, size_t _sz) { return onRecvId(_rctx, _off, _sz); });

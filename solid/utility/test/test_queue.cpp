@@ -10,7 +10,7 @@ using namespace std;
 
 struct Node {
     using Storage = typename std::aligned_storage<sizeof(Event), alignof(Event)>::type;
-    //unsigned char data[sizeof(Event)];
+    // unsigned char data[sizeof(Event)];
     Storage data[10];
     void*   pv_;
 };
@@ -111,11 +111,11 @@ int test_queue(int args, char* argv[])
     solid::log_start(std::cerr, {".*:VIEWXS"});
 
     using EventQueueT = Queue<ExecStub>;
-    //using EventQueueT = queue<Event>;
+    // using EventQueueT = queue<Event>;
     EventQueueT eventq;
 
-    //void * pv;
-    //unsigned char buf[sizeof(Event)];
+    // void * pv;
+    // unsigned char buf[sizeof(Event)];
 
     auto pn = new Node;
 
@@ -126,7 +126,7 @@ int test_queue(int args, char* argv[])
 
     new (std::launder(reinterpret_cast<Event*>(&pn->data[0]))) Event(make_event(GenericEvents::Default));
 
-    //new (std::launder(reinterpret_cast<Event*>(&pn->data[0]))) Event(make_event(GenericEvents::Default));
+    // new (std::launder(reinterpret_cast<Event*>(&pn->data[0]))) Event(make_event(GenericEvents::Default));
 
     size_t v = 0;
     for (int i = 0; i < 100; ++i) {

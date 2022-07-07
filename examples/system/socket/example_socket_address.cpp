@@ -78,10 +78,10 @@ int main(int argc, char* argv[])
     int type   = SocketInfo::Stream;
     int proto  = 0;
 
-    //list all the local interfaces
+    // list all the local interfaces
     listLocalInterfaces();
 
-    //SocketAddressInfo ai(node, srv);
+    // SocketAddressInfo ai(node, srv);
     ResolveData     rd = synchronous_resolve(node, srv, flags, family, type, proto);
     ResolveIterator it(rd.begin());
     while (it != rd.end()) {
@@ -262,7 +262,7 @@ void listLocalInterfaces()
     char            srvc[128];
 
     while (it) {
-        //sockaddr_in *addr;
+        // sockaddr_in *addr;
         if (it->ifa_addr && it->ifa_addr->sa_family == AF_INET) {
             struct sockaddr_in* addr = reinterpret_cast<struct sockaddr_in*>(it->ifa_addr);
             if (addr->sin_addr.s_addr != 0) {

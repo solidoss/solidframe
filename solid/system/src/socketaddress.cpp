@@ -146,4 +146,4 @@ std::ostream& operator<<(std::ostream& _ros, const SocketAddress& _rsa)
     return _ros;
 }
 
-} //namespace solid
+} // namespace solid

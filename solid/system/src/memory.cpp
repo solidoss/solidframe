@@ -24,7 +24,7 @@
 namespace {
 size_t getMemorySize();
 size_t getMemoryPageSize();
-} //namespace
+} // namespace
 
 namespace solid {
 
@@ -62,7 +62,7 @@ size_t memory_size()
     return getMemorySize();
 }
 
-} //namespace solid
+} // namespace solid
 
 namespace {
 /**
@@ -175,4 +175,4 @@ size_t getMemorySize()
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-} //namespace
+} // namespace

@@ -25,13 +25,13 @@ public:
     typedef int DescriptorT;
 #endif
 
-    //!Copy constructor
+    //! Copy constructor
     SocketDevice(SocketDevice&& _sd) noexcept;
-    //!Basic constructor
+    //! Basic constructor
     SocketDevice();
-    //!Destructor
+    //! Destructor
     ~SocketDevice();
-    //!Assign operator
+    //! Assign operator
     SocketDevice& operator=(SocketDevice&& _dev) noexcept;
     //! Shutdown reading
     void shutdownRead();
@@ -77,14 +77,14 @@ public:
 
     ErrorCodeT hasNoDelay(bool& _rrv) const;
 
-    ErrorCodeT enableCork(); //TCP_CORK - only on linux, TCP_NOPUSH on FreeBSD
+    ErrorCodeT enableCork(); // TCP_CORK - only on linux, TCP_NOPUSH on FreeBSD
     ErrorCodeT disableCork();
     ErrorCodeT hasCork(bool& _rrv) const;
 
     ErrorCodeT enableLoopbackFastPath();
 
-    //ErrorCodeT sendBufferSize(size_t _sz);
-    //ErrorCodeT recvBufferSize(size_t _sz);
+    // ErrorCodeT sendBufferSize(size_t _sz);
+    // ErrorCodeT recvBufferSize(size_t _sz);
     ErrorCodeT sendBufferSize(int& _rrv);
     ErrorCodeT recvBufferSize(int& _rrv);
 
@@ -122,7 +122,7 @@ public:
     //! Get the socket type
     ErrorCodeT type(int& _rrv) const;
     //! Return true if the socket is listening
-    //bool isListening()const;
+    // bool isListening()const;
 
 private:
     SocketDevice(const SocketDevice& _dev);
@@ -186,4 +186,4 @@ std::ostream& operator<<(std::ostream& _ros, const RemoteAddressPlot& _ra);
 std::ostream& operator<<(std::ostream& _ros, const LocalEndpointPlot& _ra);
 std::ostream& operator<<(std::ostream& _ros, const RemoteEndpointPlot& _ra);
 
-} //namespace solid
+} // namespace solid

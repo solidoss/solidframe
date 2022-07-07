@@ -59,4 +59,4 @@ struct cstring {
     }
 };
 
-} //namespace solid
+} // namespace solid

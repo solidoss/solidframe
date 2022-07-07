@@ -50,27 +50,27 @@ void restore_signal_handler(int signal_number);
 /// call example:
 ///  g3::overrideSetupSignals({ {SIGABRT, "SIGABRT"}, {SIGFPE, "SIGFPE"},{SIGILL, "SIGILL"},
 //                          {SIGSEGV, "SIGSEGV"},});
-//void override_setup_signals(const std::map<int, std::string> overrideSignals);
+// void override_setup_signals(const std::map<int, std::string> overrideSignals);
 #endif
 
 namespace internal {
 /** return whether or any fatal handling is still ongoing
-       *  this is used by g3log::fatalCallToLogger
-       *  only in the case of Windows exceptions (not fatal signals)
-       *  are we interested in changing this from false to true to
-       *  help any other exceptions handler work with 'EXCEPTION_CONTINUE_SEARCH'*/
+ *  this is used by g3log::fatalCallToLogger
+ *  only in the case of Windows exceptions (not fatal signals)
+ *  are we interested in changing this from false to true to
+ *  help any other exceptions handler work with 'EXCEPTION_CONTINUE_SEARCH'*/
 bool should_block_for_fatal_handling();
 
 /** \return signal_name Ref: signum.hpp and \ref installSignalHandler
-      *  or for Windows exception name */
+ *  or for Windows exception name */
 std::string exit_reason_name(const char* _text, SignalType signal_number);
 
 /** return calling thread's stackdump*/
 std::string stackdump(const char* dump = nullptr);
 
 /** Re-"throw" a fatal signal, previously caught. This will exit the application
-       * This is an internal only function. Do not use it elsewhere. It is triggered
-       * from g3log, g3LogWorker after flushing messages to file */
-//void exit_with_default_signal_handler(const LEVELS& level, g3::SignalType signal_number);
-} //namespace internal
-} //namespace solid
+ * This is an internal only function. Do not use it elsewhere. It is triggered
+ * from g3log, g3LogWorker after flushing messages to file */
+// void exit_with_default_signal_handler(const LEVELS& level, g3::SignalType signal_number);
+} // namespace internal
+} // namespace solid

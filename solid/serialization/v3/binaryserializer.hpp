@@ -115,7 +115,7 @@ public:
         return run_lst_.empty();
     }
 
-public: //should be protected
+public: // should be protected
     inline void addBasic(const bool& _rb, const char* _name)
     {
         solid_log(logger, Info, _name);
@@ -364,7 +364,7 @@ public: //should be protected
             typename C::const_iterator it = _rc.cbegin();
 
             while (_rs.pcrt_ != _rs.pend_ && it != _rc.cend()) {
-                _rs.add(*it, _rctx, 0, _name); //TODO: use index instead of 0
+                _rs.add(*it, _rctx, 0, _name); // TODO: use index instead of 0
                 ++it;
             }
 
@@ -376,7 +376,7 @@ public: //should be protected
                     const RunListIteratorT old_sentinel = _rs.sentinel();
 
                     while (_rs.pcrt_ != _rs.pend_ && it != rcontainer.cend()) {
-                        rs.add(*it, rctx, 0, _rr.name_); //TODO: use index instead of 0
+                        rs.add(*it, rctx, 0, _rr.name_); // TODO: use index instead of 0
                         ++it;
                     }
 
@@ -605,7 +605,7 @@ private:
             const std::bitset<N>& bs = *reinterpret_cast<const std::bitset<N>*>(_rr.ptr_);
 
             if ((towrite & 7) != 0) {
-                *(_rs.pcrt_ + (towrite >> 3)) = 0; //reset the last byte entirely - valgrind complains about it
+                *(_rs.pcrt_ + (towrite >> 3)) = 0; // reset the last byte entirely - valgrind complains about it
             }
 
             for (size_t i = 0; i < towrite; ++i) {
@@ -791,8 +791,8 @@ public:
     template <typename T>
     auto& add(T&& _rt, Context& _rctx)
     {
-        //static_assert(std::is_invocable_v<T, ThisT &, Context&>, "Parameter should be invocable");
-        //std::invoke(_rt, *this, _rctx);
+        // static_assert(std::is_invocable_v<T, ThisT &, Context&>, "Parameter should be invocable");
+        // std::invoke(_rt, *this, _rctx);
         this->addFunction(*this, std::forward<T>(_rt), _rctx, "function");
         return *this;
     }
@@ -978,7 +978,7 @@ private:
             solid_assert(ptypemap != nullptr);
             const auto index_tuple = ptypemap->id(_rt.get());
             if constexpr (is_std_pair_v<TypeId>) {
-                type_id_.first  = static_cast<decltype(type_id_.first)>(std::get<1>(index_tuple)); //the category
+                type_id_.first  = static_cast<decltype(type_id_.first)>(std::get<1>(index_tuple)); // the category
                 type_id_.second = static_cast<decltype(type_id_.second)>(std::get<2>(index_tuple));
             } else {
                 type_id_ = static_cast<decltype(type_id_)>(std::get<2>(index_tuple));
@@ -997,7 +997,7 @@ private:
             addArray(*this, _rt, _meta.size_, _rctx, _meta.max_size_, _name);
         } else if constexpr (std::is_array_v<T>) {
 
-            //TODO:
+            // TODO:
         } else if constexpr (is_container_v<T>) {
             addContainer(*this, _rt, _meta.max_size_, _rctx, _name);
         } else {
@@ -1019,7 +1019,7 @@ inline std::ostream& operator>>(std::ostream& _ros, std::pair<S&, typename S::Co
     return _ser.first.run(_ros, _ser.second);
 }
 
-} //namespace binary
-} //namespace v3
-} //namespace serialization
-} //namespace solid
+} // namespace binary
+} // namespace v3
+} // namespace serialization
+} // namespace solid

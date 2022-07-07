@@ -88,9 +88,9 @@ MessageIdVectorT       msgid_vec;
 
 bool try_stop()
 {
-    //writecount messages were sent by peera
-    //cancelable_created_count were realy canceld on peera
-    //2xcancelable_created_count == cancelable_deleted_count
+    // writecount messages were sent by peera
+    // cancelable_created_count were realy canceld on peera
+    // 2xcancelable_created_count == cancelable_deleted_count
     //
     solid_dbg(generic_logger, Warning, "writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " cancelable_created_cnt = " << cancelable_created_count << " cancelable_deleted_cnt = " << cancelable_deleted_count << " response_cnt = " << response_count);
     if (
@@ -105,7 +105,7 @@ bool try_stop()
 
 size_t real_size(size_t _sz)
 {
-    //offset + (align - (offset mod align)) mod align
+    // offset + (align - (offset mod align)) mod align
     return _sz + ((sizeof(uint64_t) - (_sz % sizeof(uint64_t))) % sizeof(uint64_t));
 }
 
@@ -180,8 +180,8 @@ struct Message : frame::mprpc::Message {
         _rr.add([&_rthis](Reflector& _rr, frame::mprpc::ConnectionContext& _rctx) {
             if (_rthis.cancelable() && _rthis.isBackOnSender()) {
                 solid_dbg(generic_logger, Info, "Cancel message: " << _rthis.idx << " " << msgid_vec[_rthis.idx].second);
-                //we're on the peerb,
-                //we now cancel the message on peer a
+                // we're on the peerb,
+                // we now cancel the message on peer a
                 pmprpcpeera->cancelMessage(msgid_vec[_rthis.idx].first, msgid_vec[_rthis.idx].second);
             }
         },
@@ -203,7 +203,7 @@ struct Message : frame::mprpc::Message {
         const uint64_t* pup          = reinterpret_cast<const uint64_t*>(pattern.data());
         const size_t    pattern_size = pattern.size() / sizeof(uint64_t);
         for (uint64_t i = 0; i < count; ++i) {
-            pu[i] = pup[(idx + i) % pattern_size]; //pattern[i % pattern.size()];
+            pu[i] = pup[(idx + i) % pattern_size]; // pattern[i % pattern.size()];
         }
     }
 
@@ -214,7 +214,7 @@ struct Message : frame::mprpc::Message {
         if (sz != str.size()) {
             return false;
         }
-        //return true;
+        // return true;
         const size_t    count        = sz / sizeof(uint64_t);
         const uint64_t* pu           = reinterpret_cast<const uint64_t*>(str.data());
         const uint64_t* pup          = reinterpret_cast<const uint64_t*>(pattern.data());
@@ -269,7 +269,7 @@ void peera_complete_message(
         solid_throw("Message check failed.");
     }
 
-    //cout<< _rmsgptr->str.size()<<'\n';
+    // cout<< _rmsgptr->str.size()<<'\n';
     transfered_size += _rrecv_msg_ptr->str.size();
     ++transfered_count;
 
@@ -339,7 +339,7 @@ void peerb_complete_message(
             solid_throw("Message not relayed!.");
         }
 
-        //send message back
+        // send message back
         if (_rctx.recipientId().isInvalidConnection()) {
             solid_assert(false);
             solid_throw("Connection id should not be invalid!");
@@ -369,7 +369,7 @@ void peerb_complete_message(
     }
 }
 //-----------------------------------------------------------------------------
-} //namespace
+} // namespace
 
 int test_relay_cancel_response(int argc, char* argv[])
 {
@@ -425,7 +425,7 @@ int test_relay_cancel_response(int argc, char* argv[])
         AioSchedulerT                         sch_peerb;
         AioSchedulerT                         sch_relay;
         frame::Manager                        m;
-        frame::mprpc::relay::SingleNameEngine relay_engine(m); //before relay service because it must overlive it
+        frame::mprpc::relay::SingleNameEngine relay_engine(m); // before relay service because it must overlive it
         frame::mprpc::ServiceT                mprpcrelay(m);
         frame::mprpc::ServiceT                mprpcpeera(m);
         frame::mprpc::ServiceT                mprpcpeerb(m);
@@ -439,7 +439,7 @@ int test_relay_cancel_response(int argc, char* argv[])
 
         std::string relay_port;
 
-        { //mprpc relay initialization
+        { // mprpc relay initialization
             auto con_start = [](frame::mprpc::ConnectionContext& _rctx) {
                 solid_dbg(generic_logger, Info, _rctx.recipientId());
             };
@@ -515,7 +515,7 @@ int test_relay_cancel_response(int argc, char* argv[])
         pmprpcpeera = &mprpcpeera;
         pmprpcpeerb = &mprpcpeerb;
 
-        { //mprpc peera initialization
+        { // mprpc peera initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -551,7 +551,7 @@ int test_relay_cancel_response(int argc, char* argv[])
             mprpcpeera.start(std::move(cfg));
         }
 
-        { //mprpc peerb initialization
+        { // mprpc peerb initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -591,7 +591,7 @@ int test_relay_cancel_response(int argc, char* argv[])
 
         writecount = 2 * initarraysize; // initarraysize * 2; //start_count;//
 
-        //ensure we have provisioned connections on peerb
+        // ensure we have provisioned connections on peerb
         err = mprpcpeerb.createConnectionPool("localhost");
         solid_check(!err, "failed create connection from peerb: " << err.message());
 
@@ -615,7 +615,7 @@ int test_relay_cancel_response(int argc, char* argv[])
         }
     }
 
-    //exiting
+    // exiting
 
     std::cout << "Transfered size = " << (transfered_size * 2) / 1024 << "KB" << endl;
     std::cout << "Transfered count = " << transfered_count << endl;

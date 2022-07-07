@@ -15,8 +15,8 @@
 
 namespace solid {
 
-//from https://stackoverflow.com/questions/7943525/is-it-possible-to-figure-out-the-parameter-type-and-return-type-of-a-lambda
-//and thrill/common/function_traits.hpp: http://project-thrill.org/docs/master/function__traits_8hpp_source.html
+// from https://stackoverflow.com/questions/7943525/is-it-possible-to-figure-out-the-parameter-type-and-return-type-of-a-lambda
+// and thrill/common/function_traits.hpp: http://project-thrill.org/docs/master/function__traits_8hpp_source.html
 
 template <typename T>
 struct function_traits : public function_traits<decltype(&T::operator())> {
@@ -48,4 +48,4 @@ struct function_traits<ReturnType (*)(Args...)> {
     using argument = typename std::tuple_element<i, arguments>::type;
 };
 
-} //namespace solid
+} // namespace solid

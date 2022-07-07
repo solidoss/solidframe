@@ -66,7 +66,7 @@ frame::mprpc::RecipientId recipinet_id;
 
 size_t real_size(size_t _sz)
 {
-    //offset + (align - (offset mod align)) mod align
+    // offset + (align - (offset mod align)) mod align
     return _sz + ((sizeof(uint64_t) - (_sz % sizeof(uint64_t))) % sizeof(uint64_t));
 }
 
@@ -123,7 +123,7 @@ struct Message : frame::mprpc::Message {
         const uint64_t* pup          = reinterpret_cast<const uint64_t*>(pattern.data());
         const size_t    pattern_size = pattern.size() / sizeof(uint64_t);
         for (uint64_t i = 0; i < count; ++i) {
-            pu[i] = pup[(idx + i) % pattern_size]; //pattern[i % pattern.size()];
+            pu[i] = pup[(idx + i) % pattern_size]; // pattern[i % pattern.size()];
         }
     }
 
@@ -134,7 +134,7 @@ struct Message : frame::mprpc::Message {
         if (sz != str.size()) {
             return false;
         }
-        //return true;
+        // return true;
         const size_t    count        = sz / sizeof(uint64_t);
         const uint64_t* pu           = reinterpret_cast<const uint64_t*>(str.data());
         const uint64_t* pup          = reinterpret_cast<const uint64_t*>(pattern.data());
@@ -196,7 +196,7 @@ void client_complete_message(
             solid_throw("Message check failed.");
         }
 
-        //cout<< _rmsgptr->str.size()<<'\n';
+        // cout<< _rmsgptr->str.size()<<'\n';
         transfered_size += _rrecv_msg_ptr->str.size();
         ++transfered_count;
 
@@ -230,7 +230,7 @@ void server_complete_message(
             solid_throw("Message not on peer!.");
         }
 
-        //send message back
+        // send message back
         if (_rctx.recipientId().isInvalidConnection()) {
             solid_throw("Connection id should not be invalid!");
         }
@@ -243,7 +243,7 @@ void server_complete_message(
     }
 }
 
-} //namespace
+} // namespace
 
 int test_pool_delay_close(int argc, char* argv[])
 {
@@ -294,7 +294,7 @@ int test_pool_delay_close(int argc, char* argv[])
 
         std::string server_port;
 
-        { //mprpc server initialization
+        { // mprpc server initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -302,8 +302,8 @@ int test_pool_delay_close(int argc, char* argv[])
                 });
             frame::mprpc::Configuration cfg(sch_server, proto);
 
-            //cfg.recv_buffer_capacity = 1024;
-            //cfg.send_buffer_capacity = 1024;
+            // cfg.recv_buffer_capacity = 1024;
+            // cfg.send_buffer_capacity = 1024;
 
             cfg.connection_stop_fnc           = &server_connection_stop;
             cfg.server.connection_start_fnc   = &server_connection_start;
@@ -323,7 +323,7 @@ int test_pool_delay_close(int argc, char* argv[])
             }
         }
 
-        { //mprpc client initialization
+        { // mprpc client initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -331,8 +331,8 @@ int test_pool_delay_close(int argc, char* argv[])
                 });
             frame::mprpc::Configuration cfg(sch_client, proto);
 
-            //cfg.recv_buffer_capacity = 1024;
-            //cfg.send_buffer_capacity = 1024;
+            // cfg.recv_buffer_capacity = 1024;
+            // cfg.send_buffer_capacity = 1024;
 
             cfg.connection_stop_fnc           = &client_connection_stop;
             cfg.client.connection_start_fnc   = &client_connection_start;
@@ -398,8 +398,8 @@ int test_pool_delay_close(int argc, char* argv[])
             {
                 frame::mprpc::MessagePointerT msgptr(new Message(0));
                 ErrorConditionT               err = pmprpcclient->sendMessage(
-                    recipinet_id, msgptr,
-                    {frame::mprpc::MessageFlagsE::AwaitResponse});
+                                  recipinet_id, msgptr,
+                                  {frame::mprpc::MessageFlagsE::AwaitResponse});
                 solid_dbg(generic_logger, Info, "send message error message: " << err.message());
                 solid_check(err);
             }
@@ -415,10 +415,10 @@ int test_pool_delay_close(int argc, char* argv[])
             solid_throw("Not all messages were completed");
         }
 
-        //m.stop();
+        // m.stop();
     }
 
-    //exiting
+    // exiting
 
     std::cout << "Transfered size = " << (transfered_size * 2) / 1024 << "KB" << endl;
     std::cout << "Transfered count = " << transfered_count << endl;

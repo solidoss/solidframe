@@ -15,4 +15,4 @@ namespace solid {
 std::mutex& shared_mutex_safe(const void* _p);
 std::mutex& shared_mutex(const void* _p);
 
-} //namespace solid
+} // namespace solid

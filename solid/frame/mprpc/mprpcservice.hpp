@@ -29,7 +29,7 @@ namespace frame {
 
 namespace aio {
 struct ReactorContext;
-} //namespace aio
+} // namespace aio
 
 namespace mprpc {
 
@@ -82,10 +82,10 @@ public:
     Service(
         frame::UseServiceShell _force_shell);
 
-    Service(const Service&) = delete;
-    Service(Service&&)      = delete;
+    Service(const Service&)            = delete;
+    Service(Service&&)                 = delete;
     Service& operator=(const Service&) = delete;
-    Service& operator=(Service&&) = delete;
+    Service& operator=(Service&&)      = delete;
 
     //! Destructor
     ~Service();
@@ -254,12 +254,12 @@ public:
     ErrorConditionT connectionNotifyEnterActiveState(
         RecipientId const& _rrecipient_id,
         CompleteFnc        _complete_fnc,
-        const size_t       _send_buffer_capacity = 0 //0 means: leave as it is
+        const size_t       _send_buffer_capacity = 0 // 0 means: leave as it is
     );
 
     ErrorConditionT connectionNotifyEnterActiveState(
         RecipientId const& _rrecipient_id,
-        const size_t       _send_buffer_capacity = 0 //0 means: leave as it is
+        const size_t       _send_buffer_capacity = 0 // 0 means: leave as it is
     );
 
     template <class CompleteFnc>
@@ -349,7 +349,7 @@ private:
     friend class Listener;
     friend class Connection;
 
-    //void doStop();
+    // void doStop();
 
     void doFinalizeStart(Configuration&& _ucfg, SocketDevice&& _usd);
     void doFinalizeStart();
@@ -843,7 +843,7 @@ template <class CompleteFnc>
 ErrorConditionT Service::connectionNotifyEnterActiveState(
     RecipientId const& _rrecipient_id,
     CompleteFnc        _complete_fnc,
-    const size_t       _send_buffer_capacity /* = 0*/ //0 means: leave as it is
+    const size_t       _send_buffer_capacity /* = 0*/ // 0 means: leave as it is
 )
 {
     ConnectionEnterActiveCompleteFunctionT complete_fnc(std::move(_complete_fnc));
@@ -869,7 +869,7 @@ void Service::connectionPostAll(
 //-------------------------------------------------------------------------
 inline ErrorConditionT Service::connectionNotifyEnterActiveState(
     RecipientId const& _rrecipient_id,
-    const size_t       _send_buffer_capacity //0 means: leave as it is
+    const size_t       _send_buffer_capacity // 0 means: leave as it is
 )
 {
     ConnectionEnterActiveCompleteFunctionT complete_fnc([](ConnectionContext&, ErrorConditionT const&) {});
@@ -939,6 +939,6 @@ ErrorConditionT Service::createConnectionPool(
 }
 //-------------------------------------------------------------------------
 //-------------------------------------------------------------------------
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

@@ -42,8 +42,8 @@ struct D {
     }
     int data;
 };
-//typedef queue<int, list<int> > QueueT;
-//typedef queue<int> QueueT;
+// typedef queue<int, list<int> > QueueT;
+// typedef queue<int> QueueT;
 typedef Queue<int> QueueT;
 ///\endcond
 int main()

@@ -78,7 +78,7 @@ std::string ErrorCategory::message(int _ev) const
     return oss.str();
 }
 
-} //namespace
+} // namespace
 
 /*extern*/ const ErrorConditionT error_limit_container(Error_Limit_Container_E, category);
 /*extern*/ const ErrorConditionT error_limit_string(Error_Limit_String_E, category);
@@ -87,6 +87,6 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_cross_integer(Error_Cross_Integer_E, category);
 /*extern*/ const ErrorConditionT error_unknown_type(Error_Unknown_Type_E, category);
 /*extern*/ const ErrorConditionT error_limit_array(Error_Limit_Blob_E, category);
-} //namespace v3
-} //namespace serialization
-} //namespace solid
+} // namespace v3
+} // namespace serialization
+} // namespace solid

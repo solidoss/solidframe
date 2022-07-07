@@ -88,7 +88,7 @@ private:
 
 private:
     ForwardCompletionHandler* pprev;
-    size_t                    idxreactor; //index within reactor
+    size_t                    idxreactor; // index within reactor
     CallbackT                 call;
 };
 
@@ -145,6 +145,6 @@ inline void CompletionHandler::contextUnbind(ReactorContext& _rctx) const
 
 SocketDevice& dummy_socket_device();
 
-} //namespace aio
-} //namespace frame
-} //namespace solid
+} // namespace aio
+} // namespace frame
+} // namespace solid

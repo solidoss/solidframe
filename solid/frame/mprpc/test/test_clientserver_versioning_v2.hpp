@@ -122,5 +122,5 @@ inline void configure_protocol(Reg _rreg)
     _rreg(5, "Response", solid::TypeToType<Response>());
 }
 
-} //namespace v2
-} //namespace versioning
+} // namespace v2
+} // namespace versioning

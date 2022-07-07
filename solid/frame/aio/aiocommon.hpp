@@ -24,7 +24,7 @@ enum ReactorEventsE {
     ReactorEventSendRecv   = 4,
     ReactorEventError      = 8,
     ReactorEventHangup     = 16,
-    ReactorEventOOB        = 32, //receive Out Of Band Data
+    ReactorEventOOB        = 32, // receive Out Of Band Data
     ReactorEventOOBSend    = ReactorEventOOB | ReactorEventSend,
     ReactorEventRecvHangup = 64,
     ReactorEventClear      = 128,
@@ -38,10 +38,10 @@ enum ReactorWaitRequestsE {
     ReactorWaitWrite,
     ReactorWaitReadOrWrite,
     ReactorWaitUser,
-    //Add above!
+    // Add above!
     ReactorWaitError
 };
 
-} //namespace aio
-} //namespace frame
-} //namespace solid
+} // namespace aio
+} // namespace frame
+} // namespace solid

@@ -245,7 +245,7 @@ public:
         solid_log(logger, Info, _name);
         Runnable r{&_rb, &load_string, 0, 0, _limit, _name};
 
-        _rb.clear(); //necessary otherwise map<string, something> would not work on gcc5.3
+        _rb.clear(); // necessary otherwise map<string, something> would not work on gcc5.3
 
         if (isRunEmpty()) {
             if (doLoadString(r) == ReturnE::Done) {
@@ -262,7 +262,7 @@ public:
         solid_log(logger, Info, _name);
         Runnable r{&_rb, &load_vector_char<T, A>, 0, 0, _limit, _name};
 
-        _rb.clear(); //necessary otherwise map<string, something> would not work on gcc5.3
+        _rb.clear(); // necessary otherwise map<string, something> would not work on gcc5.3
 
         if (isRunEmpty()) {
             if (load_vector_char<T, A>(*this, r, nullptr) == ReturnE::Done) {
@@ -407,7 +407,7 @@ public:
                 --_rr.size_;
 
                 if (_rd.isRunEmpty()) {
-                    //the value was parsed
+                    // the value was parsed
                     rcontainer.insert(rcontainer.end(), std::move(value));
                 } else {
                     parsing_value = true;
@@ -468,11 +468,11 @@ public:
             const RunListIteratorT old_sentinel = _rd.sentinel();
 
             while (_rd.pcrt_ != _rd.pend_ && _rr.size_ != 0) {
-                rd.add(value, rctx, 0, _rr.name_); //TODO: use a propper index
+                rd.add(value, rctx, 0, _rr.name_); // TODO: use a propper index
                 --_rr.size_;
 
                 if (_rd.isRunEmpty()) {
-                    //the value was parsed
+                    // the value was parsed
                     rcontainer.insert(rcontainer.end(), std::move(value));
                 } else {
                     parsing_value = true;
@@ -636,13 +636,13 @@ private:
         return _rd.doLoadCross<T>(_rr);
     }
 
-    //NOTE: load_cross_with_check should not modify _rr.ptr_!!
+    // NOTE: load_cross_with_check should not modify _rr.ptr_!!
     template <typename T>
     static ReturnE load_cross_with_check(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
     {
         if (_rd.pcrt_ != _rd.pend_) {
             if (_rr.size_ == 0) {
-                //first run
+                // first run
                 uint64_t    v;
                 const char* p = cross::load_with_check(_rd.pcrt_, _rd.pend_ - _rd.pcrt_, v);
 
@@ -658,7 +658,7 @@ private:
 
                     return ReturnE::Done;
                 } else {
-                    //not enough data
+                    // not enough data
                     _rr.size_ = cross::size(_rd.pcrt_);
 
                     if (_rr.size_ == InvalidSize()) {
@@ -666,7 +666,7 @@ private:
                         return ReturnE::Done;
                     }
 
-                    ++_rd.pcrt_; //skip the size char
+                    ++_rd.pcrt_; // skip the size char
                     --_rr.size_;
 
                     size_t toread = _rd.pend_ - _rd.pcrt_;
@@ -882,7 +882,7 @@ private:
         const RunListIteratorT old_sentinel = _rd.sentinel();
 
         while (_rd.pcrt_ != _rd.pend_ && _rr.data_ < _rr.size_) {
-            rd.add(rcontainer[static_cast<size_t>(_rr.data_)], rctx, 0, _rr.name_); //TODO: add propper index
+            rd.add(rcontainer[static_cast<size_t>(_rr.data_)], rctx, 0, _rr.name_); // TODO: add propper index
             ++_rr.data_;
         }
 
@@ -1099,8 +1099,8 @@ public:
     template <typename T>
     auto& add(T&& _rt, Context& _rctx)
     {
-        //static_assert(std::is_invocable_v<T, ThisT &, Context&>, "Parameter should be invocable");
-        //std::invoke(_rt, *this, _rctx);
+        // static_assert(std::is_invocable_v<T, ThisT &, Context&>, "Parameter should be invocable");
+        // std::invoke(_rt, *this, _rctx);
         this->addFunction(*this, std::forward<T>(_rt), _rctx, "function");
         return *this;
     }
@@ -1290,7 +1290,7 @@ private:
                             baseError(error_unknown_type);
                         }
                     } else {
-                        //nullptr
+                        // nullptr
                         _rt.reset();
                     }
                 },
@@ -1306,7 +1306,7 @@ private:
             addArray(*this, _rt, _meta.max_size_, _rctx, _name);
         } else if constexpr (std::is_array_v<T>) {
 
-            //TODO:
+            // TODO:
         } else if constexpr (is_container_v<T>) {
             addContainer(*this, _rt, _meta.max_size_, _rctx, _name);
         } else {

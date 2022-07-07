@@ -29,4 +29,4 @@ inline void configure_protocol(Reg _rreg)
     _rreg(1, "Message", solid::TypeToType<Message>());
 }
 
-} //namespace rpc_echo
+} // namespace rpc_echo

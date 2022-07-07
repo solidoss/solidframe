@@ -81,7 +81,7 @@ rpc_request::UserData make_user_data(const AccountData& _rad)
     return ud;
 }
 
-} //namespace
+} // namespace
 
 namespace rpc_request_server {
 

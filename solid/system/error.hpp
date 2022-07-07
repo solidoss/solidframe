@@ -63,4 +63,4 @@ extern const ErrorCodeT error_not_implemented;
 extern const ErrorCodeT error_system;
 extern const ErrorCodeT error_thread_started;
 
-} //namespace solid
+} // namespace solid

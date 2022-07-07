@@ -47,8 +47,8 @@ CompletionHandler::CompletionHandler(
 CompletionHandler::~CompletionHandler()
 {
     unregister();
-    //cannot call deactivate here. it must be called by inheritants in their destructor
-    //deactivate();
+    // cannot call deactivate here. it must be called by inheritants in their destructor
+    // deactivate();
 }
 
 bool CompletionHandler::activate(Actor const& _ract)
@@ -75,7 +75,7 @@ void CompletionHandler::deactivate()
 {
     Reactor* preactor = nullptr;
     if (isActive() && (preactor = Reactor::safeSpecific()) != nullptr) {
-        //the actor has entered the reactor
+        // the actor has entered the reactor
         preactor->unregisterCompletionHandler(*this);
         idxreactor = InvalidIndex();
     }
@@ -118,6 +118,6 @@ SocketDevice& dummy_socket_device()
     return sd;
 }
 
-} //namespace aio
-} //namespace frame
-} //namespace solid
+} // namespace aio
+} // namespace frame
+} // namespace solid

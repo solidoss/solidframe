@@ -163,7 +163,7 @@ struct OReflectStub {
     }
 };
 
-} //namespace impl
+} // namespace impl
 
 template <class MetadataVariant, class MetadataFactory, class T, class Context = solid::EmptyType>
 auto oreflect(
@@ -172,9 +172,9 @@ auto oreflect(
 {
     return impl::OReflectStub<MetadataVariant, MetadataFactory, T, Context>{_meta_data_factory, _rt, _rctx, _ptype_map, _indent, _eol};
 }
-} //namespace v1
-} //namespace reflection
-} //namespace solid
+} // namespace v1
+} // namespace reflection
+} // namespace solid
 
 template <class MetadataVariant, class MetadataFactory, class T, class Context>
 std::ostream& operator<<(std::ostream& _ros, const solid::reflection::v1::impl::OReflectStub<MetadataVariant, MetadataFactory, T, Context>& _rstub)

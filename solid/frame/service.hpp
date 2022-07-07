@@ -118,7 +118,7 @@ private:
     friend class SchedulerBase;
 
     ActorIdT registerActor(ActorBase& _ract, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
-    //called by manager to set status
+    // called by manager to set status
 
     bool statusSetStopping();
     void statusSetStopped();
@@ -312,5 +312,5 @@ public:
 
 using ServiceT = ServiceShell<>;
 
-} //namespace frame
-} //namespace solid
+} // namespace frame
+} // namespace solid

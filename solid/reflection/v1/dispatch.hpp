@@ -69,12 +69,12 @@ constexpr TypeGroupE type_group()
         return TypeGroupE::Structure;
 }
 
-//TODO: maybe you should move the below function unde :: namespace
+// TODO: maybe you should move the below function unde :: namespace
 template <class R, class T1, class T2, class Ctx>
 inline void solidReflectV1(R& _rr, std::pair<T1, T2>& _rt, Ctx& _rctx)
 {
     if constexpr (std::is_const_v<T1>) {
-        _rr.add(*const_cast<std::remove_const_t<T1>*>(&_rt.first), _rctx, 0, "first"); //trick to support std::map::value_type - pair<const Key, Value>
+        _rr.add(*const_cast<std::remove_const_t<T1>*>(&_rt.first), _rctx, 0, "first"); // trick to support std::map::value_type - pair<const Key, Value>
     } else {
         _rr.add(_rt.first, _rctx, 0, "first");
     }
@@ -128,6 +128,6 @@ inline void solidReflectV1(R& _rr, const T& _rt, Ctx& _rctx)
     _rt.solidReflectV1(_rr, _rctx);
 }
 
-} //namespace v1
-} //namespace reflection
-} //namespace solid
+} // namespace v1
+} // namespace reflection
+} // namespace solid

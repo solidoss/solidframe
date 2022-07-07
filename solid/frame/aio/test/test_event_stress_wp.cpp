@@ -160,7 +160,7 @@ void DeviceContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat_
                 solid_assert(_rctx.conn_cnt_ > 0);
                 pctx->pushConnection(_acc, _acc_con, repeat_count);
             } else if (_rctx.conn_cnt_.fetch_sub(1) == 1) {
-                //last connection
+                // last connection
                 _rctx.rprom_.set_value();
                 solid_log(workpool_logger, Warning, "DONE - notify " << _acc << ' ' << _acc_con << ' ' << _repeat_count);
             } else if (_rctx.conn_cnt_ < 0) {
@@ -170,11 +170,11 @@ void DeviceContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat_
     exit();
 }
 /// ->AccountP->ConnectionP->AccountP->DeviceP->ConnectionP->AccountP->DeviceP->ConnectionP
-} //namespace
+} // namespace
 
 int test_event_stress_wp(int argc, char* argv[])
 {
-    //install_crash_handler();
+    // install_crash_handler();
 
     solid::log_start(std::cerr, {".*:EWXS"});
 
@@ -255,13 +255,13 @@ int test_event_stress_wp(int argc, char* argv[])
                     solid_log(workpool_logger, Warning, "sleep - wait for locked threads");
                     this_thread::sleep_for(chrono::seconds(100));
                     solid_log(workpool_logger, Warning, "wake - waited for locked threads");
-                    //we must throw here otherwise it will crash because workpool(s) is/are used after destroy
+                    // we must throw here otherwise it will crash because workpool(s) is/are used after destroy
                     solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
                 }
                 fut.get();
             }
             solid_log(workpool_logger, Statistic, "connections done");
-            //this_thread::sleep_for(chrono::milliseconds(100));
+            // this_thread::sleep_for(chrono::milliseconds(100));
             gctx.stopping_ = true;
             conn_ctx.wait();
             solid_log(workpool_logger, Statistic, "conn_ctx done");
@@ -270,7 +270,7 @@ int test_event_stress_wp(int argc, char* argv[])
             dev_ctx.wait();
             solid_log(workpool_logger, Statistic, "dev_ctx done");
 
-            //need explicit stop because pools use contexts which are destroyed before pools
+            // need explicit stop because pools use contexts which are destroyed before pools
             account_cp.stop();
             solid_log(workpool_logger, Statistic, "account pool stopped " << &account_cp);
             device_cp.stop();

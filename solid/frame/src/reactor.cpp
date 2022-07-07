@@ -47,7 +47,7 @@ void dummy_completion(CompletionHandler&, ReactorContext&)
 {
 }
 
-} //namespace
+} // namespace
 
 typedef std::atomic<bool>   AtomicBoolT;
 typedef std::atomic<size_t> AtomicSizeT;
@@ -85,7 +85,7 @@ struct NewTaskStub {
     {
     }
 
-    //NewTaskStub(){}
+    // NewTaskStub(){}
     UniqueId uid;
     TaskT    actptr;
     Service& rsvc;
@@ -236,7 +236,7 @@ struct Reactor::Data {
 
         if (timestore.size() != 0u) {
             if (_rcrt < timestore.next()) {
-                const int64_t maxwait = 1000 * 60; //1 minute
+                const int64_t maxwait = 1000 * 60; // 1 minute
                 int64_t       diff    = 0;
                 //                 NanoTime    delta = timestore.next();
                 //                 delta -= _rcrt;
@@ -359,7 +359,7 @@ bool Reactor::start()
     impl_->cnd.notify_one();
 }
 
-//Called from outside reactor's thread
+// Called from outside reactor's thread
 bool Reactor::push(TaskT&& _ract, Service& _rsvc, Event const& _revent)
 {
     solid_log(frame_logger, Verbose, (void*)this);
@@ -609,8 +609,8 @@ void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
             solid_assert_log(ros.unique == rnewact.uid.unique, frame_logger);
 
             {
-                //NOTE: we must lock the mutex of the actor
-                //in order to ensure that actor is fully registered onto the manager
+                // NOTE: we must lock the mutex of the actor
+                // in order to ensure that actor is fully registered onto the manager
 
                 lock_guard<std::mutex> lock(rnewact.rsvc.mutex(*rnewact.actptr));
             }
@@ -816,5 +816,5 @@ void ReactorBase::unprepareThread()
 
 ReactorBase::~ReactorBase() {}
 
-} //namespace frame
-} //namespace solid
+} // namespace frame
+} // namespace solid

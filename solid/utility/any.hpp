@@ -645,4 +645,4 @@ Any<Size> make_any(std::initializer_list<E> _ilist, Args&&... _args)
 
 //-----------------------------------------------------------------------------
 
-} //namespace solid
+} // namespace solid

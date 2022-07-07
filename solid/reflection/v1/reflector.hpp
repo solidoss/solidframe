@@ -469,7 +469,7 @@ private:
         if constexpr (type_group<ValueT>() == TypeGroupE::OStream) {
             return ref_;
         } else {
-            //NOTE: ugly but safe
+            // NOTE: ugly but safe
             return std::cout;
         }
     }
@@ -479,7 +479,7 @@ private:
         if constexpr (type_group<ValueT>() == TypeGroupE::IStream) {
             return *const_cast<std::istream*>(static_cast<const std::istream*>(&ref_));
         } else {
-            //NOTE: ugly but safe
+            // NOTE: ugly but safe
             return std::cin;
         }
     }
@@ -632,7 +632,7 @@ public:
     }
 };
 
-} //namespace impl
+} // namespace impl
 
 template <class Reflector>
 template <TypeGroupE TG>
@@ -680,6 +680,6 @@ using ReflectorT = impl::Reflector<MetadataVariant, MetadataFactory, Context>;
 template <class MetadataVariant, class MetadataFactory, class Context = solid::EmptyType>
 using ConstReflectorT = impl::ConstReflector<MetadataVariant, MetadataFactory, Context>;
 
-} //namespace v1
-} //namespace reflection
-} //namespace solid
+} // namespace v1
+} // namespace reflection
+} // namespace solid

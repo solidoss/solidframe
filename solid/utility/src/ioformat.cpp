@@ -34,4 +34,4 @@ std::ostream& operator<<(std::ostream& _ros, TrimString const& _trimstr)
     return _ros;
 }
 
-} //namespace solid
+} // namespace solid

@@ -81,7 +81,7 @@ void DeserializerBase::tryRun(Runnable&& _ur, void* _pctx)
     const RunListIteratorT it = schedule(std::move(_ur));
 
     if (it == run_lst_.cbegin()) {
-        //we try run the function on spot
+        // we try run the function on spot
         Runnable& rr = run_lst_.front();
         ReturnE   v  = rr.call_(*this, rr, _pctx);
         if (v == ReturnE::Done) {
@@ -124,7 +124,7 @@ Base::ReturnE DeserializerBase::load_string(DeserializerBase& _rd, Runnable& _rr
 
 Base::ReturnE DeserializerBase::load_stream_chunk_length(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
 {
-    //we can only use _rd.buf_ and _rr.size_ - the length will be stored in _rr.size_
+    // we can only use _rd.buf_ and _rr.size_ - the length will be stored in _rr.size_
 
     size_t len = _rd.pend_ - _rd.pcrt_;
     if (len > _rr.size_) {
@@ -206,7 +206,7 @@ Base::ReturnE DeserializerBase::load_stream_chunk(DeserializerBase& _rd, Runnabl
     return ReturnE::Wait;
 }
 
-} //namespace binary
-} //namespace v3
-} //namespace serialization
-} //namespace solid
+} // namespace binary
+} // namespace v3
+} // namespace serialization
+} // namespace solid

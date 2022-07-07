@@ -27,7 +27,7 @@ namespace frame {
 
 namespace aio {
 struct ReactorContext;
-} //namespace aio
+} // namespace aio
 
 namespace mprpc {
 
@@ -330,7 +330,7 @@ struct ConnectionContext {
     const ErrorCodeT&      systemError() const;
 
 private:
-    //not used for now
+    // not used for now
     RequestId const& requestId() const
     {
         return request_id;
@@ -354,7 +354,7 @@ private:
     MessageFlagsT  message_flags;
     RequestId      request_id;
     MessageId      message_id;
-    std::string*   pmessage_url; //we cannot make it const - serializer constraint
+    std::string*   pmessage_url; // we cannot make it const - serializer constraint
 
     ConnectionContext(
         Service& _rsrv, Connection& _rcon)
@@ -375,6 +375,6 @@ private:
     }
 };
 
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

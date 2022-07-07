@@ -114,7 +114,7 @@ protected:
         }
     }
 
-    //do not call this on base destructor
+    // do not call this on base destructor
     void clear()
     {
         BufNodeT* pbn = first();
@@ -404,4 +404,4 @@ public:
     }
 };
 
-} //namespace solid
+} // namespace solid

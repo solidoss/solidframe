@@ -55,7 +55,7 @@ struct PacketHeader {
     };
 
     enum struct CommandE : uint8_t {
-        EndMessageFlag = 1, //do not change the values
+        EndMessageFlag = 1, // do not change the values
         NewMessage     = 2,
         FullMessage    = 3,
         Message        = 4,
@@ -224,6 +224,6 @@ struct MessageBundle {
     }
 };
 
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

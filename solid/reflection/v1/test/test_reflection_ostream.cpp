@@ -35,7 +35,7 @@ enum UserStatus {
     StatusRelationE,
 };
 
-//const EnumMap figure_enum_map = {{Zero, "zero"}, {One, "one"}};
+// const EnumMap figure_enum_map = {{Zero, "zero"}, {One, "one"}};
 const reflection::EnumMap figure_enum_map{TypeToType<FigureE>(), {{Zero, "Zero"}, {One, "One"}, {Two, "Two"}, {Three, "Three"}, {Four, "Four"}, {Five, "Five"}, {Six, "Six"}, {Seven, "Seven"}, {Eight, "Eight"}, {Nine, "Nine"}}};
 
 const reflection::EnumMap user_status_map = {TypeToType<UserStatus>(), {{StatusMarriedE, "Married"}, {StatusSingleE, "Single"}, {StatusRelationE, "Relation"}}};
@@ -221,12 +221,12 @@ public:
         _rr.add(_rthis.veg_tuple_, _rctx, 7, "veg_tuple");
         if constexpr (!ReflectorT::is_const_reflector) {
             auto progress_lambda = [](Context& _rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
-                //NOTE: here you can use context.any()for actual implementation
+                // NOTE: here you can use context.any()for actual implementation
             };
             _rr.add(_rthis.ofs_, _rctx, 8, "stream", [&progress_lambda](auto _rmeta) { _rmeta.progressFunction(progress_lambda); });
         } else {
             auto progress_lambda = [](Context& _rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
-                //NOTE: here you can use context.any()for actual implementation
+                // NOTE: here you can use context.any()for actual implementation
             };
             _rr.add(_rthis.ifs_, _rctx, 8, "stream", [&progress_lambda](auto _rmeta) { _rmeta.progressFunction(progress_lambda); });
         }
@@ -271,13 +271,13 @@ bool check_parentheses(const string& _text)
     return stk.empty();
 }
 
-} //namespace
+} // namespace
 
 int test_reflection_ostream(int argc, char* argv[])
 {
     const uint32_t wait_seconds = 5;
-    //static_assert(reflection::is_reflective<Test>::value, "Test must be reflective");
-    //static_assert(!reflection::is_reflective<std::string>::value, "std::string must not be reflective");
+    // static_assert(reflection::is_reflective<Test>::value, "Test must be reflective");
+    // static_assert(!reflection::is_reflective<std::string>::value, "std::string must not be reflective");
     using ContextT        = solid::EmptyType;
     using ReflectorT      = reflection::ReflectorT<reflection::metadata::Variant<ContextT>, std::decay_t<decltype(reflection::metadata::factory)>, ContextT>;
     using ConstReflectorT = reflection::ConstReflectorT<reflection::metadata::Variant<ContextT>, std::decay_t<decltype(reflection::metadata::factory)>, ContextT>;

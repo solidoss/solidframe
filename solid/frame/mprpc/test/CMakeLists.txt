@@ -74,7 +74,6 @@ if(OPENSSL_FOUND)
     create_test_sourcelist( mprpcClientServerTests test_mprpc_clientserver.cpp ${mprpcClientServerTestSuite})
 
     add_executable(test_mprpc_clientserver ${mprpcClientServerTests})
-    add_dependencies(test_mprpc_clientserver mprpc_test_copy_certs build-openssl build-snappy)
 
     target_link_libraries(test_mprpc_clientserver
         solid_frame_mprpc
@@ -87,6 +86,8 @@ if(OPENSSL_FOUND)
         ${SNAPPY_LIB}
         ${SYSTEM_BASIC_LIBRARIES}
     )
+
+    add_dependencies(test_mprpc_clientserver build-snappy mprpc_test_copy_certs build-openssl)
 
     if(SOLID_ON_WINDOWS)
         add_custom_command(TARGET test_mprpc_clientserver POST_BUILD

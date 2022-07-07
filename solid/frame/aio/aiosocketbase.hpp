@@ -164,6 +164,6 @@ private:
     SocketDevice dev_;
 };
 
-} //namespace aio
-} //namespace frame
-} //namespace solid
+} // namespace aio
+} // namespace frame
+} // namespace solid

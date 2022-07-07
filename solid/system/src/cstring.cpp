@@ -45,7 +45,7 @@ const char* strs[] = {
     "OxF0", "OxF1", "OxF2", "OxF3", "OxF4", "OxF5", "OxF6", "OxF7", "OxF8", "OxF9",
     "OxFA", "OxFB", "OxFC", "OxFD", "OxFE", "OxFF"};
 
-} //namespace
+} // namespace
 
 const char* char_to_cstring(unsigned _c)
 {
@@ -89,4 +89,4 @@ const char* char_to_cstring(unsigned _c)
 #endif
 }
 
-} //namespace solid
+} // namespace solid

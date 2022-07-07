@@ -60,7 +60,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             service(_rctx).acceptIncomingConnection(_rsd);
         } else if (_rctx.error() == aio::error_listener_hangup) {
             solid_log(logger, Error, "listen hangup" << _rctx.error().message());
-            //TODO: maybe you shoud restart the listener.
+            // TODO: maybe you shoud restart the listener.
             postStop(_rctx);
         } else {
             solid_log(logger, Info, "listen error" << _rctx.error().message());
@@ -77,10 +77,10 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     if (repeatcnt == 0u) {
         sock.postAccept(
             _rctx,
-            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); //fully asynchronous call
+            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); // fully asynchronous call
     }
 }
 
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

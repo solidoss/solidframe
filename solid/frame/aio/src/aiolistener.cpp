@@ -24,9 +24,9 @@ const LoggerT logger("solid::frame::aio");
 /*static*/ void Listener::on_init_completion(CompletionHandler& _rch, ReactorContext& _rctx)
 {
     Listener& rthis = static_cast<Listener&>(_rch);
-    //rthis.completionCallback(on_dummy_completion);
+    // rthis.completionCallback(on_dummy_completion);
     rthis.completionCallback(&on_completion);
-    //rthis.contextBind(_rctx);
+    // rthis.contextBind(_rctx);
     rthis.s.initAccept(_rctx);
 }
 
@@ -139,6 +139,6 @@ void Listener::doClear(ReactorContext& _rctx)
     f = &on_dummy;
 }
 
-} //namespace aio
-} //namespace frame
-} //namespace solid
+} // namespace aio
+} // namespace frame
+} // namespace solid

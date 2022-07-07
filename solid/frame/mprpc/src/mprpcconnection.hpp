@@ -32,9 +32,9 @@ namespace aio {
 
 namespace openssl {
 class Context;
-} //namespace openssl
+} // namespace openssl
 
-} //namespace aio
+} // namespace aio
 
 namespace mprpc {
 
@@ -102,7 +102,7 @@ public:
 
     virtual ~Connection();
 
-    //NOTE: will always accept null message
+    // NOTE: will always accept null message
     bool tryPushMessage(
         Configuration const& _rconfiguration,
         MessageBundle&       _rmsgbundle,
@@ -219,7 +219,7 @@ private:
     bool isWaitingKeepAliveTimer() const;
     bool isStopPeer() const;
 
-    //The connection is aware that it is activated
+    // The connection is aware that it is activated
     bool isActiveState() const;
     bool isRawState() const;
 
@@ -367,7 +367,7 @@ private:
         Secure,
         Raw,
         InPoolWaitQueue,
-        Connected, //once set - the flag should not be reset. Is used by pool for restarting
+        Connected, // once set - the flag should not be reset. Is used by pool for restarting
         LastFlag,
     };
 
@@ -397,8 +397,8 @@ private:
     SendBufferPointerT send_buf_;
     uint8_t            send_relay_free_count_;
     uint8_t            ackd_buf_count_;
-    uint8_t            recv_buf_cp_kb_; //kilobytes
-    uint8_t            send_buf_cp_kb_; //kilobytes
+    uint8_t            recv_buf_cp_kb_; // kilobytes
+    uint8_t            send_buf_cp_kb_; // kilobytes
     MessageIdVectorT   pending_message_vec_;
     MessageReader      msg_reader_;
     MessageWriter      msg_writer_;
@@ -497,6 +497,6 @@ inline uint32_t& Connection::peerVersionMinor()
     return peer_version_minor_;
 }
 
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

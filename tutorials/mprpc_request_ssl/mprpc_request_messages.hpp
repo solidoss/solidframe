@@ -25,7 +25,7 @@ struct RequestKey {
     virtual void visit(RequestKeyVisitor&)            = 0;
     virtual void visit(RequestKeyConstVisitor&) const = 0;
 
-    size_t cache_idx; //NOT serialized - used by the server to cache certain key data
+    size_t cache_idx; // NOT serialized - used by the server to cache certain key data
 };
 
 struct RequestKeyAnd;
@@ -327,4 +327,4 @@ inline void configure_protocol(Reg _rreg)
     _rreg(9, "RequestKeyYearLess", solid::TypeToType<RequestKeyYearLess>());
 }
 
-} //namespace rpc_request
+} // namespace rpc_request

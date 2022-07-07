@@ -154,7 +154,7 @@ private:
         Node* pprev_node    = pcurrent_node->pprev_;
         solid_assert_log(pcurrent_node != ptop_cached_nodes_, generic_logger);
         pcurrent_node->pprev_ = ptop_cached_nodes_;
-        ptop_cached_nodes_    = pcurrent_node; //cache the node
+        ptop_cached_nodes_    = pcurrent_node; // cache the node
         if (pprev_node) {
             return std::launder(reinterpret_cast<T*>(&pprev_node->data_[node_size - 1]));
         } else {
@@ -168,4 +168,4 @@ private:
     Stack& operator=(const Stack&);
 };
 
-} //namespace solid
+} // namespace solid

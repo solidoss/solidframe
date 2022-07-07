@@ -165,7 +165,7 @@ std::mutex& global_mutex()
     return mtx;
 }
 
-} //namespace
+} // namespace
 
 std::mutex& shared_mutex_safe(const void* _p)
 {
@@ -262,5 +262,5 @@ std::ostream& WorkPoolMulticastStatistic::print(std::ostream& _ros) const
     _ros << " max_pop_wait_loop_count_ = " << max_pop_wait_loop_count_;
     return _ros;
 }
-} //namespace locking
-} //namespace solid
+} // namespace locking
+} // namespace solid

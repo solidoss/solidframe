@@ -22,4 +22,4 @@ void register_messages(Reg& _rmap)
     alpha_protocol::configure_protocol(lambda);
 }
 
-} //namespace alpha_server
+} // namespace alpha_server

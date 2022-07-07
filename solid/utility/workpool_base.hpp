@@ -93,7 +93,7 @@ protected:
     }
 };
 
-} //namespace impl
+} // namespace impl
 
 template <class Job, class MCast, size_t FunctionDataSize, template <typename, typename> class WP>
 class CallPool;
@@ -245,4 +245,4 @@ public:
     }
 };
 
-} //namespace solid
+} // namespace solid

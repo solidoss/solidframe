@@ -89,7 +89,7 @@ public:
 #define solid_check_error(a, c) \
     (solid_likely(a) ? static_cast<void>(0) : solid_throw_error(c));
 
-//adapted from https://github.com/Microsoft/GSL/blob/master/include/gsl/gsl_assert
+// adapted from https://github.com/Microsoft/GSL/blob/master/include/gsl/gsl_assert
 #if defined(__clang__) || defined(__GNUC__)
 #define solid_likely(x) __builtin_expect(!!(x), 1)
 #define solid_unlikely(x) __builtin_expect(!!(x), 0)
@@ -116,7 +116,7 @@ public:
         solid_throw_log(l, "(" #a ") check failed: " << msg); \
     }
 
-//adapted from: https://stackoverflow.com/questions/9183993/msvc-variadic-macro-expansion/9338429#9338429
+// adapted from: https://stackoverflow.com/questions/9183993/msvc-variadic-macro-expansion/9338429#9338429
 #if 1
 #define solid_check(...) SOLID_CALL_OVERLOAD(solid_check, __VA_ARGS__)
 #define solid_check_log(...) SOLID_CALL_OVERLOAD(solid_check_log, __VA_ARGS__)
@@ -131,4 +131,4 @@ public:
     solid_check_MACRO_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 #endif
 
-} //namespace solid
+} // namespace solid

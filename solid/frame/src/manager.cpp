@@ -158,7 +158,7 @@ public:
 
     template <typename F>
     void release(const size_t _index, const F& _rf)
-    { //Do not pass index as reference!!
+    { // Do not pass index as reference!!
         lock_guard<MutexT> lock(mutex_);
         _rf(_index, data_vec_[_index]);
         index_stk_.push(_index);
@@ -186,7 +186,7 @@ public:
     }
 };
 
-} //namespace
+} // namespace
 //-----------------------------------------------------------------------------
 
 std::ostream& operator<<(std::ostream& _ros, UniqueId const& _uid)
@@ -199,7 +199,7 @@ using SizeStackT    = Stack<size_t>;
 using AtomicStatusT = std::atomic<StatusE>;
 
 //-----------------------------------------------------------------------------
-//POD structure
+// POD structure
 struct ActorStub {
     ActorBase*   pactor_;
     ReactorBase* preactor_;
@@ -422,7 +422,7 @@ struct Manager::Data {
 
 Manager::Data::~Data()
 {
-    delete[] pactor_mutex_array_; //TODO: get rid of delete
+    delete[] pactor_mutex_array_; // TODO: get rid of delete
     delete[] pservice_mutex_array_;
 }
 
@@ -466,8 +466,8 @@ bool Manager::registerService(Service& _rservice, const bool _start)
         size_t                       service_index = InvalidIndex();
         std::unique_lock<std::mutex> lock;
         ServiceStub*                 pss = pimpl_->service_store_.create(
-            service_index,
-            [&lock, this](const size_t _index, ServiceStub& _rss) {
+                            service_index,
+                            [&lock, this](const size_t _index, ServiceStub& _rss) {
                 if (_rss.pmutex_ == nullptr) {
                     _rss.pmutex_ = &pimpl_->pservice_mutex_array_[_index % pimpl_->service_mutex_count_];
                 }
@@ -511,8 +511,8 @@ void Manager::doCleanupService(const size_t _service_index, Service& _rservice)
 {
     std::unique_lock<std::mutex> lock;
     ServiceStub&                 rss = pimpl_->service_store_.aquire(
-        _service_index,
-        [&lock](const size_t /*_index*/, ServiceStub& _rss) {
+                        _service_index,
+                        [&lock](const size_t /*_index*/, ServiceStub& _rss) {
             lock = std::unique_lock<std::mutex>(_rss.mutex());
         });
 
@@ -552,8 +552,8 @@ ActorIdT Manager::registerActor(
     size_t                       actor_index = InvalidIndex();
     std::unique_lock<std::mutex> lock;
     ServiceStub&                 rss = pimpl_->service_store_.aquire(
-        service_index,
-        [&lock](const size_t _index, ServiceStub& _rss) {
+                        service_index,
+                        [&lock](const size_t _index, ServiceStub& _rss) {
             lock = std::unique_lock<std::mutex>(_rss.mutex());
         });
 
@@ -595,8 +595,8 @@ ActorIdT Manager::registerActor(
             {
                 std::unique_lock<std::mutex> lock;
                 ActorChunkStub&              rlast_chunk = pimpl_->actor_chunk_store_.aquire(
-                    rss.last_actor_chunk_,
-                    [&lock](const size_t, ActorChunkStub& _racs) {
+                                 rss.last_actor_chunk_,
+                                 [&lock](const size_t, ActorChunkStub& _racs) {
                         lock = std::unique_lock<std::mutex>(_racs.chunk().mutex());
                     });
 
@@ -619,10 +619,10 @@ ActorIdT Manager::registerActor(
         _ractor.id(actor_index);
 
         if (_rschedule_fnc(_rreactor)) {
-            //the actor is scheduled
-            //NOTE: a scheduler's reactor must ensure that the actor is fully
-            //registered onto manager by locking the actor's mutex before calling
-            //any the actor's code
+            // the actor is scheduled
+            // NOTE: a scheduler's reactor must ensure that the actor is fully
+            // registered onto manager by locking the actor's mutex before calling
+            // any the actor's code
 
             ActorStub& ras = rchunk.actor(actor_index % pimpl_->actor_chunk_size_);
 
@@ -668,8 +668,8 @@ void Manager::unregisterActor(ActorBase& _ractor)
 
         std::unique_lock<std::mutex> lock;
         ServiceStub&                 rss = pimpl_->service_store_.aquire(
-            service_index,
-            [&lock](const size_t _index, ServiceStub& _rss) {
+                            service_index,
+                            [&lock](const size_t _index, ServiceStub& _rss) {
                 lock = std::unique_lock<std::mutex>(_rss.mutex());
             });
 
@@ -796,8 +796,8 @@ size_t Manager::doForEachServiceActor(const Service& _rservice, const ActorVisit
     {
         std::unique_lock<std::mutex> lock;
         ServiceStub&                 rss = pimpl_->service_store_.aquire(
-            service_index,
-            [&lock](const size_t _index, ServiceStub& _rss) {
+                            service_index,
+                            [&lock](const size_t _index, ServiceStub& _rss) {
                 lock = std::unique_lock<std::mutex>(_rss.mutex());
             });
         first_actor_chunk = rss.first_actor_chunk_;
@@ -853,8 +853,8 @@ Service& Manager::service(const ActorBase& _ractor) const
     {
         std::unique_lock<std::mutex> lock;
         ServiceStub&                 rss = pimpl_->service_store_.aquire(
-            service_index,
-            [&lock](const size_t _index, ServiceStub& _rss) {
+                            service_index,
+                            [&lock](const size_t _index, ServiceStub& _rss) {
                 lock = std::unique_lock<std::mutex>(_rss.mutex());
             });
 
@@ -871,8 +871,8 @@ void Manager::doStartService(Service& _rservice, const LockedFunctionT& _locked_
         const size_t                 service_index = _rservice.index();
         std::unique_lock<std::mutex> lock;
         ServiceStub&                 rss = pimpl_->service_store_.aquire(
-            service_index,
-            [&lock](const size_t _index, ServiceStub& _rss) {
+                            service_index,
+                            [&lock](const size_t _index, ServiceStub& _rss) {
                 lock = std::unique_lock<std::mutex>(_rss.mutex());
             });
 
@@ -903,8 +903,8 @@ void Manager::stopService(Service& _rservice, const bool _wait)
     const size_t                 service_index = _rservice.index();
     std::unique_lock<std::mutex> lock;
     ServiceStub&                 rss = pimpl_->service_store_.aquire(
-        service_index,
-        [&lock](const size_t _index, ServiceStub& _rss) {
+                        service_index,
+                        [&lock](const size_t _index, ServiceStub& _rss) {
             lock = std::unique_lock<std::mutex>(_rss.mutex());
         });
 
@@ -988,12 +988,12 @@ void Manager::stop()
         return _rctx.raiseActor(make_event(GenericEvents::Kill));
     };
 
-    //broadcast to all actors to stop
+    // broadcast to all actors to stop
     for (size_t service_index = 0; true; ++service_index) {
         std::unique_lock<std::mutex> lock;
         ServiceStub*                 pss = pimpl_->service_store_.aquirePointer(
-            service_index,
-            [&lock](const size_t _index, ServiceStub& _rss) {
+                            service_index,
+                            [&lock](const size_t _index, ServiceStub& _rss) {
                 lock = std::unique_lock<std::mutex>(_rss.mutex());
             });
 
@@ -1013,14 +1013,14 @@ void Manager::stop()
         } else {
             break;
         }
-    } //for
+    } // for
 
-    //wait for all services to stop
+    // wait for all services to stop
     for (size_t service_index = 0; true; ++service_index) {
         std::unique_lock<std::mutex> lock;
         ServiceStub*                 pss = pimpl_->service_store_.aquirePointer(
-            service_index,
-            [&lock](const size_t _index, ServiceStub& _rss) {
+                            service_index,
+                            [&lock](const size_t _index, ServiceStub& _rss) {
                 lock = std::unique_lock<std::mutex>(_rss.mutex());
             });
 
@@ -1038,7 +1038,7 @@ void Manager::stop()
         } else {
             break;
         }
-    } //for
+    } // for
 
     {
         std::lock_guard<std::mutex> lock(pimpl_->mutex_);
@@ -1058,5 +1058,5 @@ bool Manager::VisitContext::raiseActor(Event&& _uevent) const
 }
 //-----------------------------------------------------------------------------
 
-} //namespace frame
-} //namespace solid
+} // namespace frame
+} // namespace solid

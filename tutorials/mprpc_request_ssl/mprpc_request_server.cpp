@@ -1,6 +1,6 @@
-//NOTE: on Windows, when compiling against BoringSSL
-//we need to include "openssl/ssl.hpp" before any
-//inclusion of Windows.h
+// NOTE: on Windows, when compiling against BoringSSL
+// we need to include "openssl/ssl.hpp" before any
+// inclusion of Windows.h
 #include "solid/frame/mprpc/mprpcsocketstub_openssl.hpp"
 
 #include "solid/frame/mprpc/mprpccompression_snappy.hpp"
@@ -90,7 +90,7 @@ rpc_request::UserData make_user_data(const AccountData& _rad)
     return ud;
 }
 
-} //namespace
+} // namespace
 
 //-----------------------------------------------------------------------------
 // rpc_request_server - message handling namespace
@@ -353,7 +353,7 @@ int main(int argc, char* argv[])
                     _rctx.loadPrivateKeyFile("echo-server-key.pem");
                     return ErrorCodeT();
                 },
-                frame::mprpc::openssl::NameCheckSecureStart{"echo-client"} //does nothing - OpenSSL does not check for hostname on SSL_accept
+                frame::mprpc::openssl::NameCheckSecureStart{"echo-client"} // does nothing - OpenSSL does not check for hostname on SSL_accept
             );
 
             frame::mprpc::snappy::setup(cfg);

@@ -161,7 +161,7 @@ int test_polymorphic(int /*argc*/, char* /*argv*/[])
     string check_data;
     string test_data;
 
-    { //serialization
+    { // serialization
         ContextT    ctx;
         SerializerT ser{reflection::metadata::factory, key_type_map};
         const int   bufcp = 64;
@@ -195,7 +195,7 @@ int test_polymorphic(int /*argc*/, char* /*argv*/[])
             test_data.append(buf, rv);
         }
     }
-    { //deserialization
+    { // deserialization
         ContextT      ctx;
         DeserializerT des{reflection::metadata::factory, key_type_map};
 

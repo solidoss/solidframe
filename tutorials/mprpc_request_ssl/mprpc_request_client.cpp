@@ -1,6 +1,6 @@
-//NOTE: on Windows, when compiling against BoringSSL
-//we need to include "openssl/ssl.hpp" before any
-//inclusion of Windows.h
+// NOTE: on Windows, when compiling against BoringSSL
+// we need to include "openssl/ssl.hpp" before any
+// inclusion of Windows.h
 #include "solid/frame/mprpc/mprpcsocketstub_openssl.hpp"
 
 #include "solid/frame/mprpc/mprpccompression_snappy.hpp"
@@ -57,7 +57,7 @@ void complete_message(
     std::shared_ptr<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
-    solid_check(false); //this method should not be called
+    solid_check(false); // this method should not be called
 }
 
 } // namespace rpc_request_client
@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
                     cout << endl;
 
                     rpcservice.sendRequest(
-                        recipient.c_str(), //make_shared<rpc_request::Request>(line.substr(offset + 1)),
+                        recipient.c_str(), // make_shared<rpc_request::Request>(line.substr(offset + 1)),
                         req_ptr, lambda, 0);
                 } else {
                     cout << "No recipient specified. E.g:" << endl

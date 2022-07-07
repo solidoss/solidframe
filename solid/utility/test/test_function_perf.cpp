@@ -118,7 +118,7 @@ TestBase* create_test(const FunctionChoice _fnc_choice, const size_t _closure_si
     return nullptr;
 }
 
-} //namespace
+} // namespace
 
 int test_function_perf(int argc, char* argv[])
 {

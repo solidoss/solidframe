@@ -82,7 +82,7 @@ std::atomic<size_t>    transfered_count(0);
 
 size_t real_size(size_t _sz)
 {
-    //offset + (align - (offset mod align)) mod align
+    // offset + (align - (offset mod align)) mod align
     return _sz + ((sizeof(uint64_t) - (_sz % sizeof(uint64_t))) % sizeof(uint64_t));
 }
 
@@ -133,7 +133,7 @@ struct Message : frame::mprpc::Message {
     {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
 
-        //solid_assert(serialized || this->isBackOnSender());
+        // solid_assert(serialized || this->isBackOnSender());
     }
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
@@ -156,7 +156,7 @@ struct Message : frame::mprpc::Message {
         const uint64_t* pup          = reinterpret_cast<const uint64_t*>(pattern.data());
         const size_t    pattern_size = pattern.size() / sizeof(uint64_t);
         for (uint64_t i = 0; i < count; ++i) {
-            pu[i] = pup[(idx + i) % pattern_size]; //pattern[i % pattern.size()];
+            pu[i] = pup[(idx + i) % pattern_size]; // pattern[i % pattern.size()];
         }
     }
 
@@ -167,7 +167,7 @@ struct Message : frame::mprpc::Message {
         if (sz != str.size()) {
             return false;
         }
-        //return true;
+        // return true;
         const size_t    count        = sz / sizeof(uint64_t);
         const uint64_t* pu           = reinterpret_cast<const uint64_t*>(str.data());
         const uint64_t* pup          = reinterpret_cast<const uint64_t*>(pattern.data());
@@ -272,7 +272,7 @@ void peerb_complete_message(
             solid_throw("Message not on peer!.");
         }
 
-        //send message back
+        // send message back
         if (_rctx.recipientId().isInvalidConnection()) {
             solid_throw("Connection id should not be invalid!");
         }
@@ -295,7 +295,7 @@ void peerb_complete_message(
     }
 }
 //-----------------------------------------------------------------------------
-} //namespace
+} // namespace
 
 int test_relay_disabled(int argc, char* argv[])
 {
@@ -364,7 +364,7 @@ int test_relay_disabled(int argc, char* argv[])
 
         std::string relay_port;
 
-        { //mprpc relay initialization
+        { // mprpc relay initialization
             auto con_start    = [](frame::mprpc::ConnectionContext& _rctx) {};
             auto con_stop     = [](frame::mprpc::ConnectionContext& _rctx) {};
             auto con_register = [](
@@ -386,7 +386,7 @@ int test_relay_disabled(int argc, char* argv[])
             cfg.connection_stop_fnc              = std::move(con_start);
             cfg.client.connection_start_fnc      = std::move(con_stop);
             cfg.client.connection_start_state    = frame::mprpc::ConnectionState::Active;
-            cfg.relay_enabled                    = true; //enable relay but do not provide a propper relay engine
+            cfg.relay_enabled                    = true; // enable relay but do not provide a propper relay engine
 
             if (secure) {
                 solid_dbg(generic_logger, Info, "Configure SSL server -------------------------------------");
@@ -418,7 +418,7 @@ int test_relay_disabled(int argc, char* argv[])
         pmprpcpeera = &mprpcpeera;
         pmprpcpeerb = &mprpcpeerb;
 
-        { //mprpc peera initialization
+        { // mprpc peera initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -454,7 +454,7 @@ int test_relay_disabled(int argc, char* argv[])
             mprpcpeera.start(std::move(cfg));
         }
 
-        { //mprpc peerb initialization
+        { // mprpc peerb initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -490,13 +490,13 @@ int test_relay_disabled(int argc, char* argv[])
             mprpcpeerb.start(std::move(cfg));
         }
 
-        //const size_t start_count = 1;
+        // const size_t start_count = 1;
 
-        writecount = initarraysize; //start_count;//
+        writecount = initarraysize; // start_count;//
 
-        //ensure we have provisioned connections on peerb
-        //err = mprpcpeerb.createConnectionPool("localhost");
-        //solid_check(!err, "failed create connection from peerb: "<<err.message());
+        // ensure we have provisioned connections on peerb
+        // err = mprpcpeerb.createConnectionPool("localhost");
+        // solid_check(!err, "failed create connection from peerb: "<<err.message());
 
         if (1) {
             for (; crtwriteidx < writecount;) {
@@ -518,10 +518,10 @@ int test_relay_disabled(int argc, char* argv[])
             solid_throw("Not all messages were completed");
         }
 
-        //m.stop();
+        // m.stop();
     }
 
-    //exiting
+    // exiting
 
     std::cout << "Transfered size = " << (transfered_size * 2) / 1024 << "KB" << endl;
     std::cout << "Transfered count = " << transfered_count << endl;

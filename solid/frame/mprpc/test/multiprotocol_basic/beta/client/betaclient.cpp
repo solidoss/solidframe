@@ -101,7 +101,7 @@ ErrorConditionT start(
 
     pctx = &_rctx;
 
-    if (!mprpcclient_ptr) { //mprpc client initialization
+    if (!mprpcclient_ptr) { // mprpc client initialization
         auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, TypeIdT>(
             reflection::v1::metadata::factory,
             [](auto& _rmap) {

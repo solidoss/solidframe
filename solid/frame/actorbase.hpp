@@ -88,5 +88,5 @@ inline void ActorBase::runId(UniqueId const& _runid)
     runid = _runid;
 }
 
-} //namespace frame
-} //namespace solid
+} // namespace frame
+} // namespace solid

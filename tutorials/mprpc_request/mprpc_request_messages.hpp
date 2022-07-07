@@ -75,4 +75,4 @@ inline void configure_protocol(Reg _rreg)
     _rreg(2, "Response", solid::TypeToType<Response>());
 }
 
-} //namespace rpc_request
+} // namespace rpc_request

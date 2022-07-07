@@ -26,7 +26,7 @@ public:
         CreateE    = O_CREAT //!< Create
     };
     FileDevice();
-    //!returns the size of a file without opening it - using stat!
+    //! returns the size of a file without opening it - using stat!
     static int64_t size(const char* _fname);
     //! Open a file using its name and open mode flags
     bool open(const char* _fname, int _how);
@@ -47,4 +47,4 @@ public:
     bool canRetryOpen() const;
 };
 
-} //namespace solid
+} // namespace solid

@@ -28,8 +28,8 @@ namespace v1 {
 
 size_t current_index();
 
-//template <class Reflector>
-//inline const size_t reflector_index_v = reflector_index();
+// template <class Reflector>
+// inline const size_t reflector_index_v = reflector_index();
 
 template <class Reflector>
 size_t reflector_index()
@@ -39,8 +39,8 @@ size_t reflector_index()
 }
 
 class TypeMapBase : NonCopyable {
-    //using VariantT = std::variant<Reflector...>;
-    //using TupleT = std::tuple<Reflector...>;
+    // using VariantT = std::variant<Reflector...>;
+    // using TupleT = std::tuple<Reflector...>;
 protected:
     using CastFunctionT        = std::function<void(void*, void*)>;
     using ReverseCastFunctionT = std::function<const void*(const void*)>;
@@ -90,7 +90,7 @@ protected:
         TypeIdMapT   type_id_map_;
     };
 
-    using IndexTupleT     = std::tuple<size_t, size_t, size_t>; //index, category, id
+    using IndexTupleT     = std::tuple<size_t, size_t, size_t>; // index, category, id
     using TypeIndexMapT   = std::unordered_map<std::type_index, IndexTupleT>;
     using TypeVectorT     = std::vector<TypeStub>;
     using CategoryVectorT = std::vector<CategoryStub>;
@@ -125,7 +125,7 @@ protected:
     TypeMapBase(std::vector<size_t>& _reflector_index_vec)
         : reflector_index_vec_(_reflector_index_vec)
     {
-        type_vec_.emplace_back(); //reserve 0 index for for null
+        type_vec_.emplace_back(); // reserve 0 index for for null
     }
 
 public:
@@ -149,7 +149,7 @@ public:
             } else if (rtypestub.this_type_index_ == elem_type_index) {
                 cast_index = rtypestub.this_cast_index_;
             } else {
-                //need to search for the index
+                // need to search for the index
                 const auto it = cast_map_.find(std::make_pair(rtypestub.this_type_index_, elem_type_index));
                 solid_check(it != cast_map_.end());
                 cast_index = it->second;
@@ -176,7 +176,7 @@ public:
         } else if (rtypestub.this_type_index_ == elem_type_index) {
             cast_index = rtypestub.this_cast_index_;
         } else {
-            //need to search for the index
+            // need to search for the index
             const auto it = cast_map_.find(std::make_pair(rtypestub.this_type_index_, elem_type_index));
             solid_check(it != cast_map_.end());
             cast_index = it->second;
@@ -204,7 +204,7 @@ public:
             } else if (rtypestub.this_type_index_ == elem_type_index) {
                 cast_index = rtypestub.this_cast_index_;
             } else {
-                //need to search for the index
+                // need to search for the index
                 const auto it = cast_map_.find(std::make_pair(rtypestub.this_type_index_, elem_type_index));
                 solid_check(it != cast_map_.end());
                 cast_index = it->second;
@@ -214,7 +214,7 @@ public:
 
             if constexpr (solid::is_shared_ptr_v<Ptr>) {
                 rtypestub.reflector_vec_[reflector_index].create_shared_fnc_(&_rctx, &_rptr, rcaststub.shared_fnc_);
-            } else { //unique_ptr
+            } else { // unique_ptr
                 static_assert(std::is_same_v<Ptr, std::unique_ptr<typename Ptr::element_type>>, "Only unique with default deleter is supported");
                 rtypestub.reflector_vec_[reflector_index].create_unique_fnc_(&_rctx, &_rptr, rcaststub.unique_fnc_);
             }
@@ -243,7 +243,7 @@ public:
             } else if (rtypestub.this_type_index_ == elem_type_index) {
                 cast_index = rtypestub.this_cast_index_;
             } else {
-                //need to search for the index
+                // need to search for the index
                 const auto it = cast_map_.find(std::make_pair(rtypestub.this_type_index_, elem_type_index));
                 solid_check(it != cast_map_.end());
                 cast_index = it->second;
@@ -253,7 +253,7 @@ public:
 
             if constexpr (solid::is_shared_ptr_v<Ptr>) {
                 rtypestub.reflector_vec_[reflector_index].create_shared_fnc_(&_rctx, &_rptr, rcaststub.shared_fnc_);
-            } else { //unique_ptr
+            } else { // unique_ptr
                 static_assert(std::is_same_v<Ptr, std::unique_ptr<typename Ptr::element_type>>, "Only unique with default deleter is supported");
                 rtypestub.reflector_vec_[reflector_index].create_unique_fnc_(&_rctx, &_rptr, rcaststub.unique_fnc_);
             }
@@ -282,7 +282,7 @@ public:
             } else if (rtypestub.this_type_index_ == elem_type_index) {
                 cast_index = rtypestub.this_cast_index_;
             } else {
-                //need to search for the index
+                // need to search for the index
                 const auto it = cast_map_.find(std::make_pair(rtypestub.this_type_index_, elem_type_index));
                 solid_check(it != cast_map_.end());
                 cast_index = it->second;
@@ -292,7 +292,7 @@ public:
 
             if constexpr (solid::is_shared_ptr_v<Ptr>) {
                 rtypestub.reflector_vec_[reflector_index].create_shared_fnc_(&_rctx, &_rptr, rcaststub.shared_fnc_);
-            } else { //unique_ptr
+            } else { // unique_ptr
                 static_assert(std::is_same_v<Ptr, std::unique_ptr<typename Ptr::element_type>>, "Only unique with default deleter is supported");
                 rtypestub.reflector_vec_[reflector_index].create_unique_fnc_(&_rctx, &_rptr, rcaststub.unique_fnc_);
             }
@@ -323,7 +323,7 @@ public:
             } else if (rtypestub.this_type_index_ == elem_type_index) {
                 cast_index = rtypestub.this_cast_index_;
             } else {
-                //need to search for the index
+                // need to search for the index
                 const auto it = cast_map_.find(std::make_pair(rtypestub.this_type_index_, elem_type_index));
                 solid_check(it != cast_map_.end());
                 cast_index = it->second;
@@ -333,7 +333,7 @@ public:
 
             if constexpr (solid::is_shared_ptr_v<Ptr>) {
                 rtypestub.reflector_vec_[reflector_index].create_shared_fnc_(&_rctx, &_rptr, rcaststub.shared_fnc_);
-            } else { //unique_ptr
+            } else { // unique_ptr
                 static_assert(std::is_same_v<Ptr, std::unique_ptr<typename Ptr::element_type>>, "Only unique with default deleter is supported");
                 rtypestub.reflector_vec_[reflector_index].create_unique_fnc_(&_rctx, &_rptr, rcaststub.unique_fnc_);
             }
@@ -363,11 +363,11 @@ public:
         if (_pvalue != nullptr) {
             const auto index = std::type_index(typeid(*_pvalue));
             const auto it    = type_index_map_.find(index);
-            //solid_check(it != type_index_map_.end(), "Unknown type: "<<typeid(*_pvalue).name());
+            // solid_check(it != type_index_map_.end(), "Unknown type: "<<typeid(*_pvalue).name());
             solid_assert(it != type_index_map_.end());
             if (it != type_index_map_.end()) {
                 return it->second;
-                //return std::pair<size_t, size_t>(std::get<1>(it->second), std::get<2>(it->second));
+                // return std::pair<size_t, size_t>(std::get<1>(it->second), std::get<2>(it->second));
             }
         }
         return std::make_tuple(static_cast<size_t>(0), static_cast<size_t>(0), static_cast<size_t>(0));
@@ -376,8 +376,8 @@ public:
 
 template <class... Reflector>
 class TypeMap : public TypeMapBase {
-    //using VariantT = std::variant<Reflector...>;
-    //using TupleT = std::tuple<Reflector...>;
+    // using VariantT = std::variant<Reflector...>;
+    // using TupleT = std::tuple<Reflector...>;
 
     static std::vector<size_t>& reflector_index_vector()
     {
@@ -471,14 +471,14 @@ private:
             }
         };
         type_vec_[_type_index].reflector_vec_[_index].create_shared_fnc_ = [_init_f](void* _pctx, void* _pptr, const CastFunctionT& _cast) {
-            //auto ptr = std::make_shared<T>();
+            // auto ptr = std::make_shared<T>();
             typename Ref::ContextT& rctx = *reinterpret_cast<typename Ref::ContextT*>(_pctx);
             std::shared_ptr<T>      ptr;
             _init_f(rctx, ptr);
             _cast(_pptr, &ptr);
         };
         type_vec_[_type_index].reflector_vec_[_index].create_unique_fnc_ = [_init_f](void* _pctx, void* _pptr, const CastFunctionT& _cast) {
-            //auto ptr = std::make_unique<T>();
+            // auto ptr = std::make_unique<T>();
             typename Ref::ContextT& rctx = *reinterpret_cast<typename Ref::ContextT*>(_pctx);
             std::unique_ptr<T>      ptr;
             _init_f(rctx, ptr);
@@ -560,6 +560,6 @@ public:
     }
 };
 
-} //namespace v1
-} //namespace reflection
-} //namespace solid
+} // namespace v1
+} // namespace reflection
+} // namespace solid

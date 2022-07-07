@@ -35,7 +35,7 @@ private:
     PimplT<Data> impl_;
 };
 
-} //namespace relay
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace relay
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

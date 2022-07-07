@@ -33,4 +33,4 @@ struct Super : S {
         return SuperT::superFind(_rtype_index, _rid, _find_fnc);
     }
 };
-} //namespace solid
+} // namespace solid

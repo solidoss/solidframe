@@ -36,7 +36,7 @@ enum struct ConnectionStateE {
 enum {
     InnerLinkRecv,
     InnerLinkSend,
-    InnerLinkCount //add above
+    InnerLinkCount // add above
 };
 
 /*
@@ -46,7 +46,7 @@ NOTE:
         * if the message was not completely received, receiver connection must send message cancel
         * if the message is waiting for response, receiver connection must send CancelRequest
         * -
-        * 
+        *
     * receiver connection closes
         * if the message was not completely received, sender connection must send CancelRequest and discard any incomming data
         * if message is waiting for response, sender connection must send CancelRequest
@@ -56,19 +56,19 @@ NOTE:
             - on doCompleteClose can add _prelay_data back to message list and add the message to the receiver connection message list
             - on connectionStop
     * sender connection receives a message canceled command
-        * 
+        *
     * receiver connection receives message cancel request command which should be forwarder up to the initial sender of the message
-    
+
     W1---->RR-->RW---->R2
     R1<----RW<--RR<----W2
-    
+
     W1 - Writer for connection 1
     R1 - Reader for connection 1
     RR - Relay reader
     RW - Relay writer
     R2 - Reader for connection 2
     W2 - Writer for connection 2
-    
+
 */
 
 enum struct MessageStateE {
@@ -219,7 +219,7 @@ using RelayDataStackT  = std::stack<RelayData*>;
 using SizeTStackT      = std::stack<size_t>;
 using ConnectionDequeT = std::deque<ConnectionStub>;
 using ConnectionMapT   = std::unordered_map<const char*, size_t, CStringHash, CStringEqual>;
-} //namespace
+} // namespace
 
 std::ostream& operator<<(std::ostream& _ros, const ConnectionPrintStub& _rps)
 {
@@ -360,7 +360,7 @@ void EngineCore::doStopConnection(const size_t _conidx)
             const size_t msgidx     = rcon.recv_msg_list_.popFront();
             const size_t snd_conidx = static_cast<size_t>(rmsg.sender_con_id_.index);
 
-            rmsg.receiver_con_id_.clear(); //unlink from the receiver connection
+            rmsg.receiver_con_id_.clear(); // unlink from the receiver connection
 
             if (rmsg.sender_con_id_.isValid()) {
                 switch (rmsg.state_) {
@@ -383,21 +383,21 @@ void EngineCore::doStopConnection(const size_t _conidx)
                         }
                     }
                     continue;
-                //case MessageStateE::SendCancel://rmsg.sender_con_id_ should be invalid
-                //case MessageStateE::RecvCancel://message should not be in the recv_msg_list_
+                // case MessageStateE::SendCancel://rmsg.sender_con_id_ should be invalid
+                // case MessageStateE::RecvCancel://message should not be in the recv_msg_list_
                 default:
                     solid_check_log(false, logger, "Invalid message state " << static_cast<size_t>(rmsg.state_));
                     break;
-                } //switch
+                } // switch
             }
-            //simply erase the message
+            // simply erase the message
             RelayData* prd;
             while ((prd = rmsg.pop()) != nullptr) {
                 impl_->eraseRelayData(prd);
             }
             rmsg.clear();
             impl_->eraseMessage(msgidx);
-        } //while
+        } // while
     }
 
     {
@@ -407,9 +407,9 @@ void EngineCore::doStopConnection(const size_t _conidx)
             const size_t rcv_conidx = static_cast<size_t>(rmsg.receiver_con_id_.index);
             solid_assert_log(rcon.send_msg_list_.check(), logger);
 
-            rmsg.sender_con_id_.clear(); //unlink from the sender connection
+            rmsg.sender_con_id_.clear(); // unlink from the sender connection
 
-            //clean message relay data
+            // clean message relay data
             {
                 RelayData* prd;
                 while ((prd = rmsg.pop()) != nullptr) {
@@ -437,21 +437,21 @@ void EngineCore::doStopConnection(const size_t _conidx)
                         }
                     }
                     continue;
-                //case MessageStateE::SendCancel://rmsg.sender_con_id_ should be invalid
-                //case MessageStateE::RecvCancel://message should not be in the recv_msg_list_
+                // case MessageStateE::SendCancel://rmsg.sender_con_id_ should be invalid
+                // case MessageStateE::RecvCancel://message should not be in the recv_msg_list_
                 default:
                     solid_check_log(false, logger, "Invalid message state " << static_cast<size_t>(rmsg.state_));
                     break;
-                } //switch
+                } // switch
             }
-            //simply erase the message
+            // simply erase the message
             rmsg.clear();
             impl_->eraseMessage(msgidx);
-        } //while
+        } // while
     }
 
     {
-        //clean-up done relay data
+        // clean-up done relay data
         RelayData* prd = rcon.pdone_relay_data_top_;
 
         solid_log(logger, Info, _conidx << ' ' << plot(rcon));
@@ -532,7 +532,7 @@ bool EngineCore::doRelayStart(
     rmsg.state_              = MessageStateE::Relay;
     rmsg.last_message_flags_ = rmsg.header_.flags_;
 
-    //the request_ids are already swapped on deserialization
+    // the request_ids are already swapped on deserialization
     std::swap(rmsg.header_.recipient_request_id_, rmsg.header_.sender_request_id_);
 
     _rrelay_id = MessageId(msgidx, rmsg.unique_);
@@ -541,11 +541,11 @@ bool EngineCore::doRelayStart(
     ConnectionStub& rrcvcon    = impl_->con_dq_[rcv_conidx];
     ConnectionStub& rsndcon    = impl_->con_dq_[snd_conidx];
 
-    //also hold the in-engine connection id into msg
+    // also hold the in-engine connection id into msg
     rmsg.sender_con_id_   = ActorIdT(snd_conidx, impl_->con_dq_[snd_conidx].unique_);
     rmsg.receiver_con_id_ = ActorIdT(rcv_conidx, rrcvcon.unique_);
 
-    //register message onto sender connection:
+    // register message onto sender connection:
     rsndcon.send_msg_list_.pushBack(msgidx);
 
     _rrelmsg.flags_.set(RelayDataFlagsE::First);
@@ -602,20 +602,20 @@ bool EngineCore::doRelay(
 
                 solid_assert_log(!rrcvcon.recv_msg_list_.empty(), logger);
 
-                //move the message at the back of the list so it get processed sooner - somewhat unfair
-                //but this way we can keep using a single list for send messages
+                // move the message at the back of the list so it get processed sooner - somewhat unfair
+                // but this way we can keep using a single list for send messages
                 rrcvcon.recv_msg_list_.erase(msgidx);
                 rrcvcon.recv_msg_list_.pushBack(msgidx);
                 solid_log(logger, Verbose, "rcv_lst = " << rrcvcon.recv_msg_list_ << " notify_conn = " << should_notify_connection);
 
                 if (should_notify_connection) {
-                    //solid_log(logger, Verbose, _rrelay_con_uid <<" notify receiver connection");
+                    // solid_log(logger, Verbose, _rrelay_con_uid <<" notify receiver connection");
                     solid_check_log(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), logger, "Connection should be alive");
                 }
             }
         } else {
-            //we do not return false because the connection is about to be notified
-            //about message state change
+            // we do not return false because the connection is about to be notified
+            // about message state change
             solid_log(logger, Warning, _rrelay_con_uid << " message not in relay state instead in " << static_cast<size_t>(rmsg.state_));
         }
         return true;
@@ -644,7 +644,7 @@ bool EngineCore::doRelayResponse(
     if (_rrelay_id.index < impl_->msg_dq_.size() && impl_->msg_dq_[_rrelay_id.index].unique_ == _rrelay_id.unique) {
         const size_t msgidx            = _rrelay_id.index;
         MessageStub& rmsg              = impl_->msg_dq_[msgidx];
-        RequestId    sender_request_id = rmsg.header_.recipient_request_id_; //the request ids were swapped on doRelayStart
+        RequestId    sender_request_id = rmsg.header_.recipient_request_id_; // the request ids were swapped on doRelayStart
 
         _rrelmsg.flags_.set(RelayDataFlagsE::First);
         _rrelmsg.message_flags_  = _rmsghdr.flags_;
@@ -665,7 +665,7 @@ bool EngineCore::doRelayResponse(
 
             std::swap(rmsg.header_.recipient_request_id_, rmsg.header_.sender_request_id_);
 
-            //set the proper recipient_request_id_
+            // set the proper recipient_request_id_
             rmsg.header_.sender_request_id_ = sender_request_id;
 
             rmsg.push(impl_->createRelayData(std::move(_rrelmsg)));
@@ -682,7 +682,7 @@ bool EngineCore::doRelayResponse(
             const bool      should_notify_connection = rrcvcon.recv_msg_list_.empty() || !rrcvcon.recv_msg_list_.back().hasData();
 
             rsndcon.recv_msg_list_.erase(msgidx); //
-            rrcvcon.send_msg_list_.erase(msgidx); //MUST do the erase before push!!!
+            rrcvcon.send_msg_list_.erase(msgidx); // MUST do the erase before push!!!
             rsndcon.send_msg_list_.pushBack(msgidx); //
             rrcvcon.recv_msg_list_.pushBack(msgidx); //
 
@@ -710,14 +710,14 @@ bool EngineCore::doRelayResponse(
 
                 solid_assert_log(!rrcvcon.recv_msg_list_.empty(), logger);
 
-                //move the message at the back of the list so it get processed sooner - somewhat unfair
-                //but this way we can keep using a single list for send messages
+                // move the message at the back of the list so it get processed sooner - somewhat unfair
+                // but this way we can keep using a single list for send messages
                 rrcvcon.recv_msg_list_.erase(msgidx);
                 rrcvcon.recv_msg_list_.pushBack(msgidx);
                 solid_log(logger, Info, "rcv_lst = " << rrcvcon.recv_msg_list_ << " notify_conn = " << should_notify_connection);
 
                 if (should_notify_connection) {
-                    //solid_log(logger, Info, _rrelay_con_uid <<" notify receiver connection");
+                    // solid_log(logger, Info, _rrelay_con_uid <<" notify receiver connection");
                     solid_check_log(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), logger, "Connection should be alive");
                 }
             }
@@ -757,23 +757,23 @@ void EngineCore::doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_
                     rmsg.pback_ = nullptr;
                 }
 
-                //relay data accepted
+                // relay data accepted
                 if (rmsg.pfront_ != nullptr) {
-                    //message has more data - leave it where it is on the list
+                    // message has more data - leave it where it is on the list
                 } else {
-                    //message has no more data, move it to front
+                    // message has no more data, move it to front
                     rcon.recv_msg_list_.erase(msgidx);
                     rcon.recv_msg_list_.pushFront(msgidx);
                 }
             } else {
                 solid_log(logger, Verbose, "");
-                //the connection has received the SendCancel event for the message,
-                //we can now safely delete the message
+                // the connection has received the SendCancel event for the message,
+                // we can now safely delete the message
                 solid_assert_log(!rmsg.pfront_->bufptr_, logger);
                 solid_assert_log(pnext == nullptr, logger);
 
                 if (rmsg.sender_con_id_.isValid()) {
-                    //we can safely unlink message from sender connection
+                    // we can safely unlink message from sender connection
                     solid_assert_log(static_cast<size_t>(rmsg.sender_con_id_.index) < impl_->con_dq_.size() && impl_->con_dq_[static_cast<size_t>(rmsg.sender_con_id_.index)].unique_ == rmsg.sender_con_id_.unique, logger);
 
                     ConnectionStub& rsndcon = impl_->con_dq_[static_cast<size_t>(rmsg.sender_con_id_.index)];
@@ -793,7 +793,7 @@ void EngineCore::doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_
             solid_log(logger, Verbose, "");
         }
         msgidx = prev_msgidx;
-    } //while
+    } // while
 
     _rmore = !rcon.recv_msg_list_.empty() && rcon.recv_msg_list_.back().hasData();
     solid_log(logger, Verbose, _rrelay_con_uid << " more = " << _rmore << " rcv_lst = " << rcon.recv_msg_list_);
@@ -864,7 +864,7 @@ void EngineCore::doComplete(
     if (_rengine_msg_id.index < impl_->msg_dq_.size() && impl_->msg_dq_[_rengine_msg_id.index].unique_ == _rengine_msg_id.unique) {
         const size_t    msgidx  = _rengine_msg_id.index;
         MessageStub&    rmsg    = impl_->msg_dq_[msgidx];
-        ConnectionStub& rrcvcon = impl_->con_dq_[static_cast<size_t>(rmsg.receiver_con_id_.index)]; //the connection currently calling this method
+        ConnectionStub& rrcvcon = impl_->con_dq_[static_cast<size_t>(rmsg.receiver_con_id_.index)]; // the connection currently calling this method
 
         if (rmsg.sender_con_id_.isValid()) {
             solid_assert_log(static_cast<size_t>(rmsg.sender_con_id_.index) < impl_->con_dq_.size() && impl_->con_dq_[static_cast<size_t>(rmsg.sender_con_id_.index)].unique_ == rmsg.sender_con_id_.unique, logger);
@@ -897,8 +897,8 @@ void EngineCore::doComplete(
                     solid_log(logger, Info, _rrelay_con_uid << " erase message " << msgidx << " rcv_lst = " << rrcvcon.recv_msg_list_);
                 }
             } else if (_prelay_data->isMessageEnd()) {
-                //completed a partial response message
-                //TODO:!!!!
+                // completed a partial response message
+                // TODO:!!!!
                 rmsg.state_ = MessageStateE::WaitResponsePart;
 
                 solid_log(logger, Info, _rrelay_con_uid << " WaitResponsePart " << msgidx << " send snd_lst = " << rsndcon.send_msg_list_ << " send rcv_lst = " << rsndcon.recv_msg_list_ << " recv snd_lst = " << rrcvcon.send_msg_list_ << " recv rcv_lst = " << rrcvcon.recv_msg_list_);
@@ -911,7 +911,7 @@ void EngineCore::doComplete(
         _rmore = !rrcvcon.recv_msg_list_.empty() && rrcvcon.recv_msg_list_.back().hasData();
         solid_log(logger, Verbose, _rrelay_con_uid << " " << _rengine_msg_id << " more " << _rmore << " rcv_lst = " << rrcvcon.recv_msg_list_);
     }
-    //it happens for canceled relayed messages - see MessageWriter::doWriteRelayedCancelRequest
+    // it happens for canceled relayed messages - see MessageWriter::doWriteRelayedCancelRequest
     _prelay_data->clear();
     impl_->eraseRelayData(_prelay_data);
     solid_log(logger, Error, _rrelay_con_uid << " message not found " << _rengine_msg_id);
@@ -920,9 +920,9 @@ void EngineCore::doComplete(
 // called by any of connection when either:
 // sending peer stops/cancels sending the message - MessageReader::Receiver::cancelRelayed
 // receiver side, request canceling the message - MessageWriter::Sender::cancelRelayed
-//TODO: add _rmore support as for doComplete
-//TODO:!!!!
-//NOTE:
+// TODO: add _rmore support as for doComplete
+// TODO:!!!!
+// NOTE:
 // * the following situations must be handled:
 //      + Sender is disconnecting
 //          - while sending Message/Request to receiver
@@ -951,14 +951,14 @@ void EngineCore::doCancel(
 
         MessageStub& rmsg = impl_->msg_dq_[msgidx];
 
-        //need to findout on which side we are - sender or receiver
+        // need to findout on which side we are - sender or receiver
         if (rmsg.sender_con_id_ == _rrelay_con_uid && rmsg.state_ != MessageStateE::WaitResponsePart) {
             ConnectionStub& rsndcon = impl_->con_dq_[static_cast<size_t>(rmsg.sender_con_id_.index)];
 
-            //cancels comes from the sender connection
-            //Problem
-            // we cannot unlink the connection from the sender connection, because the receiving connection
-            // might have already captured a message buffer which MUST return to the sender connection
+            // cancels comes from the sender connection
+            // Problem
+            //  we cannot unlink the connection from the sender connection, because the receiving connection
+            //  might have already captured a message buffer which MUST return to the sender connection
 
             RelayData* prd;
             while ((prd = rmsg.pop()) != nullptr) {
@@ -1000,7 +1000,7 @@ void EngineCore::doCancel(
                 }
             } else {
                 solid_log(logger, Verbose, _rrelay_con_uid << " simply erase the message " << _rengine_msg_id);
-                //simply release the message
+                // simply release the message
                 rsndcon.send_msg_list_.erase(msgidx);
                 rmsg.clear();
                 impl_->eraseMessage(_rengine_msg_id.index);
@@ -1018,7 +1018,7 @@ void EngineCore::doCancel(
             std::swap(rmsg.header_.recipient_request_id_, rmsg.header_.sender_request_id_);
 
             rrcvcon.recv_msg_list_.erase(msgidx); //
-            rsndcon.send_msg_list_.erase(msgidx); //MUST do the erase before push!!!
+            rsndcon.send_msg_list_.erase(msgidx); // MUST do the erase before push!!!
             rrcvcon.send_msg_list_.pushBack(msgidx); //
             rsndcon.recv_msg_list_.pushBack(msgidx); //
         }
@@ -1027,12 +1027,12 @@ void EngineCore::doCancel(
             solid_assert_log(rmsg.receiver_con_id_ == _rrelay_con_uid, logger);
 
             ConnectionStub& rrcvcon = impl_->con_dq_[static_cast<size_t>(rmsg.receiver_con_id_.index)];
-            //cancel comes from receiving connection
+            // cancel comes from receiving connection
             //_prelay_data, if not empty, contains the last relay data on the message
-            //which should return to the sending connection
+            // which should return to the sending connection
 
             rrcvcon.recv_msg_list_.erase(msgidx);
-            rmsg.receiver_con_id_.clear(); //unlink from receiver connection
+            rmsg.receiver_con_id_.clear(); // unlink from receiver connection
             rmsg.state_ = MessageStateE::RecvCancel;
 
             if (rmsg.sender_con_id_.isValid()) {
@@ -1061,7 +1061,7 @@ void EngineCore::doCancel(
                 }
             } else {
                 solid_log(logger, Verbose, _rrelay_con_uid << " simply erase the message " << _rengine_msg_id);
-                //simply release the message
+                // simply release the message
                 rmsg.clear();
                 impl_->eraseMessage(_rengine_msg_id.index);
             }
@@ -1130,7 +1130,7 @@ void EngineCore::Proxy::registerConnectionId(const ConnectionContext& _rconctx, 
     re_.doRegisterConnectionId(_rconctx, _idx);
 }
 //-----------------------------------------------------------------------------
-} //namespace relay
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace relay
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

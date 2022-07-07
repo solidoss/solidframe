@@ -97,7 +97,7 @@ int test_workpool(int argc, char* argv[])
         {
             WorkPoolConfiguration(consumer_count, queue_size <= 0 ? std::numeric_limits<size_t>::max() : queue_size),
                 [job_sleep_msecs](size_t _v, Context&& _rctx) {
-                    //solid_check(_rs == "this is a string", "failed string check");
+                    // solid_check(_rs == "this is a string", "failed string check");
                     val += _v;
                     if (job_sleep_msecs != 0) {
                         this_thread::sleep_for(chrono::milliseconds(job_sleep_msecs));

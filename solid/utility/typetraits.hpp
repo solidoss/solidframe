@@ -44,7 +44,7 @@ typename std::conditional<B, T1, T2>::type if_then_else(T1&& _then, T2&& _else)
     return if_then_else_help(std::move(_then), std::move(_else), std::bool_constant<B>());
 }
 
-//https://stackoverflow.com/questions/12042824/how-to-write-a-type-trait-is-container-or-is-vector
+// https://stackoverflow.com/questions/12042824/how-to-write-a-type-trait-is-container-or-is-vector
 template <typename T, typename _ = void>
 struct is_container : std::false_type {
 };
@@ -154,4 +154,4 @@ struct is_std_pair<std::pair<T1, T2>> : std::true_type {
 template <class T>
 inline constexpr bool is_std_pair_v = is_std_pair<T>::value;
 
-} //namespace solid
+} // namespace solid

@@ -38,7 +38,7 @@ template <class Obj>
 class MutualStore {
 public:
     typedef Obj MutualObjectT;
-    //!Constructor
+    //! Constructor
     /*!
         \param _objpermutbts The number of objects associated to a mutex as bitcount
         (real count 1<<bitcount)
@@ -202,14 +202,14 @@ private:
     }
 
 private:
-    const unsigned  objpermutbts; //objects per mutex mask
-    const size_t    objpermutmsk; //objects per mutex count
-    const unsigned  mutrowsbts; //mutex rows bits
-    const size_t    mutrowsmsk; //mutex rows mask
-    const size_t    mutrowscnt; //mutex rows count
-    const size_t    mutcolsmsk; //mutex columns mask
-    const size_t    mutcolscnt; //mutex columns count
+    const unsigned  objpermutbts; // objects per mutex mask
+    const size_t    objpermutmsk; // objects per mutex count
+    const unsigned  mutrowsbts; // mutex rows bits
+    const size_t    mutrowsmsk; // mutex rows mask
+    const size_t    mutrowscnt; // mutex rows count
+    const size_t    mutcolsmsk; // mutex columns mask
+    const size_t    mutcolscnt; // mutex columns count
     MutualObjectT** objmat;
 };
 
-} //namespace solid
+} // namespace solid

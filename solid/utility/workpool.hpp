@@ -16,4 +16,4 @@
 
 namespace solid {
 
-} //namespace solid
+} // namespace solid

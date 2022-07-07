@@ -101,7 +101,7 @@ struct WorkPoolStatistic : solid::Statistic {
 //-----------------------------------------------------------------------------
 //! Pool of threads handling Jobs
 /*!
- * 
+ *
  * Requirements
  *  * Given a valid reference to a WorkPool, one MUST be able to always push
  *      new jobs
@@ -254,11 +254,11 @@ private:
             Base::wait(_rws.cnd_, lock, [this, &_rws]() { return _rws.state_.load() != WorkerStub::StateE::Wait || !running_.load(std::memory_order_relaxed); });
         }
 
-        //NOTE: no push should happen after running_ is set to false
+        // NOTE: no push should happen after running_ is set to false
         return running_.load(std::memory_order_relaxed);
     }
 
-}; //WorkPool
+}; // WorkPool
 
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits, typename Base>
@@ -311,8 +311,8 @@ bool WorkPool<Job, void, QNBits, Base>::doWorkerWake(WorkerStub* _pws)
 {
     WorkerStub* pworker_stub;
     while (doWorkerPop(pworker_stub)) {
-        //solid_log(workpool_logger, Verbose, "pop_worker: "<<pworker_stub);
-        //pworker_stub valid states: Wait, WaitCancel
+        // solid_log(workpool_logger, Verbose, "pop_worker: "<<pworker_stub);
+        // pworker_stub valid states: Wait, WaitCancel
         bool   do_break   = true;
         size_t loop_count = 0;
         while (true) {
@@ -324,7 +324,7 @@ bool WorkPool<Job, void, QNBits, Base>::doWorkerWake(WorkerStub* _pws)
             }
             auto expect_state = WorkerStub::StateE::Wait;
             if (pworker_stub->state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Notify)) {
-                //solid_log(workpool_logger, Warning, "wake worker");
+                // solid_log(workpool_logger, Warning, "wake worker");
                 {
                     std::lock_guard<std::mutex> lock(pworker_stub->mtx_);
                 }
@@ -333,13 +333,13 @@ bool WorkPool<Job, void, QNBits, Base>::doWorkerWake(WorkerStub* _pws)
             } else {
                 solid_assert_log(expect_state == WorkerStub::StateE::WaitCancel, workpool_logger, "expect state not WaitCancel but: " << static_cast<int>(expect_state) << " count " << loop_count);
                 if (pworker_stub->state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Cancel)) {
-                    //solid_log(workpool_logger, Warning, "worker canceled");
+                    // solid_log(workpool_logger, Warning, "worker canceled");
                     do_break = false;
                     break;
                 } else {
                     solid_assert_log(expect_state == WorkerStub::StateE::Wait, workpool_logger, "expect state not Wait but: " << static_cast<int>(expect_state) << " count " << loop_count);
-                    //solid_log(workpool_logger, Warning, "force notify: "<<pworker_stub<< " count "<<count);
-                    continue; //try wake another thread
+                    // solid_log(workpool_logger, Warning, "force notify: "<<pworker_stub<< " count "<<count);
+                    continue; // try wake another thread
                 }
             }
         }
@@ -360,7 +360,7 @@ size_t WorkPool<Job, void, QNBits, Base>::doJobPush(JT&& _rj, std::bool_constant
         if (doWorkerWake()) {
 
         } else {
-            //solid_log(workpool_logger, Verbose, "no worker notified - "<<sz);
+            // solid_log(workpool_logger, Verbose, "no worker notified - "<<sz);
         }
     }
     return sz;
@@ -371,23 +371,23 @@ bool WorkPool<Job, void, QNBits, Base>::doJobPop(WorkerStub& _rws, const size_t 
 {
     //_rws valid states: Cancel, WaitCancel
     auto expect_state = WorkerStub::StateE::WaitCancel;
-    //bool did_push = true;
+    // bool did_push = true;
     if (_rws.state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Wait)) {
-        //did_push = false;
+        // did_push = false;
     } else {
         solid_assert_log(expect_state == WorkerStub::StateE::Cancel, workpool_logger, "expect state not Cancel but: " << static_cast<int>(expect_state));
         _rws.state_.store(WorkerStub::StateE::Wait);
-        //solid_log(workpool_logger, Verbose, "push_worker: "<<&_rws);
+        // solid_log(workpool_logger, Verbose, "push_worker: "<<&_rws);
         doWorkerPush(_rws, thr_id_);
     }
     size_t loop_count = 0;
     while (!job_q_ptr_->pop(_rjob)) {
-        //solid_log(workpool_logger, Warning, "worker wait "<<did_push<<' '<<loop_count);
+        // solid_log(workpool_logger, Warning, "worker wait "<<did_push<<' '<<loop_count);
         ++loop_count;
         solid_statistic_inc(statistic_.wait_count_);
         solid_statistic_max(statistic_.max_job_pop_loop_, loop_count);
         if (doWait(_rws)) {
-            //solid_log(workpool_logger, Verbose, "push_worker: "<<&_rws <<" state = "<<static_cast<int>(_rws.state_.load()));
+            // solid_log(workpool_logger, Verbose, "push_worker: "<<&_rws <<" state = "<<static_cast<int>(_rws.state_.load()));
             auto       expect_state = WorkerStub::StateE::Notify;
             const bool ok           = _rws.state_.compare_exchange_strong(expect_state, WorkerStub::StateE::Wait);
             solid_assert_log(ok, workpool_logger, "expect state not Notify, but: " << static_cast<int>(expect_state));
@@ -396,7 +396,7 @@ bool WorkPool<Job, void, QNBits, Base>::doJobPop(WorkerStub& _rws, const size_t 
         } else if (job_q_ptr_->pop(_rjob)) {
             break;
         } else {
-            //solid_log(workpool_logger, Warning, this << " no more waiting");
+            // solid_log(workpool_logger, Warning, this << " no more waiting");
             return false;
         }
     }
@@ -408,11 +408,11 @@ bool WorkPool<Job, void, QNBits, Base>::doJobPop(WorkerStub& _rws, const size_t 
     } else {
         solid_assert_log(expect_state == WorkerStub::StateE::Notify, workpool_logger, "expect state not Notify but: " << static_cast<int>(expect_state));
         _rws.state_.store(WorkerStub::StateE::Cancel);
-        //solid_log(workpool_logger, Warning, "already notified");
+        // solid_log(workpool_logger, Warning, "already notified");
         if (doWorkerWake(&_rws)) {
 
         } else {
-            //solid_log(workpool_logger, Warning, "no worker notified!");
+            // solid_log(workpool_logger, Warning, "no worker notified!");
         }
     }
 
@@ -423,9 +423,9 @@ template <typename Job, size_t QNBits, typename Base>
 void WorkPool<Job, void, QNBits, Base>::doWorkerPush(WorkerStub& _rws, const size_t _thr_id)
 {
 
-    //bool expect = false;
-    //const bool stacked_ok = _rws.stacked_.compare_exchange_strong(expect, true);
-    //solid_assert_log(stacked_ok, workpool_logger);
+    // bool expect = false;
+    // const bool stacked_ok = _rws.stacked_.compare_exchange_strong(expect, true);
+    // solid_assert_log(stacked_ok, workpool_logger);
     //((void)stacked_ok);
 
     const size_t aba_id = _rws.abaId(_thr_id);
@@ -462,12 +462,12 @@ bool WorkPool<Job, void, QNBits, Base>::doWorkerPop(WorkerStub*& _rpws)
 
     if (old_head != InvalidIndex()) {
         _rpws = &worker(WorkerStub::thrId(old_head));
-        //bool expect = true;
-        //const bool stacked_ok = _rpws->stacked_.compare_exchange_strong(expect, false);
-        //if(stacked_ok){
-        //    _rpws->pop_thr_id_ = std::this_thread::get_id();
-        //}
-        //solid_assert_log(stacked_ok, workpool_logger, "last pop thr "<<_rpws->pop_thr_id_<<" vs "<<std::this_thread::get_id());
+        // bool expect = true;
+        // const bool stacked_ok = _rpws->stacked_.compare_exchange_strong(expect, false);
+        // if(stacked_ok){
+        //     _rpws->pop_thr_id_ = std::this_thread::get_id();
+        // }
+        // solid_assert_log(stacked_ok, workpool_logger, "last pop thr "<<_rpws->pop_thr_id_<<" vs "<<std::this_thread::get_id());
         //((void)stacked_ok);
         return true;
     } else {
@@ -631,5 +631,5 @@ using WorkPoolT = WorkPool<Job, MCast>;
 
 template <class Job, class MCast = Job, size_t FunctionDataSize = function_default_data_size, template <typename, typename> class WP = WorkPoolT>
 using CallPoolT = CallPool<Job, MCast, FunctionDataSize, WP>;
-} //namespace lockfree
-} //namespace solid
+} // namespace lockfree
+} // namespace solid

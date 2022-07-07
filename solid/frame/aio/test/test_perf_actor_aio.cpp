@@ -17,7 +17,7 @@ namespace {
 const LoggerT logger("test");
 
 using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
-//using SchedulerT    = frame::Scheduler<frame::Reactor>;
+// using SchedulerT    = frame::Scheduler<frame::Reactor>;
 atomic<size_t> received_events{0};
 atomic<size_t> accumulate_value{0};
 

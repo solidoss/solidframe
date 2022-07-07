@@ -128,7 +128,7 @@ public:
         ++size_;
     }
 
-    //insert in front of the sentinel
+    // insert in front of the sentinel
     void insertBefore(const size_t _sentinel, const size_t _index)
     {
         Link& rsent_link = link(_sentinel);
@@ -200,14 +200,14 @@ public:
         if (rcrt_link.prev_ != InvalidIndex()) {
             link(rcrt_link.prev_).next_ = rcrt_link.next_;
         } else {
-            //first in the list
+            // first in the list
             front_ = rcrt_link.next_;
         }
 
         if (rcrt_link.next_ != InvalidIndex()) {
             link(rcrt_link.next_).prev_ = rcrt_link.prev_;
         } else {
-            //last in the list
+            // last in the list
             back_ = rcrt_link.prev_;
         }
         --size_;
@@ -307,12 +307,12 @@ public:
 private:
     Link& link(const size_t _index)
     {
-        //typedef Vec::value_type       NodeT;
+        // typedef Vec::value_type       NodeT;
         return link_accessor(rvec_[_index], LinkId);
     }
     Link const& link(const size_t _index) const
     {
-        //typedef Vec::value_type       NodeT;
+        // typedef Vec::value_type       NodeT;
         return link_const_accessor(rvec_[_index], LinkId);
     }
 
@@ -323,6 +323,6 @@ private:
     size_t front_;
 };
 
-} //namespace inner
+} // namespace inner
 
-} //namespace solid
+} // namespace solid

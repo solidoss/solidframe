@@ -24,7 +24,7 @@ struct TempFile : TempBase {
     TempFile(
         size_t   _storageid,
         uint32_t _id,
-        uint64_t _size); //:TempBase(_storageid, _id, _size){
+        uint64_t _size); //: TempBase(_storageid, _id, _size){
 private:
     /*virtual*/ ~TempFile();
 
@@ -45,7 +45,7 @@ struct TempMemory : TempBase {
     TempMemory(
         size_t   _storageid,
         uint32_t _id,
-        uint64_t _size); //:TempBase(_storageid, _id, _size){
+        uint64_t _size); //: TempBase(_storageid, _id, _size){
 private:
     /*virtual*/ ~TempMemory();
 
@@ -61,6 +61,6 @@ private:
     MemoryFile mf;
 };
 
-} //namespace file
-} //namespace frame
-} //namespace solid
+} // namespace file
+} // namespace frame
+} // namespace solid

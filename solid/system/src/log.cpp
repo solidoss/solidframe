@@ -269,7 +269,7 @@ std::streambuf::int_type DeviceBuffer::overflow(int_type c)
 // write multiple characters
 std::streamsize DeviceBuffer::xsputn(const char* s, std::streamsize num)
 {
-    //we can safely put BUFF_FLUSH into the buffer
+    // we can safely put BUFF_FLUSH into the buffer
     long towrite = buffer_capacity - buffer_flush;
     if (towrite > static_cast<int>(num)) {
         towrite = static_cast<int>(num);
@@ -420,7 +420,7 @@ struct FileRecorder : LogRecorder {
         const uint64_t _respinsize,
         const uint32_t _respincnt,
         const bool     _buffered)
-        : current_size_(_rfd.size()) //inherit the current size of the file
+        : current_size_(_rfd.size()) // inherit the current size of the file
         , unbuffered_stream_(current_size_)
         , buffered_stream_(current_size_)
         , ros_(stream(_buffered, std::move(_rfd)))
@@ -463,7 +463,7 @@ struct FileRecorder : LogRecorder {
         fd.flush();
         fd.close();
 
-        //find the last file
+        // find the last file
         if (respin_count_ == 0) {
             filePath(fname, 0, path_, name_);
             Directory::eraseFile(fname.c_str());
@@ -500,7 +500,7 @@ struct FileRecorder : LogRecorder {
 
         if (!fd.create(fname.c_str(), FileDevice::WriteOnlyE)) {
             cerr << "Cannot create log file: " << fname << endl;
-            //respin_size_ = 0; //no more respins
+            // respin_size_ = 0; //no more respins
         }
         stream(buffered, std::move(fd));
     }
@@ -647,7 +647,7 @@ void Engine::doConfigureModule(const size_t _idx)
     LogAtomicFlagsBackT msk_and = 0;
     for (const auto& mmp : module_mask_vec_) {
         if (mmp.first.empty()) {
-            //always match
+            // always match
         } else {
             regex rgx(mmp.first);
             if (!regex_match(module_vec_[_idx].plgr_->name(), rgx)) {
@@ -686,7 +686,7 @@ const char* src_file_name(char const* _fname)
     return _fname;
 }
 
-} //namespace
+} // namespace
 
 //-----------------------------------------------------------------------------
 //  LogCategory
@@ -891,4 +891,4 @@ ErrorConditionT log_start(
     return Engine::the().configure(std::make_shared<SocketRecorder>(std::move(sd), _buffered), _rmodule_mask_vec);
 }
 
-} //namespace solid
+} // namespace solid

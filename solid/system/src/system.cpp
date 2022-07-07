@@ -58,4 +58,4 @@ namespace solid {
     return _ros;
 }
 
-} //namespace solid
+} // namespace solid

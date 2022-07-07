@@ -14,7 +14,7 @@ std::string pattern;
 
 size_t real_size(size_t _sz)
 {
-    //offset + (align - (offset mod align)) mod align
+    // offset + (align - (offset mod align)) mod align
     return _sz + ((sizeof(uint64_t) - (_sz % sizeof(uint64_t))) % sizeof(uint64_t));
 }
 
@@ -27,7 +27,7 @@ void init(string& _rostr, size_t _sz)
     const uint64_t* pup          = reinterpret_cast<const uint64_t*>(pattern.data());
     const size_t    pattern_size = pattern.size() / sizeof(uint64_t);
     for (uint64_t i = 0; i < count; ++i) {
-        pu[i] = pup[(i) % pattern_size]; //pattern[i % pattern.size()];
+        pu[i] = pup[(i) % pattern_size]; // pattern[i % pattern.size()];
     }
 }
 
@@ -78,7 +78,7 @@ void test_read_write(size_t _sz, const std::vector<size_t>& _write_size_vec, con
     }
 }
 
-} //namespace
+} // namespace
 
 int test_memory_file(int argc, char* argv[])
 {

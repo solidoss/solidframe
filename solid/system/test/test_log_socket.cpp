@@ -51,6 +51,6 @@ int test_log_socket(int argc, char* argv[])
         solid_log(logger, Verbose, proc_id << ' ' << i << " Second line of log: " << argc << ' ' << argv[0]);
     }
 
-    solid::log_stop(); //we must call this when using socket IO to ensure data flush
+    solid::log_stop(); // we must call this when using socket IO to ensure data flush
     return 0;
 }

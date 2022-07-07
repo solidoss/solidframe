@@ -19,7 +19,7 @@ struct Beta {
 
 int test_anytuple(int /*argc*/, char* /*argv*/[])
 {
-    //using TupleT = std::tuple<Alpha, Beta, string, vector<string>>;
+    // using TupleT = std::tuple<Alpha, Beta, string, vector<string>>;
 
     Any<> anytuple{make_tuple(Alpha{}, Beta{}, string("something"), vector<string>{"one", "two", "three"})};
 

@@ -57,4 +57,4 @@ inline void to_upper(std::string& _rstr)
 
 uint64_t make_number(std::string _str);
 
-} //namespace solid
+} // namespace solid

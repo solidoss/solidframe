@@ -91,7 +91,7 @@ condition_variable cnd;
 Params             params;
 
 void broadcast_message(frame::mprpc::Service& _rsvc, std::shared_ptr<frame::mprpc::Message>& _rmsgptr);
-} //namespace
+} // namespace
 
 struct FirstMessage : frame::mprpc::Message {
     std::string str;
@@ -253,7 +253,7 @@ bool restart(
     cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 #if 1
     if (params.secure) {
-        //configure OpenSSL:
+        // configure OpenSSL:
         solid_log(generic_logger, Info, "Configure SSL ---------------------------------------");
         frame::mprpc::openssl::setup_client(
             cfg,
@@ -276,7 +276,7 @@ bool restart(
                 _rctx.loadPrivateKeyFile("echo-server-key.pem");
                 return ErrorCodeT();
             },
-            frame::mprpc::openssl::NameCheckSecureStart{"echo-client"} //does nothing - OpenSSL does not check for hostname on SSL_accept
+            frame::mprpc::openssl::NameCheckSecureStart{"echo-client"} // does nothing - OpenSSL does not check for hostname on SSL_accept
         );
     }
 #endif
@@ -351,4 +351,4 @@ void broadcast_message(frame::mprpc::Service& _rsvc, std::shared_ptr<frame::mprp
     }
 }
 
-} //namespace
+} // namespace

@@ -34,7 +34,7 @@ class Datagram : public CompletionHandler {
     {
         ThisT& rthis = static_cast<ThisT&>(_rch);
         rthis.completionCallback(&on_completion);
-        //rthis.contextBind(_rctx);
+        // rthis.contextBind(_rctx);
         rthis.s.init(_rctx);
     }
 
@@ -284,7 +284,7 @@ public:
 
     ~Datagram()
     {
-        //MUST call here and not in the ~CompletionHandler
+        // MUST call here and not in the ~CompletionHandler
         this->deactivate();
     }
 
@@ -612,7 +612,7 @@ private:
     void doError(ReactorContext& _rctx)
     {
         error(_rctx, error_datagram_socket);
-        //TODO: set proper system error based on socket error
+        // TODO: set proper system error based on socket error
 
         if (!solid_function_empty(send_fnc)) {
             send_fnc(*this, _rctx);
@@ -640,7 +640,7 @@ private:
         doClearRecv(_rctx);
         doClearSend(_rctx);
         remDevice(_rctx, s.device());
-        recv_fnc = &on_dummy; //we prevent new send/recv calls
+        recv_fnc = &on_dummy; // we prevent new send/recv calls
         send_fnc = &on_dummy;
     }
 
@@ -658,6 +658,6 @@ private:
     bool          send_is_posted;
 };
 
-} //namespace aio
-} //namespace frame
-} //namespace solid
+} // namespace aio
+} // namespace frame
+} // namespace solid

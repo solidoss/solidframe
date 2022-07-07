@@ -49,25 +49,25 @@ size_t             wait_response_count = 4;
 namespace v1 {
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port);
 void send_request(frame::mprpc::ServiceT& _rsvc);
-} //namespace v1
+} // namespace v1
 
 namespace v2 {
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port);
 void send_request(frame::mprpc::ServiceT& _rsvc);
-} //namespace v2
+} // namespace v2
 
 namespace v3 {
 string configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch);
 void   configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port);
 void   send_request(frame::mprpc::ServiceT& _rsvc);
-} //namespace v3
+} // namespace v3
 
 namespace v4 {
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port);
 void send_request(frame::mprpc::ServiceT& _rsvc);
-} //namespace v4
+} // namespace v4
 
-} //namespace
+} // namespace
 
 int test_clientserver_versioning(int argc, char* argv[])
 {
@@ -115,7 +115,7 @@ void complete_message(
     std::shared_ptr<M>& /*_rrecv_msg_ptr*/,
     ErrorConditionT const& /*_rerror*/)
 {
-    //catch all messages
+    // catch all messages
     solid_check(false);
 }
 
@@ -183,7 +183,7 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
         },
         {});
 }
-} //namespace v1
+} // namespace v1
 
 namespace v2 {
 using namespace versioning::v2;
@@ -252,7 +252,7 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
         },
         {});
 }
-} //namespace v2
+} // namespace v2
 
 namespace v3 {
 using namespace versioning::v3;
@@ -321,7 +321,7 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
         },
         {});
 }
-} //namespace v3
+} // namespace v3
 
 namespace v4 {
 using namespace versioning::v4;
@@ -390,7 +390,7 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
         },
         {});
 }
-} //namespace v4
+} // namespace v4
 
 namespace v3 {
 using namespace versioning::v3;
@@ -441,7 +441,7 @@ void complete_message(
 {
 
     if (_rctx.any().get_if<Version>()->version_ == 2) {
-        //need to send back Response2
+        // need to send back Response2
         auto res_ptr    = std::make_shared<Response2>(*_rrecv_msg_ptr);
         res_ptr->error_ = _rrecv_msg_ptr->values_.size();
         _rctx.service().sendResponse(_rctx.recipientId(), res_ptr);
@@ -463,7 +463,7 @@ void complete_message(
     std::shared_ptr<M>& /*_rrecv_msg_ptr*/,
     ErrorConditionT const& /*_rerror*/)
 {
-    //catch all
+    // catch all
 }
 
 string configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch)
@@ -493,6 +493,6 @@ string configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch)
     }
     return server_port;
 }
-} //namespace v3
+} // namespace v3
 
-} //namespace
+} // namespace

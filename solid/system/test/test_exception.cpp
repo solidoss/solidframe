@@ -43,7 +43,7 @@ const char* test_null(const char* _pt)
 }
 
 const solid::ErrorConditionT error_test{1, category};
-} //namespace
+} // namespace
 
 int test_exception(int argc, char* argv[])
 {

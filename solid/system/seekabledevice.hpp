@@ -35,4 +35,4 @@ protected:
     }
 };
 
-} //namespace solid
+} // namespace solid

@@ -40,7 +40,7 @@ void complete_message(
     std::shared_ptr<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
-    solid_check(false); //this method should not be called
+    solid_check(false); // this method should not be called
 }
 
 } // namespace rpc_request_client

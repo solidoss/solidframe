@@ -28,7 +28,7 @@ namespace shared {
 
 namespace {
 const LoggerT logger("solid::frame::shared");
-} //namespace
+} // namespace
 
 enum {
     S_RAISE = 1,
@@ -149,11 +149,11 @@ void unlock_all(MutexMutualStoreT& _rms, const size_t _sz)
     _rms.visit(_sz, visit_unlock);
 }
 
-} //namespace
+} // namespace
 
 size_t StoreBase::doAllocateIndex()
 {
-    //mutex is locked
+    // mutex is locked
     size_t rv;
     if (!impl_->cacheobjidxstk.empty()) {
         rv = impl_->cacheobjidxstk.top();
@@ -253,6 +253,6 @@ void* StoreBase::doTryAllocateWait()
     return nullptr;
 }
 
-} //namespace shared
-} //namespace frame
-} //namespace solid
+} // namespace shared
+} // namespace frame
+} // namespace solid

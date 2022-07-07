@@ -54,19 +54,19 @@ int test_callpool_multicast_pattern(int argc, char* argv[])
                 for (size_t j = 0; j < cnt; ++j) {
                     cp.pushAll([j](Context&) {
                         local_set.insert(j);
-                        //solid_log(logger, Info, "local insert "<<j);
+                        // solid_log(logger, Info, "local insert "<<j);
                     });
                     cp.push([j](Context&) {
                         solid_check(local_set.find(j) != local_set.end());
-                        //solid_log(logger, Info, "local check "<<j);
+                        // solid_log(logger, Info, "local check "<<j);
                     });
                     cp.pushAll([j](Context&) {
                         local_set.erase(j);
-                        //solid_log(logger, Info, "local eraser "<<j);
+                        // solid_log(logger, Info, "local eraser "<<j);
                     });
                     cp.push([j](Context&) {
                         solid_check(local_set.find(j) == local_set.end());
-                        //solid_log(logger, Info, "local check "<<j);
+                        // solid_log(logger, Info, "local check "<<j);
                     });
                 }
             }

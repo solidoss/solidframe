@@ -28,7 +28,7 @@ struct Context {
     }
 };
 
-} //namespace
+} // namespace
 
 int test_workpool_context(int argc, char* argv[])
 {

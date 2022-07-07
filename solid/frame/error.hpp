@@ -18,5 +18,5 @@ namespace frame {
 extern const ErrorConditionT error_already;
 extern const ErrorConditionT error_timer_cancel;
 
-} //namespace frame
-} //namespace solid
+} // namespace frame
+} // namespace solid

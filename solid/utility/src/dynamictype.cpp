@@ -59,4 +59,4 @@ typedef std::atomic<size_t> AtomicSizeT;
     return false;
 }
 
-} //namespace solid
+} // namespace solid

@@ -20,7 +20,7 @@ using namespace solid;
 
 ///\cond 0
 typedef std::deque<FileDevice> FileDeuqeT;
-//typedef std::deque<auto_ptr<FileDevice> > AutoFileDequeT;
+// typedef std::deque<auto_ptr<FileDevice> > AutoFileDequeT;
 ///\endcond
 
 int main(int argc, char* argv[])
@@ -35,8 +35,8 @@ int main(int argc, char* argv[])
     char             c;
     constexpr size_t name_sz = 1024;
     char             name[name_sz];
-    //int minsz = atoi(argv[2]);
-    //int maxsz = atoi(argv[3]);
+    // int minsz = atoi(argv[2]);
+    // int maxsz = atoi(argv[3]);
     int    filecnt   = atoi(argv[2]);
     int    foldercnt = atoi(argv[3]);
     string line;
@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
         for (int j = filecnt; j; --j) {
             sprintf(fname, "/%08u.txt", j);
             ++cnt;
-            //ulong sz = (filecnt * minsz + (j * (maxsz - minsz)))/filecnt;
+            // ulong sz = (filecnt * minsz + (j * (maxsz - minsz)))/filecnt;
             fdq.push_back(FileDevice());
             if (fdq.back().open(name, FileDevice::ReadWriteE)) {
                 cout << "error " << strerror(errno) << " " << cnt << endl;

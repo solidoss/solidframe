@@ -24,6 +24,6 @@ struct ForwardCompletionHandler {
     CompletionHandler* pnext;
 };
 
-} //namespace aio
-} //namespace frame
-} //namespace solid
+} // namespace aio
+} // namespace frame
+} // namespace solid

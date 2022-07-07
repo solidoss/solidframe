@@ -60,7 +60,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 }
 
-} //namespace
+} // namespace
 
 int test_multiprotocol_basic(int argc, char* argv[])
 {
@@ -93,7 +93,7 @@ int test_multiprotocol_basic(int argc, char* argv[])
 
         std::string server_port;
 
-        { //mprpc server initialization
+        { // mprpc server initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, TypeIdT>(
                 reflection::v1::metadata::factory,
                 [](auto& _rmap) {
@@ -125,7 +125,7 @@ int test_multiprotocol_basic(int argc, char* argv[])
 
         if (err) {
             solid_dbg(generic_logger, Error, "starting alpha mprpcservice: " << err.message());
-            //exiting
+            // exiting
             return 1;
         }
 
@@ -133,7 +133,7 @@ int test_multiprotocol_basic(int argc, char* argv[])
 
         if (err) {
             solid_dbg(generic_logger, Error, "starting alpha mprpcservice: " << err.message());
-            //exiting
+            // exiting
             return 1;
         }
 
@@ -141,7 +141,7 @@ int test_multiprotocol_basic(int argc, char* argv[])
 
         if (err) {
             solid_dbg(generic_logger, Error, "starting gamma mprpcservice: " << err.message());
-            //exiting
+            // exiting
             return 1;
         }
 
@@ -150,13 +150,13 @@ int test_multiprotocol_basic(int argc, char* argv[])
         if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return wait_count == 0; })) {
             solid_throw("Process is taking too long.");
         }
-        //client service must not outlive manager!!
+        // client service must not outlive manager!!
         alpha_client::stop();
         beta_client::stop();
         gamma_client::stop();
     }
 
-    //exiting
+    // exiting
 
     std::cout << "Transfered size = " << (transfered_size * 2) / 1024 << "KB" << endl;
     std::cout << "Transfered count = " << transfered_count << endl;

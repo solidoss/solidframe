@@ -24,7 +24,7 @@ struct TestNoCopy {
     {
     }
 
-    TestNoCopy(const TestNoCopy&) = delete;
+    TestNoCopy(const TestNoCopy&)            = delete;
     TestNoCopy& operator=(const TestNoCopy&) = delete;
 
     TestNoCopy(TestNoCopy&& _utnc) noexcept
@@ -134,7 +134,7 @@ struct Test {
     }
 
     Test& operator=(const Test& _t) = delete;
-    Test& operator=(Test&& _t) = delete;
+    Test& operator=(Test&& _t)      = delete;
 
     ~Test()
     {

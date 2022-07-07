@@ -40,7 +40,7 @@ struct Parameters {
 };
 //-----------------------------------------------------------------------------
 
-} //namespace
+} // namespace
 
 namespace rpc_file_server {
 

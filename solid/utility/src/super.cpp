@@ -14,4 +14,4 @@ namespace solid {
     }
     return false;
 }
-} //namespace solid
+} // namespace solid

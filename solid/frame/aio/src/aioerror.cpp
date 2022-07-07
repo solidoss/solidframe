@@ -125,7 +125,7 @@ std::string ErrorCategory::message(int _ev) const
     return oss.str();
 }
 
-} //namespace
+} // namespace
 
 /*extern*/ const ErrorCodeT error_resolver_direct(ErrorResolverDirectE, category);
 /*extern*/ const ErrorCodeT error_resolver_reverse(ErrorResolverReverseE, category);
@@ -152,6 +152,6 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorCodeT error_secure_connect(ErrorSecureConnectE, category);
 /*extern*/ const ErrorCodeT error_secure_shutdown(ErrorSecureShutdownE, category);
 
-} //namespace aio
-} //namespace frame
-} //namespace solid
+} // namespace aio
+} // namespace frame
+} // namespace solid

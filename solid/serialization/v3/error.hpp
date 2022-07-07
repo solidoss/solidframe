@@ -24,6 +24,6 @@ extern const ErrorConditionT error_limit_array;
 extern const ErrorConditionT error_cross_integer;
 extern const ErrorConditionT error_unknown_type;
 
-} //namespace v3
-} //namespace serialization
-} //namespace solid
+} // namespace v3
+} // namespace serialization
+} // namespace solid

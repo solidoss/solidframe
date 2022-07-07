@@ -109,4 +109,4 @@ private:
     BufferVectorT  bv;
 };
 
-} //namespace solid
+} // namespace solid

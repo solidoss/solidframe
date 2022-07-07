@@ -44,21 +44,21 @@ struct TypeToType {
 
 class NonCopyable {
 protected:
-    NonCopyable(const NonCopyable&) = delete;
-    NonCopyable(NonCopyable&&)      = delete;
+    NonCopyable(const NonCopyable&)            = delete;
+    NonCopyable(NonCopyable&&)                 = delete;
     NonCopyable& operator=(const NonCopyable&) = delete;
-    NonCopyable& operator=(NonCopyable&&) = delete;
+    NonCopyable& operator=(NonCopyable&&)      = delete;
 
     NonCopyable() = default;
 };
 
 using ssize_t = std::make_signed<size_t>::type;
 
-} //namespace solid
+} // namespace solid
 
-//Some macro helpers:
+// Some macro helpers:
 
-//adapted from: https://stackoverflow.com/questions/9183993/msvc-variadic-macro-expansion/9338429#9338429
+// adapted from: https://stackoverflow.com/questions/9183993/msvc-variadic-macro-expansion/9338429#9338429
 #define SOLID_GLUE(x, y) x y
 
 #define SOLID_RETURN_ARG_COUNT(_1_, _2_, _3_, _4_, _5_, count, ...) count

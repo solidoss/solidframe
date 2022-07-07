@@ -345,6 +345,6 @@ auto create_protocol(MetadataFactory&& _metadata_factory, InitFunction _init_fnc
 }
 
 } // namespace serialization_v3
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

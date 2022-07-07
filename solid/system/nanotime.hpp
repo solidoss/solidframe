@@ -147,7 +147,7 @@ void time_point_clock_cast(std::chrono::time_point<RetClock, RetDuration>& /*_rr
     const auto                          delta   = my_tp - my_now;
     _rtp                                        = std::chrono::time_point_cast<typename RetClock::duration>(ret_now + delta);
 }
-} //namespace detail
+} // namespace detail
 
 template <class RetClock, class Clock, class Duration>
 typename RetClock::time_point time_point_clock_cast(const std::chrono::time_point<Clock, Duration>& _rtp)
@@ -162,4 +162,4 @@ typename RetClock::time_point time_point_clock_cast(const std::chrono::time_poin
 #include "solid/system/nanotime.ipp"
 #endif
 
-} //namespace solid
+} // namespace solid

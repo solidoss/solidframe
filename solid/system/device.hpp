@@ -85,4 +85,4 @@ inline void Device::descriptor(const DescriptorT _desc, bool)
     desc_ = _desc;
 }
 
-} //namespace solid
+} // namespace solid

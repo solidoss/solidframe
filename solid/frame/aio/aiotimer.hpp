@@ -68,7 +68,7 @@ public:
 
     ~SteadyTimer()
     {
-        //MUST call here and not in the ~CompletionHandler
+        // MUST call here and not in the ~CompletionHandler
         this->deactivate();
     }
 
@@ -77,16 +77,16 @@ public:
         return !solid_function_empty(function_);
     }
 
-    //Returns false when the operation is scheduled for completion. On completion _f(...) will be called.
-    //Returns true when operation could not be scheduled for completion - e.g. operation already in progress.
+    // Returns false when the operation is scheduled for completion. On completion _f(...) will be called.
+    // Returns true when operation could not be scheduled for completion - e.g. operation already in progress.
     template <class Rep, class Period, typename F>
     bool waitFor(ReactorContext& _rctx, std::chrono::duration<Rep, Period> const& _rd, F&& _function)
     {
         return waitUntil(_rctx, _rctx.steadyTime() + _rd, std::forward<F>(_function));
     }
 
-    //Returns true when the operation completed. Check _rctx.error() for success or fail
-    //Returns false when operation is scheduled for completion. On completion _f(...) will be called.
+    // Returns true when the operation completed. Check _rctx.error() for success or fail
+    // Returns false when operation is scheduled for completion. On completion _f(...) will be called.
     template <class Clock, class Duration, typename F>
     bool waitUntil(ReactorContext& _rctx, std::chrono::time_point<Clock, Duration> const& _rtp, F&& _function)
     {
@@ -129,6 +129,6 @@ private:
     }
 };
 
-} //namespace aio
-} //namespace frame
-} //namespace solid
+} // namespace aio
+} // namespace frame
+} // namespace solid

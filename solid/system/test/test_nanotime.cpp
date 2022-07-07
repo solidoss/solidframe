@@ -20,7 +20,7 @@ int test_nanotime(int /*argc*/, char** const /*argv*/)
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-        //nano_now -> system clock timepoint
+        // nano_now -> system clock timepoint
         auto now3 = nano_now.timePointClockCast<std::chrono::system_clock::time_point, std::chrono::steady_clock>();
 
         NanoTime system_now{now3};
@@ -41,7 +41,7 @@ int test_nanotime(int /*argc*/, char** const /*argv*/)
         cout << endl;
 
         solid_check(steady_now == now2);
-        //solid_check(steady_now == now4);
+        // solid_check(steady_now == now4);
     }
     return 0;
 }

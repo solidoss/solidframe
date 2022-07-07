@@ -242,7 +242,7 @@ binary_search_result_t binary_search_first(It _from, It _to, const Key& _rk, con
     binary_search_result_t p = solid::binary_search(_from, _to, _rk, _rcmp);
 
     if (!p.first)
-        return p; //not found
+        return p; // not found
 
     while (p.second && !_rcmp(*(_from + p.second - 1), _rk)) {
         p = solid::binary_search(_from, _from + p.second, _rk, _rcmp);
@@ -256,7 +256,7 @@ binary_search_result_t binary_search_last(It _from, It _to, const Key& _rk, cons
     binary_search_result_t p = solid::binary_search(_from, _to, _rk, _rcmp);
 
     if (!p.first)
-        return p; //not found
+        return p; // not found
 
     while (p.second != (_to - _from - 1) && !_rcmp(*(_from + p.second + 1), _rk)) {
         p = solid::binary_search(_from + p.second + 1, _to, _rk, _rcmp);
@@ -264,4 +264,4 @@ binary_search_result_t binary_search_last(It _from, It _to, const Key& _rk, cons
     return p;
 }
 
-} //namespace solid
+} // namespace solid

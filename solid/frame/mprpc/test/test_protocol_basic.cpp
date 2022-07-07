@@ -54,7 +54,7 @@ size_t writecount  = 0;
 
 size_t real_size(size_t _sz)
 {
-    //offset + (align - (offset mod align)) mod align
+    // offset + (align - (offset mod align)) mod align
     return _sz + ((sizeof(uint64_t) - (_sz % sizeof(uint64_t))) % sizeof(uint64_t));
 }
 
@@ -91,7 +91,7 @@ struct Message : frame::mprpc::Message {
         const uint64_t* pup          = reinterpret_cast<const uint64_t*>(pattern.data());
         const size_t    pattern_size = pattern.size() / sizeof(uint64_t);
         for (uint64_t i = 0; i < count; ++i) {
-            pu[i] = pup[i % pattern_size]; //pattern[i % pattern.size()];
+            pu[i] = pup[i % pattern_size]; // pattern[i % pattern.size()];
         }
     }
     bool check() const
@@ -259,7 +259,7 @@ struct Sender : frame::mprpc::MessageWriter::Sender {
     }
 };
 
-} //namespace
+} // namespace
 
 int test_protocol_basic(int argc, char* argv[])
 {
@@ -305,7 +305,7 @@ int test_protocol_basic(int argc, char* argv[])
 
     const size_t start_count = 10;
 
-    writecount = 10 * initarraysize; //start_count;//
+    writecount = 10 * initarraysize; // start_count;//
 
     for (; crtwriteidx < start_count; ++crtwriteidx) {
         frame::mprpc::MessageBundle msgbundle;

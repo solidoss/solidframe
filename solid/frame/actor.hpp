@@ -92,5 +92,5 @@ private:
     bool         doPrepareStop(ReactorContext& _rctx);
 };
 
-} //namespace frame
-} //namespace solid
+} // namespace frame
+} // namespace solid

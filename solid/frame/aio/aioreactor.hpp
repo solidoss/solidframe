@@ -58,7 +58,7 @@ class Reactor : public frame::ReactorBase {
 
         void operator()(ReactorContext& _rctx, Event&& _uevent)
         {
-            if (repost) { //skip one round - to guarantee that all remaining posts were delivered
+            if (repost) { // skip one round - to guarantee that all remaining posts were delivered
                 repost = false;
                 EventFunctionT eventfnc{std::move(*this)};
                 _rctx.reactor().doPost(_rctx, std::move(eventfnc), std::move(_uevent));
@@ -164,13 +164,13 @@ private:
 
     UniqueId actorUid(ReactorContext const& _rctx) const;
 
-private: //data
+private: // data
     struct Data;
     PimplT<Data> impl_;
 };
 
 //-----------------------------------------------------------------------------
 
-} //namespace aio
-} //namespace frame
-} //namespace solid
+} // namespace aio
+} // namespace frame
+} // namespace solid

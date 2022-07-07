@@ -103,7 +103,7 @@ protected:
 
 protected:
     typedef frame::aio::Stream<frame::aio::openssl::Socket> StreamSocketT;
-    //typedef frame::aio::Stream<frame::aio::Socket>        StreamSocketT;
+    // typedef frame::aio::Stream<frame::aio::Socket>        StreamSocketT;
 
     enum { BufferCapacity = 1024 * 2 };
 
@@ -319,9 +319,9 @@ struct ConnectFunction {
     Connection& rthis = static_cast<Connection&>(_rctx.actor());
     solid_log(generic_logger, Info, &rthis << " " << _sz);
     cout.write(rthis.buf, _sz);
-    //cout<<endl;
+    // cout<<endl;
     if (!_rctx.error()) {
-        rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
+        rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); // fully asynchronous call
     } else {
         solid_log(generic_logger, Error, &rthis << " postStop");
         rthis.postStop(_rctx);
@@ -338,7 +338,7 @@ struct ConnectFunction {
 
         rthis.nextSendIdx();
 
-        if (rthis.send_strs[rthis.crtSendIdx()].size()) { //we have something to send
+        if (rthis.send_strs[rthis.crtSendIdx()].size()) { // we have something to send
             rthis.sock.postSendAll(_rctx, rthis.send_strs[rthis.crtSendIdx()].data(), rthis.send_strs[rthis.crtSendIdx()].size(), onSent);
         }
     } else {
@@ -352,11 +352,11 @@ struct ConnectFunction {
     Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, &rthis << "");
-        rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
+        rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); // fully asynchronous call
 
         rthis.crt_send_idx = 0;
 
-        if (rthis.send_strs[0].size()) { //we have something to send
+        if (rthis.send_strs[0].size()) { // we have something to send
             rthis.sock.postSendAll(_rctx, rthis.send_strs[0].data(), rthis.send_strs[0].size(), onSent);
         }
     } else {

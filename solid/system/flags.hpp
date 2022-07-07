@@ -144,4 +144,4 @@ Flags<E, L> operator&(const Flags<E, L>& _f1, const E _f2)
     return f;
 }
 
-} //namespace solid
+} // namespace solid

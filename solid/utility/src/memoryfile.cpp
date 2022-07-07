@@ -197,7 +197,7 @@ int64_t MemoryFile::seek(int64_t _pos, SeekRef _ref)
 
 int MemoryFile::truncate(int64_t _len)
 {
-    //TODO:
+    // TODO:
     solid_assert_log(_len == 0, generic_logger);
     sz         = 0;
     off        = 0;
@@ -224,11 +224,11 @@ inline char* MemoryFile::doGetBuffer(const size_t _idx) const
 char* MemoryFile::doCreateBuffer(const size_t _idx, bool& _created)
 {
     binary_search_result_t pos(doLocateBuffer(_idx));
-    if (pos.first) { //found buffer, return the data
+    if (pos.first) { // found buffer, return the data
         return bv[pos.second].data;
     }
-    //buffer not found
-    //see if we did not reach the capacity
+    // buffer not found
+    // see if we did not reach the capacity
     if (static_cast<int64_t>(static_cast<int64_t>(bv.size()) * bufsz + bufsz) > cp) {
         return nullptr;
     }
@@ -240,16 +240,16 @@ char* MemoryFile::doCreateBuffer(const size_t _idx, bool& _created)
 
 binary_search_result_t MemoryFile::doLocateBuffer(const size_t _idx) const
 {
-    if (bv.empty() || _idx > bv.back().idx) { //append
+    if (bv.empty() || _idx > bv.back().idx) { // append
         crtbuffidx = bv.size();
         return binary_search_result_t(false, bv.size());
     }
-    //see if it's arround the current buffer:
+    // see if it's arround the current buffer:
     if (crtbuffidx < bv.size()) {
         if (bv[crtbuffidx].idx == _idx) {
             return binary_search_result_t(true, crtbuffidx);
         }
-        //see if its the next buffer:
+        // see if its the next buffer:
         size_t nextidx(crtbuffidx + 1);
         if (nextidx < bv.size() && bv[nextidx].idx == _idx) {
             crtbuffidx = nextidx;
@@ -261,4 +261,4 @@ binary_search_result_t MemoryFile::doLocateBuffer(const size_t _idx) const
     return pos;
 }
 
-} //namespace solid
+} // namespace solid

@@ -65,7 +65,7 @@ struct Context {
     char*              buf;
 };
 
-} //namespace
+} // namespace
 
 int main(int argc, char* argv[])
 {
@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
         cout << "./file_open_pool /path/to/folder file-count folder-count" << endl;
         return 0;
     }
-    //char c;
+    // char c;
     char name[1024];
     int  filecnt   = atoi(argv[2]);
     int  foldercnt = atoi(argv[3]);
@@ -95,13 +95,13 @@ int main(int argc, char* argv[])
                 cout << "failed to open file " << name << endl;
                 return 0;
             } else {
-                //cout<<"name = "<<name<<" size = "<<fdq.back().size()<<endl;
+                // cout<<"name = "<<name<<" size = "<<fdq.back().size()<<endl;
                 totsz += fdq.back().size();
             }
         }
     }
     cout << "fdq size = " << fdq.size() << " total size " << totsz << endl;
-    //return 0;
+    // return 0;
 
     using WorkPoolT = lockfree::WorkPool<FileDevice*, void>;
 

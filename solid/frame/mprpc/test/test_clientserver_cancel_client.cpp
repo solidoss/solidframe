@@ -44,20 +44,20 @@ struct InitStub {
     frame::mprpc::MessageFlagsT flags;
 };
 
-//NOTE: if making more messages non-cancelable, please consider to change the value of expected_transfered_count
+// NOTE: if making more messages non-cancelable, please consider to change the value of expected_transfered_count
 
 InitStub initarray[] = {
-    {100000, false, 0}, //first message must not be canceled
-    {16384000, false, 0}, //not caceled
+    {100000, false, 0}, // first message must not be canceled
+    {16384000, false, 0}, // not caceled
     {8192000, true, {frame::mprpc::MessageFlagsE::Synchronous}},
     {4096000, true, 0},
-    {2048000, false, 0}, //not caceled
+    {2048000, false, 0}, // not caceled
     {10240000, true, 0},
-    {512000, false, {frame::mprpc::MessageFlagsE::Synchronous}}, //not canceled
+    {512000, false, {frame::mprpc::MessageFlagsE::Synchronous}}, // not canceled
     {2560000, true, 0},
     {1280000, true, 0},
     {6400000, true, 0},
-    {32000, false, 0}, //not canceled
+    {32000, false, 0}, // not canceled
     {1600000, true, 0},
     {8000000, true, 0},
     {4000000, true, 0},
@@ -73,8 +73,8 @@ const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
 std::atomic<size_t> crtwriteidx(0);
 std::atomic<size_t> crtreadidx(0);
-//std::atomic<size_t> crtbackidx(0);
-//std::atomic<size_t> crtackidx(0);
+// std::atomic<size_t> crtbackidx(0);
+// std::atomic<size_t> crtackidx(0);
 std::atomic<size_t> writecount(0);
 
 size_t connection_count(0);
@@ -92,7 +92,7 @@ MessageIdVectorT message_uid_vec;
 
 size_t real_size(size_t _sz)
 {
-    //offset + (align - (offset mod align)) mod align
+    // offset + (align - (offset mod align)) mod align
     return _sz + ((sizeof(uint64_t) - (_sz % sizeof(uint64_t))) % sizeof(uint64_t));
 }
 
@@ -138,7 +138,7 @@ struct Message : frame::mprpc::Message {
         const uint64_t* pup          = reinterpret_cast<const uint64_t*>(pattern.data());
         const size_t    pattern_size = pattern.size() / sizeof(uint64_t);
         for (uint64_t i = 0; i < count; ++i) {
-            pu[i] = pup[(idx + i) % pattern_size]; //pattern[i % pattern.size()];
+            pu[i] = pup[(idx + i) % pattern_size]; // pattern[i % pattern.size()];
         }
     }
 
@@ -149,7 +149,7 @@ struct Message : frame::mprpc::Message {
         if (sz != str.size()) {
             return false;
         }
-        //return true;
+        // return true;
         const size_t    count        = sz / sizeof(uint64_t);
         const uint64_t* pu           = reinterpret_cast<const uint64_t*>(str.data());
         const uint64_t* pup          = reinterpret_cast<const uint64_t*>(pattern.data());
@@ -260,7 +260,7 @@ void server_complete_message(
     }
 }
 
-} //namespace
+} // namespace
 
 int test_clientserver_cancel_client(int argc, char* argv[])
 {
@@ -313,7 +313,7 @@ int test_clientserver_cancel_client(int argc, char* argv[])
 
         std::string server_port;
 
-        { //mprpc server initialization
+        { // mprpc server initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -321,8 +321,8 @@ int test_clientserver_cancel_client(int argc, char* argv[])
                 });
             frame::mprpc::Configuration cfg(sch_server, proto);
 
-            //cfg.recv_buffer_capacity = 1024;
-            //cfg.send_buffer_capacity = 1024;
+            // cfg.recv_buffer_capacity = 1024;
+            // cfg.send_buffer_capacity = 1024;
 
             cfg.connection_stop_fnc         = &server_connection_stop;
             cfg.server.connection_start_fnc = &server_connection_start;
@@ -355,7 +355,7 @@ int test_clientserver_cancel_client(int argc, char* argv[])
             }
         }
 
-        { //mprpc client initialization
+        { // mprpc client initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -363,8 +363,8 @@ int test_clientserver_cancel_client(int argc, char* argv[])
                 });
             frame::mprpc::Configuration cfg(sch_client, proto);
 
-            //cfg.recv_buffer_capacity = 1024;
-            //cfg.send_buffer_capacity = 1024;
+            // cfg.recv_buffer_capacity = 1024;
+            // cfg.send_buffer_capacity = 1024;
 
             cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
             cfg.connection_stop_fnc           = &client_connection_stop;
@@ -396,7 +396,7 @@ int test_clientserver_cancel_client(int argc, char* argv[])
         pmprpcserver = &mprpcserver;
 
         {
-            writecount = initarraysize; //start_count;//
+            writecount = initarraysize; // start_count;//
             lock_guard<mutex> lock(mtx);
             for (crtwriteidx = 0; crtwriteidx < writecount; ++crtwriteidx) {
                 frame::mprpc::MessageId msguid;
@@ -413,7 +413,7 @@ int test_clientserver_cancel_client(int argc, char* argv[])
                 }
 
                 if (initarray[crtwriteidx % initarraysize].cancel) {
-                    message_uid_vec.push_back(msguid); //we cancel this one
+                    message_uid_vec.push_back(msguid); // we cancel this one
                     solid_dbg(generic_logger, Info, "schedule cancel message: " << message_uid_vec.back());
                 }
             }
@@ -425,14 +425,14 @@ int test_clientserver_cancel_client(int argc, char* argv[])
             solid_throw("Process is taking too long.");
         }
 
-        //if(crtbackidx != expected_transfered_count){
-        //  solid_throw("Not all messages were completed");
-        //}
+        // if(crtbackidx != expected_transfered_count){
+        //   solid_throw("Not all messages were completed");
+        // }
 
-        //m.stop();
+        // m.stop();
     }
 
-    //exiting
+    // exiting
 
     std::cout << "Transfered size = " << (transfered_size * 2) / 1024 << "KB" << endl;
     std::cout << "Transfered count = " << transfered_count << endl;

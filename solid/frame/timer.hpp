@@ -67,7 +67,7 @@ public:
 
     ~SteadyTimer()
     {
-        //MUST call here and not in the ~CompletionHandler
+        // MUST call here and not in the ~CompletionHandler
         this->deactivate();
     }
 
@@ -124,5 +124,5 @@ private:
     }
 };
 
-} //namespace frame
-} //namespace solid
+} // namespace frame
+} // namespace solid

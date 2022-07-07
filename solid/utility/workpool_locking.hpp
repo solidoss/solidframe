@@ -110,7 +110,7 @@ public:
     }
 };
 
-} //namespace impl
+} // namespace impl
 
 //-----------------------------------------------------------------------------
 template <typename Job, typename MCastJob = void, size_t QNBits = workpool_default_node_capacity_bit_count, typename Base = solid::impl::WorkPoolBase>
@@ -411,7 +411,7 @@ private:
         MCastNode* pmcast_ = nullptr;
         JobNode*   pjob_   = nullptr;
 
-        //used only on pop
+        // used only on pop
         ContextStub* pcontext_      = nullptr;
         size_t       mcast_exec_id_ = 0;
         MCastNode*   plast_mcast_   = nullptr;
@@ -482,7 +482,7 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doStart(
 
     {
         std::lock_guard<std::mutex> lock1{pop_mtx_};
-        std::lock_guard<std::mutex> lock2{push_mtx_}; //always lock pop_mtx before push_mtx
+        std::lock_guard<std::mutex> lock2{push_mtx_}; // always lock pop_mtx before push_mtx
 
         Base::config_ = _cfg;
 
@@ -494,7 +494,7 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doStart(
         mcast_queue_.clear();
         free_mcast_stack_.clear();
 
-        //mcast sentinel.
+        // mcast sentinel.
         mcast_dq_.emplace_back();
         mcast_dq_.back().exec_cnt_ = Base::config_.max_worker_count_;
         mcast_queue_.push(&mcast_dq_.back());
@@ -523,7 +523,7 @@ void WorkPool<Job, MCastJob, QNBits, Base>::doRun(
     Base::config_.on_thread_start_fnc_();
 
     PopContext pop_context;
-    pop_context.plast_mcast_ = mcast_queue_.front(); //the sentinel
+    pop_context.plast_mcast_ = mcast_queue_.front(); // the sentinel
 
     while (pop(pop_context)) {
         if (pop_context.pmcast_) {
@@ -651,7 +651,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
     size_t wait_loop_count     = 0;
     size_t continue_loop_count = 0;
 
-    //Try destroy the MCast object, before acquiring lock
+    // Try destroy the MCast object, before acquiring lock
     should_notify = doTryDestroyMcastOnPop(_rcontext) || should_notify;
 
     std::unique_lock<std::mutex> lock;
@@ -674,7 +674,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
                 option = RunOptionE::Continue;
             }
         } else if (!job_queue_.empty()) {
-            //tryPopJob
+            // tryPopJob
             auto& rnode = *job_queue_.front();
 
             if (rnode.mcast_id_ == _rcontext.mcast_exec_id_ || rnode.mcast_id_ == (_rcontext.mcast_exec_id_ + 1)) {
@@ -686,7 +686,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
                     _rcontext.pjob_ = job_queue_.pop();
                     --job_queue_size_;
                     option = RunOptionE::Return;
-                    //solid_log(workpool_logger, Error, _rcontext.pjob_);
+                    // solid_log(workpool_logger, Error, _rcontext.pjob_);
                 } else if (rnode.pcontext_->job_queue_.empty()) {
                     --rnode.pcontext_->use_count_;
                     _rcontext.pcontext_ = rnode.pcontext_;
@@ -694,15 +694,15 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::pop(PopContext& _rcontext)
                     _rcontext.pcontext_->job_queue_.push(_rcontext.pjob_);
                     --job_queue_size_;
                     option = RunOptionE::Return;
-                    //solid_log(workpool_logger, Error, _rcontext.pjob_);
+                    // solid_log(workpool_logger, Error, _rcontext.pjob_);
                 } else {
-                    //we have a job on a currently running synchronization context
+                    // we have a job on a currently running synchronization context
                     rnode.pcontext_->job_queue_.push(job_queue_.pop());
                     --job_queue_size_;
                     --rnode.pcontext_->use_count_;
                     should_fetch_mcast = false;
                     option             = RunOptionE::Continue;
-                    //solid_log(workpool_logger, Error, job_list_.size());
+                    // solid_log(workpool_logger, Error, job_list_.size());
                 }
             } else {
                 option = RunOptionE::Continue;
@@ -946,5 +946,5 @@ using WorkPoolT = WorkPool<Job, MCastJob>;
 
 template <class Job, class MCast = Job, size_t FunctionDataSize = function_default_data_size, template <typename, typename> class WP = WorkPoolT>
 using CallPoolT = CallPool<Job, MCast, FunctionDataSize, WP>;
-} //namespace locking
-} //namespace solid
+} // namespace locking
+} // namespace solid

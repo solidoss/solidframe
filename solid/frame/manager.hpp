@@ -220,5 +220,5 @@ inline void Manager::startService(Service& _rservice, LockedFnc&& _lf, UnlockedF
 
 //-----------------------------------------------------------------------------
 
-} //namespace frame
-} //namespace solid
+} // namespace frame
+} // namespace solid

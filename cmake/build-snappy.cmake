@@ -1,5 +1,11 @@
 set(snappy_PREFIX ${CMAKE_BINARY_DIR}/external/snappy)
 
+if(SOLID_ON_WINDOWS)
+    set(SNAPPY_LIB ${CMAKE_BINARY_DIR}/external/lib/snappy.lib)
+else()
+    set(SNAPPY_LIB ${CMAKE_BINARY_DIR}/external/lib/libsnappy.a)
+endif()
+
 ExternalProject_Add(
     build-snappy
     EXCLUDE_FROM_ALL 1
@@ -12,9 +18,6 @@ ExternalProject_Add(
     LOG_CONFIGURE ON
     LOG_BUILD ON
     LOG_INSTALL ON
+    BUILD_BYPRODUCTS ${SNAPPY_LIB}
 )
-if(SOLID_ON_WINDOWS)
-    set(SNAPPY_LIB ${CMAKE_BINARY_DIR}/external/lib/snappy.lib)
-else()
-    set(SNAPPY_LIB ${CMAKE_BINARY_DIR}/external/lib/libsnappy.a)
-endif()
+

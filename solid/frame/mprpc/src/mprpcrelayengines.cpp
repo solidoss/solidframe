@@ -31,7 +31,7 @@ namespace relay {
 //-----------------------------------------------------------------------------
 namespace {
 using ConnectionMapT = std::unordered_map<const char*, size_t, CStringHash, CStringEqual>;
-} //namespace
+} // namespace
 
 struct SingleNameEngine::Data {
     ConnectionMapT con_umap_;
@@ -66,18 +66,18 @@ ErrorConditionT SingleNameEngine::registerConnection(const ConnectionContext& _r
 
         if (conidx == InvalidIndex()) {
             if (nameidx == InvalidIndex()) {
-                //do full registration
+                // do full registration
                 conidx                               = _proxy.createConnection();
                 ConnectionStubBase& rcon             = _proxy.connection(conidx);
                 rcon.name_                           = std::move(_uname);
                 impl_->con_umap_[rcon.name_.c_str()] = conidx;
             } else {
                 if (_proxy.connection(nameidx).id_.isInvalid() || _proxy.connection(nameidx).id_ == _rconctx.connectionId()) {
-                    //use the connection already registered by name
+                    // use the connection already registered by name
                     conidx = nameidx;
                 } else {
-                    //for now the most basic option - replace the existing connection with new one
-                    //TODO: add support for multiple chained connections, sharing the same name
+                    // for now the most basic option - replace the existing connection with new one
+                    // TODO: add support for multiple chained connections, sharing the same name
                     impl_->con_umap_.erase(_proxy.connection(nameidx).name_.c_str());
                     _proxy.connection(nameidx).name_.clear();
                     conidx                               = _proxy.createConnection();
@@ -87,13 +87,13 @@ ErrorConditionT SingleNameEngine::registerConnection(const ConnectionContext& _r
                 }
             }
         } else if (nameidx != InvalidIndex()) {
-            //conflicting situation
-            // - the connection was used for sending relayed messages - thus was registered without a name
-            // - also the name was associated to another connection stub
+            // conflicting situation
+            //  - the connection was used for sending relayed messages - thus was registered without a name
+            //  - also the name was associated to another connection stub
             _proxy.stopConnection(conidx);
             conidx = nameidx;
         } else {
-            //simply register the name for existing connection
+            // simply register the name for existing connection
             ConnectionStubBase& rcon             = _proxy.connection(conidx);
             rcon.name_                           = std::move(_uname);
             impl_->con_umap_[rcon.name_.c_str()] = conidx;
@@ -139,7 +139,7 @@ std::ostream& SingleNameEngine::print(std::ostream& _ros, const ConnectionStubBa
     return _ros << "con.id = " << _rcon.id_ << " con.name = " << _rcon.name_;
 }
 //-----------------------------------------------------------------------------
-} //namespace relay
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace relay
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

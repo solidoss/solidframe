@@ -85,7 +85,7 @@ inline ErrorConditionT error_running()
 //  return ErrorConditionT(ErrorCategory::ReactorE, ec);
 // }
 
-} //namespace
+} // namespace
 
 typedef Queue<UniqueId>     UidQueueT;
 typedef Stack<UniqueId>     UidStackT;
@@ -211,7 +211,7 @@ void SchedulerBase::doStart(
 
         for (size_t i = 0; i < _reactorcnt; ++i) {
             ReactorStub& rrs = impl_->reactorvec[i];
-            //rrs.thrptr.reset((*_pf)(*this, i));
+            // rrs.thrptr.reset((*_pf)(*this, i));
 
             if (!(*_pf)(*this, i, rrs.thr)) {
                 start_err = true;
@@ -399,5 +399,5 @@ void SchedulerBase::unprepareThread(const size_t _idx, ReactorBase& /*_rreactor*
     impl_->threxfnc();
 }
 
-} //namespace frame
-} //namespace solid
+} // namespace frame
+} // namespace solid

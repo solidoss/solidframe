@@ -231,7 +231,7 @@ struct TempConfigurationImpl {
 
 struct Utf8Controller::Data {
 
-    Utf8ConfigurationImpl filecfg; //NOTE: it is accessed without lock in openFile
+    Utf8ConfigurationImpl filecfg; // NOTE: it is accessed without lock in openFile
     TempConfigurationImpl tempcfg;
     size_t                minglobalprefixsz;
     size_t                maxglobalprefixsz;
@@ -339,9 +339,9 @@ bool Utf8Controller::prepareIndex(
     shared::StoreBase::Accessor& /*_rsbacc*/, Utf8OpenCommandBase& _rcmd,
     size_t& _ridx, size_t& /*_rflags*/, ErrorCodeT& _rerr)
 {
-    //find _rcmd.inpath file && set _rcmd.outpath
-    //if found set _ridx && return true
-    //else return false
+    // find _rcmd.inpath file && set _rcmd.outpath
+    // if found set _ridx && return true
+    // else return false
     const size_t storeidx = impl_->findFileStorage(_rcmd.inpath);
 
     _rcmd.outpath.storeidx = storeidx;
@@ -366,7 +366,7 @@ bool Utf8Controller::preparePointer(
     shared::StoreBase::Accessor& /*_rsbacc*/, Utf8OpenCommandBase& _rcmd,
     FilePointerT& _rptr, size_t& /*_rflags*/, ErrorCodeT& /*_rerr*/)
 {
-    //just do map[_rcmd.outpath] = _rptr.uid().first
+    // just do map[_rcmd.outpath] = _rptr.uid().first
     Utf8PathStub* ppath;
     if (!impl_->pathcache.empty()) {
         ppath  = impl_->pathcache.top();
@@ -379,7 +379,7 @@ bool Utf8Controller::preparePointer(
     ppath->idx = static_cast<size_t>(_rptr.id().index);
     impl_->pathset.insert(ppath);
     impl_->indexset.insert(ppath);
-    return true; //we don't store _runiptr for later use
+    return true; // we don't store _runiptr for later use
 }
 
 void Utf8Controller::openFile(Utf8OpenCommandBase& _rcmd, FilePointerT& _rptr, ErrorCodeT& _rerr)
@@ -399,37 +399,37 @@ bool Utf8Controller::prepareIndex(
     shared::StoreBase::Accessor& /*_rsbacc*/, CreateTempCommandBase& /*_rcmd*/,
     size_t& /*_ridx*/, size_t& /*_rflags*/, ErrorCodeT& /*_rerr*/)
 {
-    //nothing to do
-    return false; //no stored index
+    // nothing to do
+    return false; // no stored index
 }
 
 bool Utf8Controller::preparePointer(
     shared::StoreBase::Accessor& _rsbacc, CreateTempCommandBase& _rcmd,
     FilePointerT& _rptr, size_t& /*_rflags*/, ErrorCodeT& /*_rerr*/)
 {
-    //We're under Store's mutex lock
+    // We're under Store's mutex lock
     UniqueId uid = _rptr.id();
     File*    pf  = _rptr.release();
 
     impl_->pfilltempwaitvec->push_back(TempWaitStub(uid, pf, _rcmd.size, _rcmd.openflags));
     if (impl_->pfilltempwaitvec->size() == 1) {
-        //notify the shared store object
+        // notify the shared store object
         _rsbacc.notify();
     }
 
-    return false; //will always store _rptr
+    return false; // will always store _rptr
 }
 
 void Utf8Controller::executeOnSignal(shared::StoreBase::Accessor& /*_rsbacc*/, ulong /*_sm*/)
 {
-    //We're under Store's mutex lock
+    // We're under Store's mutex lock
     std::exchange(impl_->pfilltempwaitvec, impl_->pconstempwaitvec);
     impl_->pfilltempwaitvec->clear();
 }
 
 bool Utf8Controller::executeBeforeErase(shared::StoreBase::Accessor& _rsbacc)
 {
-    //We're NOT under Store's mutex lock
+    // We're NOT under Store's mutex lock
     if (!impl_->pconstempwaitvec->empty()) {
         for (
             TempWaitVectorT::const_iterator waitit = impl_->pconstempwaitvec->begin();
@@ -448,7 +448,7 @@ bool Utf8Controller::executeBeforeErase(shared::StoreBase::Accessor& _rsbacc)
                     if (it->shouldUse(waitit->size)) {
                         impl_->tempwaitdq.resize(tempwaitdqsize);
                         doPrepareOpenTemp(*waitit->pfile, waitit->size, strgidx);
-                        //we schedule for erase the waitit pointer
+                        // we schedule for erase the waitit pointer
                         _rsbacc.consumeEraseVector().push_back(waitit->objuid);
                     } else {
                         impl_->tempwaitdq.push_back(*waitit);
@@ -464,7 +464,7 @@ bool Utf8Controller::executeBeforeErase(shared::StoreBase::Accessor& _rsbacc)
                 }
             }
             if (!canuse) {
-                //a temp file with uninitialized tempbase means an error
+                // a temp file with uninitialized tempbase means an error
                 _rsbacc.consumeEraseVector().push_back(waitit->objuid);
             }
         }
@@ -480,8 +480,8 @@ bool Utf8Controller::executeBeforeErase(shared::StoreBase::Accessor& _rsbacc)
 
 bool Utf8Controller::clear(shared::StoreBase::Accessor& /*_rsbacc*/, File& _rf, const size_t _idx)
 {
-    //We're under Store's mutex lock
-    //We're under File's mutex lock
+    // We're under Store's mutex lock
+    // We're under File's mutex lock
     if (!_rf.isTemp()) {
         _rf.clear();
         Utf8PathStub path;
@@ -525,7 +525,7 @@ void Utf8Controller::doPrepareOpenTemp(File& _rf, uint64_t _sz, const size_t _st
     }
     rstrg.usedsize += _sz;
 
-    //only creates the file backend - does not open it:
+    // only creates the file backend - does not open it:
     if ((rstrg.level & MemoryLevelFlag) != 0u && rstrg.path.empty()) {
         _rf.ptmp = new TempMemory(_storeid, fileid, _sz);
     } else {
@@ -545,7 +545,7 @@ void Utf8Controller::openTemp(CreateTempCommandBase& _rcmd, FilePointerT& _rptr,
 
 void Utf8Controller::doCloseTemp(TempBase& _rtemp)
 {
-    //erase the temp file for on-disk temps
+    // erase the temp file for on-disk temps
     TempConfigurationImpl::Storage& rstrg(impl_->tempcfg.storagevec[_rtemp.tempstorageid]);
     rstrg.usedsize -= _rtemp.tempsize;
     rstrg.idcache.push(_rtemp.tempid);
@@ -560,7 +560,7 @@ void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor& _rsbacc, const s
 
     rstrg.enqued = false;
     while (it != impl_->tempwaitdq.end()) {
-        //first we find the first item waiting on storage
+        // first we find the first item waiting on storage
         TempWaitDequeT::iterator waitit = it;
         for (; it != impl_->tempwaitdq.end(); ++it) {
             if (it->objuid.index != waitit->objuid.index) {
@@ -582,9 +582,9 @@ void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor& _rsbacc, const s
         --rstrg.waitcount;
         rstrg.waitsizefirst = 0;
         doPrepareOpenTemp(*it->pfile, it->size, _storeid);
-        //we schedule for erase the waitit pointer
+        // we schedule for erase the waitit pointer
         _rsbacc.consumeEraseVector().push_back(it->objuid);
-        //delete the whole range [waitit, itend]
+        // delete the whole range [waitit, itend]
         const size_t objidx = static_cast<size_t>(it->objuid.index);
 
         if (waitit == impl_->tempwaitdq.begin()) {
@@ -675,7 +675,7 @@ bool prepare_temp_file_path(std::string& _rpath, const char* _prefix, const uint
     return true;
 }
 
-} //namespace
+} // namespace
 
 /*virtual*/ bool TempFile::open(const char* _path, const size_t /*_openflags*/, bool _remove, ErrorCodeT& _rerr)
 {
@@ -791,6 +791,6 @@ TempMemory::TempMemory(
     return mf.truncate(_len) == 0;
 }
 
-} //namespace file
-} //namespace frame
-} //namespace solid
+} // namespace file
+} // namespace frame
+} // namespace solid

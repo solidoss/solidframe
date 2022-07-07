@@ -20,6 +20,6 @@ size_t current_index()
     return index.fetch_add(1);
 }
 
-} //namespace v1
-} //namespace reflection
-} //namespace solid
+} // namespace v1
+} // namespace reflection
+} // namespace solid

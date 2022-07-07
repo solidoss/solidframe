@@ -128,5 +128,5 @@ inline void configure_protocol(Reg _rreg)
     _rreg(7, "Request2", solid::TypeToType<Request2>());
 }
 
-} //namespace v4
-} //namespace versioning
+} // namespace v4
+} // namespace versioning

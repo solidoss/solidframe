@@ -73,10 +73,10 @@ std::string ErrorCategory::message(int _ev) const
     return oss.str();
 }
 
-} //namespace
+} // namespace
 
 /*extern*/ const ErrorCodeT error_not_implemented(ErrorNotImplementedE, category);
 /*extern*/ const ErrorCodeT error_system(ErrorSystemE, category);
 /*extern*/ const ErrorCodeT error_thread_started(ErrorThreadStartedE, category);
 
-} //namespace solid
+} // namespace solid

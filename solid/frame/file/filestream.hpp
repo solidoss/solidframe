@@ -180,7 +180,7 @@ public:
         , pb(_bufcp ? new char[_bufcp] : nullptr)
         , buf(_rdev, pb, _bufcp)
     {
-        //rdbuf(&buf);
+        // rdbuf(&buf);
     }
     FileOStream(
         const size_t _bufcp = 0)
@@ -188,7 +188,7 @@ public:
         , pb(_bufcp ? new char[_bufcp] : nullptr)
         , buf(pb, _bufcp)
     {
-        //rdbuf(&buf);
+        // rdbuf(&buf);
     }
     ~FileOStream()
     {
@@ -327,6 +327,6 @@ private:
     FileBuf buf;
 };
 
-} //namespace file
-} //namespace frame
-} //namespace solid
+} // namespace file
+} // namespace frame
+} // namespace solid

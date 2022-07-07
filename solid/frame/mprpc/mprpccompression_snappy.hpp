@@ -31,7 +31,7 @@ struct Engine {
     {
     }
 
-    //compression:
+    // compression:
     size_t operator()(char* _piobuf, size_t _bufsz, ErrorConditionT&)
     {
 
@@ -44,18 +44,18 @@ struct Engine {
             ::snappy::RawCompress(_piobuf, _bufsz, tmpbuf, &len);
 
             if (_bufsz <= len || (_bufsz - len) < diff_threshold) {
-                return 0; //compression not eficient
+                return 0; // compression not eficient
             }
 
             memcpy(_piobuf, tmpbuf, len);
             return len;
         } else {
-            //buffer too small to compress
+            // buffer too small to compress
             return 0;
         }
     }
 
-    //decompression:
+    // decompression:
     size_t operator()(char* _pto, const char* _pfrom, size_t _from_sz, ErrorConditionT& _rerror)
     {
         size_t newlen = 0;
@@ -80,7 +80,7 @@ inline void setup(mprpc::Configuration& _rcfg, size_t _buff_threshold = 1024, si
     _rcfg.writer.inplace_compress_fnc = Engine(_buff_threshold, _diff_threshold);
 }
 
-} //namespace snappy
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace snappy
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

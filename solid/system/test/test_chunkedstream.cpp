@@ -25,7 +25,7 @@ bool read(string& _rs, istream& _ris, size_t _sz)
     return _sz == 0;
 }
 
-} //namespace
+} // namespace
 
 int test_chunkedstream(int argc, char* argv[])
 {

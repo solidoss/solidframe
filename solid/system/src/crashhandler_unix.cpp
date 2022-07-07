@@ -287,4 +287,4 @@ void install_crash_handler()
 {
     install_signal_handler();
 }
-} //namespace solid
+} // namespace solid

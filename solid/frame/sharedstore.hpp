@@ -231,7 +231,7 @@ struct Pointer : PointerBase {
     T& operator*() const { return *pt; }
     T* operator->() const { return pt; }
     T* get() const { return pt; }
-    //operator bool () const    {return psig;}
+    // operator bool () const    {return psig;}
     bool operator!() const { return empty(); }
 
     T* release() const
@@ -349,7 +349,7 @@ public:
         return ptr;
     }
 
-    //Try get an alive pointer for an intem
+    // Try get an alive pointer for an intem
     PointerT alive(UniqueId const& _ruid, ErrorCodeT& _rerr)
     {
         PointerT     ptr;
@@ -364,7 +364,7 @@ public:
         return ptr;
     }
 
-    //Try get an unique pointer for an item
+    // Try get an unique pointer for an item
     PointerT unique(UniqueId const& _ruid, ErrorCodeT& _rerr)
     {
         PointerT     ptr;
@@ -379,7 +379,7 @@ public:
         return ptr;
     }
 
-    //Try get a shared pointer for an item
+    // Try get a shared pointer for an item
     PointerT shared(UniqueId const& _ruid, ErrorCodeT& _rerr)
     {
         PointerT     ptr;
@@ -431,7 +431,7 @@ public:
             std::lock_guard<std::mutex> lock(this->mutex());
             bool                        found = controller().prepareIndex(acc, _f, idx, _flags, err);
             if (!found && !err) {
-                //an index was not found - need to allocate one
+                // an index was not found - need to allocate one
                 idx = this->doAllocateIndex();
             }
             if (!err) {
@@ -468,10 +468,10 @@ public:
                     doPushWait(idx, _f, StoreBase::SharedWaitE);
                 }
             } else {
-                err.assign(1, err.category()); //TODO:
+                err.assign(1, err.category()); // TODO:
             }
         } else {
-            err.assign(1, err.category()); //TODO:
+            err.assign(1, err.category()); // TODO:
         }
         if (!ptr.empty() || err) {
             _f(controller(), ptr, err);
@@ -495,10 +495,10 @@ public:
                     doPushWait(idx, _f, StoreBase::UniqueWaitE);
                 }
             } else {
-                err.assign(1, err.category()); //TODO:
+                err.assign(1, err.category()); // TODO:
             }
         } else {
-            err.assign(1, err.category()); //TODO:
+            err.assign(1, err.category()); // TODO:
         }
         if (!ptr.empty() || err) {
             _f(controller(), ptr, err);
@@ -523,10 +523,10 @@ public:
                     doPushWait(idx, _f, StoreBase::ReinitWaitE);
                 }
             } else {
-                err.assign(1, err.category()); //TODO:
+                err.assign(1, err.category()); // TODO:
             }
         } else {
-            err.assign(1, err.category()); //TODO:
+            err.assign(1, err.category()); // TODO:
         }
         if (!ptr.empty() || err) {
             _f(controller(), ptr, err);
@@ -664,7 +664,7 @@ private:
 
     /*virtual*/ bool doDecrementActorUseCount(UniqueId const& _uid, const bool _isalive)
     {
-        //the coresponding mutex is already locked
+        // the coresponding mutex is already locked
         Stub& rs = stubvec[_uid.index];
         if (rs.uid == _uid.unique) {
             if (_isalive) {
@@ -708,7 +708,7 @@ private:
             Stub& rs = stubvec[it->index];
             if (it->unique == rs.uid) {
                 if (static_cast<size_t>(it - reraseuidvec.begin()) >= eraseuidvecsize) {
-                    //its an uid added by executeBeforeErase
+                    // its an uid added by executeBeforeErase
                     --rs.usecnt;
                 }
                 if (rs.canClear()) {
@@ -719,7 +719,7 @@ private:
             }
         }
         pmtx->unlock();
-        //now execute "waits"
+        // now execute "waits"
         for (StoreBase::ExecWaitVectorT::const_iterator it(rexewaitvec.begin()); it != rexewaitvec.end(); ++it) {
             PointerT   ptr(reinterpret_cast<T*>(it->pt), this, it->uid);
             WaitStub&  rw = *reinterpret_cast<WaitStub*>(it->pw);
@@ -762,10 +762,10 @@ private:
             switch (pwait->kind) {
             case StoreBase::UniqueWaitE:
                 if (rs.usecnt == 0) {
-                    //We can deliver
+                    // We can deliver
                     rs.state = StoreBase::UniqueLockStateE;
                 } else {
-                    //cannot deliver right now - keep waiting
+                    // cannot deliver right now - keep waiting
                     return;
                 }
                 break;
@@ -773,7 +773,7 @@ private:
                 if (rs.usecnt == 0 || rs.state == StoreBase::SharedLockStateE) {
                     rs.state = StoreBase::SharedLockStateE;
                 } else {
-                    //cannot deliver right now - keep waiting
+                    // cannot deliver right now - keep waiting
                     return;
                 }
                 break;
@@ -781,7 +781,7 @@ private:
                 if (rs.usecnt == 0 && rs.alivecnt == 0) {
                     rs.state = StoreBase::UniqueLockStateE;
                 } else {
-                    //cannot deliver right now - keep waiting
+                    // cannot deliver right now - keep waiting
                     return;
                 }
                 break;
@@ -813,6 +813,6 @@ inline StoreBase::Accessor StoreBase::accessor()
 {
     return Accessor(*this);
 }
-} //namespace shared
-} //namespace frame
-} //namespace solid
+} // namespace shared
+} // namespace frame
+} // namespace solid

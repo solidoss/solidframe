@@ -58,7 +58,7 @@ inline void store_min(T& _rv, const T _nv)
     }
 }
 
-} //namespace solid
+} // namespace solid
 
 #ifdef SOLID_HAS_STATISTICS
 

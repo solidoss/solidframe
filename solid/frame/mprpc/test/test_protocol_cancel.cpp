@@ -14,17 +14,17 @@ struct InitStub {
 };
 
 InitStub initarray[] = {
-    {100000, false, 0}, //first message must not be canceled
-    {16384000, false, 0}, //not caceled
+    {100000, false, 0}, // first message must not be canceled
+    {16384000, false, 0}, // not caceled
     {8192000, true, {frame::mprpc::MessageFlagsE::Synchronous}},
     {4096000, true, 0},
-    {2048000, false, 0}, //not caceled
+    {2048000, false, 0}, // not caceled
     {1024000, true, 0},
-    {512000, false, {frame::mprpc::MessageFlagsE::Synchronous}}, //not canceled
+    {512000, false, {frame::mprpc::MessageFlagsE::Synchronous}}, // not canceled
     {256000, true, 0},
     {128000, true, 0},
     {64000, true, 0},
-    {32000, false, 0}, //not canceled
+    {32000, false, 0}, // not canceled
     {16000, true, 0},
     {8000, true, 0},
     {4000, true, 0},
@@ -44,7 +44,7 @@ MessageIdVectorT message_uid_vec;
 
 size_t real_size(size_t _sz)
 {
-    //offset + (align - (offset mod align)) mod align
+    // offset + (align - (offset mod align)) mod align
     return _sz + ((sizeof(uint64_t) - (_sz % sizeof(uint64_t))) % sizeof(uint64_t));
 }
 
@@ -81,7 +81,7 @@ struct Message : frame::mprpc::Message {
         const uint64_t* pup          = reinterpret_cast<const uint64_t*>(pattern.data());
         const size_t    pattern_size = pattern.size() / sizeof(uint64_t);
         for (uint64_t i = 0; i < count; ++i) {
-            pu[i] = pup[i % pattern_size]; //pattern[i % pattern.size()];
+            pu[i] = pup[i % pattern_size]; // pattern[i % pattern.size()];
         }
     }
     bool check() const
@@ -178,7 +178,7 @@ void complete_message(
     if (_rmessage_ptr.get()) {
         size_t idx = static_cast<Message&>(*_rmessage_ptr).idx;
         if (crtreadidx) {
-            //not the first message
+            // not the first message
             solid_check((!_rerr && !initarray[idx % initarraysize].cancel) || (initarray[idx % initarraysize].cancel && _rerr == frame::mprpc::error_message_canceled));
         }
         solid_dbg(generic_logger, Info, static_cast<Message&>(*_rmessage_ptr).str.size() << ' ' << _rerr.message());
@@ -262,7 +262,7 @@ struct Receiver : frame::mprpc::MessageReader::Receiver {
     }
 };
 
-} //namespace
+} // namespace
 
 int test_protocol_cancel(int argc, char* argv[])
 {
@@ -303,7 +303,7 @@ int test_protocol_cancel(int argc, char* argv[])
 
     const size_t start_count = 16;
 
-    writecount = 16; //start_count;//
+    writecount = 16; // start_count;//
 
     for (; crtwriteidx < start_count; ++crtwriteidx) {
         frame::mprpc::MessageBundle msgbundle;
@@ -325,7 +325,7 @@ int test_protocol_cancel(int argc, char* argv[])
 
         if (!initarray[crtwriteidx % initarraysize].cancel) {
             solid_dbg(generic_logger, Info, "do not cancel " << message_uid_vec.back());
-            message_uid_vec.pop_back(); //we do not cancel this one
+            message_uid_vec.pop_back(); // we do not cancel this one
         }
     }
 

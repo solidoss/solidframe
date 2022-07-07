@@ -45,7 +45,7 @@ protected:
     ErrorConditionT error_;
 };
 
-} //namespace binary
-} //namespace v3
-} //namespace serialization
-} //namespace solid
+} // namespace binary
+} // namespace v3
+} // namespace serialization
+} // namespace solid

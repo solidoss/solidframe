@@ -93,6 +93,6 @@ typedef void (*SocketStubDeleteF)(SocketStub*);
 
 using SocketStubPtrT = std::unique_ptr<SocketStub, SocketStubDeleteF>;
 
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

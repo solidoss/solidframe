@@ -97,7 +97,7 @@ struct Test {
     }
 };
 
-} //namespace
+} // namespace
 
 int test_container(int /*argc*/, char* /*argv*/[])
 {
@@ -114,7 +114,7 @@ int test_container(int /*argc*/, char* /*argv*/[])
         }};
     string test_data;
 
-    { //serialization
+    { // serialization
         Context     ctx;
         SerializerT ser{reflection::metadata::factory, key_type_map};
         const int   bufcp = 64;
@@ -133,7 +133,7 @@ int test_container(int /*argc*/, char* /*argv*/[])
             rv = ser.run(buf, bufcp, ctx);
         }
     }
-    { //deserialization
+    { // deserialization
         Context       ctx;
         DeserializerT des{reflection::metadata::factory, key_type_map};
 
@@ -349,4 +349,4 @@ void Test::check() const
 #endif
 }
 
-} //namespace
+} // namespace

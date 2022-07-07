@@ -41,7 +41,7 @@ protected:
         _rcv.wait(_rlock, _predicate);
     }
 };
-} //namespace impl
+} // namespace impl
 
 struct QueueStatistic : solid::Statistic {
     std::atomic<size_t> push_count_;
@@ -242,7 +242,7 @@ private:
         const size_t cnt = _pn->use_cnt_.fetch_sub(1);
         solid_assert_log(cnt != 0, queue_logger);
         if (cnt == 1) {
-            //the last one
+            // the last one
             pushEmptyNode(_pn);
         }
     }
@@ -319,7 +319,7 @@ size_t Queue<T, NBits, Base>::doPush(const T& _rt, T&& _ut, std::bool_constant<I
             solid_statistic_inc(rstatistic_.push_count_);
             return sz;
         } else {
-            //overflow
+            // overflow
             std::unique_lock<std::mutex> lock(push_end_.mutex_);
 
             if (size_.load() >= max_size_) {
@@ -335,14 +335,14 @@ size_t Queue<T, NBits, Base>::doPush(const T& _rt, T&& _ut, std::bool_constant<I
                 }
             }
 
-            //pn is locked!
-            //the following check is safe because push_end_.pnode_ is
-            //modified only under push_end_.mutex_ lock
+            // pn is locked!
+            // the following check is safe because push_end_.pnode_ is
+            // modified only under push_end_.mutex_ lock
             if (push_end_.pnode_ == pn) {
                 solid_log(queue_logger, Verbose, this << " newNode");
-                //ABA cannot happen because pn is locked and cannot be in the empty stack
+                // ABA cannot happen because pn is locked and cannot be in the empty stack
                 Node* pnewn = newNode();
-                pnewn->use_cnt_.fetch_add(1); //one for ptmpn->next_
+                pnewn->use_cnt_.fetch_add(1); // one for ptmpn->next_
                 Node* ptmpn = push_end_.nodeExchange(pnewn);
 
                 ptmpn->next_.store(pnewn);
@@ -387,9 +387,9 @@ bool Queue<T, NBits, Base>::pop(T& _rt)
             std::unique_lock<std::mutex> lock(pop_end_.mutex_);
             if (pn->next_.load() != nullptr) {
                 if (pop_end_.pnode_ == pn) {
-                    //ABA cannot happen because pn is locked and cannot be in the empty stack
+                    // ABA cannot happen because pn is locked and cannot be in the empty stack
                     Node* ptmpn = pop_end_.nodeNext();
-                    //solid_log(queue_logger, Verbose, this << " move to new node " << pn << " -> " << pn->next_.load()<<" "<<pos<<" "<<pn->push_commit_pos_<< " "<<loop_count);
+                    // solid_log(queue_logger, Verbose, this << " move to new node " << pn << " -> " << pn->next_.load()<<" "<<pos<<" "<<pn->push_commit_pos_<< " "<<loop_count);
                     solid_check_log(ptmpn == pn, queue_logger, ptmpn << " != " << pn);
                     nodeRelease(ptmpn, __LINE__);
                 }
@@ -409,5 +409,5 @@ bool Queue<T, NBits, Base>::pop(T& _rt)
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-} //namespace lockfree
-} //namespace solid
+} // namespace lockfree
+} // namespace solid

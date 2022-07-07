@@ -81,7 +81,7 @@ using FileStoreSharedPointerT = std::shared_ptr<frame::file::Store<>>;
 
 FileStoreSharedPointerT filestoreptr;
 
-} //namespace
+} // namespace
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
@@ -220,14 +220,14 @@ int main(int argc, char* argv[])
 
                 tempcfg.storagevec.push_back(frame::file::TempConfiguration::Storage());
                 tempcfg.storagevec.back().level    = frame::file::MemoryLevelFlag;
-                tempcfg.storagevec.back().capacity = 1024 * 1024 * 10; //10MB
+                tempcfg.storagevec.back().capacity = 1024 * 1024 * 10; // 10MB
                 tempcfg.storagevec.back().minsize  = 0;
                 tempcfg.storagevec.back().maxsize  = 1024 * 10;
 
                 tempcfg.storagevec.push_back(frame::file::TempConfiguration::Storage());
                 tempcfg.storagevec.back().path       = "/tmp/fileserver/";
                 tempcfg.storagevec.back().level      = frame::file::VeryFastLevelFlag;
-                tempcfg.storagevec.back().capacity   = 1024 * 1024 * 10; //10MB
+                tempcfg.storagevec.back().capacity   = 1024 * 1024 * 10; // 10MB
                 tempcfg.storagevec.back().minsize    = 0;
                 tempcfg.storagevec.back().maxsize    = 1024 * 10;
                 tempcfg.storagevec.back().removemode = frame::file::RemoveNeverE;
@@ -339,8 +339,8 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
             rsch.startActor(make_shared<Connection>(_rsd), rsvc, make_event(GenericEvents::Start), err);
         } else {
-            //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
-            //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
+            // e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
+            // timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
             break;
         }
         --repeatcnt;
@@ -378,7 +378,7 @@ Connection::Connection(SocketDevice& _rsd)
 }
 Connection::~Connection()
 {
-    //state(-1);
+    // state(-1);
     solid_log(generic_logger, Info, "");
 }
 
@@ -394,7 +394,7 @@ const char* Connection::findEnd(const char* _p)
             crtpat = patt;
         }
     }
-    if (!*crtpat) { //we've found the pattern
+    if (!*crtpat) { // we've found the pattern
         return p - 2;
     }
 
@@ -464,7 +464,7 @@ void Connection::doRun(frame::aio::ReactorContext& _rctx)
         break;
     case WaitRead:
     case WaitWrite:
-        //keep waiting
+        // keep waiting
         solid_log(generic_logger, Info, "keep waiting");
         break;
     case RunRead:
@@ -536,7 +536,7 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext& _rctx)
         ++bpos;
         solid_log(generic_logger, Info, "Request open file: " << path);
         filestoreptr->requestOpenFile(OpenCbk(rm, rm.id(*this)), path.c_str(), FileDevice::ReadWriteE);
-        //post(_rctx, [this](frame::aio::ReactorContext &_rctx, frame::Event const &_revent){this->run(_rctx);});
+        // post(_rctx, [this](frame::aio::ReactorContext &_rctx, frame::Event const &_revent){this->run(_rctx);});
         break;
     case 'W':
     case 'w':
@@ -544,7 +544,7 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext& _rctx)
         ++bpos;
         solid_log(generic_logger, Info, "Request create file: " << path);
         filestoreptr->requestCreateFile(OpenCbk(rm, rm.id(*this)), path.c_str(), FileDevice::ReadWriteE);
-        //post(_rctx, [this](frame::aio::ReactorContext &_rctx, frame::Event const &_revent){this->run(_rctx);});
+        // post(_rctx, [this](frame::aio::ReactorContext &_rctx, frame::Event const &_revent){this->run(_rctx);});
         break;
     case 'S':
     case 's':
@@ -556,7 +556,7 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext& _rctx)
             state = WaitRead;
             ++bpos;
             filestoreptr->requestShared(OpenCbk(rm, rm.id(*this)), tempuid);
-            //post(_rctx, [this](frame::aio::ReactorContext &_rctx, frame::Event const &_revent){this->run(_rctx);});
+            // post(_rctx, [this](frame::aio::ReactorContext &_rctx, frame::Event const &_revent){this->run(_rctx);});
         }
         break;
     case 'U':

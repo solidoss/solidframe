@@ -141,7 +141,7 @@ inline Socket::NativeHandleT Socket::nativeHandle() const
     return pssl;
 }
 
-} //namespace openssl
-} //namespace aio
-} //namespace frame
-} //namespace solid
+} // namespace openssl
+} // namespace aio
+} // namespace frame
+} // namespace solid

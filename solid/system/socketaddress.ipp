@@ -357,7 +357,7 @@ inline const sockaddr* SocketAddress::sockAddr() const
 {
     return &d.addr;
 }
-//operator sockaddr*(){return sockAddr();}
+// operator sockaddr*(){return sockAddr();}
 inline SocketAddress::operator const sockaddr*() const
 {
     return sockAddr();
@@ -479,11 +479,11 @@ inline size_t SocketAddress::addressHash() const
 
 inline void SocketAddress::path(const char* /*_pth*/)
 {
-    //TODO
+    // TODO
 }
 inline const char* SocketAddress::path() const
 {
-    //TODO
+    // TODO
     return NULL;
 }
 inline SocketAddress::operator sockaddr*()
@@ -592,7 +592,7 @@ inline const sockaddr* SocketAddressInet::sockAddr() const
 {
     return &d.addr;
 }
-//operator sockaddr*(){return sockAddr();}
+// operator sockaddr*(){return sockAddr();}
 inline SocketAddressInet::operator const sockaddr*() const
 {
     return sockAddr();
@@ -833,7 +833,7 @@ inline const sockaddr* SocketAddressInet4::sockAddr() const
 {
     return &d.addr;
 }
-//operator sockaddr*(){return sockAddr();}
+// operator sockaddr*(){return sockAddr();}
 inline SocketAddressInet4::operator const sockaddr*() const
 {
     return sockAddr();
@@ -1000,7 +1000,7 @@ inline const sockaddr* SocketAddressInet6::sockAddr() const
 {
     return &d.addr;
 }
-//operator sockaddr*(){return sockAddr();}
+// operator sockaddr*(){return sockAddr();}
 inline SocketAddressInet6::operator const sockaddr*() const
 {
     return sockAddr();
@@ -1127,14 +1127,14 @@ inline size_t in_addr_hash(const in_addr& _inaddr)
 
 inline size_t in_addr_hash(const unsigned char* _p, std::integral_constant<size_t, 4>)
 {
-    //32 bit systems
+    // 32 bit systems
     const size_t* ps = reinterpret_cast<const size_t*>(_p);
     return ps[0] ^ ps[1] ^ ps[2] ^ ps[3];
 }
 
 inline size_t in_addr_hash(const unsigned char* _p, std::integral_constant<size_t, 2>)
 {
-    //64 bit systems
+    // 64 bit systems
     const size_t* ps = reinterpret_cast<const size_t*>(_p);
     return ps[0] ^ ps[1];
 }
@@ -1154,7 +1154,7 @@ inline SocketAddressLocal::SocketAddressLocal()
 }
 inline SocketAddressLocal::SocketAddressLocal(const char* /*_path*/)
 {
-    //TODO:
+    // TODO:
 }
 
 inline SocketAddressLocal& SocketAddressLocal::operator=(const SocketAddressStub&)
@@ -1188,37 +1188,37 @@ inline SocketAddressLocal::operator const sockaddr*() const
 
 inline bool SocketAddressLocal::operator<(const SocketAddressLocal& /*_raddr*/) const
 {
-    //TODO
+    // TODO
     return false;
 }
 inline bool SocketAddressLocal::operator==(const SocketAddressLocal& /*_raddr*/) const
 {
-    //TODO
+    // TODO
     return false;
 }
 
 inline void SocketAddressLocal::clear()
 {
-    //TODO
+    // TODO
 }
 inline size_t SocketAddressLocal::hash() const
 {
-    //TODO
+    // TODO
     return 0;
 }
 inline size_t SocketAddressLocal::addressHash() const
 {
-    //TODO
+    // TODO
     return 0;
 }
 
 inline void SocketAddressLocal::path(const char* /*_pth*/)
 {
-    //TODO
+    // TODO
 }
 inline const char* SocketAddressLocal::path() const
 {
-    //TODO
+    // TODO
     return NULL;
 }
 inline SocketAddressLocal::operator sockaddr*()

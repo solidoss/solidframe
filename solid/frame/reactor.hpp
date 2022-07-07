@@ -47,7 +47,7 @@ class Reactor : public frame::ReactorBase {
 
         void operator()(ReactorContext& _rctx, Event&& _revent)
         {
-            if (repost) { //skip one round - to guarantee that all remaining posts were delivered
+            if (repost) { // skip one round - to guarantee that all remaining posts were delivered
                 repost = false;
                 EventFunctionT eventfnc(*this);
                 _rctx.reactor().doPost(_rctx, std::move(eventfnc), std::move(_revent));
@@ -140,10 +140,10 @@ private:
     static void stop_actor_repost(ReactorContext& _rctx, Event&& _uevent);
     static void stop_actor(ReactorContext& _rctx, Event&& _uevent);
 
-private: //data
+private: // data
     struct Data;
     PimplT<Data> impl_;
 };
 
-} //namespace frame
-} //namespace solid
+} // namespace frame
+} // namespace solid

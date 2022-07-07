@@ -66,4 +66,4 @@ private:
     SocketInfo& operator=(const SocketInfo&);
 };
 
-} //namespace solid
+} // namespace solid

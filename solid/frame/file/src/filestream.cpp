@@ -71,7 +71,7 @@ void FileBuf::device(FilePointerT& _rptr)
 
 /*virtual*/ FileBuf::int_type FileBuf::underflow()
 {
-    //solid_log(logger, Info, "");
+    // solid_log(logger, Info, "");
     if (hasBuf()) {
         if (hasPut()) {
             solid_assert_log(false, logger);
@@ -82,34 +82,34 @@ void FileBuf::device(FilePointerT& _rptr)
         if (gptr() < egptr()) { // buffer not exhausted
             return traits_type::to_int_type(*gptr());
         }
-        //refill rbuf
+        // refill rbuf
         solid_log(logger, Info, "read " << bufcp << " from " << off);
         ssize_t rv = dev->read(buf, bufcp, off);
         if (rv > 0) {
             char* end = buf + rv;
             setg(buf, buf, end);
-            //rbufsz = rv;
+            // rbufsz = rv;
             return traits_type::to_int_type(*gptr());
         }
     } else {
-        //very inneficient
+        // very inneficient
         char    c;
         ssize_t rv = dev->read(&c, 1, off);
         if (rv == 1) {
             return traits_type::to_int_type(c);
         }
     }
-    //rbufsz = 0;
+    // rbufsz = 0;
     return traits_type::eof();
 }
 
 /*virtual*/ FileBuf::int_type FileBuf::uflow()
 {
-    //solid_log(logger, Info, "");
+    // solid_log(logger, Info, "");
     if (hasBuf()) {
         return streambuf::uflow();
     }
-    //very inneficient
+    // very inneficient
     char          c;
     const ssize_t rv = dev->read(&c, 1, off);
     if (rv == 1) {
@@ -205,7 +205,7 @@ ssize_t FileBuf::writeAll(const char* _s, size_t _n)
             if (newoff <= devsz) {
                 newoff = devsz;
             }
-        } else if (_off == 0) { //cur
+        } else if (_off == 0) { // cur
             return off + (gptr() - eback());
         } else {
             newoff = off;
@@ -228,7 +228,7 @@ ssize_t FileBuf::writeAll(const char* _s, size_t _n)
         off = _off;
     } else if (_way == ios_base::end) {
         off = dev->size() + _off;
-    } else { //cur
+    } else { // cur
         off += _off;
     }
     return off;
@@ -277,7 +277,7 @@ ssize_t FileBuf::writeAll(const char* _s, size_t _n)
             gbump(static_cast<int>(sz));
             return sz;
         }
-        //read directly in the given buffer
+        // read directly in the given buffer
         ssize_t rv = dev->read(_s, static_cast<size_t>(_n), off);
         if (rv > 0) {
             off += rv;
@@ -291,7 +291,7 @@ ssize_t FileBuf::writeAll(const char* _s, size_t _n)
             return rv;
         }
     }
-    //rbufsz = 0;
+    // rbufsz = 0;
     return 0;
 }
 
@@ -316,8 +316,8 @@ bool FileBuf::flushPut()
 {
     solid_log(logger, Info, "" << _n << " off = " << off);
     if (hasBuf()) {
-        //NOTE: it should work with the following line too
-        //return streambuf::xsputn(_s, _n);
+        // NOTE: it should work with the following line too
+        // return streambuf::xsputn(_s, _n);
 
         if (pptr() == nullptr) {
             if (hasGet()) {
@@ -370,6 +370,6 @@ bool FileBuf::flushPut()
     return 0;
 }
 
-} //namespace file
-} //namespace frame
-} //namespace solid
+} // namespace file
+} // namespace frame
+} // namespace solid

@@ -147,14 +147,14 @@ struct RelayData {
         return *this;
     }
 
-    RelayData(const RelayData&) = delete;
+    RelayData(const RelayData&)            = delete;
     RelayData& operator=(const RelayData&) = delete;
 
     void clear()
     {
         pdata_     = nullptr;
         data_size_ = 0;
-        //connection_id_.clear();
+        // connection_id_.clear();
         bufptr_.reset();
         pnext_ = nullptr;
         flags_.reset();
@@ -230,9 +230,9 @@ private:
 
     virtual void stopConnection(const UniqueId& _rrelay_uid);
 
-    //NOTE: we require _rmsghdr parameter because the relay function
-    // will know if it can move it into _rrelay_data.message_header_ (for unicasts)
-    // or copy it in case of multicasts
+    // NOTE: we require _rmsghdr parameter because the relay function
+    //  will know if it can move it into _rrelay_data.message_header_ (for unicasts)
+    //  or copy it in case of multicasts
     virtual bool doRelayStart(
         const ActorIdT&  _rcon_uid,
         UniqueId&        _rrelay_uid,
@@ -374,7 +374,7 @@ struct WriterConfiguration {
 struct Configuration {
 private:
     Configuration& operator=(const Configuration&) = delete;
-    Configuration& operator=(Configuration&&) = default;
+    Configuration& operator=(Configuration&&)      = default;
 
 public:
     template <class P>
@@ -532,7 +532,7 @@ public:
     ulong                         connection_timeout_reconnect_seconds;
     uint32_t                      connection_timeout_inactivity_seconds;
     uint32_t                      connection_timeout_keepalive_seconds;
-    uint32_t                      connection_inactivity_keepalive_count; //server error if receives more than inactivity_keepalive_count keep alive messages during inactivity_timeout_seconds interval
+    uint32_t                      connection_inactivity_keepalive_count; // server error if receives more than inactivity_keepalive_count keep alive messages during inactivity_timeout_seconds interval
     uint8_t                       connection_recv_buffer_start_capacity_kb;
     uint8_t                       connection_recv_buffer_max_capacity_kb;
     uint8_t                       connection_send_buffer_start_capacity_kb;
@@ -566,7 +566,7 @@ private:
 
 private:
     friend class Service;
-    //friend class MessageWriter;
+    // friend class MessageWriter;
     Configuration()
         : pscheduler(nullptr)
         , prelayengine(nullptr)
@@ -608,6 +608,6 @@ public:
     void operator()(const std::string&, ResolveCompleteFunctionT&);
 };
 
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

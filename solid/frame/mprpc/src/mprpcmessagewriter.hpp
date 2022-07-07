@@ -172,7 +172,7 @@ private:
             WriteWait,
             WriteCanceled,
             WriteWaitCanceled,
-            RelayedStart, //add non-relayed states above
+            RelayedStart, // add non-relayed states above
             RelayedHeadStart,
             RelayedHeadContinue,
             RelayedBody,
@@ -187,7 +187,7 @@ private:
         Serializer::PointerT serializer_ptr_;
         MessageId            pool_msg_id_;
         StateE               state_;
-        RelayData*           prelay_data_; //TODO: make somehow prelay_data_ act as a const pointer as its data must not be changed by Writer
+        RelayData*           prelay_data_; // TODO: make somehow prelay_data_ act as a const pointer as its data must not be changed by Writer
         const char*          prelay_pos_;
         size_t               relay_size_;
 
@@ -256,7 +256,7 @@ private:
 
         bool isRelay() const noexcept
         {
-            return !msgbundle_.message_url.empty() || Message::is_relayed(msgbundle_.message_flags); //TODO: optimize!!
+            return !msgbundle_.message_url.empty() || Message::is_relayed(msgbundle_.message_flags); // TODO: optimize!!
         }
 
         bool isRelayed() const noexcept
@@ -389,6 +389,6 @@ typedef std::pair<MessageWriter const&, MessageWriter::PrintWhat> MessageWriterP
 
 std::ostream& operator<<(std::ostream& _ros, MessageWriterPrintPairT const& _msgwriter);
 
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

@@ -23,7 +23,7 @@ void Test::runBasic()
 {
 }
 
-} //namespace
+} // namespace
 
 int test_relay_engine_basic(int argc, char* argv[])
 {

@@ -86,7 +86,7 @@ struct InitResponse : solid::frame::mprpc::Message {
 };
 
 struct Request : solid::frame::mprpc::Message {
-    uint32_t    valuei_; //deprecated
+    uint32_t    valuei_; // deprecated
     std::string values_;
 
     SOLID_REFLECT_V1(_s, _rthis, _rctx)
@@ -146,5 +146,5 @@ inline void configure_protocol(Reg _rreg)
     _rreg(6, "Response2", solid::TypeToType<Response2>());
 }
 
-} //namespace v3
-} //namespace versioning
+} // namespace v3
+} // namespace versioning

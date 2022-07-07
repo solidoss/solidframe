@@ -58,7 +58,7 @@ const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
 std::atomic<size_t> crtwriteidx(0);
 std::atomic<size_t> crtreadidx(0);
-//std::atomic<size_t> crtbackidx(0);
+// std::atomic<size_t> crtbackidx(0);
 std::atomic<size_t> crtackidx(0);
 std::atomic<size_t> writecount(0);
 
@@ -74,7 +74,7 @@ frame::mprpc::RecipientId recipinet_id;
 
 size_t real_size(size_t _sz)
 {
-    //offset + (align - (offset mod align)) mod align
+    // offset + (align - (offset mod align)) mod align
     return _sz + ((sizeof(uint64_t) - (_sz % sizeof(uint64_t))) % sizeof(uint64_t));
 }
 
@@ -139,7 +139,7 @@ struct Message : frame::mprpc::Message {
         const uint64_t* pup          = reinterpret_cast<const uint64_t*>(pattern.data());
         const size_t    pattern_size = pattern.size() / sizeof(uint64_t);
         for (uint64_t i = 0; i < count; ++i) {
-            pu[i] = pup[(idx + i) % pattern_size]; //pattern[i % pattern.size()];
+            pu[i] = pup[(idx + i) % pattern_size]; // pattern[i % pattern.size()];
         }
     }
 
@@ -150,7 +150,7 @@ struct Message : frame::mprpc::Message {
         if (sz != str.size()) {
             return false;
         }
-        //return true;
+        // return true;
         const size_t    count        = sz / sizeof(uint64_t);
         const uint64_t* pu           = reinterpret_cast<const uint64_t*>(str.data());
         const uint64_t* pup          = reinterpret_cast<const uint64_t*>(pattern.data());
@@ -211,7 +211,7 @@ void server_complete_message(
     solid_check(false);
 }
 
-} //namespace
+} // namespace
 
 int test_pool_force_close(int argc, char* argv[])
 {
@@ -262,7 +262,7 @@ int test_pool_force_close(int argc, char* argv[])
 
         std::string server_port;
 
-        { //mprpc server initialization
+        { // mprpc server initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -270,8 +270,8 @@ int test_pool_force_close(int argc, char* argv[])
                 });
             frame::mprpc::Configuration cfg(sch_server, proto);
 
-            //cfg.recv_buffer_capacity = 1024;
-            //cfg.send_buffer_capacity = 1024;
+            // cfg.recv_buffer_capacity = 1024;
+            // cfg.send_buffer_capacity = 1024;
 
             cfg.connection_stop_fnc           = &server_connection_stop;
             cfg.server.connection_start_fnc   = &server_connection_start;
@@ -291,7 +291,7 @@ int test_pool_force_close(int argc, char* argv[])
             }
         }
 
-        { //mprpc client initialization
+        { // mprpc client initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
@@ -299,8 +299,8 @@ int test_pool_force_close(int argc, char* argv[])
                 });
             frame::mprpc::Configuration cfg(sch_client, proto);
 
-            //cfg.recv_buffer_capacity = 1024;
-            //cfg.send_buffer_capacity = 1024;
+            // cfg.recv_buffer_capacity = 1024;
+            // cfg.send_buffer_capacity = 1024;
 
             cfg.connection_stop_fnc           = &client_connection_stop;
             cfg.client.connection_start_fnc   = &client_connection_start;
@@ -360,7 +360,7 @@ int test_pool_force_close(int argc, char* argv[])
             solid_throw("Not all messages were completed");
         }
 
-        //m.stop();
+        // m.stop();
     }
 
     std::cout << "Transfered size = " << (transfered_size * 2) / 1024 << "KB" << endl;

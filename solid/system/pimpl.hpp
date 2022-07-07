@@ -23,4 +23,4 @@ std::unique_ptr<T> make_pimpl(Args&&... args)
     return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
-} //namespace solid
+} // namespace solid

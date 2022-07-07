@@ -44,4 +44,4 @@ public:
         return (*phelper_fnc_)(pfinal_fnc_, std::forward<A...>(_a...));
     }
 };
-} //namespace solid
+} // namespace solid

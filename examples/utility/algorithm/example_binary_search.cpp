@@ -32,7 +32,7 @@ int main()
         v.push_back(i);
         v.push_back(i);
     }
-    //BinarySeeker<> bs;
+    // BinarySeeker<> bs;
     const int* pd = v.data();
     int        rv(0);
     cout << "bs(10) = " << v[rv] << ' ' << solid::binary_search(pd, pd + v.size(), static_cast<int>(10)) << endl;

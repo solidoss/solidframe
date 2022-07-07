@@ -60,7 +60,7 @@ frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr)
     return r;
 }
 
-} //namespace
+} // namespace
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
@@ -295,8 +295,8 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             rsch.startActor(make_shared<Connection>(actuid), rsvc, make_event(GenericEvents::Start), err);
 
         } else {
-            //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
-            //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
+            // e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
+            // timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
             break;
         }
         --repeatcnt;
@@ -305,7 +305,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     if (!repeatcnt) {
         sock.postAccept(
             _rctx,
-            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); //fully asynchronous call
+            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); // fully asynchronous call
     }
 }
 
@@ -354,21 +354,21 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
         BufferPairT* pbufpair = _revent.any().cast<BufferPairT>();
 
         if (pbufpair) {
-            //new data to send
+            // new data to send
             solid_assert(buf_sending[buf_push_sending].first == nullptr);
             solid_log(generic_logger, Info, this << " new data to sent " << (int)buf_pop_sending << ' ' << (int)buf_push_sending << ' ' << pbufpair->second);
             buf_sending[buf_push_sending] = *pbufpair;
 
             if (buf_push_sending == buf_pop_sending && !sock.hasPendingSend()) {
                 solid_log(generic_logger, Info, this << " sending " << buf_sending[buf_pop_sending].second);
-                //sock.postSendAll(_rctx, buf_sending[buf_pop_sending].first, buf_sending[buf_pop_sending].second, Connection::onSend);
+                // sock.postSendAll(_rctx, buf_sending[buf_pop_sending].first, buf_sending[buf_pop_sending].second, Connection::onSend);
                 buf_push_sending = (buf_push_sending + 1) % BufferCount;
                 sock.postSendAll(_rctx, sbuf, doneBuffer(_rctx), Connection::onSend);
             } else {
                 buf_push_sending = (buf_push_sending + 1) % BufferCount;
             }
         } else {
-            //a send ack
+            // a send ack
 
             solid_log(generic_logger, Info, this << " on sent ack event " << (int)buf_crt_recv << ' ' << (int)buf_ack_send << ' ' << sock.hasPendingRecv());
 
@@ -384,10 +384,10 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
     } else if (generic_event_start == _revent) {
         if (sock.device()) {
             sock.device().enableNoDelay();
-            //the accepted socket
-            //wait for peer to connect
+            // the accepted socket
+            // wait for peer to connect
         } else {
-            //the connecting socket
+            // the connecting socket
             solid_log(generic_logger, Info, "async_resolve = " << params.connect_addr_str << " " << params.connect_port_str);
             async_resolver().requestResolve(
                 ResolvFunc(_rctx.manager(), _rctx.manager().id(*this)), params.connect_addr_str.c_str(),
@@ -411,9 +411,9 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
 
         frame::ActorIdT* ppeer_actuid = _revent.any().cast<frame::ActorIdT>();
         if (ppeer_actuid) {
-            //peer connection established
+            // peer connection established
             peer_actuid = *ppeer_actuid;
-            //do the first read
+            // do the first read
             sock.postRecvSome(_rctx, buf[buf_crt_recv], BufferCapacity, Connection::onRecv);
         }
     }
@@ -434,10 +434,10 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
         if (_rctx.manager().notify(rthis.peer_actuid, std::move(ev))) {
 
             rthis.sock.device().enableNoDelay();
-            //do the first read
+            // do the first read
             rthis.sock.postRecvSome(_rctx, rthis.buf[rthis.buf_crt_recv], BufferCapacity, Connection::onRecv);
         } else {
-            //peer has died
+            // peer has died
             solid_log(generic_logger, Error, &rthis << " postStop " << _rctx.systemError().message());
             rthis.postStop(_rctx);
         }
@@ -466,7 +466,7 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
         if (rthis.buf_ack_send != rthis.buf_crt_recv) {
             rthis.sock.postRecvSome(_rctx, rthis.buf[rthis.buf_crt_recv], BufferCapacity, Connection::onRecv);
         } else {
-            //no free buffer
+            // no free buffer
         }
 
     } else {

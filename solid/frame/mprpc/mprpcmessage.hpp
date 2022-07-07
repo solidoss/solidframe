@@ -83,10 +83,10 @@ struct MessageHeader {
     void solidSerializeV1(S& _rs, frame::mprpc::ConnectionContext& _rctx)
     {
         if (S::IsSerializer) {
-            //because a message can be sent to multiple destinations
-            //on serialization we cannot use/modify the values stored by ipc::Message
-            //so, we'll use ones store in the context. Because the context is volatile
-            //we'll store as values.
+            // because a message can be sent to multiple destinations
+            // on serialization we cannot use/modify the values stored by ipc::Message
+            // so, we'll use ones store in the context. Because the context is volatile
+            // we'll store as values.
 
             _rs.pushCross(sender_request_id_.index, "recipient_request_index");
             _rs.pushCross(sender_request_id_.unique, "recipient_request_unique");
@@ -95,7 +95,7 @@ struct MessageHeader {
             _rs.pushCross(_rctx.request_id.unique, "sender_request_unique");
             solid_check_log(_rctx.pmessage_url, service_logger(), "message url must not be null");
             _rs.push(*_rctx.pmessage_url, "url");
-            uint64_t tmp = _rctx.message_flags.toUnderlyingType(); //not nice but safe - better solution in future versions
+            uint64_t tmp = _rctx.message_flags.toUnderlyingType(); // not nice but safe - better solution in future versions
             _rs.pushCross(tmp, "flags");
         } else {
 
@@ -416,6 +416,6 @@ using MessagePointerT = std::shared_ptr<Message>;
 using MessageCompleteFunctionT = solid_function_t(void(
     ConnectionContext&, MessagePointerT&, MessagePointerT&, ErrorConditionT const&));
 
-} //namespace mprpc
-} //namespace frame
-} //namespace solid
+} // namespace mprpc
+} // namespace frame
+} // namespace solid

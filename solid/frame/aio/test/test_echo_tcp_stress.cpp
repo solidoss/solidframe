@@ -50,7 +50,7 @@ bool                 be_secure       = false;
 bool                 use_relay       = false;
 unsigned             wait_seconds    = 200;
 constexpr const bool enable_no_delay = true;
-} //namespace
+} // namespace
 //-----------------------------------------------------------------------------
 frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr);
 //-----------------------------------------------------------------------------
@@ -174,7 +174,7 @@ private:
         sock.secureSetVerifyCallback(_rctx, frame::aio::openssl::VerifyModePeer, onSecureVerify);
         if (sock.secureAccept(_rctx, onSecureAccept)) {
             if (!_rctx.error()) {
-                sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
+                sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); // fully asynchronous call
             } else {
                 solid_dbg(generic_logger, Error, this << " postStop: " << _rctx.systemError().message());
                 postStop(_rctx);
@@ -186,7 +186,7 @@ private:
         SecureConnection& rthis = static_cast<SecureConnection&>(_rctx.actor());
         if (!_rctx.error()) {
             solid_dbg(generic_logger, Info, &rthis << " postRecvSome");
-            rthis.postRecvSome(_rctx); //fully asynchronous call
+            rthis.postRecvSome(_rctx); // fully asynchronous call
         } else {
             solid_dbg(generic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt << " error " << _rctx.systemError().message());
             rthis.postStop(_rctx);
@@ -204,7 +204,7 @@ private:
     StreamSocketT sock;
 };
 
-} //namespace server
+} // namespace server
 
 //-----------------------------------------------------------------------------
 
@@ -376,7 +376,7 @@ private:
 
 void prepareSendData();
 
-} //namespace client
+} // namespace client
 
 namespace relay {
 class Listener final : public frame::aio::Actor {
@@ -443,7 +443,7 @@ protected:
     size_t        sendcrt;
     uint32_t      crtid;
 };
-} //namespace relay
+} // namespace relay
 
 int test_echo_tcp_stress(int argc, char* argv[])
 {
@@ -595,9 +595,9 @@ int test_echo_tcp_stress(int argc, char* argv[])
 
                 if (be_secure) {
                     actptr = make_shared<client::SecureConnection>(i, clt_secure_ctx);
-                    //actptr.reset(new client::SecureConnection(i, clt_secure_ctx));
+                    // actptr.reset(new client::SecureConnection(i, clt_secure_ctx));
                 } else {
-                    //actptr.reset(new client::PlainConnection(i));
+                    // actptr.reset(new client::PlainConnection(i));
                     actptr = make_shared<client::PlainConnection>(i);
                 }
                 ++concnt;
@@ -612,7 +612,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
             unique_lock<mutex> lock(mtx);
 
             if (!cnd.wait_for(lock, std::chrono::seconds(wait_seconds), []() { return !running; })) {
-                //solid_throw("Process is taking too long.");
+                // solid_throw("Process is taking too long.");
                 solid_dbg(generic_logger, Error, "Process is taking too long.");
                 return -1;
             }
@@ -687,8 +687,8 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
             rsch.startActor(std::move(actptr), rsvc, make_event(GenericEvents::Start), err);
         } else {
-            //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
-            //timer.waitFor(_rctx, std::chrono::seconds(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
+            // e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
+            // timer.waitFor(_rctx, std::chrono::seconds(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
             break;
         }
         --repeatcnt;
@@ -698,7 +698,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     if (repeatcnt == 0u) {
         sock.postAccept(
             _rctx,
-            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); //fully asynchronous call
+            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); // fully asynchronous call
     }
 }
 
@@ -709,7 +709,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
     solid_dbg(generic_logger, Error, this << " event = " << _revent);
     if (generic_event_start == _revent) {
-        //postRecvSome(_rctx); //fully asynchronous call
+        // postRecvSome(_rctx); //fully asynchronous call
         start(_rctx);
     } else if (generic_event_kill == _revent) {
         solid_dbg(generic_logger, Error, this << " postStop");
@@ -749,9 +749,9 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     solid_dbg(generic_logger, Info, &rthis << " " << repeatcnt);
 
     if (repeatcnt == 0) {
-        rthis.postRecvSome(_rctx); //fully asynchronous call
+        rthis.postRecvSome(_rctx); // fully asynchronous call
     }
-    //this_thread::sleep_for(chrono::microseconds(500));
+    // this_thread::sleep_for(chrono::microseconds(500));
 }
 
 /*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx)
@@ -760,13 +760,13 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     if (!_rctx.error()) {
         solid_dbg(generic_logger, Info, &rthis << " postRecvSome");
         rthis.sendcnt += rthis.sendcrt;
-        rthis.postRecvSome(_rctx); //fully asynchronous call
+        rthis.postRecvSome(_rctx); // fully asynchronous call
     } else {
         solid_dbg(generic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt);
         rthis.postStop(_rctx);
     }
 }
-} //namespace server
+} // namespace server
 //-----------------------------------------------------------------------------
 namespace client {
 const size_t sizes[]{
@@ -859,7 +859,7 @@ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
     solid_dbg(generic_logger, Info, "event = " << _revent);
     if (_revent == generic_event_start) {
-        //we must resolve the address then connect
+        // we must resolve the address then connect
         solid_dbg(generic_logger, Info, "async_resolve = "
                 << "127.0.0.1"
                 << " " << srv_port_str);
@@ -963,7 +963,7 @@ bool Connection::checkRecvData(const size_t _sz) const
     return memcmp(buf, pbuf, _sz) == 0;
 }
 
-} //namespace client
+} // namespace client
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -996,8 +996,8 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
             rsch.startActor(make_shared<Connection>(std::move(_rsd)), rsvc, make_event(GenericEvents::Start), err);
         } else {
-            //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
-            //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
+            // e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
+            // timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
             break;
         }
         --repeatcnt;
@@ -1007,7 +1007,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     if (repeatcnt == 0u) {
         sock.postAccept(
             _rctx,
-            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); //fully asynchronous call
+            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); // fully asynchronous call
     }
 }
 
@@ -1040,7 +1040,7 @@ struct ResolvFunc {
 {
     solid_dbg(generic_logger, Error, this << " " << _revent);
     if (generic_event_start == _revent) {
-        //we must resolve the address then connect
+        // we must resolve the address then connect
         solid_dbg(generic_logger, Info, "async_resolve = "
                 << "127.0.0.1"
                 << " " << srv_port_str);
@@ -1055,7 +1055,7 @@ struct ResolvFunc {
         if (presolvemsg != nullptr) {
             if (presolvemsg->empty()) {
                 solid_dbg(generic_logger, Error, this << " postStop");
-                //sock.shutdown(_rctx);
+                // sock.shutdown(_rctx);
                 postStop(_rctx);
             } else {
                 if (sock2.connect(_rctx, presolvemsg->begin(), [this](frame::aio::ReactorContext& _rctx) { onConnect(_rctx); })) {
@@ -1107,7 +1107,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
     } while (repeatcnt != 0u && rthis.sock1.recvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1, _sz));
 
     if (repeatcnt == 0) {
-        bool rv = rthis.sock1.postRecvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1); //fully asynchronous call
+        bool rv = rthis.sock1.postRecvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1); // fully asynchronous call
         solid_assert(!rv);
     }
 }
@@ -1138,7 +1138,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
     } while (repeatcnt != 0u && rthis.sock2.recvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2, _sz));
 
     if (repeatcnt == 0) {
-        bool rv = rthis.sock2.postRecvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2); //fully asynchronous call
+        bool rv = rthis.sock2.postRecvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2); // fully asynchronous call
         solid_assert(!rv);
     }
 }
@@ -1165,5 +1165,5 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
     }
 }
 
-} //namespace relay
+} // namespace relay
 //-----------------------------------------------------------------------------
