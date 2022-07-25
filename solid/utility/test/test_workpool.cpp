@@ -63,7 +63,9 @@ int test_workpool(int argc, char* argv[])
     deque<size_t> gdq;
     std::mutex    gmtx;
     AtomicPWPT    pwp{nullptr};
-
+#ifdef SOLID_SANITIZE_THREAD
+    wait_seconds = 400;
+#endif
     if (argc > 1) {
         job_count = atoi(argv[1]);
     }

@@ -71,10 +71,9 @@ std::atomic<size_t> crtreadidx(0);
 std::atomic<size_t> crtbackidx(0);
 std::atomic<size_t> crtackidx(0);
 std::atomic<size_t> writecount(0);
+std::atomic<size_t> connection_count(0);
 
-size_t connection_count(0);
-
-bool                   running = true;
+std::atomic<bool>      running = true;
 mutex                  mtx;
 condition_variable     cnd;
 frame::mprpc::Service* pmprpcpeera = nullptr;

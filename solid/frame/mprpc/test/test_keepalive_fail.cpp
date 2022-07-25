@@ -68,7 +68,7 @@ std::atomic<size_t> writecount(0);
 
 size_t connection_count(0);
 
-bool                   running = true;
+std::atomic<bool>      running = true;
 mutex                  mtx;
 condition_variable     cnd;
 frame::mprpc::Service* pmprpcclient = nullptr;

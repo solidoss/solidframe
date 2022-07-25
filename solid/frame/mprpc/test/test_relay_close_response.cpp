@@ -63,7 +63,7 @@ std::atomic<size_t>    deleted_count(0);
 std::atomic<size_t>    back_on_sender_count(0);
 std::atomic<size_t>    success_count(0);
 size_t                 connection_count(0);
-bool                   running = true;
+std::atomic<bool>      running = true;
 mutex                  mtx;
 condition_variable     cnd;
 frame::mprpc::Service* pmprpcpeera = nullptr;

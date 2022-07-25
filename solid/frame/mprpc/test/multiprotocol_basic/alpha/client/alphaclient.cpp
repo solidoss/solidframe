@@ -136,7 +136,7 @@ ErrorConditionT start(
 
         mprpcclient_ptr = std::make_shared<frame::mprpc::ServiceT>(_rctx.rm);
         mprpcclient_ptr->start(std::move(cfg));
-
+#if 1
         _rctx.rwait_count += 3;
 
         err = mprpcclient_ptr->sendMessage(
@@ -157,6 +157,7 @@ ErrorConditionT start(
         if (err) {
             return err;
         }
+#endif
     }
 
     return err;

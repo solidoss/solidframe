@@ -116,9 +116,11 @@ protected:
     {
         const size_t ref_idx = reflector_index<Reflector>();
         if (ref_idx >= reflector_index_vec_.size()) {
-            reflector_index_vec_.resize(ref_idx + 1);
+            reflector_index_vec_.resize(ref_idx + 1, InvalidIndex{});
         }
-        reflector_index_vec_[ref_idx] = _index;
+        if (reflector_index_vec_[ref_idx] == InvalidIndex{}) {
+            reflector_index_vec_[ref_idx] = _index;
+        }
     }
     typedef void (*IndexInitFncT)(const size_t);
 
