@@ -24,7 +24,7 @@ printUsage()
     echo
 }
 
-OPENSSL_ADDR="https://www.openssl.org/source/openssl-3.0.3.tar.gz"
+OPENSSL_ADDR="https://www.openssl.org/source/openssl-3.0.5.tar.gz"
 
 SYSTEM=
 BIT64=

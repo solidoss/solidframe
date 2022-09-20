@@ -562,6 +562,23 @@ public:
     {
         return ptype_map_;
     }
+    template <typename... Args>
+    auto& operator()(Context& _rctx, const size_t _start_id, Args&... _args)
+    {
+        doAddPack(_rctx, _start_id, _args...);
+        return *this;
+    }
+
+private:
+    template <typename Head, typename Name, typename... Tail>
+    void doAddPack(Context& _rctx, const size_t _start_id, Head& _rt, const Name& _name, Tail&... _args)
+    {
+        add(_rt, _rctx, _start_id, _name);
+
+        if constexpr (!is_empty_pack<Tail...>::value) {
+            doAddPack(_rctx, _start_id + 1, _args...);
+        }
+    }
 };
 
 template <class MetadataVariant, class MetadataFactory, class Context = solid::EmptyType>
@@ -629,6 +646,24 @@ public:
     const TypeMapBase* typeMap() const
     {
         return ptype_map_;
+    }
+
+    template <typename... Args>
+    auto& operator()(Context& _rctx, size_t _start_id, const Args&... _args)
+    {
+        doAddPack(_rctx, _start_id, _args...);
+        return *this;
+    }
+
+private:
+    template <typename Head, typename Name, typename... Tail>
+    void doAddPack(Context& _rctx, const size_t _start_id, const Head& _rt, const Name& _name, const Tail&... _args)
+    {
+        add(_rt, _rctx, _start_id, _name);
+
+        if constexpr (!is_empty_pack<Tail...>::value) {
+            doAddPack(_rctx, _start_id + 1, _args...);
+        }
     }
 };
 

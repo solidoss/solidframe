@@ -120,6 +120,8 @@ protected:
         }
         if (reflector_index_vec_[ref_idx] == InvalidIndex{}) {
             reflector_index_vec_[ref_idx] = _index;
+        } else {
+            solid_check(_index == reflector_index_vec_[ref_idx]);
         }
     }
     typedef void (*IndexInitFncT)(const size_t);

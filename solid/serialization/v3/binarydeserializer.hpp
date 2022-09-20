@@ -1252,8 +1252,24 @@ public:
     {
         return Base::error();
     }
+    template <typename... Args>
+    auto& operator()(Context& _rctx, const size_t _start_id, Args&... _args)
+    {
+        doAddPack(_rctx, _start_id, _args...);
+        return *this;
+    }
 
 private:
+    template <typename Head, typename Name, typename... Tail>
+    void doAddPack(Context& _rctx, const size_t _start_id, Head& _rt, const Name& _name, Tail&... _args)
+    {
+        add(_rt, _rctx, _start_id, _name);
+
+        if constexpr (!reflection::v1::is_empty_pack<Tail...>::value) {
+            doAddPack(_rctx, _start_id + 1, _args...);
+        }
+    }
+
     template <class Meta, class T>
     void addDispatch(const Meta& _meta, T& _rt, ContextT& _rctx, const size_t _id, const char* const _name)
     {
