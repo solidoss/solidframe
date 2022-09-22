@@ -63,6 +63,7 @@ class Test {
     vector<char>             vc;
     array<A, 10>             a1;
     array<A, 20>             a2;
+    array<uint8_t, 10>       a3;
     uint16_t                 a2_sz;
     uint32_t                 blob_sz;
     char                     blob[BlobCapacity];
@@ -123,6 +124,7 @@ class Test {
             m[to_string(i)]  = a;
             a1[i]            = a;
             a2[i]            = a;
+            a3[i]            = i;
             um[to_string(i)] = std::move(a);
         }
         a2_sz = 10;
@@ -179,6 +181,7 @@ public:
                 return false;
             }
         }
+        solid_assert(a3 == _rt.a3);
 #if 0
         //blobs not yet supported
         solid_assert(blob_sz == _rt.blob_sz);
@@ -261,6 +264,8 @@ public:
             _rs.add(_rthis.a2, _rctx, 15, "a2", [&_rthis](auto& _rmeta) { _rmeta.size(_rthis.a2_sz); });
         },
             _rctx);
+
+        _rs.add(_rthis.a3, _rctx, 16, "a3");
 
         //_rs.add(blob, blob_sz, BlobCapacity, _rctx, "blob");
         //_rs.add(blob32, blob32_sz, sizeof(uint32_t), _rctx, "blob32");

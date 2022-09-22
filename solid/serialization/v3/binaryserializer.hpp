@@ -203,6 +203,29 @@ public: // should be protected
         schedule(std::move(r));
     }
 
+    template <typename T, size_t Sz>
+    inline void addArrayByte(const std::array<T, Sz>& _ra, const uint64_t _limit, const char* _name)
+    {
+        solid_log(logger, Info, _name << ' ' << _ra.size() << ' ' << _limit);
+
+        if (_ra.size() > _limit) {
+            baseError(error_limit_string);
+            return;
+        }
+
+        addBasicWithCheck(_ra.size(), _name);
+
+        Runnable r{_ra.data(), &store_binary, _ra.size(), 0, _name};
+
+        if (isRunEmpty()) {
+            if (doStoreBinary(r) == ReturnE::Done) {
+                return;
+            }
+        }
+
+        schedule(std::move(r));
+    }
+
     template <class A>
     inline void addVectorChar(const std::vector<uint8_t, A>& _rb, const uint64_t _limit, const char* _name)
     {
@@ -1011,7 +1034,11 @@ private:
         } else if constexpr (std::is_same_v<T, std::vector<bool>>) {
             addVectorBool(_rt, _meta.max_size_, _name);
         } else if constexpr (is_std_array_v<T>) {
-            addArray(*this, _rt, _meta.size_, _rctx, _meta.max_size_, _name);
+            if constexpr (sizeof(typename T::value_type) == 1) {
+                addArrayByte(_rt, _meta.max_size_, _name);
+            } else {
+                addArray(*this, _rt, _meta.size_, _rctx, _meta.max_size_, _name);
+            }
         } else if constexpr (std::is_array_v<T>) {
 
             // TODO:

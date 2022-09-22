@@ -44,6 +44,8 @@ set(EXTERNAL_DIR "" CACHE PATH "External dependencies directory")
 message("Install directory: \"${CMAKE_INSTALL_PREFIX}\"")
 message("External directory: \"${EXTERNAL_DIR}\"")
 
+list(APPEND CMAKE_PREFIX_PATH ${EXTERNAL_PATH})
+
 #-----------------------------------------------------------------
 # Prepare the definitions for build types
 #-----------------------------------------------------------------
