@@ -305,9 +305,16 @@ struct Variant {
     }
 };
 
+template <typename T, size_t S>
+inline constexpr size_t array_size(const T (&arr)[S])
+{
+    return S;
+}
+
 inline constexpr auto factory = [](const auto& _rt, auto& _rctx, const TypeMapBase* _ptype_map) -> auto
 {
-    using value_t = std::decay_t<decltype(_rt)>;
+    using rem_ref_value_t = typename std::remove_reference<decltype(_rt)>::type;
+    using value_t         = std::decay_t<decltype(_rt)>;
     if constexpr (std::is_enum_v<value_t>) {
         return Enum{};
     } else if constexpr (is_shared_ptr_v<value_t> || is_unique_ptr_v<value_t>) {
@@ -320,6 +327,8 @@ inline constexpr auto factory = [](const auto& _rt, auto& _rctx, const TypeMapBa
         return String{};
     } else if constexpr (solid::is_std_array_v<value_t>) {
         return Array{std::tuple_size_v<value_t>, std::tuple_size_v<value_t>};
+    } else if constexpr (std::is_array_v<rem_ref_value_t>) { // C style array
+        return Array{std::size(_rt), std::size(_rt)};
     } else if constexpr (solid::is_container_v<value_t>) {
         return Container{};
     } else if constexpr (solid::is_bitset_v<value_t>) {

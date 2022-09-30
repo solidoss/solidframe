@@ -5,6 +5,7 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace solid {
 
@@ -153,5 +154,19 @@ struct is_std_pair<std::pair<T1, T2>> : std::true_type {
 
 template <class T>
 inline constexpr bool is_std_pair_v = is_std_pair<T>::value;
+
+template <typename T>
+struct is_std_vector : std::false_type {
+};
+
+template <class T, class A>
+struct is_std_vector<std::vector<T, A>> : std::true_type {
+};
+
+template <class T>
+inline constexpr bool is_std_vector_v = is_std_vector<T>::value;
+
+template <typename T>
+using element_type_t = std::remove_reference_t<decltype(*std::begin(std::declval<T&>()))>;
 
 } // namespace solid

@@ -226,6 +226,29 @@ public: // should be protected
         schedule(std::move(r));
     }
 
+    template <typename T, size_t Sz>
+    inline void addCArrayByte(const T (&_ra)[Sz], const uint64_t _limit, const char* _name)
+    {
+        solid_log(logger, Info, _name << ' ' << Sz << ' ' << _limit);
+
+        if (Sz > _limit) {
+            baseError(error_limit_string);
+            return;
+        }
+
+        addBasicWithCheck(Sz, _name);
+
+        Runnable r{&_ra[0], &store_binary, Sz, 0, _name};
+
+        if (isRunEmpty()) {
+            if (doStoreBinary(r) == ReturnE::Done) {
+                return;
+            }
+        }
+
+        schedule(std::move(r));
+    }
+
     template <class A>
     inline void addVectorChar(const std::vector<uint8_t, A>& _rb, const uint64_t _limit, const char* _name)
     {
@@ -1003,7 +1026,7 @@ private:
         if constexpr (!is_shared_ptr_v<T> && !is_unique_ptr_v<T>) {
             static_assert(!std::is_pointer_v<T>, "Naked pointer are not supported - use std::shared_ptr or std::unique_ptr");
         }
-        static_assert(!std::is_array_v<T>, "C style arrays not supported");
+
         static_assert(!std::is_floating_point_v<T>, "Floating point values not supported");
 
         if constexpr (std::is_base_of_v<std::istream, T>) {
@@ -1029,19 +1052,23 @@ private:
             }
         } else if constexpr (std::is_same_v<T, std::string>) {
             addBasic(_rt, _meta.max_size_, _name);
-        } else if constexpr (std::is_same_v<T, std::vector<char>>) {
-            addVectorChar(_rt, _meta.max_size_, _name);
+        } else if constexpr (std::is_array_v<T>) { // c style array
+            static_assert(sizeof(element_type_t<T>) == 1, "C style arrays other than bytes, not supported");
+            addCArrayByte(_rt, _meta.max_size_, _name);
         } else if constexpr (std::is_same_v<T, std::vector<bool>>) {
             addVectorBool(_rt, _meta.max_size_, _name);
+        } else if constexpr (is_std_vector_v<T>) {
+            if constexpr (sizeof(typename T::value_type) == 1) {
+                addVectorChar(_rt, _meta.max_size_, _name);
+            } else {
+                addContainer(*this, _rt, _meta.max_size_, _rctx, _name);
+            }
         } else if constexpr (is_std_array_v<T>) {
             if constexpr (sizeof(typename T::value_type) == 1) {
                 addArrayByte(_rt, _meta.max_size_, _name);
             } else {
                 addArray(*this, _rt, _meta.size_, _rctx, _meta.max_size_, _name);
             }
-        } else if constexpr (std::is_array_v<T>) {
-
-            // TODO:
         } else if constexpr (is_container_v<T>) {
             addContainer(*this, _rt, _meta.max_size_, _rctx, _name);
         } else {

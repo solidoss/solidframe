@@ -192,6 +192,21 @@ public:
         schedule(std::move(r));
     }
 
+    template <typename T, size_t Sz>
+    inline void addCArrayByte(T (&_ra)[Sz], const uint64_t _limit, const char* _name)
+    {
+        solid_log(logger, Info, _name);
+        Runnable r{&_ra[0], &load_carray_byte<T, Sz>, 0, 0, _limit, _name};
+
+        if (isRunEmpty()) {
+            if (load_carray_byte<T, Sz>(*this, r, nullptr) == ReturnE::Done) {
+                return;
+            }
+        }
+
+        schedule(std::move(r));
+    }
+
     template <typename A>
     inline void addVectorBool(std::vector<bool, A>& _rv, const uint64_t _limit, const char* _name)
     {
@@ -901,6 +916,32 @@ private:
         return r;
     }
 
+    template <typename T, size_t Sz>
+    static ReturnE load_carray_byte(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+    {
+        solid_log(logger, Info, _rr.name_);
+        //_rr.ptr_ contains pointer to string object
+        void* pstr      = _rr.ptr_;
+        _rr.ptr_        = &_rd.data_.u64_;
+        const ReturnE r = load_cross_with_check<uint64_t>(_rd, _rr, nullptr);
+        _rr.ptr_        = pstr;
+
+        if (r == ReturnE::Done && _rd.data_.u64_ != 0) {
+            _rr.size_ = _rd.data_.u64_;
+            solid_log(logger, Info, "size = " << _rr.size_);
+
+            if (_rr.size_ > _rr.limit_ || _rr.size_ > Sz) {
+                _rd.baseError(error_limit_string);
+                return ReturnE::Done;
+            }
+
+            _rr.data_ = 0;
+            _rr.call_ = load_binary;
+            return _rd.doLoadBinary(_rr);
+        }
+        return r;
+    }
+
     template <class D, class T, size_t N, class C>
     static ReturnE load_array_start(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
     {
@@ -1320,7 +1361,6 @@ private:
         if constexpr (!is_shared_ptr_v<T> && !is_unique_ptr_v<T>) {
             static_assert(!std::is_pointer_v<T>, "Naked pointer are not supported - use std::shared_ptr or std::unique_ptr");
         }
-        static_assert(!std::is_array_v<T>, "C style arrays not supported");
         static_assert(!std::is_floating_point_v<T>, "Floating point values not supported");
 
         if constexpr (std::is_base_of_v<std::ostream, T>) {
@@ -1357,10 +1397,14 @@ private:
 
         } else if constexpr (std::is_same_v<T, std::string>) {
             addBasic(_rt, _meta.max_size_, _name);
-        } else if constexpr (std::is_same_v<T, std::vector<char>>) {
-            addVectorChar(_rt, _meta.max_size_, _name);
         } else if constexpr (std::is_same_v<T, std::vector<bool>>) {
             addVectorBool(_rt, _meta.max_size_, _name);
+        } else if constexpr (is_std_vector_v<T>) {
+            if constexpr (sizeof(typename T::value_type) == 1) {
+                addVectorChar(_rt, _meta.max_size_, _name);
+            } else {
+                addContainer(*this, _rt, _meta.max_size_, _rctx, _name);
+            }
         } else if constexpr (is_std_array_v<T>) {
             if constexpr (sizeof(typename T::value_type) == 1) {
                 addArrayByte(_rt, _meta.max_size_, _name);
@@ -1368,8 +1412,8 @@ private:
                 addArray(*this, _rt, _meta.max_size_, _rctx, _name);
             }
         } else if constexpr (std::is_array_v<T>) {
-
-            // TODO:
+            static_assert(sizeof(element_type_t<T>) == 1, "C style arrays other than bytes, not supported");
+            addCArrayByte(_rt, _meta.max_size_, _name);
         } else if constexpr (is_container_v<T>) {
             addContainer(*this, _rt, _meta.max_size_, _rctx, _name);
         } else {
