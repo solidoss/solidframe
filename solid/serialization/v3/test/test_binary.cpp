@@ -23,10 +23,11 @@ struct A {
     int32_t  a;
     string   s;
     uint64_t b;
+    uint64_t c;
 
     bool operator==(const A& _ra) const
     {
-        return a == _ra.a && b == _ra.b && s == _ra.s;
+        return a == _ra.a && b == _ra.b && s == _ra.s && c == _ra.c;
     }
 };
 
@@ -34,12 +35,14 @@ template <class S, class Ctx>
 void solidReflectV1(S& _rs, const A& _r, Ctx& _rctx)
 {
     _rs.add(_r.a, _rctx, 1, "A.a").add(_r.s, _rctx, 2, "A.s").add(_r.b, _rctx, 3, "A.b");
+    _rs.add(reflection::compacted{_r.c}, _rctx, 4, "A.c");
 }
 
 template <class S, class Ctx>
 void solidReflectV1(S& _rs, A& _r, Ctx& _rctx)
 {
     _rs.add(_r.a, _rctx, 1, "A.a").add(_r.s, _rctx, 2, "A.s").add(_r.b, _rctx, 3, "A.b");
+    _rs.add(reflection::compacted{_r.c}, _rctx, 4, "A.c");
 }
 
 struct Context {

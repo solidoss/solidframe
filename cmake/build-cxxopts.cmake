@@ -4,7 +4,7 @@ ExternalProject_Add(
     build-cxxopts
     EXCLUDE_FROM_ALL 1
     PREFIX ${cxxopts_PREFIX}
-    URL https://github.com/jarro2783/cxxopts/archive/v2.2.0.tar.gz
+    URL https://github.com/jarro2783/cxxopts/archive/refs/tags/v3.0.0.tar.gz
     DOWNLOAD_NO_PROGRESS ON
     CMAKE_ARGS
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/external -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=${CONFIGURATION_TYPE}

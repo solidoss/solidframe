@@ -301,7 +301,18 @@ bool parseArguments(Params& _par, int argc, char* argv[])
     using namespace cxxopts;
     try {
         Options options{argv[0], "SolidFrame concept application"};
-        options.add_options()("h,help", "List program options")("l,listen-port", "Listener port", value<int>(_par.listener_port)->default_value("2000"))("t,talk-port", "Talker port", value<int>(_par.talker_port)->default_value("3000"))("c,connection-port", "Connection port", value<int>(_par.connect_port)->default_value("5000"))("M,debug-modules", "Debug logging modules", value<vector<string>>(_par.dbg_modules))("A,debug-address", "Debug server address (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_addr))("P,debug-port", "Debug server port (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_port))("C,debug-console", "Debug console", value<bool>(_par.dbg_console)->implicit_value("true")->default_value("false"))("S,debug-unbuffered", "Debug unbuffered", value<bool>(_par.dbg_buffered)->implicit_value("false")->default_value("true"));
+        // clang-format off
+        options.add_options()
+            ("h,help", "List program options")
+            ("l,listen-port", "Listener port", value<int>(_par.listener_port)->default_value("2000"))
+            ("t,talk-port", "Talker port", value<int>(_par.talker_port)->default_value("3000"))
+            ("c,connection-port", "Connection port", value<int>(_par.connect_port)->default_value("5000"))
+            ("M,debug-modules", "Debug logging modules", value<vector<string>>(_par.dbg_modules))
+            ("A,debug-address", "Debug server address (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_addr))
+            ("P,debug-port", "Debug server port (e.g. on linux use: nc -l 2222)", value<string>(_par.dbg_port))
+            ("C,debug-console", "Debug console", value<bool>(_par.dbg_console)->implicit_value("true")->default_value("false"))
+            ("S,debug-unbuffered", "Debug unbuffered", value<bool>(_par.dbg_buffered)->implicit_value("false")->default_value("true"));
+        // clang-format on
         auto result = options.parse(argc, argv);
 
         if (result.count("help")) {

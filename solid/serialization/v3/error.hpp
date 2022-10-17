@@ -21,7 +21,7 @@ extern const ErrorConditionT error_limit_string;
 extern const ErrorConditionT error_limit_stream;
 extern const ErrorConditionT error_limit_blob;
 extern const ErrorConditionT error_limit_array;
-extern const ErrorConditionT error_cross_integer;
+extern const ErrorConditionT error_compacted_integer;
 extern const ErrorConditionT error_unknown_type;
 
 } // namespace v3

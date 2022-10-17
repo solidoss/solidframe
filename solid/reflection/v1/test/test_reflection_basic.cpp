@@ -177,6 +177,7 @@ struct Test {
         }};
     struct Service {
         uint64_t       id_;
+        int64_t        comp_id_;
         string         name_;
         vector<string> ip_vec_;
         FigureE        figure_;
@@ -186,14 +187,15 @@ struct Test {
             _rr.add([&_rthis](Reflector& _rr, Context& _rctx) {
                 _rr(_rctx, 1, _rthis.id_, "id", _rthis.name_, "name", _rthis.ip_vec_, "ip_vec");
                 _rr.add(_rthis.figure_, _rctx, 4, "figure", [](auto& _rmeta) { _rmeta.map(figure_enum_map); });
+                _rr.add(reflection::compacted{_rthis.comp_id_}, _rctx, 5, "comp_id");
             },
                 _rctx);
         }
     } services_[max_service_count] = {
-        {1, "one", {"122.122.122.111", "122.122.122.112"}, FigureE::One},
-        {2, "two", {"122.122.122.211", "122.122.122.212"}, FigureE::Two},
-        {3, "three", {"122.122.122.311", "122.122.122.312"}, FigureE::Three},
-        {4, "four", {"122.122.122.411", "122.122.122.412"}, FigureE::Four}
+        {1, 10, "one", {"122.122.122.111", "122.122.122.112"}, FigureE::One},
+        {2, 20, "two", {"122.122.122.211", "122.122.122.212"}, FigureE::Two},
+        {3, 30, "three", {"122.122.122.311", "122.122.122.312"}, FigureE::Three},
+        {4, 40, "four", {"122.122.122.411", "122.122.122.412"}, FigureE::Four}
 
     };
 

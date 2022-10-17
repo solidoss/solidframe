@@ -74,6 +74,34 @@ template <typename... T>
 struct is_tuple<std::tuple<T...>> : std::true_type {
 };
 
+template <class T>
+inline constexpr bool is_tuple_v = is_tuple<T>::value;
+
+template <typename T>
+struct compacted {
+    using value_type = T;
+    T& value_;
+
+    compacted(T& _value)
+        : value_(_value)
+    {
+    }
+};
+
+template <typename T>
+struct is_compacted;
+
+template <typename>
+struct is_compacted : std::false_type {
+};
+
+template <typename T>
+struct is_compacted<compacted<T>> : std::true_type {
+};
+
+template <class T>
+inline constexpr bool is_compacted_v = is_compacted<T>::value;
+
 } // namespace v1
 } // namespace reflection
 } // namespace solid

@@ -167,7 +167,7 @@ public: // should be protected
             return;
         }
 
-        addBasicWithCheck(_rb.size(), _name);
+        addBasicCompactedInline(_rb.size(), _name);
 
         Runnable r{_rb.data(), &store_binary, _rb.size(), 0, _name};
 
@@ -190,7 +190,7 @@ public: // should be protected
             return;
         }
 
-        addBasicWithCheck(_rb.size(), _name);
+        addBasicCompactedInline(_rb.size(), _name);
 
         Runnable r{_rb.data(), &store_binary, _rb.size(), 0, _name};
 
@@ -213,7 +213,7 @@ public: // should be protected
             return;
         }
 
-        addBasicWithCheck(_ra.size(), _name);
+        addBasicCompactedInline(_ra.size(), _name);
 
         Runnable r{_ra.data(), &store_binary, _ra.size(), 0, _name};
 
@@ -236,7 +236,7 @@ public: // should be protected
             return;
         }
 
-        addBasicWithCheck(Sz, _name);
+        addBasicCompactedInline(Sz, _name);
 
         Runnable r{&_ra[0], &store_binary, Sz, 0, _name};
 
@@ -259,7 +259,7 @@ public: // should be protected
             return;
         }
 
-        addBasicWithCheck(_rb.size(), _name);
+        addBasicCompactedInline(_rb.size(), _name);
 
         Runnable r{_rb.data(), &store_binary, _rb.size(), 0, _name};
 
@@ -277,9 +277,9 @@ public: // should be protected
     {
         static_assert(std::is_integral_v<T>, "only integral types are accepted");
         solid_log(logger, Info, _name << ' ' << _rb);
-        Runnable r{std::addressof(_rb), &store_cross, sizeof(T), static_cast<uint64_t>(_rb), _name};
+        Runnable r{std::addressof(_rb), &store_integer, sizeof(T), static_cast<uint64_t>(_rb), _name};
         if (isRunEmpty()) {
-            if (doStoreCross(r) == ReturnE::Done) {
+            if (doStoreInteger(r) == ReturnE::Done) {
                 return;
             }
         }
@@ -287,13 +287,27 @@ public: // should be protected
     }
 
     template <typename T>
-    inline void addBasicWithCheck(const T& _rb, const char* _name)
+    void addBasicCompacted(const T& _rb, const char* _name)
     {
         static_assert(std::is_integral_v<T>, "only integral types are accepted");
         solid_log(logger, Info, _name << ' ' << _rb);
-        Runnable r{nullptr, &store_cross_with_check, 0, static_cast<uint64_t>(_rb), _name};
+        Runnable r{std::addressof(_rb), &store_compacted, sizeof(T), static_cast<uint64_t>(_rb), _name};
         if (isRunEmpty()) {
-            if (doStoreCrossWithCheck(r) == ReturnE::Done) {
+            if (doStoreCompacted(r) == ReturnE::Done) {
+                return;
+            }
+        }
+        schedule(std::move(r));
+    }
+
+    template <typename T>
+    inline void addBasicCompactedInline(const T& _rb, const char* _name)
+    {
+        static_assert(std::is_integral_v<T>, "only integral types are accepted");
+        solid_log(logger, Info, _name << ' ' << _rb);
+        Runnable r{nullptr, &store_compacted_inline, 0, static_cast<uint64_t>(_rb), _name};
+        if (isRunEmpty()) {
+            if (doStoreCompactedInline(r) == ReturnE::Done) {
                 return;
             }
         }
@@ -404,7 +418,7 @@ public: // should be protected
             return;
         }
 
-        addBasicWithCheck(_rc.size(), _name);
+        addBasicCompactedInline(_rc.size(), _name);
 
         if (_rc.size()) {
             typename C::const_iterator it = _rc.cbegin();
@@ -489,7 +503,7 @@ public: // should be protected
             return;
         }
 
-        addBasicWithCheck(_sz, _name);
+        addBasicCompactedInline(_sz, _name);
 
         Runnable r{_pv, &store_binary, _sz, 0, _name};
 
@@ -512,7 +526,7 @@ public: // should be protected
             return;
         }
 
-        addBasicWithCheck(_rc.size(), _name);
+        addBasicCompactedInline(_rc.size(), _name);
 
         Runnable r{&_rc, &store_vector_bool<A>, _rc.size(), 0, _name};
 
@@ -530,7 +544,7 @@ public: // should be protected
     {
         solid_log(logger, Info, _name << ' ' << _rc.size());
 
-        addBasicWithCheck(N, _name);
+        addBasicCompactedInline(N, _name);
 
         Runnable r{&_rc, &store_bitset<N>, N, 0, _name};
 
@@ -551,7 +565,7 @@ public: // should be protected
             return;
         }
 
-        addBasicWithCheck(_sz, _name);
+        addBasicCompactedInline(_sz, _name);
 
         Runnable r{&_rc, &store_array<S, T, N, C>, _sz, 0, _name};
 
@@ -600,8 +614,9 @@ private:
     }
 
     static ReturnE store_byte(SerializerBase& _rs, Runnable& _rr, void* _pctx);
-    static ReturnE store_cross(SerializerBase& _rs, Runnable& _rr, void* _pctx);
-    static ReturnE store_cross_with_check(SerializerBase& _rs, Runnable& _rr, void* _pctx);
+    static ReturnE store_integer(SerializerBase& _rs, Runnable& _rr, void* _pctx);
+    static ReturnE store_compacted(SerializerBase& _rs, Runnable& _rr, void* _pctx);
+    static ReturnE store_compacted_inline(SerializerBase& _rs, Runnable& _rr, void* _pctx);
     static ReturnE store_binary(SerializerBase& _rs, Runnable& _rr, void* _pctx);
 
     static ReturnE call_function(SerializerBase& _rs, Runnable& _rr, void* _pctx);
@@ -724,7 +739,8 @@ private:
         return ReturnE::Wait;
     }
 
-    inline Base::ReturnE doStoreCrossWithCheck(Runnable& _rr)
+#if 0
+    inline Base::ReturnE doStoreCompactedWithCheck(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
             char* p = cross::store_with_check(pcrt_, pend_ - pcrt_, _rr.data_);
@@ -743,14 +759,15 @@ private:
         }
         return ReturnE::Wait;
     }
+#endif
 
-    inline Base::ReturnE doStoreCross(Runnable& _rr)
+    inline Base::ReturnE doStoreCompactedInline(Runnable& _rr)
     {
-#if 1
         if (pcrt_ != pend_) {
             const size_t sz = max_padded_byte_cout(_rr.data_);
             *pcrt_          = static_cast<char>(sz);
-            solid_log(logger, Info, "sz = " << sz << " c = " << (int)*pcrt_ << " data = " << _rr.data_)++ pcrt_;
+            solid_log(logger, Info, "sz = " << sz << " c = " << (int)*pcrt_ << " data = " << _rr.data_);
+            ++pcrt_;
             _rr.size_ = sz;
             _rr.call_ = store_binary;
 #ifdef SOLID_ON_BIG_ENDIAN
@@ -758,18 +775,42 @@ private:
 #else
             data_.u64_ = _rr.data_;
 #endif
-            _rr.ptr_ = data_.buf_;
+            _rr.ptr_   = data_.buf_;
             return doStoreBinary(_rr);
         }
         return ReturnE::Wait;
-#else
+    }
+
+    inline Base::ReturnE doStoreCompacted(Runnable& _rr)
+    {
+        if (pcrt_ != pend_) {
+            const size_t sz = max_padded_byte_cout(_rr.data_);
+            *pcrt_          = static_cast<char>(sz);
+            solid_log(logger, Info, "sz = " << sz << " c = " << (int)*pcrt_ << " data = " << _rr.data_);
+            ++pcrt_;
+            _rr.size_ = sz;
+            _rr.call_ = store_binary;
+#ifdef SOLID_ON_BIG_ENDIAN
+            data_.u64_ = swap_bytes(_rr.data_);
+            _rr.ptr_   = data_.buf_;
+#endif
+            return doStoreBinary(_rr);
+        }
+        return ReturnE::Wait;
+    }
+
+    inline Base::ReturnE doStoreInteger(Runnable& _rr)
+    {
         if (pcrt_ != pend_) {
             _rr.call_ = store_binary;
-            _rr.ptr_  = &_rr.data_;
+#ifdef SOLID_ON_BIG_ENDIAN
+            //TODO: this is not ok
+            data_.u64_ = swap_bytes(_rr.data_);
+            _rr.ptr_   = &_rr.data_;
+#endif
             return doStoreBinary(_rr);
         }
         return ReturnE::Wait;
-#endif
     }
 
 protected:
@@ -835,6 +876,14 @@ public:
     }
 
     template <typename T>
+    auto& add(reflection::v1::compacted<T>&& _rt, Context& _rctx, const size_t _id, const char* const _name)
+    {
+        auto meta = rmetadata_factory_(_rt.value_, _rctx, this->ptype_map_);
+        addDispatch(meta, _rt, _rctx, _id, _name);
+        return *this;
+    }
+
+    template <typename T>
     auto& add(T&& _rt, Context& _rctx)
     {
         // static_assert(std::is_invocable_v<T, ThisT &, Context&>, "Parameter should be invocable");
@@ -842,122 +891,7 @@ public:
         this->addFunction(*this, std::forward<T>(_rt), _rctx, "function");
         return *this;
     }
-#if 0
-    template <typename F>
-    ThisT& add(std::istream& _ris, const uint64_t _sz, F _f, Ctx& _rctx, const char* _name)
-    {
-        addStream(_ris, _sz, limits().stream(), _f, _rctx, _name);
-        return *this;
-    }
 
-    template <typename F>
-    ThisT& add(std::istream& _ris, const uint64_t _sz, const Limit _limit, F _f, Ctx& _rctx, const char* _name)
-    {
-        addStream(_ris, _sz, _limit.value_, _f, _rctx, _name);
-        return *this;
-    }
-
-    template <typename F>
-    ThisT& add(std::istream& _ris, F _f, Ctx& _rctx, const char* _name)
-    {
-        addStream(_ris, InvalidSize(), limits().stream(), _f, _rctx, _name);
-        return *this;
-    }
-
-    template <typename F>
-    ThisT& add(std::istream& _ris, const Limit _limit, F _f, Ctx& _rctx, const char* _name)
-    {
-        addStream(_ris, InvalidSize(), _limit.value_, _f, _rctx, _name);
-        return *this;
-    }
-
-    template <typename T>
-    ThisT& add(T& _rt, Ctx& _rctx, const char* _name)
-    {
-        solidSerializeV2(*this, _rt, _rctx, _name);
-        return *this;
-    }
-
-    template <typename T>
-    ThisT& add(const T& _rt, Ctx& _rctx, const char* _name)
-    {
-        solidSerializeV2(*this, _rt, _rctx, _name);
-        return *this;
-    }
-
-    template <typename T, size_t N>
-    ThisT& add(const std::array<T, N>& _rt, const size_t _sz, Ctx& _rctx, const char* _name)
-    {
-        addArray(*this, _rt, _sz, _rctx, _name);
-        return *this;
-    }
-
-    template <typename T>
-    ThisT& add(T& _rt, const Limit _limit, Ctx& _rctx, const char* _name)
-    {
-        solidSerializeV2(*this, _rt, _limit.value_, _rctx, _name);
-        return *this;
-    }
-
-    template <typename T>
-    ThisT& add(const T& _rt, const Limit _limit, Ctx& _rctx, const char* _name)
-    {
-        solidSerializeV2(*this, _rt, _limit.value_, _rctx, _name);
-        return *this;
-    }
-
-    ThisT& add(const void* _pv, const size_t _sz, const size_t _cp, Ctx& /*_rctx*/, const char* _name)
-    {
-        addBlob(_pv, _sz, _cp, _name);
-        return *this;
-    }
-
-    template <typename T>
-    ThisT& push(T& _rt, Ctx& _rctx, const char* _name)
-    {
-        solidSerializePushV2(*this, std::move(_rt), _rctx, _name);
-        return *this;
-    }
-
-    template <typename T>
-    ThisT& push(T&& _rt, Ctx& _rctx, const char* _name)
-    {
-        solidSerializePushV2(*this, std::move(_rt), _rctx, _name);
-        return *this;
-    }
-    
-    template <class T>
-    void addPointer(const std::shared_ptr<T>& _rp, Ctx& _rctx, const char* _name)
-    {
-        solid_log(logger, Info, _name);
-        const T*        p = _rp.get();
-        ErrorConditionT err;
-        const size_t    idx = rtype_map_.id(type_id_, p, err);
-
-        if (!err) {
-            add(type_id_, _rctx, _name);
-            rtype_map_.serialize(*this, p, idx, _rctx, _name);
-        } else {
-            SerializerBase::baseError(err);
-        }
-    }
-
-    template <class T, class D>
-    void addPointer(const std::unique_ptr<T, D>& _rp, Ctx& _rctx, const char* _name)
-    {
-        solid_log(logger, Info, _name);
-        const T*        p = _rp.get();
-        ErrorConditionT err;
-        const size_t    idx = rtype_map_.id(type_id_, p, err);
-
-        if (!err) {
-            add(type_id_, _rctx, _name);
-            rtype_map_.serialize(*this, p, idx, _rctx, _name);
-        } else {
-            SerializerBase::baseError(err);
-        }
-    }
-#endif
     template <typename F>
     ptrdiff_t run(char* _pbeg, unsigned _sz, F _f, ContextT& _rctx)
     {
@@ -1034,6 +968,9 @@ private:
             addStream(const_cast<T&>(_rt), _meta.size_, _meta.max_size_, _meta.progress_function_, _rctx, _id, _name);
         } else if constexpr (std::is_integral_v<T>) {
             addBasic(_rt, _name);
+        } else if constexpr (reflection::v1::is_compacted_v<T>) {
+            static_assert(std::is_integral_v<typename T::value_type>, "Only integral types can be compacted for now");
+            addBasicCompacted(_rt.value_, _name);
         } else if constexpr (is_bitset_v<T>) {
             addBitset(_rt, _name);
         } else if constexpr (is_shared_ptr_v<T> || is_unique_ptr_v<T>) {

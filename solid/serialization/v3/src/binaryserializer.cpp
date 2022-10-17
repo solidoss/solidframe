@@ -96,15 +96,21 @@ Base::ReturnE SerializerBase::store_byte(SerializerBase& _rs, Runnable& _rr, voi
     return _rs.doStoreByte(_rr);
 }
 
-Base::ReturnE SerializerBase::store_cross(SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/)
+Base::ReturnE SerializerBase::store_integer(SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/)
 {
 
-    return _rs.doStoreCross(_rr);
+    return _rs.doStoreInteger(_rr);
 }
 
-Base::ReturnE SerializerBase::store_cross_with_check(SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/)
+Base::ReturnE SerializerBase::store_compacted(SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/)
 {
-    return _rs.doStoreCrossWithCheck(_rr);
+
+    return _rs.doStoreCompacted(_rr);
+}
+
+Base::ReturnE SerializerBase::store_compacted_inline(SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/)
+{
+    return _rs.doStoreCompactedInline(_rr);
 }
 
 Base::ReturnE SerializerBase::store_binary(SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/)

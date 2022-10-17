@@ -31,6 +31,8 @@
 
 namespace solid {
 namespace reflection {
+
 using namespace v1;
+
 } // namespace reflection
 } // namespace solid

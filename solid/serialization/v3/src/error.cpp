@@ -24,7 +24,7 @@ enum {
     Error_Limit_Stream_E,
     Error_Limit_Blob_E,
     Error_Limit_Array_E,
-    Error_Cross_Integer_E,
+    Error_Compacted_Integer_E,
     Error_Unknown_Type_E,
 };
 
@@ -65,8 +65,8 @@ std::string ErrorCategory::message(int _ev) const
     case Error_Limit_Array_E:
         oss << "Limit array";
         break;
-    case Error_Cross_Integer_E:
-        oss << "Cross integer checks failed";
+    case Error_Compacted_Integer_E:
+        oss << "Compacted integer checks failed";
         break;
     case Error_Unknown_Type_E:
         oss << "Unknow type. Type not available in typemap";
@@ -84,7 +84,7 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_limit_string(Error_Limit_String_E, category);
 /*extern*/ const ErrorConditionT error_limit_stream(Error_Limit_Stream_E, category);
 /*extern*/ const ErrorConditionT error_limit_blob(Error_Limit_Blob_E, category);
-/*extern*/ const ErrorConditionT error_cross_integer(Error_Cross_Integer_E, category);
+/*extern*/ const ErrorConditionT error_compacted_integer(Error_Compacted_Integer_E, category);
 /*extern*/ const ErrorConditionT error_unknown_type(Error_Unknown_Type_E, category);
 /*extern*/ const ErrorConditionT error_limit_array(Error_Limit_Blob_E, category);
 } // namespace v3

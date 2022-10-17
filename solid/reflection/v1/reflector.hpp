@@ -543,6 +543,17 @@ public:
     }
 
     template <typename T>
+    auto& add(compacted<T>&& _rt, Context& _rctx, const size_t _id, const char* const _name)
+    {
+        static_assert(!std::is_invocable_v<T, ThisT&, Context&>, "Parameter should not be invocable");
+
+        Node<ThisT, T> node{*this, _rt.value_};
+        auto           meta = rmetadata_factory_(_rt.value_, _rctx, ptype_map_);
+        dispatch_function_(node, meta, _id, _name, _rctx);
+        return *this;
+    }
+
+    template <typename T>
     auto& add(T&& _rt, Context& _rctx)
     {
         static_assert(std::is_invocable_v<T, ThisT&, Context&>, "Parameter should be invocable");
@@ -623,6 +634,17 @@ public:
 
         Node<ThisT, const T> node{*this, _rt};
         auto                 meta = rmetadata_factory_(_rt, _rctx, ptype_map_);
+        dispatch_function_(node, meta, _id, _name, _rctx);
+        return *this;
+    }
+
+    template <typename T>
+    auto& add(compacted<T>&& _rt, Context& _rctx, const size_t _id, const char* const _name)
+    {
+        static_assert(!std::is_invocable_v<T, ThisT&, Context&>, "Parameter should not be invocable");
+
+        Node<ThisT, const T> node{*this, _rt.value_};
+        auto                 meta = rmetadata_factory_(_rt.value_, _rctx, ptype_map_);
         dispatch_function_(node, meta, _id, _name, _rctx);
         return *this;
     }

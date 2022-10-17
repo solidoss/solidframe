@@ -323,6 +323,14 @@ inline constexpr auto factory = [](const auto& _rt, auto& _rctx, const TypeMapBa
         return SignedInteger{std::numeric_limits<value_t>::min(), std::numeric_limits<value_t>::max()};
     } else if constexpr (std::is_unsigned_v<value_t>) {
         return UnsignedInteger{std::numeric_limits<value_t>::max()};
+    } else if constexpr (is_compacted_v<value_t>) {
+        if constexpr (std::is_unsigned_v<typename value_t::value_type>) {
+            return SignedInteger{std::numeric_limits<value_t>::min(), std::numeric_limits<value_t>::max()};
+        } else if constexpr (std::is_unsigned_v<value_t>) {
+            return UnsignedInteger{std::numeric_limits<value_t>::max()};
+        } else {
+            return Generic{};
+        }
     } else if constexpr (std::is_same_v<value_t, std::string>) {
         return String{};
     } else if constexpr (solid::is_std_array_v<value_t>) {
