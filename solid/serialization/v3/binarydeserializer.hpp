@@ -421,6 +421,9 @@ public:
                 if (!is_run_empty) {
                     return ReturnE::Wait;
                 }
+                if constexpr (is_std_vector_v<C>) {
+                    rcontainer.reserve(_rr.size_);
+                }
             }
 
             if (parsing_value) {
