@@ -13,6 +13,7 @@
 
 #include <istream>
 #include <list>
+#include <memory>
 #include <ostream>
 #include <string>
 
@@ -36,7 +37,8 @@ class SerializerBase : public Base {
 
     typedef ReturnE (*CallbackT)(SerializerBase&, Runnable&, void*);
 
-    using FunctionT = solid_function_t(ReturnE(SerializerBase&, Runnable&, void*));
+    using FunctionT    = solid_function_t(ReturnE(SerializerBase&, Runnable&, void*), 64);
+    using FunctionPtrT = std::unique_ptr<FunctionT>;
 
     struct Runnable {
         Runnable(
@@ -60,7 +62,7 @@ class SerializerBase : public Base {
             , size_(0)
             , data_(0)
             , name_(_name)
-            , fnc_(std::move(_f))
+            , fnc_ptr_(std::make_unique<FunctionT>(std::move(_f)))
         {
         }
 
@@ -77,23 +79,16 @@ class SerializerBase : public Base {
             , size_(_size)
             , data_(_data)
             , name_(_name)
-            , fnc_(std::move(_f))
+            , fnc_ptr_(std::make_unique<FunctionT>(std::move(_f)))
         {
         }
 
-        void clear()
-        {
-            ptr_  = nullptr;
-            call_ = nullptr;
-            solid_function_clear(fnc_);
-        }
-
-        const void* ptr_;
-        CallbackT   call_;
-        uint64_t    size_;
-        uint64_t    data_;
-        const char* name_;
-        FunctionT   fnc_;
+        const void*  ptr_;
+        CallbackT    call_;
+        uint64_t     size_;
+        uint64_t     data_;
+        const char*  name_;
+        FunctionPtrT fnc_ptr_;
     };
 
     using RunListT         = std::list<Runnable>;
@@ -739,28 +734,6 @@ private:
         return ReturnE::Wait;
     }
 
-#if 0
-    inline Base::ReturnE doStoreCompactedWithCheck(Runnable& _rr)
-    {
-        if (pcrt_ != pend_) {
-            char* p = cross::store_with_check(pcrt_, pend_ - pcrt_, _rr.data_);
-            if (p != nullptr) {
-                pcrt_ = p;
-                return ReturnE::Done;
-            } else {
-                p = cross::store_with_check(data_.buf_, BufferCapacityE, _rr.data_);
-                solid_check_log(p, logger, "should not be null");
-                _rr.ptr_  = data_.buf_;
-                _rr.size_ = p - data_.buf_;
-                _rr.data_ = 0;
-                _rr.call_ = store_binary;
-                return doStoreBinary(_rr);
-            }
-        }
-        return ReturnE::Wait;
-    }
-#endif
-
     inline Base::ReturnE doStoreCompactedInline(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
@@ -775,7 +748,7 @@ private:
 #else
             data_.u64_ = _rr.data_;
 #endif
-            _rr.ptr_   = data_.buf_;
+            _rr.ptr_ = data_.buf_;
             return doStoreBinary(_rr);
         }
         return ReturnE::Wait;
@@ -804,7 +777,7 @@ private:
         if (pcrt_ != pend_) {
             _rr.call_ = store_binary;
 #ifdef SOLID_ON_BIG_ENDIAN
-            //TODO: this is not ok
+            // TODO: this is not ok
             data_.u64_ = swap_bytes(_rr.data_);
             _rr.ptr_   = &_rr.data_;
 #endif
@@ -903,9 +876,9 @@ public:
     template <typename F>
     std::ostream& run(std::ostream& _ros, F _f, ContextT& _rctx)
     {
-        const size_t buf_cap = 8 * 1024;
-        char         buf[buf_cap];
-        ptrdiff_t    len;
+        constexpr size_t buf_cap = 8 * 1024;
+        char             buf[buf_cap];
+        ptrdiff_t        len;
 
         clear();
 

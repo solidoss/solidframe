@@ -29,9 +29,9 @@ SerializerBase::SerializerBase(const reflection::v1::TypeMapBase* const _ptype_m
 
 std::ostream& SerializerBase::run(std::ostream& _ros, void* _pctx)
 {
-    const size_t buf_cap = 8 * 1024;
-    char         buf[buf_cap];
-    ptrdiff_t    len;
+    constexpr size_t buf_cap = 8 * 1024;
+    char             buf[buf_cap];
+    ptrdiff_t        len;
 
     clear();
 
@@ -54,7 +54,6 @@ ptrdiff_t SerializerBase::doRun(void* _pctx)
         const ReturnE rv = rr.call_(*this, rr, _pctx);
         switch (rv) {
         case ReturnE::Done:
-            rr.clear();
             run_lst_.pop_front();
             break;
         case ReturnE::Continue:
@@ -120,7 +119,7 @@ Base::ReturnE SerializerBase::store_binary(SerializerBase& _rs, Runnable& _rr, v
 
 Base::ReturnE SerializerBase::call_function(SerializerBase& _rs, Runnable& _rr, void* _pctx)
 {
-    return _rr.fnc_(_rs, _rr, _pctx);
+    return (*_rr.fnc_ptr_)(_rs, _rr, _pctx);
 }
 
 Base::ReturnE SerializerBase::noop(SerializerBase& /*_rs*/, Runnable& /*_rr*/, void* /*_pctx*/)
@@ -164,7 +163,7 @@ Base::ReturnE SerializerBase::store_stream(SerializerBase& _rs, Runnable& _rr, v
 
     if (!done) {
         if (_rr.size_ != 0) {
-            _rr.fnc_(_rs, _rr, _pctx);
+            (*_rr.fnc_ptr_)(_rs, _rr, _pctx);
             if (_rs.error()) {
                 return ReturnE::Done;
             }
@@ -172,7 +171,7 @@ Base::ReturnE SerializerBase::store_stream(SerializerBase& _rs, Runnable& _rr, v
         return ReturnE::Wait;
     }
     _rr.size_ = 0;
-    _rr.fnc_(_rs, _rr, _pctx);
+    (*_rr.fnc_ptr_)(_rs, _rr, _pctx);
 
     return ReturnE::Done;
 }

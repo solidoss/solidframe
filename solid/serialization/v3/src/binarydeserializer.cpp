@@ -30,9 +30,9 @@ DeserializerBase::DeserializerBase(const reflection::v1::TypeMapBase* const _pty
 
 std::istream& DeserializerBase::run(std::istream& _ris, void* /*_pctx*/)
 {
-    const size_t    buf_cap = 8 * 1024;
-    char            buf[buf_cap];
-    std::streamsize readsz;
+    constexpr size_t buf_cap = 8 * 1024;
+    char             buf[buf_cap];
+    std::streamsize  readsz;
     clear();
 
     do {
@@ -76,14 +76,27 @@ void DeserializerBase::clear()
     error_ = ErrorConditionT();
 }
 
+void DeserializerBase::fastTryRun(Runnable&& _ur, void* _pctx)
+{
+    if (isRunEmpty()) {
+        const auto    tmp_sentinel = sentinel_;
+        const ReturnE v            = _ur.call_(*this, _ur, _pctx);
+        if (v != ReturnE::Done) {
+            run_lst_.emplace(tmp_sentinel, std::move(_ur));
+        }
+    } else {
+        schedule(std::move(_ur));
+    }
+}
+
 void DeserializerBase::tryRun(Runnable&& _ur, void* _pctx)
 {
     const RunListIteratorT it = schedule(std::move(_ur));
 
     if (it == run_lst_.cbegin()) {
         // we try run the function on spot
-        Runnable& rr = run_lst_.front();
-        ReturnE   v  = rr.call_(*this, rr, _pctx);
+        Runnable&     rr = run_lst_.front();
+        const ReturnE v  = rr.call_(*this, rr, _pctx);
         if (v == ReturnE::Done) {
             run_lst_.pop_front();
         }
@@ -109,7 +122,7 @@ Base::ReturnE DeserializerBase::load_binary(DeserializerBase& _rd, Runnable& _rr
 
 Base::ReturnE DeserializerBase::call_function(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
 {
-    return _rr.fnc_(_rd, _rr, _pctx);
+    return (*_rr.fnc_ptr_)(_rd, _rr, _pctx);
 }
 
 Base::ReturnE DeserializerBase::noop(DeserializerBase& /*_rd*/, Runnable& /*_rr*/, void* /*_pctx*/)
@@ -169,7 +182,7 @@ Base::ReturnE DeserializerBase::load_stream_chunk_begin(DeserializerBase& _rd, R
 {
     if (_rr.size_ == 0) {
         _rr.data_ = 0;
-        _rr.fnc_(_rd, _rr, _pctx);
+        (*_rr.fnc_ptr_)(_rd, _rr, _pctx);
         return ReturnE::Done;
     }
     _rr.call_ = load_stream_chunk;
@@ -187,7 +200,7 @@ Base::ReturnE DeserializerBase::load_stream_chunk(DeserializerBase& _rd, Runnabl
 
         _rr.data_ = len;
 
-        _rr.fnc_(_rd, _rr, _pctx);
+        (*_rr.fnc_ptr_)(_rd, _rr, _pctx);
 
         if (_rd.error()) {
             return ReturnE::Done;

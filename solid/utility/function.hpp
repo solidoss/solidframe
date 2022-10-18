@@ -296,7 +296,7 @@ public:
         return small_capacity;
     }
 
-    Function() noexcept {}
+    Function() noexcept = default;
 
     Function(std::nullptr_t) noexcept {}
 
