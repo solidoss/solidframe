@@ -182,17 +182,6 @@ public:
 
             tryRun(std::move(r));
         }
-#if 0
-        Runnable r{&_ra, &load_array_byte<T, Sz>, 0, 0, _limit, _name};
-
-        if (isRunEmpty()) {
-            if (load_array_byte<T, Sz>(*this, r, nullptr) == ReturnE::Done) {
-                return;
-            }
-        }
-
-        schedule(std::move(r));
-#endif
     }
 
     template <typename T, size_t Sz>
@@ -206,17 +195,6 @@ public:
 
             fastTryRun(std::move(r));
         }
-#if 0
-        Runnable r{&_ra[0], &load_carray_byte<T, Sz>, 0, 0, _limit, _name};
-
-        if (isRunEmpty()) {
-            if (load_carray_byte<T, Sz>(*this, r, nullptr) == ReturnE::Done) {
-                return;
-            }
-        }
-
-        schedule(std::move(r));
-#endif
     }
 
     template <typename A>
@@ -230,17 +208,6 @@ public:
 
             fastTryRun(std::move(r));
         }
-#if 0
-        Runnable r{&_rv, &load_vector_bool<A>, 0, 0, _limit, _name};
-
-        if (isRunEmpty()) {
-            if (load_vector_bool<A>(*this, r, nullptr) == ReturnE::Done) {
-                return;
-            }
-        }
-
-        schedule(std::move(r));
-#endif
     }
 
     template <size_t N>
@@ -254,19 +221,6 @@ public:
 
             fastTryRun(std::move(r));
         }
-#if 0
-        Runnable r{&_rb, &load_bitset<N>, 0, 0, _name};
-
-        _rb.reset();
-
-        if (isRunEmpty()) {
-            if (load_bitset<N>(*this, r, nullptr) == ReturnE::Done) {
-                return;
-            }
-        }
-
-        schedule(std::move(r));
-#endif
     }
 
     template <class T>
@@ -307,19 +261,6 @@ public:
 
             fastTryRun(std::move(r));
         }
-#if 0
-        Runnable r{&_rb, &load_string, 0, 0, _limit, _name};
-
-        _rb.clear(); // necessary otherwise map<string, something> would not work on gcc5.3
-
-        if (isRunEmpty()) {
-            if (doLoadString(r) == ReturnE::Done) {
-                return;
-            }
-        }
-
-        schedule(std::move(r));
-#endif
     }
 
     template <typename T, class A>
