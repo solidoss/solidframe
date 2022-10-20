@@ -17,11 +17,11 @@ int main()
 {
     cout << "This is a queue test program..." << endl;
     {
-        Queue<solid::ulong, 2> q;
+        Queue<unsigned long, 2> q;
         q.push(1);
     }
     {
-        Queue<solid::ulong, 2> q;
+        Queue<unsigned long, 2> q;
 
         for (int i = 0; i < 10; ++i) {
             q.push(i);

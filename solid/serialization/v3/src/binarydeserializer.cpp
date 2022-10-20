@@ -19,8 +19,9 @@ namespace binary {
 
 //== Deserializer  ==============================================================
 
-DeserializerBase::DeserializerBase(const reflection::v1::TypeMapBase* const _ptype_map)
+DeserializerBase::DeserializerBase(const reflection::v1::TypeMapBase* const _ptype_map, const EndianessE _endianess)
     : ptype_map_(_ptype_map)
+    , swap_endianess_bites_(_endianess != EndianessE::Native)
     , pbeg_(nullptr)
     , pend_(nullptr)
     , pcrt_(nullptr)
@@ -113,11 +114,6 @@ Base::ReturnE DeserializerBase::load_bool(DeserializerBase& _rd, Runnable& _rr, 
 Base::ReturnE DeserializerBase::load_byte(DeserializerBase& _rd, Runnable& _rr, void* /*_pctx*/)
 {
     return _rd.doLoadByte(_rr);
-}
-
-Base::ReturnE DeserializerBase::load_binary(DeserializerBase& _rd, Runnable& _rr, void* /*_pctx*/)
-{
-    return _rd.doLoadBinary(_rr);
 }
 
 Base::ReturnE DeserializerBase::call_function(DeserializerBase& _rd, Runnable& _rr, void* _pctx)

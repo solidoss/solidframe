@@ -22,10 +22,10 @@ using namespace solid;
 namespace {
 
 template <class T>
-static T align(T _v, solid::ulong _by);
+static T align(T _v, unsigned long _by);
 
 template <class T>
-static T* align(T* _v, const solid::ulong _by)
+static T* align(T* _v, const unsigned long _by)
 {
     if ((size_t)_v % _by) {
         return _v + (_by - ((size_t)_v % _by));
@@ -35,7 +35,7 @@ static T* align(T* _v, const solid::ulong _by)
 }
 
 template <class T>
-static T align(T _v, const solid::ulong _by)
+static T align(T _v, const unsigned long _by)
 {
     if (_v % _by) {
         return _v + (_by - (_v % _by));
@@ -60,9 +60,9 @@ struct Context {
         delete[] bf;
     }
 
-    const solid::ulong readsz;
-    char*              bf;
-    char*              buf;
+    const unsigned long readsz;
+    char*               bf;
+    char*               buf;
 };
 
 } // namespace

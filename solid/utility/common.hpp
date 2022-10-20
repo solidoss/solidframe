@@ -244,4 +244,16 @@ inline constexpr std::underlying_type_t<Enum> to_underlying(const Enum& _val)
     return static_cast<std::underlying_type_t<Enum>>(_val);
 }
 
+enum struct EndianessE : int {
+#ifdef SOLID_ON_WINDOWS
+    Little = 0,
+    Big    = 1,
+    Native = little
+#else
+    Little = __ORDER_LITTLE_ENDIAN__,
+    Big    = __ORDER_BIG_ENDIAN__,
+    Native = __BYTE_ORDER__
+#endif
+};
+
 } // namespace solid

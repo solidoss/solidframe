@@ -95,7 +95,7 @@ class SerializerBase : public Base {
     using RunListIteratorT = std::list<Runnable>::const_iterator;
 
 protected:
-    SerializerBase(const reflection::v1::TypeMapBase* const _ptype_map);
+    SerializerBase(const reflection::v1::TypeMapBase* const _ptype_map, const EndianessE _endianess = EndianessE::Native);
 
 public:
     static constexpr bool is_const_reflector = true;
@@ -164,10 +164,10 @@ public: // should be protected
 
         addBasicCompactedInline(_rb.size(), _name);
 
-        Runnable r{_rb.data(), &store_binary, _rb.size(), 0, _name};
+        Runnable r{_rb.data(), &store_binary<>, _rb.size(), 0, _name};
 
         if (isRunEmpty()) {
-            if (doStoreBinary(r) == ReturnE::Done) {
+            if (doStoreBinary<>(r) == ReturnE::Done) {
                 return;
             }
         }
@@ -176,7 +176,7 @@ public: // should be protected
     }
 
     template <typename T, class A>
-    inline void addVectorChar(const std::vector<T, A>& _rb, const uint64_t _limit, const char* _name)
+    inline void addBinaryVector(const std::vector<T, A>& _rb, const uint64_t _limit, const char* _name)
     {
         solid_log(logger, Info, _name << ' ' << _rb.size() << ' ' << _limit);
 
@@ -187,10 +187,10 @@ public: // should be protected
 
         addBasicCompactedInline(_rb.size(), _name);
 
-        Runnable r{_rb.data(), &store_binary, _rb.size(), 0, _name};
+        Runnable r{_rb.data(), &store_binary<sizeof(T)>, _rb.size() * sizeof(T), 0, _name};
 
         if (isRunEmpty()) {
-            if (doStoreBinary(r) == ReturnE::Done) {
+            if (doStoreBinary<sizeof(T)>(r) == ReturnE::Done) {
                 return;
             }
         }
@@ -199,7 +199,7 @@ public: // should be protected
     }
 
     template <typename T, size_t Sz>
-    inline void addArrayByte(const std::array<T, Sz>& _ra, const uint64_t _limit, const char* _name)
+    inline void addBinaryArray(const std::array<T, Sz>& _ra, const uint64_t _limit, const char* _name)
     {
         solid_log(logger, Info, _name << ' ' << _ra.size() << ' ' << _limit);
 
@@ -210,10 +210,10 @@ public: // should be protected
 
         addBasicCompactedInline(_ra.size(), _name);
 
-        Runnable r{_ra.data(), &store_binary, _ra.size(), 0, _name};
+        Runnable r{_ra.data(), &store_binary<sizeof(T)>, _ra.size() * sizeof(T), 0, _name};
 
         if (isRunEmpty()) {
-            if (doStoreBinary(r) == ReturnE::Done) {
+            if (doStoreBinary<sizeof(T)>(r) == ReturnE::Done) {
                 return;
             }
         }
@@ -222,7 +222,7 @@ public: // should be protected
     }
 
     template <typename T, size_t Sz>
-    inline void addCArrayByte(const T (&_ra)[Sz], const uint64_t _limit, const char* _name)
+    inline void addCBinaryArray(const T (&_ra)[Sz], const uint64_t _limit, const char* _name)
     {
         solid_log(logger, Info, _name << ' ' << Sz << ' ' << _limit);
 
@@ -233,33 +233,10 @@ public: // should be protected
 
         addBasicCompactedInline(Sz, _name);
 
-        Runnable r{&_ra[0], &store_binary, Sz, 0, _name};
+        Runnable r{&_ra[0], &store_binary<sizeof(T)>, Sz * sizeof(T), 0, _name};
 
         if (isRunEmpty()) {
-            if (doStoreBinary(r) == ReturnE::Done) {
-                return;
-            }
-        }
-
-        schedule(std::move(r));
-    }
-
-    template <class A>
-    inline void addVectorChar(const std::vector<uint8_t, A>& _rb, const uint64_t _limit, const char* _name)
-    {
-        solid_log(logger, Info, _name << ' ' << _rb.size() << ' ' << _limit);
-
-        if (_rb.size() > _limit) {
-            baseError(error_limit_string);
-            return;
-        }
-
-        addBasicCompactedInline(_rb.size(), _name);
-
-        Runnable r{_rb.data(), &store_binary, _rb.size(), 0, _name};
-
-        if (isRunEmpty()) {
-            if (doStoreBinary(r) == ReturnE::Done) {
+            if (doStoreBinary<sizeof(T)>(r) == ReturnE::Done) {
                 return;
             }
         }
@@ -612,7 +589,12 @@ private:
     static ReturnE store_integer(SerializerBase& _rs, Runnable& _rr, void* _pctx);
     static ReturnE store_compacted(SerializerBase& _rs, Runnable& _rr, void* _pctx);
     static ReturnE store_compacted_inline(SerializerBase& _rs, Runnable& _rr, void* _pctx);
-    static ReturnE store_binary(SerializerBase& _rs, Runnable& _rr, void* _pctx);
+
+    template <size_t Sz = 1>
+    static ReturnE store_binary(SerializerBase& _rs, Runnable& _rr, void* /* _pctx */)
+    {
+        return _rs.doStoreBinary<Sz>(_rr);
+    }
 
     static ReturnE call_function(SerializerBase& _rs, Runnable& _rr, void* _pctx);
 
@@ -714,6 +696,7 @@ private:
         return ReturnE::Wait;
     }
 
+    template <size_t Sz = 1>
     inline Base::ReturnE doStoreBinary(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
@@ -796,6 +779,7 @@ protected:
         void*    p_;
     } data_;
     const reflection::v1::TypeMapBase* const ptype_map_;
+    const bool                               swap_endianess_bites_;
 
 private:
     char*            pbeg_;
@@ -817,15 +801,15 @@ public:
     using ThisT    = Serializer<MetadataVariant, MetadataFactory, Context, Context>;
 
     Serializer(
-        MetadataFactory& _rmetadata_factory, const reflection::v1::TypeMapBase& _rtype_map)
-        : SerializerBase(&_rtype_map)
+        MetadataFactory& _rmetadata_factory, const reflection::v1::TypeMapBase& _rtype_map, const EndianessE _endianess = EndianessE::Native)
+        : SerializerBase(&_rtype_map, _endianess)
         , rmetadata_factory_(_rmetadata_factory)
     {
     }
 
     Serializer(
-        MetadataFactory& _rmetadata_factory)
-        : SerializerBase(nullptr)
+        MetadataFactory& _rmetadata_factory, const EndianessE _endianess = EndianessE::Native)
+        : SerializerBase(nullptr, _endianess)
         , rmetadata_factory_(_rmetadata_factory)
     {
     }
@@ -963,19 +947,19 @@ private:
         } else if constexpr (std::is_same_v<T, std::string>) {
             addBasic(_rt, _meta.max_size_, _name);
         } else if constexpr (std::is_array_v<T>) { // c style array
-            static_assert(sizeof(element_type_t<T>) == 1, "C style arrays other than bytes, not supported");
-            addCArrayByte(_rt, _meta.max_size_, _name);
+            static_assert(std::is_arithmetic_v<element_type_t<T>>, "C style arrays of other than arithmetic type, not supported");
+            addCBinaryArray(_rt, _meta.max_size_, _name);
         } else if constexpr (std::is_same_v<T, std::vector<bool>>) {
             addVectorBool(_rt, _meta.max_size_, _name);
         } else if constexpr (is_std_vector_v<T>) {
-            if constexpr (sizeof(typename T::value_type) == 1) {
-                addVectorChar(_rt, _meta.max_size_, _name);
+            if constexpr (std::is_arithmetic_v<typename T::value_type>) {
+                addBinaryVector(_rt, _meta.max_size_, _name);
             } else {
                 addContainer(*this, _rt, _meta.max_size_, _rctx, _name);
             }
         } else if constexpr (is_std_array_v<T>) {
-            if constexpr (sizeof(typename T::value_type) == 1) {
-                addArrayByte(_rt, _meta.max_size_, _name);
+            if constexpr (std::is_arithmetic_v<typename T::value_type>) {
+                addBinaryArray(_rt, _meta.max_size_, _name);
             } else {
                 addArray(*this, _rt, _meta.size_, _rctx, _meta.max_size_, _name);
             }

@@ -18,8 +18,9 @@ namespace v3 {
 namespace binary {
 
 //== Serializer  ==============================================================
-SerializerBase::SerializerBase(const reflection::v1::TypeMapBase* const _ptype_map)
+SerializerBase::SerializerBase(const reflection::v1::TypeMapBase* const _ptype_map, const EndianessE _endianess)
     : ptype_map_(_ptype_map)
+    , swap_endianess_bites_(_endianess != EndianessE::Native)
     , pbeg_(nullptr)
     , pend_(nullptr)
     , pcrt_(nullptr)
@@ -110,11 +111,6 @@ Base::ReturnE SerializerBase::store_compacted(SerializerBase& _rs, Runnable& _rr
 Base::ReturnE SerializerBase::store_compacted_inline(SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/)
 {
     return _rs.doStoreCompactedInline(_rr);
-}
-
-Base::ReturnE SerializerBase::store_binary(SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/)
-{
-    return _rs.doStoreBinary(_rr);
 }
 
 Base::ReturnE SerializerBase::call_function(SerializerBase& _rs, Runnable& _rr, void* _pctx)

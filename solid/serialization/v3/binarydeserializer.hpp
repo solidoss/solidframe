@@ -109,7 +109,7 @@ class DeserializerBase : public Base {
     using RunListIteratorT = std::list<Runnable>::const_iterator;
 
 protected:
-    DeserializerBase(const reflection::v1::TypeMapBase* const _ptype_map);
+    DeserializerBase(const reflection::v1::TypeMapBase* const _ptype_map, const EndianessE _endianess = EndianessE::Native);
 
 public:
     static constexpr bool is_const_reflector = false;
@@ -172,26 +172,26 @@ public:
         schedule(std::move(r));
     }
     template <typename T, size_t Sz>
-    inline void addArrayByte(std::array<T, Sz>& _ra, const uint64_t _limit, const char* _name)
+    inline void addBinaryArray(std::array<T, Sz>& _ra, const uint64_t _limit, const char* _name)
     {
         solid_log(logger, Info, _name);
         addBasicCompacted(data_.u64_, _name);
 
         {
-            Runnable r{&_ra, &load_array_byte<T, Sz>, 0, 0, _limit, _name};
+            Runnable r{&_ra, &load_binary_array<T, Sz>, 0, 0, _limit, _name};
 
             tryRun(std::move(r));
         }
     }
 
     template <typename T, size_t Sz>
-    inline void addCArrayByte(T (&_ra)[Sz], const uint64_t _limit, const char* _name)
+    inline void addBinaryCArray(T (&_ra)[Sz], const uint64_t _limit, const char* _name)
     {
         solid_log(logger, Info, _name);
         addBasicCompacted(data_.u64_, _name);
 
         {
-            Runnable r{&_ra, &load_carray_byte<T, Sz>, 0, 0, _limit, _name};
+            Runnable r{&_ra, &load_binary_carray<T, Sz>, 0, 0, _limit, _name};
 
             fastTryRun(std::move(r));
         }
@@ -264,13 +264,13 @@ public:
     }
 
     template <typename T, class A>
-    void addVectorChar(std::vector<T, A>& _rb, const uint64_t _limit, const char* _name)
+    void addBinaryVector(std::vector<T, A>& _rb, const uint64_t _limit, const char* _name)
     {
         solid_log(logger, Info, _name);
         addBasicCompacted(data_.u64_, _name);
         _rb.clear();
         {
-            Runnable r{&_rb, &load_vector_char<T, A>, 0, 0, _limit, _name};
+            Runnable r{&_rb, &load_binary_vector<T, A>, 0, 0, _limit, _name};
 
             fastTryRun(std::move(r), nullptr);
         }
@@ -521,7 +521,11 @@ private:
 
     static ReturnE load_bool(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
     static ReturnE load_byte(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
-    static ReturnE load_binary(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
+    template <size_t Sz = 1>
+    static ReturnE load_binary(DeserializerBase& _rd, Runnable& _rr, void* /*_pctx*/)
+    {
+        return _rd.doLoadBinary<Sz>(_rr);
+    }
     static ReturnE call_function(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
     static ReturnE load_version(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
 
@@ -657,7 +661,7 @@ private:
     }
 
     template <typename T, class A>
-    static Base::ReturnE load_vector_char(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+    static Base::ReturnE load_binary_vector(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
     {
         solid_log(logger, Info, _rr.name_);
         //_rr.ptr_ contains pointer to string object
@@ -675,14 +679,15 @@ private:
             rstr.resize(static_cast<size_t>(_rr.size_));
             _rr.ptr_  = const_cast<char*>(reinterpret_cast<const char*>(rstr.data()));
             _rr.data_ = 0;
-            _rr.call_ = load_binary;
-            return _rd.doLoadBinary(_rr);
+            _rr.size_ *= sizeof(T);
+            _rr.call_ = load_binary<sizeof(T)>;
+            return _rd.doLoadBinary<sizeof(T)>(_rr);
         }
         return ReturnE::Done;
     }
 
     template <typename T, size_t Sz>
-    static ReturnE load_array_byte(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+    static ReturnE load_binary_array(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
     {
         solid_log(logger, Info, _rr.name_);
 
@@ -699,14 +704,15 @@ private:
 
             _rr.ptr_  = const_cast<char*>(reinterpret_cast<const char*>(rstr.data()));
             _rr.data_ = 0;
-            _rr.call_ = load_binary;
-            return _rd.doLoadBinary(_rr);
+            _rr.size_ *= sizeof(T);
+            _rr.call_ = load_binary<sizeof(T)>;
+            return _rd.doLoadBinary<sizeof(T)>(_rr);
         }
         return ReturnE::Done;
     }
 
     template <typename T, size_t Sz>
-    static ReturnE load_carray_byte(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+    static ReturnE load_binary_carray(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
     {
         solid_log(logger, Info, _rr.name_);
 
@@ -720,8 +726,9 @@ private:
             }
 
             _rr.data_ = 0;
-            _rr.call_ = load_binary;
-            return _rd.doLoadBinary(_rr);
+            _rr.size_ *= sizeof(T);
+            _rr.call_ = load_binary<sizeof(T)>;
+            return _rd.doLoadBinary<sizeof(T)>(_rr);
         }
         return ReturnE::Done;
     }
@@ -777,6 +784,7 @@ private:
     }
 
 private:
+    template <size_t Sz = 1>
     inline Base::ReturnE doLoadBinary(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
@@ -959,6 +967,7 @@ protected:
         void*    p_;
     } data_;
     const reflection::v1::TypeMapBase* const ptype_map_;
+    const bool                               swap_endianess_bites_;
 
 private:
     const char*      pbeg_;
@@ -978,15 +987,15 @@ public:
     using ThisT    = Deserializer<MetadataVariant, MetadataFactory, Context, TypeId>;
 
     Deserializer(
-        MetadataFactory& _rmetadata_factory, const reflection::v1::TypeMapBase& _rtype_map)
-        : DeserializerBase(&_rtype_map)
+        MetadataFactory& _rmetadata_factory, const reflection::v1::TypeMapBase& _rtype_map, const EndianessE _endianess = EndianessE::Native)
+        : DeserializerBase(&_rtype_map, _endianess)
         , rmetadata_factory_(_rmetadata_factory)
     {
     }
 
     Deserializer(
-        MetadataFactory& _rmetadata_factory)
-        : DeserializerBase(nullptr)
+        MetadataFactory& _rmetadata_factory, const EndianessE _endianess = EndianessE::Native)
+        : DeserializerBase(nullptr, _endianess)
         , rmetadata_factory_(_rmetadata_factory)
     {
     }
@@ -1146,20 +1155,20 @@ private:
         } else if constexpr (std::is_same_v<T, std::vector<bool>>) {
             addVectorBool(_rt, _meta.max_size_, _name);
         } else if constexpr (is_std_vector_v<T>) {
-            if constexpr (sizeof(typename T::value_type) == 1) {
-                addVectorChar(_rt, _meta.max_size_, _name);
+            if constexpr (std::is_arithmetic_v<typename T::value_type>) {
+                addBinaryVector(_rt, _meta.max_size_, _name);
             } else {
                 addContainer(*this, _rt, _meta.max_size_, _rctx, _name);
             }
         } else if constexpr (is_std_array_v<T>) {
-            if constexpr (sizeof(typename T::value_type) == 1) {
-                addArrayByte(_rt, _meta.max_size_, _name);
+            if constexpr (std::is_arithmetic_v<typename T::value_type>) {
+                addBinaryArray(_rt, _meta.max_size_, _name);
             } else {
                 addArray(*this, _rt, _meta.max_size_, _rctx, _name);
             }
         } else if constexpr (std::is_array_v<T>) {
-            static_assert(sizeof(element_type_t<T>) == 1, "C style arrays other than bytes, not supported");
-            addCArrayByte(_rt, _meta.max_size_, _name);
+            static_assert(std::is_arithmetic_v<element_type_t<T>>, "C style arrays of other than arithmetic type, not supported");
+            addBinaryCArray(_rt, _meta.max_size_, _name);
         } else if constexpr (is_container_v<T>) {
             addContainer(*this, _rt, _meta.max_size_, _rctx, _name);
         } else {
