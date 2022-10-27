@@ -18,6 +18,13 @@
 
 namespace solid {
 
+using uchar     = unsigned char;
+using uint      = unsigned int;
+using ulong     = unsigned long;
+using ushort    = unsigned short;
+using longlong  = long long;
+using ulonglong = unsigned long long;
+
 enum SeekRef {
     SeekBeg = 0,
     SeekCur = 1,
