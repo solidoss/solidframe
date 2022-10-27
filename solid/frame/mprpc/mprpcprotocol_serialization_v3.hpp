@@ -267,9 +267,9 @@ public:
         return serialization::v3::binary::store(_pd, _v);
     }
 
-    char* storeCrossValue(char* _pd, const size_t _sz, uint32_t _v) const override
+    char* storeCompactValue(char* _pd, const size_t _sz, uint32_t _v) const override
     {
-        return serialization::v3::binary::cross::store_with_check(_pd, _sz, _v);
+        return serialization::v3::binary::store_compact(_pd, _sz, _v);
     }
 
     const char* loadValue(const char* _ps, uint8_t& _v) const override
@@ -288,9 +288,9 @@ public:
     {
         return serialization::v3::binary::load(_ps, _v);
     }
-    const char* loadCrossValue(const char* _ps, const size_t _sz, uint32_t& _v) const override
+    const char* loadCompactValue(const char* _ps, const size_t _sz, uint32_t& _v) const override
     {
-        return serialization::v3::binary::cross::load_with_check(_ps, _sz, _v);
+        return serialization::v3::binary::load_compact(_ps, _sz, _v);
     }
 
     size_t typeIndex(const Message* _pmsg) const override

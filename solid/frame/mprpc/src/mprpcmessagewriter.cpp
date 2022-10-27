@@ -572,9 +572,9 @@ size_t MessageWriter::doWritePacketData(
         solid_log(logger, Verbose, this << " send CancelRequest " << _cancel_remote_msg_vec.back());
         uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelRequest);
         pbufpos     = _rsender.protocol().storeValue(pbufpos, cmd);
-        pbufpos     = _rsender.protocol().storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().index);
+        pbufpos     = _rsender.protocol().storeCompactValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().index);
         solid_check_log(pbufpos != nullptr, logger, "fail store cross value");
-        pbufpos = _rsender.protocol().storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().unique);
+        pbufpos = _rsender.protocol().storeCompactValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().unique);
         solid_check_log(pbufpos != nullptr, logger, "fail store cross value");
         _cancel_remote_msg_vec.pop_back();
     }
@@ -667,7 +667,7 @@ char* MessageWriter::doWriteMessageHead(
     uint8_t cmd = static_cast<uint8_t>(_cmd);
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
-    _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
+    _pbufpos = _rsender.protocol().storeCompactValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
     solid_check_log(_pbufpos != nullptr, logger, "fail store cross value");
 
     char* psizepos = _pbufpos;
@@ -713,7 +713,7 @@ char* MessageWriter::doWriteMessageBody(
     pcmdpos = _pbufpos;
     _pbufpos += 1;
 
-    _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
+    _pbufpos = _rsender.protocol().storeCompactValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
     solid_check_log(_pbufpos != nullptr, logger, "fail store cross value");
 
     char* psizepos = _pbufpos;
@@ -770,7 +770,7 @@ char* MessageWriter::doWriteRelayedHead(
     uint8_t cmd = static_cast<uint8_t>(_cmd);
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
-    _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
+    _pbufpos = _rsender.protocol().storeCompactValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
     solid_check_log(_pbufpos != nullptr, logger, "fail store cross value");
 
     char* psizepos = _pbufpos;
@@ -818,7 +818,7 @@ char* MessageWriter::doWriteRelayedBody(
     pcmdpos = _pbufpos;
     _pbufpos += 1;
 
-    _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
+    _pbufpos = _rsender.protocol().storeCompactValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
     solid_check_log(_pbufpos != nullptr, logger, "fail store cross value");
 
     char* psizepos = _pbufpos;
@@ -890,7 +890,7 @@ char* MessageWriter::doWriteMessageCancel(
     uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelMessage);
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
-    _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
+    _pbufpos = _rsender.protocol().storeCompactValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
     solid_check_log(_pbufpos != nullptr, logger, "fail store cross value");
 
     solid_assert_log(write_inner_list_.size(), logger);
@@ -918,7 +918,7 @@ char* MessageWriter::doWriteRelayedCancel(
     uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelMessage);
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
-    _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
+    _pbufpos = _rsender.protocol().storeCompactValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
 
     // TODO: add support for sending also rmsgstub.prelay_data_->pmessage_header_->recipient_request_id_
     solid_check_log(_pbufpos != nullptr, logger, "fail store cross value");
@@ -950,7 +950,7 @@ char* MessageWriter::doWriteRelayedCancelRequest(
     uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelMessage);
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
-    _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
+    _pbufpos = _rsender.protocol().storeCompactValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
     solid_check_log(_pbufpos != nullptr, logger, "fail store cross value");
 
     solid_assert_log(write_inner_list_.size(), logger);

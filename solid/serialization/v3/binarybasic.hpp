@@ -105,6 +105,17 @@ inline char* store(char* _pd, const uint64_t _val, TypeToType<uint64_t> _ff)
     return _pd + 8;
 }
 
+template <typename T>
+union BytesConvertor {
+    T    value_;
+    char bytes_[sizeof(T)];
+
+    BytesConvertor(const T& _value = 0)
+        : value_(_value)
+    {
+    }
+};
+
 } // namespace impl
 
 template <typename T>
@@ -187,6 +198,7 @@ inline const char* load(const char* _ps, uint64_t& _val)
     _val = c.value_;
     return _ps + 8;
 }
+
 template <size_t S>
 inline const char* load(const char* _ps, std::array<uint8_t, S>& _val)
 {
@@ -194,300 +206,379 @@ inline const char* load(const char* _ps, std::array<uint8_t, S>& _val)
     return _ps + S;
 }
 
-// cross integer serialization
-namespace cross {
-inline size_t size(const char* _ps)
+inline char* store_compact(char* _pd, const size_t _sz, uint8_t _v)
 {
-    const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
-    uint8_t        v  = *ps;
-    const bool     ok = check_value_with_crc(v, v);
-    if (ok) {
-        return v + 1;
+    int8_t* pd = reinterpret_cast<int8_t*>(_pd);
+    if (_v <= static_cast<uint8_t>(std::numeric_limits<int8_t>::max())) {
+        if (_sz >= 1) {
+            *pd = static_cast<int8_t>(_v);
+            return _pd + 1;
+        }
+    } else {
+        if (_sz >= 2) {
+            *pd       = -1;
+            *(pd + 1) = static_cast<int8_t>(_v);
+            return _pd + 2;
+        }
     }
-    return InvalidSize();
+    return nullptr;
 }
 
-inline size_t size(uint8_t _v)
+inline char* store_compact(char* _pd, const size_t _sz, uint16_t _v)
 {
-    return max_padded_byte_cout(_v) + 1;
-}
+    static_assert(EndianessE::Native == EndianessE::Little, "Only little endian is supported");
+    int8_t* pd = reinterpret_cast<int8_t*>(_pd);
+    if (_v <= static_cast<uint16_t>(std::numeric_limits<int8_t>::max())) {
+        if (_sz >= 1) {
+            *pd = static_cast<int8_t>(_v);
+            return _pd + 1;
+        }
+    } else {
+        const size_t sz = max_padded_byte_cout(_v);
+        if ((sz + 1) <= _sz) {
+            *pd = -(static_cast<int8_t>(sz));
 
-inline size_t size(uint16_t _v)
-{
-    return max_padded_byte_cout(_v) + 1;
-}
-
-inline size_t size(uint32_t _v)
-{
-    return max_padded_byte_cout(_v) + 1;
-}
-inline size_t size(uint64_t _v)
-{
-    return max_padded_byte_cout(_v) + 1;
-}
-
-char* store_with_check(char* _pd, const size_t _sz, uint8_t _v);
-char* store_with_check(char* _pd, const size_t _sz, uint16_t _v);
-
-inline char* store_with_check(char* _pd, const size_t _sz, uint32_t _v)
-{
-    uint8_t*     pd = reinterpret_cast<uint8_t*>(_pd);
-    const size_t sz = max_padded_byte_cout(_v);
-#ifdef SOLID_ON_BIG_ENDIAN
-//    _v = swap_bytes(_v);
-#endif
-    if ((sz + 1) <= _sz) {
-        const bool ok = compute_value_with_crc(*pd, static_cast<uint8_t>(sz));
-        if (ok) {
-            ++pd;
+            const impl::BytesConvertor<uint16_t> to_bytes{_v};
 
             switch (sz) {
-            case 0:
-                break;
             case 1:
-                *pd = (_v & 0xff);
+                *(_pd + 1) = to_bytes.bytes_[0];
                 break;
             case 2:
-                *(pd)     = (_v & 0xff);
-                *(pd + 1) = ((_v >> 8) & 0xff);
-                break;
-            case 3:
-                *(pd)     = (_v & 0xff);
-                *(pd + 1) = ((_v >> 8) & 0xff);
-                *(pd + 2) = ((_v >> 16) & 0xff);
-                break;
-            case 4:
-                *(pd)     = (_v & 0xff);
-                *(pd + 1) = ((_v >> 8) & 0xff);
-                *(pd + 2) = ((_v >> 16) & 0xff);
-                *(pd + 3) = ((_v >> 24) & 0xff);
+                *(_pd + 1) = to_bytes.bytes_[0];
+                *(_pd + 2) = to_bytes.bytes_[1];
                 break;
             default:
+                solid_assert(false);
                 return nullptr;
             }
-
             return _pd + sz + 1;
         }
     }
     return nullptr;
 }
 
-inline char* store_with_check(char* _pd, const size_t _sz, uint64_t _v)
+inline char* store_compact(char* _pd, const size_t _sz, uint32_t _v)
 {
-    uint8_t*     pd = reinterpret_cast<uint8_t*>(_pd);
-    const size_t sz = max_padded_byte_cout(_v);
-#ifdef SOLID_ON_BIG_ENDIAN
-//    _v = swap_bytes(_v);
-#endif
-    if ((sz + 1) <= _sz) {
-        const bool ok = compute_value_with_crc(*pd, static_cast<uint8_t>(sz));
-        if (ok) {
-            ++pd;
+    static_assert(EndianessE::Native == EndianessE::Little, "Only little endian is supported");
+    int8_t* pd = reinterpret_cast<int8_t*>(_pd);
+    if (_v <= static_cast<uint32_t>(std::numeric_limits<int8_t>::max())) {
+        if (_sz >= 1) {
+            *pd = static_cast<int8_t>(_v);
+            return _pd + 1;
+        }
+    } else {
+        const size_t sz = max_padded_byte_cout(_v);
+        if ((sz + 1) <= _sz) {
+            *pd = -(static_cast<int8_t>(sz));
+
+            const impl::BytesConvertor<uint32_t> to_bytes{_v};
 
             switch (sz) {
-            case 0:
-                break;
             case 1:
-                *pd = (_v & 0xff);
+                *(_pd + 1) = to_bytes.bytes_[0];
                 break;
             case 2:
-                *(pd)     = (_v & 0xff);
-                *(pd + 1) = ((_v >> 8) & 0xff);
+                *(_pd + 1) = to_bytes.bytes_[0];
+                *(_pd + 2) = to_bytes.bytes_[1];
                 break;
             case 3:
-                *(pd)     = (_v & 0xff);
-                *(pd + 1) = ((_v >> 8) & 0xff);
-                *(pd + 2) = ((_v >> 16) & 0xff);
+                *(_pd + 1) = to_bytes.bytes_[0];
+                *(_pd + 2) = to_bytes.bytes_[1];
+                *(_pd + 3) = to_bytes.bytes_[2];
                 break;
             case 4:
-                *(pd)     = (_v & 0xff);
-                *(pd + 1) = ((_v >> 8) & 0xff);
-                *(pd + 2) = ((_v >> 16) & 0xff);
-                *(pd + 3) = ((_v >> 24) & 0xff);
+                *(_pd + 1) = to_bytes.bytes_[0];
+                *(_pd + 2) = to_bytes.bytes_[1];
+                *(_pd + 3) = to_bytes.bytes_[2];
+                *(_pd + 4) = to_bytes.bytes_[3];
+                break;
+            default:
+                solid_assert(false);
+                return nullptr;
+            }
+            return _pd + sz + 1;
+        }
+    }
+    return nullptr;
+}
+
+inline char* store_compact(char* _pd, const size_t _sz, uint64_t _v)
+{
+    static_assert(EndianessE::Native == EndianessE::Little, "Only little endian is supported");
+    int8_t* pd = reinterpret_cast<int8_t*>(_pd);
+    if (_v <= static_cast<uint64_t>(std::numeric_limits<int8_t>::max())) {
+        if (_sz >= 1) {
+            *pd = static_cast<int8_t>(_v);
+            return _pd + 1;
+        }
+    } else {
+        const size_t sz = max_padded_byte_cout(_v);
+        if ((sz + 1) <= _sz) {
+            *pd = -(static_cast<int8_t>(sz));
+
+            const impl::BytesConvertor<uint64_t> to_bytes{_v};
+
+            switch (sz) {
+            case 1:
+                *(_pd + 1) = to_bytes.bytes_[0];
+                break;
+            case 2:
+                *(_pd + 1) = to_bytes.bytes_[0];
+                *(_pd + 2) = to_bytes.bytes_[1];
+                break;
+            case 3:
+                *(_pd + 1) = to_bytes.bytes_[0];
+                *(_pd + 2) = to_bytes.bytes_[1];
+                *(_pd + 3) = to_bytes.bytes_[2];
+                break;
+            case 4:
+                *(_pd + 1) = to_bytes.bytes_[0];
+                *(_pd + 2) = to_bytes.bytes_[1];
+                *(_pd + 3) = to_bytes.bytes_[2];
+                *(_pd + 4) = to_bytes.bytes_[3];
                 break;
             case 5:
-                *(pd)     = (_v & 0xff);
-                *(pd + 1) = ((_v >> 8) & 0xff);
-                *(pd + 2) = ((_v >> 16) & 0xff);
-                *(pd + 3) = ((_v >> 24) & 0xff);
-                *(pd + 4) = ((_v >> 32) & 0xff);
+                *(_pd + 1) = to_bytes.bytes_[0];
+                *(_pd + 2) = to_bytes.bytes_[1];
+                *(_pd + 3) = to_bytes.bytes_[2];
+                *(_pd + 4) = to_bytes.bytes_[3];
+                *(_pd + 5) = to_bytes.bytes_[4];
                 break;
             case 6:
-                *(pd)     = (_v & 0xff);
-                *(pd + 1) = ((_v >> 8) & 0xff);
-                *(pd + 2) = ((_v >> 16) & 0xff);
-                *(pd + 3) = ((_v >> 24) & 0xff);
-                *(pd + 4) = ((_v >> 32) & 0xff);
-                *(pd + 5) = ((_v >> 40) & 0xff);
+                *(_pd + 1) = to_bytes.bytes_[0];
+                *(_pd + 2) = to_bytes.bytes_[1];
+                *(_pd + 3) = to_bytes.bytes_[2];
+                *(_pd + 4) = to_bytes.bytes_[3];
+                *(_pd + 5) = to_bytes.bytes_[4];
+                *(_pd + 6) = to_bytes.bytes_[5];
                 break;
             case 7:
-                *(pd)     = (_v & 0xff);
-                *(pd + 1) = ((_v >> 8) & 0xff);
-                *(pd + 2) = ((_v >> 16) & 0xff);
-                *(pd + 3) = ((_v >> 24) & 0xff);
-                *(pd + 4) = ((_v >> 32) & 0xff);
-                *(pd + 5) = ((_v >> 40) & 0xff);
-                *(pd + 6) = ((_v >> 48) & 0xff);
+                *(_pd + 1) = to_bytes.bytes_[0];
+                *(_pd + 2) = to_bytes.bytes_[1];
+                *(_pd + 3) = to_bytes.bytes_[2];
+                *(_pd + 4) = to_bytes.bytes_[3];
+                *(_pd + 5) = to_bytes.bytes_[4];
+                *(_pd + 6) = to_bytes.bytes_[5];
+                *(_pd + 7) = to_bytes.bytes_[6];
                 break;
             case 8:
-                *(pd)     = (_v & 0xff);
-                *(pd + 1) = ((_v >> 8) & 0xff);
-                *(pd + 2) = ((_v >> 16) & 0xff);
-                *(pd + 3) = ((_v >> 24) & 0xff);
-                *(pd + 4) = ((_v >> 32) & 0xff);
-                *(pd + 5) = ((_v >> 40) & 0xff);
-                *(pd + 6) = ((_v >> 48) & 0xff);
-                *(pd + 7) = ((_v >> 56) & 0xff);
+                *(_pd + 1) = to_bytes.bytes_[0];
+                *(_pd + 2) = to_bytes.bytes_[1];
+                *(_pd + 3) = to_bytes.bytes_[2];
+                *(_pd + 4) = to_bytes.bytes_[3];
+                *(_pd + 5) = to_bytes.bytes_[4];
+                *(_pd + 6) = to_bytes.bytes_[5];
+                *(_pd + 7) = to_bytes.bytes_[6];
+                *(_pd + 8) = to_bytes.bytes_[7];
                 break;
             default:
+                solid_assert(false);
                 return nullptr;
             }
-
             return _pd + sz + 1;
         }
     }
     return nullptr;
 }
 
-const char* load_with_check(const char* _ps, const size_t _sz, uint8_t& _val);
-const char* load_with_check(const char* _ps, const size_t _sz, uint16_t& _val);
-
-inline const char* load_with_check(const char* _ps, const size_t _sz, uint32_t& _val)
+inline const char* load_compact(const char* _pb, const size_t _sz, uint8_t& _val)
 {
     if (_sz != 0) {
-        const uint8_t* ps  = reinterpret_cast<const uint8_t*>(_ps);
-        uint8_t        vsz = *ps;
-        const bool     ok  = check_value_with_crc(vsz, vsz);
-        const size_t   sz  = vsz;
-        uint32_t       v   = 0;
+        const int8_t* pb = reinterpret_cast<const int8_t*>(_pb);
 
-        if (ok && (sz + 1) <= _sz) {
-            ++ps;
+        if (*pb >= 0) {
+            _val = *pb;
+            return _pb + 1;
+        } else if (_sz >= 2) {
+            _val = *(pb + 1);
+            return _pb + 2;
+        }
+    }
+    return nullptr;
+}
 
-            switch (sz) {
-            case 0:
-                v = 0;
-                break;
-            case 1:
-                v = *ps;
-                break;
-            case 2:
-                v = *ps;
-                v |= static_cast<uint32_t>(*(ps + 1)) << 8;
-                break;
-            case 3:
-                v = *ps;
-                v |= static_cast<uint32_t>(*(ps + 1)) << 8;
-                v |= static_cast<uint32_t>(*(ps + 2)) << 16;
-                break;
-            case 4:
-                v = *ps;
-                v |= static_cast<uint32_t>(*(ps + 1)) << 8;
-                v |= static_cast<uint32_t>(*(ps + 2)) << 16;
-                v |= static_cast<uint32_t>(*(ps + 3)) << 24;
-                break;
-            default:
-                return nullptr;
+inline const char* load_compact(const char* _pb, const size_t _sz, uint16_t& _val)
+{
+    static_assert(EndianessE::Native == EndianessE::Little, "Only little endian is supported");
+    if (_sz != 0) {
+        const int8_t* pb = reinterpret_cast<const int8_t*>(_pb);
+
+        if (*pb >= 0) {
+            _val = *pb;
+            return _pb + 1;
+        } else {
+            const size_t sz = -*pb;
+            if (_sz >= (sz + 1)) {
+                impl::BytesConvertor<uint16_t> from_bytes;
+                from_bytes.value_ = 0;
+                switch (sz) {
+                case 1:
+                    from_bytes.bytes_[0] = *(_pb + 1);
+                    break;
+                case 2:
+                    from_bytes.bytes_[0] = *(_pb + 1);
+                    from_bytes.bytes_[1] = *(_pb + 2);
+                    break;
+                default:
+                    solid_assert(false);
+                    return nullptr;
+                }
+
+                _val = from_bytes.value_;
+                return _pb + sz + 1;
             }
-#ifdef SOLID_ON_BIG_ENDIAN
-            _val = v; // swap_bytes(v);
-#else
-            _val = v;
-#endif
-            return _ps + static_cast<size_t>(vsz) + 1;
         }
     }
     return nullptr;
 }
-
-inline const char* load_without_check(const char* _ps, const size_t _sz, uint64_t& _val)
+inline const char* load_compact(const char* _pb, const size_t _sz, uint32_t& _val)
 {
-    const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
-    const size_t   sz = _sz;
-    uint64_t       v  = 0;
-
-    switch (sz) {
-    case 0:
-        v = 0;
-        break;
-    case 1:
-        v = *ps;
-        break;
-    case 2:
-        v = *ps;
-        v |= static_cast<uint64_t>(*(ps + 1)) << 8;
-        break;
-    case 3:
-        v = *ps;
-        v |= static_cast<uint64_t>(*(ps + 1)) << 8;
-        v |= static_cast<uint64_t>(*(ps + 2)) << 16;
-        break;
-    case 4:
-        v = *ps;
-        v |= static_cast<uint64_t>(*(ps + 1)) << 8;
-        v |= static_cast<uint64_t>(*(ps + 2)) << 16;
-        v |= static_cast<uint64_t>(*(ps + 3)) << 24;
-        break;
-    case 5:
-        v = *ps;
-        v |= static_cast<uint64_t>(*(ps + 1)) << 8;
-        v |= static_cast<uint64_t>(*(ps + 2)) << 16;
-        v |= static_cast<uint64_t>(*(ps + 3)) << 24;
-        v |= static_cast<uint64_t>(*(ps + 4)) << 32;
-        break;
-    case 6:
-        v = *ps;
-        v |= static_cast<uint64_t>(*(ps + 1)) << 8;
-        v |= static_cast<uint64_t>(*(ps + 2)) << 16;
-        v |= static_cast<uint64_t>(*(ps + 3)) << 24;
-        v |= static_cast<uint64_t>(*(ps + 4)) << 32;
-        v |= static_cast<uint64_t>(*(ps + 5)) << 40;
-        break;
-    case 7:
-        v = *ps;
-        v |= static_cast<uint64_t>(*(ps + 1)) << 8;
-        v |= static_cast<uint64_t>(*(ps + 2)) << 16;
-        v |= static_cast<uint64_t>(*(ps + 3)) << 24;
-        v |= static_cast<uint64_t>(*(ps + 4)) << 32;
-        v |= static_cast<uint64_t>(*(ps + 5)) << 40;
-        v |= static_cast<uint64_t>(*(ps + 6)) << 48;
-        break;
-    case 8:
-        v = *ps;
-        v |= static_cast<uint64_t>(*(ps + 1)) << 8;
-        v |= static_cast<uint64_t>(*(ps + 2)) << 16;
-        v |= static_cast<uint64_t>(*(ps + 3)) << 24;
-        v |= static_cast<uint64_t>(*(ps + 4)) << 32;
-        v |= static_cast<uint64_t>(*(ps + 5)) << 40;
-        v |= static_cast<uint64_t>(*(ps + 6)) << 48;
-        v |= static_cast<uint64_t>(*(ps + 7)) << 56;
-        break;
-    default:
-        return nullptr;
-    }
-#ifdef SOLID_ON_BIG_ENDIAN
-    _val = v; // swap_bytes(v);
-#else
-    _val = v;
-#endif
-    return _ps + sz;
-}
-
-inline const char* load_with_check(const char* _ps, const size_t _sz, uint64_t& _val)
-{
+    static_assert(EndianessE::Native == EndianessE::Little, "Only little endian is supported");
     if (_sz != 0) {
-        const uint8_t* ps  = reinterpret_cast<const uint8_t*>(_ps);
-        uint8_t        vsz = *ps;
-        const bool     ok  = check_value_with_crc(vsz, vsz);
-        const size_t   sz  = vsz;
+        const int8_t* pb = reinterpret_cast<const int8_t*>(_pb);
 
-        if (ok && (sz + 1) <= _sz) {
-            return load_without_check(_ps + 1, sz, _val);
+        if (*pb >= 0) {
+            _val = *pb;
+            return _pb + 1;
+        } else {
+            const size_t sz = -*pb;
+            if (_sz >= (sz + 1)) {
+                impl::BytesConvertor<uint32_t> from_bytes;
+
+                switch (sz) {
+                case 1:
+                    from_bytes.bytes_[0] = *(_pb + 1);
+                    break;
+                case 2:
+                    from_bytes.bytes_[0] = *(_pb + 1);
+                    from_bytes.bytes_[1] = *(_pb + 2);
+                    break;
+                case 3:
+                    from_bytes.bytes_[0] = *(_pb + 1);
+                    from_bytes.bytes_[1] = *(_pb + 2);
+                    from_bytes.bytes_[2] = *(_pb + 3);
+                    break;
+                case 4:
+                    from_bytes.bytes_[0] = *(_pb + 1);
+                    from_bytes.bytes_[1] = *(_pb + 2);
+                    from_bytes.bytes_[2] = *(_pb + 3);
+                    from_bytes.bytes_[3] = *(_pb + 4);
+                    break;
+                default:
+                    solid_assert(false);
+                    return nullptr;
+                }
+
+                _val = from_bytes.value_;
+                return _pb + sz + 1;
+            }
         }
     }
     return nullptr;
 }
-} // namespace cross
+
+inline const char* load_compact(const char* _pb, const size_t _sz, uint64_t& _val)
+{
+    static_assert(EndianessE::Native == EndianessE::Little, "Only little endian is supported");
+    if (_sz != 0) {
+        const int8_t* pb = reinterpret_cast<const int8_t*>(_pb);
+
+        if (*pb >= 0) {
+            _val = *pb;
+            return _pb + 1;
+        } else {
+            const size_t sz = -*pb;
+            if (_sz >= (sz + 1)) {
+                impl::BytesConvertor<uint64_t> from_bytes;
+
+                switch (sz) {
+                case 1:
+                    from_bytes.bytes_[0] = *(_pb + 1);
+                    break;
+                case 2:
+                    from_bytes.bytes_[0] = *(_pb + 1);
+                    from_bytes.bytes_[1] = *(_pb + 2);
+                    break;
+                case 3:
+                    from_bytes.bytes_[0] = *(_pb + 1);
+                    from_bytes.bytes_[1] = *(_pb + 2);
+                    from_bytes.bytes_[2] = *(_pb + 3);
+                    break;
+                case 4:
+                    from_bytes.bytes_[0] = *(_pb + 1);
+                    from_bytes.bytes_[1] = *(_pb + 2);
+                    from_bytes.bytes_[2] = *(_pb + 3);
+                    from_bytes.bytes_[3] = *(_pb + 4);
+                    break;
+                case 5:
+                    from_bytes.bytes_[0] = *(_pb + 1);
+                    from_bytes.bytes_[1] = *(_pb + 2);
+                    from_bytes.bytes_[2] = *(_pb + 3);
+                    from_bytes.bytes_[3] = *(_pb + 4);
+                    from_bytes.bytes_[4] = *(_pb + 5);
+                    break;
+                case 6:
+                    from_bytes.bytes_[0] = *(_pb + 1);
+                    from_bytes.bytes_[1] = *(_pb + 2);
+                    from_bytes.bytes_[2] = *(_pb + 3);
+                    from_bytes.bytes_[3] = *(_pb + 4);
+                    from_bytes.bytes_[4] = *(_pb + 5);
+                    from_bytes.bytes_[5] = *(_pb + 6);
+                    break;
+                case 7:
+                    from_bytes.bytes_[0] = *(_pb + 1);
+                    from_bytes.bytes_[1] = *(_pb + 2);
+                    from_bytes.bytes_[2] = *(_pb + 3);
+                    from_bytes.bytes_[3] = *(_pb + 4);
+                    from_bytes.bytes_[4] = *(_pb + 5);
+                    from_bytes.bytes_[5] = *(_pb + 6);
+                    from_bytes.bytes_[6] = *(_pb + 7);
+                    break;
+                case 8:
+                    from_bytes.bytes_[0] = *(_pb + 1);
+                    from_bytes.bytes_[1] = *(_pb + 2);
+                    from_bytes.bytes_[2] = *(_pb + 3);
+                    from_bytes.bytes_[3] = *(_pb + 4);
+                    from_bytes.bytes_[4] = *(_pb + 5);
+                    from_bytes.bytes_[5] = *(_pb + 6);
+                    from_bytes.bytes_[6] = *(_pb + 7);
+                    from_bytes.bytes_[7] = *(_pb + 8);
+                    break;
+                default:
+                    solid_assert(false);
+                    return nullptr;
+                }
+
+                _val = from_bytes.value_;
+                return _pb + sz + 1;
+            }
+        }
+    }
+    return nullptr;
+}
+
+template <class T>
+inline size_t compact_size(const T& _v)
+{
+    if (_v <= static_cast<uint64_t>(std::numeric_limits<int8_t>::max())) {
+        return 1;
+    } else {
+        return max_padded_byte_cout(_v) + 1;
+    }
+}
+
+inline size_t compact_size(const char* _pb, const size_t _sz)
+{
+    if (_sz > 0) {
+        const int8_t* pb = reinterpret_cast<const int8_t*>(_pb);
+        if (*pb < 0) {
+            return (-*pb + 1);
+        }
+        return 1;
+    }
+    return 0;
+}
 
 inline void store_bit_at(uint8_t* _pbeg, const size_t _bit_idx, const bool _opt)
 {

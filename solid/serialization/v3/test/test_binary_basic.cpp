@@ -28,12 +28,12 @@ template <typename T>
 bool test(const T& _v, const size_t _estimated_size)
 {
     char   tmp[256] = {0};
-    size_t sz       = cross::size(_v);
+    size_t sz       = compact_size(_v);
     if (sz != _estimated_size) {
         solid_throw("error");
         return false;
     }
-    char* p = cross::store_with_check(tmp, 256, _v);
+    char* p = store_compact(tmp, 256, _v);
     if (p == nullptr) {
         solid_throw("error");
         return false;
@@ -44,7 +44,7 @@ bool test(const T& _v, const size_t _estimated_size)
         return false;
     }
 
-    if (cross::size(tmp) != _estimated_size) {
+    if (compact_size(tmp, 256) != _estimated_size) {
         solid_throw("error");
         return false;
     }
@@ -53,7 +53,7 @@ bool test(const T& _v, const size_t _estimated_size)
 
     const char* cp;
 
-    cp = cross::load_with_check(tmp, 256, v);
+    cp = load_compact(tmp, 256, v);
 
     if (cp == nullptr) {
         solid_throw("error");
@@ -74,7 +74,7 @@ bool test(const T& _v, const size_t _estimated_size)
 
 int test_binary_basic(int /*argc*/, char* /*argv*/[])
 {
-    cout << "max uint8_t value with crc: " << static_cast<int>(max_value_without_crc_8()) << endl;
+    cout << (int)static_cast<uint8_t>(std::numeric_limits<int8_t>::max()) << endl;
 
     print(0);
     print(1);
@@ -93,7 +93,7 @@ int test_binary_basic(int /*argc*/, char* /*argv*/[])
         solid_assert(false);
     }
 
-    if (!test(static_cast<uint8_t>(0x1), 2)) {
+    if (!test(static_cast<uint8_t>(0x1), 1)) {
         solid_assert(false);
     }
 

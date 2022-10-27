@@ -248,7 +248,11 @@ enum struct EndianessE : int {
 #ifdef SOLID_ON_WINDOWS
     Little = 0,
     Big    = 1,
-    Native = little
+#ifdef SOLID_ON_BIG_ENDIAN
+    Native = Big
+#else
+    Native = Little
+#endif
 #else
     Little = __ORDER_LITTLE_ENDIAN__,
     Big    = __ORDER_BIG_ENDIAN__,

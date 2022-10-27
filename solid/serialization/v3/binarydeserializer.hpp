@@ -109,7 +109,7 @@ class DeserializerBase : public Base {
     using RunListIteratorT = std::list<Runnable>::const_iterator;
 
 protected:
-    DeserializerBase(const reflection::v1::TypeMapBase* const _ptype_map, const EndianessE _endianess = EndianessE::Native);
+    DeserializerBase(const reflection::v1::TypeMapBase* const _ptype_map);
 
 public:
     static constexpr bool is_const_reflector = false;
@@ -859,12 +859,8 @@ private:
             pcrt_ += toread;
 
             if (_rr.size_ == 0) {
-#ifdef SOLID_ON_BIG_ENDIAN
-                const uint64_t v = swap_bytes(data_.u64_);
-#else
-                const uint64_t v = data_.u64_;
-#endif
-                const T vt = static_cast<T>(v);
+                const uint64_t v  = data_.u64_;
+                const T        vt = static_cast<T>(v);
                 solid_log(logger, Info, "vt = " << vt);
 
                 if (static_cast<uint64_t>(vt) == v) {
@@ -883,27 +879,26 @@ private:
     inline ReturnE doLoadCompacted(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
-            _rr.size_ = *pcrt_;
+            const int8_t* pcrt = reinterpret_cast<const int8_t*>(pcrt_);
             solid_log(logger, Info, "sz = " << _rr.size_ << " c = " << (int)*pcrt_);
             ++pcrt_;
+
+            if (*pcrt >= 0) {
+                *reinterpret_cast<T*>(_rr.ptr_) = *pcrt;
+                return ReturnE::Done;
+            }
+
+            _rr.size_ = -*pcrt;
 
             if (_rr.size_ > sizeof(uint64_t)) {
                 baseError(error_compacted_integer);
                 return ReturnE::Done;
-            } else if (_rr.size_ == 0) {
-                *reinterpret_cast<T*>(_rr.ptr_) = 0;
-                return ReturnE::Done;
             }
+
             *reinterpret_cast<T*>(_rr.ptr_) = 0;
-#ifdef SOLID_ON_BIG_ENDIAN
-            // TODO: it must not use data_! refactor
-            _rr.call_  = load_compacted_data<T>;
-            data_.u64_ = 0;
-            return doLoadCompactedData<T>(_rr);
-#else
+
             _rr.call_ = load_binary;
             return doLoadBinary(_rr);
-#endif
         }
         return ReturnE::Wait;
     }
@@ -911,7 +906,6 @@ private:
     template <typename T>
     inline ReturnE doLoadIntegerData(Runnable& _rr)
     {
-        // TODO: this is only called on BIG ENDIAN - refactor
         if (pcrt_ != pend_) {
             size_t toread = pend_ - pcrt_;
             if (toread > _rr.size_) {
@@ -925,12 +919,8 @@ private:
             pcrt_ += toread;
 
             if (_rr.size_ == 0) {
-#ifdef SOLID_ON_BIG_ENDIAN
-                const uint64_t v = swap_bytes(data_.u64_);
-#else
-                const uint64_t v = data_.u64_;
-#endif
-                const T vt = static_cast<T>(v);
+                const uint64_t v  = data_.u64_;
+                const T        vt = static_cast<T>(v);
                 solid_log(logger, Info, "vt = " << vt);
 
                 if (static_cast<uint64_t>(vt) == v) {
@@ -947,14 +937,7 @@ private:
     template <typename T>
     inline ReturnE doLoadInteger(Runnable& _rr)
     {
-#ifdef SOLID_ON_BIG_ENDIAN
-        _rr.size_  = sizeof(T);
-        _rr.call_  = load_integer_data<T>;
-        data_.u64_ = 0;
-        return doLoadIntegerData<T>(_rr);
-#else
         return doLoadBinary(_rr);
-#endif
     }
 
 protected:
@@ -967,7 +950,6 @@ protected:
         void*    p_;
     } data_;
     const reflection::v1::TypeMapBase* const ptype_map_;
-    const bool                               swap_endianess_bites_;
 
 private:
     const char*      pbeg_;
@@ -987,15 +969,15 @@ public:
     using ThisT    = Deserializer<MetadataVariant, MetadataFactory, Context, TypeId>;
 
     Deserializer(
-        MetadataFactory& _rmetadata_factory, const reflection::v1::TypeMapBase& _rtype_map, const EndianessE _endianess = EndianessE::Native)
-        : DeserializerBase(&_rtype_map, _endianess)
+        MetadataFactory& _rmetadata_factory, const reflection::v1::TypeMapBase& _rtype_map)
+        : DeserializerBase(&_rtype_map)
         , rmetadata_factory_(_rmetadata_factory)
     {
     }
 
     Deserializer(
-        MetadataFactory& _rmetadata_factory, const EndianessE _endianess = EndianessE::Native)
-        : DeserializerBase(nullptr, _endianess)
+        MetadataFactory& _rmetadata_factory)
+        : DeserializerBase(nullptr)
         , rmetadata_factory_(_rmetadata_factory)
     {
     }

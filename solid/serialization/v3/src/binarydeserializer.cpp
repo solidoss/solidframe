@@ -19,9 +19,8 @@ namespace binary {
 
 //== Deserializer  ==============================================================
 
-DeserializerBase::DeserializerBase(const reflection::v1::TypeMapBase* const _ptype_map, const EndianessE _endianess)
+DeserializerBase::DeserializerBase(const reflection::v1::TypeMapBase* const _ptype_map)
     : ptype_map_(_ptype_map)
-    , swap_endianess_bites_(_endianess != EndianessE::Native)
     , pbeg_(nullptr)
     , pend_(nullptr)
     , pcrt_(nullptr)

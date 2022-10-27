@@ -95,7 +95,7 @@ class SerializerBase : public Base {
     using RunListIteratorT = std::list<Runnable>::const_iterator;
 
 protected:
-    SerializerBase(const reflection::v1::TypeMapBase* const _ptype_map, const EndianessE _endianess = EndianessE::Native);
+    SerializerBase(const reflection::v1::TypeMapBase* const _ptype_map);
 
 public:
     static constexpr bool is_const_reflector = true;
@@ -720,19 +720,21 @@ private:
     inline Base::ReturnE doStoreCompactedInline(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
-            const size_t sz = max_padded_byte_cout(_rr.data_);
-            *pcrt_          = static_cast<char>(sz);
-            solid_log(logger, Info, "sz = " << sz << " c = " << (int)*pcrt_ << " data = " << _rr.data_);
+            int8_t* pcrt = reinterpret_cast<int8_t*>(pcrt_);
             ++pcrt_;
-            _rr.size_ = sz;
-            _rr.call_ = store_binary;
-#ifdef SOLID_ON_BIG_ENDIAN
-            data_.u64_ = swap_bytes(_rr.data_);
-#else
-            data_.u64_ = _rr.data_;
-#endif
-            _rr.ptr_ = data_.buf_;
-            return doStoreBinary(_rr);
+            if (_rr.data_ <= static_cast<uint64_t>(std::numeric_limits<int8_t>::max())) {
+                *pcrt = static_cast<int8_t>(_rr.data_);
+                return ReturnE::Done;
+            } else {
+                const size_t sz = max_padded_byte_cout(_rr.data_);
+                *pcrt           = -(static_cast<int8_t>(sz));
+                solid_log(logger, Info, "sz = " << sz << " c = " << (int)*pcrt_ << " data = " << _rr.data_);
+                _rr.size_  = sz;
+                _rr.call_  = store_binary;
+                data_.u64_ = _rr.data_;
+                _rr.ptr_   = data_.buf_;
+                return doStoreBinary(_rr);
+            }
         }
         return ReturnE::Wait;
     }
@@ -740,17 +742,20 @@ private:
     inline Base::ReturnE doStoreCompacted(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
-            const size_t sz = max_padded_byte_cout(_rr.data_);
-            *pcrt_          = static_cast<char>(sz);
-            solid_log(logger, Info, "sz = " << sz << " c = " << (int)*pcrt_ << " data = " << _rr.data_);
+            int8_t* pcrt = reinterpret_cast<int8_t*>(pcrt_);
             ++pcrt_;
-            _rr.size_ = sz;
-            _rr.call_ = store_binary;
-#ifdef SOLID_ON_BIG_ENDIAN
-            data_.u64_ = swap_bytes(_rr.data_);
-            _rr.ptr_   = data_.buf_;
-#endif
-            return doStoreBinary(_rr);
+
+            if (_rr.data_ <= static_cast<uint64_t>(std::numeric_limits<int8_t>::max())) {
+                *pcrt = static_cast<int8_t>(_rr.data_);
+                return ReturnE::Done;
+            } else {
+                const size_t sz = max_padded_byte_cout(_rr.data_);
+                *pcrt           = -(static_cast<int8_t>(sz));
+                solid_log(logger, Info, "sz = " << sz << " c = " << (int)*pcrt_ << " data = " << _rr.data_);
+                _rr.size_ = sz;
+                _rr.call_ = store_binary;
+                return doStoreBinary(_rr);
+            }
         }
         return ReturnE::Wait;
     }
@@ -759,11 +764,6 @@ private:
     {
         if (pcrt_ != pend_) {
             _rr.call_ = store_binary;
-#ifdef SOLID_ON_BIG_ENDIAN
-            // TODO: this is not ok
-            data_.u64_ = swap_bytes(_rr.data_);
-            _rr.ptr_   = &_rr.data_;
-#endif
             return doStoreBinary(_rr);
         }
         return ReturnE::Wait;
@@ -779,7 +779,6 @@ protected:
         void*    p_;
     } data_;
     const reflection::v1::TypeMapBase* const ptype_map_;
-    const bool                               swap_endianess_bites_;
 
 private:
     char*            pbeg_;
@@ -801,15 +800,15 @@ public:
     using ThisT    = Serializer<MetadataVariant, MetadataFactory, Context, Context>;
 
     Serializer(
-        MetadataFactory& _rmetadata_factory, const reflection::v1::TypeMapBase& _rtype_map, const EndianessE _endianess = EndianessE::Native)
-        : SerializerBase(&_rtype_map, _endianess)
+        MetadataFactory& _rmetadata_factory, const reflection::v1::TypeMapBase& _rtype_map)
+        : SerializerBase(&_rtype_map)
         , rmetadata_factory_(_rmetadata_factory)
     {
     }
 
     Serializer(
-        MetadataFactory& _rmetadata_factory, const EndianessE _endianess = EndianessE::Native)
-        : SerializerBase(nullptr, _endianess)
+        MetadataFactory& _rmetadata_factory)
+        : SerializerBase(nullptr)
         , rmetadata_factory_(_rmetadata_factory)
     {
     }

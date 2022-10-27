@@ -141,7 +141,7 @@ void MessageReader::doConsumePacket(
         case PacketHeader::CommandE::FullMessage:
         case PacketHeader::CommandE::Message:
         case PacketHeader::CommandE::EndMessage:
-            pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
+            pbufpos = _receiver.protocol().loadCompactValue(pbufpos, pbufend - pbufpos, message_idx);
             if (pbufpos != nullptr && message_idx < _receiver.configuration().max_message_count_multiplex) {
                 solid_log(logger, Verbose, "messagetype = " << (int)cmd << " msgidx = " << message_idx);
                 if (message_idx >= message_vec_.size()) {
@@ -155,7 +155,7 @@ void MessageReader::doConsumePacket(
             }
             break;
         case PacketHeader::CommandE::CancelMessage:
-            pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
+            pbufpos = _receiver.protocol().loadCompactValue(pbufpos, pbufend - pbufpos, message_idx);
             solid_log(logger, Error, "CancelMessage " << message_idx);
             if (pbufpos != nullptr && message_idx < message_vec_.size()) {
                 MessageStub& rmsgstub = message_vec_[message_idx];
@@ -173,8 +173,8 @@ void MessageReader::doConsumePacket(
             break;
         case PacketHeader::CommandE::CancelRequest: {
             RequestId requid;
-            pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, requid.index);
-            if (pbufpos != nullptr && (pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, requid.unique)) != nullptr) {
+            pbufpos = _receiver.protocol().loadCompactValue(pbufpos, pbufend - pbufpos, requid.index);
+            if (pbufpos != nullptr && (pbufpos = _receiver.protocol().loadCompactValue(pbufpos, pbufend - pbufpos, requid.unique)) != nullptr) {
                 solid_log(logger, Verbose, "CancelRequest: " << requid);
                 _receiver.receiveCancelRequest(requid);
             } else {
