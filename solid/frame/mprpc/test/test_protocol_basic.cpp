@@ -168,7 +168,7 @@ void complete_message(
             frame::mprpc::MessageId     pool_msg_id;
 
             msgbundle.message_flags   = initarray[crtwriteidx % initarraysize].flags;
-            msgbundle.message_ptr     = frame::mprpc::MessagePointerT(new Message(crtwriteidx));
+            msgbundle.message_ptr     = frame::mprpc::MessagePointerT(std::make_shared<Message>(crtwriteidx));
             msgbundle.message_type_id = ctx.mprpcprotocol->typeIndex(msgbundle.message_ptr.get());
 
             bool rv = ctx.mprpcmsgwriter->enqueue(
@@ -313,7 +313,7 @@ int test_protocol_basic(int argc, char* argv[])
         frame::mprpc::MessageId     pool_msg_id;
 
         msgbundle.message_flags   = initarray[crtwriteidx % initarraysize].flags;
-        msgbundle.message_ptr     = frame::mprpc::MessagePointerT(new Message(crtwriteidx));
+        msgbundle.message_ptr     = frame::mprpc::MessagePointerT(std::make_shared<Message>(crtwriteidx));
         msgbundle.message_type_id = ctx.mprpcprotocol->typeIndex(msgbundle.message_ptr.get());
 
         bool rv = mprpcmsgwriter.enqueue(

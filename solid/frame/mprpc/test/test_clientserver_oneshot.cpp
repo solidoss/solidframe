@@ -266,7 +266,7 @@ int test_clientserver_oneshot(int argc, char* argv[])
         frame::mprpc::RecipientId recipient_id;
         frame::mprpc::MessageId   message_id;
         {
-            frame::mprpc::MessagePointerT msgptr(new Message(0));
+            frame::mprpc::MessagePointerT msgptr(std::make_shared<Message>(0));
 
             err = mprpcclient.sendMessage(
                 "localhost", msgptr,

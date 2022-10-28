@@ -299,7 +299,7 @@ void server_complete_request(
     }
 
     // send message back
-    frame::mprpc::MessagePointerT msgptr(new Response(*_rrecvmsgptr));
+    frame::mprpc::MessagePointerT msgptr(std::make_shared<Response>(*_rrecvmsgptr));
     _rctx.service().sendResponse(_rctx.recipientId(), msgptr);
 
     ++crtreadidx;
@@ -307,7 +307,7 @@ void server_complete_request(
     solid_dbg(generic_logger, Info, crtreadidx);
 
     if (crtwriteidx < writecount) {
-        frame::mprpc::MessagePointerT msgptr(new Request(crtwriteidx));
+        frame::mprpc::MessagePointerT msgptr(std::make_shared<Request>(crtwriteidx));
         ++crtwriteidx;
         pmprpcclient->sendRequest(
             "localhost", msgptr,
@@ -475,7 +475,7 @@ int test_clientserver_sendrequest(int argc, char* argv[])
         writecount = initarraysize;
 
         for (; crtwriteidx < start_count;) {
-            frame::mprpc::MessagePointerT msgptr(new Request(crtwriteidx));
+            frame::mprpc::MessagePointerT msgptr(std::make_shared<Request>(crtwriteidx));
             ++crtwriteidx;
             mprpcclient.sendRequest(
                 "localhost", msgptr,

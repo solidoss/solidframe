@@ -420,7 +420,7 @@ int test_raw_proxy(int argc, char* argv[])
         writecount = 10; // initarraysize * 10;//start_count;//
 
         for (; crtwriteidx < start_count;) {
-            frame::mprpc::MessagePointerT msgptr(new Message(crtwriteidx));
+            frame::mprpc::MessagePointerT msgptr(std::make_shared<Message>(crtwriteidx));
             ++crtwriteidx;
             mprpcclient.sendMessage(
                 "localhost", msgptr,

@@ -325,7 +325,7 @@ int test_pool_force_close(int argc, char* argv[])
             ErrorConditionT                            err;
 
             for (size_t i = 0; i < start_count; ++i) {
-                msg_vec.push_back(frame::mprpc::MessagePointerT(new Message(i)));
+                msg_vec.push_back(frame::mprpc::MessagePointerT(std::make_shared<Message>(i)));
             }
             {
                 std::vector<frame::mprpc::MessagePointerT>::iterator it = msg_vec.begin();

@@ -200,7 +200,7 @@ void client_complete_message(
         }
 
         {
-            frame::mprpc::MessagePointerT msgptr(new Logout);
+            frame::mprpc::MessagePointerT msgptr(std::make_shared<Logout>());
 
             pmprpcclient->sendMessage(
                 _rctx.recipientId(), msgptr,
@@ -386,7 +386,7 @@ int test_connection_close(int argc, char* argv[])
         pmprpcclient = &mprpcclient;
 
         {
-            frame::mprpc::MessagePointerT msgptr(new Message(0));
+            frame::mprpc::MessagePointerT msgptr(std::make_shared<Message>(0));
             mprpcclient.sendMessage(
                 "localhost", msgptr,
                 initarray[0].flags | frame::mprpc::MessageFlagsE::AwaitResponse);

@@ -356,7 +356,7 @@ int test_pool_delay_close(int argc, char* argv[])
             std::vector<frame::mprpc::MessagePointerT> msg_vec;
 
             for (size_t i = 0; i < start_count; ++i) {
-                msg_vec.push_back(frame::mprpc::MessagePointerT(new Message(i)));
+                msg_vec.push_back(frame::mprpc::MessagePointerT(std::make_shared<Message>(i)));
             }
 
             {
@@ -396,7 +396,7 @@ int test_pool_delay_close(int argc, char* argv[])
                 });
 
             {
-                frame::mprpc::MessagePointerT msgptr(new Message(0));
+                frame::mprpc::MessagePointerT msgptr(std::make_shared<Message>(0));
                 ErrorConditionT               err = pmprpcclient->sendMessage(
                                   recipinet_id, msgptr,
                                   {frame::mprpc::MessageFlagsE::AwaitResponse});

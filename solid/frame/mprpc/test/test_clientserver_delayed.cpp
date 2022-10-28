@@ -354,14 +354,14 @@ int test_clientserver_delayed(int argc, char* argv[])
             }
         }
         {
-            frame::mprpc::MessagePointerT msgptr(new Message(0));
+            frame::mprpc::MessagePointerT msgptr(std::make_shared<Message>(0));
             err = mprpcclient.sendMessage(
                 "localhost", msgptr);
             ++writecount;
         }
 
         {
-            frame::mprpc::MessagePointerT msgptr(new Message(1));
+            frame::mprpc::MessagePointerT msgptr(std::make_shared<Message>(1));
             err = mprpcclient.sendMessage(
                 "localhost", msgptr, {frame::mprpc::MessageFlagsE::OneShotSend});
             //++writecount;
@@ -369,7 +369,7 @@ int test_clientserver_delayed(int argc, char* argv[])
         }
 
         {
-            frame::mprpc::MessagePointerT msgptr(new Message(2));
+            frame::mprpc::MessagePointerT msgptr(std::make_shared<Message>(2));
             err = mprpcclient.sendMessage(
                 "localhost", msgptr, {frame::mprpc::MessageFlagsE::AwaitResponse});
             ++writecount;

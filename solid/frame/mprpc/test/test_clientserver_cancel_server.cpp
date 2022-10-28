@@ -259,7 +259,7 @@ void server_complete_message(
             frame::mprpc::MessageId msguid;
 
             ErrorConditionT err = _rctx.service().sendMessage(
-                recipient_id, frame::mprpc::MessagePointerT(new Message(crtwriteidx)),
+                recipient_id, frame::mprpc::MessagePointerT(std::make_shared<Message>(crtwriteidx)),
                 msguid);
 
             solid_check(!err, "Connection id should not be invalid! " << err.message());
@@ -409,7 +409,7 @@ int test_clientserver_cancel_server(int argc, char* argv[])
 
         {
             // Step 1.
-            frame::mprpc::MessagePointerT msgptr(new Message(0));
+            frame::mprpc::MessagePointerT msgptr(std::make_shared<Message>(0));
             mprpcclient.sendMessage(
                 "localhost", msgptr,
                 initarray[0].flags);

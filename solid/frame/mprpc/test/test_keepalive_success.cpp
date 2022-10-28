@@ -227,7 +227,7 @@ void server_receive_message(frame::mprpc::ConnectionContext& _rctx, std::shared_
     ++crtreadidx;
     solid_dbg(generic_logger, Info, crtreadidx);
     if(crtwriteidx < writecount){
-        frame::mprpc::MessagePointerT   msgptr(new Message(crtwriteidx));
+        frame::mprpc::MessagePointerT   msgptr(std::make_shared<Message>(crtwriteidx));
         ++crtwriteidx;
         pmprpcclient->sendMessage(
             "localhost:6666", msgptr,
@@ -365,7 +365,7 @@ int test_keepalive_success(int argc, char* argv[])
         writecount = 2;
 
         {
-            frame::mprpc::MessagePointerT msgptr(new Message(crtwriteidx));
+            frame::mprpc::MessagePointerT msgptr(std::make_shared<Message>(crtwriteidx));
             ++crtwriteidx;
             mprpcclient.sendMessage(
                 "localhost", msgptr,
@@ -377,7 +377,7 @@ int test_keepalive_success(int argc, char* argv[])
 
         solid_dbg(generic_logger, Info, "after sleep");
         {
-            frame::mprpc::MessagePointerT msgptr(new Message(crtwriteidx));
+            frame::mprpc::MessagePointerT msgptr(std::make_shared<Message>(crtwriteidx));
             ++crtwriteidx;
             mprpcclient.sendMessage(
                 "localhost", msgptr,

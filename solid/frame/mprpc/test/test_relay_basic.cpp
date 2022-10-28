@@ -400,7 +400,7 @@ int test_relay_basic(int argc, char* argv[])
                 }
             };
 
-            std::unique_ptr<std::string> test_ptr(new string("test"));
+            std::unique_ptr<std::string> test_ptr(std::make_unique<string>("test"));
 
             auto con_register = [&relay_engine, test_ptr = std::move(test_ptr)](
                                     frame::mprpc::ConnectionContext& _rctx,
