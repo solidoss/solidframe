@@ -599,7 +599,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::doTryDestroyJobOnPop(PopContext& _rc
             _rcontext.pjob_->destroy();
             _rcontext.pjob_->clear();
 
-            _rlock = std::move(std::unique_lock<std::mutex>{pop_mtx_});
+            _rlock = std::unique_lock<std::mutex>{pop_mtx_};
 
             solid_check(_rcontext.pcontext_->job_queue_.pop() == _rcontext.pjob_);
 
@@ -620,7 +620,7 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::doTryDestroyJobOnPop(PopContext& _rc
                 _rcontext.pcontext_ = nullptr;
             }
         } else {
-            _rlock = std::move(std::unique_lock<std::mutex>{pop_mtx_});
+            _rlock = std::unique_lock<std::mutex>{pop_mtx_};
         }
     } else if (_rcontext.pjob_) {
         _rcontext.pjob_->destroy();
@@ -630,9 +630,9 @@ bool WorkPool<Job, MCastJob, QNBits, Base>::doTryDestroyJobOnPop(PopContext& _rc
             free_job_stack_.push(_rcontext.pjob_);
         }
         push_sig_cnd_.notify_one();
-        _rlock = std::move(std::unique_lock<std::mutex>{pop_mtx_});
+        _rlock = std::unique_lock<std::mutex>{pop_mtx_};
     } else {
-        _rlock = std::move(std::unique_lock<std::mutex>{pop_mtx_});
+        _rlock = std::unique_lock<std::mutex>{pop_mtx_};
     }
     return should_notify;
 }
