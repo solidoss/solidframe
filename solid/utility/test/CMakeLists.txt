@@ -19,6 +19,7 @@ set( UtilityTestSuite
     test_template_function.cpp
     test_function_any_speed_full_solid.cpp
     test_function_any_speed_full_stl.cpp
+    test_shared_buffer.cpp
 )
 
 set( WorkPoolTestSuite

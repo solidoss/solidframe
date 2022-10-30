@@ -4,6 +4,7 @@ set(Sources
     src/ioformat.cpp
     src/event.cpp
     src/super.cpp
+    src/sharedbuffer.cpp
 )
 
 set(Headers
@@ -27,6 +28,7 @@ set(Headers
     typetraits.hpp
     delegate.hpp
     super.hpp
+    sharedbuffer.hpp
 )
 
 set(Inlines
