@@ -14,6 +14,7 @@ ExternalProject_Add(
     LOG_CONFIGURE ON
     LOG_BUILD ON
     LOG_INSTALL ON
+    DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 if(SOLID_ON_WINDOWS)
     set(CXXOPTS_LIB ${CMAKE_BINARY_DIR}/external/lib/cxxopts.lib)
