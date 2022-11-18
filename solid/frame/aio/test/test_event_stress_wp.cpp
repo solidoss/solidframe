@@ -149,8 +149,8 @@ void DeviceContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat_
     enter();
     rconn_cp_.push(
         [_acc, _acc_con, _repeat_count](ConnectionContext& _rctx) mutable {
-            volatile size_t repeat_count     = _repeat_count;
-            ConnectionContext* volatile pctx = &_rctx;
+            size_t             repeat_count = _repeat_count;
+            ConnectionContext* pctx         = &_rctx;
             solid_assert(repeat_count > 0 && repeat_count < 1000000);
             --repeat_count;
             if (repeat_count) {

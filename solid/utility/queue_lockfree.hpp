@@ -21,6 +21,7 @@
 
 #include "solid/system/exception.hpp"
 #include "solid/system/log.hpp"
+#include "solid/system/spinlock.hpp"
 #include "solid/system/statistic.hpp"
 #include "solid/utility/common.hpp"
 #include "solid/utility/function.hpp"
@@ -103,7 +104,7 @@ class Queue : protected Base {
     struct End {
         Node*                   pnode_;
         std::atomic<size_t>     wait_count_;
-        std::atomic_flag        spin_lock_;
+        SpinLock                spin_lock_;
         std::mutex              mutex_;
         std::condition_variable condition_;
 
@@ -111,19 +112,16 @@ class Queue : protected Base {
             : pnode_(nullptr)
             , wait_count_(0)
         {
-            spin_lock_.clear();
         }
 
         void spinLockAcquire()
         {
-            while (spin_lock_.test_and_set(std::memory_order_acquire)) {
-                std::this_thread::yield();
-            }
+            spin_lock_.lock();
         }
 
         void spinLockRelease()
         {
-            spin_lock_.clear(std::memory_order_release);
+            spin_lock_.unlock();
         }
 
         Node* nodeAcquire()
