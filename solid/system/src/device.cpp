@@ -220,13 +220,13 @@ HANDLE do_open(WCHAR* _pwc, const char* _fname, const size_t _sz, const size_t _
         }
     } else {
         creat = OPEN_EXISTING;
+        if (_how & FileDevice::TruncateE) {
+            creat = TRUNCATE_EXISTING;
+        }
     }
 
     if (_how & FileDevice::AppendE) {
         acc |= FILE_APPEND_DATA;
-    }
-    if (_how & FileDevice::TruncateE) {
-        creat = TRUNCATE_EXISTING;
     }
 
     const HANDLE h = CreateFileA(_fname, acc, FILE_SHARE_READ, nullptr, creat, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -355,7 +355,7 @@ bool FileDevice::canRetryOpen() const
 /*static*/ bool Directory::renameFile(const char* _from, const char* _to)
 {
 #ifdef SOLID_ON_WINDOWS
-    return MoveFileA(_from, _to);
+    return MoveFileExA(_from, _to, MOVEFILE_WRITE_THROUGH | MOVEFILE_REPLACE_EXISTING);
 #else
     return ::rename(_from, _to) == 0;
 #endif

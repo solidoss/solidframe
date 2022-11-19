@@ -10,6 +10,7 @@
 
 #include "solid/system/log.hpp"
 #include "solid/system/cassert.hpp"
+#include "solid/system/exception.hpp"
 #include "solid/system/directory.hpp"
 #include "solid/system/filedevice.hpp"
 #include "solid/system/socketaddress.hpp"
@@ -277,7 +278,6 @@ std::streamsize DeviceBuffer::xsputn(const char* s, std::streamsize num)
     memcpy(bpos, s, towrite);
     bpos += towrite;
     if (static_cast<size_t>(bpos - bbeg) > buffer_flush && !flush()) {
-        solid_assert(0);
         return -1;
     }
     if (num == towrite) {
@@ -368,7 +368,7 @@ constexpr const char path_separator = '/';
 
 void filePath(string& _out, uint32_t _pos, const string& _path, const string& _name)
 {
-    constexpr size_t bufcp = 2048;
+    constexpr size_t bufcp = 4096;
     char             buf[bufcp];
 
     _out = _path;
@@ -469,38 +469,45 @@ struct FileRecorder : LogRecorder {
             Directory::eraseFile(fname.c_str());
         } else {
             uint32_t lastpos = respin_count_;
-            while (lastpos >= 1) {
+            bool     do_move = false;
+
+            while (lastpos > 1) {
                 filePath(fname, lastpos, path_, name_);
-                if (FileDevice::size(fname.c_str()) >= 0) {
-                    break;
+                if (!do_move) {
+                    if (FileDevice::size(fname.c_str()) == 0) {
+                        --lastpos;
+                        continue;
+                    } else {
+                        if (lastpos == respin_count_) {
+                            do_move = true;
+                            continue;
+                        } else {
+                            ++lastpos;//use the previous position to move the current log file to
+                            break;
+                        }
+                    }
+                } else {
+                    auto& from_path = fname;
+                    string to_path;
+                    filePath(to_path, lastpos - 1, path_, name_);
+                    Directory::renameFile(from_path.c_str(), to_path.c_str());
+                    --lastpos;
                 }
-                --lastpos;
             }
-            string frompath;
-            string topath;
-
-            if (lastpos == respin_count_) {
-                filePath(topath, respin_count_, path_, name_);
-                --lastpos;
-            } else {
-                filePath(topath, lastpos + 1, path_, name_);
+            if (do_move) {
+                lastpos = respin_count_;
             }
-
-            while (lastpos != 0u) {
-                filePath(frompath, lastpos, path_, name_);
-                Directory::renameFile(frompath.c_str(), topath.c_str());
-                topath = frompath;
-                --lastpos;
-            }
-
-            filePath(frompath, 0, path_, name_);
-            Directory::renameFile(frompath.c_str(), topath.c_str());
-            fname = frompath;
+            string from_path;
+            string to_path;
+            filePath(from_path, 0, path_, name_);
+            filePath(to_path, lastpos, path_, name_);
+            Directory::renameFile(from_path.c_str(), to_path.c_str());
+            fname = from_path;
         }
 
         if (!fd.create(fname.c_str(), FileDevice::WriteOnlyE)) {
-            cerr << "Cannot create log file: " << fname << endl;
-            // respin_size_ = 0; //no more respins
+            cerr << "Cannot create log file: " << fname << ": " << last_system_error().message() << endl;
+            solid_throw("Cannot create log file: " << fname << ": " << last_system_error().message());
         }
         stream(buffered, std::move(fd));
     }
