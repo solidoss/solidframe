@@ -23,9 +23,11 @@ public:
             if (!atomic_flag.test_and_set(std::memory_order_acquire)) {
                 break;
             }
+            #if defined(__cpp_lib_atomic_flag_test)
             while (atomic_flag.test(std::memory_order_relaxed)) {
                 //__builtin_ia32_pause();
             }
+            #endif
         }
     }
     void unlock()

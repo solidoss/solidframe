@@ -36,6 +36,7 @@ set(Headers
     statistic.hpp
     crashhandler.hpp
     chunkedstream.hpp
+    spinlock.hpp
     version.hpp
 )
 

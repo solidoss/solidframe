@@ -253,20 +253,20 @@ echo
 echo -ne "./configure -f $FOLDER_NAME -F \"$FOLDER_PATH\" -b \"$BUILD_TYPE\" -g \"$GENERATOR\" -e \"$EXTERNAL_DIR\" \"$@\" \"$SRC_PATH\"\r\n" > configure.txt
 
 if [ "$GENERATOR" = "" ]; then
-    echo "Using cmake's default generator:"
+    echo "Using cmake's default generator"
 else
-    GEN="-G"
-    echo "Using cmake's $GENERATOR"
+    declare -a GEN=("-G" "$GENERATOR")
+    echo "Using cmake's $GENERATOR - ${GEN[@]}"
 fi
 
 if [ "$ARCHITECTURE" = "" ]; then
     echo "Using default architecture"
 else
-    ARC="-A"
-    echo "Using architecture $ARCHITECTURE"
+    declare -a ARC=("-A" "$ARCHITECTURE")
+    echo "Using architecture $ARCHITECTURE - ${ARC[@]}"
 fi
 
-exec cmake ${GEN} "${GENERATOR}" ${ARC} "${ARCHITECTURE}" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DEXTERNAL_DIR:PATH="$EXTERNAL_DIR" -DEXTRA_COMPILE_OPTIONS:STRING="$EXTRA_COMPILE_OPTIONS" -DEXTRA_LINK_OPTIONS:STRING="$EXTRA_LINK_OPTIONS" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
+exec cmake "${GEN[@]}" "${ARC[@]}" ${ARCHITECTURE} -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DEXTERNAL_DIR:PATH="$EXTERNAL_DIR" -DEXTRA_COMPILE_OPTIONS:STRING="$EXTRA_COMPILE_OPTIONS" -DEXTRA_LINK_OPTIONS:STRING="$EXTRA_LINK_OPTIONS" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
 
 echo "Done!"
 

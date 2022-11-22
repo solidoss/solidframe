@@ -32,7 +32,25 @@ find_package(Threads REQUIRED)
 # C++ Standard
 #-----------------------------------------------------------------
 
-set(CMAKE_CXX_STANDARD 20)
+if(NOT CMAKE_CXX_STANDARD)
+    file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/safestatic.cpp" source_code)
+
+    set(CMAKE_CXX_STANDARD 20)
+    
+    include(CheckCXXSourceCompiles)
+    CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_COMPILE_CXX)
+    if(NOT SOLID_COMPILE_CXX)
+        set(CMAKE_CXX_STANDARD 17)
+    
+        CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_COMPILE_CXX)
+
+        if(NOT SOLID_COMPILE_CXX)
+            message(FATAL_ERROR "SolidFrame needs at least CXX17!")
+        endif()
+    endif()
+endif()
+
+message("C++ Standard: ${CMAKE_CXX_STANDARD}")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #-----------------------------------------------------------------
