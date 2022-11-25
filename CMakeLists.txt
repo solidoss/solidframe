@@ -33,7 +33,7 @@ find_package(Threads REQUIRED)
 #-----------------------------------------------------------------
 
 if(NOT CMAKE_CXX_STANDARD)
-    file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/safestatic.cpp" source_code)
+    file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/cpp11.cpp" source_code)
 
     set(CMAKE_CXX_STANDARD 20)
     
