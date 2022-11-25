@@ -47,8 +47,6 @@ if(NOT CMAKE_CXX_STANDARD)
         if(NOT SOLID_COMPILE_CXX17)
             message(FATAL_ERROR "SolidFrame needs at least CXX17!")
         endif()
-    else()
-        message("C++ compiles with standard 20")
     endif()
 endif()
 
