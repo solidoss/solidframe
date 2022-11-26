@@ -241,7 +241,7 @@ if(CMAKE_SYSTEM MATCHES "Android*")
 endif(CMAKE_SYSTEM MATCHES "Android*")
 
 if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm") 
-    add_compile_options("SHELL: -march=native -mcpu=native")
+    add_compile_options("SHELL: -mcpu=native")
 endif()
 
 if(NOT ON_FOUND)
