@@ -240,6 +240,10 @@ if(CMAKE_SYSTEM MATCHES "Android*")
     set(SYSTEM_BASIC_LIBRARIES rt)
 endif(CMAKE_SYSTEM MATCHES "Android*")
 
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm") 
+    add_compile_options("SHELL: -march=native -mcpu=native")
+endif()
+
 if(NOT ON_FOUND)
     message("\r\n === Unsupported system - please contact project owner ===\r\n")
     return()
