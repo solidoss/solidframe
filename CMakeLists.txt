@@ -33,20 +33,22 @@ find_package(Threads REQUIRED)
 #-----------------------------------------------------------------
 
 if(NOT CMAKE_CXX_STANDARD)
-    file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/cpp11.cpp" source_code)
+    file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/cpp20.cpp" source_code)
 
     set(CMAKE_CXX_STANDARD 20)
-    
     include(CheckCXXSourceCompiles)
-    CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_COMPILE_CXX)
-    if(NOT SOLID_COMPILE_CXX)
+    CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_COMPILE_CXX20)
+    if(NOT SOLID_COMPILE_CXX20)
         set(CMAKE_CXX_STANDARD 17)
-    
-        CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_COMPILE_CXX)
+        set(CMAKE_CXX_STANDARD_REQUIRED ON)
+        file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/cpp17.cpp" source_code)
+        CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_COMPILE_CXX17)
 
-        if(NOT SOLID_COMPILE_CXX)
+        if(NOT SOLID_COMPILE_CXX17)
             message(FATAL_ERROR "SolidFrame needs at least CXX17!")
         endif()
+    else()
+        message("C++ compiles with standard 20")
     endif()
 endif()
 
