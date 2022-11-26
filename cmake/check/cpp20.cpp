@@ -4,6 +4,7 @@
 #include <atomic>
 #include <system_error>
 #include <iostream>
+#include <compare>
 
 typedef std::pair<unsigned short, unsigned>                                 UnsignedPairT;
 
