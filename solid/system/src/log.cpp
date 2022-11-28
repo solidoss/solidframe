@@ -10,8 +10,8 @@
 
 #include "solid/system/log.hpp"
 #include "solid/system/cassert.hpp"
-#include "solid/system/exception.hpp"
 #include "solid/system/directory.hpp"
+#include "solid/system/exception.hpp"
 #include "solid/system/filedevice.hpp"
 #include "solid/system/socketaddress.hpp"
 #include "solid/system/socketdevice.hpp"
@@ -482,12 +482,12 @@ struct FileRecorder : LogRecorder {
                             do_move = true;
                             continue;
                         } else {
-                            ++lastpos;//use the previous position to move the current log file to
+                            ++lastpos; // use the previous position to move the current log file to
                             break;
                         }
                     }
                 } else {
-                    auto& from_path = fname;
+                    auto&  from_path = fname;
                     string to_path;
                     filePath(to_path, lastpos - 1, path_, name_);
                     Directory::renameFile(from_path.c_str(), to_path.c_str());

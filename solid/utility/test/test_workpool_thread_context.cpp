@@ -39,9 +39,9 @@ template <class Job, class MCast>
 #if SOLID_WORKPOOL_OPTION == 0
 using WorkPoolT = lockfree::WorkPool<Job, void, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<90>>;
 #elif SOLID_WORKPOOL_OPTION == 1
-using WorkPoolT = locking::WorkPool<Job, void, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<90>>;
+using WorkPoolT = locking::WorkPool<Job, void, workpool_default_node_capacity_bit_count, true, impl::StressTestWorkPoolBase<90>>;
 #else
-using WorkPoolT = locking::WorkPool<Job, MCast, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<90>>;
+using WorkPoolT = locking::WorkPool<Job, MCast, workpool_default_node_capacity_bit_count, true, impl::StressTestWorkPoolBase<90>>;
 #endif
 
 } // namespace

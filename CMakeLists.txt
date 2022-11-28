@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 #-----------------------------------------------------------------
 # The project
 #-----------------------------------------------------------------
-project (SolidFrame VERSION 7.4)
+project (SolidFrame VERSION 7.5)
 
 message("SolidFrame version: ${PROJECT_VERSION} - ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 #-----------------------------------------------------------------
@@ -32,7 +32,25 @@ find_package(Threads REQUIRED)
 # C++ Standard
 #-----------------------------------------------------------------
 
-set(CMAKE_CXX_STANDARD 20)
+if(NOT CMAKE_CXX_STANDARD)
+    file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/cpp20.cpp" source_code)
+
+    set(CMAKE_CXX_STANDARD 20)
+    include(CheckCXXSourceCompiles)
+    CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_COMPILE_CXX20)
+    if(NOT SOLID_COMPILE_CXX20)
+        set(CMAKE_CXX_STANDARD 17)
+        set(CMAKE_CXX_STANDARD_REQUIRED ON)
+        file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/cpp17.cpp" source_code)
+        CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_COMPILE_CXX17)
+
+        if(NOT SOLID_COMPILE_CXX17)
+            message(FATAL_ERROR "SolidFrame needs at least CXX17!")
+        endif()
+    endif()
+endif()
+
+message("C++ Standard: ${CMAKE_CXX_STANDARD}")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #-----------------------------------------------------------------
@@ -221,6 +239,10 @@ if(CMAKE_SYSTEM MATCHES "Android*")
 
     set(SYSTEM_BASIC_LIBRARIES rt)
 endif(CMAKE_SYSTEM MATCHES "Android*")
+
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm") 
+    add_compile_options("SHELL: -mcpu=native")
+endif()
 
 if(NOT ON_FOUND)
     message("\r\n === Unsupported system - please contact project owner ===\r\n")

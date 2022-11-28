@@ -21,9 +21,9 @@ int test_workpool_chain(int argc, char* argv[])
 #if SOLID_WORKPOOL_OPTION == 0
     using WorkPoolT = lockfree::WorkPool<size_t, void, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<100>>;
 #elif SOLID_WORKPOOL_OPTION == 1
-    using WorkPoolT = locking::WorkPool<size_t, void, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<100>>;
+    using WorkPoolT = locking::WorkPool<size_t, void, workpool_default_node_capacity_bit_count, true, impl::StressTestWorkPoolBase<100>>;
 #else
-    using WorkPoolT = locking::WorkPool<size_t, size_t, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<100>>;
+    using WorkPoolT = locking::WorkPool<size_t, size_t, workpool_default_node_capacity_bit_count, true, impl::StressTestWorkPoolBase<100>>;
 #endif
 
     using AtomicPWPT = std::atomic<WorkPoolT*>;

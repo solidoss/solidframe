@@ -23,4 +23,3 @@
 #cmakedefine SOLID_HAS_STATISTICS
 
 #cmakedefine SOLID_USE_GCC_BSWAP
-

@@ -29,16 +29,25 @@ constexpr size_t workpool_default_node_capacity_bit_count = 10;
 struct WorkPoolConfiguration {
     size_t                max_worker_count_;
     size_t                max_job_queue_size_;
+    size_t                max_mcast_queue_size_     = std::numeric_limits<size_t>::max();
+    size_t                reserve_job_queue_size_   = 0;
+    size_t                reserve_mcast_queue_size_ = 0;
     std::function<void()> on_thread_start_fnc_;
     std::function<void()> on_thread_stop_fnc_;
 
     WorkPoolConfiguration(
-        const size_t            _max_worker_count    = std::thread::hardware_concurrency(),
-        const size_t            _max_job_queue_size  = std::numeric_limits<size_t>::max(),
-        std::function<void()>&& _on_thread_start_fnc = []() {},
-        std::function<void()>&& _on_thread_stop_fnc  = []() {})
+        const size_t            _max_worker_count         = std::thread::hardware_concurrency(),
+        const size_t            _max_job_queue_size       = std::numeric_limits<size_t>::max(),
+        const size_t            _max_mcast_queue_size     = std::numeric_limits<size_t>::max(),
+        std::function<void()>&& _on_thread_start_fnc      = []() {},
+        std::function<void()>&& _on_thread_stop_fnc       = []() {},
+        const size_t            _reserve_job_queue_size   = 0,
+        const size_t            _reserve_mcast_queue_size = 0)
         : max_worker_count_(_max_worker_count)
         , max_job_queue_size_(_max_job_queue_size == 0 ? std::numeric_limits<size_t>::max() : _max_job_queue_size)
+        , max_mcast_queue_size_(_max_mcast_queue_size == 0 ? std::numeric_limits<size_t>::max() : _max_mcast_queue_size)
+        , reserve_job_queue_size_(_reserve_job_queue_size)
+        , reserve_mcast_queue_size_(_reserve_mcast_queue_size)
         , on_thread_start_fnc_(std::move(_on_thread_start_fnc))
         , on_thread_stop_fnc_(std::move(_on_thread_stop_fnc))
     {
