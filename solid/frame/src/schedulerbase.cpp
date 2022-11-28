@@ -34,10 +34,11 @@ const LoggerT logger("solid::frame::scheduler");
 class ErrorCategory : public ErrorCategoryT {
 public:
     enum {
-        AlreadyE = 1,
-        WorkerE,
-        RunningE,
-        ReactorE
+        Already = 1,
+        Worker,
+        Running,
+        Reactor,
+        WorkerIndex,
     };
 
     ErrorCategory() {}
@@ -51,14 +52,16 @@ private:
     std::string message(int _ev) const override
     {
         switch (_ev) {
-        case AlreadyE:
+        case Already:
             return "Already started";
-        case WorkerE:
+        case Worker:
             return "Failed to start worker";
-        case RunningE:
+        case Running:
             return "Scheduler not running";
-        case ReactorE:
+        case Reactor:
             return "Reactor failure";
+        case WorkerIndex:
+            return "Invalid Worker Index";
         default:
             return "Unknown";
         }
@@ -67,23 +70,10 @@ private:
 
 const ErrorCategory ec;
 
-inline ErrorConditionT error_already()
-{
-    return ErrorConditionT(ErrorCategory::AlreadyE, ec);
-}
-inline ErrorConditionT error_worker()
-{
-    return ErrorConditionT(ErrorCategory::WorkerE, ec);
-}
-
-inline ErrorConditionT error_running()
-{
-    return ErrorConditionT(ErrorCategory::RunningE, ec);
-}
-
-// inline ErrorConditionT error_reactor(){
-//  return ErrorConditionT(ErrorCategory::ReactorE, ec);
-// }
+const ErrorConditionT error_already{ErrorCategory::Already, ec};
+const ErrorConditionT error_worker{ErrorCategory::Worker, ec};
+const ErrorConditionT error_running{ErrorCategory::Running, ec};
+const ErrorConditionT error_worker_index{ErrorCategory::WorkerIndex, ec};
 
 } // namespace
 
@@ -121,31 +111,31 @@ struct ReactorStub {
 
 typedef std::vector<ReactorStub> ReactorVectorT;
 
-enum Statuses {
-    StatusStoppedE = 0,
-    StatusStartingWaitE,
-    StatusStartingErrorE,
-    StatusRunningE,
-    StatusStoppingE,
-    StatusStoppingWaitE
+enum struct StatusE {
+    Stopped = 0,
+    StartingWait,
+    StartingError,
+    Running,
+    Stopping,
+    StoppingWait
 };
 
-typedef std::atomic<Statuses> AtomicStatuesT;
+typedef std::atomic<StatusE> AtomicStatusT;
 
 struct SchedulerBase::Data {
     Data()
         : crtreactoridx(0)
         , reactorcnt(0)
         , stopwaitcnt(0)
-        , status(StatusStoppedE)
+        , status(StatusE::Stopped)
         , usecnt(0)
     {
     }
 
-    size_t               crtreactoridx;
-    size_t               reactorcnt;
+    AtomicSizeT          crtreactoridx;
+    AtomicSizeT          reactorcnt;
     size_t               stopwaitcnt;
-    AtomicStatuesT       status;
+    AtomicStatusT        status;
     AtomicSizeT          usecnt;
     ThreadEnterFunctionT threnfnc;
     ThreadExitFunctionT  threxfnc;
@@ -172,6 +162,11 @@ void dummy_thread_exit()
 {
 }
 
+size_t SchedulerBase::workerCount()const
+{
+    return impl_->reactorcnt.load(std::memory_order_relaxed);
+}
+
 void SchedulerBase::doStart(
     CreateWorkerF         _pf,
     ThreadEnterFunctionT& _renf, ThreadExitFunctionT& _rexf,
@@ -185,12 +180,12 @@ void SchedulerBase::doStart(
     {
         unique_lock<mutex> lock(impl_->mtx);
 
-        solid_check_log(impl_->status != StatusRunningE, logger, "Scheduler already running");
+        solid_check_log(impl_->status != StatusE::Running, logger, "Scheduler already running");
 
-        if (impl_->status != StatusStoppedE || impl_->stopwaitcnt != 0u) {
+        if (impl_->status != StatusE::Stopped || impl_->stopwaitcnt != 0u) {
             do {
                 impl_->cnd.wait(lock);
-            } while (impl_->status != StatusStoppedE || impl_->stopwaitcnt != 0u);
+            } while (impl_->status != StatusE::Stopped || impl_->stopwaitcnt != 0u);
         }
 
         impl_->reactorvec.resize(_reactorcnt);
@@ -211,7 +206,6 @@ void SchedulerBase::doStart(
 
         for (size_t i = 0; i < _reactorcnt; ++i) {
             ReactorStub& rrs = impl_->reactorvec[i];
-            // rrs.thrptr.reset((*_pf)(*this, i));
 
             if (!(*_pf)(*this, i, rrs.thr)) {
                 start_err = true;
@@ -220,14 +214,14 @@ void SchedulerBase::doStart(
         }
 
         if (!start_err) {
-            impl_->status = StatusStartingWaitE;
+            impl_->status = StatusE::StartingWait;
 
             do {
                 impl_->cnd.wait(lock);
-            } while (impl_->status == StatusStartingWaitE && impl_->reactorcnt != impl_->reactorvec.size());
+            } while (impl_->status == StatusE::StartingWait && impl_->reactorcnt != impl_->reactorvec.size());
 
-            if (impl_->status == StatusStartingErrorE) {
-                impl_->status = StatusStoppingWaitE;
+            if (impl_->status == StatusE::StartingError) {
+                impl_->status = StatusE::StoppingWait;
                 start_err     = true;
             }
         }
@@ -239,7 +233,7 @@ void SchedulerBase::doStart(
                 }
             }
         } else {
-            impl_->status = StatusRunningE;
+            impl_->status = StatusE::Running;
             return;
         }
     }
@@ -252,7 +246,7 @@ void SchedulerBase::doStart(
     }
 
     lock_guard<mutex> lock(impl_->mtx);
-    impl_->status = StatusStoppedE;
+    impl_->status = StatusE::Stopped;
     impl_->cnd.notify_all();
     solid_throw_log(logger, "Failed starting worker");
 }
@@ -262,33 +256,33 @@ void SchedulerBase::doStop(bool _wait /* = true*/)
     {
         unique_lock<mutex> lock(impl_->mtx);
 
-        if (impl_->status == StatusStartingWaitE || impl_->status == StatusStartingErrorE) {
+        if (impl_->status == StatusE::StartingWait || impl_->status == StatusE::StartingError) {
             do {
                 impl_->cnd.wait(lock);
-            } while (impl_->status == StatusStartingWaitE || impl_->status == StatusStartingErrorE);
+            } while (impl_->status == StatusE::StartingWait || impl_->status == StatusE::StartingError);
         }
 
-        if (impl_->status == StatusRunningE) {
-            impl_->status = _wait ? StatusStoppingWaitE : StatusStoppingE;
+        if (impl_->status == StatusE::Running) {
+            impl_->status = _wait ? StatusE::StoppingWait : StatusE::Stopping;
 
             for (auto& v : impl_->reactorvec) {
                 if (v.preactor != nullptr) {
                     v.preactor->stop();
                 }
             }
-        } else if (impl_->status == StatusStoppingE) {
-            impl_->status = _wait ? StatusStoppingWaitE : StatusStoppingE;
-        } else if (impl_->status == StatusStoppingWaitE) {
+        } else if (impl_->status == StatusE::Stopping) {
+            impl_->status = _wait ? StatusE::StoppingWait : StatusE::Stopping;
+        } else if (impl_->status == StatusE::StoppingWait) {
             if (_wait) {
                 ++impl_->stopwaitcnt;
                 do {
                     impl_->cnd.wait(lock);
-                } while (impl_->status != StatusStoppedE);
+                } while (impl_->status != StatusE::Stopped);
                 --impl_->stopwaitcnt;
                 impl_->cnd.notify_one();
             }
             return;
-        } else if (impl_->status == StatusStoppedE) {
+        } else if (impl_->status == StatusE::Stopped) {
             return;
         }
     }
@@ -304,7 +298,7 @@ void SchedulerBase::doStop(bool _wait /* = true*/)
             }
         }
         lock_guard<mutex> lock(impl_->mtx);
-        impl_->status = StatusStoppedE;
+        impl_->status = StatusE::Stopped;
         impl_->cnd.notify_all();
     }
 }
@@ -313,16 +307,35 @@ ActorIdT SchedulerBase::doStartActor(ActorBase& _ract, Service& _rsvc, ScheduleF
 {
     ++impl_->usecnt;
     ActorIdT rv;
-    if (impl_->status == StatusRunningE) {
+    if (impl_->status == StatusE::Running) {
         ReactorStub& rrs = impl_->reactorvec[doComputeScheduleReactorIndex()];
 
         rv = _rsvc.registerActor(_ract, *rrs.preactor, _rfct, _rerr);
     } else {
-        _rerr = error_running();
+        _rerr = error_running;
     }
     --impl_->usecnt;
     return rv;
 }
+
+ActorIdT SchedulerBase::doStartActor(ActorBase& _ract, Service& _rsvc, const size_t _workerIndex, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr)
+{
+    ++impl_->usecnt;
+    ActorIdT rv;
+    if (impl_->status == StatusE::Running) {
+        if(_workerIndex < workerCount()){
+            ReactorStub& rrs = impl_->reactorvec[_workerIndex];
+            rv = _rsvc.registerActor(_ract, *rrs.preactor, _rfct, _rerr);
+        }else{
+            _rerr = error_worker_index;
+        }
+    } else {
+        _rerr = error_running;
+    }
+    --impl_->usecnt;
+    return rv;
+}
+
 
 bool less_cmp(ReactorStub const& _rrs1, ReactorStub const& _rrs2)
 {
@@ -355,13 +368,36 @@ size_t SchedulerBase::doComputeScheduleReactorIndex()
     case 8: {
         return find_cmp(impl_->reactorvec.begin(), less_cmp, std::integral_constant<size_t, 8>());
     }
+    case 9: {
+        return find_cmp(impl_->reactorvec.begin(), less_cmp, std::integral_constant<size_t, 9>());
+    }
+    case 10: {
+        return find_cmp(impl_->reactorvec.begin(), less_cmp, std::integral_constant<size_t, 10>());
+    }
+    case 11: {
+        return find_cmp(impl_->reactorvec.begin(), less_cmp, std::integral_constant<size_t, 11>());
+    }
+    case 12: {
+        return find_cmp(impl_->reactorvec.begin(), less_cmp, std::integral_constant<size_t, 12>());
+    }
+    case 13: {
+        return find_cmp(impl_->reactorvec.begin(), less_cmp, std::integral_constant<size_t, 13>());
+    }
+    case 14: {
+        return find_cmp(impl_->reactorvec.begin(), less_cmp, std::integral_constant<size_t, 14>());
+    }
+    case 15: {
+        return find_cmp(impl_->reactorvec.begin(), less_cmp, std::integral_constant<size_t, 15>());
+    }
+    case 16: {
+        return find_cmp(impl_->reactorvec.begin(), less_cmp, std::integral_constant<size_t, 16>());
+    }
     default:
         break;
     }
 
-    const size_t cwi     = impl_->crtreactoridx;
-    impl_->crtreactoridx = (cwi + 1) % impl_->reactorvec.size();
-    return cwi;
+    const size_t cwi  = impl_->crtreactoridx.fetch_add(1);
+    return cwi % impl_->reactorcnt.load(std::memory_order_relaxed);
 }
 
 bool SchedulerBase::prepareThread(const size_t _idx, ReactorBase& _rreactor, const bool _success)
@@ -371,14 +407,14 @@ bool SchedulerBase::prepareThread(const size_t _idx, ReactorBase& _rreactor, con
         lock_guard<mutex> lock(impl_->mtx);
         ReactorStub&      rrs = impl_->reactorvec[_idx];
 
-        if (_success && impl_->status == StatusStartingWaitE && thrensuccess) {
+        if (_success && impl_->status == StatusE::StartingWait && thrensuccess) {
             rrs.preactor = &_rreactor;
             ++impl_->reactorcnt;
             impl_->cnd.notify_all();
             return true;
         }
 
-        impl_->status = StatusStartingErrorE;
+        impl_->status = StatusE::StartingError;
         impl_->cnd.notify_one();
     }
 

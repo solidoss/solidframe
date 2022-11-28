@@ -70,7 +70,7 @@ private:
     };
 
 public:
-    Scheduler() {}
+    Scheduler() = default;
 
     void start(const size_t _reactorcnt = 1)
     {
@@ -87,6 +87,10 @@ public:
         SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt);
     }
 
+    size_t workerCount()const{
+        return SchedulerBase::workerCount();
+    }
+
     void stop(const bool _wait = true)
     {
         SchedulerBase::doStop(_wait);
@@ -101,12 +105,28 @@ public:
 
         return doStartActor(*_ractptr, _rsvc, fct, _rerr);
     }
+
+    ActorIdT startActor(
+        ActorPointerT&& _ractptr, Service& _rsvc, const size_t _worker_index,
+        Event&& _revt, ErrorConditionT& _rerr)
+    {
+        ScheduleCommand   cmd(std::move(_ractptr), _rsvc, std::move(_revt));
+        ScheduleFunctionT fct([&cmd](ReactorBase& _rreactor) { return cmd(_rreactor); });
+
+        return doStartActor(*_ractptr, _rsvc, _worker_index, fct, _rerr);
+    }
 };
 
 template <class Actr, class Schd, class Srvc, class... P>
-ActorIdT make_actor(Schd& _rschd, Srvc& _rsrvc, Event&& _revt, ErrorConditionT& _rerr, P&&... _p)
+inline ActorIdT make_actor(Schd& _rschd, Srvc& _rsrvc, Event&& _revt, ErrorConditionT& _rerr, P&&... _p)
 {
     return _rschd.startActor(std::make_shared<Actr>(std::forward<P>(_p)...), _rsrvc, std::forward<Event>(_revt), _rerr);
+}
+
+template <class Actr, class Schd, class Srvc, class... P>
+inline ActorIdT make_actor(Schd& _rschd, Srvc& _rsrvc, const size_t _worker_index, Event&& _revt, ErrorConditionT& _rerr, P&&... _p)
+{
+    return _rschd.startActor(std::make_shared<Actr>(std::forward<P>(_p)...), _rsrvc, _worker_index, std::forward<Event>(_revt), _rerr);
 }
 
 } // namespace frame
