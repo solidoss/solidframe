@@ -104,10 +104,10 @@ int main(int argc, char* argv[])
     // return 0;
 
     using WorkPoolT = lockfree::WorkPool<FileDevice*, void>;
-
+    Context   context;
     WorkPoolT wp{
         solid::WorkPoolConfiguration(),
-        [](FileDevice* _pfile, Context&& _rctx) {
+        [](FileDevice* _pfile, Context& _rctx) {
             int64_t sz = _pfile->size();
             int     toread;
             int     cnt = 0;
@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
                 sz -= rv;
             }
         },
-        Context()};
+        std::ref(context)};
     for (FileDeuqeT::iterator it(fdq.begin()); it != fdq.end(); ++it) {
         wp.push(&(*it));
     }

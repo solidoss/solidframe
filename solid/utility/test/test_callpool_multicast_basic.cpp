@@ -60,7 +60,7 @@ int test_callpool_multicast_basic(int argc, char* argv[])
                 ++worker_stop_count;
             };
             {
-                CallPoolT cp{WorkPoolConfiguration{worker_count, 0, worker_start, worker_stop}, std::ref(context), std::ref(record_dq)};
+                CallPoolT cp{WorkPoolConfiguration{worker_count, 0, 0, worker_start, worker_stop}, std::ref(context), std::ref(record_dq)};
 
                 pwp = &cp;
                 std::promise<void> barrier;
