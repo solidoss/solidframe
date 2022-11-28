@@ -942,8 +942,8 @@ typename WorkPool<Job, MCastJob, QNBits, UseSpinLock, Base>::JobNode* WorkPool<J
     } else {
         std::lock_guard<std::mutex> lock{push_mtx_job_};
         auto*                       pnode = free_job_stack_.pop();
-        if (pnode) {
 
+        if (pnode) {
         } else {
             if (job_dq_.size() < Base::config_.max_job_queue_size_) {
                 job_dq_.emplace_back();
@@ -961,8 +961,8 @@ typename WorkPool<Job, MCastJob, QNBits, UseSpinLock, Base>::JobNode* WorkPool<J
         push_spin_job_.lock();
         auto* pnode = free_job_stack_.pop();
         push_spin_job_.unlock();
-        if (pnode) {
 
+        if (pnode) {
         } else {
             std::unique_lock<std::mutex> lock{push_mtx_job_};
             if (job_dq_.size() < Base::config_.max_job_queue_size_) {
@@ -984,6 +984,7 @@ typename WorkPool<Job, MCastJob, QNBits, UseSpinLock, Base>::JobNode* WorkPool<J
     } else {
         std::unique_lock<std::mutex> lock{push_mtx_job_};
         auto*                        pnode = free_job_stack_.pop();
+
         if (pnode) {
         } else if (job_dq_.size() < Base::config_.max_job_queue_size_) {
             job_dq_.emplace_back();
@@ -1017,8 +1018,8 @@ typename WorkPool<Job, MCastJob, QNBits, UseSpinLock, Base>::MCastNode* WorkPool
     } else {
         std::lock_guard<std::mutex> lock{push_mtx_mcast_};
         auto*                       pnode = free_mcast_stack_.pop();
-        if (pnode) {
 
+        if (pnode) {
         } else {
             if (mcast_dq_.size() < Base::config_.max_job_queue_size_) {
                 mcast_dq_.emplace_back();
@@ -1036,6 +1037,7 @@ typename WorkPool<Job, MCastJob, QNBits, UseSpinLock, Base>::MCastNode* WorkPool
         push_spin_mcast_.lock();
         auto* pnode = free_mcast_stack_.pop();
         push_spin_mcast_.unlock();
+
         if (pnode) {
         } else {
             std::unique_lock<std::mutex> lock{push_mtx_mcast_};
