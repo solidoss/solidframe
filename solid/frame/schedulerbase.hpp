@@ -30,7 +30,8 @@ typedef solid_function_t(bool(ReactorBase&)) ScheduleFunctionT;
 //! A base class for all schedulers
 class SchedulerBase : NonCopyable {
     struct Data;
-    PimplT<Data> impl_;
+    PimplT<Data> pimpl_;
+
 protected:
     typedef bool (*CreateWorkerF)(SchedulerBase& _rsch, const size_t, std::thread& _rthr);
 
@@ -48,7 +49,8 @@ protected:
     ActorIdT doStartActor(ActorBase& _ract, Service& _rsvc, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
     ActorIdT doStartActor(ActorBase& _ract, Service& _rsvc, const size_t _workerIndex, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
 
-    size_t workerCount()const;
+    size_t workerCount() const;
+
 protected:
     SchedulerBase();
     ~SchedulerBase();

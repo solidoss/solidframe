@@ -69,6 +69,7 @@ if(OPENSSL_FOUND)
         test_clientserver_upload_single.cpp
         test_clientserver_download.cpp
         test_clientserver_timeout_secure.cpp
+        test_clientserver_topic.cpp
     )
     #
     create_test_sourcelist( mprpcClientServerTests test_mprpc_clientserver.cpp ${mprpcClientServerTestSuite})

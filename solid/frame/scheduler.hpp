@@ -87,7 +87,8 @@ public:
         SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt);
     }
 
-    size_t workerCount()const{
+    size_t workerCount() const
+    {
         return SchedulerBase::workerCount();
     }
 
