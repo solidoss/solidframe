@@ -339,7 +339,8 @@ public:
     template <class T, std::enable_if_t<std::conjunction_v<std::negation<is_any<std::decay_t<T>>>, std::negation<is_specialization<std::decay_t<T>, std::in_place_type_t>> /*,
         std::is_copy_constructible<std::decay_t<T>>*/
                                             >,
-                           int> = 0>
+                           int>
+        = 0>
     Any(T&& _rvalue)
     {
         doEmplace<std::decay_t<T>>(std::forward<T>(_rvalue));
@@ -348,7 +349,8 @@ public:
     template <class T, class... Args,
         std::enable_if_t<
             std::conjunction_v<std::is_constructible<std::decay_t<T>, Args...> /*, std::is_copy_constructible<std::decay_t<T>>*/>,
-            int> = 0>
+            int>
+        = 0>
     explicit Any(std::in_place_type_t<T>, Args&&... _args)
     {
         doEmplace<std::decay_t<T>>(std::forward<Args>(_args)...);
@@ -357,7 +359,8 @@ public:
     template <class T, class E, class... Args,
         std::enable_if_t<std::conjunction_v<std::is_constructible<std::decay_t<T>, std::initializer_list<E>&, Args...>,
                              std::is_copy_constructible<std::decay_t<T>>>,
-            int> = 0>
+            int>
+        = 0>
     explicit Any(std::in_place_type_t<T>, std::initializer_list<E> _ilist, Args&&... _args)
     {
         doEmplace<std::decay_t<T>>(_ilist, std::forward<Args>(_args)...);
@@ -406,7 +409,8 @@ public:
     template <class T, class... Args,
         std::enable_if_t<
             std::conjunction_v<std::is_constructible<std::decay_t<T>, Args...>>,
-            int> = 0>
+            int>
+        = 0>
     std::decay_t<T>& emplace(Args&&... _args)
     {
         reset();
@@ -416,7 +420,8 @@ public:
         std::enable_if_t<std::conjunction_v<std::is_constructible<std::decay_t<T>, std::initializer_list<E>&, Args...> /*,
         is_copy_constructible<decay_t<T>>*/
                              >,
-            int> = 0>
+            int>
+        = 0>
     std::decay_t<T>& emplace(std::initializer_list<E> _ilist, Args&&... _args)
     {
         reset();

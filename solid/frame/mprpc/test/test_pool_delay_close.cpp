@@ -398,8 +398,8 @@ int test_pool_delay_close(int argc, char* argv[])
             {
                 frame::mprpc::MessagePointerT msgptr(std::make_shared<Message>(0));
                 ErrorConditionT               err = pmprpcclient->sendMessage(
-                                  recipinet_id, msgptr,
-                                  {frame::mprpc::MessageFlagsE::AwaitResponse});
+                    recipinet_id, msgptr,
+                    {frame::mprpc::MessageFlagsE::AwaitResponse});
                 solid_dbg(generic_logger, Info, "send message error message: " << err.message());
                 solid_check(err);
             }

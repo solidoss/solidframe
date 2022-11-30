@@ -91,21 +91,10 @@ private:
     explicit Event(
         const uintptr_t          _id,
         const EventCategoryBase& _rcategory,
-        const T&                 _rany_value)
+        T&&                      _rany_value)
         : pcategory_(&_rcategory)
         , id_(_id)
-        , any_(_rany_value)
-    {
-    }
-
-    template <class T>
-    explicit Event(
-        const uintptr_t          _id,
-        const EventCategoryBase& _rcategory,
-        T&&                      _uany_value)
-        : pcategory_(&_rcategory)
-        , id_(_id)
-        , any_(std::move(_uany_value))
+        , any_(std::forward<T>(_rany_value))
     {
     }
 
@@ -142,15 +131,9 @@ protected:
     }
 
     template <typename T>
-    Event event(const uintptr_t _idx, const T& _rany_value) const
-    {
-        return Event(_idx, *this, _rany_value);
-    }
-
-    template <typename T>
     Event event(const uintptr_t _idx, T&& _uany_value) const
     {
-        return Event(_idx, *this, std::move(_uany_value));
+        return Event(_idx, *this, std::forward<T>(_uany_value));
     }
 
     uintptr_t eventId(const Event& _revt) const
@@ -189,15 +172,9 @@ public:
     }
 
     template <typename T>
-    Event event(const EventIds _id, const T& _rany_value) const
-    {
-        return EventCategoryBase::event(static_cast<size_t>(_id), _rany_value);
-    }
-
-    template <typename T>
     Event event(const EventIds _id, T&& _uany_value) const
     {
-        return EventCategoryBase::event(static_cast<size_t>(_id), std::move(_uany_value));
+        return EventCategoryBase::event(static_cast<size_t>(_id), std::forward<T>(_uany_value));
     }
 
 private:
@@ -231,15 +208,9 @@ inline Event make_event(const GenericEvents _id)
 }
 
 template <typename T>
-inline Event make_event(const GenericEvents _id, const T& _rany_value)
-{
-    return generic_event_category.event(_id, _rany_value);
-}
-
-template <typename T>
 inline Event make_event(const GenericEvents _id, T&& _uany_value)
 {
-    return generic_event_category.event(_id, _uany_value);
+    return generic_event_category.event(_id, std::forward<T>(_uany_value));
 }
 
 template <typename Events>
@@ -249,15 +220,9 @@ inline Event make_event(const EventCategory<Events>& _rcategory, const Events _i
 }
 
 template <typename Events, typename T>
-inline Event make_event(const EventCategory<Events>& _rcategory, const Events _id, const T& _rany_value)
+inline Event make_event(const EventCategory<Events>& _rcategory, const Events _id, T&& _uany_value)
 {
-    return _rcategory.event(_id, _rany_value);
-}
-
-template <typename Events, typename T>
-inline Event make_event(const EventCategory<Events>& _rcategory, const GenericEvents _id, T&& _uany_value)
-{
-    return _rcategory.event(_id, _uany_value);
+    return _rcategory.event(_id, std::forward<T>(_uany_value));
 }
 
 //-----------------------------------------------------------------------------

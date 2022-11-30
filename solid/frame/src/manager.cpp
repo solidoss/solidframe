@@ -466,8 +466,8 @@ bool Manager::registerService(Service& _rservice, const bool _start)
         size_t                       service_index = InvalidIndex();
         std::unique_lock<std::mutex> lock;
         ServiceStub*                 pss = pimpl_->service_store_.create(
-                            service_index,
-                            [&lock, this](const size_t _index, ServiceStub& _rss) {
+            service_index,
+            [&lock, this](const size_t _index, ServiceStub& _rss) {
                 if (_rss.pmutex_ == nullptr) {
                     _rss.pmutex_ = &pimpl_->pservice_mutex_array_[_index % pimpl_->service_mutex_count_];
                 }
@@ -511,8 +511,8 @@ void Manager::doCleanupService(const size_t _service_index, Service& _rservice)
 {
     std::unique_lock<std::mutex> lock;
     ServiceStub&                 rss = pimpl_->service_store_.aquire(
-                        _service_index,
-                        [&lock](const size_t /*_index*/, ServiceStub& _rss) {
+        _service_index,
+        [&lock](const size_t /*_index*/, ServiceStub& _rss) {
             lock = std::unique_lock<std::mutex>(_rss.mutex());
         });
 
@@ -552,8 +552,8 @@ ActorIdT Manager::registerActor(
     size_t                       actor_index = InvalidIndex();
     std::unique_lock<std::mutex> lock;
     ServiceStub&                 rss = pimpl_->service_store_.aquire(
-                        service_index,
-                        [&lock](const size_t _index, ServiceStub& _rss) {
+        service_index,
+        [&lock](const size_t _index, ServiceStub& _rss) {
             lock = std::unique_lock<std::mutex>(_rss.mutex());
         });
 
@@ -595,8 +595,8 @@ ActorIdT Manager::registerActor(
             {
                 std::unique_lock<std::mutex> lock;
                 ActorChunkStub&              rlast_chunk = pimpl_->actor_chunk_store_.aquire(
-                                 rss.last_actor_chunk_,
-                                 [&lock](const size_t, ActorChunkStub& _racs) {
+                    rss.last_actor_chunk_,
+                    [&lock](const size_t, ActorChunkStub& _racs) {
                         lock = std::unique_lock<std::mutex>(_racs.chunk().mutex());
                     });
 
@@ -668,8 +668,8 @@ void Manager::unregisterActor(ActorBase& _ractor)
 
         std::unique_lock<std::mutex> lock;
         ServiceStub&                 rss = pimpl_->service_store_.aquire(
-                            service_index,
-                            [&lock](const size_t _index, ServiceStub& _rss) {
+            service_index,
+            [&lock](const size_t _index, ServiceStub& _rss) {
                 lock = std::unique_lock<std::mutex>(_rss.mutex());
             });
 
@@ -796,8 +796,8 @@ size_t Manager::doForEachServiceActor(const Service& _rservice, const ActorVisit
     {
         std::unique_lock<std::mutex> lock;
         ServiceStub&                 rss = pimpl_->service_store_.aquire(
-                            service_index,
-                            [&lock](const size_t _index, ServiceStub& _rss) {
+            service_index,
+            [&lock](const size_t _index, ServiceStub& _rss) {
                 lock = std::unique_lock<std::mutex>(_rss.mutex());
             });
         first_actor_chunk = rss.first_actor_chunk_;
@@ -853,8 +853,8 @@ Service& Manager::service(const ActorBase& _ractor) const
     {
         std::unique_lock<std::mutex> lock;
         ServiceStub&                 rss = pimpl_->service_store_.aquire(
-                            service_index,
-                            [&lock](const size_t _index, ServiceStub& _rss) {
+            service_index,
+            [&lock](const size_t _index, ServiceStub& _rss) {
                 lock = std::unique_lock<std::mutex>(_rss.mutex());
             });
 
@@ -871,8 +871,8 @@ void Manager::doStartService(Service& _rservice, const LockedFunctionT& _locked_
         const size_t                 service_index = _rservice.index();
         std::unique_lock<std::mutex> lock;
         ServiceStub&                 rss = pimpl_->service_store_.aquire(
-                            service_index,
-                            [&lock](const size_t _index, ServiceStub& _rss) {
+            service_index,
+            [&lock](const size_t _index, ServiceStub& _rss) {
                 lock = std::unique_lock<std::mutex>(_rss.mutex());
             });
 
@@ -903,8 +903,8 @@ void Manager::stopService(Service& _rservice, const bool _wait)
     const size_t                 service_index = _rservice.index();
     std::unique_lock<std::mutex> lock;
     ServiceStub&                 rss = pimpl_->service_store_.aquire(
-                        service_index,
-                        [&lock](const size_t _index, ServiceStub& _rss) {
+        service_index,
+        [&lock](const size_t _index, ServiceStub& _rss) {
             lock = std::unique_lock<std::mutex>(_rss.mutex());
         });
 
@@ -992,8 +992,8 @@ void Manager::stop()
     for (size_t service_index = 0; true; ++service_index) {
         std::unique_lock<std::mutex> lock;
         ServiceStub*                 pss = pimpl_->service_store_.aquirePointer(
-                            service_index,
-                            [&lock](const size_t _index, ServiceStub& _rss) {
+            service_index,
+            [&lock](const size_t _index, ServiceStub& _rss) {
                 lock = std::unique_lock<std::mutex>(_rss.mutex());
             });
 
@@ -1019,8 +1019,8 @@ void Manager::stop()
     for (size_t service_index = 0; true; ++service_index) {
         std::unique_lock<std::mutex> lock;
         ServiceStub*                 pss = pimpl_->service_store_.aquirePointer(
-                            service_index,
-                            [&lock](const size_t _index, ServiceStub& _rss) {
+            service_index,
+            [&lock](const size_t _index, ServiceStub& _rss) {
                 lock = std::unique_lock<std::mutex>(_rss.mutex());
             });
 
