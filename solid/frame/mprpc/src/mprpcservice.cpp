@@ -811,6 +811,8 @@ ErrorConditionT Service::doCreateConnectionPool(
     PoolOnEventFunctionT&   _event_fnc,
     const size_t            _persistent_connection_count)
 {
+    static constexpr const char* empty_recipient_name = ":";
+
     solid::ErrorConditionT error;
     size_t                 pool_index;
     std::string            message_url;
@@ -818,10 +820,12 @@ ErrorConditionT Service::doCreateConnectionPool(
     lock_guard<std::mutex> lock(impl_->mtx);
     const char*            recipient_name = configuration().extract_recipient_name_fnc(_recipient_url.data(), message_url, impl_->tmp_str);
 
-    if (recipient_name == nullptr || recipient_name[0] == '\0') {
+    if (recipient_name == nullptr) {
         solid_log(logger, Error, this << " failed extracting recipient name");
         error = error_service_invalid_url;
         return error;
+    } else if (recipient_name[0] == '\0') {
+        recipient_name = empty_recipient_name;
     }
 
     if (impl_->namemap.find(recipient_name) == impl_->namemap.end()) {

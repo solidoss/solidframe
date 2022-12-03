@@ -35,6 +35,11 @@ namespace mprpc {
 
 extern const Event pool_event_connect;
 extern const Event pool_event_disconnect;
+extern const Event pool_event_connection_start;
+extern const Event pool_event_connection_activate;
+extern const Event pool_event_connection_stop;
+extern const Event pool_event_pool_disconnect;
+extern const Event pool_event_pool_stop;
 
 struct Message;
 struct Configuration;
