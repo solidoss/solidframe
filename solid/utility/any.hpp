@@ -298,18 +298,18 @@ private:
         return reinterpret_cast<const std::type_info*>(storage_.type_data_ & ~any_impl::representation_and_flags_mask);
     }
 
-    template <class T>
-    static constexpr bool is_small_type()
-    {
-        return alignof(T) <= alignof(max_align_t) && sizeof(T) <= small_capacity;
-    }
-
 public:
     using ThisT = Any<DataSize>;
 
     static constexpr size_t smallCapacity()
     {
         return small_capacity;
+    }
+
+    template <class T>
+    static constexpr bool is_small_type()
+    {
+        return alignof(T) <= alignof(max_align_t) && sizeof(T) <= small_capacity;
     }
 
     constexpr Any() noexcept {}

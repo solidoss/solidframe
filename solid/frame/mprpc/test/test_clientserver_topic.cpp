@@ -30,8 +30,10 @@ using SecureContextT = frame::aio::openssl::Context;
 namespace {
 LoggerT logger("test");
 
-using CallPoolT     = locking::CallPoolT<void()>;
+using CallPoolT = locking::CallPoolT<void(), void(), 80>;
+// using CallPoolT     = lockfree::CallPoolT<void(), void, 80>;
 using SynchContextT = decltype(declval<CallPoolT>().createSynchronizationContext());
+// using SynchContextT = int32_t;
 
 inline auto milliseconds_since_epoch(const std::chrono::system_clock::time_point& _time = std::chrono::system_clock::now())
 {
@@ -195,7 +197,7 @@ int test_clientserver_topic(int argc, char* argv[])
         ErrorConditionT        err;
         frame::aio::Resolver   resolver([&resolve_pool](std::function<void()>&& _fnc) { resolve_pool.push(std::move(_fnc)); });
 
-        worker_pool.start(WorkPoolConfiguration(8));
+        worker_pool.start(WorkPoolConfiguration(4));
         resolve_pool.start(1);
         sch_client.start(1);
         sch_server.start(2);
@@ -340,7 +342,7 @@ int test_clientserver_topic(int argc, char* argv[])
 
         solid_log(logger, Statistic, "Workpool statistic: " << worker_pool.statistic());
 
-        {
+        if (0) {
             ofstream ofs("duration.csv");
             if (ofs) {
                 for (const auto& t : duration_dq) {
@@ -442,8 +444,11 @@ void server_complete_message(
             service.sendResponse(recipient_id, _rrecv_msg_ptr);
         };
 
+        static_assert(CallPoolT::is_small_type<decltype(lambda)>(), "Type not small");
+
         topic_ptr->synch_ctx_.push(std::move(lambda));
-        // lambda();
+        // worker_pool.push(std::move(lambda));
+        //  lambda();
     }
     if (_rsent_msg_ptr) {
         solid_dbg(logger, Info, _rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());

@@ -115,6 +115,11 @@ class CallPool<void(ArgTypes...), void, FunctionDataSize, WP> {
 
 public:
     static constexpr size_t node_capacity = WorkPoolT::node_capacity;
+    template <class T>
+    static constexpr bool is_small_type()
+    {
+        return FunctionT::template is_small_type<T>();
+    }
 
     CallPool() {}
 
@@ -185,6 +190,11 @@ class CallPool<void(ArgTypes...), void(ArgTypes...), FunctionDataSize, WP> {
 
 public:
     static constexpr size_t node_capacity = WorkPoolT::node_capacity;
+    template <class T>
+    static constexpr bool is_small_type()
+    {
+        return FunctionT::template is_small_type<T>();
+    }
 
     CallPool() {}
 
