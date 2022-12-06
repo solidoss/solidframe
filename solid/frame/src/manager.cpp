@@ -104,8 +104,6 @@ using StackSizeT = Stack<size_t>;
 
 template <class T>
 class Store {
-    using MutexT = mutex;
-    MutexT         mutex_;
     StackSizeT     index_stk_;
     atomic<size_t> data_size_;
     vector<T>      data_vec_;
@@ -119,7 +117,6 @@ public:
 
     T* create(size_t& _rindex)
     {
-        lock_guard<MutexT> lock(mutex_);
         if (!index_stk_.empty()) {
             _rindex = index_stk_.top();
             index_stk_.pop();
@@ -134,7 +131,6 @@ public:
     template <typename F>
     T* create(size_t& _rindex, const F& _rf)
     {
-        lock_guard<MutexT> lock(mutex_);
         if (!index_stk_.empty()) {
             _rindex = index_stk_.top();
             index_stk_.pop();
@@ -152,14 +148,12 @@ public:
 
     void release(const size_t _index)
     {
-        lock_guard<MutexT> lock(mutex_);
         index_stk_.push(_index);
     }
 
     template <typename F>
     void release(const size_t _index, const F& _rf)
     { // Do not pass index as reference!!
-        lock_guard<MutexT> lock(mutex_);
         _rf(_index, data_vec_[_index]);
         index_stk_.push(_index);
     }
@@ -725,7 +719,7 @@ size_t Manager::notifyAll(const Service& _rsvc, Event const& _revt)
     return doForEachServiceActor(_rsvc, ActorVisitFunctionT{do_notify_fnc});
 }
 
-bool Manager::doVisit(ActorIdT const& _actor_id, const ActorVisitFunctionT _rfct)
+bool Manager::doVisit(ActorIdT const& _actor_id, const ActorVisitFunctionT& _rfct)
 {
 
     bool retval = false;
@@ -786,7 +780,7 @@ std::mutex& Manager::mutex(const Service& _rservice) const
     return *pmutex;
 }
 
-size_t Manager::doForEachServiceActor(const Service& _rservice, const ActorVisitFunctionT _rvisit_fnc)
+size_t Manager::doForEachServiceActor(const Service& _rservice, const ActorVisitFunctionT& _rvisit_fnc)
 {
     if (!_rservice.registered()) {
         return 0u;
@@ -806,7 +800,7 @@ size_t Manager::doForEachServiceActor(const Service& _rservice, const ActorVisit
     return doForEachServiceActor(first_actor_chunk, _rvisit_fnc);
 }
 
-size_t Manager::doForEachServiceActor(const size_t _first_actor_chunk, const ActorVisitFunctionT _rvisit_fnc)
+size_t Manager::doForEachServiceActor(const size_t _first_actor_chunk, const ActorVisitFunctionT& _rvisit_fnc)
 {
 
     size_t chunk_index   = _first_actor_chunk;
