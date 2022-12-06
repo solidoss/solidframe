@@ -806,22 +806,26 @@ struct OnRelsolveF {
 //-----------------------------------------------------------------------------
 
 ErrorConditionT Service::doCreateConnectionPool(
-    const char*           _recipient_url,
-    RecipientId&          _rrecipient_id_out,
-    PoolOnEventFunctionT& _event_fnc,
-    const size_t          _persistent_connection_count)
+    const std::string_view& _recipient_url,
+    RecipientId&            _rrecipient_id_out,
+    PoolOnEventFunctionT&   _event_fnc,
+    const size_t            _persistent_connection_count)
 {
+    static constexpr const char* empty_recipient_name = ":";
+
     solid::ErrorConditionT error;
     size_t                 pool_index;
     std::string            message_url;
 
     lock_guard<std::mutex> lock(impl_->mtx);
-    const char*            recipient_name = configuration().extract_recipient_name_fnc(_recipient_url, message_url, impl_->tmp_str);
+    const char*            recipient_name = configuration().extract_recipient_name_fnc(_recipient_url.data(), message_url, impl_->tmp_str);
 
-    if (recipient_name == nullptr || recipient_name[0] == '\0') {
+    if (recipient_name == nullptr) {
         solid_log(logger, Error, this << " failed extracting recipient name");
         error = error_service_invalid_url;
         return error;
+    } else if (recipient_name[0] == '\0') {
+        recipient_name = empty_recipient_name;
     }
 
     if (impl_->namemap.find(recipient_name) == impl_->namemap.end()) {
@@ -1110,7 +1114,7 @@ ErrorConditionT Service::doSendMessageToConnection(
 //-----------------------------------------------------------------------------
 
 ErrorConditionT Service::doSendMessageToNewPool(
-    const char*               _recipient_name,
+    const std::string_view&   _recipient_name,
     MessagePointerT&          _rmsgptr,
     const size_t              _msg_type_idx,
     MessageCompleteFunctionT& _rcomplete_fnc,
@@ -1583,8 +1587,8 @@ ErrorConditionT Service::doConnectionNotifyEnterActiveState(
 
     ErrorConditionT error;
     bool            success = manager().notify(
-                   _rrecipient_id.connectionId(),
-                   Connection::eventEnterActive(std::move(_ucomplete_fnc), _send_buffer_capacity));
+        _rrecipient_id.connectionId(),
+        Connection::eventEnterActive(std::move(_ucomplete_fnc), _send_buffer_capacity));
 
     if (!success) {
         solid_log(logger, Warning, this << " failed notify enter active event to " << _rrecipient_id.connectionId());
@@ -1611,8 +1615,8 @@ ErrorConditionT Service::doConnectionNotifyPost(
 
     ErrorConditionT error;
     bool            success = manager().notify(
-                   _rrecipient_id.connectionId(),
-                   Connection::eventPost(std::move(_ucomplete_fnc)));
+        _rrecipient_id.connectionId(),
+        Connection::eventPost(std::move(_ucomplete_fnc)));
 
     if (!success) {
         solid_log(logger, Warning, this << " failed notify enter active event to " << _rrecipient_id.connectionId());
@@ -1631,8 +1635,8 @@ ErrorConditionT Service::doConnectionNotifyStartSecureHandshake(
 
     ErrorConditionT error;
     bool            success = manager().notify(
-                   _rrecipient_id.connectionId(),
-                   Connection::eventStartSecure(std::move(_ucomplete_fnc)));
+        _rrecipient_id.connectionId(),
+        Connection::eventStartSecure(std::move(_ucomplete_fnc)));
 
     if (!success) {
         solid_log(logger, Warning, this << " failed notify start secure event to " << _rrecipient_id.connectionId());
@@ -1651,8 +1655,8 @@ ErrorConditionT Service::doConnectionNotifyEnterPassiveState(
 
     ErrorConditionT error;
     bool            success = manager().notify(
-                   _rrecipient_id.connectionId(),
-                   Connection::eventEnterPassive(std::move(_ucomplete_fnc)));
+        _rrecipient_id.connectionId(),
+        Connection::eventEnterPassive(std::move(_ucomplete_fnc)));
 
     if (!success) {
         solid_log(logger, Warning, this << " failed notify enter passive event to " << _rrecipient_id.connectionId());
@@ -1672,8 +1676,8 @@ ErrorConditionT Service::doConnectionNotifySendRawData(
 
     ErrorConditionT error;
     bool            success = manager().notify(
-                   _rrecipient_id.connectionId(),
-                   Connection::eventSendRaw(std::move(_ucomplete_fnc), std::move(_rdata)));
+        _rrecipient_id.connectionId(),
+        Connection::eventSendRaw(std::move(_ucomplete_fnc), std::move(_rdata)));
 
     if (!success) {
         solid_log(logger, Warning, this << " failed notify send raw event to " << _rrecipient_id.connectionId());
@@ -1692,8 +1696,8 @@ ErrorConditionT Service::doConnectionNotifyRecvRawData(
 
     ErrorConditionT error;
     bool            success = manager().notify(
-                   _rrecipient_id.connectionId(),
-                   Connection::eventRecvRaw(std::move(_ucomplete_fnc)));
+        _rrecipient_id.connectionId(),
+        Connection::eventRecvRaw(std::move(_ucomplete_fnc)));
 
     if (!success) {
         solid_log(logger, Warning, this << " failed notify recv raw event to " << _rrecipient_id.connectionId());

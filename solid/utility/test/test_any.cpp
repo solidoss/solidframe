@@ -7,7 +7,7 @@
 #include <memory>
 #include <string>
 
-//#define TEST_BOOST_ANY
+// #define TEST_BOOST_ANY
 
 #ifdef TEST_BOOST_ANY
 #include "boost/any.hpp"

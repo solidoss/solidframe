@@ -283,14 +283,15 @@ private:
         return reinterpret_cast<const std::type_info*>(storage_.type_data_ & ~fnc_impl::representation_and_flags_mask);
     }
 
+public:
+    using ThisT = Function<R(ArgTypes...), DataSize>;
+
     template <class T>
     static constexpr bool is_small_type()
     {
         return alignof(T) <= alignof(max_align_t) && sizeof(T) <= small_capacity;
     }
 
-public:
-    using ThisT = Function<R(ArgTypes...), DataSize>;
     static constexpr size_t smallCapacity()
     {
         return small_capacity;
@@ -325,7 +326,8 @@ public:
     template <class T, std::enable_if_t<std::conjunction_v<std::negation<is_function<std::decay_t<T>>>, std::negation<is_specialization<std::decay_t<T>, std::in_place_type_t>> /*,
         std::is_copy_constructible<std::decay_t<T>>*/
                                             >,
-                           int> = 0>
+                           int>
+        = 0>
     Function(const T& _value)
     {
         doEmplace<std::decay_t<T>>(std::move(_value));
@@ -334,7 +336,8 @@ public:
     template <class T, std::enable_if_t<std::conjunction_v<std::negation<is_function<std::decay_t<T>>>, std::negation<is_specialization<std::decay_t<T>, std::in_place_type_t>> /*,
         std::is_copy_constructible<std::decay_t<T>>*/
                                             >,
-                           int> = 0>
+                           int>
+        = 0>
     Function(T&& _rvalue)
     {
         doEmplace<std::decay_t<T>>(std::forward<T>(_rvalue));

@@ -35,7 +35,7 @@ struct Context {
     }
 };
 
-//#define EXTRA_CHECKING
+// #define EXTRA_CHECKING
 
 int test_workpool(int argc, char* argv[])
 {
