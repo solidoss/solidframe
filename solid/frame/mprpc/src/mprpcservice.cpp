@@ -318,7 +318,7 @@ struct ConnectionPoolStub {
         return MessageId(idx, rmsgstub.unique);
     }
 
-    MessageId pushBackMessage(
+    inline MessageId pushBackMessage(
         MessagePointerT&          _rmsgptr,
         const size_t              _msg_type_idx,
         MessageCompleteFunctionT& _rcomplete_fnc,
@@ -793,6 +793,8 @@ void Service::doFinalizeStart(ServiceStartStatus& _status, std::unique_lock<std:
 
     pimpl_->config.createListenerDevice(sd);
 
+    solid_check(pimpl_->pooldq.size() == pimpl_->conpoolcachestk.size() && !pimpl_->pooldq.empty());
+
     if (sd) {
         SocketAddress local_address;
 
@@ -810,8 +812,6 @@ void Service::doFinalizeStart(ServiceStartStatus& _status, std::unique_lock<std:
 
         _status.listen_addr_vec_.emplace_back(std::move(local_address));
     }
-
-    solid_check(pimpl_->pooldq.size() == pimpl_->conpoolcachestk.size());
 
 #if 0
     lock_guard<std::mutex> lock(pimpl_->mtx);

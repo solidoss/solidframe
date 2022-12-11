@@ -163,102 +163,102 @@ struct Message : std::enable_shared_from_this<Message> {
 
     using FlagsT = MessageFlagsValueT;
 
-    static bool is_synchronous(const MessageFlagsT& _flags)
+    inline static bool is_synchronous(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::Synchronous);
     }
-    static bool is_asynchronous(const MessageFlagsT& _flags)
+    inline static bool is_asynchronous(const MessageFlagsT& _flags)
     {
         return !is_synchronous(_flags);
     }
 
-    static bool is_awaiting_response(const MessageFlagsT& _flags)
+    inline static bool is_awaiting_response(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::AwaitResponse);
     }
 
-    static bool is_request(const MessageFlagsT& _flags)
+    inline static bool is_request(const MessageFlagsT& _flags)
     {
         return is_awaiting_response(_flags);
     }
 
-    static bool is_idempotent(const MessageFlagsT& _flags)
+    inline static bool is_idempotent(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::Idempotent);
     }
 
-    static bool is_started_send(const MessageFlagsT& _flags)
+    inline static bool is_started_send(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::StartedSend);
     }
 
-    static bool is_done_send(const MessageFlagsT& _flags)
+    inline static bool is_done_send(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::DoneSend);
     }
 
-    static bool is_canceled(const MessageFlagsT& _flags)
+    inline static bool is_canceled(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::Canceled);
     }
 
-    static bool is_one_shot(const MessageFlagsT& _flags)
+    inline static bool is_one_shot(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::OneShotSend);
     }
 
-    static bool is_response(const MessageFlagsT& _flags)
+    inline static bool is_response(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::Response);
     }
 
-    static bool is_response_part(const MessageFlagsT& _flags)
+    inline static bool is_response_part(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::ResponsePart);
     }
 
-    static bool is_response_last(const MessageFlagsT& _flags)
+    inline static bool is_response_last(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::ResponseLast);
     }
 
-    static bool is_on_sender(const MessageFlagsT& _flags)
+    inline static bool is_on_sender(const MessageFlagsT& _flags)
     {
         return !is_on_peer(_flags) && !is_back_on_sender(_flags);
     }
 
-    static bool is_on_peer(const MessageFlagsT& _flags)
+    inline static bool is_on_peer(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::OnPeer);
     }
 
-    static bool is_back_on_sender(const MessageFlagsT& _flags)
+    inline static bool is_back_on_sender(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::BackOnSender);
     }
 
-    static bool is_back_on_peer(const MessageFlagsT& _flags)
+    inline static bool is_back_on_peer(const MessageFlagsT& _flags)
     {
         return is_on_peer(_flags) && is_back_on_sender(_flags);
     }
 
-    static bool is_relayed(const MessageFlagsT& _flags)
+    inline static bool is_relayed(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::Relayed);
     }
 
-    static MessageFlagsT clear_state_flags(MessageFlagsT _flags)
+    inline static MessageFlagsT clear_state_flags(MessageFlagsT _flags)
     {
         _flags.reset(MessageFlagsE::OnPeer).reset(MessageFlagsE::BackOnSender).reset(MessageFlagsE::Relayed);
         return _flags;
     }
 
-    static MessageFlagsT state_flags(const MessageFlagsT& _flags)
+    inline static MessageFlagsT state_flags(const MessageFlagsT& _flags)
     {
         return MessageHeader::fetch_state_flags(_flags);
     }
 
-    static MessageFlagsT update_state_flags(MessageFlagsT _flags)
+    inline static MessageFlagsT update_state_flags(MessageFlagsT _flags)
     {
         if (is_on_sender(_flags)) {
             return _flags | MessageFlagsE::OnPeer;
