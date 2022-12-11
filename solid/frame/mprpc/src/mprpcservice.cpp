@@ -628,7 +628,7 @@ struct Service::Data {
     SizeStackT           conpoolcachestk;
     std::string          tmp_str;
 
-    Data(Service& _rsvc, Configuration &&_config)
+    Data(Service& _rsvc, Configuration&& _config)
         : mtx(_rsvc.mutex())
         , config(std::move(_config)) /*, status(Status::Running)*/
         , pmtxarr(nullptr)
@@ -680,7 +680,7 @@ Configuration const& Service::configuration() const
     return pimpl_->config;
 }
 //-----------------------------------------------------------------------------
-void Service::doStart(ServiceStartStatus &_status, Configuration&& _ucfg)
+void Service::doStart(ServiceStartStatus& _status, Configuration&& _ucfg)
 {
     Configuration cfg;
     SocketDevice  sd;
@@ -691,41 +691,41 @@ void Service::doStart(ServiceStartStatus &_status, Configuration&& _ucfg)
     cfg.createListenerDevice(sd);
 
     Service::doStartWithoutAny(
-        [this, &cfg, &sd, &_status](std::unique_lock<std::mutex> &_lock) {
+        [this, &cfg, &sd, &_status](std::unique_lock<std::mutex>& _lock) {
             doFinalizeStart(_status, std::move(cfg), std::move(sd), _lock);
         });
 }
 //-----------------------------------------------------------------------------
-void Service::doStart(ServiceStartStatus &_status)
+void Service::doStart(ServiceStartStatus& _status)
 {
     Service::doStartWithoutAny(
-        [this, &_status](std::unique_lock<std::mutex> &_lock) {
+        [this, &_status](std::unique_lock<std::mutex>& _lock) {
             doFinalizeStart(_status, _lock);
         });
 }
 //-----------------------------------------------------------------------------
-void Service::doFinalizeStart(ServiceStartStatus &_status, Configuration&& _ucfg, SocketDevice&& _usd, std::unique_lock<std::mutex> &_lock)
+void Service::doFinalizeStart(ServiceStartStatus& _status, Configuration&& _ucfg, SocketDevice&& _usd, std::unique_lock<std::mutex>& _lock)
 {
     solid_assert(_lock);
-    
+
     if (_usd) {
         SocketAddress local_address;
 
-        _usd.localAddress(local_address);//socket is moved onto listener
+        _usd.localAddress(local_address); // socket is moved onto listener
 
-        //we need pimpl be created before starting the Listener actors
+        // we need pimpl be created before starting the Listener actors
         pimpl_ = std::make_shared<Data>(*this, std::move(_ucfg));
 
-        _lock.unlock();//temporary unlock the mutex so we can create the listener Actor
+        _lock.unlock(); // temporary unlock the mutex so we can create the listener Actor
 
         ErrorConditionT error;
         ActorIdT        conuid = _ucfg.scheduler().startActor(make_shared<Listener>(_usd), *this, make_event(GenericEvents::Start), error);
         (void)conuid;
-        
-        _lock.lock();        
+
+        _lock.lock();
 
         solid_check_log(!error, logger, "Failed starting listener: " << error.message());
-        
+
         _status.listen_addr_vec_.emplace_back(std::move(local_address));
     } else {
         pimpl_ = std::make_shared<Data>(*this, std::move(_ucfg));
@@ -769,10 +769,10 @@ void Service::doFinalizeStart(ServiceStartStatus &_status, Configuration&& _ucfg
 #endif
 }
 //-----------------------------------------------------------------------------
-void Service::doFinalizeStart(ServiceStartStatus &_status, std::unique_lock<std::mutex> &_lock)
+void Service::doFinalizeStart(ServiceStartStatus& _status, std::unique_lock<std::mutex>& _lock)
 {
     solid_assert(_lock);
-    SocketDevice           sd;
+    SocketDevice sd;
 
     pimpl_->config.createListenerDevice(sd);
 
@@ -786,7 +786,7 @@ void Service::doFinalizeStart(ServiceStartStatus &_status, std::unique_lock<std:
         ErrorConditionT error;
         ActorIdT        conuid = configuration().scheduler().startActor(make_shared<Listener>(sd), *this, make_event(GenericEvents::Start), error);
         (void)conuid;
-        
+
         _lock.lock();
 
         solid_check_log(!error, logger, "Failed starting listener: " << error.message());
@@ -908,8 +908,8 @@ ErrorConditionT Service::doCreateConnectionPool(
         }
 
         pimpl_->namemap[rpool.name.c_str()] = pool_index;
-        _rrecipient_id_out.pool_id_.index  = pool_index;
-        _rrecipient_id_out.pool_id_.unique = rpool.unique;
+        _rrecipient_id_out.pool_id_.index   = pool_index;
+        _rrecipient_id_out.pool_id_.unique  = rpool.unique;
     } else {
         error = error_service_pool_exists;
     }
@@ -1861,9 +1861,9 @@ bool Service::connectionStopping(
             retval = doMainConnectionStoppingCleanOneShot(rcon, _ractuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
         } else if (rpool.isCleaningAllMessages()) {
             retval = doMainConnectionStoppingCleanAll(rcon, _ractuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
-        } else if (rpool.isRestarting()/*TODO:vapa && running()*/) {
+        } else if (rpool.isRestarting() /*TODO:vapa && running()*/) {
             retval = doMainConnectionRestarting(rcon, _ractuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
-        } else if (!rpool.isFastClosing() && !rpool.isServerSide()/*TODO:vapa && running()*/) {
+        } else if (!rpool.isFastClosing() && !rpool.isServerSide() /*TODO:vapa && running()*/) {
             retval = doMainConnectionStoppingPrepareCleanOneShot(rcon, _ractuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
         } else {
             retval = doMainConnectionStoppingPrepareCleanAll(rcon, _ractuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
@@ -2271,7 +2271,7 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
     const bool          is_new_connection_needed = rpool.active_connection_count < rpool.persistent_connection_count || (rpool.hasAnyMessage() && rpool.conn_waitingq.size() < rpool.msgorder_inner_list.size());
 
     if (
-        rpool.active_connection_count < configuration().pool_max_active_connection_count && rpool.pending_connection_count == 0 && is_new_connection_needed/*TODO:vapa && running()*/) {
+        rpool.active_connection_count < configuration().pool_max_active_connection_count && rpool.pending_connection_count == 0 && is_new_connection_needed /*TODO:vapa && running()*/) {
 
         solid_log(logger, Info, this << " try create new connection in pool " << rpool.active_connection_count << " pending connections " << rpool.pending_connection_count);
 
@@ -2561,8 +2561,9 @@ ErrorConditionT Service::sendRelayCancel(RelayData&& /*_urelmsg*/)
     return error;
 }
 //-----------------------------------------------------------------------------
-void Service::onLockedStoppingBeforeActors(){
-    //TODO:vapa
+void Service::onLockedStoppingBeforeActors()
+{
+    // TODO:vapa
 }
 //=============================================================================
 //-----------------------------------------------------------------------------

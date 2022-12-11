@@ -372,9 +372,10 @@ struct WriterConfiguration {
 };
 
 class Configuration {
-    Configuration(Configuration&&)      = default;
+    Configuration(Configuration&&)                 = default;
     Configuration& operator=(const Configuration&) = delete;
     Configuration& operator=(Configuration&&)      = default;
+
 public:
     template <class P>
     Configuration(
@@ -486,7 +487,6 @@ public:
         std::string                        listener_service_str;
         Any<>                              secure_any;
 
-        
         Server()
         {
         }
@@ -495,6 +495,7 @@ public:
         {
             return !secure_any.empty();
         }
+
     private:
         friend class Service;
     } server;
@@ -513,7 +514,7 @@ public:
         ClientSetupSocketDeviceFunctionT   socket_device_setup_fnc;
         Any<>                              secure_any;
 
-                bool hasSecureConfiguration() const
+        bool hasSecureConfiguration() const
         {
             return !secure_any.empty();
         }
@@ -549,7 +550,7 @@ public:
 private:
     void init();
     void prepare();
-    void createListenerDevice(SocketDevice& _rsd)const;
+    void createListenerDevice(SocketDevice& _rsd) const;
 
 private:
     AioSchedulerT* pscheduler;

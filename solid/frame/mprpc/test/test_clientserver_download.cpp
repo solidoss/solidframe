@@ -275,7 +275,7 @@ int test_clientserver_download(int argc, char* argv[])
                 std::ostringstream oss;
                 oss << start_status.listen_addr_vec_.back().port();
                 server_port = oss.str();
-                solid_dbg(generic_logger, Info, "back listens on: " << start_status.listen_addr_vec_.back());
+                solid_dbg(logger, Verbose, "back listens on: " << start_status.listen_addr_vec_.back());
             }
         }
 

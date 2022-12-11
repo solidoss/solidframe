@@ -33,9 +33,9 @@ struct ReactorContext;
 
 namespace mprpc {
 
-namespace openssl{
+namespace openssl {
 class SocketStub;
-}//namespace
+} // namespace openssl
 
 extern const Event pool_event_connect;
 extern const Event pool_event_disconnect;
@@ -50,8 +50,8 @@ struct Configuration;
 class Connection;
 struct MessageBundle;
 
-struct ServiceStartStatus{
-    std::vector<SocketAddress>  listen_addr_vec_;
+struct ServiceStartStatus {
+    std::vector<SocketAddress> listen_addr_vec_;
 };
 
 //! Message Passing Remote Procedure Call Service
@@ -91,6 +91,7 @@ struct ServiceStartStatus{
 class Service : public frame::Service {
     struct Data;
     std::shared_ptr<Data> pimpl_;
+
 public:
     typedef frame::Service BaseT;
 
@@ -308,11 +309,13 @@ public:
     bool closeConnection(RecipientId const& _rrecipient_id);
 
 protected:
-    void doStart(Configuration&& _ucfg){
+    void doStart(Configuration&& _ucfg)
+    {
         ServiceStartStatus status;
         doStart(status, std::move(_ucfg));
     }
-    void doStart(){
+    void doStart()
+    {
         ServiceStartStatus status;
         doStart(status);
     }
@@ -324,11 +327,11 @@ protected:
         doStart(status, std::move(_ucfg), std::forward<A>(_a));
     }
 
-    void doStart(ServiceStartStatus &_status, Configuration&& _ucfg);
-    void doStart(ServiceStartStatus &_status);
+    void doStart(ServiceStartStatus& _status, Configuration&& _ucfg);
+    void doStart(ServiceStartStatus& _status);
 
     template <typename A>
-    void doStart(ServiceStartStatus &_status, Configuration&& _ucfg, A&& _a)
+    void doStart(ServiceStartStatus& _status, Configuration&& _ucfg, A&& _a)
     {
         Configuration cfg;
         SocketDevice  sd;
@@ -340,7 +343,7 @@ protected:
 
         Service::doStartWithAny(
             std::forward<A>(_a),
-            [this, &cfg, &sd, &_status](std::unique_lock<std::mutex> &_lock) {
+            [this, &cfg, &sd, &_status](std::unique_lock<std::mutex>& _lock) {
                 doFinalizeStart(_status, std::move(cfg), std::move(sd), _lock);
             });
     }
@@ -378,8 +381,8 @@ private:
 
     Configuration const& configuration() const;
 
-    void doFinalizeStart(ServiceStartStatus &_status, Configuration&& _ucfg, SocketDevice&& _usd, std::unique_lock<std::mutex> &_lock);
-    void doFinalizeStart(ServiceStartStatus &_status, std::unique_lock<std::mutex> &_lock);
+    void doFinalizeStart(ServiceStartStatus& _status, Configuration&& _ucfg, SocketDevice&& _usd, std::unique_lock<std::mutex>& _lock);
+    void doFinalizeStart(ServiceStartStatus& _status, std::unique_lock<std::mutex>& _lock);
 
     void acceptIncomingConnection(SocketDevice& _rsd);
 

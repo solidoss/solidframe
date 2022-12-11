@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
                 frame::mprpc::ServiceStartStatus start_status;
                 rpcservice.start(start_status, std::move(cfg));
 
-                solid_dbg(generic_logger, Info, "server listens on: " << start_status.listen_addr_vec_.back());
+                cout << "server listens on: " << start_status.listen_addr_vec_.back() << endl;
             }
         }
 

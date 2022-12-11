@@ -881,8 +881,8 @@ void Manager::doStartService(Service& _rservice, const OnLockedStartFunctionT& _
             _on_locked_fnc(lock);
         } catch (...) {
             {
-                if(!lock){
-                    lock.lock();//make sure we have the lock
+                if (!lock) {
+                    lock.lock(); // make sure we have the lock
                 }
                 rss.status_ = StatusE::Stopped;
             }
@@ -905,23 +905,23 @@ bool Manager::doStopService(const size_t _service_index, const bool _wait)
 {
     std::unique_lock<std::mutex> lock;
     ServiceStub*                 pss = pimpl_->service_store_.aquirePointer(
-                        _service_index,
-                        [&lock](const size_t _index, ServiceStub& _rss) {
+        _service_index,
+        [&lock](const size_t _index, ServiceStub& _rss) {
             lock = std::unique_lock<std::mutex>(_rss.mutex());
         });
 
-    if(pss == nullptr){
+    if (pss == nullptr) {
         return false;
     }
-    ServiceStub &rss = *pss;
+    ServiceStub& rss = *pss;
     solid_log(frame_logger, Verbose, "" << _service_index << " actor_count = " << rss.actor_count_);
 #if 0
     _rservice.statusSetStopping();
 #endif
     if (rss.status_ == StatusE::Running) {
-        rss.status_             = StatusE::Stopping;
+        rss.status_ = StatusE::Stopping;
 
-        if(rss.pservice_){
+        if (rss.pservice_) {
             rss.pservice_->onLockedStoppingBeforeActors();
         }
 
@@ -1008,7 +1008,7 @@ void Manager::stop()
 
     // broadcast to all actors to stop
     for (size_t service_index = 0; true; ++service_index) {
-        if(!doStopService(service_index, false)){
+        if (!doStopService(service_index, false)) {
             break;
         }
 #if 0

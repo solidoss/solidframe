@@ -40,9 +40,10 @@ class ReactorBase;
 struct ServiceStub;
 
 class Manager final : NonCopyable {
-    using OnLockedStartFunctionT   = std::function<void(std::unique_lock<std::mutex>&)>;
+    using OnLockedStartFunctionT = std::function<void(std::unique_lock<std::mutex>&)>;
     struct Data;
     PimplT<Data> pimpl_;
+
 public:
     class VisitContext {
         friend class Manager;

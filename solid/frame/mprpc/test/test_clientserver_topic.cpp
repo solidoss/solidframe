@@ -45,8 +45,8 @@ inline auto milliseconds_since_epoch(const std::chrono::system_clock::time_point
 inline uint64_t microseconds_since_epoch()
 {
     using namespace std::chrono;
-    static const auto start = high_resolution_clock::now();
-    const auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    static const auto start   = high_resolution_clock::now();
+    const auto        elapsed = std::chrono::high_resolution_clock::now() - start;
 
     return duration_cast<microseconds>(elapsed).count();
 }

@@ -386,7 +386,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
                 std::ostringstream oss;
                 oss << start_status.listen_addr_vec_.back().port();
                 back_port = oss.str();
-                solid_dbg(generic_logger, Info, "back listens on: " << start_status.listen_addr_vec_.back());
+                solid_dbg(logger, Verbose, "back listens on: " << start_status.listen_addr_vec_.back());
             }
         }
 
@@ -464,7 +464,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
                 std::ostringstream oss;
                 oss << start_status.listen_addr_vec_.back().port();
                 front_port = oss.str();
-                solid_dbg(generic_logger, Info, "front listens on: " << start_status.listen_addr_vec_.back());
+                solid_dbg(logger, Verbose, "front listens on: " << start_status.listen_addr_vec_.back());
             }
             pmprpc_front_server = &mprpc_front_server;
         }

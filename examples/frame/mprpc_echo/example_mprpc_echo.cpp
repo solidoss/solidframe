@@ -282,11 +282,11 @@ bool restart(
 #endif
 
     {
-                frame::mprpc::ServiceStartStatus start_status;
-                _ipcsvc.start(start_status, std::move(cfg));
+        frame::mprpc::ServiceStartStatus start_status;
+        _ipcsvc.start(start_status, std::move(cfg));
 
-                solid_dbg(generic_logger, Info, "server listens on: " << start_status.listen_addr_vec_.back());
-            }
+        solid_dbg(generic_logger, Info, "server listens on: " << start_status.listen_addr_vec_.back());
+    }
     return true;
 }
 

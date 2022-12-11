@@ -57,10 +57,11 @@ class Service : NonCopyable {
         Running,
         Stopping,
     };
-    Manager&             rm_;
-    std::atomic<size_t>  idx_;
-    //TODO:vapa std::atomic<StatusE> status_;
-    Any<>                any_;
+    Manager&            rm_;
+    std::atomic<size_t> idx_;
+    // TODO:vapa std::atomic<StatusE> status_;
+    Any<> any_;
+
 protected:
     explicit Service(
         UseServiceShell _force_shell, const bool _start = true);
@@ -128,8 +129,8 @@ private:
     void statusSetStopped();
     void statusSetRunning();
 #endif
-    size_t index() const;
-    void   index(const size_t _idx);
+    size_t       index() const;
+    void         index(const size_t _idx);
     virtual void onLockedStoppingBeforeActors();
 };
 
@@ -249,7 +250,7 @@ template <typename F>
 inline void Service::doStartWithoutAny(F&& _on_locked_start)
 {
     rm_.startService(
-        *this, [&_on_locked_start](std::unique_lock<std::mutex>& _lock) {_on_locked_start(_lock);});
+        *this, [&_on_locked_start](std::unique_lock<std::mutex>& _lock) { _on_locked_start(_lock); });
 }
 
 inline void Service::stop(const bool _wait)

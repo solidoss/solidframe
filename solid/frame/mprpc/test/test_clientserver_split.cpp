@@ -391,7 +391,6 @@ int test_clientserver_split(int argc, char* argv[])
                 frame::mprpc::snappy::setup(cfg);
             }
 
-
             {
                 frame::mprpc::ServiceStartStatus start_status;
                 mprpcserver.start(start_status, std::move(cfg));
