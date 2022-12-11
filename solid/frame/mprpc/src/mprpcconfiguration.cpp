@@ -342,6 +342,9 @@ void Configuration::prepare()
     if (!client.hasSecureConfiguration()) {
         client.connection_start_secure = false;
     }
+    if (pools_count < pools_mutex_count) {
+        pools_mutex_count = pools_count;
+    }
 }
 
 //-----------------------------------------------------------------------------

@@ -107,6 +107,8 @@ public:
 protected:
     std::mutex& mutex() const;
 
+    ServiceStatusE status(std::unique_lock<std::mutex>& _rlock);
+
     void doStart();
 
     template <typename A>
@@ -271,6 +273,11 @@ inline ActorIdT Service::id(const ActorBase& _ract) const
 inline std::mutex& Service::mutex() const
 {
     return rm_.mutex(*this);
+}
+
+inline ServiceStatusE Service::status(std::unique_lock<std::mutex>& _rlock)
+{
+    return rm_.status(*this, _rlock);
 }
 
 inline ActorIdT Service::registerActor(ActorBase& _ract, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr)

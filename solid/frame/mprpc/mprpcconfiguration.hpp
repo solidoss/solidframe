@@ -381,7 +381,8 @@ public:
     Configuration(
         AioSchedulerT&      _rsch,
         std::shared_ptr<P>& _rprotcol_ptr)
-        : pools_mutex_count(16)
+        : pools_count(1024 * 10)
+        , pools_mutex_count(1024)
         , protocol_ptr(std::static_pointer_cast<Protocol>(_rprotcol_ptr))
         , pscheduler(&_rsch)
         , prelayengine(&RelayEngine::instance())
@@ -394,7 +395,8 @@ public:
         AioSchedulerT&      _rsch,
         RelayEngine&        _rrelayengine,
         std::shared_ptr<P>& _rprotcol_ptr)
-        : pools_mutex_count(16)
+        : pools_count(1024 * 10)
+        , pools_mutex_count(1024)
         , protocol_ptr(std::static_pointer_cast<Protocol>(_rprotcol_ptr))
         , pscheduler(&_rsch)
         , prelayengine(&_rrelayengine)
@@ -465,6 +467,7 @@ public:
     size_t pool_max_pending_connection_count;
     size_t pool_max_message_queue_size;
 
+    size_t pools_count;
     size_t pools_mutex_count;
     bool   relay_enabled;
 

@@ -381,6 +381,8 @@ private:
 
     Configuration const& configuration() const;
 
+    std::shared_ptr<Data> acquire(std::unique_lock<std::mutex>& _lock);
+
     void doFinalizeStart(ServiceStartStatus& _status, Configuration&& _ucfg, SocketDevice&& _usd, std::unique_lock<std::mutex>& _lock);
     void doFinalizeStart(ServiceStartStatus& _status, std::unique_lock<std::mutex>& _lock);
 
@@ -510,7 +512,6 @@ private:
     ErrorConditionT doSendMessageToConnection(
         const RecipientId&        _rrecipient_id_in,
         MessagePointerT&          _rmsgptr,
-        const size_t              _msg_type_idx,
         MessageCompleteFunctionT& _rcomplete_fnc,
         MessageId*                _pmsg_id_out,
         MessageFlagsT             _flags,

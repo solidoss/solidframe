@@ -39,13 +39,12 @@ const LoggerT frame_logger("solid::frame");
 
 //-----------------------------------------------------------------------------
 namespace {
-
 enum struct StatusE {
     Stopped,
+    // Starting,
     Running,
     Stopping,
 };
-
 enum {
     ErrorServiceUnknownE = 1,
     ErrorServiceNotRunningE,
@@ -284,15 +283,15 @@ public:
 
 struct ServiceStub {
 
-    Service*    pservice_;
-    std::mutex* pmutex_;
-    size_t      first_actor_chunk_;
-    size_t      last_actor_chunk_;
-    size_t      current_actor_index_;
-    size_t      end_actor_index_;
-    size_t      actor_count_;
-    StatusE     status_;
-    SizeStackT  actor_index_stk_;
+    Service*       pservice_;
+    std::mutex*    pmutex_;
+    size_t         first_actor_chunk_;
+    size_t         last_actor_chunk_;
+    size_t         current_actor_index_;
+    size_t         end_actor_index_;
+    size_t         actor_count_;
+    ServiceStatusE status_;
+    SizeStackT     actor_index_stk_;
 
     ServiceStub()
         : pservice_(nullptr)
@@ -302,7 +301,7 @@ struct ServiceStub {
         , current_actor_index_(InvalidIndex())
         , end_actor_index_(InvalidIndex())
         , actor_count_(0)
-        , status_(StatusE::Stopped)
+        , status_(ServiceStatusE::Stopped)
     {
     }
 
@@ -314,7 +313,7 @@ struct ServiceStub {
         current_actor_index_ = InvalidIndex();
         end_actor_index_     = InvalidIndex();
         actor_count_         = 0;
-        status_              = _start ? StatusE::Running : StatusE::Stopped;
+        status_              = _start ? ServiceStatusE::Running : ServiceStatusE::Stopped;
 
         while (!actor_index_stk_.empty()) {
             actor_index_stk_.pop();
@@ -329,7 +328,7 @@ struct ServiceStub {
         current_actor_index_ = InvalidIndex();
         end_actor_index_     = InvalidIndex();
         actor_count_         = 0;
-        status_              = StatusE::Stopped;
+        status_              = ServiceStatusE::Stopped;
         while (!actor_index_stk_.empty()) {
             actor_index_stk_.pop();
         }
@@ -554,7 +553,7 @@ ActorIdT Manager::registerActor(
             lock = std::unique_lock<std::mutex>(_rss.mutex());
         });
 
-    if (rss.pservice_ != &_rservice || rss.status_ != StatusE::Running) {
+    if (rss.pservice_ != &_rservice || rss.status_ != ServiceStatusE::Running) {
         _rerror = error_service_not_running;
         return retval;
     }
@@ -673,7 +672,7 @@ void Manager::unregisterActor(ActorBase& _ractor)
         rss.actor_index_stk_.push(actor_index);
         --rss.actor_count_;
         solid_log(frame_logger, Verbose, "" << this << " serviceid = " << service_index << " actcnt = " << rss.actor_count_);
-        if (rss.actor_count_ == 0 && rss.status_ == StatusE::Stopping) {
+        if (rss.actor_count_ == 0 && rss.status_ == ServiceStatusE::Stopping) {
             pimpl_->condition_.notify_all();
         }
     }
@@ -783,6 +782,21 @@ std::mutex& Manager::mutex(const Service& _rservice) const
     return *pmutex;
 }
 
+ServiceStatusE Manager::status(const Service& _rservice, std::unique_lock<std::mutex>& _rlock) const
+{
+    const size_t   service_index = _rservice.index();
+    ServiceStatusE status        = ServiceStatusE::Invalid;
+
+    pimpl_->service_store_.aquire(
+        service_index,
+        [&_rlock, &status](const size_t _index, ServiceStub& _rss) {
+            _rlock = std::unique_lock<std::mutex>{_rss.mutex()};
+            status = _rss.status_;
+        });
+
+    return status;
+}
+
 size_t Manager::doForEachServiceActor(const Service& _rservice, const ActorVisitFunctionT& _rvisit_fnc)
 {
     if (!_rservice.registered()) {
@@ -873,9 +887,9 @@ void Manager::doStartService(Service& _rservice, const OnLockedStartFunctionT& _
                 lock = std::unique_lock<std::mutex>(_rss.mutex());
             });
 
-        solid_check_log(rss.status_ == StatusE::Stopped, frame_logger, "Service not stopped");
+        solid_check_log(rss.status_ == ServiceStatusE::Stopped, frame_logger, "Service not stopped");
 
-        rss.status_ = StatusE::Running;
+        rss.status_ = ServiceStatusE::Running;
 
         try {
             _on_locked_fnc(lock);
@@ -884,7 +898,7 @@ void Manager::doStartService(Service& _rservice, const OnLockedStartFunctionT& _
                 if (!lock) {
                     lock.lock(); // make sure we have the lock
                 }
-                rss.status_ = StatusE::Stopped;
+                rss.status_ = ServiceStatusE::Stopped;
             }
             throw;
         }
@@ -918,8 +932,8 @@ bool Manager::doStopService(const size_t _service_index, const bool _wait)
 #if 0
     _rservice.statusSetStopping();
 #endif
-    if (rss.status_ == StatusE::Running) {
-        rss.status_ = StatusE::Stopping;
+    if (rss.status_ == ServiceStatusE::Running) {
+        rss.status_ = ServiceStatusE::Stopping;
 
         if (rss.pservice_) {
             rss.pservice_->onLockedStoppingBeforeActors();
@@ -932,7 +946,7 @@ bool Manager::doStopService(const size_t _service_index, const bool _wait)
 
         if (cnt == 0 && rss.actor_count_ == 0) {
             solid_log(frame_logger, Verbose, "StateStoppedE on " << _service_index);
-            rss.status_ = StatusE::Stopped;
+            rss.status_ = ServiceStatusE::Stopped;
 #if 0
             _rservice.statusSetStopped();
 #endif
@@ -940,16 +954,16 @@ bool Manager::doStopService(const size_t _service_index, const bool _wait)
         }
     }
 
-    if (rss.status_ == StatusE::Stopped) {
+    if (rss.status_ == ServiceStatusE::Stopped) {
         solid_log(frame_logger, Verbose, "" << _service_index);
         return true;
     }
 
-    if (rss.status_ == StatusE::Stopping && _wait) {
+    if (rss.status_ == ServiceStatusE::Stopping && _wait) {
         while (rss.actor_count_ != 0u) {
             pimpl_->condition_.wait(lock);
         }
-        rss.status_ = StatusE::Stopped;
+        rss.status_ = ServiceStatusE::Stopped;
 #if 0
         _rservice.statusSetStopped();
 #endif
@@ -1051,12 +1065,12 @@ void Manager::stop()
 
         if (pss != nullptr) {
 
-            if (pss->pservice_ != nullptr && pss->status_ == StatusE::Stopping) {
+            if (pss->pservice_ != nullptr && pss->status_ == ServiceStatusE::Stopping) {
                 solid_log(frame_logger, Verbose, "wait stop service: " << service_index);
                 while (pss->actor_count_ != 0u) {
                     pimpl_->condition_.wait(lock);
                 }
-                pss->status_ = StatusE::Stopped;
+                pss->status_ = ServiceStatusE::Stopped;
 #if 0
                 pss->pservice_->statusSetStopped();
 #endif

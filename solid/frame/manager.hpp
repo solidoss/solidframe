@@ -39,6 +39,14 @@ class ReactorBase;
 
 struct ServiceStub;
 
+enum struct ServiceStatusE {
+    Stopped,
+    // Starting,
+    Running,
+    Stopping,
+    Invalid,
+};
+
 class Manager final : NonCopyable {
     using OnLockedStartFunctionT = std::function<void(std::unique_lock<std::mutex>&)>;
     struct Data;
@@ -139,6 +147,8 @@ private:
 
     std::mutex& mutex(const Service& _rservice) const;
     std::mutex& mutex(const ActorBase& _ractor) const;
+
+    ServiceStatusE status(const Service& _rservice, std::unique_lock<std::mutex>& _rlock) const;
 
     ActorIdT registerActor(
         const Service&     _rservice,
