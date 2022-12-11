@@ -42,6 +42,15 @@ inline auto milliseconds_since_epoch(const std::chrono::system_clock::time_point
     return ms;
 }
 
+inline uint64_t microseconds_since_epoch()
+{
+    using namespace std::chrono;
+    static const auto start = high_resolution_clock::now();
+    const auto elapsed = std::chrono::high_resolution_clock::now() - start;
+
+    return duration_cast<microseconds>(elapsed).count();
+}
+
 struct Topic {
     const size_t  id_;
     SynchContextT synch_ctx_;
@@ -84,7 +93,7 @@ struct Message : frame::mprpc::Message {
         using ReflectorT = decay_t<decltype(_rr)>;
 
         if constexpr (ReflectorT::is_const_reflector) {
-            _rthis.serialization_time_point_ = milliseconds_since_epoch();
+            _rthis.serialization_time_point_ = microseconds_since_epoch();
         }
 
         _rr.add(_rthis.topic_id_, _rctx, 1, "topic_id");
@@ -253,13 +262,14 @@ int test_clientserver_topic(int argc, char* argv[])
                 frame::mprpc::snappy::setup(cfg);
             }
 
-            mprpcserver.start(std::move(cfg));
-
             {
+                frame::mprpc::ServiceStartStatus start_status;
+                mprpcserver.start(start_status, std::move(cfg));
+
                 std::ostringstream oss;
-                oss << mprpcserver.configuration().server.listenerPort();
+                oss << start_status.listen_addr_vec_.back().port();
                 server_port = oss.str();
-                solid_dbg(logger, Info, "server listens on port: " << server_port);
+                solid_dbg(generic_logger, Info, "server listens on: " << start_status.listen_addr_vec_.back());
             }
         }
 
@@ -323,7 +333,7 @@ int test_clientserver_topic(int argc, char* argv[])
         solid_dbg(logger, Warning, "========== START sending messages ==========");
 
         for (size_t i = 0; i < message_count; ++i) {
-            mprpcclient.sendMessage(client_id, std::make_shared<Message>(i, milliseconds_since_epoch()), {frame::mprpc::MessageFlagsE::AwaitResponse});
+            mprpcclient.sendMessage(client_id, std::make_shared<Message>(i, microseconds_since_epoch()), {frame::mprpc::MessageFlagsE::AwaitResponse});
         }
 
         solid_statistic_add(request_count, message_count);
@@ -342,7 +352,7 @@ int test_clientserver_topic(int argc, char* argv[])
 
         solid_log(logger, Statistic, "Workpool statistic: " << worker_pool.statistic());
 
-        if (0) {
+        if (1) {
             ofstream ofs("duration.csv");
             if (ofs) {
                 for (const auto& t : duration_dq) {
@@ -389,7 +399,7 @@ void client_complete_message(
         solid_check(_rrecv_msg_ptr->time_point_ >= _rsent_msg_ptr->time_point_);
         solid_check(_rrecv_msg_ptr->topic_value_ > _rsent_msg_ptr->topic_value_);
 
-        const auto now = milliseconds_since_epoch();
+        const auto now = microseconds_since_epoch();
 
         solid_statistic_max(max_time_delta, now - _rsent_msg_ptr->time_point_);
         solid_statistic_min(min_time_delta, now - _rsent_msg_ptr->time_point_);
@@ -434,13 +444,13 @@ void server_complete_message(
         if (!_rrecv_msg_ptr->isOnPeer()) {
             solid_throw("Message not on peer!.");
         }
-        _rrecv_msg_ptr->receive_time_point_ = milliseconds_since_epoch();
+        _rrecv_msg_ptr->receive_time_point_ = microseconds_since_epoch();
         auto& topic_ptr                     = local_worker_context_ptr->topic_vec_[_rrecv_msg_ptr->topic_id_ % local_worker_context_ptr->topic_vec_.size()];
 
         auto lambda = [topic_ptr, _rrecv_msg_ptr = std::move(_rrecv_msg_ptr), &service = _rctx.service(), recipient_id = _rctx.recipientId()]() {
             ++topic_ptr->value_;
             _rrecv_msg_ptr->topic_value_ = topic_ptr->value_;
-            _rrecv_msg_ptr->time_point_  = milliseconds_since_epoch();
+            _rrecv_msg_ptr->time_point_  = microseconds_since_epoch();
             service.sendResponse(recipient_id, _rrecv_msg_ptr);
         };
 

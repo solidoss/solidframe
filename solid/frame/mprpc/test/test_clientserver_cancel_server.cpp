@@ -357,13 +357,14 @@ int test_clientserver_cancel_server(int argc, char* argv[])
                     frame::mprpc::openssl::NameCheckSecureStart{"echo-client"});
             }
 
-            mprpcserver.start(std::move(cfg));
-
             {
+                frame::mprpc::ServiceStartStatus start_status;
+                mprpcserver.start(start_status, std::move(cfg));
+
                 std::ostringstream oss;
-                oss << mprpcserver.configuration().server.listenerPort();
+                oss << start_status.listen_addr_vec_.back().port();
                 server_port = oss.str();
-                solid_dbg(generic_logger, Info, "server listens on port: " << server_port);
+                solid_dbg(generic_logger, Info, "server listens on: " << start_status.listen_addr_vec_.back());
             }
         }
 

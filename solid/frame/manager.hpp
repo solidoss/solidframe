@@ -40,9 +40,9 @@ class ReactorBase;
 struct ServiceStub;
 
 class Manager final : NonCopyable {
-    using LockedFunctionT   = std::function<void()>;
-    using UnlockedFunctionT = std::function<void()>;
-
+    using OnLockedStartFunctionT   = std::function<void(std::unique_lock<std::mutex>&)>;
+    struct Data;
+    PimplT<Data> pimpl_;
 public:
     class VisitContext {
         friend class Manager;
@@ -153,19 +153,16 @@ private:
 
     void stopService(Service& _rservice, bool _wait);
 
-    template <typename LockedFnc, typename UnlockedFnc>
-    void startService(Service& _rservice, LockedFnc&& _lf, UnlockedFnc&& _uf);
+    template <typename OnLockedStartF>
+    void startService(Service& _rservice, OnLockedStartF&& _on_locked_fnc);
 
     size_t doForEachServiceActor(const Service& _rservice, const ActorVisitFunctionT& _rvisit_fnc);
     size_t doForEachServiceActor(const size_t _chkidx, const ActorVisitFunctionT& _rvisit_fnc);
     bool   doVisit(ActorIdT const& _actor_id, const ActorVisitFunctionT& _rvisit_fnc);
 
+    bool doStopService(const size_t _service_index, const bool _wait);
     void doCleanupService(const size_t _service_index, Service& _rservice);
-    void doStartService(Service& _rservice, const LockedFunctionT& _locked_fnc, const UnlockedFunctionT& _unlocked_fnc);
-
-private:
-    struct Data;
-    PimplT<Data> pimpl_;
+    void doStartService(Service& _rservice, const OnLockedStartFunctionT& _locked_fnc);
 };
 
 //-----------------------------------------------------------------------------
@@ -212,10 +209,10 @@ inline size_t Manager::forEachServiceActor(const Service& _rservice, F _f)
     return doForEachServiceActor(_rservice, ActorVisitFunctionT{_f});
 }
 
-template <typename LockedFnc, typename UnlockedFnc>
-inline void Manager::startService(Service& _rservice, LockedFnc&& _lf, UnlockedFnc&& _uf)
+template <typename OnLockedStartF>
+inline void Manager::startService(Service& _rservice, OnLockedStartF&& _on_locked_fnc)
 {
-    doStartService(_rservice, LockedFunctionT{std::forward<LockedFnc>(_lf)}, UnlockedFunctionT{std::forward<UnlockedFnc>(_uf)});
+    doStartService(_rservice, OnLockedStartFunctionT{std::forward<OnLockedStartF>(_on_locked_fnc)});
 }
 
 //-----------------------------------------------------------------------------

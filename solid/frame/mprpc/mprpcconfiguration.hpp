@@ -371,11 +371,10 @@ struct WriterConfiguration {
     CompressFunctionT inplace_compress_fnc;
 };
 
-struct Configuration {
-private:
+class Configuration {
+    Configuration(Configuration&&)      = default;
     Configuration& operator=(const Configuration&) = delete;
     Configuration& operator=(Configuration&&)      = default;
-
 public:
     template <class P>
     Configuration(
@@ -475,16 +474,6 @@ public:
         using ConnectionCreateSocketFunctionT    = solid_function_t(SocketStubPtrT(Configuration const&, frame::aio::ActorProxy const&, SocketDevice&&, char*));
         using ConnectionSecureHandshakeFunctionT = solid_function_t(void(ConnectionContext&));
 
-        Server()
-            : listener_port(-1)
-        {
-        }
-
-        bool hasSecureConfiguration() const
-        {
-            return !secure_any.empty();
-        }
-
         ConnectionCreateSocketFunctionT    connection_create_socket_fnc;
         ConnectionState                    connection_start_state;
         bool                               connection_start_secure;
@@ -497,26 +486,23 @@ public:
         std::string                        listener_service_str;
         Any<>                              secure_any;
 
-        int listenerPort() const
+        
+        Server()
         {
-            return listener_port;
         }
 
+        bool hasSecureConfiguration() const
+        {
+            return !secure_any.empty();
+        }
     private:
         friend class Service;
-        int listener_port;
-
     } server;
 
     struct Client {
         using ConnectionCreateSocketFunctionT    = solid_function_t(SocketStubPtrT(Configuration const&, frame::aio::ActorProxy const&, char*));
         using AsyncResolveFunctionT              = solid_function_t(void(const std::string&, ResolveCompleteFunctionT&));
         using ConnectionSecureHandshakeFunctionT = solid_function_t(void(ConnectionContext&));
-
-        bool hasSecureConfiguration() const
-        {
-            return !secure_any.empty();
-        }
 
         ConnectionCreateSocketFunctionT    connection_create_socket_fnc;
         ConnectionState                    connection_start_state;
@@ -526,6 +512,11 @@ public:
         ConnectionSecureHandshakeFunctionT connection_on_secure_handshake_fnc;
         ClientSetupSocketDeviceFunctionT   socket_device_setup_fnc;
         Any<>                              secure_any;
+
+                bool hasSecureConfiguration() const
+        {
+            return !secure_any.empty();
+        }
 
     } client;
 
@@ -558,7 +549,7 @@ public:
 private:
     void init();
     void prepare();
-    void prepare(SocketDevice& _rsd);
+    void createListenerDevice(SocketDevice& _rsd)const;
 
 private:
     AioSchedulerT* pscheduler;

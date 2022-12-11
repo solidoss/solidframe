@@ -27,5 +27,8 @@
 namespace solid {
 namespace frame {
 
+void Service::onLockedStoppingBeforeActors()
+{}
+
 } // namespace frame
 } // namespace solid

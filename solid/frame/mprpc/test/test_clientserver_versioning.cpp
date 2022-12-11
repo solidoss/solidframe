@@ -482,14 +482,15 @@ string configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch)
     cfg.server.listener_address_str   = "0.0.0.0:0";
     cfg.client.connection_start_state = frame::mprpc::ConnectionState::Passive;
 
-    _rsvc.start(std::move(cfg));
-
     string server_port;
     {
+        frame::mprpc::ServiceStartStatus start_status;
+        _rsvc.start(start_status, std::move(cfg));
+
         std::ostringstream oss;
-        oss << _rsvc.configuration().server.listenerPort();
+        oss << start_status.listen_addr_vec_.back().port();
         server_port = oss.str();
-        solid_dbg(generic_logger, Info, "server listens on port: " << server_port);
+        solid_dbg(generic_logger, Info, "server listens on: " << start_status.listen_addr_vec_.back());
     }
     return server_port;
 }

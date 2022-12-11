@@ -485,19 +485,14 @@ int test_relay_split(int argc, char* argv[])
                 frame::mprpc::snappy::setup(cfg);
             }
 
-            mprpcrelay.start(std::move(cfg));
-
-            if (err) {
-                solid_dbg(generic_logger, Error, "starting server mprpcservice: " << err.message());
-                // exiting
-                return 1;
-            }
-
             {
+                frame::mprpc::ServiceStartStatus start_status;
+                mprpcrelay.start(start_status, std::move(cfg));
+
                 std::ostringstream oss;
-                oss << mprpcrelay.configuration().server.listenerPort();
+                oss << start_status.listen_addr_vec_.back().port();
                 relay_port = oss.str();
-                solid_dbg(generic_logger, Info, "relay listens on port: " << relay_port);
+                solid_dbg(generic_logger, Info, "relay listens on: " << start_status.listen_addr_vec_.back());
             }
         }
 

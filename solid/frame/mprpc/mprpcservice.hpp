@@ -33,6 +33,10 @@ struct ReactorContext;
 
 namespace mprpc {
 
+namespace openssl{
+class SocketStub;
+}//namespace
+
 extern const Event pool_event_connect;
 extern const Event pool_event_disconnect;
 extern const Event pool_event_connection_start;
@@ -45,6 +49,10 @@ struct Message;
 struct Configuration;
 class Connection;
 struct MessageBundle;
+
+struct ServiceStartStatus{
+    std::vector<SocketAddress>  listen_addr_vec_;
+};
 
 //! Message Passing Remote Procedure Call Service
 /*!
@@ -81,21 +89,16 @@ struct MessageBundle;
 */
 
 class Service : public frame::Service {
+    struct Data;
+    std::shared_ptr<Data> pimpl_;
 public:
     typedef frame::Service BaseT;
 
     Service(
         frame::UseServiceShell _force_shell);
 
-    Service(const Service&)            = delete;
-    Service(Service&&)                 = delete;
-    Service& operator=(const Service&) = delete;
-    Service& operator=(Service&&)      = delete;
-
     //! Destructor
     ~Service();
-
-    Configuration const& configuration() const;
 
     ErrorConditionT createConnectionPool(const std::string_view& _recipient_url, const size_t _persistent_connection_count = 1);
 
@@ -305,23 +308,40 @@ public:
     bool closeConnection(RecipientId const& _rrecipient_id);
 
 protected:
-    void doStart(Configuration&& _ucfg);
-    void doStart();
+    void doStart(Configuration&& _ucfg){
+        ServiceStartStatus status;
+        doStart(status, std::move(_ucfg));
+    }
+    void doStart(){
+        ServiceStartStatus status;
+        doStart(status);
+    }
 
     template <typename A>
     void doStart(Configuration&& _ucfg, A&& _a)
+    {
+        ServiceStartStatus status;
+        doStart(status, std::move(_ucfg), std::forward<A>(_a));
+    }
+
+    void doStart(ServiceStartStatus &_status, Configuration&& _ucfg);
+    void doStart(ServiceStartStatus &_status);
+
+    template <typename A>
+    void doStart(ServiceStartStatus &_status, Configuration&& _ucfg, A&& _a)
     {
         Configuration cfg;
         SocketDevice  sd;
 
         cfg.reset(std::move(_ucfg));
         cfg.check();
-        cfg.prepare(sd);
+        cfg.prepare();
+        cfg.createListenerDevice(sd);
 
         Service::doStartWithAny(
             std::forward<A>(_a),
-            [this, &cfg, &sd]() {
-                doFinalizeStart(std::move(cfg), std::move(sd));
+            [this, &cfg, &sd, &_status](std::unique_lock<std::mutex> &_lock) {
+                doFinalizeStart(_status, std::move(cfg), std::move(sd), _lock);
             });
     }
 
@@ -353,11 +373,13 @@ private:
 private:
     friend class Listener;
     friend class Connection;
+    friend class openssl::SocketStub;
+    friend class ConnectionContext;
 
-    // void doStop();
+    Configuration const& configuration() const;
 
-    void doFinalizeStart(Configuration&& _ucfg, SocketDevice&& _usd);
-    void doFinalizeStart();
+    void doFinalizeStart(ServiceStartStatus &_status, Configuration&& _ucfg, SocketDevice&& _usd, std::unique_lock<std::mutex> &_lock);
+    void doFinalizeStart(ServiceStartStatus &_status, std::unique_lock<std::mutex> &_lock);
 
     void acceptIncomingConnection(SocketDevice& _rsd);
 
@@ -518,10 +540,7 @@ private:
     ErrorConditionT doDelayCloseConnectionPool(
         RecipientId const&        _rrecipient_id,
         MessageCompleteFunctionT& _rcomplete_fnc);
-
-private:
-    struct Data;
-    PimplT<Data> impl_;
+    void onLockedStoppingBeforeActors() override;
 };
 
 //-------------------------------------------------------------------------

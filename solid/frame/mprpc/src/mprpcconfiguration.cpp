@@ -346,11 +346,8 @@ void Configuration::prepare()
 
 //-----------------------------------------------------------------------------
 
-void Configuration::prepare(SocketDevice& _rsd)
+void Configuration::createListenerDevice(SocketDevice& _rsd)const
 {
-
-    prepare();
-
     if (!server.listener_address_str.empty()) {
         std::string tmp;
         const char* hst_name;

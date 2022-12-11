@@ -430,8 +430,8 @@ Manager::Manager(
         _service_capacity,
         _actor_capacity,
         _actor_bucket_size == 0 ? (memory_page_size() - sizeof(ActorChunk) + sizeof(ActorStub)) / sizeof(ActorStub) : _actor_bucket_size,
-        _service_mutex_count == 0 ? memory_page_size() / sizeof(std::mutex) : _service_mutex_count,
-        _actor_mutex_count == 0 ? memory_page_size() / sizeof(std::mutex) : _actor_mutex_count))
+        _service_mutex_count == 0 ? _service_capacity : _service_mutex_count,
+        _actor_mutex_count == 0 ? 1024 : _actor_mutex_count))
 {
     solid_log(frame_logger, Verbose, "" << this);
 }
@@ -475,9 +475,12 @@ bool Manager::registerService(Service& _rservice, const bool _start)
         }
     }
     ++pimpl_->service_count_;
+
+#if 0
     if (_start) {
         _rservice.statusSetRunning();
     }
+#endif
     return true;
 }
 
@@ -857,7 +860,7 @@ Service& Manager::service(const ActorBase& _ractor) const
     return *pservice;
 }
 
-void Manager::doStartService(Service& _rservice, const LockedFunctionT& _locked_fnc, const UnlockedFunctionT& _unlocked_fnc)
+void Manager::doStartService(Service& _rservice, const OnLockedStartFunctionT& _on_locked_fnc)
 {
     solid_check_log(_rservice.registered(), frame_logger, "Service not registered");
 
@@ -875,55 +878,71 @@ void Manager::doStartService(Service& _rservice, const LockedFunctionT& _locked_
         rss.status_ = StatusE::Running;
 
         try {
-            _locked_fnc();
+            _on_locked_fnc(lock);
         } catch (...) {
-            rss.status_ = StatusE::Stopped;
+            {
+                if(!lock){
+                    lock.lock();//make sure we have the lock
+                }
+                rss.status_ = StatusE::Stopped;
+            }
             throw;
         }
     }
-    try {
-        _unlocked_fnc();
-    } catch (...) {
-        stopService(_rservice, true);
-        throw;
-    }
+#if 0
     _rservice.statusSetRunning();
+#endif
 }
 
 void Manager::stopService(Service& _rservice, const bool _wait)
 {
     solid_check_log(_rservice.registered(), frame_logger, "Service not registered");
 
-    const size_t                 service_index = _rservice.index();
+    doStopService(_rservice.index(), _wait);
+}
+
+bool Manager::doStopService(const size_t _service_index, const bool _wait)
+{
     std::unique_lock<std::mutex> lock;
-    ServiceStub&                 rss = pimpl_->service_store_.aquire(
-        service_index,
-        [&lock](const size_t _index, ServiceStub& _rss) {
+    ServiceStub*                 pss = pimpl_->service_store_.aquirePointer(
+                        _service_index,
+                        [&lock](const size_t _index, ServiceStub& _rss) {
             lock = std::unique_lock<std::mutex>(_rss.mutex());
         });
 
-    solid_log(frame_logger, Verbose, "" << service_index << " actor_count = " << rss.actor_count_);
-
+    if(pss == nullptr){
+        return false;
+    }
+    ServiceStub &rss = *pss;
+    solid_log(frame_logger, Verbose, "" << _service_index << " actor_count = " << rss.actor_count_);
+#if 0
     _rservice.statusSetStopping();
-
+#endif
     if (rss.status_ == StatusE::Running) {
         rss.status_             = StatusE::Stopping;
+
+        if(rss.pservice_){
+            rss.pservice_->onLockedStoppingBeforeActors();
+        }
+
         const auto raise_lambda = [](VisitContext& _rctx) {
             return _rctx.raiseActor(make_event(GenericEvents::Kill));
         };
         const size_t cnt = doForEachServiceActor(rss.first_actor_chunk_, ActorVisitFunctionT{raise_lambda});
 
         if (cnt == 0 && rss.actor_count_ == 0) {
-            solid_log(frame_logger, Verbose, "StateStoppedE on " << service_index);
+            solid_log(frame_logger, Verbose, "StateStoppedE on " << _service_index);
             rss.status_ = StatusE::Stopped;
+#if 0
             _rservice.statusSetStopped();
-            return;
+#endif
+            return true;
         }
     }
 
     if (rss.status_ == StatusE::Stopped) {
-        solid_log(frame_logger, Verbose, "" << service_index);
-        return;
+        solid_log(frame_logger, Verbose, "" << _service_index);
+        return true;
     }
 
     if (rss.status_ == StatusE::Stopping && _wait) {
@@ -931,8 +950,11 @@ void Manager::stopService(Service& _rservice, const bool _wait)
             pimpl_->condition_.wait(lock);
         }
         rss.status_ = StatusE::Stopped;
+#if 0
         _rservice.statusSetStopped();
+#endif
     }
+    return true;
 }
 
 void Manager::start()
@@ -978,16 +1000,22 @@ void Manager::stop()
         }
     }
 
+#if 0
     const auto raise_lambda = [](VisitContext& _rctx) {
         return _rctx.raiseActor(make_event(GenericEvents::Kill));
     };
+#endif
 
     // broadcast to all actors to stop
     for (size_t service_index = 0; true; ++service_index) {
+        if(!doStopService(service_index, false)){
+            break;
+        }
+#if 0
         std::unique_lock<std::mutex> lock;
         ServiceStub*                 pss = pimpl_->service_store_.aquirePointer(
-            service_index,
-            [&lock](const size_t _index, ServiceStub& _rss) {
+                            service_index,
+                            [&lock](const size_t _index, ServiceStub& _rss) {
                 lock = std::unique_lock<std::mutex>(_rss.mutex());
             });
 
@@ -1000,13 +1028,16 @@ void Manager::stop()
 
                 if (pss->actor_count_ == 0) {
                     pss->status_ = StatusE::Stopped;
+#if 0
                     pss->pservice_->statusSetStopped();
+#endif
                     solid_log(frame_logger, Verbose, "StateStoppedE on " << service_index);
                 }
             }
         } else {
             break;
         }
+#endif
     } // for
 
     // wait for all services to stop
@@ -1026,7 +1057,9 @@ void Manager::stop()
                     pimpl_->condition_.wait(lock);
                 }
                 pss->status_ = StatusE::Stopped;
+#if 0
                 pss->pservice_->statusSetStopped();
+#endif
                 solid_log(frame_logger, Verbose, "StateStoppedE on " << service_index);
             }
         } else {
