@@ -1192,9 +1192,9 @@ ErrorConditionT Service::doSendMessageToConnection(
 
         const bool is_server_side_pool = rpool.isServerSide(); // unnamed pool has a single connection
 
-        if (rpool.unique == _rrecipient_id_in.poolId().unique || !rpool.isClosing()) {
+        if (rpool.unique == _rrecipient_id_in.poolId().unique && !rpool.isClosing() && !rpool.isFastClosing()) {
         } else {
-            solid_log(logger, Error, this << " unknown connection or connection stopping");
+            solid_log(logger, Error, this << " unknown connection or connection closing");
             return error_service_unknown_connection;
         }
 
