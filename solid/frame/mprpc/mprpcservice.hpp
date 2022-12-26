@@ -401,62 +401,6 @@ private:
         Event&             _revent_context,
         ErrorConditionT&   _rerror);
 
-    bool doNonMainConnectionStopping(
-        Connection& _rcon, ActorIdT const& _ractuid,
-        ulong&           _rseconds_to_wait,
-        MessageId&       _rmsg_id,
-        MessageBundle*   _pmsg_bundle,
-        Event&           _revent_context,
-        ErrorConditionT& _rerror);
-
-    bool doMainConnectionStoppingNotLast(
-        Connection& _rcon, ActorIdT const& /*_ractuid*/,
-        ulong&      _rseconds_to_wait,
-        MessageId& /*_rmsg_id*/,
-        MessageBundle* /*_pmsg_bundle*/,
-        Event&           _revent_context,
-        ErrorConditionT& _rerror);
-
-    bool doMainConnectionStoppingCleanOneShot(
-        Connection& _rcon, ActorIdT const& _ractuid,
-        ulong&           _rseconds_to_wait,
-        MessageId&       _rmsg_id,
-        MessageBundle*   _rmsg_bundle,
-        Event&           _revent_context,
-        ErrorConditionT& _rerror);
-
-    bool doMainConnectionStoppingCleanAll(
-        Connection& _rcon, ActorIdT const& _ractuid,
-        ulong&           _rseconds_to_wait,
-        MessageId&       _rmsg_id,
-        MessageBundle*   _rmsg_bundle,
-        Event&           _revent_context,
-        ErrorConditionT& _rerror);
-
-    bool doMainConnectionStoppingPrepareCleanOneShot(
-        Connection& _rcon, ActorIdT const& /*_ractuid*/,
-        ulong& /*_rseconds_to_wait*/,
-        MessageId& /*_rmsg_id*/,
-        MessageBundle* /*_rmsg_bundle*/,
-        Event& _revent_context,
-        ErrorConditionT& /*_rerror*/);
-
-    bool doMainConnectionStoppingPrepareCleanAll(
-        Connection& _rcon, ActorIdT const& /*_ractuid*/,
-        ulong& /*_rseconds_to_wait*/,
-        MessageId& /*_rmsg_id*/,
-        MessageBundle* /*_rmsg_bundle*/,
-        Event&           _revent_context,
-        ErrorConditionT& _rerror);
-
-    bool doMainConnectionRestarting(
-        Connection& _rcon, ActorIdT const& /*_ractuid*/,
-        ulong& /*_rseconds_to_wait*/,
-        MessageId& /*_rmsg_id*/,
-        MessageBundle* /*_rmsg_bundle*/,
-        Event&           _revent_context,
-        ErrorConditionT& _rerror);
-
     void onIncomingConnectionStart(ConnectionContext& _rconctx);
     void onOutgoingConnectionStart(ConnectionContext& _rconctx);
 
@@ -485,11 +429,6 @@ private:
 
     void forwardResolveMessage(ConnectionPoolId const& _rconpoolid, Event& _revent);
 
-    void doPushFrontMessageToPool(
-        const ConnectionPoolId& _rpool_id,
-        MessageBundle&          _rmsgbundle,
-        MessageId const&        _rmsgid);
-
     ErrorConditionT doSendMessage(
         const char*               _recipient_url,
         const RecipientId&        _rrecipient_id_in,
@@ -499,30 +438,9 @@ private:
         MessageId*                _pmsg_id_out,
         const MessageFlagsT&      _flags);
 
-    ErrorConditionT doSendMessageToNewPool(
-        const std::string_view&   _recipient_url,
-        MessagePointerT&          _rmsgptr,
-        const size_t              _msg_type_idx,
-        MessageCompleteFunctionT& _rcomplete_fnc,
-        RecipientId*              _precipient_id_out,
-        MessageId*                _pmsguid_out,
-        const MessageFlagsT&      _flags,
-        std::string&              _msg_url);
-
-    ErrorConditionT doSendMessageToConnection(
-        const RecipientId&        _rrecipient_id_in,
-        MessagePointerT&          _rmsgptr,
-        MessageCompleteFunctionT& _rcomplete_fnc,
-        MessageId*                _pmsg_id_out,
-        MessageFlagsT             _flags,
-        std::string&              _msg_url);
-
-    bool doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorConditionT& _rerror);
-
-    void doFetchResendableMessagesFromConnection(
-        Connection& _rcon);
-
+#if 0
     size_t doPushNewConnectionPool();
+#endif
 
     void pushFrontMessageToConnectionPool(
         ConnectionPoolId& _rconpoolid,
