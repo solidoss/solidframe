@@ -85,7 +85,7 @@ const LoggerT& service_logger()
     return logger;
 }
 //=============================================================================
-using NameMapT      = std::unordered_map<std::string, size_t>;
+using NameMapT      = std::unordered_map<std::string, ConnectionPoolId>;
 using ActorIdQueueT = Queue<ActorIdT>;
 
 /*extern*/ const Event pool_event_connection_start    = make_event(pool_event_category, PoolEvents::ConnectionStart);
@@ -665,7 +665,7 @@ struct Service::Data {
             pmtxarr[i].unlock();
         }
     }
-#if 0 //TODO:delete
+#if 0 // TODO:delete
     ErrorConditionT doSendMessageToNewPool(
         Service&                  _rsvc,
         const size_t              _pool_index,
@@ -755,6 +755,10 @@ struct Service::Data {
         const ConnectionPoolId& _rpool_id,
         MessageBundle&          _rmsgbundle,
         MessageId const&        _rmsgid);
+    ErrorConditionT doLockPool(
+        Service& _rsvc, const bool _check_uid, const char* _recipient_name,
+        ConnectionPoolId& _rpool_id, unique_lock<std::mutex>& _rlock,
+        string& _rpool_name);
 };
 //=============================================================================
 
@@ -1034,6 +1038,50 @@ ErrorConditionT Service::doCreateConnectionPool(
 }
 
 //-----------------------------------------------------------------------------
+ErrorConditionT Service::Data::doLockPool(
+    Service& _rsvc, const bool _check_uid, const char* _recipient_name,
+    ConnectionPoolId& _rpool_id, unique_lock<std::mutex>& _rlock,
+    string& _rpool_name)
+{
+    while (true) {
+        _rlock = unique_lock{poolMutex(_rpool_id.index)};
+        ConnectionPoolStub& rpool(pooldq[_rpool_id.index]);
+
+        if (rpool.unique == _rpool_id.unique) {
+            return ErrorConditionT{};
+        } else {
+            _rlock.unlock();
+            _rlock.release();
+
+            if (_check_uid) {
+                solid_log(logger, Error, &_rsvc << " connection pool does not exist");
+                return error_service_pool_unknown;
+            }
+
+            {
+                lock_guard<std::mutex> lock{_rsvc.mutex()};
+                const auto             itb = namemap.try_emplace(_recipient_name);
+
+                if (!itb.second) {
+                    _rpool_id = itb.first->second;
+                } else {
+                    if (!pool_free_list_.empty()) {
+                        const auto pool_index = pool_free_list_.popFront();
+                        _rpool_id             = ConnectionPoolId{pool_index, pooldq[pool_index].unique};
+                    } else {
+                        solid_log(logger, Error, &_rsvc << " too many connection pools created");
+                        return error_service_connection_pool_count;
+                    }
+
+                    itb.first->second = _rpool_id;
+                }
+
+                _rpool_name = itb.first->first;
+            }
+        }
+    }
+}
+
 ErrorConditionT Service::doSendMessage(
     const char*               _recipient_url,
     const RecipientId&        _rrecipient_id_in,
@@ -1079,9 +1127,8 @@ ErrorConditionT Service::doSendMessage(
 
     static constexpr const char* empty_recipient_name = ":";
     const char*                  recipient_name       = _recipient_url;
-    size_t                       pool_index;
-    uint32_t                     pool_unique = -1;
-    bool                         check_uid   = false;
+    ConnectionPoolId             pool_id;
+    bool                         check_uid = false;
     string                       pool_name;
     {
         unique_lock<std::mutex> lock;
@@ -1109,7 +1156,7 @@ ErrorConditionT Service::doSendMessage(
             const auto itb = locked_pimpl->namemap.try_emplace(recipient_name);
 
             if (!itb.second) {
-                pool_index = itb.first->second;
+                pool_id = itb.first->second;
             } else {
                 if (configuration().isServerOnly()) {
                     solid_log(logger, Error, this << " request for name resolve for a server only configuration");
@@ -1118,28 +1165,21 @@ ErrorConditionT Service::doSendMessage(
                 }
 
                 if (!locked_pimpl->pool_free_list_.empty()) {
-                    pool_index = pimpl_->pool_free_list_.popFront();
+                    const auto pool_index = locked_pimpl->pool_free_list_.popFront();
+                    pool_id               = ConnectionPoolId{pool_index, locked_pimpl->pooldq[pool_index].unique};
                 } else {
                     error = error_service_connection_pool_count;
                     return error;
                 }
 
-                itb.first->second = pool_index;
-
-                pool_name = itb.first->first;
-                lock.unlock();
-#if 0//TODO:delete
-                return locked_pimpl->doSendMessageToNewPool(*this, pool_index,
-                    itb.first->first, _rmsgptr, msg_type_idx,
-                    _rcomplete_fnc, _precipient_id_out, _pmsgid_out, _flags, message_url);
-#endif
+                itb.first->second = pool_id;
             }
+            pool_name = itb.first->first;
         } else if (
             static_cast<size_t>(_rrecipient_id_in.pool_id_.index) < pimpl_->pooldq.size()) {
             // we cannot check the uid right now because we need a lock on the pool's mutex
-            check_uid   = true;
-            pool_index  = static_cast<size_t>(_rrecipient_id_in.pool_id_.index);
-            pool_unique = _rrecipient_id_in.pool_id_.unique;
+            check_uid = true;
+            pool_id   = _rrecipient_id_in.pool_id_;
         } else {
             solid_log(logger, Error, this << " recipient does not exist");
             error = error_service_unknown_recipient;
@@ -1147,7 +1187,7 @@ ErrorConditionT Service::doSendMessage(
         }
     }
 
-    const size_t           msg_type_idx = locked_pimpl->config.protocol().typeIndex(_rmsgptr.get());
+    const size_t msg_type_idx = locked_pimpl->config.protocol().typeIndex(_rmsgptr.get());
 
     if (msg_type_idx == 0) {
         solid_log(logger, Error, this << " message type not registered");
@@ -1155,16 +1195,17 @@ ErrorConditionT Service::doSendMessage(
         return error;
     }
 
-    lock_guard<std::mutex> lock2(locked_pimpl->poolMutex(pool_index));
-    ConnectionPoolStub&    rpool(locked_pimpl->pooldq[pool_index]);
-    bool                   is_first = false;
-
-    if (check_uid && rpool.unique != pool_unique) {
-        // failed uid check
-        solid_log(logger, Error, this << " connection pool does not exist");
-        error = error_service_pool_unknown;
+    unique_lock<std::mutex> pool_lock;
+    error = locked_pimpl->doLockPool(*this, check_uid, recipient_name, pool_id, pool_lock, pool_name);
+    if (!error) {
+    } else {
         return error;
     }
+
+    solid_assert(pool_lock.owns_lock());
+
+    ConnectionPoolStub& rpool(locked_pimpl->pooldq[pool_id.index]);
+    bool                is_first = false;
 
     if (rpool.isClosing()) {
         solid_log(logger, Error, this << " connection pool is stopping");
@@ -1179,7 +1220,7 @@ ErrorConditionT Service::doSendMessage(
     }
 
     if (_precipient_id_out != nullptr) {
-        _precipient_id_out->pool_id_ = ConnectionPoolId(pool_index, rpool.unique);
+        _precipient_id_out->pool_id_ = pool_id;
     }
 
     // At this point we can fetch the message from user's pointer
@@ -1206,7 +1247,7 @@ ErrorConditionT Service::doSendMessage(
             Connection::eventClosePoolMessage(msgid));
 
         if (success) {
-            solid_log(logger, Verbose, this << " message " << msgid << " from pool " << pool_index << " sent for canceling to " << rpool.main_connection_id);
+            solid_log(logger, Verbose, this << " message " << msgid << " from pool " << pool_id << " sent for canceling to " << rpool.main_connection_id);
             // erase/unlink the message from any list
             if (rpool.msgorder_inner_list.contains(msgid.index)) {
                 rpool.eraseMessageOrderAsync(msgid.index);
@@ -1224,11 +1265,11 @@ ErrorConditionT Service::doSendMessage(
     }
 
     if (!success && !Message::is_synchronous(_flags)) {
-        success = doTryNotifyPoolWaitingConnection(pool_index);
+        success = doTryNotifyPoolWaitingConnection(pool_id.index);
     }
 
     if (!success) {
-        locked_pimpl->doTryCreateNewConnectionForPool(*this, pool_index, error);
+        locked_pimpl->doTryCreateNewConnectionForPool(*this, pool_id.index, error);
         error.clear();
     }
 
@@ -1506,7 +1547,7 @@ ErrorConditionT Service::Data::doSendMessageToConnection(
 }
 
 //-----------------------------------------------------------------------------
-#if 0//TODO:delete
+#if 0 // TODO:delete
 ErrorConditionT Service::Data::doSendMessageToNewPool(
     Service&                  _rsvc,
     const size_t              _pool_index,
