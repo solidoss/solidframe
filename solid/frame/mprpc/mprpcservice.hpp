@@ -442,13 +442,6 @@ private:
     size_t doPushNewConnectionPool();
 #endif
 
-    void pushFrontMessageToConnectionPool(
-        ConnectionPoolId& _rconpoolid,
-        MessageBundle&    _rmsgbundle,
-        MessageId const&  _rmsgid);
-
-    bool doTryNotifyPoolWaitingConnection(const size_t _conpoolindex);
-
     ErrorConditionT doCreateConnectionPool(
         const std::string_view& _recipient_url,
         RecipientId&            _rrecipient_id_out,

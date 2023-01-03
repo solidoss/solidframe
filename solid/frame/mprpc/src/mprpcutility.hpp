@@ -184,7 +184,7 @@ struct MessageBundle {
         const size_t              _msg_type_idx,
         const MessageFlagsT&      _flags,
         MessageCompleteFunctionT& _complete_fnc,
-        std::string&              _rmessage_url)
+        std::string&&             _rmessage_url)
         : message_type_id(_msg_type_idx)
         , message_flags(_flags)
         , message_ptr(std::move(_rmsgptr))

@@ -265,11 +265,11 @@ int test_clientserver_topic(int argc, char* argv[])
             {
                 frame::mprpc::ServiceStartStatus start_status;
                 mprpcserver.start(start_status, std::move(cfg));
-
+                solid_check(!start_status.listen_addr_vec_.empty());
                 std::ostringstream oss;
                 oss << start_status.listen_addr_vec_.back().port();
                 server_port = oss.str();
-                solid_dbg(generic_logger, Info, "server listens on: " << start_status.listen_addr_vec_.back());
+                solid_dbg(generic_logger, Info, "server listens on: " << start_status.listen_addr_vec_.back() <<" port: "<<server_port);
             }
         }
 
