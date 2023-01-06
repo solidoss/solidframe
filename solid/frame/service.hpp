@@ -59,7 +59,6 @@ class Service : NonCopyable {
     };
     Manager&            rm_;
     std::atomic<size_t> idx_;
-    // TODO:vapa std::atomic<StatusE> status_;
     Any<> any_;
 
 protected:
@@ -88,13 +87,6 @@ public:
 
     ActorIdT id(const ActorBase& _ract) const;
 
-#if 0
-    bool running() const;
-
-    bool stopping() const;
-
-    bool stopped() const;
-#endif
     auto& any()
     {
         return any_;
@@ -125,12 +117,7 @@ private:
     friend class SchedulerBase;
 
     ActorIdT registerActor(ActorBase& _ract, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
-    // called by manager to set status
-#if 0
-    bool statusSetStopping();
-    void statusSetStopped();
-    void statusSetRunning();
-#endif
+ 
     size_t       index() const;
     void         index(const size_t _idx);
     virtual void onLockedStoppingBeforeActors();
@@ -185,41 +172,6 @@ inline void Service::index(const size_t _idx)
 {
     idx_.store(_idx);
 }
-
-#if 0
-inline bool Service::running() const
-{
-    return status_.load(std::memory_order_relaxed) == StatusE::Running;
-}
-
-inline bool Service::stopping() const
-{
-    return status_.load(std::memory_order_relaxed) == StatusE::Stopping;
-}
-
-inline bool Service::stopped() const
-{
-    return status_.load(std::memory_order_relaxed) == StatusE::Stopped;
-}
-
-
-
-inline bool Service::statusSetStopping()
-{
-    StatusE expect{StatusE::Running};
-    return status_.compare_exchange_strong(expect, StatusE::Stopping);
-}
-
-inline void Service::statusSetStopped()
-{
-    status_.store(StatusE::Stopped);
-}
-
-inline void Service::statusSetRunning()
-{
-    status_.store(StatusE::Running);
-}
-#endif
 
 inline void Service::notifyAll(Event const& _revt)
 {
