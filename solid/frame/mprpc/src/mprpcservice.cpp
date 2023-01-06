@@ -1772,7 +1772,6 @@ ErrorConditionT Service::doDelayCloseConnectionPool(
 
     ErrorConditionT        error;
     const size_t           pool_index = static_cast<size_t>(_rrecipient_id.poolId().index);
-    lock_guard<std::mutex> lock(pimpl_->mtx);
     lock_guard<std::mutex> lock2(pimpl_->poolMutex(pool_index));
     ConnectionPoolStub&    rpool(pimpl_->pooldq[pool_index]);
 
@@ -1783,8 +1782,11 @@ ErrorConditionT Service::doDelayCloseConnectionPool(
     rpool.setClosing();
     solid_log(logger, Verbose, this << " pool " << pool_index << " set closing");
 
-    if (!rpool.name.empty()) {
-        pimpl_->namemap.erase(rpool.name.c_str());
+    {
+        lock_guard<std::mutex> lock(pimpl_->mtx);
+        if (!rpool.name.empty()) {
+            pimpl_->namemap.erase(rpool.name.c_str());
+        }
     }
 
     MessagePointerT empty_msg_ptr;
@@ -1814,7 +1816,6 @@ ErrorConditionT Service::doForceCloseConnectionPool(
 
     ErrorConditionT        error;
     const size_t           pool_index = static_cast<size_t>(_rrecipient_id.poolId().index);
-    lock_guard<std::mutex> lock(pimpl_->mtx);
     lock_guard<std::mutex> lock2(pimpl_->poolMutex(pool_index));
     ConnectionPoolStub&    rpool(pimpl_->pooldq[pool_index]);
 
@@ -1826,9 +1827,12 @@ ErrorConditionT Service::doForceCloseConnectionPool(
     rpool.setFastClosing();
 
     solid_log(logger, Verbose, this << " pool " << pool_index << " set fast closing");
-
-    if (!rpool.name.empty()) {
-        pimpl_->namemap.erase(rpool.name.c_str());
+    {
+        lock_guard<std::mutex> lock(pimpl_->mtx);
+        
+        if (!rpool.name.empty()) {
+            pimpl_->namemap.erase(rpool.name.c_str());
+        }
     }
 
     MessagePointerT empty_msg_ptr;
@@ -2524,10 +2528,10 @@ void Service::connectionStop(ConnectionContext& _rconctx)
 
         configuration().connection_stop_fnc(_rconctx);
 
+        lock2.lock();
+
         // we might need to release the connectionpool entry - so we need the main lock
         lock_guard<std::mutex> lock(pimpl_->mtx);
-
-        lock2.lock();
 
         if (rpool.hasNoConnection()) {
 
@@ -2806,7 +2810,7 @@ void Service::onOutgoingConnectionStart(ConnectionContext& _rconctx)
     ConnectionPoolStub* ppool = nullptr;
     {
         const size_t           pool_index = static_cast<size_t>(_rconctx.connection().poolId().index);
-        lock_guard<std::mutex> lock(pimpl_->mtx);
+        //lock_guard<std::mutex> lock(pimpl_->mtx);
         lock_guard<std::mutex> lock2(pimpl_->poolMutex(pool_index));
         ConnectionPoolStub&    rpool(pimpl_->pooldq[pool_index]);
 
