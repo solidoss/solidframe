@@ -405,6 +405,7 @@ private:
     RequestIdVectorT   cancel_remote_msg_vec_;
     ErrorConditionT    error_;
     ErrorCodeT         sys_error_;
+    bool               poll_pool_more_ = true;
     Any<>              any_data_;
     char               socket_emplace_buf_[static_cast<size_t>(ConnectionValues::SocketEmplacementSize)];
     SocketStubPtrT     sock_ptr_;
@@ -435,7 +436,7 @@ inline const std::string& Connection::poolName() const
 
 inline bool Connection::isWriterEmpty() const
 {
-    return msg_writer_.empty();
+    return msg_writer_.isEmpty();
 }
 
 inline const ErrorConditionT& Connection::error() const

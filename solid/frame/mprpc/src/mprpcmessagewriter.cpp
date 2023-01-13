@@ -53,7 +53,7 @@ void MessageWriter::unprepare()
 {
 }
 //-----------------------------------------------------------------------------
-bool MessageWriter::full(WriterConfiguration const& _rconfig) const
+bool MessageWriter::isFull(WriterConfiguration const& _rconfig) const
 {
     return write_inner_list_.size() >= _rconfig.max_message_count_multiplex;
 }
@@ -115,7 +115,7 @@ bool MessageWriter::enqueue(
 {
 
     // see if we can accept the message
-    if (full(_rconfig) || cache_inner_list_.empty()) {
+    if (isFull(_rconfig) || cache_inner_list_.empty()) {
         return false;
     }
 
@@ -153,7 +153,7 @@ bool MessageWriter::enqueue(
     MessageId&                 _rconn_msg_id,
     bool&                      _rmore)
 {
-    if (full(_rconfig)) {
+    if (isFull(_rconfig)) {
         _rmore = false;
         solid_log(logger, Verbose, "");
         return false;
@@ -394,7 +394,7 @@ void MessageWriter::doCancel(
     }
 }
 //-----------------------------------------------------------------------------
-bool MessageWriter::empty() const
+bool MessageWriter::isEmpty() const
 {
     return order_inner_list_.empty();
 }

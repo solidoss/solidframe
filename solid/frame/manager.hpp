@@ -84,7 +84,8 @@ public:
         const size_t _actor_capacity      = 1024 * 1024,
         const size_t _actor_bucket_size   = 0,
         const size_t _service_mutex_count = 0,
-        const size_t _actor_mutex_count   = 0);
+        const size_t _actor_mutex_count   = 0,
+        const size_t _chunk_mutex_count   = 0);
 
     virtual ~Manager();
 

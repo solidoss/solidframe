@@ -42,7 +42,7 @@ inline auto milliseconds_since_epoch(const std::chrono::system_clock::time_point
     return ms;
 }
 
-inline uint64_t microseconds_since_epoch()
+uint64_t microseconds_since_epoch()
 {
     using namespace std::chrono;
     static const auto start   = high_resolution_clock::now();
@@ -165,6 +165,8 @@ void wait();
 
 using DurationTupleT = tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>;
 using DurationDqT    = std::deque<DurationTupleT>;
+using TraceRecordT   = tuple<uint64_t, uint64_t>;
+using TraceDqT       = std::deque<TraceRecordT>;
 
 vector<frame::ActorIdT>   worker_actor_id_vec;
 CallPoolT                 worker_pool;
@@ -177,6 +179,8 @@ std::atomic<uint64_t>     min_time_server_trip_delta{std::numeric_limits<uint64_
 std::atomic<uint64_t>     request_count{0};
 frame::mprpc::RecipientId client_id;
 DurationDqT               duration_dq;
+TraceDqT                  trace_dq;
+std::mutex                trace_mtx;
 size_t                    max_per_pool_connection_count = 100;
 std::atomic<size_t>       client_connection_count{0};
 promise<void>             client_connection_promise;
@@ -332,8 +336,12 @@ int test_clientserver_topic(int argc, char* argv[])
 
         solid_dbg(logger, Warning, "========== START sending messages ==========");
 
-        for (size_t i = 0; i < message_count; ++i) {
-            mprpcclient.sendMessage(client_id, std::make_shared<Message>(i, microseconds_since_epoch()), {frame::mprpc::MessageFlagsE::AwaitResponse});
+        {
+            const uint64_t startms = microseconds_since_epoch();
+            for (size_t i = 0; i < message_count; ++i) {
+                mprpcclient.sendMessage(client_id, std::make_shared<Message>(i, microseconds_since_epoch()), {frame::mprpc::MessageFlagsE::AwaitResponse});
+            }
+            solid_dbg(logger, Warning, "========== DONE sending messages ========== " << (microseconds_since_epoch() - startms) << "us");
         }
 
         solid_statistic_add(request_count, message_count);
@@ -357,6 +365,15 @@ int test_clientserver_topic(int argc, char* argv[])
             if (ofs) {
                 for (const auto& t : duration_dq) {
                     ofs << get<0>(t) << ", " << get<1>(t) << ", " << get<2>(t) << ", " << get<3>(t) << ", " << get<4>(t) << "," << endl;
+                }
+                ofs.close();
+            }
+        }
+        if (1) {
+            ofstream ofs("trace.csv");
+            if (ofs) {
+                for (const auto& t : trace_dq) {
+                    ofs << get<0>(t) << ", " << get<1>(t) << "," << endl;
                 }
                 ofs.close();
             }
@@ -386,6 +403,8 @@ void WorkerActor::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
         postStop(_rctx);
     }
 }
+
+thread_local uint64_t local_send_duration = 0;
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
@@ -420,9 +439,11 @@ void client_complete_message(
         if (_rrecv_msg_ptr->iteration_ < per_message_loop_count) {
             _rrecv_msg_ptr->clearHeader();
             _rctx.service().sendMessage(client_id, std::move(_rrecv_msg_ptr), {frame::mprpc::MessageFlagsE::AwaitResponse});
+            local_send_duration += (microseconds_since_epoch() - now);
             solid_statistic_inc(request_count);
         } else {
             if (active_message_count.fetch_sub(1) == 1) {
+                solid_dbg(logger, Warning, "Local client send duration: " << local_send_duration);
                 _rctx.service().forceCloseConnectionPool(
                     client_id,
                     [](frame::mprpc::ConnectionContext& _rctx) {});
@@ -455,8 +476,21 @@ void server_complete_message(
         };
 
         static_assert(CallPoolT::is_small_type<decltype(lambda)>(), "Type not small");
-
-        topic_ptr->synch_ctx_.push(std::move(lambda));
+        if (false) {
+            std::lock_guard<mutex> lock(trace_mtx);
+            if (!trace_dq.empty()) {
+                if (get<0>(trace_dq.back()) == _rctx.recipientId().connectionId().index) {
+                    ++get<1>(trace_dq.back());
+                } else {
+                    trace_dq.emplace_back(_rctx.recipientId().connectionId().index, 1);
+                }
+            } else {
+                trace_dq.emplace_back(_rctx.recipientId().connectionId().index, 1);
+            }
+            topic_ptr->synch_ctx_.push(std::move(lambda));
+        } else {
+            topic_ptr->synch_ctx_.push(std::move(lambda));
+        }
         // worker_pool.push(std::move(lambda));
         //  lambda();
     }

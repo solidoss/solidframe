@@ -407,7 +407,7 @@ private:
     ErrorConditionT pollPoolForUpdates(
         Connection&      _rcon,
         ActorIdT const&  _ractuid,
-        MessageId const& _rmsgid);
+        MessageId const& _rmsgid, bool &_rmore);
 
     void rejectNewPoolMessage(Connection const& _rcon);
 

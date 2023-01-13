@@ -135,9 +135,9 @@ public:
         uint8_t&           _rrelay_free_count,
         Sender&            _rsender);
 
-    bool empty() const;
+    bool isEmpty() const;
 
-    bool full(WriterConfiguration const& _rconfig) const;
+    bool isFull(WriterConfiguration const& _rconfig) const;
 
     void prepare(WriterConfiguration const& _rconfig);
     void unprepare();

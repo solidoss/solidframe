@@ -59,7 +59,7 @@ class Service : NonCopyable {
     };
     Manager&            rm_;
     std::atomic<size_t> idx_;
-    Any<> any_;
+    Any<>               any_;
 
 protected:
     explicit Service(
@@ -117,7 +117,7 @@ private:
     friend class SchedulerBase;
 
     ActorIdT registerActor(ActorBase& _ract, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
- 
+
     size_t       index() const;
     void         index(const size_t _idx);
     virtual void onLockedStoppingBeforeActors();
