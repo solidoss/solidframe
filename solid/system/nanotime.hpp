@@ -158,6 +158,8 @@ typename RetClock::time_point time_point_clock_cast(const std::chrono::time_poin
     return ret_tp;
 }
 
+std::ostream& operator<<(std::ostream& _ros, const NanoTime& _ntime);
+
 #ifndef SOLID_HAS_NO_INLINES
 #include "solid/system/nanotime.ipp"
 #endif

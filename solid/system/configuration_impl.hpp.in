@@ -8,6 +8,7 @@
 #cmakedefine SOLID_USE_SAFE_STATIC
 #cmakedefine SOLID_USE_GNU_ATOMIC
 #cmakedefine SOLID_USE_EPOLLRDHUP
+#cmakedefine SOLID_USE_EPOLL2
 
 #cmakedefine SOLID_ON_WINDOWS
 #cmakedefine SOLID_ON_LINUX
