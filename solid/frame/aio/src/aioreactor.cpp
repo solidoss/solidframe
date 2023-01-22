@@ -442,36 +442,8 @@ struct Reactor::Data {
         , event_actor_ptr(make_shared<EventActor>())
     {
     }
-#if defined(SOLID_USE_EPOLL)
-    int computeWaitTimeMilliseconds(NanoTime const& _rcrt) const
-    {
-
-        if (!exeq.empty()) {
-            return 0;
-        }
-
-        if (timestore.size() != 0u) {
-
-            if (_rcrt < timestore.next()) {
-
-                const int64_t maxwait = 1000 * 60 * 10; // ten minutes
-                int64_t       diff    = 0;
-                const auto    crt_tp  = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
-                const auto    next_tp = timestore.next().timePointCast<std::chrono::steady_clock::time_point>();
-                diff                  = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
-
-                if (diff > maxwait) {
-                    return maxwait;
-                }
-                return static_cast<int>(diff);
-            }
-
-            return 0;
-        }
-        return -1;
-    }
-#elif defined(SOLID_USE_KQUEUE)
-    NanoTime computeWaitTimeMilliseconds(NanoTime const& _rcrt) const
+#if defined(SOLID_USE_EPOLL2) || defined(SOLID_USE_KQUEUE)
+    NanoTime computeWaitDuration(NanoTime const& _rcrt) const
     {
 
         if (exeq.size()) {
@@ -479,9 +451,9 @@ struct Reactor::Data {
         } else if (timestore.size()) {
 
             if (_rcrt < timestore.next()) {
-                const auto crt_tp = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
+                const auto crt_tp  = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
                 const auto next_tp = timestore.next().timePointCast<std::chrono::steady_clock::time_point>();
-                const auto delta = next_tp - crt_tp;
+                const auto delta   = next_tp - crt_tp;
 
                 if (delta <= std::chrono::minutes(10)) {
                     return delta;
@@ -496,8 +468,36 @@ struct Reactor::Data {
             return NanoTime::maximum;
         }
     }
+#elif defined(SOLID_USE_EPOLL)
+    int computeWaitDuration(NanoTime const& _rcrt) const
+    {
+
+        if (!exeq.empty()) {
+            return 0;
+        }
+
+        if (timestore.size() != 0u) {
+
+            if (_rcrt < timestore.next()) {
+
+                const int64_t maxwait = 1000 * 60 * 10; // ten minutes
+                int64_t diff = 0;
+                const auto crt_tp = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
+                const auto next_tp = timestore.next().timePointCast<std::chrono::steady_clock::time_point>();
+                diff = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
+
+                if (diff > maxwait) {
+                    return maxwait;
+                }
+                return static_cast<int>(diff);
+            }
+
+            return 0;
+        }
+        return -1;
+    }
 #elif defined(SOLID_USE_WSAPOLL)
-    int computeWaitTimeMilliseconds(NanoTime const& _rcrt) const
+    int computeWaitDuration(NanoTime const& _rcrt) const
     {
         if (exeq.size()) {
             return 0;
@@ -743,20 +743,26 @@ void Reactor::run()
         crttime = std::chrono::steady_clock::now();
 
         crtload = impl_->actcnt + impl_->devcnt + impl_->exeq.size();
-#if defined(SOLID_USE_EPOLL)
-        waitmsec = impl_->computeWaitTimeMilliseconds(crttime);
+#if defined(SOLID_USE_EPOLL2)
+        waittime = impl_->computeWaitDuration(crttime);
 
-        solid_log(logger, Verbose, "epoll_wait msec = " << waitmsec);
+        solid_log(logger, Verbose, "epoll_wait wait = " << waittime);
+
+        selcnt = epoll_pwait2(impl_->reactor_fd, impl_->eventvec.data(), static_cast<int>(impl_->eventvec.size()), waittime != NanoTime::maximum ? &waittime : nullptr, nullptr);
+#elif defined(SOLID_USE_EPOLL)
+        waitmsec = impl_->computeWaitDuration(crttime);
+
+        solid_log(logger, Verbose, "epoll_wait wait = " << waitmsec);
 
         selcnt = epoll_wait(impl_->reactor_fd, impl_->eventvec.data(), static_cast<int>(impl_->eventvec.size()), waitmsec);
 #elif defined(SOLID_USE_KQUEUE)
-        waittime = impl_->computeWaitTimeMilliseconds(crttime);
+        waittime = impl_->computeWaitDuration(crttime);
 
-        solid_log(logger, Verbose, "kqueue msec = " << waittime.seconds() << ':' << waittime.nanoSeconds());
+        solid_log(logger, Verbose, "kqueue wait = " << waittime);
 
         selcnt = kevent(impl_->reactor_fd, nullptr, 0, impl_->eventvec.data(), static_cast<int>(impl_->eventvec.size()), waittime != NanoTime::maximum ? &waittime : nullptr);
 #elif defined(SOLID_USE_WSAPOLL)
-        waitmsec = impl_->computeWaitTimeMilliseconds(crttime);
+        waitmsec = impl_->computeWaitDuration(crttime);
         solid_log(logger, Verbose, "wsapoll wait msec = " << waitmsec);
         selcnt = WSAPoll(impl_->eventvec.data(), impl_->eventvec.size(), waitmsec);
 #endif
