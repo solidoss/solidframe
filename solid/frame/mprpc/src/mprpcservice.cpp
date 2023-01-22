@@ -633,6 +633,7 @@ struct Service::Data {
     ConnectionPoolDequeT     pooldq;
     ConnectionPoolInnerListT pool_free_list_;
     std::string              tmp_str;
+    ServiceStatistic         statistic_;
 
     Data(Service& _rsvc, Configuration&& _config)
         : mtx(_rsvc.mutex())
@@ -770,6 +771,16 @@ Service::Service(
 Service::~Service()
 {
     stop(true);
+}
+//-----------------------------------------------------------------------------
+const ServiceStatistic& Service::statistic() const
+{
+    return pimpl_->statistic_;
+}
+
+ServiceStatistic& Service::wstatistic()
+{
+    return pimpl_->statistic_;
 }
 //-----------------------------------------------------------------------------
 Configuration const& Service::configuration() const
@@ -1080,6 +1091,7 @@ ErrorConditionT Service::doSendMessage(
     const MessageFlagsT&      _flags)
 {
     solid_log(logger, Verbose, this);
+    solid_statistic_inc(pimpl_->statistic_.send_message_count_);
 
     std::string      message_url;
     shared_ptr<Data> locked_pimpl;
@@ -1199,6 +1211,7 @@ ErrorConditionT Service::Data::doSendMessageToConnection(
     std::string&&             _msg_url)
 {
     solid_log(logger, Verbose, &_rsvc);
+    solid_statistic_inc(statistic_.send_message_to_connection_count_);
 
     solid::ErrorConditionT error;
     const size_t           msg_type_idx = config.protocol().typeIndex(_rmsgptr.get());
@@ -1244,10 +1257,11 @@ ErrorConditionT Service::Data::doSendMessageToConnection(
                 rmsgstub.makeCancelable();
             }
 
-            // pool_lock.unlock();
+            //pool_lock.unlock();
 
-            //if (should_notify) {
-            if(true){
+            if (should_notify) {
+            //if(true){
+                solid_log(logger, Warning, &_rsvc << " send "<<_rrecipient_id_in.connectionId());
                 _rsvc.manager().notify(_rrecipient_id_in.connectionId(), Connection::eventNewMessage());
             }
         } else {
@@ -1279,6 +1293,7 @@ ErrorConditionT Service::Data::doSendMessageToPool(
     const MessageFlagsT&      _flags)
 {
     solid_log(logger, Verbose, &_rsvc << " " << _rpool_id);
+    solid_statistic_inc(statistic_.send_message_to_pool_count_);
 
     ConnectionPoolStub& rpool(pooldq[_rpool_id.index]);
     bool                is_first = false;
@@ -1451,9 +1466,10 @@ bool Service::doTryPushMessageToConnection(
 ErrorConditionT Service::pollPoolForUpdates(
     Connection&      _rconnection,
     ActorIdT const&  _ractuid,
-    MessageId const& _rcompleted_msgid, bool &_rmore)
+    MessageId const& _rcompleted_msgid, bool& _rmore)
 {
     solid_log(logger, Verbose, this << " " << &_rconnection);
+    solid_statistic_inc(pimpl_->statistic_.poll_pool_count_);
 
     const size_t           pool_index = static_cast<size_t>(_rconnection.poolId().index);
     lock_guard<std::mutex> pool_lock(pimpl_->poolMutex(pool_index));
@@ -1525,16 +1541,24 @@ ErrorConditionT Service::pollPoolForUpdates(
     if (_rconnection.isServer() || _rconnection.isActiveState()) {
         if (connection_can_handle_synchronous_messages) {
             // use the order inner queue
+            size_t count = 0;
             while (!rpool.msgorder_inner_list.empty() && connection_may_handle_more_messages) {
                 connection_may_handle_more_messages = doTryPushMessageToConnection(
                     _rconnection,
                     _ractuid,
                     pool_index,
                     rpool.msgorder_inner_list.frontIndex());
+                count += connection_may_handle_more_messages;
             }
+            if(count){
+                solid_statistic_inc(pimpl_->statistic_.fetch_count_);
+                solid_statistic_max(pimpl_->statistic_.max_fetch_size_, count);
+                solid_statistic_min(pimpl_->statistic_.min_fetch_size_, count);
+            }
+            
             _rmore = !rpool.msgorder_inner_list.empty();
         } else {
-
+            size_t count = 0;
             // use the async inner queue
             while (!rpool.msgasync_inner_list.empty() && connection_may_handle_more_messages) {
                 connection_may_handle_more_messages = doTryPushMessageToConnection(
@@ -1542,6 +1566,12 @@ ErrorConditionT Service::pollPoolForUpdates(
                     _ractuid,
                     pool_index,
                     rpool.msgasync_inner_list.frontIndex());
+                count += connection_may_handle_more_messages;
+            }
+            if(count){
+                solid_statistic_inc(pimpl_->statistic_.fetch_count_);
+                solid_statistic_max(pimpl_->statistic_.max_fetch_size_, count);
+                solid_statistic_min(pimpl_->statistic_.min_fetch_size_, count);
             }
             _rmore = !rpool.msgasync_inner_list.empty();
         }
@@ -1561,9 +1591,10 @@ ErrorConditionT Service::pollPoolForUpdates(
 void Service::rejectNewPoolMessage(Connection const& _rconnection)
 {
     solid_log(logger, Verbose, this);
+    solid_statistic_inc(pimpl_->statistic_.reject_new_pool_message_count_);
 
     const size_t           pool_index = static_cast<size_t>(_rconnection.poolId().index);
-    lock_guard<std::mutex> lock2(pimpl_->poolMutex(pool_index));
+    lock_guard<std::mutex> pool_lock(pimpl_->poolMutex(pool_index));
     ConnectionPoolStub&    rpool(pimpl_->pooldq[pool_index]);
 
     solid_assert_log(rpool.unique == _rconnection.poolId().unique, logger);
@@ -2749,6 +2780,38 @@ std::ostream& operator<<(std::ostream& _ros, RequestId const& _msg_id)
 std::ostream& operator<<(std::ostream& _ros, MessageId const& _msg_id)
 {
     _ros << '{' << _msg_id.index << ',' << _msg_id.unique << '}';
+    return _ros;
+}
+//=============================================================================
+ServiceStatistic::ServiceStatistic()
+    : poll_pool_count_(0)
+    , send_message_count_(0)
+    , send_message_to_connection_count_(0)
+    , send_message_to_pool_count_(0)
+    , reject_new_pool_message_count_(0)
+    , connection_new_pool_message_count_(0)
+    , connection_do_send_count_(0)
+    , connection_send_wait_count_(0)
+    , connection_send_done_count_(0)
+    , fetch_count_(0)
+    , max_fetch_size_(0)
+    , min_fetch_size_(-1)
+{
+}
+std::ostream& ServiceStatistic::print(std::ostream& _ros) const
+{
+    _ros << " poll_pool_count = " << poll_pool_count_;
+    _ros << " send_message_count = " << send_message_count_;
+    _ros << " send_message_to_connection_count = " << send_message_to_connection_count_;
+    _ros << " send_message_to_pool_count = " << send_message_to_pool_count_;
+    _ros << " reject_new_pool_message = " << reject_new_pool_message_count_;
+    _ros << " connection_new_pool_message_count = " << connection_new_pool_message_count_;
+    _ros << " connection_do_send_count = " << connection_do_send_count_;
+    _ros << " connection_send_wait_count = " << connection_send_wait_count_;
+    _ros << " connection_send_done_count = " << connection_send_done_count_;
+    _ros << " fetch_count = " << fetch_count_;
+    _ros << " max_fetch = " << max_fetch_size_;
+    _ros << " min_fetch = " << min_fetch_size_;
     return _ros;
 }
 //=============================================================================

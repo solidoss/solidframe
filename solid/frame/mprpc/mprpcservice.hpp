@@ -11,6 +11,8 @@
 #pragma once
 
 #include "solid/system/exception.hpp"
+#include "solid/system/statistic.hpp"
+
 #include "solid/utility/event.hpp"
 #include "solid/utility/function.hpp"
 
@@ -52,6 +54,24 @@ struct MessageBundle;
 
 struct ServiceStartStatus {
     std::vector<SocketAddress> listen_addr_vec_;
+};
+
+struct ServiceStatistic : solid::Statistic {
+    std::atomic<uint64_t> poll_pool_count_;
+    std::atomic<uint64_t> send_message_count_;
+    std::atomic<uint64_t> send_message_to_connection_count_;
+    std::atomic<uint64_t> send_message_to_pool_count_;
+    std::atomic<uint64_t> reject_new_pool_message_count_;
+    std::atomic<uint64_t> connection_new_pool_message_count_;
+    std::atomic<uint64_t> connection_do_send_count_;
+    std::atomic<uint64_t> connection_send_wait_count_;
+    std::atomic<uint64_t> connection_send_done_count_;
+    std::atomic<uint64_t> fetch_count_;
+    std::atomic<uint64_t> max_fetch_size_;
+    std::atomic<uint64_t> min_fetch_size_;
+
+    ServiceStatistic();
+    std::ostream& print(std::ostream& _ros) const override;
 };
 
 //! Message Passing Remote Procedure Call Service
@@ -100,6 +120,8 @@ public:
 
     //! Destructor
     ~Service();
+
+    const ServiceStatistic& statistic() const;
 
     ErrorConditionT createConnectionPool(const std::string_view& _recipient_url, const size_t _persistent_connection_count = 1);
 
@@ -380,6 +402,7 @@ private:
     friend class ConnectionContext;
 
     Configuration const& configuration() const;
+    ServiceStatistic&    wstatistic();
 
     std::shared_ptr<Data> acquire(std::unique_lock<std::mutex>& _lock);
 
@@ -407,7 +430,7 @@ private:
     ErrorConditionT pollPoolForUpdates(
         Connection&      _rcon,
         ActorIdT const&  _ractuid,
-        MessageId const& _rmsgid, bool &_rmore);
+        MessageId const& _rmsgid, bool& _rmore);
 
     void rejectNewPoolMessage(Connection const& _rcon);
 

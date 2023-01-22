@@ -256,7 +256,7 @@ private:
 
     ResponseStateE doCheckResponseState(frame::aio::ReactorContext& _rctx, const MessageHeader& _rmsghdr, MessageId& _rrelay_id, const bool _erase_request);
 
-    void doCompleteMessage(
+    bool doCompleteMessage(
         frame::aio::ReactorContext& _rctx, MessagePointerT& _rresponse_ptr, const size_t _response_type_id);
 
     void doCompleteMessage(

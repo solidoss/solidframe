@@ -163,14 +163,14 @@ void wait();
 // - response serialization time -> Message::serialization_time_point_ (rcv)
 // - response receive time -> now
 
-using DurationTupleT = tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>;
+using DurationTupleT = tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>;
 using DurationDqT    = std::deque<DurationTupleT>;
 using TraceRecordT   = tuple<uint64_t, uint64_t>;
 using TraceDqT       = std::deque<TraceRecordT>;
 
 vector<frame::ActorIdT>   worker_actor_id_vec;
 CallPoolT                 worker_pool;
-size_t                    per_message_loop_count = 10;
+size_t                    per_message_loop_count = 1;
 std::atomic<size_t>       active_message_count;
 std::atomic<uint64_t>     max_time_delta{0};
 std::atomic<uint64_t>     min_time_delta{std::numeric_limits<uint64_t>::max()};
@@ -333,7 +333,7 @@ int test_clientserver_topic(int argc, char* argv[])
         }
 
         active_message_count = message_count;
-
+        const uint64_t start_msec = milliseconds_since_epoch();
         solid_dbg(logger, Warning, "========== START sending messages ==========");
 
         {
@@ -358,18 +358,21 @@ int test_clientserver_topic(int argc, char* argv[])
         generic_service.stop();
         worker_pool.stop();
 
+        solid_log(logger, Statistic, "Test duration: "<<(milliseconds_since_epoch() - start_msec)<<"msecs");
         solid_log(logger, Statistic, "Workpool statistic: " << worker_pool.statistic());
+        solid_log(logger, Statistic, "mprpcserver statistic: " << mprpcserver.statistic());
+        solid_log(logger, Statistic, "mprpcclient statistic: " << mprpcclient.statistic());
 
         if (1) {
             ofstream ofs("duration.csv");
             if (ofs) {
                 for (const auto& t : duration_dq) {
-                    ofs << get<0>(t) << ", " << get<1>(t) << ", " << get<2>(t) << ", " << get<3>(t) << ", " << get<4>(t) << "," << endl;
+                    ofs << get<0>(t) << ", " << get<1>(t) << ", " << get<2>(t) << ", " << get<3>(t) << ", " << get<4>(t) << ", " << get<5>(t) << ", " << get<6>(t) << "," << endl;
                 }
                 ofs.close();
             }
         }
-        if (1) {
+        if (0) {
             ofstream ofs("trace.csv");
             if (ofs) {
                 for (const auto& t : trace_dq) {
@@ -426,11 +429,13 @@ void client_complete_message(
         solid_statistic_min(min_time_server_trip_delta, _rrecv_msg_ptr->time_point_ - _rsent_msg_ptr->time_point_);
 
         duration_dq.emplace_back(
-            _rsent_msg_ptr->serialization_time_point_ - _rsent_msg_ptr->time_point_, // client serialization offset
-            _rrecv_msg_ptr->receive_time_point_ - _rsent_msg_ptr->time_point_, // receive offset
-            _rrecv_msg_ptr->time_point_ - _rsent_msg_ptr->time_point_, // process offset
-            _rrecv_msg_ptr->serialization_time_point_ - _rsent_msg_ptr->time_point_, // server serialization offset
-            now - _rsent_msg_ptr->time_point_ // roundtrip offset
+            _rctx.recipientId().connectionId().index,
+            _rsent_msg_ptr->time_point_,
+            _rsent_msg_ptr->serialization_time_point_/*  - _rsent_msg_ptr->time_point_ */, // client serialization offset
+            _rrecv_msg_ptr->receive_time_point_/*  - _rsent_msg_ptr->time_point_ */, // receive offset
+            _rrecv_msg_ptr->time_point_/*  - _rsent_msg_ptr->time_point_ */, // process offset
+            _rrecv_msg_ptr->serialization_time_point_/*  - _rsent_msg_ptr->time_point_ */, // server serialization offset
+            now /* - _rsent_msg_ptr->time_point_ */ // roundtrip offset
         );
 
         _rrecv_msg_ptr->time_point_ = now;
