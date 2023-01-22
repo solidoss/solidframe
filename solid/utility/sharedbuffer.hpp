@@ -124,6 +124,21 @@ public:
             pdata_ = &sentinel;
         }
     }
+
+    bool revive()
+    {
+        if (*this) {
+            auto buf = pdata_->release();
+            if (buf) {
+                pdata_->acquire();
+                return true;
+            } else {
+                pdata_ = &sentinel;
+            }
+        }
+        return false;
+    }
+
     SharedBuffer& operator=(const SharedBuffer& _other)
     {
         if (pdata_ != _other.pdata_) {

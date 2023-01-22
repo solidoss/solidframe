@@ -46,6 +46,12 @@ inline bool NanoTime::isMax() const
     return tv_sec == static_cast<decltype(tv_sec)>(-1);
 }
 
+inline std::ostream& operator<<(std::ostream& _ros, const NanoTime& _ntime)
+{
+    _ros << _ntime.seconds() << "s." << _ntime.nanoSeconds() << "ns";
+    return _ros;
+}
+
 #ifdef SOLID_HAS_NO_INLINES
 #undef inline
 #endif

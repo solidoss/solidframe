@@ -25,5 +25,13 @@ int test_shared_buffer(int argc, char* argv[])
         cout << i << "\t" << sb.capacity() << endl;
     }
 
+    SharedBuffer sb3 = sb2; // sb3 == sb2
+
+    solid_check(!sb2.revive());
+    solid_check(!sb.revive());
+
+    solid_check(sb3.revive());
+    solid_check(sb3);
+
     return 0;
 }
