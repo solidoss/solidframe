@@ -170,7 +170,7 @@ using TraceDqT       = std::deque<TraceRecordT>;
 
 vector<frame::ActorIdT>   worker_actor_id_vec;
 CallPoolT                 worker_pool;
-size_t                    per_message_loop_count = 1;
+size_t                    per_message_loop_count = 50;
 std::atomic<size_t>       active_message_count;
 std::atomic<uint64_t>     max_time_delta{0};
 std::atomic<uint64_t>     min_time_delta{std::numeric_limits<uint64_t>::max()};
@@ -210,7 +210,7 @@ int test_clientserver_topic(int argc, char* argv[])
         ErrorConditionT        err;
         frame::aio::Resolver   resolver([&resolve_pool](std::function<void()>&& _fnc) { resolve_pool.push(std::move(_fnc)); });
 
-        worker_pool.start(WorkPoolConfiguration(4));
+        worker_pool.start(WorkPoolConfiguration(1));
         resolve_pool.start(1);
         sch_client.start(1);
         sch_server.start(2);

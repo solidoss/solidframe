@@ -1259,9 +1259,8 @@ ErrorConditionT Service::Data::doSendMessageToConnection(
 
             //pool_lock.unlock();
 
-            if (should_notify) {
-            //if(true){
-                solid_log(logger, Warning, &_rsvc << " send "<<_rrecipient_id_in.connectionId());
+            //if (should_notify) {
+            if(true){
                 _rsvc.manager().notify(_rrecipient_id_in.connectionId(), Connection::eventNewMessage());
             }
         } else {

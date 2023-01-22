@@ -770,8 +770,6 @@ void Reactor::run()
 #endif
         crttime = steady_clock::now();
         
-        const auto start   = high_resolution_clock::now();
-
 #if defined(SOLID_USE_WSAPOLL)
         if (selcnt > 0 || impl_->connectvec.size()) {
 #else
@@ -786,21 +784,13 @@ void Reactor::run()
         } else {
             solid_log(logger, Verbose, "epoll_wait done");
         }
-        const auto elapsed_io = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
         crttime = steady_clock::now();
         doCompleteTimer(crttime);
-        const auto elapsed_timer = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
         crttime = steady_clock::now();
         doCompleteEvents(crttime); // See NOTE above
-        const auto elapsed_event = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
         crttime = steady_clock::now();
         doCompleteExec(crttime);
         
-        const auto elapsed = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
-
-        if(elapsed >= 1000){
-            solid_log(logger, Warning, "reactor loop duration: "<<elapsed<<" io "<<elapsed_io<<" timers "<<elapsed_timer<<" events "<<elapsed_event );
-        }
 
         running = impl_->running || (impl_->actcnt != 0) || !impl_->exeq.empty();
     }
@@ -1200,8 +1190,6 @@ void Reactor::doCompleteExec(NanoTime const& _rcrttime)
     ReactorContext ctx(*this, _rcrttime);
     size_t         sz = impl_->exeq.size();
     
-    solid_log(logger, Warning, sz);
-
     while ((sz--) != 0) {
 
         solid_log(logger, Verbose, sz << " qsz = " << impl_->exeq.size());

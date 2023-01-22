@@ -901,9 +901,6 @@ void Connection::doHandleEventNewPoolMessage(frame::aio::ReactorContext& _rctx, 
 {
 
     if (willAcceptNewMessage(_rctx)) {
-        if(isServer()){
-            solid_log(logger, Warning, this << " recv "<<_rctx.actorId());
-        }
         solid_statistic_inc(service(_rctx).wstatistic().connection_new_pool_message_count_);
         flags_.set(FlagsE::PollPool);
         poll_pool_more_ = true;
@@ -1586,7 +1583,9 @@ struct Connection::Receiver : MessageReader::Receiver {
 
     void receiveMessage(MessagePointerT& _rmsg_ptr, const size_t _msg_type_id) override
     {
-        if (rcon_.doCompleteMessage(rctx_, _rmsg_ptr, _msg_type_id)) {
+        //if (rcon_.doCompleteMessage(rctx_, _rmsg_ptr, _msg_type_id)) {
+        {
+            rcon_.doCompleteMessage(rctx_, _rmsg_ptr, _msg_type_id);
             rcon_.flags_.set(FlagsE::PollPool);
             rcon_.post(
                 rctx_,
@@ -1663,7 +1662,7 @@ struct Connection::Receiver : MessageReader::Receiver {
     Connection&          rthis = static_cast<Connection&>(_rctx.actor());
     ConnectionContext    conctx(rthis.service(_rctx), rthis);
     const Configuration& rconfig        = rthis.service(_rctx).configuration();
-    unsigned             repeatcnt      = 8;
+    unsigned             repeatcnt      = 4;
     char*                pbuf           = nullptr;
     size_t               bufsz          = 0;
     const uint32_t       recvbufcp      = rthis.recvBufferCapacity();
@@ -1748,8 +1747,8 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     // we do a pollPoolForUpdates here because we want to be able to
     // receive a force pool close, even though we are waiting for send.
 #if 1
-    if (true) {
-        // if (shouldPollPool()) {
+    //if (true) {
+    if (shouldPollPool()) {
         // if (poll_pool_more_ && !isFull(rconfig)) {
         // if ((!isServer() && shouldPollPool()) || (isServer() && poll_pool_more_ && !isFull(rconfig))) {
         flags_.reset(FlagsE::PollPool); // reset flag
@@ -1771,7 +1770,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     }
 #endif
     if (!this->hasPendingSend()) {
-        unsigned                   repeatcnt      = 2;
+        unsigned                   repeatcnt      = 4;
         bool                       sent_something = false;
         Sender                     sender(*this, _rctx, rconfig.writer, rconfig.protocol(), conctx);
         MessageWriter::WriteFlagsT write_flags;
@@ -1803,13 +1802,12 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                     sent_something = true;
                 } else if (buffer.empty()) {
                     if(poll_pool_more_){
-                        repeatcnt = 0;
+                        //repeatcnt = 0;
                     }else{
                         solid_statistic_inc(service(_rctx).wstatistic().connection_send_wait_count_);
                     }
                     break;
-                } else {
-                    
+                } else {   
                     break;
                 }
             } else {
@@ -1825,8 +1823,9 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                 break;
             }
 #if 0
+            if(true){
             //if (shouldPollPool()) {
-            if (poll_pool_more_) {
+            //if (poll_pool_more_) {
             //if ((!isServer() && shouldPollPool()) || (isServer() && poll_pool_more_ && !isFull(rconfig))) {
                 flags_.reset(FlagsE::PollPool); // reset flag
                 error = service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId(), poll_pool_more_);
