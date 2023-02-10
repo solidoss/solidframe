@@ -1257,10 +1257,10 @@ ErrorConditionT Service::Data::doSendMessageToConnection(
                 rmsgstub.makeCancelable();
             }
 
-            //pool_lock.unlock();
+            pool_lock.unlock();
 
-            //if (should_notify) {
-            if(true){
+            if (should_notify) {
+            //if(true){
                 _rsvc.manager().notify(_rrecipient_id_in.connectionId(), Connection::eventNewMessage());
             }
         } else {
@@ -1273,7 +1273,7 @@ ErrorConditionT Service::Data::doSendMessageToConnection(
                 rmsgstub.makeCancelable();
             }
 
-            // pool_lock.unlock();
+            //pool_lock.unlock();
 
             _rsvc.manager().notify(_rrecipient_id_in.connectionId(), Connection::eventNewMessage(msgid));
         }
@@ -1477,6 +1477,7 @@ ErrorConditionT Service::pollPoolForUpdates(
 
     solid_assert_log(rpool.unique == _rconnection.poolId().unique, logger);
     if (rpool.unique != _rconnection.poolId().unique) {
+        _rmore = false;
         return error_service_pool_unknown;
     }
 
@@ -1499,17 +1500,19 @@ ErrorConditionT Service::pollPoolForUpdates(
 
     if (rpool.isFastClosing()) {
         solid_log(logger, Info, this << ' ' << &_rconnection << " pool is FastClosing");
+        _rmore = false;
         return error_service_pool_stopping;
     }
 
     if (_rconnection.isWriterEmpty() && rpool.shouldClose()) {
         solid_log(logger, Info, this << ' ' << &_rconnection << " pool is DelayClosing");
+        _rmore = false;
         return error_service_pool_stopping;
     }
 
     solid_log(logger, Info, this << ' ' << &_rconnection << " messages in pool: " << rpool.msgorder_inner_list);
 
-    bool       connection_may_handle_more_messages        = !_rconnection.isFull(configuration());
+    bool       connection_may_handle_more_messages        = _rconnection.canHandleMore(configuration());
     const bool connection_can_handle_synchronous_messages = _ractuid == rpool.main_connection_id;
 
     // We need to push as many messages as we can to the connection
@@ -1549,13 +1552,9 @@ ErrorConditionT Service::pollPoolForUpdates(
                     rpool.msgorder_inner_list.frontIndex());
                 count += connection_may_handle_more_messages;
             }
-            if(count){
-                solid_statistic_inc(pimpl_->statistic_.fetch_count_);
-                solid_statistic_max(pimpl_->statistic_.max_fetch_size_, count);
-                solid_statistic_min(pimpl_->statistic_.min_fetch_size_, count);
-            }
             
-            _rmore = !rpool.msgorder_inner_list.empty();
+            _rmore = !rpool.msgorder_inner_list.empty();// || count != 0;
+            pimpl_->statistic_.fetchCount(count, _rmore);
         } else {
             size_t count = 0;
             // use the async inner queue
@@ -1567,19 +1566,16 @@ ErrorConditionT Service::pollPoolForUpdates(
                     rpool.msgasync_inner_list.frontIndex());
                 count += connection_may_handle_more_messages;
             }
-            if(count){
-                solid_statistic_inc(pimpl_->statistic_.fetch_count_);
-                solid_statistic_max(pimpl_->statistic_.max_fetch_size_, count);
-                solid_statistic_min(pimpl_->statistic_.min_fetch_size_, count);
-            }
-            _rmore = !rpool.msgasync_inner_list.empty();
+
+            _rmore = !rpool.msgasync_inner_list.empty();// || count != 0;
+            pimpl_->statistic_.fetchCount(count, _rmore);
         }
 
         // a connection will either be in conn_waitingq
         // or it will call pollPoolForUpdates asap.
         // this is because we need to be able to notify connection about
         // pool force close imeditely
-        if (!_rconnection.isInPoolWaitingQueue()) {
+        if (!_rconnection.isInPoolWaitingQueue() && connection_may_handle_more_messages) {
             rpool.conn_waitingq.push(_ractuid);
             _rconnection.setInPoolWaitingQueue();
         }
@@ -2784,6 +2780,16 @@ std::ostream& operator<<(std::ostream& _ros, MessageId const& _msg_id)
 //=============================================================================
 ServiceStatistic::ServiceStatistic()
     : poll_pool_count_(0)
+    , poll_pool_more_count_(0)
+    , poll_pool_fetch_count_00_(0)
+    , poll_pool_fetch_count_01_(0)
+    , poll_pool_fetch_count_05_(0)
+    , poll_pool_fetch_count_10_(0)
+    , poll_pool_fetch_count_40_(0)
+    , poll_pool_fetch_count_50_(0)
+    , poll_pool_fetch_count_60_(0)
+    , poll_pool_fetch_count_70_(0)
+    , poll_pool_fetch_count_80_(0)
     , send_message_count_(0)
     , send_message_to_connection_count_(0)
     , send_message_to_pool_count_(0)
@@ -2792,7 +2798,6 @@ ServiceStatistic::ServiceStatistic()
     , connection_do_send_count_(0)
     , connection_send_wait_count_(0)
     , connection_send_done_count_(0)
-    , fetch_count_(0)
     , max_fetch_size_(0)
     , min_fetch_size_(-1)
 {
@@ -2800,6 +2805,7 @@ ServiceStatistic::ServiceStatistic()
 std::ostream& ServiceStatistic::print(std::ostream& _ros) const
 {
     _ros << " poll_pool_count = " << poll_pool_count_;
+    _ros << " poll_pool_more_count = " << poll_pool_more_count_;
     _ros << " send_message_count = " << send_message_count_;
     _ros << " send_message_to_connection_count = " << send_message_to_connection_count_;
     _ros << " send_message_to_pool_count = " << send_message_to_pool_count_;
@@ -2808,7 +2814,9 @@ std::ostream& ServiceStatistic::print(std::ostream& _ros) const
     _ros << " connection_do_send_count = " << connection_do_send_count_;
     _ros << " connection_send_wait_count = " << connection_send_wait_count_;
     _ros << " connection_send_done_count = " << connection_send_done_count_;
-    _ros << " fetch_count = " << fetch_count_;
+    _ros << " poll_pool_fetch_count = [0:" << poll_pool_fetch_count_00_<<" 01:"<<poll_pool_fetch_count_01_<<" 05:"<<poll_pool_fetch_count_05_;
+    _ros << " 10:"<<poll_pool_fetch_count_10_<<" 40:"<<poll_pool_fetch_count_40_<<" 50:"<<poll_pool_fetch_count_50_<<" 60:"<<poll_pool_fetch_count_60_;
+    _ros << " 70:"<<poll_pool_fetch_count_70_<<" 80:"<<poll_pool_fetch_count_80_<<']';
     _ros << " max_fetch = " << max_fetch_size_;
     _ros << " min_fetch = " << min_fetch_size_;
     return _ros;

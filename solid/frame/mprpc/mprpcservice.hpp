@@ -58,6 +58,16 @@ struct ServiceStartStatus {
 
 struct ServiceStatistic : solid::Statistic {
     std::atomic<uint64_t> poll_pool_count_;
+    std::atomic<uint64_t> poll_pool_more_count_;
+    std::atomic<uint64_t> poll_pool_fetch_count_00_;
+    std::atomic<uint64_t> poll_pool_fetch_count_01_;
+    std::atomic<uint64_t> poll_pool_fetch_count_05_;
+    std::atomic<uint64_t> poll_pool_fetch_count_10_;
+    std::atomic<uint64_t> poll_pool_fetch_count_40_;
+    std::atomic<uint64_t> poll_pool_fetch_count_50_;
+    std::atomic<uint64_t> poll_pool_fetch_count_60_;
+    std::atomic<uint64_t> poll_pool_fetch_count_70_;
+    std::atomic<uint64_t> poll_pool_fetch_count_80_;
     std::atomic<uint64_t> send_message_count_;
     std::atomic<uint64_t> send_message_to_connection_count_;
     std::atomic<uint64_t> send_message_to_pool_count_;
@@ -66,9 +76,44 @@ struct ServiceStatistic : solid::Statistic {
     std::atomic<uint64_t> connection_do_send_count_;
     std::atomic<uint64_t> connection_send_wait_count_;
     std::atomic<uint64_t> connection_send_done_count_;
-    std::atomic<uint64_t> fetch_count_;
     std::atomic<uint64_t> max_fetch_size_;
     std::atomic<uint64_t> min_fetch_size_;
+
+    void fetchCount(const uint64_t _count, const bool _more){
+#ifdef SOLID_HAS_STATISTICS
+        if(_count == 0){
+            solid_statistic_inc(poll_pool_fetch_count_00_);
+        }else if(_count <= 1)
+        {
+            solid_statistic_inc(poll_pool_fetch_count_01_);
+            poll_pool_more_count_ += _more;
+        }else if(_count <= 5)
+        {
+            solid_statistic_inc(poll_pool_fetch_count_05_);
+        }else if(_count <= 10)
+        {
+            solid_statistic_inc(poll_pool_fetch_count_10_);
+        }else if(_count <= 40)
+        {
+            solid_statistic_inc(poll_pool_fetch_count_40_);
+        }else if(_count <= 50)
+        {
+            solid_statistic_inc(poll_pool_fetch_count_50_);
+        }else if(_count <= 60)
+        {
+            solid_statistic_inc(poll_pool_fetch_count_60_);
+        }else if(_count <= 70)
+        {
+            solid_statistic_inc(poll_pool_fetch_count_70_);
+        }else
+        {
+            solid_statistic_inc(poll_pool_fetch_count_80_);
+        }
+        
+#else
+        (void)_count;
+#endif
+    }
 
     ServiceStatistic();
     std::ostream& print(std::ostream& _ros) const override;

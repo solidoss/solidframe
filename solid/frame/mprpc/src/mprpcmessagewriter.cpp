@@ -53,12 +53,6 @@ void MessageWriter::unprepare()
 {
 }
 //-----------------------------------------------------------------------------
-bool MessageWriter::isFull(WriterConfiguration const& _rconfig) const
-{
-    return write_inner_list_.size() >= _rconfig.max_message_count_multiplex;
-}
-//-----------------------------------------------------------------------------
-
 void MessageWriter::doWriteQueuePushBack(const size_t _msgidx, const int _line)
 {
     if (write_inner_list_.size() <= 1) {
@@ -394,11 +388,6 @@ void MessageWriter::doCancel(
     }
 }
 //-----------------------------------------------------------------------------
-bool MessageWriter::isEmpty() const
-{
-    return order_inner_list_.empty();
-}
-//-----------------------------------------------------------------------------
 // Does:
 // prepare message
 // serialize messages on buffer
@@ -487,6 +476,7 @@ ErrorConditionT MessageWriter::write(
 bool MessageWriter::doFindEligibleMessage(Sender& _rsender, const bool _can_send_relay, const size_t /*_size*/)
 {
     solid_log(logger, Verbose, "wq_back_index_ = " << write_queue_back_index_ << " wq_sync_index_ = " << write_queue_sync_index_ << " wq_async_count_ = " << write_queue_async_count_ << " wq_direct_count_ = " << write_queue_direct_count_ << " wq.size = " << write_inner_list_.size() << " _can_send_relay = " << _can_send_relay);
+    
     // fail fast
     if (!_can_send_relay && write_queue_direct_count_ == 0) {
         return false;
@@ -997,7 +987,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 
         _rerror = _rsender.completeMessage(tmp_msg_bundle, tmp_pool_msg_id);
 
-        solid_log(logger, Verbose, MessageWriterPrintPairT(*this, PrintInnerListsE));
+        solid_log(logger, Verbose, MessageWriterPrintPairT(*this, PrintInnerListsE)<< ' '<< _rerror.message());
     } else {
         rmsgstub.state_ = MessageStub::StateE::WriteWait;
     }

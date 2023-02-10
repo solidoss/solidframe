@@ -144,7 +144,7 @@ private:
 
     void doCompleteIo(NanoTime const& _rcrttime, const size_t _sz);
     void doCompleteTimer(NanoTime const& _rcrttime);
-    void doCompleteExec(NanoTime const& _rcrttime);
+    size_t doCompleteExec(NanoTime const& _rcrttime);
     void doCompleteEvents(ReactorContext const& _rctx);
     void doCompleteEvents(NanoTime const& _rcrttime);
     void doStoreSpecific();
