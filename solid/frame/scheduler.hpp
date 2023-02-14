@@ -83,7 +83,7 @@ public:
     void start(EnterFct _enf, ExitFct _exf, const size_t _reactorcnt = 1)
     {
         ThreadEnterFunctionT enf(std::move(_enf));
-        ThreadExitFunctionT  exf(std::move(_exf)); // we don't want to copy _exf
+        ThreadExitFunctionT  exf(std::move(_exf));
         SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt);
     }
 

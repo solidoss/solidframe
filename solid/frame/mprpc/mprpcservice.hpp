@@ -76,8 +76,22 @@ struct ServiceStatistic : solid::Statistic {
     std::atomic<uint64_t> connection_do_send_count_;
     std::atomic<uint64_t> connection_send_wait_count_;
     std::atomic<uint64_t> connection_send_done_count_;
+    std::atomic<uint64_t> connection_send_buff_size_max_;
+    std::atomic<uint64_t> connection_send_buff_size_count_00_;
+    std::atomic<uint64_t> connection_send_buff_size_count_01_;
+    std::atomic<uint64_t> connection_send_buff_size_count_02_;
+    std::atomic<uint64_t> connection_send_buff_size_count_03_;
+    std::atomic<uint64_t> connection_send_buff_size_count_04_;
+    std::atomic<uint64_t> connection_recv_buff_size_max_;
+    std::atomic<uint64_t> connection_recv_buff_size_count_00_;
+    std::atomic<uint64_t> connection_recv_buff_size_count_01_;
+    std::atomic<uint64_t> connection_recv_buff_size_count_02_;
+    std::atomic<uint64_t> connection_recv_buff_size_count_03_;
+    std::atomic<uint64_t> connection_recv_buff_size_count_04_;
+    std::atomic<uint64_t> connection_send_posted_;
     std::atomic<uint64_t> max_fetch_size_;
     std::atomic<uint64_t> min_fetch_size_;
+    
 
     void fetchCount(const uint64_t _count, const bool _more){
 #ifdef SOLID_HAS_STATISTICS
@@ -112,6 +126,42 @@ struct ServiceStatistic : solid::Statistic {
         
 #else
         (void)_count;
+#endif
+    }
+
+    void connectionSendBufferSize(const size_t _size, const size_t _capacity)
+    {
+#ifdef SOLID_HAS_STATISTICS
+    solid_statistic_max(connection_send_buff_size_max_, _size);
+    if(_size == 0){
+        solid_statistic_inc(connection_send_buff_size_count_00_);
+    }else if(_size <= (_capacity/4)){
+        solid_statistic_inc(connection_send_buff_size_count_01_);
+    }else if(_size <= (_capacity/2)){
+        solid_statistic_inc(connection_send_buff_size_count_02_);
+    }else if(_size <= (_capacity)){
+        solid_statistic_inc(connection_send_buff_size_count_03_);
+    }else{
+        solid_statistic_inc(connection_send_buff_size_count_04_);
+    }
+#endif
+    }
+
+    void connectionRecvBufferSize(const size_t _size, const size_t _capacity)
+    {
+#ifdef SOLID_HAS_STATISTICS
+    solid_statistic_max(connection_recv_buff_size_max_, _size);
+    if(_size == 0){
+        solid_statistic_inc(connection_recv_buff_size_count_00_);
+    }else if(_size <= (_capacity/4)){
+        solid_statistic_inc(connection_recv_buff_size_count_01_);
+    }else if(_size <= (_capacity/2)){
+        solid_statistic_inc(connection_recv_buff_size_count_02_);
+    }else if(_size <= (_capacity)){
+        solid_statistic_inc(connection_recv_buff_size_count_03_);
+    }else{
+        solid_statistic_inc(connection_recv_buff_size_count_04_);
+    }
 #endif
     }
 

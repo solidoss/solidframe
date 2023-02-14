@@ -809,7 +809,7 @@ void Reactor::run()
 #ifdef SOLID_AIO_TRACE_DURATION
         const auto elapsed_total = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
 
-        if(elapsed_total >= 5000){
+        if(elapsed_total >= 6000){
             solid_log(logger, Warning, "reactor loop duration: io "<<elapsed_io<<" timers "<<elapsed_timer<<" events "<<elapsed_event<<" total "<<elapsed_total << " execnt "<<execnt);
         }
 #endif

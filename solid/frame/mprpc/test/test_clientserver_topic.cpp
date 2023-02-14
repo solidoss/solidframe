@@ -30,10 +30,25 @@ using SecureContextT = frame::aio::openssl::Context;
 namespace {
 LoggerT logger("test");
 
+vector<int> isolcpus={3,4,5,6,7,8,9,10,11,12,13,14,15,15,17,18,19};
+void set_current_thread_affinity()
+{
+	static std::atomic<int> crtCore(0);
+
+	const int isolCore = isolcpus[crtCore.fetch_add(1)];
+	cpu_set_t cpuset;
+	CPU_ZERO(&cpuset);
+	CPU_SET(isolCore, &cpuset);
+	int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+	solid_check(rc == 0);
+}
+
+
+
 using CallPoolT = locking::CallPoolT<void(), void(), 80>;
-// using CallPoolT     = lockfree::CallPoolT<void(), void, 80>;
+//using CallPoolT     = lockfree::CallPoolT<void(), void, 80>;
 using SynchContextT = decltype(declval<CallPoolT>().createSynchronizationContext());
-// using SynchContextT = int32_t;
+//using SynchContextT = int32_t;
 
 inline auto milliseconds_since_epoch(const std::chrono::system_clock::time_point& _time = std::chrono::system_clock::now())
 {
@@ -170,7 +185,7 @@ using TraceDqT       = std::deque<TraceRecordT>;
 
 vector<frame::ActorIdT>   worker_actor_id_vec;
 CallPoolT                 worker_pool;
-size_t                    per_message_loop_count = 50;
+size_t                    per_message_loop_count = 100;
 std::atomic<size_t>       active_message_count;
 std::atomic<uint64_t>     max_time_delta{0};
 std::atomic<uint64_t>     min_time_delta{std::numeric_limits<uint64_t>::max()};
@@ -210,10 +225,10 @@ int test_clientserver_topic(int argc, char* argv[])
         ErrorConditionT        err;
         frame::aio::Resolver   resolver([&resolve_pool](std::function<void()>&& _fnc) { resolve_pool.push(std::move(_fnc)); });
 
-        worker_pool.start(WorkPoolConfiguration(1));
+        worker_pool.start(WorkPoolConfiguration(1, -1, -1, [](){set_current_thread_affinity();}));
         resolve_pool.start(1);
-        sch_client.start(1);
-        sch_server.start(2);
+        sch_client.start([](){set_current_thread_affinity();return true;}, [](){}, 1);
+        sch_server.start([](){set_current_thread_affinity();return true;}, [](){}, 2);
 
         {
             // create the topics
@@ -246,6 +261,8 @@ int test_clientserver_topic(int argc, char* argv[])
 
             cfg.connection_stop_fnc         = &server_connection_stop;
             cfg.server.connection_start_fnc = &server_connection_start;
+            cfg.connection_send_buffer_start_capacity_kb = 8;
+            cfg.connection_recv_buffer_start_capacity_kb = 8;
 
             cfg.server.listener_address_str = "0.0.0.0:0";
 
@@ -287,7 +304,8 @@ int test_clientserver_topic(int argc, char* argv[])
 
             cfg.connection_stop_fnc         = &client_connection_stop;
             cfg.client.connection_start_fnc = &client_connection_start;
-
+            cfg.connection_send_buffer_start_capacity_kb = 8;
+            cfg.connection_recv_buffer_start_capacity_kb = 8;
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
             cfg.pool_max_message_queue_size      = message_count;
 
@@ -492,9 +510,11 @@ void server_complete_message(
             } else {
                 trace_dq.emplace_back(_rctx.recipientId().connectionId().index, 1);
             }
-            topic_ptr->synch_ctx_.push(std::move(lambda));
+            //topic_ptr->synch_ctx_.push(std::move(lambda));
         } else {
+            //worker_pool.push(std::move(lambda));
             topic_ptr->synch_ctx_.push(std::move(lambda));
+            //lambda();
         }
         // worker_pool.push(std::move(lambda));
         //  lambda();

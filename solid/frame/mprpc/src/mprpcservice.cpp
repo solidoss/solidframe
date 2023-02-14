@@ -333,8 +333,9 @@ struct ConnectionPoolStub : inner::Node<to_underlying(ConnectionPoolInnerLink::C
         const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, std::move(_msg_url));
 
         _ris_first = msgorder_inner_list.empty();
+        //_ris_first = ((msgorder_inner_list.size() % 64) < 20 || (msgorder_inner_list.size() % 64) > 40);
+        //_ris_first = true;
         msgorder_inner_list.pushBack(msgid.index);
-
         solid_log(logger, Info, "msgorder_inner_list " << msgorder_inner_list);
 
         if (Message::is_asynchronous(_flags)) {
@@ -1273,7 +1274,7 @@ ErrorConditionT Service::Data::doSendMessageToConnection(
                 rmsgstub.makeCancelable();
             }
 
-            //pool_lock.unlock();
+            pool_lock.unlock();
 
             _rsvc.manager().notify(_rrecipient_id_in.connectionId(), Connection::eventNewMessage(msgid));
         }
@@ -2798,6 +2799,19 @@ ServiceStatistic::ServiceStatistic()
     , connection_do_send_count_(0)
     , connection_send_wait_count_(0)
     , connection_send_done_count_(0)
+    , connection_send_buff_size_max_(0)
+    , connection_send_buff_size_count_00_(0)
+    , connection_send_buff_size_count_01_(0)
+    , connection_send_buff_size_count_02_(0)
+    , connection_send_buff_size_count_03_(0)
+    , connection_send_buff_size_count_04_(0)
+    , connection_recv_buff_size_max_(0)
+    , connection_recv_buff_size_count_00_(0)
+    , connection_recv_buff_size_count_01_(0)
+    , connection_recv_buff_size_count_02_(0)
+    , connection_recv_buff_size_count_03_(0)
+    , connection_recv_buff_size_count_04_(0)
+    , connection_send_posted_(0)
     , max_fetch_size_(0)
     , min_fetch_size_(-1)
 {
@@ -2814,6 +2828,13 @@ std::ostream& ServiceStatistic::print(std::ostream& _ros) const
     _ros << " connection_do_send_count = " << connection_do_send_count_;
     _ros << " connection_send_wait_count = " << connection_send_wait_count_;
     _ros << " connection_send_done_count = " << connection_send_done_count_;
+    _ros <<" connection_send_buff_size_max = "<<connection_send_buff_size_max_;
+    _ros <<" connection_send_posted = "<<connection_send_posted_;
+    _ros <<" connection_send_buff_size_count = [0:"<<connection_send_buff_size_count_00_<<" 01:"<<connection_send_buff_size_count_01_;
+    _ros <<" 02:"<<connection_send_buff_size_count_02_<<" 03:"<<connection_send_buff_size_count_03_<<" 04:"<<connection_send_buff_size_count_04_<<']';
+    _ros <<" connection_recv_buff_size_max = "<<connection_recv_buff_size_max_;
+    _ros <<" connection_recv_buff_size_count = [0:"<<connection_recv_buff_size_count_00_<<" 01:"<<connection_recv_buff_size_count_01_;
+    _ros <<" 02:"<<connection_recv_buff_size_count_02_<<" 03:"<<connection_recv_buff_size_count_03_<<" 04:"<<connection_recv_buff_size_count_04_<<']';
     _ros << " poll_pool_fetch_count = [0:" << poll_pool_fetch_count_00_<<" 01:"<<poll_pool_fetch_count_01_<<" 05:"<<poll_pool_fetch_count_05_;
     _ros << " 10:"<<poll_pool_fetch_count_10_<<" 40:"<<poll_pool_fetch_count_40_<<" 50:"<<poll_pool_fetch_count_50_<<" 60:"<<poll_pool_fetch_count_60_;
     _ros << " 70:"<<poll_pool_fetch_count_70_<<" 80:"<<poll_pool_fetch_count_80_<<']';

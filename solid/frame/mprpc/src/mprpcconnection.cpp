@@ -636,8 +636,11 @@ struct Connection::Sender : MessageWriter::Sender {
     ErrorConditionT completeMessage(MessageBundle& _rmsg_bundle, MessageId const& _rpool_msg_id) override
     {
         rcon_.doCompleteMessage(rctx_, _rpool_msg_id, _rmsg_bundle, err_);
-        //return rcon_.service(rctx_).pollPoolForUpdates(rcon_, rcon_.uid(rctx_), _rpool_msg_id, rcon_.poll_pool_more_);
-        return ErrorConditionT{};
+        if(_rpool_msg_id.isValid()){
+            return rcon_.service(rctx_).pollPoolForUpdates(rcon_, rcon_.uid(rctx_), _rpool_msg_id, rcon_.poll_pool_more_);
+        }else{
+            return ErrorConditionT{};
+        }
     }
     void completeRelayed(RelayData* _prelay_data, MessageId const& _rmsgid) override
     {
@@ -1678,6 +1681,7 @@ struct Connection::Receiver : MessageReader::Receiver {
 
     do {
         solid_log(logger, Verbose, &rthis << " received size " << _sz);
+        rthis.service(_rctx).wstatistic().connectionRecvBufferSize(_sz, rthis.recvBufferCapacity());
 
         if (!_rctx.error()) {
             recv_something = true;
@@ -1794,6 +1798,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             flags_.reset(FlagsE::Keepalive);
 
             if (!error) {
+                service(_rctx).wstatistic().connectionSendBufferSize(buffer.size(), sendBufferCapacity());
                 if (!buffer.empty() && this->sendAll(_rctx, buffer.data(), buffer.size())) {
                     if (_rctx.error()) {
                         solid_log(logger, Error, this << ' ' << id() << " sending " << buffer.size() << ": " << _rctx.error().message());
@@ -1808,9 +1813,10 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                     if(poll_pool_more_ && isServer()){
                         solid_assert(msg_writer_.isEmpty());
                         repeatcnt = 0;
+                        solid_statistic_inc(service(_rctx).wstatistic().connection_send_wait_count_);
                         break;
                     }else{
-                        solid_statistic_inc(service(_rctx).wstatistic().connection_send_wait_count_);
+                        
                         break;
                     }
                 } else {   
@@ -1829,9 +1835,9 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                 break;
             }
 #if 0
-            //if(true){
+            if(true){
             //if (shouldPollPool()) {
-            if (poll_pool_more_ && !isFull(rconfig)) {
+            //if (poll_pool_more_ && !isFull(rconfig)) {
             //if ((!isServer() && shouldPollPool()) || (isServer() && poll_pool_more_ && !isFull(rconfig))) {
                 flags_.reset(FlagsE::PollPool); // reset flag
                 error = service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId(), poll_pool_more_);
@@ -1851,6 +1857,9 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                 }
                 solid_log(logger, Verbose, this << ' ' << id() << " shouldPollRelayEngine = " << shouldPollRelayEngine());
             }
+            if(msg_writer_.isEmpty()){
+                break;
+            }
 #endif
             --repeatcnt;
         } // while
@@ -1862,6 +1871,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
 
         if (repeatcnt == 0 && !send_posted_) {
             // solid_log(logger, Info, this<<" post send");
+            solid_statistic_inc(service(_rctx).wstatistic().connection_send_posted_);
             send_posted_ = true;
             this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { send_posted_ = false; doSend(_rctx); });
         }
