@@ -24,3 +24,5 @@
 #cmakedefine SOLID_HAS_STATISTICS
 
 #cmakedefine SOLID_USE_GCC_BSWAP
+
+#cmakedefine SOLID_FRAME_AIO_REACTOR_USE_SPINLOCK

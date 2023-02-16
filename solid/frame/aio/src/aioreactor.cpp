@@ -43,6 +43,7 @@
 #include "solid/system/exception.hpp"
 #include "solid/system/log.hpp"
 #include "solid/system/nanotime.hpp"
+#include "solid/system/spinlock.hpp"
 #include <mutex>
 #include <thread>
 
@@ -415,6 +416,13 @@ using EventVectorT = std::vector<PollStub>;
 
 #endif
 
+#ifdef SOLID_FRAME_AIO_REACTOR_USE_SPINLOCK
+using MutexT = solid::SpinLock;
+#else
+using MutexT = mutex;
+#endif
+
+
 using CompletionHandlerDequeT = std::deque<CompletionHandlerStub>;
 using UidVectorT              = std::vector<UniqueId>;
 using ActorDequeT             = std::deque<ActorStub>;
@@ -427,6 +435,29 @@ using SizeTVectorT            = std::vector<size_t>;
 //  Reactor::Data
 //=============================================================================
 struct Reactor::Data {
+    int                     reactor_fd;
+    AtomicBoolT             running;
+    size_t                  crtpushtskvecidx;
+    size_t                  crtraisevecidx;
+    AtomicSizeT             crtpushvecsz;
+    AtomicSizeT             crtraisevecsz;
+    size_t                  devcnt;
+    size_t                  actcnt;
+    TimeStoreT              timestore;
+    MutexT                  mtx;
+    EventVectorT            eventvec;
+    NewTaskVectorT          pushtskvec[2];
+    RaiseEventVectorT       raisevec[2];
+    shared_ptr<EventActor>  event_actor_ptr;
+    CompletionHandlerDequeT chdq;
+    UidVectorT              freeuidvec;
+    ActorDequeT             actdq;
+    ExecQueueT              exeq;
+    SizeStackT              chposcache;
+#if defined(SOLID_USE_WSAPOLL)
+    SizeTVectorT connectvec;
+#endif
+
     Data(
 
         )
@@ -532,29 +563,6 @@ struct Reactor::Data {
         const size_t idx = event_actor_ptr->dummyhandler.idxreactor;
         return UniqueId(idx, chdq[idx].unique);
     }
-
-    int                     reactor_fd;
-    AtomicBoolT             running;
-    size_t                  crtpushtskvecidx;
-    size_t                  crtraisevecidx;
-    AtomicSizeT             crtpushvecsz;
-    AtomicSizeT             crtraisevecsz;
-    size_t                  devcnt;
-    size_t                  actcnt;
-    TimeStoreT              timestore;
-    mutex                   mtx;
-    EventVectorT            eventvec;
-    NewTaskVectorT          pushtskvec[2];
-    RaiseEventVectorT       raisevec[2];
-    shared_ptr<EventActor>  event_actor_ptr;
-    CompletionHandlerDequeT chdq;
-    UidVectorT              freeuidvec;
-    ActorDequeT             actdq;
-    ExecQueueT              exeq;
-    SizeStackT              chposcache;
-#if defined(SOLID_USE_WSAPOLL)
-    SizeTVectorT connectvec;
-#endif
 };
 //-----------------------------------------------------------------------------
 void EventHandler::write(Reactor& _rreactor)
@@ -650,7 +658,7 @@ bool Reactor::start()
     bool   rv         = true;
     size_t raisevecsz = 0;
     {
-        lock_guard<std::mutex> lock(impl_->mtx);
+        lock_guard<MutexT> lock(impl_->mtx);
 
         impl_->raisevec[impl_->crtraisevecidx].emplace_back(_ractuid, std::move(_uevent));
         raisevecsz           = impl_->raisevec[impl_->crtraisevecidx].size();
@@ -670,7 +678,7 @@ bool Reactor::start()
     bool   rv         = true;
     size_t raisevecsz = 0;
     {
-        lock_guard<std::mutex> lock(impl_->mtx);
+        lock_guard<MutexT> lock(impl_->mtx);
 
         impl_->raisevec[impl_->crtraisevecidx].push_back(RaiseEventStub(_ractuid, _revent));
         raisevecsz           = impl_->raisevec[impl_->crtraisevecidx].size();
@@ -700,7 +708,7 @@ bool Reactor::push(TaskT&& _ract, Service& _rsvc, Event&& _uevent)
     bool   rv        = true;
     size_t pushvecsz = 0;
     {
-        lock_guard<std::mutex> lock(impl_->mtx);
+        lock_guard<MutexT> lock(impl_->mtx);
         const UniqueId         uid = this->popUid(*_ract);
 
         solid_log(logger, Verbose, (void*)this << " uid = " << uid.index << ',' << uid.unique << " event = " << _uevent);
@@ -1251,7 +1259,7 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
         size_t crtpushvecidx;
         size_t crtraisevecidx;
         {
-            lock_guard<std::mutex> lock(impl_->mtx);
+            lock_guard<MutexT> lock(impl_->mtx);
 
             crtpushvecidx  = impl_->crtpushtskvecidx;
             crtraisevecidx = impl_->crtraisevecidx;
