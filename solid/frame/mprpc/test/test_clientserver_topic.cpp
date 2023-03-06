@@ -31,7 +31,7 @@ using SecureContextT = frame::aio::openssl::Context;
 
 namespace {
 
-    LoggerT logger("test");
+LoggerT logger("test");
 
 #ifdef SOLID_ON_LINUX
 vector<int> isolcpus = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 15, 17, 18, 19};
@@ -51,7 +51,6 @@ void set_current_thread_affinity()
 {
 }
 #endif
-
 
 #ifdef USE_SYNC_CONTEXT
 
@@ -244,8 +243,6 @@ int test_clientserver_topic(int argc, char* argv[])
         resolve_pool.start(1);
         sch_client.start([]() {set_current_thread_affinity();return true; }, []() {}, 1);
         sch_server.start([]() {set_current_thread_affinity();return true; }, []() {}, 2);
-
-
 
         {
             // create the topics
