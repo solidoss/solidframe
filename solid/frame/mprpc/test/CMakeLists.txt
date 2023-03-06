@@ -96,28 +96,34 @@ if(OPENSSL_FOUND)
             COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_CRYPTO_DLL} $<TARGET_FILE_DIR:test_mprpc_clientserver>
         )
     endif()
-
+    
     add_test(NAME TestClientServerBasic_1                COMMAND  test_mprpc_clientserver test_clientserver_basic 1)
     add_test(NAME TestClientServerBasic_2                COMMAND  test_mprpc_clientserver test_clientserver_basic 2)
     add_test(NAME TestClientServerBasic_4                COMMAND  test_mprpc_clientserver test_clientserver_basic 4)
     add_test(NAME TestClientServerBasic_8                COMMAND  test_mprpc_clientserver test_clientserver_basic 8)
+    add_test(NAME TestClientServerBasic_8_C              COMMAND  test_mprpc_clientserver test_clientserver_basic 8 _ c)
     
     add_test(NAME TestClientServerBasic_1S               COMMAND  test_mprpc_clientserver test_clientserver_basic 1 s)
     add_test(NAME TestClientServerBasic_2S               COMMAND  test_mprpc_clientserver test_clientserver_basic 2 s)
     add_test(NAME TestClientServerBasic_4S               COMMAND  test_mprpc_clientserver test_clientserver_basic 4 s)
     add_test(NAME TestClientServerBasic_8S               COMMAND  test_mprpc_clientserver test_clientserver_basic 8 s)
+    add_test(NAME TestClientServerBasic_8SC              COMMAND  test_mprpc_clientserver test_clientserver_basic 8 s c)
 
     add_test(NAME TestClientServerBasic_1C               COMMAND  test_mprpc_clientserver test_clientserver_basic 1 c)
     add_test(NAME TestClientServerBasic_2C               COMMAND  test_mprpc_clientserver test_clientserver_basic 2 c)
     add_test(NAME TestClientServerBasic_4C               COMMAND  test_mprpc_clientserver test_clientserver_basic 4 c)
     add_test(NAME TestClientServerBasic_8C               COMMAND  test_mprpc_clientserver test_clientserver_basic 8 c)
+    add_test(NAME TestClientServerBasic_8CC              COMMAND  test_mprpc_clientserver test_clientserver_basic 8 c c)
 
     add_test(NAME TestClientServerBasic_1B               COMMAND  test_mprpc_clientserver test_clientserver_basic 1 b)
     add_test(NAME TestClientServerBasic_2B               COMMAND  test_mprpc_clientserver test_clientserver_basic 2 b)
     add_test(NAME TestClientServerBasic_4B               COMMAND  test_mprpc_clientserver test_clientserver_basic 4 b)
     add_test(NAME TestClientServerBasic_8B               COMMAND  test_mprpc_clientserver test_clientserver_basic 8 b)
+    add_test(NAME TestClientServerBasic_8BC              COMMAND  test_mprpc_clientserver test_clientserver_basic 8 b c)
 
     add_test(NAME TestClientServerVersioning            COMMAND  test_mprpc_clientserver test_clientserver_versioning)
+
+    add_test(NAME TestClientServerTopic                 COMMAND  test_mprpc_clientserver test_clientserver_topic)
     
     add_test(NAME TestClientServerSendRequest           COMMAND  test_mprpc_clientserver test_clientserver_sendrequest)
     add_test(NAME TestClientServerSendRequestS          COMMAND  test_mprpc_clientserver test_clientserver_sendrequest 1 s)

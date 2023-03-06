@@ -151,6 +151,8 @@ private:
 
     ServiceStatusE status(const Service& _rservice, std::unique_lock<std::mutex>& _rlock) const;
 
+    ServiceStatusE status(const Service& _rservice);
+
     ActorIdT registerActor(
         const Service&     _rservice,
         ActorBase&         _ractor,

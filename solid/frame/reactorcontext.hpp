@@ -26,7 +26,7 @@ class Actor;
 class Reactor;
 class CompletionHandler;
 
-struct ReactorContext {
+struct ReactorContext : NonCopyable {
     ~ReactorContext()
     {
     }

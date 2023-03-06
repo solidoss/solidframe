@@ -72,6 +72,7 @@ condition_variable     cnd;
 frame::mprpc::Service* pmprpcclient = nullptr;
 std::atomic<uint64_t>  transfered_size(0);
 std::atomic<size_t>    transfered_count(0);
+bool                   use_context_on_response = false;
 
 size_t real_size(size_t _sz)
 {
@@ -236,7 +237,7 @@ void server_complete_message(
 
         solid_check(_rctx.recipientId().isValidConnection(), "Connection id should not be invalid!");
 
-        ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), _rrecv_msg_ptr);
+        ErrorConditionT err = use_context_on_response ? _rctx.service().sendResponse(_rctx, _rrecv_msg_ptr) : _rctx.service().sendResponse(_rctx.recipientId(), _rrecv_msg_ptr);
 
         solid_check(!err, "Connection id should not be invalid: " << err.message());
 
@@ -259,7 +260,7 @@ void server_complete_message(
 int test_clientserver_basic(int argc, char* argv[])
 {
 
-    solid::log_start(std::cerr, {".*:EWX"});
+    solid::log_start(std::cerr, {".*:EWXS"});
     // solid::log_start(std::cerr, {"solid::frame::mprpc.*:EWX", "\\*:VIEWX"});
 
     size_t max_per_pool_connection_count = 1;
@@ -287,6 +288,12 @@ int test_clientserver_basic(int argc, char* argv[])
         if (*argv[2] == 'b' || *argv[2] == 'B') {
             secure   = true;
             compress = true;
+        }
+    }
+
+    if (argc > 3) {
+        if (*argv[3] == 'c' || *argv[3] == 'C') {
+            use_context_on_response = true;
         }
     }
 
@@ -427,7 +434,11 @@ int test_clientserver_basic(int argc, char* argv[])
             solid_throw("Not all messages were completed");
         }
 
-        // m.stop();
+        mprpcclient.stop();
+        mprpcserver.stop();
+
+        solid_log(generic_logger, Statistic, "mprpcserver statistic: " << mprpcserver.statistic());
+        solid_log(generic_logger, Statistic, "mprpcclient statistic: " << mprpcclient.statistic());
     }
 
     // exiting

@@ -407,7 +407,7 @@ private:
     ErrorConditionT    error_;
     ErrorCodeT         sys_error_;
     bool               poll_pool_more_ = true;
-    bool               send_posted_ = false;
+    bool               send_posted_    = false;
     Any<>              any_data_;
     char               socket_emplace_buf_[static_cast<size_t>(ConnectionValues::SocketEmplacementSize)];
     SocketStubPtrT     sock_ptr_;

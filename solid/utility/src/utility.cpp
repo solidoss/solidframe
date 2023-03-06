@@ -244,7 +244,6 @@ WorkPoolMulticastStatistic::WorkPoolMulticastStatistic()
     , pop_job_count_(0)
     , pop_mcast_count_(0)
     , max_pop_wait_loop_count_(0)
-    , max_pop_continue_loop_count_(0)
 {
 }
 
@@ -261,7 +260,6 @@ std::ostream& WorkPoolMulticastStatistic::print(std::ostream& _ros) const
     _ros << " push_mcast_count_ = " << push_mcast_count_;
     _ros << " pop_mcast_count_ = " << pop_mcast_count_;
     _ros << " max_pop_wait_loop_count_ = " << max_pop_wait_loop_count_;
-    _ros << " max_pop_continue_loop_count_ = " << max_pop_continue_loop_count_;
     return _ros;
 }
 } // namespace locking

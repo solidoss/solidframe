@@ -142,14 +142,14 @@ private:
     static Reactor* safeSpecific();
     static Reactor& specific();
 
-    void doCompleteIo(NanoTime const& _rcrttime, const size_t _sz);
-    void doCompleteTimer(NanoTime const& _rcrttime);
+    void   doCompleteIo(NanoTime const& _rcrttime, const size_t _sz);
+    void   doCompleteTimer(NanoTime const& _rcrttime);
     size_t doCompleteExec(NanoTime const& _rcrttime);
-    void doCompleteEvents(ReactorContext const& _rctx);
-    void doCompleteEvents(NanoTime const& _rcrttime);
-    void doStoreSpecific();
-    void doClearSpecific();
-    void doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx);
+    void   doCompleteEvents(ReactorContext const& _rctx);
+    void   doCompleteEvents(NanoTime const& _rcrttime);
+    void   doStoreSpecific();
+    void   doClearSpecific();
+    void   doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx);
 
     void doPost(ReactorContext& _rctx, EventFunctionT&& _revfn, Event&& _uev);
     void doPost(ReactorContext& _rctx, EventFunctionT&& _revfn, Event&& _uev, CompletionHandler const& _rch);

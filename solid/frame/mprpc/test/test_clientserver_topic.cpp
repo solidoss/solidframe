@@ -27,28 +27,35 @@ using namespace solid;
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
 
+#define USE_SYNC_CONTEXT
+
 namespace {
 LoggerT logger("test");
 
-vector<int> isolcpus={3,4,5,6,7,8,9,10,11,12,13,14,15,15,17,18,19};
-void set_current_thread_affinity()
+vector<int> isolcpus = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 15, 17, 18, 19};
+void        set_current_thread_affinity()
 {
-	static std::atomic<int> crtCore(0);
+    static std::atomic<int> crtCore(0);
 
-	const int isolCore = isolcpus[crtCore.fetch_add(1)];
-	cpu_set_t cpuset;
-	CPU_ZERO(&cpuset);
-	CPU_SET(isolCore, &cpuset);
-	int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
-	solid_check(rc == 0);
+    const int isolCore = isolcpus[crtCore.fetch_add(1)];
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(isolCore, &cpuset);
+    int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+    solid_check(rc == 0);
 }
 
+#ifdef USE_SYNC_CONTEXT
 
-
-using CallPoolT = locking::CallPoolT<void(), void(), 80>;
-//using CallPoolT     = lockfree::CallPoolT<void(), void, 80>;
+using CallPoolT     = locking::CallPoolT<void(), void(), 80>;
 using SynchContextT = decltype(declval<CallPoolT>().createSynchronizationContext());
-//using SynchContextT = int32_t;
+
+#else
+
+using CallPoolT     = lockfree::CallPoolT<void(), void, 80>;
+using SynchContextT = int32_t;
+
+#endif
 
 inline auto milliseconds_since_epoch(const std::chrono::system_clock::time_point& _time = std::chrono::system_clock::now())
 {
@@ -225,16 +232,20 @@ int test_clientserver_topic(int argc, char* argv[])
         ErrorConditionT        err;
         frame::aio::Resolver   resolver([&resolve_pool](std::function<void()>&& _fnc) { resolve_pool.push(std::move(_fnc)); });
 
-        worker_pool.start(WorkPoolConfiguration(1, -1, -1, [](){set_current_thread_affinity();}));
+        worker_pool.start(WorkPoolConfiguration(1, -1, -1, []() { set_current_thread_affinity(); }));
         resolve_pool.start(1);
-        sch_client.start([](){set_current_thread_affinity();return true;}, [](){}, 1);
-        sch_server.start([](){set_current_thread_affinity();return true;}, [](){}, 2);
+        sch_client.start([]() {set_current_thread_affinity();return true; }, []() {}, 1);
+        sch_server.start([]() {set_current_thread_affinity();return true; }, []() {}, 2);
 
         {
             // create the topics
             vector<shared_ptr<Topic>> topic_vec;
             for (size_t i = 0; i < topic_count; ++i) {
+#ifdef USE_SYNC_CONTEXT
                 topic_vec.emplace_back(make_shared<Topic>(i, worker_pool.createSynchronizationContext()));
+#else
+                topic_vec.emplace_back(make_shared<Topic>(i, i));
+#endif
             }
             ErrorConditionT err;
             const auto      worker_count = sch_server.workerCount();
@@ -259,8 +270,8 @@ int test_clientserver_topic(int argc, char* argv[])
                 });
             frame::mprpc::Configuration cfg(sch_server, proto);
 
-            cfg.connection_stop_fnc         = &server_connection_stop;
-            cfg.server.connection_start_fnc = &server_connection_start;
+            cfg.connection_stop_fnc                      = &server_connection_stop;
+            cfg.server.connection_start_fnc              = &server_connection_start;
             cfg.connection_send_buffer_start_capacity_kb = 8;
             cfg.connection_recv_buffer_start_capacity_kb = 8;
 
@@ -302,12 +313,12 @@ int test_clientserver_topic(int argc, char* argv[])
                 });
             frame::mprpc::Configuration cfg(sch_client, proto);
 
-            cfg.connection_stop_fnc         = &client_connection_stop;
-            cfg.client.connection_start_fnc = &client_connection_start;
+            cfg.connection_stop_fnc                      = &client_connection_stop;
+            cfg.client.connection_start_fnc              = &client_connection_start;
             cfg.connection_send_buffer_start_capacity_kb = 8;
             cfg.connection_recv_buffer_start_capacity_kb = 8;
-            cfg.pool_max_active_connection_count = max_per_pool_connection_count;
-            cfg.pool_max_message_queue_size      = message_count;
+            cfg.pool_max_active_connection_count         = max_per_pool_connection_count;
+            cfg.pool_max_message_queue_size              = message_count;
 
             cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF{resolver, server_port};
 
@@ -350,7 +361,7 @@ int test_clientserver_topic(int argc, char* argv[])
             fut.get();
         }
 
-        active_message_count = message_count;
+        active_message_count      = message_count;
         const uint64_t start_msec = milliseconds_since_epoch();
         solid_dbg(logger, Warning, "========== START sending messages ==========");
 
@@ -376,7 +387,7 @@ int test_clientserver_topic(int argc, char* argv[])
         generic_service.stop();
         worker_pool.stop();
 
-        solid_log(logger, Statistic, "Test duration: "<<(milliseconds_since_epoch() - start_msec)<<"msecs");
+        solid_log(logger, Statistic, "Test duration: " << (milliseconds_since_epoch() - start_msec) << "msecs");
         solid_log(logger, Statistic, "Workpool statistic: " << worker_pool.statistic());
         solid_log(logger, Statistic, "mprpcserver statistic: " << mprpcserver.statistic());
         solid_log(logger, Statistic, "mprpcclient statistic: " << mprpcclient.statistic());
@@ -449,10 +460,10 @@ void client_complete_message(
         duration_dq.emplace_back(
             _rctx.recipientId().connectionId().index,
             _rsent_msg_ptr->time_point_,
-            _rsent_msg_ptr->serialization_time_point_/*  - _rsent_msg_ptr->time_point_ */, // client serialization offset
-            _rrecv_msg_ptr->receive_time_point_/*  - _rsent_msg_ptr->time_point_ */, // receive offset
-            _rrecv_msg_ptr->time_point_/*  - _rsent_msg_ptr->time_point_ */, // process offset
-            _rrecv_msg_ptr->serialization_time_point_/*  - _rsent_msg_ptr->time_point_ */, // server serialization offset
+            _rsent_msg_ptr->serialization_time_point_ /*  - _rsent_msg_ptr->time_point_ */, // client serialization offset
+            _rrecv_msg_ptr->receive_time_point_ /*  - _rsent_msg_ptr->time_point_ */, // receive offset
+            _rrecv_msg_ptr->time_point_ /*  - _rsent_msg_ptr->time_point_ */, // process offset
+            _rrecv_msg_ptr->serialization_time_point_ /*  - _rsent_msg_ptr->time_point_ */, // server serialization offset
             now /* - _rsent_msg_ptr->time_point_ */ // roundtrip offset
         );
 
@@ -510,11 +521,15 @@ void server_complete_message(
             } else {
                 trace_dq.emplace_back(_rctx.recipientId().connectionId().index, 1);
             }
-            //topic_ptr->synch_ctx_.push(std::move(lambda));
+            // topic_ptr->synch_ctx_.push(std::move(lambda));
         } else {
-            //worker_pool.push(std::move(lambda));
+#ifdef USE_SYNC_CONTEXT
             topic_ptr->synch_ctx_.push(std::move(lambda));
-            //lambda();
+#else
+            worker_pool.push(std::move(lambda));
+#endif
+            //
+            // lambda();
         }
         // worker_pool.push(std::move(lambda));
         //  lambda();

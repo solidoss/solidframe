@@ -96,10 +96,12 @@ public:
         return any_;
     }
 
+    ServiceStatusE status() const;
+
 protected:
     std::mutex& mutex() const;
 
-    ServiceStatusE status(std::unique_lock<std::mutex>& _rlock);
+    ServiceStatusE status(std::unique_lock<std::mutex>& _rlock) const;
 
     void doStart();
 
@@ -227,9 +229,14 @@ inline std::mutex& Service::mutex() const
     return rm_.mutex(*this);
 }
 
-inline ServiceStatusE Service::status(std::unique_lock<std::mutex>& _rlock)
+inline ServiceStatusE Service::status(std::unique_lock<std::mutex>& _rlock) const
 {
     return rm_.status(*this, _rlock);
+}
+
+inline ServiceStatusE Service::status() const
+{
+    return rm_.status(*this);
 }
 
 inline ActorIdT Service::registerActor(ActorBase& _ract, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr)

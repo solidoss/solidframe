@@ -69,6 +69,7 @@ struct ServiceStatistic : solid::Statistic {
     std::atomic<uint64_t> poll_pool_fetch_count_70_;
     std::atomic<uint64_t> poll_pool_fetch_count_80_;
     std::atomic<uint64_t> send_message_count_;
+    std::atomic<uint64_t> send_message_context_count_;
     std::atomic<uint64_t> send_message_to_connection_count_;
     std::atomic<uint64_t> send_message_to_pool_count_;
     std::atomic<uint64_t> reject_new_pool_message_count_;
@@ -91,39 +92,31 @@ struct ServiceStatistic : solid::Statistic {
     std::atomic<uint64_t> connection_send_posted_;
     std::atomic<uint64_t> max_fetch_size_;
     std::atomic<uint64_t> min_fetch_size_;
-    
 
-    void fetchCount(const uint64_t _count, const bool _more){
+    void fetchCount(const uint64_t _count, const bool _more)
+    {
 #ifdef SOLID_HAS_STATISTICS
-        if(_count == 0){
+        if (_count == 0) {
             solid_statistic_inc(poll_pool_fetch_count_00_);
-        }else if(_count <= 1)
-        {
+        } else if (_count <= 1) {
             solid_statistic_inc(poll_pool_fetch_count_01_);
             poll_pool_more_count_ += _more;
-        }else if(_count <= 5)
-        {
+        } else if (_count <= 5) {
             solid_statistic_inc(poll_pool_fetch_count_05_);
-        }else if(_count <= 10)
-        {
+        } else if (_count <= 10) {
             solid_statistic_inc(poll_pool_fetch_count_10_);
-        }else if(_count <= 40)
-        {
+        } else if (_count <= 40) {
             solid_statistic_inc(poll_pool_fetch_count_40_);
-        }else if(_count <= 50)
-        {
+        } else if (_count <= 50) {
             solid_statistic_inc(poll_pool_fetch_count_50_);
-        }else if(_count <= 60)
-        {
+        } else if (_count <= 60) {
             solid_statistic_inc(poll_pool_fetch_count_60_);
-        }else if(_count <= 70)
-        {
+        } else if (_count <= 70) {
             solid_statistic_inc(poll_pool_fetch_count_70_);
-        }else
-        {
+        } else {
             solid_statistic_inc(poll_pool_fetch_count_80_);
         }
-        
+
 #else
         (void)_count;
 #endif
@@ -132,36 +125,36 @@ struct ServiceStatistic : solid::Statistic {
     void connectionSendBufferSize(const size_t _size, const size_t _capacity)
     {
 #ifdef SOLID_HAS_STATISTICS
-    solid_statistic_max(connection_send_buff_size_max_, _size);
-    if(_size == 0){
-        solid_statistic_inc(connection_send_buff_size_count_00_);
-    }else if(_size <= (_capacity/4)){
-        solid_statistic_inc(connection_send_buff_size_count_01_);
-    }else if(_size <= (_capacity/2)){
-        solid_statistic_inc(connection_send_buff_size_count_02_);
-    }else if(_size <= (_capacity)){
-        solid_statistic_inc(connection_send_buff_size_count_03_);
-    }else{
-        solid_statistic_inc(connection_send_buff_size_count_04_);
-    }
+        solid_statistic_max(connection_send_buff_size_max_, _size);
+        if (_size == 0) {
+            solid_statistic_inc(connection_send_buff_size_count_00_);
+        } else if (_size <= (_capacity / 4)) {
+            solid_statistic_inc(connection_send_buff_size_count_01_);
+        } else if (_size <= (_capacity / 2)) {
+            solid_statistic_inc(connection_send_buff_size_count_02_);
+        } else if (_size <= (_capacity)) {
+            solid_statistic_inc(connection_send_buff_size_count_03_);
+        } else {
+            solid_statistic_inc(connection_send_buff_size_count_04_);
+        }
 #endif
     }
 
     void connectionRecvBufferSize(const size_t _size, const size_t _capacity)
     {
 #ifdef SOLID_HAS_STATISTICS
-    solid_statistic_max(connection_recv_buff_size_max_, _size);
-    if(_size == 0){
-        solid_statistic_inc(connection_recv_buff_size_count_00_);
-    }else if(_size <= (_capacity/4)){
-        solid_statistic_inc(connection_recv_buff_size_count_01_);
-    }else if(_size <= (_capacity/2)){
-        solid_statistic_inc(connection_recv_buff_size_count_02_);
-    }else if(_size <= (_capacity)){
-        solid_statistic_inc(connection_recv_buff_size_count_03_);
-    }else{
-        solid_statistic_inc(connection_recv_buff_size_count_04_);
-    }
+        solid_statistic_max(connection_recv_buff_size_max_, _size);
+        if (_size == 0) {
+            solid_statistic_inc(connection_recv_buff_size_count_00_);
+        } else if (_size <= (_capacity / 4)) {
+            solid_statistic_inc(connection_recv_buff_size_count_01_);
+        } else if (_size <= (_capacity / 2)) {
+            solid_statistic_inc(connection_recv_buff_size_count_02_);
+        } else if (_size <= (_capacity)) {
+            solid_statistic_inc(connection_recv_buff_size_count_03_);
+        } else {
+            solid_statistic_inc(connection_recv_buff_size_count_04_);
+        }
 #endif
     }
 
@@ -362,6 +355,28 @@ public:
         Fnc                       _complete_fnc,
         MessageId&                _rmsguid,
         const MessageFlagsT&      _flags);
+
+    // send message using ConnectionContext  ----------------------------------
+
+    template <class T>
+    ErrorConditionT sendResponse(
+        ConnectionContext&        _rctx,
+        std::shared_ptr<T> const& _rmsgptr,
+        const MessageFlagsT&      _flags = 0);
+
+    template <class T>
+    ErrorConditionT sendMessage(
+        ConnectionContext&        _rctx,
+        std::shared_ptr<T> const& _rmsgptr,
+        const MessageFlagsT&      _flags = 0);
+
+    template <class T, class Fnc>
+    ErrorConditionT sendMessage(
+        ConnectionContext&        _rctx,
+        std::shared_ptr<T> const& _rmsgptr,
+        Fnc                       _complete_fnc,
+        const MessageFlagsT&      _flags);
+
     //-------------------------------------------------------------------------
     ErrorConditionT sendRelay(const ActorIdT& _rconid, RelayData&& _urelmsg);
     ErrorConditionT sendRelayCancel(RelayData&& _urelmsg);
@@ -500,6 +515,7 @@ private:
     ServiceStatistic&    wstatistic();
 
     std::shared_ptr<Data> acquire(std::unique_lock<std::mutex>& _lock);
+    std::shared_ptr<Data> acquire();
 
     void doFinalizeStart(ServiceStartStatus& _status, Configuration&& _ucfg, SocketDevice&& _usd, std::unique_lock<std::mutex>& _lock);
     void doFinalizeStart(ServiceStartStatus& _status, std::unique_lock<std::mutex>& _lock);
@@ -556,9 +572,13 @@ private:
         MessageId*                _pmsg_id_out,
         const MessageFlagsT&      _flags);
 
-#if 0
-    size_t doPushNewConnectionPool();
-#endif
+    ErrorConditionT doSendMessage(
+        ConnectionContext&        _rctx,
+        MessagePointerT&          _rmsgptr,
+        MessageCompleteFunctionT& _rcomplete_fnc,
+        RecipientId*              _precipient_id_out,
+        MessageId*                _pmsg_id_out,
+        MessageFlagsT             _flags);
 
     ErrorConditionT doCreateConnectionPool(
         const std::string_view& _recipient_url,
@@ -868,6 +888,48 @@ ErrorConditionT Service::sendMessage(
     MessageCompleteFunctionT complete_handler(std::move(fnc));
 
     return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsguid, _flags);
+}
+//-------------------------------------------------------------------------
+// send message using ConnectionContext  ----------------------------------
+
+template <class T>
+ErrorConditionT Service::sendResponse(
+    ConnectionContext&        _rctx,
+    std::shared_ptr<T> const& _rmsgptr,
+    const MessageFlagsT&      _flags)
+{
+    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    MessageCompleteFunctionT complete_handler;
+    return doSendMessage(_rctx, msgptr, complete_handler, nullptr, nullptr, _flags | MessageFlagsE::Response);
+}
+
+template <class T>
+ErrorConditionT Service::sendMessage(
+    ConnectionContext&        _rctx,
+    std::shared_ptr<T> const& _rmsgptr,
+    const MessageFlagsT&      _flags)
+{
+    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    MessageCompleteFunctionT complete_handler;
+    return doSendMessage(_rctx, msgptr, complete_handler, nullptr, nullptr, _flags);
+}
+
+template <class T, class Fnc>
+ErrorConditionT Service::sendMessage(
+    ConnectionContext&        _rctx,
+    std::shared_ptr<T> const& _rmsgptr,
+    Fnc                       _complete_fnc,
+    const MessageFlagsT&      _flags)
+{
+    using CompleteHandlerT = CompleteHandler<Fnc,
+        typename message_complete_traits<decltype(_complete_fnc)>::send_type,
+        typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
+
+    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
+    MessageCompleteFunctionT complete_handler(std::move(fnc));
+
+    return doSendMessage(_rctx, msgptr, complete_handler, nullptr, nullptr, _flags);
 }
 //-------------------------------------------------------------------------
 template <typename F>

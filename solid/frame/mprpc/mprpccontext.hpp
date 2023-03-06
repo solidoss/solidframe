@@ -281,7 +281,7 @@ private:
     Connection& connection(frame::aio::ReactorContext& _rctx) const;
 };
 
-struct ConnectionContext {
+struct ConnectionContext : NonCopyable {
     ConnectionContext(
         frame::aio::ReactorContext& _rctx,
         const ConnectionProxy&      _rccs)
