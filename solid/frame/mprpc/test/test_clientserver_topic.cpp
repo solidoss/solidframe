@@ -30,8 +30,10 @@ using SecureContextT = frame::aio::openssl::Context;
 #define USE_SYNC_CONTEXT
 
 namespace {
-LoggerT logger("test");
 
+    LoggerT logger("test");
+
+#ifdef SOLID_ON_LINUX
 vector<int> isolcpus = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 15, 17, 18, 19};
 void        set_current_thread_affinity()
 {
@@ -44,6 +46,12 @@ void        set_current_thread_affinity()
     int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
     solid_check(rc == 0);
 }
+#else
+void set_current_thread_affinity()
+{
+}
+#endif
+
 
 #ifdef USE_SYNC_CONTEXT
 
@@ -237,6 +245,8 @@ int test_clientserver_topic(int argc, char* argv[])
         sch_client.start([]() {set_current_thread_affinity();return true; }, []() {}, 1);
         sch_server.start([]() {set_current_thread_affinity();return true; }, []() {}, 2);
 
+
+
         {
             // create the topics
             vector<shared_ptr<Topic>> topic_vec;
@@ -343,7 +353,7 @@ int test_clientserver_topic(int argc, char* argv[])
         }
 
         err = mprpcclient.createConnectionPool(
-            "", client_id,
+            "127.0.0.1", client_id,
             [](frame::mprpc::ConnectionContext& _rctx, Event&& _revent, const ErrorConditionT& _rerr) {
                 solid_dbg(logger, Info, "client pool event: " << _revent << " error: " << _rerr.message());
                 if (_revent == frame::mprpc::pool_event_connection_activate) {
@@ -392,7 +402,7 @@ int test_clientserver_topic(int argc, char* argv[])
         solid_log(logger, Statistic, "mprpcserver statistic: " << mprpcserver.statistic());
         solid_log(logger, Statistic, "mprpcclient statistic: " << mprpcclient.statistic());
 
-        if (1) {
+        if (0) {
             ofstream ofs("duration.csv");
             if (ofs) {
                 for (const auto& t : duration_dq) {
