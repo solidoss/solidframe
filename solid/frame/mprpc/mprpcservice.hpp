@@ -25,6 +25,7 @@
 #include "solid/frame/mprpc/mprpcprotocol.hpp"
 #include "solid/system/log.hpp"
 #include "solid/system/pimpl.hpp"
+#include "solid/system/statistic.hpp"
 
 namespace solid {
 namespace frame {
@@ -48,7 +49,7 @@ extern const Event pool_event_pool_disconnect;
 extern const Event pool_event_pool_stop;
 
 struct Message;
-struct Configuration;
+class Configuration;
 class Connection;
 struct MessageBundle;
 
@@ -122,7 +123,7 @@ struct ServiceStatistic : solid::Statistic {
 #endif
     }
 
-    void connectionSendBufferSize(const size_t _size, const size_t _capacity)
+    void connectionSendBufferSize(const uint64_t _size, const uint64_t _capacity)
     {
 #ifdef SOLID_HAS_STATISTICS
         solid_statistic_max(connection_send_buff_size_max_, _size);
@@ -140,7 +141,7 @@ struct ServiceStatistic : solid::Statistic {
 #endif
     }
 
-    void connectionRecvBufferSize(const size_t _size, const size_t _capacity)
+    void connectionRecvBufferSize(const uint64_t _size, const uint64_t _capacity)
     {
 #ifdef SOLID_HAS_STATISTICS
         solid_statistic_max(connection_recv_buff_size_max_, _size);
@@ -509,7 +510,7 @@ private:
     friend class Listener;
     friend class Connection;
     friend class openssl::SocketStub;
-    friend class ConnectionContext;
+    friend struct ConnectionContext;
 
     Configuration const& configuration() const;
     ServiceStatistic&    wstatistic();

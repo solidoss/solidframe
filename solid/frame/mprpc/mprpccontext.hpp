@@ -266,7 +266,7 @@ std::ostream& operator<<(std::ostream& _ros, MessageId const& _msguid);
 
 class Service;
 class Connection;
-struct Configuration;
+class Configuration;
 
 struct ConnectionProxy {
     ConnectionProxy& operator=(const ConnectionProxy&) = delete;

@@ -45,7 +45,7 @@ class Service;
 class Connection;
 class MessageWriter;
 struct ConnectionContext;
-struct Configuration;
+class Configuration;
 
 typedef void (*OnSecureConnectF)(frame::aio::ReactorContext&);
 typedef void (*OnSecureAcceptF)(frame::aio::ReactorContext&);
@@ -223,7 +223,7 @@ protected:
 
 private:
     friend class Connection;
-    friend struct Configuration;
+    friend class Configuration;
     friend class Service;
 
     static RelayEngine& instance();
