@@ -21,8 +21,12 @@ namespace solid {
     Basicaly it is a pair of seconds and nanoseconds.
 */
 struct NanoTime : public timespec {
-    typedef std::make_unsigned<time_t>::type TimeT;
-    static const NanoTime                    maximum;
+    using SecondT = decltype(timespec::tv_sec);
+    using NanoSecondT = decltype(timespec::tv_nsec);
+
+    static NanoTime max(){
+        return NanoTime{std::numeric_limits<SecondT>::max(), std::numeric_limits<NanoSecondT>::max()};
+    }
 
     template <class Rep, class Period>
     NanoTime(const std::chrono::duration<Rep, Period>& _duration)
@@ -39,7 +43,7 @@ struct NanoTime : public timespec {
         tv_nsec             = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count() % 1000000000l;
     }
 
-    NanoTime()
+    NanoTime(const SecondT _sec = 0, const NanoSecondT _nsec = 0)
     {
         tv_sec  = 0;
         tv_nsec = 0;
@@ -96,8 +100,8 @@ struct NanoTime : public timespec {
         return *this;
     }
 
-    TimeT seconds() const { return tv_sec; }
-    long  nanoSeconds() const { return tv_nsec; }
+    auto seconds() const { return tv_sec; }
+    auto  nanoSeconds() const { return tv_nsec; }
 
     bool isMax() const;
 
@@ -109,11 +113,6 @@ struct NanoTime : public timespec {
     bool operator<(const NanoTime& _ts) const;
 
 private:
-    NanoTime(bool)
-    {
-        tv_sec  = -1;
-        tv_nsec = -1;
-    }
     template <class Clock, class Duration>
     void doClockCast(std::chrono::time_point<Clock, Duration>& _rtp, const std::chrono::time_point<Clock, Duration>& /*_rmytp*/) const
     {

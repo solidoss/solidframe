@@ -495,7 +495,7 @@ struct Reactor::Data {
                 return NanoTime();
             }
         } else {
-            return NanoTime::maximum;
+            return NanoTime::max();
         }
     }
 #elif defined(SOLID_USE_EPOLL)
@@ -758,7 +758,7 @@ void Reactor::run()
         waittime = impl_->computeWaitDuration(crttime);
 
         solid_log(logger, Verbose, "epoll_wait wait = " << waittime);
-        selcnt = epoll_pwait2(impl_->reactor_fd, impl_->eventvec.data(), static_cast<int>(impl_->eventvec.size()), waittime != NanoTime::maximum ? &waittime : nullptr, nullptr);
+        selcnt = epoll_pwait2(impl_->reactor_fd, impl_->eventvec.data(), static_cast<int>(impl_->eventvec.size()), waittime != NanoTime::max() ? &waittime : nullptr, nullptr);
         if (waittime.seconds() != 0 && waittime.nanoSeconds() != 0) {
             ++waitcnt;
         }
@@ -1163,34 +1163,6 @@ void Reactor::remConnect(ReactorContext& _rctx)
 #endif
 //-----------------------------------------------------------------------------
 
-struct ChangeTimerIndexCallback {
-    Reactor& r;
-    ChangeTimerIndexCallback(Reactor& _r)
-        : r(_r)
-    {
-    }
-
-    void operator()(const size_t _chidx, const size_t _newidx, const size_t _oldidx) const
-    {
-        r.doUpdateTimerIndex(_chidx, _newidx, _oldidx);
-    }
-};
-
-struct TimerCallback {
-    Reactor&        r;
-    ReactorContext& rctx;
-    TimerCallback(Reactor& _r, ReactorContext& _rctx)
-        : r(_r)
-        , rctx(_rctx)
-    {
-    }
-
-    void operator()(const size_t _tidx, const size_t _chidx) const
-    {
-        r.onTimer(rctx, _tidx, _chidx);
-    }
-};
-
 void Reactor::onTimer(ReactorContext& _rctx, const size_t /*_tidx*/, const size_t _chidx)
 {
     CompletionHandlerStub& rch = impl_->chdq[_chidx];
@@ -1208,8 +1180,14 @@ void Reactor::onTimer(ReactorContext& _rctx, const size_t /*_tidx*/, const size_
 void Reactor::doCompleteTimer(NanoTime const& _rcrttime)
 {
     ReactorContext ctx(*this, _rcrttime);
-    TimerCallback  tcbk(*this, ctx);
-    impl_->timestore.pop(_rcrttime, tcbk, ChangeTimerIndexCallback(*this));
+    impl_->timestore.pop(
+        _rcrttime,
+        [this, &ctx](const size_t _tidx, const size_t _chidx) {
+            onTimer(ctx, _tidx, _chidx);
+        },
+        [this](const size_t _chidx, const size_t _newidx, const size_t _oldidx) {
+            doUpdateTimerIndex(_chidx, _newidx, _oldidx);
+        });
 }
 
 //-----------------------------------------------------------------------------
@@ -1587,7 +1565,9 @@ void Reactor::doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, cons
 bool Reactor::remTimer(CompletionHandler const& /*_rch*/, size_t const& _rstoreidx)
 {
     if (_rstoreidx != InvalidIndex()) {
-        impl_->timestore.pop(_rstoreidx, ChangeTimerIndexCallback(*this));
+        impl_->timestore.pop(_rstoreidx, [this](const size_t _chidx, const size_t _newidx, const size_t _oldidx) {
+            doUpdateTimerIndex(_chidx, _newidx, _oldidx);
+        });
     }
     return true;
 }

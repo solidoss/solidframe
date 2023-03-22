@@ -414,6 +414,9 @@ private:
     UniqueId           relay_id_;
     uint32_t           peer_version_major_ = InvalidIndex();
     uint32_t           peer_version_minor_ = InvalidIndex();
+    NanoTime           recv_timeout = NanoTime::max();
+    NanoTime           send_timeout_soft = NanoTime::max();
+    NanoTime           send_timeout_hard = NanoTime::max();
 };
 
 inline Any<>& Connection::any()

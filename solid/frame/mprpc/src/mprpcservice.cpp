@@ -675,16 +675,16 @@ struct Service::Data {
     bool doNonMainConnectionStopping(
         Service&    _rsvc,
         Connection& _rcon, ActorIdT const& _ractuid,
-        ulong&           _rseconds_to_wait,
-        MessageId&       _rmsg_id,
-        MessageBundle*   _pmsg_bundle,
-        Event&           _revent_context,
-        ErrorConditionT& _rerror);
+        std::chrono::milliseconds& _rwait_duration,
+        MessageId&                 _rmsg_id,
+        MessageBundle*             _pmsg_bundle,
+        Event&                     _revent_context,
+        ErrorConditionT&           _rerror);
 
     bool doMainConnectionStoppingNotLast(
-        Service&    _rsvc,
-        Connection& _rcon, ActorIdT const& /*_ractuid*/,
-        ulong&      _rseconds_to_wait,
+        Service&                   _rsvc,
+        Connection&                _rcon, ActorIdT const& /*_ractuid*/,
+        std::chrono::milliseconds& _rwait_duration,
         MessageId& /*_rmsg_id*/,
         MessageBundle* /*_pmsg_bundle*/,
         Event&           _revent_context,
@@ -692,24 +692,24 @@ struct Service::Data {
 
     bool doMainConnectionStoppingCleanOneShot(
         Connection& _rcon, ActorIdT const& _ractuid,
-        ulong&           _rseconds_to_wait,
-        MessageId&       _rmsg_id,
-        MessageBundle*   _rmsg_bundle,
-        Event&           _revent_context,
-        ErrorConditionT& _rerror);
+        std::chrono::milliseconds& _rwait_duration,
+        MessageId&                 _rmsg_id,
+        MessageBundle*             _rmsg_bundle,
+        Event&                     _revent_context,
+        ErrorConditionT&           _rerror);
 
     bool doMainConnectionStoppingCleanAll(
         Connection& _rcon, ActorIdT const& _ractuid,
-        ulong&           _rseconds_to_wait,
-        MessageId&       _rmsg_id,
-        MessageBundle*   _rmsg_bundle,
-        Event&           _revent_context,
-        ErrorConditionT& _rerror);
+        std::chrono::milliseconds& _rwait_duration,
+        MessageId&                 _rmsg_id,
+        MessageBundle*             _rmsg_bundle,
+        Event&                     _revent_context,
+        ErrorConditionT&           _rerror);
 
     bool doMainConnectionStoppingPrepareCleanOneShot(
         Service&    _rsvc,
         Connection& _rcon, ActorIdT const& /*_ractuid*/,
-        ulong& /*_rseconds_to_wait*/,
+        std::chrono::milliseconds& /*_rwait_duration*/,
         MessageId& /*_rmsg_id*/,
         MessageBundle* /*_rmsg_bundle*/,
         Event& _revent_context,
@@ -717,7 +717,7 @@ struct Service::Data {
 
     bool doMainConnectionStoppingPrepareCleanAll(
         Connection& _rcon, ActorIdT const& /*_ractuid*/,
-        ulong& /*_rseconds_to_wait*/,
+        std::chrono::milliseconds& /*_rwait_duration*/,
         MessageId& /*_rmsg_id*/,
         MessageBundle* /*_rmsg_bundle*/,
         Event&           _revent_context,
@@ -726,7 +726,7 @@ struct Service::Data {
     bool doMainConnectionRestarting(
         Service&    _rsvc,
         Connection& _rcon, ActorIdT const& /*_ractuid*/,
-        ulong& /*_rseconds_to_wait*/,
+        std::chrono::milliseconds& /*_rwait_duration*/,
         MessageId& /*_rmsg_id*/,
         MessageBundle* /*_rmsg_bundle*/,
         Event&           _revent_context,
@@ -1955,13 +1955,13 @@ bool Service::closeConnection(RecipientId const& _rrecipient_id)
 }
 //-----------------------------------------------------------------------------
 bool Service::connectionStopping(
-    ConnectionContext& _rconctx,
-    ActorIdT const&    _ractuid,
-    ulong&             _rseconds_to_wait,
-    MessageId&         _rmsg_id,
-    MessageBundle*     _pmsg_bundle,
-    Event&             _revent_context,
-    ErrorConditionT&   _rerror)
+    ConnectionContext&         _rconctx,
+    ActorIdT const&            _ractuid,
+    std::chrono::milliseconds& _rwait_duration,
+    MessageId&                 _rmsg_id,
+    MessageBundle*             _pmsg_bundle,
+    Event&                     _revent_context,
+    ErrorConditionT&           _rerror)
 {
     solid_log(logger, Verbose, this);
     bool                retval;
@@ -1972,7 +1972,7 @@ bool Service::connectionStopping(
         lock_guard<std::mutex> pool_lock(pimpl_->poolMutex(pool_index));
         ConnectionPoolStub&    rpool(pimpl_->pool_dq_[pool_index]);
 
-        _rseconds_to_wait = 0;
+        _rwait_duration = std::chrono::milliseconds(0);
 
         if (_pmsg_bundle != nullptr) {
             _pmsg_bundle->clear();
@@ -1988,19 +1988,19 @@ bool Service::connectionStopping(
         bool was_disconnected = rpool.isDisconnected();
 
         if (!rpool.isMainConnection(_ractuid)) {
-            retval = pimpl_->doNonMainConnectionStopping(*this, rcon, _ractuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
+            retval = pimpl_->doNonMainConnectionStopping(*this, rcon, _ractuid, _rwait_duration, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
         } else if (!rpool.isLastConnection()) {
-            retval = pimpl_->doMainConnectionStoppingNotLast(*this, rcon, _ractuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
+            retval = pimpl_->doMainConnectionStoppingNotLast(*this, rcon, _ractuid, _rwait_duration, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
         } else if (rpool.isCleaningOneShotMessages()) {
-            retval = pimpl_->doMainConnectionStoppingCleanOneShot(rcon, _ractuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
+            retval = pimpl_->doMainConnectionStoppingCleanOneShot(rcon, _ractuid, _rwait_duration, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
         } else if (rpool.isCleaningAllMessages()) {
-            retval = pimpl_->doMainConnectionStoppingCleanAll(rcon, _ractuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
+            retval = pimpl_->doMainConnectionStoppingCleanAll(rcon, _ractuid, _rwait_duration, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
         } else if (rpool.isRestarting() && status() == ServiceStatusE::Running) {
-            retval = pimpl_->doMainConnectionRestarting(*this, rcon, _ractuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
+            retval = pimpl_->doMainConnectionRestarting(*this, rcon, _ractuid, _rwait_duration, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
         } else if (!rpool.isFastClosing() && !rpool.isServerSide() && status() == ServiceStatusE::Running) {
-            retval = pimpl_->doMainConnectionStoppingPrepareCleanOneShot(*this, rcon, _ractuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
+            retval = pimpl_->doMainConnectionStoppingPrepareCleanOneShot(*this, rcon, _ractuid, _rwait_duration, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
         } else {
-            retval = pimpl_->doMainConnectionStoppingPrepareCleanAll(rcon, _ractuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
+            retval = pimpl_->doMainConnectionStoppingPrepareCleanAll(rcon, _ractuid, _rwait_duration, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
         }
         if (!was_disconnected && rpool.isDisconnected() && !solid_function_empty(rpool.on_event_fnc_)) {
             ppool = &rpool;
@@ -2026,7 +2026,7 @@ bool Service::connectionStopping(
 bool Service::Data::Data::doNonMainConnectionStopping(
     Service&    _rsvc,
     Connection& _rcon, ActorIdT const& /*_ractuid*/,
-    ulong& /*_rseconds_to_wait*/,
+    std::chrono::milliseconds& /*_rwait_duration*/,
     MessageId& /*_rmsg_id*/,
     MessageBundle* _rmsg_bundle,
     Event& /*_revent_context*/,
@@ -2069,9 +2069,9 @@ bool Service::Data::Data::doNonMainConnectionStopping(
 }
 //-----------------------------------------------------------------------------
 bool Service::Data::doMainConnectionStoppingNotLast(
-    Service&    _rsvc,
-    Connection& _rcon, ActorIdT const& /*_ractuid*/,
-    ulong&      _rseconds_to_wait,
+    Service&                   _rsvc,
+    Connection&                _rcon, ActorIdT const& /*_ractuid*/,
+    std::chrono::milliseconds& _rseconds_to_wait,
     MessageId& /*_rmsg_id*/,
     MessageBundle* /*_pmsg_bundle*/,
     Event& /*_revent_context*/,
@@ -2085,7 +2085,7 @@ bool Service::Data::doMainConnectionStoppingNotLast(
 
     // it's the main connection but it is not the last one
 
-    _rseconds_to_wait = 1;
+    _rseconds_to_wait = std::chrono::milliseconds(1);
 
     rpool.setMainConnectionStopping();
     rpool.resetMainConnectionActive();
@@ -2098,11 +2098,11 @@ bool Service::Data::doMainConnectionStoppingNotLast(
 }
 //-----------------------------------------------------------------------------
 bool Service::Data::doMainConnectionStoppingCleanOneShot(
-    Connection&    _rcon, ActorIdT const& /*_ractuid*/,
-    ulong&         _rseconds_to_wait,
-    MessageId&     _rmsg_id,
-    MessageBundle* _pmsg_bundle,
-    Event&         _revent_context,
+    Connection&                _rcon, ActorIdT const& /*_ractuid*/,
+    std::chrono::milliseconds& _rwait_duration,
+    MessageId&                 _rmsg_id,
+    MessageBundle*             _pmsg_bundle,
+    Event&                     _revent_context,
     ErrorConditionT& /*_rerror*/
 )
 {
@@ -2143,21 +2143,21 @@ bool Service::Data::doMainConnectionStoppingCleanOneShot(
     rpool.resetCleaningOneShotMessages();
     rpool.setRestarting();
     if (rpool.connect_addr_vec_.empty()) {
-        _rseconds_to_wait = config_.connectionReconnectTimeoutSeconds(
+        _rwait_duration = config_.client.connectionReconnectTimeout(
             rpool.retry_connect_count_,
             false,
             _rcon.isConnected(),
             _rcon.isActiveState(),
             _rcon.isSecured());
     } else {
-        _rseconds_to_wait = 0;
+        _rwait_duration = std::chrono::milliseconds(0);
     }
     return false;
 }
 //-----------------------------------------------------------------------------
 bool Service::Data::doMainConnectionStoppingCleanAll(
     Connection& _rcon, ActorIdT const& /*_ractuid*/,
-    ulong& /*_rseconds_to_wait*/,
+    std::chrono::milliseconds& /*_rwait_duration*/,
     MessageId&     _rmsg_id,
     MessageBundle* _pmsg_bundle,
     Event& /*_revent_context*/,
@@ -2204,7 +2204,7 @@ bool Service::Data::doMainConnectionStoppingCleanAll(
 bool Service::Data::doMainConnectionStoppingPrepareCleanOneShot(
     Service&    _rsvc,
     Connection& _rcon, ActorIdT const& /*_ractuid*/,
-    ulong& /*_rseconds_to_wait*/,
+    std::chrono::milliseconds& /*_rwait_duration*/,
     MessageId& /*_rmsg_id*/,
     MessageBundle* _pmsg_bundle,
     Event&         _revent_context,
@@ -2257,7 +2257,7 @@ bool Service::Data::doMainConnectionStoppingPrepareCleanOneShot(
 //-----------------------------------------------------------------------------
 bool Service::Data::doMainConnectionStoppingPrepareCleanAll(
     Connection& _rcon, ActorIdT const& /*_ractuid*/,
-    ulong& /*_rseconds_to_wait*/,
+    std::chrono::milliseconds& /*_rwait_duration*/,
     MessageId& /*_rmsg_id*/,
     MessageBundle* /*_rmsg_bundle*/,
     Event& /*_revent_context*/,
@@ -2288,7 +2288,7 @@ bool Service::Data::doMainConnectionStoppingPrepareCleanAll(
 bool Service::Data::doMainConnectionRestarting(
     Service&    _rsvc,
     Connection& _rcon, ActorIdT const& _ractuid,
-    ulong& _rseconds_to_wait,
+    std::chrono::milliseconds& _rwait_duration,
     MessageId& /*_rmsg_id*/,
     MessageBundle* /*_rmsg_bundle*/,
     Event& /*_revent_context*/,
@@ -2342,7 +2342,7 @@ bool Service::Data::doMainConnectionRestarting(
             --rpool.stopping_connection_count_;
             rpool.main_connection_id_ = _ractuid;
 
-            _rseconds_to_wait = config_.connectionReconnectTimeoutSeconds(
+            _rwait_duration = config_.client.connectionReconnectTimeout(
                 rpool.retry_connect_count_,
                 tried,
                 _rcon.isConnected(),

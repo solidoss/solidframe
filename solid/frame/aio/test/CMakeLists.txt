@@ -98,6 +98,7 @@ if(OPENSSL_FOUND)
         test_perf_actor_frame.cpp
         test_perf_workpool_lockfree.cpp
         test_perf_workpool_synch_context.cpp
+        test_perf_timestore.cpp
     )
     #
     create_test_sourcelist( perfTests test_perf.cpp ${testPerfSuite})
