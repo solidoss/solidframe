@@ -10,7 +10,10 @@
 
 #pragma once
 
+#include "solid/system/cassert.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/nanotime.hpp"
+#include "solid/utility/common.hpp"
 #include <vector>
 
 namespace solid {
@@ -24,7 +27,7 @@ public:
     TimeStore(const size_t _cp = 0)
     {
         tv.reserve(_cp);
-        mint = NanoTime::maximum;
+        mint = NanoTime::max();
     }
     ~TimeStore() {}
 
@@ -69,7 +72,7 @@ public:
     void pop(NanoTime const& _rt, F1 const& _rf1, F2 const& _rf2)
     {
 
-        NanoTime crtmin = NanoTime::maximum;
+        NanoTime crtmin = NanoTime::max();
         for (size_t i = 0; i < tv.size();) {
             TimePairT const& rtp = tv[i];
             if (rtp.first > _rt) {

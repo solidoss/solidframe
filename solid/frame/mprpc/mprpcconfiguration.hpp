@@ -452,16 +452,7 @@ public:
 
     SendBufferPointerT allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const;
 
-    ulong connectionReconnectTimeoutSeconds(
-        const uint8_t _retry_count,
-        const bool    _failed_create_connection_actor,
-        const bool    _last_connection_was_connected,
-        const bool    _last_connection_was_active,
-        const bool    _last_connection_was_secured) const;
-
     void check() const;
-
-    size_t connetionReconnectTimeoutSeconds() const;
 
     size_t pool_max_active_connection_count;
     size_t pool_max_pending_connection_count;
@@ -479,12 +470,13 @@ public:
         using ConnectionSecureHandshakeFunctionT = solid_function_t(void(ConnectionContext&));
 
         ConnectionCreateSocketFunctionT    connection_create_socket_fnc;
-        ConnectionState                    connection_start_state;
-        bool                               connection_start_secure;
+        ConnectionState                    connection_start_state                = ConnectionState::Passive;
+        bool                               connection_start_secure               = true;
+        uint32_t                           connection_inactivity_keepalive_count = 20; // server error if receives more than inactivity_keepalive_count keep alive messages during inactivity_timeout interval
         ConnectionStartFunctionT           connection_start_fnc;
         ConnectionSecureHandshakeFunctionT connection_on_secure_handshake_fnc;
-        uint32_t                           connection_timeout_activation_seconds;
-        uint32_t                           connection_timeout_secured_seconds;
+        std::chrono::milliseconds          connection_timeout_activation = std::chrono::seconds(20);
+        std::chrono::milliseconds          connection_timeout_secured    = std::chrono::seconds(10);
         ServerSetupSocketDeviceFunctionT   socket_device_setup_fnc;
         std::string                        listener_address_str;
         std::string                        listener_service_str;
@@ -508,9 +500,12 @@ public:
         using AsyncResolveFunctionT              = solid_function_t(void(const std::string&, ResolveCompleteFunctionT&));
         using ConnectionSecureHandshakeFunctionT = solid_function_t(void(ConnectionContext&));
 
+        std::chrono::milliseconds          connection_timeout_reconnect = std::chrono::seconds(10);
+        std::chrono::milliseconds          connection_timeout_keepalive = std::chrono::seconds(60);
+        uint32_t                           connection_reconnect_steps   = 10;
         ConnectionCreateSocketFunctionT    connection_create_socket_fnc;
-        ConnectionState                    connection_start_state;
-        bool                               connection_start_secure;
+        ConnectionState                    connection_start_state  = ConnectionState::Passive;
+        bool                               connection_start_secure = true;
         ConnectionStartFunctionT           connection_start_fnc;
         AsyncResolveFunctionT              name_resolve_fnc;
         ConnectionSecureHandshakeFunctionT connection_on_secure_handshake_fnc;
@@ -522,17 +517,23 @@ public:
             return !secure_any.empty();
         }
 
+        std::chrono::milliseconds connectionReconnectTimeout(
+            const uint8_t _retry_count,
+            const bool    _failed_create_connection_actor,
+            const bool    _last_connection_was_connected,
+            const bool    _last_connection_was_active,
+            const bool    _last_connection_was_secured) const;
+
     } client;
 
-    ulong                         connection_timeout_reconnect_seconds;
-    uint32_t                      connection_timeout_inactivity_seconds;
-    uint32_t                      connection_timeout_keepalive_seconds;
-    uint32_t                      connection_inactivity_keepalive_count; // server error if receives more than inactivity_keepalive_count keep alive messages during inactivity_timeout_seconds interval
-    uint8_t                       connection_recv_buffer_start_capacity_kb;
-    uint8_t                       connection_recv_buffer_max_capacity_kb;
-    uint8_t                       connection_send_buffer_start_capacity_kb;
-    uint8_t                       connection_send_buffer_max_capacity_kb;
-    uint16_t                      connection_relay_buffer_count;
+    std::chrono::milliseconds     connection_timeout_recv                  = std::chrono::minutes(10);
+    std::chrono::milliseconds     connection_timeout_send_soft             = std::chrono::seconds(10);
+    std::chrono::milliseconds     connection_timeout_send_hard             = std::chrono::minutes(5);
+    uint8_t                       connection_recv_buffer_start_capacity_kb = 0;
+    uint8_t                       connection_recv_buffer_max_capacity_kb   = 64;
+    uint8_t                       connection_send_buffer_start_capacity_kb = 0;
+    uint8_t                       connection_send_buffer_max_capacity_kb   = 64;
+    uint16_t                      connection_relay_buffer_count            = 8;
     ExtractRecipientNameFunctionT extract_recipient_name_fnc;
     ConnectionStopFunctionT       connection_stop_fnc;
     ConnectionOnEventFunctionT    connection_on_event_fnc;
