@@ -64,6 +64,7 @@ enum {
     ErrorServiceUnknownMessageE,
     ErrorServiceInvalidUrlE,
     ErrorServiceConnectionNotNeededE,
+    ErrorServiceConnectionPoolCountE,
 };
 
 class ErrorCategory : public ErrorCategoryT {
@@ -223,6 +224,9 @@ std::string ErrorCategory::message(int _ev) const
     case ErrorServiceConnectionNotNeededE:
         oss << "Service: connection not needed";
         break;
+    case ErrorServiceConnectionPoolCountE:
+        oss << "Service: too many connection pools created";
+        break;
     default:
         oss << "Unknown";
         break;
@@ -282,6 +286,7 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_service_unknown_message(ErrorServiceUnknownMessageE, category);
 /*extern*/ const ErrorConditionT error_service_invalid_url(ErrorServiceInvalidUrlE, category);
 /*extern*/ const ErrorConditionT error_service_connection_not_needed(ErrorServiceConnectionNotNeededE, category);
+/*extern*/ const ErrorConditionT error_service_connection_pool_count(ErrorServiceConnectionPoolCountE, category);
 
 } // namespace mprpc
 } // namespace frame

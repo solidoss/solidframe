@@ -62,6 +62,7 @@ extern const ErrorConditionT error_service_message_lost;
 extern const ErrorConditionT error_service_unknown_message;
 extern const ErrorConditionT error_service_invalid_url;
 extern const ErrorConditionT error_service_connection_not_needed;
+extern const ErrorConditionT error_service_connection_pool_count;
 
 extern const ErrorConditionT error_compression_unavailable;
 extern const ErrorConditionT error_compression_engine;

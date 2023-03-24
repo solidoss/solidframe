@@ -355,13 +355,14 @@ int test_pool_basic(int argc, char* argv[])
                 frame::mprpc::snappy::setup(cfg);
             }
 
-            mprpcserver.start(std::move(cfg));
-
             {
+                frame::mprpc::ServiceStartStatus start_status;
+                mprpcserver.start(start_status, std::move(cfg));
+
                 std::ostringstream oss;
-                oss << mprpcserver.configuration().server.listenerPort();
+                oss << start_status.listen_addr_vec_.back().port();
                 server_port = oss.str();
-                solid_dbg(generic_logger, Info, "server listens on port: " << server_port);
+                solid_dbg(generic_logger, Info, "server listens on: " << start_status.listen_addr_vec_.back());
             }
         }
 
@@ -381,7 +382,7 @@ int test_pool_basic(int argc, char* argv[])
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 
-            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/);
+            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, server_port /*, SocketInfo::Inet4*/);
 
             if (secure) {
                 solid_dbg(generic_logger, Info, "Configure SSL client ------------------------------------");

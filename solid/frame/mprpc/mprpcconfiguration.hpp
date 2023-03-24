@@ -45,7 +45,7 @@ class Service;
 class Connection;
 class MessageWriter;
 struct ConnectionContext;
-struct Configuration;
+class Configuration;
 
 typedef void (*OnSecureConnectF)(frame::aio::ReactorContext&);
 typedef void (*OnSecureAcceptF)(frame::aio::ReactorContext&);
@@ -223,7 +223,7 @@ protected:
 
 private:
     friend class Connection;
-    friend struct Configuration;
+    friend class Configuration;
     friend class Service;
 
     static RelayEngine& instance();
@@ -371,8 +371,8 @@ struct WriterConfiguration {
     CompressFunctionT inplace_compress_fnc;
 };
 
-struct Configuration {
-private:
+class Configuration {
+    Configuration(Configuration&&)                 = default;
     Configuration& operator=(const Configuration&) = delete;
     Configuration& operator=(Configuration&&)      = default;
 
@@ -381,7 +381,8 @@ public:
     Configuration(
         AioSchedulerT&      _rsch,
         std::shared_ptr<P>& _rprotcol_ptr)
-        : pools_mutex_count(16)
+        : pools_count(1024 * 10)
+        , pools_mutex_count(1024)
         , protocol_ptr(std::static_pointer_cast<Protocol>(_rprotcol_ptr))
         , pscheduler(&_rsch)
         , prelayengine(&RelayEngine::instance())
@@ -394,7 +395,8 @@ public:
         AioSchedulerT&      _rsch,
         RelayEngine&        _rrelayengine,
         std::shared_ptr<P>& _rprotcol_ptr)
-        : pools_mutex_count(16)
+        : pools_count(1024 * 10)
+        , pools_mutex_count(1024)
         , protocol_ptr(std::static_pointer_cast<Protocol>(_rprotcol_ptr))
         , pscheduler(&_rsch)
         , prelayengine(&_rrelayengine)
@@ -465,6 +467,7 @@ public:
     size_t pool_max_pending_connection_count;
     size_t pool_max_message_queue_size;
 
+    size_t pools_count;
     size_t pools_mutex_count;
     bool   relay_enabled;
 
@@ -474,16 +477,6 @@ public:
     struct Server {
         using ConnectionCreateSocketFunctionT    = solid_function_t(SocketStubPtrT(Configuration const&, frame::aio::ActorProxy const&, SocketDevice&&, char*));
         using ConnectionSecureHandshakeFunctionT = solid_function_t(void(ConnectionContext&));
-
-        Server()
-            : listener_port(-1)
-        {
-        }
-
-        bool hasSecureConfiguration() const
-        {
-            return !secure_any.empty();
-        }
 
         ConnectionCreateSocketFunctionT    connection_create_socket_fnc;
         ConnectionState                    connection_start_state;
@@ -497,26 +490,23 @@ public:
         std::string                        listener_service_str;
         Any<>                              secure_any;
 
-        int listenerPort() const
+        Server()
         {
-            return listener_port;
+        }
+
+        bool hasSecureConfiguration() const
+        {
+            return !secure_any.empty();
         }
 
     private:
         friend class Service;
-        int listener_port;
-
     } server;
 
     struct Client {
         using ConnectionCreateSocketFunctionT    = solid_function_t(SocketStubPtrT(Configuration const&, frame::aio::ActorProxy const&, char*));
         using AsyncResolveFunctionT              = solid_function_t(void(const std::string&, ResolveCompleteFunctionT&));
         using ConnectionSecureHandshakeFunctionT = solid_function_t(void(ConnectionContext&));
-
-        bool hasSecureConfiguration() const
-        {
-            return !secure_any.empty();
-        }
 
         ConnectionCreateSocketFunctionT    connection_create_socket_fnc;
         ConnectionState                    connection_start_state;
@@ -526,6 +516,11 @@ public:
         ConnectionSecureHandshakeFunctionT connection_on_secure_handshake_fnc;
         ClientSetupSocketDeviceFunctionT   socket_device_setup_fnc;
         Any<>                              secure_any;
+
+        bool hasSecureConfiguration() const
+        {
+            return !secure_any.empty();
+        }
 
     } client;
 
@@ -558,7 +553,7 @@ public:
 private:
     void init();
     void prepare();
-    void prepare(SocketDevice& _rsd);
+    void createListenerDevice(SocketDevice& _rsd) const;
 
 private:
     AioSchedulerT* pscheduler;

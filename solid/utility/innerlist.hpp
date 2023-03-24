@@ -216,14 +216,14 @@ public:
 
     size_t popFront()
     {
-        size_t old_front = front_;
+        const size_t old_front = front_;
         erase(front_);
         return old_front;
     }
 
     size_t popBack()
     {
-        size_t old_back = back_;
+        const size_t old_back = back_;
         erase(back_);
         return old_back;
     }

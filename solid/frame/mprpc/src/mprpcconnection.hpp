@@ -113,6 +113,7 @@ public:
     const ErrorCodeT&      systemError() const;
 
     bool isFull(Configuration const& _rconfiguration) const;
+    bool canHandleMore(Configuration const& _rconfiguration) const;
 
     bool isInPoolWaitingQueue() const;
 
@@ -256,7 +257,7 @@ private:
 
     ResponseStateE doCheckResponseState(frame::aio::ReactorContext& _rctx, const MessageHeader& _rmsghdr, MessageId& _rrelay_id, const bool _erase_request);
 
-    void doCompleteMessage(
+    bool doCompleteMessage(
         frame::aio::ReactorContext& _rctx, MessagePointerT& _rresponse_ptr, const size_t _response_type_id);
 
     void doCompleteMessage(
@@ -405,6 +406,8 @@ private:
     RequestIdVectorT   cancel_remote_msg_vec_;
     ErrorConditionT    error_;
     ErrorCodeT         sys_error_;
+    bool               poll_pool_more_ = true;
+    bool               send_posted_    = false;
     Any<>              any_data_;
     char               socket_emplace_buf_[static_cast<size_t>(ConnectionValues::SocketEmplacementSize)];
     SocketStubPtrT     sock_ptr_;
@@ -435,7 +438,7 @@ inline const std::string& Connection::poolName() const
 
 inline bool Connection::isWriterEmpty() const
 {
-    return msg_writer_.empty();
+    return msg_writer_.isEmpty();
 }
 
 inline const ErrorConditionT& Connection::error() const
@@ -495,6 +498,16 @@ inline uint32_t& Connection::peerVersionMajor()
 inline uint32_t& Connection::peerVersionMinor()
 {
     return peer_version_minor_;
+}
+//-----------------------------------------------------------------------------
+inline bool Connection::isFull(Configuration const& _rconfiguration) const
+{
+    return msg_writer_.isFull(_rconfiguration.writer);
+}
+//-----------------------------------------------------------------------------
+inline bool Connection::canHandleMore(Configuration const& _rconfiguration) const
+{
+    return msg_writer_.canHandleMore(_rconfiguration.writer);
 }
 
 } // namespace mprpc

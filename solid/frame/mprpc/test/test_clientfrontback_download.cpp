@@ -389,13 +389,14 @@ int test_clientfrontback_download(int argc, char* argv[])
                 frame::mprpc::snappy::setup(cfg);
             }
 
-            mprpc_back_server.start(std::move(cfg));
-
             {
+                frame::mprpc::ServiceStartStatus start_status;
+                mprpc_back_server.start(start_status, std::move(cfg));
+
                 std::ostringstream oss;
-                oss << mprpc_back_server.configuration().server.listenerPort();
+                oss << start_status.listen_addr_vec_.back().port();
                 back_port = oss.str();
-                solid_dbg(logger, Verbose, "back listens on port: " << back_port);
+                solid_dbg(generic_logger, Info, "back listens on: " << start_status.listen_addr_vec_.back());
             }
         }
 
@@ -467,13 +468,14 @@ int test_clientfrontback_download(int argc, char* argv[])
                 frame::mprpc::snappy::setup(cfg);
             }
 
-            mprpc_front_server.start(std::move(cfg));
-
             {
+                frame::mprpc::ServiceStartStatus start_status;
+                mprpc_front_server.start(start_status, std::move(cfg));
+
                 std::ostringstream oss;
-                oss << mprpc_front_server.configuration().server.listenerPort();
+                oss << start_status.listen_addr_vec_.back().port();
                 front_port = oss.str();
-                solid_dbg(logger, Verbose, "front listens on port: " << front_port);
+                solid_dbg(generic_logger, Info, "front listens on: " << start_status.listen_addr_vec_.back());
             }
             pmprpc_front_server = &mprpc_front_server;
         }

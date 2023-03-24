@@ -180,15 +180,27 @@ struct MessageBundle {
     }
 
     MessageBundle(
-        MessagePointerT&          _rmsgptr,
+        MessagePointerT&&         _rmsgptr,
         const size_t              _msg_type_idx,
         const MessageFlagsT&      _flags,
         MessageCompleteFunctionT& _complete_fnc,
-        std::string&              _rmessage_url)
+        std::string&&             _rmessage_url)
         : message_type_id(_msg_type_idx)
         , message_flags(_flags)
         , message_ptr(std::move(_rmsgptr))
         , message_url(std::move(_rmessage_url))
+    {
+        std::swap(complete_fnc, _complete_fnc);
+    }
+
+    MessageBundle(
+        MessagePointerT&&         _rmsgptr,
+        const size_t              _msg_type_idx,
+        const MessageFlagsT&      _flags,
+        MessageCompleteFunctionT& _complete_fnc)
+        : message_type_id(_msg_type_idx)
+        , message_flags(_flags)
+        , message_ptr(std::move(_rmsgptr))
     {
         std::swap(complete_fnc, _complete_fnc);
     }

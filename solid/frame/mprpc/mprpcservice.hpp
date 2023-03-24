@@ -11,6 +11,8 @@
 #pragma once
 
 #include "solid/system/exception.hpp"
+#include "solid/system/statistic.hpp"
+
 #include "solid/utility/event.hpp"
 #include "solid/utility/function.hpp"
 
@@ -23,6 +25,7 @@
 #include "solid/frame/mprpc/mprpcprotocol.hpp"
 #include "solid/system/log.hpp"
 #include "solid/system/pimpl.hpp"
+#include "solid/system/statistic.hpp"
 
 namespace solid {
 namespace frame {
@@ -33,6 +36,10 @@ struct ReactorContext;
 
 namespace mprpc {
 
+namespace openssl {
+class SocketStub;
+} // namespace openssl
+
 extern const Event pool_event_connect;
 extern const Event pool_event_disconnect;
 extern const Event pool_event_connection_start;
@@ -42,9 +49,119 @@ extern const Event pool_event_pool_disconnect;
 extern const Event pool_event_pool_stop;
 
 struct Message;
-struct Configuration;
+class Configuration;
 class Connection;
 struct MessageBundle;
+
+struct ServiceStartStatus {
+    std::vector<SocketAddress> listen_addr_vec_;
+};
+
+struct ServiceStatistic : solid::Statistic {
+    std::atomic<uint64_t> poll_pool_count_;
+    std::atomic<uint64_t> poll_pool_more_count_;
+    std::atomic<uint64_t> poll_pool_fetch_count_00_;
+    std::atomic<uint64_t> poll_pool_fetch_count_01_;
+    std::atomic<uint64_t> poll_pool_fetch_count_05_;
+    std::atomic<uint64_t> poll_pool_fetch_count_10_;
+    std::atomic<uint64_t> poll_pool_fetch_count_40_;
+    std::atomic<uint64_t> poll_pool_fetch_count_50_;
+    std::atomic<uint64_t> poll_pool_fetch_count_60_;
+    std::atomic<uint64_t> poll_pool_fetch_count_70_;
+    std::atomic<uint64_t> poll_pool_fetch_count_80_;
+    std::atomic<uint64_t> send_message_count_;
+    std::atomic<uint64_t> send_message_context_count_;
+    std::atomic<uint64_t> send_message_to_connection_count_;
+    std::atomic<uint64_t> send_message_to_pool_count_;
+    std::atomic<uint64_t> reject_new_pool_message_count_;
+    std::atomic<uint64_t> connection_new_pool_message_count_;
+    std::atomic<uint64_t> connection_do_send_count_;
+    std::atomic<uint64_t> connection_send_wait_count_;
+    std::atomic<uint64_t> connection_send_done_count_;
+    std::atomic<uint64_t> connection_send_buff_size_max_;
+    std::atomic<uint64_t> connection_send_buff_size_count_00_;
+    std::atomic<uint64_t> connection_send_buff_size_count_01_;
+    std::atomic<uint64_t> connection_send_buff_size_count_02_;
+    std::atomic<uint64_t> connection_send_buff_size_count_03_;
+    std::atomic<uint64_t> connection_send_buff_size_count_04_;
+    std::atomic<uint64_t> connection_recv_buff_size_max_;
+    std::atomic<uint64_t> connection_recv_buff_size_count_00_;
+    std::atomic<uint64_t> connection_recv_buff_size_count_01_;
+    std::atomic<uint64_t> connection_recv_buff_size_count_02_;
+    std::atomic<uint64_t> connection_recv_buff_size_count_03_;
+    std::atomic<uint64_t> connection_recv_buff_size_count_04_;
+    std::atomic<uint64_t> connection_send_posted_;
+    std::atomic<uint64_t> max_fetch_size_;
+    std::atomic<uint64_t> min_fetch_size_;
+
+    void fetchCount(const uint64_t _count, const bool _more)
+    {
+#ifdef SOLID_HAS_STATISTICS
+        if (_count == 0) {
+            solid_statistic_inc(poll_pool_fetch_count_00_);
+        } else if (_count <= 1) {
+            solid_statistic_inc(poll_pool_fetch_count_01_);
+            poll_pool_more_count_ += _more;
+        } else if (_count <= 5) {
+            solid_statistic_inc(poll_pool_fetch_count_05_);
+        } else if (_count <= 10) {
+            solid_statistic_inc(poll_pool_fetch_count_10_);
+        } else if (_count <= 40) {
+            solid_statistic_inc(poll_pool_fetch_count_40_);
+        } else if (_count <= 50) {
+            solid_statistic_inc(poll_pool_fetch_count_50_);
+        } else if (_count <= 60) {
+            solid_statistic_inc(poll_pool_fetch_count_60_);
+        } else if (_count <= 70) {
+            solid_statistic_inc(poll_pool_fetch_count_70_);
+        } else {
+            solid_statistic_inc(poll_pool_fetch_count_80_);
+        }
+
+#else
+        (void)_count;
+#endif
+    }
+
+    void connectionSendBufferSize(const uint64_t _size, const uint64_t _capacity)
+    {
+#ifdef SOLID_HAS_STATISTICS
+        solid_statistic_max(connection_send_buff_size_max_, _size);
+        if (_size == 0) {
+            solid_statistic_inc(connection_send_buff_size_count_00_);
+        } else if (_size <= (_capacity / 4)) {
+            solid_statistic_inc(connection_send_buff_size_count_01_);
+        } else if (_size <= (_capacity / 2)) {
+            solid_statistic_inc(connection_send_buff_size_count_02_);
+        } else if (_size <= (_capacity)) {
+            solid_statistic_inc(connection_send_buff_size_count_03_);
+        } else {
+            solid_statistic_inc(connection_send_buff_size_count_04_);
+        }
+#endif
+    }
+
+    void connectionRecvBufferSize(const uint64_t _size, const uint64_t _capacity)
+    {
+#ifdef SOLID_HAS_STATISTICS
+        solid_statistic_max(connection_recv_buff_size_max_, _size);
+        if (_size == 0) {
+            solid_statistic_inc(connection_recv_buff_size_count_00_);
+        } else if (_size <= (_capacity / 4)) {
+            solid_statistic_inc(connection_recv_buff_size_count_01_);
+        } else if (_size <= (_capacity / 2)) {
+            solid_statistic_inc(connection_recv_buff_size_count_02_);
+        } else if (_size <= (_capacity)) {
+            solid_statistic_inc(connection_recv_buff_size_count_03_);
+        } else {
+            solid_statistic_inc(connection_recv_buff_size_count_04_);
+        }
+#endif
+    }
+
+    ServiceStatistic();
+    std::ostream& print(std::ostream& _ros) const override;
+};
 
 //! Message Passing Remote Procedure Call Service
 /*!
@@ -81,21 +198,19 @@ struct MessageBundle;
 */
 
 class Service : public frame::Service {
+    struct Data;
+    std::shared_ptr<Data> pimpl_;
+
 public:
     typedef frame::Service BaseT;
 
     Service(
         frame::UseServiceShell _force_shell);
 
-    Service(const Service&)            = delete;
-    Service(Service&&)                 = delete;
-    Service& operator=(const Service&) = delete;
-    Service& operator=(Service&&)      = delete;
-
     //! Destructor
     ~Service();
 
-    Configuration const& configuration() const;
+    const ServiceStatistic& statistic() const;
 
     ErrorConditionT createConnectionPool(const std::string_view& _recipient_url, const size_t _persistent_connection_count = 1);
 
@@ -241,6 +356,28 @@ public:
         Fnc                       _complete_fnc,
         MessageId&                _rmsguid,
         const MessageFlagsT&      _flags);
+
+    // send message using ConnectionContext  ----------------------------------
+
+    template <class T>
+    ErrorConditionT sendResponse(
+        ConnectionContext&        _rctx,
+        std::shared_ptr<T> const& _rmsgptr,
+        const MessageFlagsT&      _flags = 0);
+
+    template <class T>
+    ErrorConditionT sendMessage(
+        ConnectionContext&        _rctx,
+        std::shared_ptr<T> const& _rmsgptr,
+        const MessageFlagsT&      _flags = 0);
+
+    template <class T, class Fnc>
+    ErrorConditionT sendMessage(
+        ConnectionContext&        _rctx,
+        std::shared_ptr<T> const& _rmsgptr,
+        Fnc                       _complete_fnc,
+        const MessageFlagsT&      _flags);
+
     //-------------------------------------------------------------------------
     ErrorConditionT sendRelay(const ActorIdT& _rconid, RelayData&& _urelmsg);
     ErrorConditionT sendRelayCancel(RelayData&& _urelmsg);
@@ -305,23 +442,42 @@ public:
     bool closeConnection(RecipientId const& _rrecipient_id);
 
 protected:
-    void doStart(Configuration&& _ucfg);
-    void doStart();
+    void doStart(Configuration&& _ucfg)
+    {
+        ServiceStartStatus status;
+        doStart(status, std::move(_ucfg));
+    }
+    void doStart()
+    {
+        ServiceStartStatus status;
+        doStart(status);
+    }
 
     template <typename A>
     void doStart(Configuration&& _ucfg, A&& _a)
+    {
+        ServiceStartStatus status;
+        doStart(status, std::move(_ucfg), std::forward<A>(_a));
+    }
+
+    void doStart(ServiceStartStatus& _status, Configuration&& _ucfg);
+    void doStart(ServiceStartStatus& _status);
+
+    template <typename A>
+    void doStart(ServiceStartStatus& _status, Configuration&& _ucfg, A&& _a)
     {
         Configuration cfg;
         SocketDevice  sd;
 
         cfg.reset(std::move(_ucfg));
         cfg.check();
-        cfg.prepare(sd);
+        cfg.prepare();
+        cfg.createListenerDevice(sd);
 
         Service::doStartWithAny(
             std::forward<A>(_a),
-            [this, &cfg, &sd]() {
-                doFinalizeStart(std::move(cfg), std::move(sd));
+            [this, &cfg, &sd, &_status](std::unique_lock<std::mutex>& _lock) {
+                doFinalizeStart(_status, std::move(cfg), std::move(sd), _lock);
             });
     }
 
@@ -353,11 +509,17 @@ private:
 private:
     friend class Listener;
     friend class Connection;
+    friend class openssl::SocketStub;
+    friend struct ConnectionContext;
 
-    // void doStop();
+    Configuration const& configuration() const;
+    ServiceStatistic&    wstatistic();
 
-    void doFinalizeStart(Configuration&& _ucfg, SocketDevice&& _usd);
-    void doFinalizeStart();
+    std::shared_ptr<Data> acquire(std::unique_lock<std::mutex>& _lock);
+    std::shared_ptr<Data> acquire();
+
+    void doFinalizeStart(ServiceStartStatus& _status, Configuration&& _ucfg, SocketDevice&& _usd, std::unique_lock<std::mutex>& _lock);
+    void doFinalizeStart(ServiceStartStatus& _status, std::unique_lock<std::mutex>& _lock);
 
     void acceptIncomingConnection(SocketDevice& _rsd);
 
@@ -374,69 +536,13 @@ private:
         Event&             _revent_context,
         ErrorConditionT&   _rerror);
 
-    bool doNonMainConnectionStopping(
-        Connection& _rcon, ActorIdT const& _ractuid,
-        ulong&           _rseconds_to_wait,
-        MessageId&       _rmsg_id,
-        MessageBundle*   _pmsg_bundle,
-        Event&           _revent_context,
-        ErrorConditionT& _rerror);
-
-    bool doMainConnectionStoppingNotLast(
-        Connection& _rcon, ActorIdT const& /*_ractuid*/,
-        ulong&      _rseconds_to_wait,
-        MessageId& /*_rmsg_id*/,
-        MessageBundle* /*_pmsg_bundle*/,
-        Event&           _revent_context,
-        ErrorConditionT& _rerror);
-
-    bool doMainConnectionStoppingCleanOneShot(
-        Connection& _rcon, ActorIdT const& _ractuid,
-        ulong&           _rseconds_to_wait,
-        MessageId&       _rmsg_id,
-        MessageBundle*   _rmsg_bundle,
-        Event&           _revent_context,
-        ErrorConditionT& _rerror);
-
-    bool doMainConnectionStoppingCleanAll(
-        Connection& _rcon, ActorIdT const& _ractuid,
-        ulong&           _rseconds_to_wait,
-        MessageId&       _rmsg_id,
-        MessageBundle*   _rmsg_bundle,
-        Event&           _revent_context,
-        ErrorConditionT& _rerror);
-
-    bool doMainConnectionStoppingPrepareCleanOneShot(
-        Connection& _rcon, ActorIdT const& /*_ractuid*/,
-        ulong& /*_rseconds_to_wait*/,
-        MessageId& /*_rmsg_id*/,
-        MessageBundle* /*_rmsg_bundle*/,
-        Event& _revent_context,
-        ErrorConditionT& /*_rerror*/);
-
-    bool doMainConnectionStoppingPrepareCleanAll(
-        Connection& _rcon, ActorIdT const& /*_ractuid*/,
-        ulong& /*_rseconds_to_wait*/,
-        MessageId& /*_rmsg_id*/,
-        MessageBundle* /*_rmsg_bundle*/,
-        Event&           _revent_context,
-        ErrorConditionT& _rerror);
-
-    bool doMainConnectionRestarting(
-        Connection& _rcon, ActorIdT const& /*_ractuid*/,
-        ulong& /*_rseconds_to_wait*/,
-        MessageId& /*_rmsg_id*/,
-        MessageBundle* /*_rmsg_bundle*/,
-        Event&           _revent_context,
-        ErrorConditionT& _rerror);
-
     void onIncomingConnectionStart(ConnectionContext& _rconctx);
     void onOutgoingConnectionStart(ConnectionContext& _rconctx);
 
     ErrorConditionT pollPoolForUpdates(
         Connection&      _rcon,
         ActorIdT const&  _ractuid,
-        MessageId const& _rmsgid);
+        MessageId const& _rmsgid, bool& _rmore);
 
     void rejectNewPoolMessage(Connection const& _rcon);
 
@@ -458,11 +564,6 @@ private:
 
     void forwardResolveMessage(ConnectionPoolId const& _rconpoolid, Event& _revent);
 
-    void doPushFrontMessageToPool(
-        const ConnectionPoolId& _rpool_id,
-        MessageBundle&          _rmsgbundle,
-        MessageId const&        _rmsgid);
-
     ErrorConditionT doSendMessage(
         const char*               _recipient_url,
         const RecipientId&        _rrecipient_id_in,
@@ -472,38 +573,13 @@ private:
         MessageId*                _pmsg_id_out,
         const MessageFlagsT&      _flags);
 
-    ErrorConditionT doSendMessageToNewPool(
-        const std::string_view&   _recipient_url,
+    ErrorConditionT doSendMessage(
+        ConnectionContext&        _rctx,
         MessagePointerT&          _rmsgptr,
-        const size_t              _msg_type_idx,
         MessageCompleteFunctionT& _rcomplete_fnc,
         RecipientId*              _precipient_id_out,
-        MessageId*                _pmsguid_out,
-        const MessageFlagsT&      _flags,
-        std::string&              _msg_url);
-
-    ErrorConditionT doSendMessageToConnection(
-        const RecipientId&        _rrecipient_id_in,
-        MessagePointerT&          _rmsgptr,
-        const size_t              _msg_type_idx,
-        MessageCompleteFunctionT& _rcomplete_fnc,
         MessageId*                _pmsg_id_out,
-        MessageFlagsT             _flags,
-        std::string&              _msg_url);
-
-    bool doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorConditionT& _rerror);
-
-    void doFetchResendableMessagesFromConnection(
-        Connection& _rcon);
-
-    size_t doPushNewConnectionPool();
-
-    void pushFrontMessageToConnectionPool(
-        ConnectionPoolId& _rconpoolid,
-        MessageBundle&    _rmsgbundle,
-        MessageId const&  _rmsgid);
-
-    bool doTryNotifyPoolWaitingConnection(const size_t _conpoolindex);
+        MessageFlagsT             _flags);
 
     ErrorConditionT doCreateConnectionPool(
         const std::string_view& _recipient_url,
@@ -518,10 +594,7 @@ private:
     ErrorConditionT doDelayCloseConnectionPool(
         RecipientId const&        _rrecipient_id,
         MessageCompleteFunctionT& _rcomplete_fnc);
-
-private:
-    struct Data;
-    PimplT<Data> impl_;
+    void onLockedStoppingBeforeActors() override;
 };
 
 //-------------------------------------------------------------------------
@@ -816,6 +889,48 @@ ErrorConditionT Service::sendMessage(
     MessageCompleteFunctionT complete_handler(std::move(fnc));
 
     return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsguid, _flags);
+}
+//-------------------------------------------------------------------------
+// send message using ConnectionContext  ----------------------------------
+
+template <class T>
+ErrorConditionT Service::sendResponse(
+    ConnectionContext&        _rctx,
+    std::shared_ptr<T> const& _rmsgptr,
+    const MessageFlagsT&      _flags)
+{
+    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    MessageCompleteFunctionT complete_handler;
+    return doSendMessage(_rctx, msgptr, complete_handler, nullptr, nullptr, _flags | MessageFlagsE::Response);
+}
+
+template <class T>
+ErrorConditionT Service::sendMessage(
+    ConnectionContext&        _rctx,
+    std::shared_ptr<T> const& _rmsgptr,
+    const MessageFlagsT&      _flags)
+{
+    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    MessageCompleteFunctionT complete_handler;
+    return doSendMessage(_rctx, msgptr, complete_handler, nullptr, nullptr, _flags);
+}
+
+template <class T, class Fnc>
+ErrorConditionT Service::sendMessage(
+    ConnectionContext&        _rctx,
+    std::shared_ptr<T> const& _rmsgptr,
+    Fnc                       _complete_fnc,
+    const MessageFlagsT&      _flags)
+{
+    using CompleteHandlerT = CompleteHandler<Fnc,
+        typename message_complete_traits<decltype(_complete_fnc)>::send_type,
+        typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
+
+    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
+    MessageCompleteFunctionT complete_handler(std::move(fnc));
+
+    return doSendMessage(_rctx, msgptr, complete_handler, nullptr, nullptr, _flags);
 }
 //-------------------------------------------------------------------------
 template <typename F>

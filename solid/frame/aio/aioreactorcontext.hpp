@@ -30,7 +30,7 @@ class Actor;
 class Reactor;
 class CompletionHandler;
 
-struct ReactorContext {
+struct ReactorContext : NonCopyable {
     ~ReactorContext()
     {
     }
@@ -100,6 +100,15 @@ private:
     }
 
     UniqueId actorUid() const;
+
+    ReactorContext(const ReactorContext& _rother)
+        : rreactor_(_rother.rreactor_)
+        , rcurrent_time_(_rother.rcurrent_time_)
+        , channel_index_(_rother.channel_index_)
+        , actor_index_(_rother.actor_index_)
+        , reactor_event_(_rother.reactor_event_)
+    {
+    }
 
     ReactorContext(
         Reactor&        _rreactor,

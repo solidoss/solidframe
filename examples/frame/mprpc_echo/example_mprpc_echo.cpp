@@ -281,12 +281,11 @@ bool restart(
     }
 #endif
 
-    _ipcsvc.start(std::move(cfg));
-
     {
-        std::ostringstream oss;
-        oss << _ipcsvc.configuration().server.listenerPort();
-        solid_log(generic_logger, Info, "server listens on port: " << oss.str());
+        frame::mprpc::ServiceStartStatus start_status;
+        _ipcsvc.start(start_status, std::move(cfg));
+
+        solid_dbg(generic_logger, Info, "server listens on: " << start_status.listen_addr_vec_.back());
     }
     return true;
 }

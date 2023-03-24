@@ -172,12 +172,11 @@ int main(int argc, char* argv[])
 
             cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 
-            rpcservice.start(std::move(cfg));
-
             {
-                std::ostringstream oss;
-                oss << rpcservice.configuration().server.listenerPort();
-                cout << "server listens on port: " << oss.str() << endl;
+                frame::mprpc::ServiceStartStatus start_status;
+                rpcservice.start(start_status, std::move(cfg));
+
+                cout << "server listens on: " << start_status.listen_addr_vec_.back() << endl;
             }
         }
 

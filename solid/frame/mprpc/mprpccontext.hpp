@@ -266,7 +266,7 @@ std::ostream& operator<<(std::ostream& _ros, MessageId const& _msguid);
 
 class Service;
 class Connection;
-struct Configuration;
+class Configuration;
 
 struct ConnectionProxy {
     ConnectionProxy& operator=(const ConnectionProxy&) = delete;
@@ -281,7 +281,7 @@ private:
     Connection& connection(frame::aio::ReactorContext& _rctx) const;
 };
 
-struct ConnectionContext {
+struct ConnectionContext : NonCopyable {
     ConnectionContext(
         frame::aio::ReactorContext& _rctx,
         const ConnectionProxy&      _rccs)

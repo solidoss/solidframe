@@ -135,9 +135,11 @@ public:
         uint8_t&           _rrelay_free_count,
         Sender&            _rsender);
 
-    bool empty() const;
+    bool isEmpty() const;
 
-    bool full(WriterConfiguration const& _rconfig) const;
+    bool isFull(WriterConfiguration const& _rconfig) const;
+
+    bool canHandleMore(WriterConfiguration const& _rconfig) const;
 
     void prepare(WriterConfiguration const& _rconfig);
     void unprepare();
@@ -388,6 +390,23 @@ private:
 typedef std::pair<MessageWriter const&, MessageWriter::PrintWhat> MessageWriterPrintPairT;
 
 std::ostream& operator<<(std::ostream& _ros, MessageWriterPrintPairT const& _msgwriter);
+
+//-----------------------------------------------------------------------------
+inline bool MessageWriter::isFull(WriterConfiguration const& _rconfig) const
+{
+    return write_inner_list_.size() >= _rconfig.max_message_count_multiplex;
+}
+//-----------------------------------------------------------------------------
+inline bool MessageWriter::isEmpty() const
+{
+    return order_inner_list_.empty();
+}
+//-----------------------------------------------------------------------------
+inline bool MessageWriter::canHandleMore(WriterConfiguration const& _rconfig) const
+{
+    return write_inner_list_.size() < _rconfig.max_message_count_multiplex;
+}
+//-----------------------------------------------------------------------------
 
 } // namespace mprpc
 } // namespace frame

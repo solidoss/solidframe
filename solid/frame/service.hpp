@@ -57,6 +57,9 @@ class Service : NonCopyable {
         Running,
         Stopping,
     };
+    Manager&            rm_;
+    std::atomic<size_t> idx_;
+    Any<>               any_;
 
 protected:
     explicit Service(
@@ -84,12 +87,6 @@ public:
 
     ActorIdT id(const ActorBase& _ract) const;
 
-    bool running() const;
-
-    bool stopping() const;
-
-    bool stopped() const;
-
     auto& any()
     {
         return any_;
@@ -99,8 +96,12 @@ public:
         return any_;
     }
 
+    ServiceStatusE status() const;
+
 protected:
     std::mutex& mutex() const;
+
+    ServiceStatusE status(std::unique_lock<std::mutex>& _rlock) const;
 
     void doStart();
 
@@ -118,20 +119,10 @@ private:
     friend class SchedulerBase;
 
     ActorIdT registerActor(ActorBase& _ract, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
-    // called by manager to set status
 
-    bool statusSetStopping();
-    void statusSetStopped();
-    void statusSetRunning();
-
-    size_t index() const;
-    void   index(const size_t _idx);
-
-private:
-    Manager&             rm_;
-    std::atomic<size_t>  idx_;
-    std::atomic<StatusE> status_;
-    Any<>                any_;
+    size_t       index() const;
+    void         index(const size_t _idx);
+    virtual void onLockedStoppingBeforeActors();
 };
 
 inline Service::Service(
@@ -174,21 +165,6 @@ inline bool Service::registered() const
     return idx_.load(/*std::memory_order_seq_cst*/) != InvalidIndex();
 }
 
-inline bool Service::running() const
-{
-    return status_.load(std::memory_order_relaxed) == StatusE::Running;
-}
-
-inline bool Service::stopping() const
-{
-    return status_.load(std::memory_order_relaxed) == StatusE::Stopping;
-}
-
-inline bool Service::stopped() const
-{
-    return status_.load(std::memory_order_relaxed) == StatusE::Stopped;
-}
-
 inline size_t Service::index() const
 {
     return idx_.load();
@@ -199,22 +175,6 @@ inline void Service::index(const size_t _idx)
     idx_.store(_idx);
 }
 
-inline bool Service::statusSetStopping()
-{
-    StatusE expect{StatusE::Running};
-    return status_.compare_exchange_strong(expect, StatusE::Stopping);
-}
-
-inline void Service::statusSetStopped()
-{
-    status_.store(StatusE::Stopped);
-}
-
-inline void Service::statusSetRunning()
-{
-    status_.store(StatusE::Running);
-}
-
 inline void Service::notifyAll(Event const& _revt)
 {
     rm_.notifyAll(*this, _revt);
@@ -223,7 +183,7 @@ inline void Service::notifyAll(Event const& _revt)
 inline void Service::doStart()
 {
     rm_.startService(
-        *this, []() {}, []() {});
+        *this, [](std::unique_lock<std::mutex>&) {});
 }
 
 template <typename AnyType>
@@ -231,22 +191,22 @@ inline void Service::doStart(AnyType&& _any)
 {
     Any<> any{std::forward<AnyType>(_any)};
     rm_.startService(
-        *this, [this, &any]() { any_ = std::move(any); }, []() {});
+        *this, [this, &any](std::unique_lock<std::mutex>&) { any_ = std::move(any); });
 }
 
 template <typename AnyType, typename F>
-inline void Service::doStartWithAny(AnyType&& _any, F&& _f)
+inline void Service::doStartWithAny(AnyType&& _any, F&& _on_locked_start)
 {
     Any<> any{std::forward<AnyType>(_any)};
     rm_.startService(
-        *this, [this, &any]() { any_ = std::move(any); }, std::forward<F>(_f));
+        *this, [this, &any, &_on_locked_start](std::unique_lock<std::mutex>& _lock) { any_ = std::move(any); _on_locked_start(_lock); });
 }
 
 template <typename F>
-inline void Service::doStartWithoutAny(F&& _f)
+inline void Service::doStartWithoutAny(F&& _on_locked_start)
 {
     rm_.startService(
-        *this, []() {}, std::forward<F>(_f));
+        *this, [&_on_locked_start](std::unique_lock<std::mutex>& _lock) { _on_locked_start(_lock); });
 }
 
 inline void Service::stop(const bool _wait)
@@ -267,6 +227,16 @@ inline ActorIdT Service::id(const ActorBase& _ract) const
 inline std::mutex& Service::mutex() const
 {
     return rm_.mutex(*this);
+}
+
+inline ServiceStatusE Service::status(std::unique_lock<std::mutex>& _rlock) const
+{
+    return rm_.status(*this, _rlock);
+}
+
+inline ServiceStatusE Service::status() const
+{
+    return rm_.status(*this);
 }
 
 inline ActorIdT Service::registerActor(ActorBase& _ract, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr)

@@ -27,19 +27,57 @@ using namespace solid;
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
 
+#define USE_SYNC_CONTEXT
+
 namespace {
+
 LoggerT logger("test");
 
-using CallPoolT = locking::CallPoolT<void(), void(), 80>;
-// using CallPoolT     = lockfree::CallPoolT<void(), void, 80>;
+#ifdef SOLID_ON_LINUX
+vector<int> isolcpus = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 15, 17, 18, 19};
+void        set_current_thread_affinity()
+{
+    static std::atomic<int> crtCore(0);
+
+    const int isolCore = isolcpus[crtCore.fetch_add(1)];
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(isolCore, &cpuset);
+    int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+    solid_check(rc == 0);
+}
+#else
+void set_current_thread_affinity()
+{
+}
+#endif
+
+#ifdef USE_SYNC_CONTEXT
+
+using CallPoolT     = locking::CallPoolT<void(), void(), 80>;
 using SynchContextT = decltype(declval<CallPoolT>().createSynchronizationContext());
-// using SynchContextT = int32_t;
+
+#else
+
+using CallPoolT     = lockfree::CallPoolT<void(), void, 80>;
+using SynchContextT = int32_t;
+
+#endif
 
 inline auto milliseconds_since_epoch(const std::chrono::system_clock::time_point& _time = std::chrono::system_clock::now())
 {
     using namespace std::chrono;
     const uint64_t ms = duration_cast<milliseconds>(_time.time_since_epoch()).count();
     return ms;
+}
+
+uint64_t microseconds_since_epoch()
+{
+    using namespace std::chrono;
+    static const auto start   = high_resolution_clock::now();
+    const auto        elapsed = std::chrono::high_resolution_clock::now() - start;
+
+    return duration_cast<microseconds>(elapsed).count();
 }
 
 struct Topic {
@@ -84,7 +122,7 @@ struct Message : frame::mprpc::Message {
         using ReflectorT = decay_t<decltype(_rr)>;
 
         if constexpr (ReflectorT::is_const_reflector) {
-            _rthis.serialization_time_point_ = milliseconds_since_epoch();
+            _rthis.serialization_time_point_ = microseconds_since_epoch();
         }
 
         _rr.add(_rthis.topic_id_, _rctx, 1, "topic_id");
@@ -154,12 +192,14 @@ void wait();
 // - response serialization time -> Message::serialization_time_point_ (rcv)
 // - response receive time -> now
 
-using DurationTupleT = tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>;
+using DurationTupleT = tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>;
 using DurationDqT    = std::deque<DurationTupleT>;
+using TraceRecordT   = tuple<uint64_t, uint64_t>;
+using TraceDqT       = std::deque<TraceRecordT>;
 
 vector<frame::ActorIdT>   worker_actor_id_vec;
 CallPoolT                 worker_pool;
-size_t                    per_message_loop_count = 10;
+size_t                    per_message_loop_count = 100;
 std::atomic<size_t>       active_message_count;
 std::atomic<uint64_t>     max_time_delta{0};
 std::atomic<uint64_t>     min_time_delta{std::numeric_limits<uint64_t>::max()};
@@ -168,6 +208,8 @@ std::atomic<uint64_t>     min_time_server_trip_delta{std::numeric_limits<uint64_
 std::atomic<uint64_t>     request_count{0};
 frame::mprpc::RecipientId client_id;
 DurationDqT               duration_dq;
+TraceDqT                  trace_dq;
+std::mutex                trace_mtx;
 size_t                    max_per_pool_connection_count = 100;
 std::atomic<size_t>       client_connection_count{0};
 promise<void>             client_connection_promise;
@@ -197,16 +239,20 @@ int test_clientserver_topic(int argc, char* argv[])
         ErrorConditionT        err;
         frame::aio::Resolver   resolver([&resolve_pool](std::function<void()>&& _fnc) { resolve_pool.push(std::move(_fnc)); });
 
-        worker_pool.start(WorkPoolConfiguration(4));
+        worker_pool.start(WorkPoolConfiguration(1, -1, -1, []() { set_current_thread_affinity(); }));
         resolve_pool.start(1);
-        sch_client.start(1);
-        sch_server.start(2);
+        sch_client.start([]() {set_current_thread_affinity();return true; }, []() {}, 1);
+        sch_server.start([]() {set_current_thread_affinity();return true; }, []() {}, 2);
 
         {
             // create the topics
             vector<shared_ptr<Topic>> topic_vec;
             for (size_t i = 0; i < topic_count; ++i) {
+#ifdef USE_SYNC_CONTEXT
                 topic_vec.emplace_back(make_shared<Topic>(i, worker_pool.createSynchronizationContext()));
+#else
+                topic_vec.emplace_back(make_shared<Topic>(i, i));
+#endif
             }
             ErrorConditionT err;
             const auto      worker_count = sch_server.workerCount();
@@ -231,8 +277,10 @@ int test_clientserver_topic(int argc, char* argv[])
                 });
             frame::mprpc::Configuration cfg(sch_server, proto);
 
-            cfg.connection_stop_fnc         = &server_connection_stop;
-            cfg.server.connection_start_fnc = &server_connection_start;
+            cfg.connection_stop_fnc                      = &server_connection_stop;
+            cfg.server.connection_start_fnc              = &server_connection_start;
+            cfg.connection_send_buffer_start_capacity_kb = 8;
+            cfg.connection_recv_buffer_start_capacity_kb = 8;
 
             cfg.server.listener_address_str = "0.0.0.0:0";
 
@@ -253,13 +301,14 @@ int test_clientserver_topic(int argc, char* argv[])
                 frame::mprpc::snappy::setup(cfg);
             }
 
-            mprpcserver.start(std::move(cfg));
-
             {
+                frame::mprpc::ServiceStartStatus start_status;
+                mprpcserver.start(start_status, std::move(cfg));
+                solid_check(!start_status.listen_addr_vec_.empty());
                 std::ostringstream oss;
-                oss << mprpcserver.configuration().server.listenerPort();
+                oss << start_status.listen_addr_vec_.back().port();
                 server_port = oss.str();
-                solid_dbg(logger, Info, "server listens on port: " << server_port);
+                solid_dbg(logger, Info, "server listens on: " << start_status.listen_addr_vec_.back() << " port: " << server_port);
             }
         }
 
@@ -271,11 +320,12 @@ int test_clientserver_topic(int argc, char* argv[])
                 });
             frame::mprpc::Configuration cfg(sch_client, proto);
 
-            cfg.connection_stop_fnc         = &client_connection_stop;
-            cfg.client.connection_start_fnc = &client_connection_start;
-
-            cfg.pool_max_active_connection_count = max_per_pool_connection_count;
-            cfg.pool_max_message_queue_size      = message_count;
+            cfg.connection_stop_fnc                      = &client_connection_stop;
+            cfg.client.connection_start_fnc              = &client_connection_start;
+            cfg.connection_send_buffer_start_capacity_kb = 8;
+            cfg.connection_recv_buffer_start_capacity_kb = 8;
+            cfg.pool_max_active_connection_count         = max_per_pool_connection_count;
+            cfg.pool_max_message_queue_size              = message_count;
 
             cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF{resolver, server_port};
 
@@ -300,7 +350,7 @@ int test_clientserver_topic(int argc, char* argv[])
         }
 
         err = mprpcclient.createConnectionPool(
-            "", client_id,
+            "127.0.0.1", client_id,
             [](frame::mprpc::ConnectionContext& _rctx, Event&& _revent, const ErrorConditionT& _rerr) {
                 solid_dbg(logger, Info, "client pool event: " << _revent << " error: " << _rerr.message());
                 if (_revent == frame::mprpc::pool_event_connection_activate) {
@@ -318,12 +368,16 @@ int test_clientserver_topic(int argc, char* argv[])
             fut.get();
         }
 
-        active_message_count = message_count;
-
+        active_message_count      = message_count;
+        const uint64_t start_msec = milliseconds_since_epoch();
         solid_dbg(logger, Warning, "========== START sending messages ==========");
 
-        for (size_t i = 0; i < message_count; ++i) {
-            mprpcclient.sendMessage(client_id, std::make_shared<Message>(i, milliseconds_since_epoch()), {frame::mprpc::MessageFlagsE::AwaitResponse});
+        {
+            const uint64_t startms = microseconds_since_epoch();
+            for (size_t i = 0; i < message_count; ++i) {
+                mprpcclient.sendMessage(client_id, std::make_shared<Message>(i, microseconds_since_epoch()), {frame::mprpc::MessageFlagsE::AwaitResponse});
+            }
+            solid_dbg(logger, Warning, "========== DONE sending messages ========== " << (microseconds_since_epoch() - startms) << "us");
         }
 
         solid_statistic_add(request_count, message_count);
@@ -340,13 +394,25 @@ int test_clientserver_topic(int argc, char* argv[])
         generic_service.stop();
         worker_pool.stop();
 
+        solid_log(logger, Statistic, "Test duration: " << (milliseconds_since_epoch() - start_msec) << "msecs");
         solid_log(logger, Statistic, "Workpool statistic: " << worker_pool.statistic());
+        solid_log(logger, Statistic, "mprpcserver statistic: " << mprpcserver.statistic());
+        solid_log(logger, Statistic, "mprpcclient statistic: " << mprpcclient.statistic());
 
         if (0) {
             ofstream ofs("duration.csv");
             if (ofs) {
                 for (const auto& t : duration_dq) {
-                    ofs << get<0>(t) << ", " << get<1>(t) << ", " << get<2>(t) << ", " << get<3>(t) << ", " << get<4>(t) << "," << endl;
+                    ofs << get<0>(t) << ", " << get<1>(t) << ", " << get<2>(t) << ", " << get<3>(t) << ", " << get<4>(t) << ", " << get<5>(t) << ", " << get<6>(t) << "," << endl;
+                }
+                ofs.close();
+            }
+        }
+        if (0) {
+            ofstream ofs("trace.csv");
+            if (ofs) {
+                for (const auto& t : trace_dq) {
+                    ofs << get<0>(t) << ", " << get<1>(t) << "," << endl;
                 }
                 ofs.close();
             }
@@ -377,6 +443,8 @@ void WorkerActor::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
     }
 }
 
+thread_local uint64_t local_send_duration = 0;
+
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
@@ -389,7 +457,7 @@ void client_complete_message(
         solid_check(_rrecv_msg_ptr->time_point_ >= _rsent_msg_ptr->time_point_);
         solid_check(_rrecv_msg_ptr->topic_value_ > _rsent_msg_ptr->topic_value_);
 
-        const auto now = milliseconds_since_epoch();
+        const auto now = microseconds_since_epoch();
 
         solid_statistic_max(max_time_delta, now - _rsent_msg_ptr->time_point_);
         solid_statistic_min(min_time_delta, now - _rsent_msg_ptr->time_point_);
@@ -397,11 +465,13 @@ void client_complete_message(
         solid_statistic_min(min_time_server_trip_delta, _rrecv_msg_ptr->time_point_ - _rsent_msg_ptr->time_point_);
 
         duration_dq.emplace_back(
-            _rsent_msg_ptr->serialization_time_point_ - _rsent_msg_ptr->time_point_, // client serialization offset
-            _rrecv_msg_ptr->receive_time_point_ - _rsent_msg_ptr->time_point_, // receive offset
-            _rrecv_msg_ptr->time_point_ - _rsent_msg_ptr->time_point_, // process offset
-            _rrecv_msg_ptr->serialization_time_point_ - _rsent_msg_ptr->time_point_, // server serialization offset
-            now - _rsent_msg_ptr->time_point_ // roundtrip offset
+            _rctx.recipientId().connectionId().index,
+            _rsent_msg_ptr->time_point_,
+            _rsent_msg_ptr->serialization_time_point_ /*  - _rsent_msg_ptr->time_point_ */, // client serialization offset
+            _rrecv_msg_ptr->receive_time_point_ /*  - _rsent_msg_ptr->time_point_ */, // receive offset
+            _rrecv_msg_ptr->time_point_ /*  - _rsent_msg_ptr->time_point_ */, // process offset
+            _rrecv_msg_ptr->serialization_time_point_ /*  - _rsent_msg_ptr->time_point_ */, // server serialization offset
+            now /* - _rsent_msg_ptr->time_point_ */ // roundtrip offset
         );
 
         _rrecv_msg_ptr->time_point_ = now;
@@ -410,9 +480,11 @@ void client_complete_message(
         if (_rrecv_msg_ptr->iteration_ < per_message_loop_count) {
             _rrecv_msg_ptr->clearHeader();
             _rctx.service().sendMessage(client_id, std::move(_rrecv_msg_ptr), {frame::mprpc::MessageFlagsE::AwaitResponse});
+            local_send_duration += (microseconds_since_epoch() - now);
             solid_statistic_inc(request_count);
         } else {
             if (active_message_count.fetch_sub(1) == 1) {
+                solid_dbg(logger, Warning, "Local client send duration: " << local_send_duration);
                 _rctx.service().forceCloseConnectionPool(
                     client_id,
                     [](frame::mprpc::ConnectionContext& _rctx) {});
@@ -434,19 +506,38 @@ void server_complete_message(
         if (!_rrecv_msg_ptr->isOnPeer()) {
             solid_throw("Message not on peer!.");
         }
-        _rrecv_msg_ptr->receive_time_point_ = milliseconds_since_epoch();
+        _rrecv_msg_ptr->receive_time_point_ = microseconds_since_epoch();
         auto& topic_ptr                     = local_worker_context_ptr->topic_vec_[_rrecv_msg_ptr->topic_id_ % local_worker_context_ptr->topic_vec_.size()];
 
         auto lambda = [topic_ptr, _rrecv_msg_ptr = std::move(_rrecv_msg_ptr), &service = _rctx.service(), recipient_id = _rctx.recipientId()]() {
             ++topic_ptr->value_;
             _rrecv_msg_ptr->topic_value_ = topic_ptr->value_;
-            _rrecv_msg_ptr->time_point_  = milliseconds_since_epoch();
+            _rrecv_msg_ptr->time_point_  = microseconds_since_epoch();
             service.sendResponse(recipient_id, _rrecv_msg_ptr);
         };
 
         static_assert(CallPoolT::is_small_type<decltype(lambda)>(), "Type not small");
-
-        topic_ptr->synch_ctx_.push(std::move(lambda));
+        if (false) {
+            std::lock_guard<mutex> lock(trace_mtx);
+            if (!trace_dq.empty()) {
+                if (get<0>(trace_dq.back()) == _rctx.recipientId().connectionId().index) {
+                    ++get<1>(trace_dq.back());
+                } else {
+                    trace_dq.emplace_back(_rctx.recipientId().connectionId().index, 1);
+                }
+            } else {
+                trace_dq.emplace_back(_rctx.recipientId().connectionId().index, 1);
+            }
+            // topic_ptr->synch_ctx_.push(std::move(lambda));
+        } else {
+#ifdef USE_SYNC_CONTEXT
+            topic_ptr->synch_ctx_.push(std::move(lambda));
+#else
+            worker_pool.push(std::move(lambda));
+#endif
+            //
+            // lambda();
+        }
         // worker_pool.push(std::move(lambda));
         //  lambda();
     }
