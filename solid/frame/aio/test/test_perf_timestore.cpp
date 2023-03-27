@@ -24,7 +24,7 @@ int test_perf_timestore(int argc, char* argv[])
         size_t first_call_count  = 0;
         size_t second_call_count = 0;
         max_duration             = chrono::nanoseconds(0);
-        while (time_store.next() != NanoTime::maximum) {
+        while (time_store.next() != NanoTime::max()) {
             const auto start = chrono::steady_clock::now();
             time_store.pop(
                 time_store.next(),

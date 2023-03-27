@@ -773,7 +773,7 @@ void Reactor::run()
 
         solid_log(logger, Verbose, "kqueue wait = " << waittime);
 
-        selcnt = kevent(impl_->reactor_fd, nullptr, 0, impl_->eventvec.data(), static_cast<int>(impl_->eventvec.size()), waittime != NanoTime::maximum ? &waittime : nullptr);
+        selcnt = kevent(impl_->reactor_fd, nullptr, 0, impl_->eventvec.data(), static_cast<int>(impl_->eventvec.size()), waittime != NanoTime::max() ? &waittime : nullptr);
 #elif defined(SOLID_USE_WSAPOLL)
         waitmsec = impl_->computeWaitDuration(crttime);
         solid_log(logger, Verbose, "wsapoll wait msec = " << waitmsec);

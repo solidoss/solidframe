@@ -57,6 +57,7 @@ class SteadyTimer : public CompletionHandler {
 
     FunctionT function_;
     size_t    storeidx_;
+    NanoTime  expiry_;
 
 public:
     SteadyTimer(
@@ -72,6 +73,11 @@ public:
         this->deactivate();
     }
 
+    const NanoTime& expiry() const
+    {
+        return expiry_;
+    }
+
     bool hasPending() const
     {
         return !solid_function_empty(function_);
@@ -82,7 +88,7 @@ public:
     template <class Rep, class Period, typename F>
     bool waitFor(ReactorContext& _rctx, std::chrono::duration<Rep, Period> const& _rd, F&& _function)
     {
-        return waitUntil(_rctx, _rctx.steadyTime() + _rd, std::forward<F>(_function));
+        return waitUntil(_rctx, _rctx.nanoTime() + _rd, std::forward<F>(_function));
     }
 
     // Returns true when the operation completed. Check _rctx.error() for success or fail
@@ -91,8 +97,17 @@ public:
     bool waitUntil(ReactorContext& _rctx, std::chrono::time_point<Clock, Duration> const& _rtp, F&& _function)
     {
         function_ = std::forward<F>(_function);
-        NanoTime steady_nt{time_point_clock_cast<std::chrono::steady_clock>(_rtp)};
-        this->addTimer(_rctx, steady_nt, storeidx_);
+        expiry_   = NanoTime{time_point_clock_cast<std::chrono::steady_clock>(_rtp)};
+        this->addTimer(_rctx, expiry_, storeidx_);
+        return false;
+    }
+
+    template <typename F>
+    bool waitUntil(ReactorContext& _rctx, const NanoTime& _expiry, F&& _function)
+    {
+        function_ = std::forward<F>(_function);
+        expiry_   = _expiry;
+        this->addTimer(_rctx, expiry_, storeidx_);
         return false;
     }
 

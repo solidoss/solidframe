@@ -376,7 +376,7 @@ bool Connection::isSecured() const
     ;
 }
 //-----------------------------------------------------------------------------
-bool Connection::shouldSendKeepalive() const
+bool Connection::shouldSendKeepAlive() const
 {
     return flags_.has(FlagsE::Keepalive);
 }
@@ -389,11 +389,6 @@ inline bool Connection::shouldPollPool() const
 inline bool Connection::shouldPollRelayEngine() const
 {
     return flags_.has(FlagsE::PollRelayEngine);
-}
-//-----------------------------------------------------------------------------
-bool Connection::isWaitingKeepAliveTimer() const
-{
-    return flags_.has(FlagsE::WaitKeepAliveTimer);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isStopPeer() const
@@ -433,8 +428,22 @@ void Connection::doStart(frame::aio::ReactorContext& _rctx, const bool _is_incom
         flags_.set(FlagsE::Server);
         if (!start_secure) {
             service(_rctx).onIncomingConnectionStart(conctx);
+            timeout_secure_ = NanoTime::max();
+        } else {
+            if (config.server.hasConnectionTimeoutSecure()) {
+                timeout_secure_ = _rctx.nanoTime() + config.server.connection_timeout_secure;
+            } else {
+                timeout_secure_ = NanoTime::max();
+            }
         }
-        doResetTimerStart(_rctx);
+        if (start_state != ConnectionState::Active && config.server.hasConnectionTimeoutActive()) {
+            timeout_active_ = _rctx.nanoTime() + config.server.connection_timeout_active;
+        } else {
+            timeout_active_ = NanoTime::max();
+        }
+        doResetTimer(_rctx);
+        // TODO:vapa
+        // doResetTimerStart(_rctx);
     } else {
         flags_.set(FlagsE::Connected);
         config.client.socket_device_setup_fnc(sock_ptr_->device());
@@ -442,6 +451,8 @@ void Connection::doStart(frame::aio::ReactorContext& _rctx, const bool _is_incom
             service(_rctx).onOutgoingConnectionStart(conctx);
         }
     }
+
+    doResetTimer(_rctx);
 
     switch (start_state) {
     case ConnectionState::Raw:
@@ -530,6 +541,7 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
             solid_log(logger, Info, this << ' ' << this->id() << " wait " << wait_duration.count());
 
             if (wait_duration != std::chrono::milliseconds(0)) {
+                solid_log(logger, Info, this << ' ' << this->id() << " wait for " << wait_duration.count());
                 timer_.waitFor(_rctx,
                     wait_duration,
                     [event](frame::aio::ReactorContext& _rctx) {
@@ -598,7 +610,7 @@ void Connection::doContinueStopping(
         if (wait_duration != std::chrono::milliseconds(0)) {
             solid_log(logger, Info, this << ' ' << this->id() << " wait for " << wait_duration.count());
             timer_.waitFor(_rctx,
-                std::chrono::milliseconds(0),
+                wait_duration,
                 [_revent](frame::aio::ReactorContext& _rctx) {
                     Connection& rthis = static_cast<Connection&>(_rctx.actor());
                     rthis.doContinueStopping(_rctx, _revent);
@@ -982,10 +994,13 @@ void Connection::doHandleEventClosePoolMessage(frame::aio::ReactorContext& _rctx
 void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Event& _revent)
 {
 
-    // solid_log(logger, Info, this);
+    solid_log(logger, Info, this);
 
-    ConnectionContext conctx(service(_rctx), *this);
-    EnterActive*      pdata = _revent.any().cast<EnterActive>();
+    ConnectionContext    conctx(service(_rctx), *this);
+    Configuration const& rconfig = service(_rctx).configuration();
+    EnterActive*         pdata   = _revent.any().cast<EnterActive>();
+
+    timeout_active_ = NanoTime::max();
 
     if (!isStopping()) {
 
@@ -1008,7 +1023,25 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Eve
             // start receiving messages
             this->postRecvSome(_rctx, recv_buf_->data(), recvBufferCapacity());
 
-            doResetTimerStart(_rctx);
+            if (rconfig.hasConnectionTimeoutRecv()) {
+                timeout_recv_ = _rctx.nanoTime() + rconfig.connection_timeout_recv;
+                solid_log(logger, Verbose, this << " timeout_recv = " << timeout_recv_);
+            } else {
+                solid_log(logger, Verbose, this << " timeout_recv = " << timeout_recv_);
+                timeout_recv_ = NanoTime::max();
+            }
+            if (!isServer()) {
+                if (rconfig.client.hasConnectionTimeoutKeepAlive()) {
+                    timeout_keepalive_ = _rctx.nanoTime() + rconfig.client.connection_timeout_keepalive;
+                    solid_log(logger, Verbose, this << " timeout_keepalive = " << timeout_keepalive_);
+                } else {
+                    timeout_keepalive_ = NanoTime::max();
+                    solid_log(logger, Verbose, this << " timeout_keepalive = " << timeout_keepalive_);
+                }
+            }
+            doResetTimer(_rctx);
+            // TODO:vapa
+            // doResetTimerStart(_rctx);
 
         } else {
 
@@ -1025,9 +1058,9 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Eve
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventEnterPassive(frame::aio::ReactorContext& _rctx, Event& _revent)
 {
-
-    EnterPassive*     pdata = _revent.any().cast<EnterPassive>();
-    ConnectionContext conctx(service(_rctx), *this);
+    Configuration const& config = service(_rctx).configuration();
+    EnterPassive*        pdata  = _revent.any().cast<EnterPassive>();
+    ConnectionContext    conctx(service(_rctx), *this);
     if (!isStopping()) {
         if (this->isRawState()) {
             flags_.reset(FlagsE::Raw);
@@ -1053,7 +1086,14 @@ void Connection::doHandleEventEnterPassive(frame::aio::ReactorContext& _rctx, Ev
         // start receiving messages
         this->postRecvSome(_rctx, recv_buf_->data(), recvBufferCapacity());
 
-        doResetTimerStart(_rctx);
+        // TODO:vapa
+        // doResetTimerStart(_rctx);
+        if (config.server.hasConnectionTimeoutActive()) {
+            timeout_active_ = _rctx.nanoTime() + config.server.connection_timeout_active;
+        } else {
+            timeout_active_ = NanoTime::max();
+        }
+        doResetTimer(_rctx);
     }
 }
 //-----------------------------------------------------------------------------
@@ -1172,6 +1212,8 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
         }
     } else {
         rthis.flags_.set(FlagsE::Secure);
+        rthis.timeout_secure_ = NanoTime::max();
+        rthis.doResetTimer(_rctx);
         rthis.service(_rctx).onIncomingConnectionStart(conctx);
 
         solid_log(logger, Verbose, &rthis << "");
@@ -1327,6 +1369,74 @@ void Connection::doHandleEventPost(frame::aio::ReactorContext& _rctx, Event& _re
     (*pdata)(conctx);
 }
 //-----------------------------------------------------------------------------
+void Connection::doResetTimer(frame::aio::ReactorContext& _rctx)
+{
+    const auto& min_timeout = minTimeout();
+    // TODO:vapa:- what if NanoTime::max?
+    timer_.waitUntil(_rctx, min_timeout, onTimer);
+}
+//-----------------------------------------------------------------------------
+/*static*/ void Connection::onTimer(frame::aio::ReactorContext& _rctx)
+{
+    Connection&          rthis    = static_cast<Connection&>(_rctx.actor());
+    Configuration const& rconfig  = rthis.service(_rctx).configuration();
+    const auto&          crt_time = _rctx.nanoTime();
+
+    if (crt_time >= rthis.timeout_recv_) {
+        solid_log(logger, Info, &rthis << " " << rthis.flags_.toString() << " recv timeout = " << rthis.timeout_recv_ << " crt_time = " << crt_time);
+        rthis.timeout_recv_ = NanoTime::max();
+        rthis.doStop(_rctx, error_connection_inactivity_timeout);
+        return;
+    }
+
+    if (crt_time >= rthis.timeout_send_hard_) {
+        solid_log(logger, Info, &rthis << " " << rthis.flags_.toString() << " send hard timeout = " << rthis.timeout_send_hard_ << " crt_time = " << crt_time);
+        rthis.timeout_send_hard_ = NanoTime::max();
+        rthis.doStop(_rctx, error_connection_inactivity_timeout);
+        return;
+    }
+
+    if (crt_time >= rthis.timeout_secure_) {
+        solid_log(logger, Info, &rthis << " " << rthis.flags_.toString() << " secure timeout = " << rthis.timeout_secure_ << " crt_time = " << crt_time);
+        solid_assert(rthis.isServer());
+        rthis.timeout_secure_ = NanoTime::max();
+        if (!rthis.isSecured()) {
+            rthis.doStop(_rctx, error_connection_inactivity_timeout);
+            return;
+        }
+    }
+
+    if (crt_time >= rthis.timeout_active_) {
+        solid_log(logger, Info, &rthis << " " << rthis.flags_.toString() << " active timeout = " << rthis.timeout_active_ << " crt_time = " << crt_time);
+        solid_assert(rthis.isServer());
+        rthis.timeout_active_ = NanoTime::max();
+        if (!rthis.isActiveState()) {
+            rthis.doStop(_rctx, error_connection_inactivity_timeout);
+            return;
+        }
+    }
+
+    if (crt_time >= rthis.timeout_send_soft_) {
+        solid_log(logger, Info, &rthis << " " << rthis.flags_.toString() << " send soft timeout = " << rthis.timeout_send_soft_ << " crt_time = " << crt_time);
+        ConnectionContext conctx(rthis.service(_rctx), rthis);
+        rthis.timeout_send_soft_ = NanoTime::max();
+        rconfig.connection_on_send_timeout_soft_(conctx);
+    }
+
+    if (crt_time >= rthis.timeout_keepalive_) {
+        solid_log(logger, Info, &rthis << " " << rthis.flags_.toString() << " keep alive timeout = " << rthis.timeout_keepalive_ << " crt_time = " << crt_time);
+        solid_assert(!rthis.isServer());
+        rthis.flags_.set(FlagsE::Keepalive);
+        rthis.timeout_keepalive_ = NanoTime::max();
+        rthis.post(_rctx, [&rthis](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { rthis.doSend(_rctx); });
+    }
+
+    const auto& min_timeout = rthis.minTimeout();
+    // TODO:vapa:- what if NanoTime::max?
+    rthis.timer_.waitUntil(_rctx, min_timeout, onTimer);
+}
+
+#if 0 // TODO:vapa
 void Connection::doResetTimerStart(frame::aio::ReactorContext& _rctx)
 {
 
@@ -1459,6 +1569,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
     solid_log(logger, Info, &rthis << " post send");
     rthis.post(_rctx, [&rthis](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { rthis.doSend(_rctx); });
 }
+#endif
 //-----------------------------------------------------------------------------
 /*static*/ void Connection::onSendAllRaw(frame::aio::ReactorContext& _rctx, Event& _revent)
 {
@@ -1662,23 +1773,22 @@ struct Connection::Receiver : MessageReader::Receiver {
 
     Connection&          rthis = static_cast<Connection&>(_rctx.actor());
     ConnectionContext    conctx(rthis.service(_rctx), rthis);
-    const Configuration& rconfig        = rthis.service(_rctx).configuration();
-    unsigned             repeatcnt      = 4;
-    char*                pbuf           = nullptr;
-    size_t               bufsz          = 0;
-    const uint32_t       recvbufcp      = rthis.recvBufferCapacity();
-    bool                 recv_something = false;
+    const Configuration& rconfig   = rthis.service(_rctx).configuration();
+    unsigned             repeatcnt = 4;
+    char*                pbuf      = nullptr;
+    size_t               bufsz     = 0;
+    const uint32_t       recvbufcp = rthis.recvBufferCapacity();
     Receiver             rcvr(rthis, _rctx, rconfig.reader, rconfig.protocol(), conctx);
     ErrorConditionT      error;
 
-    rthis.doResetTimerRecv(_rctx);
+    // TODO:vapa
+    // rthis.doResetTimerRecv(_rctx);
 
     do {
         solid_log(logger, Verbose, &rthis << " received size " << _sz);
         rthis.service(_rctx).wstatistic().connectionRecvBufferSize(_sz, rthis.recvBufferCapacity());
 
         if (!_rctx.error()) {
-            recv_something = true;
             rthis.recv_buf_off_ += _sz;
             pbuf  = rthis.recv_buf_->data() + rthis.cons_buf_off_;
             bufsz = rthis.recv_buf_off_ - rthis.cons_buf_off_;
@@ -1694,8 +1804,7 @@ struct Connection::Receiver : MessageReader::Receiver {
             if (error) {
                 solid_log(logger, Error, &rthis << ' ' << rthis.id() << " parsing " << error.message());
                 rthis.doStop(_rctx, error);
-                recv_something = false; // prevent calling doResetTimerRecv after doStop
-                break;
+                return;
             }
 
             if (rthis.cons_buf_off_ < bufsz) {
@@ -1705,8 +1814,7 @@ struct Connection::Receiver : MessageReader::Receiver {
             solid_log(logger, Info, &rthis << ' ' << rthis.id() << " receiving " << _rctx.error().message());
             rthis.flags_.set(FlagsE::StopPeer);
             rthis.doStop(_rctx, _rctx.error(), _rctx.systemError());
-            recv_something = false; // prevent calling doResetTimerRecv after doStop
-            break;
+            return;
         }
         --repeatcnt;
         rthis.doOptimizeRecvBuffer();
@@ -1719,8 +1827,10 @@ struct Connection::Receiver : MessageReader::Receiver {
         // solid_log(logger, Info, &rthis<<" buffer size "<<bufsz);
     } while (repeatcnt != 0u && rthis.recvSome(_rctx, pbuf, bufsz, _sz));
 
-    if (recv_something) {
-        rthis.doResetTimerRecv(_rctx);
+    if (rconfig.hasConnectionTimeoutRecv()) {
+        rthis.timeout_recv_ = _rctx.nanoTime() + rconfig.connection_timeout_recv;
+        solid_log(logger, Verbose, &rthis << " timeout_recv = " << rthis.timeout_recv_);
+        rthis.doResetTimer(_rctx);
     }
 
     if (repeatcnt == 0) {
@@ -1743,7 +1853,10 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     ErrorConditionT      error;
     const Configuration& rconfig = service(_rctx).configuration();
     ConnectionContext    conctx(service(_rctx), *this);
-    auto                 relay_poll_push_lambda = [this, &rconfig](RelayData*& _rprelay_data, const MessageId& _rengine_msg_id, MessageId& _rconn_msg_id, bool& _rmore) -> bool {
+    auto                 relay_poll_push_lambda = [this, &rconfig](
+                                      RelayData*&      _rprelay_data,
+                                      const MessageId& _rengine_msg_id,
+                                      MessageId& _rconn_msg_id, bool& _rmore) -> bool {
         return msg_writer_.enqueue(rconfig.writer, _rprelay_data, _rengine_msg_id, _rconn_msg_id, _rmore);
     };
     // we do a pollPoolForUpdates here because we want to be able to
@@ -1758,6 +1871,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             return;
         }
     }
+
     if (shouldPollRelayEngine()) {
         bool more = false;
         rconfig.relayEngine().pollNew(relay_id_, relay_poll_push_lambda, more);
@@ -1769,15 +1883,17 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     }
 
     if (!this->hasPendingSend()) {
-        unsigned                   repeatcnt      = 1;
-        bool                       sent_something = false;
+        unsigned                   repeatcnt = 1;
         Sender                     sender(*this, _rctx, rconfig.writer, rconfig.protocol(), conctx);
         MessageWriter::WriteFlagsT write_flags;
+        bool                       sent_something = false;
+
+        timeout_send_soft_ = timeout_send_hard_ = NanoTime::max();
 
         while (repeatcnt != 0u) {
             write_flags.reset();
 
-            if (shouldSendKeepalive()) {
+            if (shouldSendKeepAlive()) {
                 write_flags.set(MessageWriter::WriteFlagsE::ShouldSendKeepAlive);
             }
 
@@ -1791,15 +1907,14 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             if (!error) {
                 service(_rctx).wstatistic().connectionSendBufferSize(buffer.size(), sendBufferCapacity());
                 if (!buffer.empty() && this->sendAll(_rctx, buffer.data(), buffer.size())) {
+                    sent_something = true;
                     if (_rctx.error()) {
                         solid_log(logger, Error, this << ' ' << id() << " sending " << buffer.size() << ": " << _rctx.error().message());
                         flags_.set(FlagsE::StopPeer);
                         doStop(_rctx, _rctx.error(), _rctx.systemError());
-                        sent_something = false; // prevent calling doResetTimerSend after doStop
-                        break;
+                        return;
                     }
                     solid_statistic_inc(service(_rctx).wstatistic().connection_send_done_count_);
-                    sent_something = true;
                 } else if (buffer.empty()) {
                     if (poll_pool_more_ && isServer()) {
                         solid_assert(msg_writer_.isEmpty());
@@ -1807,7 +1922,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                         solid_statistic_inc(service(_rctx).wstatistic().connection_send_wait_count_);
                         break;
                     } else {
-
+                        sent_something = true;
                         break;
                     }
                 } else {
@@ -1821,16 +1936,46 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                 }
 
                 doStop(_rctx, error);
-                sent_something = false; // prevent calling doResetTimerSend after doStop
-
-                break;
+                return;
             }
             --repeatcnt;
         } // while
-
+#if 0 // TODO:vapa
         if (sent_something) {
             solid_log(logger, Info, this << " sent_something");
-            doResetTimerSend(_rctx);
+            //TODO:vapa
+            //doResetTimerSend(_rctx);
+        }
+#endif
+
+        if (repeatcnt == 0) {
+            if (sent_something) {
+                if (!isServer()) {
+                    if (rconfig.client.hasConnectionTimeoutKeepAlive()) {
+                        timeout_keepalive_ = _rctx.nanoTime() + rconfig.client.connection_timeout_keepalive;
+                        solid_log(logger, Verbose, this << " timeout_keepalive = " << timeout_keepalive_);
+                        doResetTimer(_rctx);
+                    }
+                }
+            }
+            if (!send_posted_) {
+                solid_statistic_inc(service(_rctx).wstatistic().connection_send_posted_);
+                send_posted_ = true;
+                this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { send_posted_ = false; doSend(_rctx); });
+            }
+        } else if (this->hasPendingSend()) {
+            // blocking send
+            if (rconfig.hasConnectionTimeoutSendSoft()) {
+                timeout_send_soft_ = _rctx.nanoTime() + rconfig.connection_timeout_send_soft;
+            }
+            if (rconfig.hasConnectionTimeoutSendHard()) {
+                timeout_send_hard_ = _rctx.nanoTime() + rconfig.connection_timeout_send_hard;
+            }
+            if (!isServer()) {
+                timeout_keepalive_ = NanoTime::max();
+                solid_log(logger, Verbose, this << " timeout_keepalive = " << timeout_keepalive_);
+            }
+            doResetTimer(_rctx);
         }
 
         if (repeatcnt == 0 && !send_posted_) {
@@ -1852,13 +1997,21 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     Connection& rthis = static_cast<Connection&>(_rctx.actor());
 
     if (!_rctx.error()) {
-        if (!rthis.isStopping()) {
-            solid_log(logger, Info, &rthis);
-            rthis.doResetTimerSend(_rctx);
+        rthis.timeout_send_soft_ = rthis.timeout_send_hard_ = NanoTime::max();
+        if (!rthis.isServer()) {
+            const Configuration& rconfig = rthis.service(_rctx).configuration();
+            if (rconfig.client.hasConnectionTimeoutKeepAlive()) {
+                rthis.timeout_keepalive_ = _rctx.nanoTime() + rconfig.client.connection_timeout_keepalive;
+                solid_log(logger, Verbose, &rthis << " timeout_keepalive = " << rthis.timeout_keepalive_);
+            }
         }
+        rthis.doResetTimer(_rctx);
         rthis.doSend(_rctx);
     } else {
         solid_log(logger, Error, &rthis << ' ' << rthis.id() << " sending [" << _rctx.error().message() << "][" << _rctx.systemError().message() << ']');
+
+        rthis.timeout_send_soft_ = rthis.timeout_send_hard_ = NanoTime::max();
+        rthis.doResetTimer(_rctx);
         rthis.doStop(_rctx, _rctx.error(), _rctx.systemError());
     }
 }
@@ -2157,47 +2310,47 @@ ResponseStateE Connection::doCheckResponseState(frame::aio::ReactorContext& _rct
     return rv;
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool Connection::postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, Event& _revent)
+bool Connection::postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, Event& _revent)
 {
     return sock_ptr_->postSendAll(_rctx, Connection::onSendAllRaw, _pbuf, _bufcp, _revent);
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool Connection::postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp, Event& _revent)
+bool Connection::postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp, Event& _revent)
 {
     return sock_ptr_->postRecvSome(_rctx, Connection::onRecvSomeRaw, _pbuf, _bufcp, _revent);
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool Connection::postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp)
+bool Connection::postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp)
 {
     return sock_ptr_->postRecvSome(_rctx, Connection::onRecv, _pbuf, _bufcp);
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool Connection::hasValidSocket() const
+bool Connection::hasValidSocket() const
 {
     return sock_ptr_->hasValidSocket();
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool Connection::connect(frame::aio::ReactorContext& _rctx, const SocketAddressInet& _raddr)
+bool Connection::connect(frame::aio::ReactorContext& _rctx, const SocketAddressInet& _raddr)
 {
     return sock_ptr_->connect(_rctx, Connection::onConnect, _raddr);
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool Connection::recvSome(frame::aio::ReactorContext& _rctx, char* _buf, size_t _bufcp, size_t& _sz)
+bool Connection::recvSome(frame::aio::ReactorContext& _rctx, char* _buf, size_t _bufcp, size_t& _sz)
 {
     return sock_ptr_->recvSome(_rctx, Connection::onRecv, _buf, _bufcp, _sz);
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool Connection::hasPendingSend() const
+bool Connection::hasPendingSend() const
 {
     return sock_ptr_->hasPendingSend();
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool Connection::sendAll(frame::aio::ReactorContext& _rctx, char* _buf, size_t _bufcp)
+bool Connection::sendAll(frame::aio::ReactorContext& _rctx, char* _buf, size_t _bufcp)
 {
     return sock_ptr_->sendAll(_rctx, Connection::onSend, _buf, _bufcp);
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ void Connection::prepareSocket(frame::aio::ReactorContext& _rctx)
+void Connection::prepareSocket(frame::aio::ReactorContext& _rctx)
 {
     sock_ptr_->prepareSocket(_rctx);
 }

@@ -342,6 +342,7 @@ using ExtractRecipientNameFunctionT             = solid_function_t(const char*(c
 using AioSchedulerT                             = frame::Scheduler<frame::aio::Reactor>;
 using ConnectionEnterActiveCompleteFunctionT    = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
 using ConnectionPostCompleteFunctionT           = solid_function_t(void(ConnectionContext&));
+using ConnectionSendTimeoutSoftFunctionT        = solid_function_t(void(ConnectionContext&));
 using ConnectionEnterPassiveCompleteFunctionT   = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
 using ConnectionSecureHandhakeCompleteFunctionT = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
 using ConnectionSendRawDataCompleteFunctionT    = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
@@ -475,8 +476,8 @@ public:
         uint32_t                           connection_inactivity_keepalive_count = 20; // server error if receives more than inactivity_keepalive_count keep alive messages during inactivity_timeout interval
         ConnectionStartFunctionT           connection_start_fnc;
         ConnectionSecureHandshakeFunctionT connection_on_secure_handshake_fnc;
-        std::chrono::milliseconds          connection_timeout_activation = std::chrono::seconds(20);
-        std::chrono::milliseconds          connection_timeout_secured    = std::chrono::seconds(10);
+        std::chrono::milliseconds          connection_timeout_active = std::chrono::seconds(20);
+        std::chrono::milliseconds          connection_timeout_secure = std::chrono::seconds(10);
         ServerSetupSocketDeviceFunctionT   socket_device_setup_fnc;
         std::string                        listener_address_str;
         std::string                        listener_service_str;
@@ -489,6 +490,16 @@ public:
         bool hasSecureConfiguration() const
         {
             return !secure_any.empty();
+        }
+
+        bool hasConnectionTimeoutSecure() const
+        {
+            return connection_timeout_secure.count() != 0;
+        }
+
+        bool hasConnectionTimeoutActive() const
+        {
+            return connection_timeout_active.count() != 0;
         }
 
     private:
@@ -517,6 +528,11 @@ public:
             return !secure_any.empty();
         }
 
+        bool hasConnectionTimeoutKeepAlive() const
+        {
+            return connection_timeout_keepalive.count() != 0;
+        }
+
         std::chrono::milliseconds connectionReconnectTimeout(
             const uint8_t _retry_count,
             const bool    _failed_create_connection_actor,
@@ -526,20 +542,21 @@ public:
 
     } client;
 
-    std::chrono::milliseconds     connection_timeout_recv                  = std::chrono::minutes(10);
-    std::chrono::milliseconds     connection_timeout_send_soft             = std::chrono::seconds(10);
-    std::chrono::milliseconds     connection_timeout_send_hard             = std::chrono::minutes(5);
-    uint8_t                       connection_recv_buffer_start_capacity_kb = 0;
-    uint8_t                       connection_recv_buffer_max_capacity_kb   = 64;
-    uint8_t                       connection_send_buffer_start_capacity_kb = 0;
-    uint8_t                       connection_send_buffer_max_capacity_kb   = 64;
-    uint16_t                      connection_relay_buffer_count            = 8;
-    ExtractRecipientNameFunctionT extract_recipient_name_fnc;
-    ConnectionStopFunctionT       connection_stop_fnc;
-    ConnectionOnEventFunctionT    connection_on_event_fnc;
-    RecvAllocateBufferFunctionT   connection_recv_buffer_allocate_fnc;
-    SendAllocateBufferFunctionT   connection_send_buffer_allocate_fnc;
-    Protocol::PointerT            protocol_ptr;
+    std::chrono::milliseconds          connection_timeout_recv                  = std::chrono::minutes(10);
+    std::chrono::milliseconds          connection_timeout_send_soft             = std::chrono::seconds(10);
+    std::chrono::milliseconds          connection_timeout_send_hard             = std::chrono::minutes(5);
+    uint8_t                            connection_recv_buffer_start_capacity_kb = 0;
+    uint8_t                            connection_recv_buffer_max_capacity_kb   = 64;
+    uint8_t                            connection_send_buffer_start_capacity_kb = 0;
+    uint8_t                            connection_send_buffer_max_capacity_kb   = 64;
+    uint16_t                           connection_relay_buffer_count            = 8;
+    ExtractRecipientNameFunctionT      extract_recipient_name_fnc;
+    ConnectionStopFunctionT            connection_stop_fnc;
+    ConnectionOnEventFunctionT         connection_on_event_fnc;
+    ConnectionSendTimeoutSoftFunctionT connection_on_send_timeout_soft_ = [](ConnectionContext&) {};
+    RecvAllocateBufferFunctionT        connection_recv_buffer_allocate_fnc;
+    SendAllocateBufferFunctionT        connection_send_buffer_allocate_fnc;
+    Protocol::PointerT                 protocol_ptr;
 
     Protocol& protocol()
     {
@@ -549,6 +566,20 @@ public:
     const Protocol& protocol() const
     {
         return *protocol_ptr;
+    }
+
+    bool hasConnectionTimeoutRecv() const
+    {
+        return connection_timeout_recv.count() != 0;
+    }
+
+    bool hasConnectionTimeoutSendSoft() const
+    {
+        return connection_timeout_send_soft.count() != 0;
+    }
+    bool hasConnectionTimeoutSendHard() const
+    {
+        return connection_timeout_send_hard.count() != 0;
     }
 
 private:

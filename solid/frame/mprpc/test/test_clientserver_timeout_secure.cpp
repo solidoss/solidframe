@@ -30,6 +30,7 @@
 
 using namespace std;
 using namespace solid;
+using namespace std::chrono_literals;
 
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
@@ -235,18 +236,18 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
             // cfg.recv_buffer_capacity = 1024;
             // cfg.send_buffer_capacity = 1024;
 
-            cfg.connection_stop_fnc                   = &server_connection_stop;
-            cfg.server.connection_start_fnc           = &server_connection_start;
-            cfg.connection_timeout_inactivity_seconds = 5;
-            cfg.connection_timeout_keepalive_seconds  = 3;
-            cfg.server.connection_start_state         = frame::mprpc::ConnectionState::Passive;
+            cfg.connection_stop_fnc         = &server_connection_stop;
+            cfg.server.connection_start_fnc = &server_connection_start;
+            cfg.connection_timeout_recv = cfg.connection_timeout_send_hard = 5s;
+            cfg.client.connection_timeout_keepalive                        = 3s;
+            cfg.server.connection_start_state                              = frame::mprpc::ConnectionState::Passive;
 
             cfg.server.listener_address_str = "0.0.0.0:0";
 
             if (server_option == 's') {
 
-                cfg.server.connection_timeout_activation_seconds = 1000;
-                cfg.server.connection_timeout_secured_seconds    = 5;
+                cfg.server.connection_timeout_active = 1000s;
+                cfg.server.connection_timeout_secure = 5s;
 
                 solid_dbg(generic_logger, Info, "Configure SSL server -------------------------------------");
                 frame::mprpc::openssl::setup_server(
@@ -259,8 +260,8 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
                     },
                     frame::mprpc::openssl::NameCheckSecureStart{"echo-client"});
             } else if (server_option == 'p') {
-                cfg.server.connection_timeout_activation_seconds = 5;
-                cfg.server.connection_timeout_secured_seconds    = 1000;
+                cfg.server.connection_timeout_active = 5s;
+                cfg.server.connection_timeout_secure = 1000s;
 
             } else if (server_option == 'a') {
                 cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
