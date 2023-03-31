@@ -43,7 +43,7 @@ inline bool NanoTime::operator==(const NanoTime& _ts) const
 
 inline bool NanoTime::isMax() const
 {
-    return tv_sec == static_cast<decltype(tv_sec)>(-1);
+    return tv_sec == std::numeric_limits<SecondT>::max();
 }
 
 inline std::ostream& operator<<(std::ostream& _ros, const NanoTime& _ntime)

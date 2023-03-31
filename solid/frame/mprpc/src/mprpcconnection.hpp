@@ -192,10 +192,11 @@ protected:
     static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
     static void onSend(frame::aio::ReactorContext& _rctx);
     static void onConnect(frame::aio::ReactorContext& _rctx);
-    static void onTimerInactivity(frame::aio::ReactorContext& _rctx);
-    static void onTimerKeepalive(frame::aio::ReactorContext& _rctx);
-    static void onTimerWaitSecured(frame::aio::ReactorContext& _rctx);
-    static void onTimerWaitActivation(frame::aio::ReactorContext& _rctx);
+    // static void onTimerInactivity(frame::aio::ReactorContext& _rctx);
+    // static void onTimerKeepalive(frame::aio::ReactorContext& _rctx);
+    // static void onTimerWaitSecured(frame::aio::ReactorContext& _rctx);
+    // static void onTimerWaitActivation(frame::aio::ReactorContext& _rctx);
+    static void onTimer(frame::aio::ReactorContext& _rctx);
     static void onSecureConnect(frame::aio::ReactorContext& _rctx);
     static void onSecureAccept(frame::aio::ReactorContext& _rctx);
 
@@ -211,7 +212,7 @@ private:
 
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _uevent) override;
 
-    bool shouldSendKeepalive() const;
+    bool shouldSendKeepAlive() const;
     bool shouldPollPool() const;
     bool shouldPollRelayEngine() const;
 
@@ -251,9 +252,10 @@ private:
     void doOptimizeRecvBufferForced();
     void doPrepare(frame::aio::ReactorContext& _rctx);
     void doUnprepare(frame::aio::ReactorContext& _rctx);
-    void doResetTimerStart(frame::aio::ReactorContext& _rctx);
-    void doResetTimerSend(frame::aio::ReactorContext& _rctx);
-    void doResetTimerRecv(frame::aio::ReactorContext& _rctx);
+    void doResetTimer(frame::aio::ReactorContext& _rctx);
+    // void doResetTimerStart(frame::aio::ReactorContext& _rctx);
+    // void doResetTimerSend(frame::aio::ReactorContext& _rctx);
+    // void doResetTimerRecv(frame::aio::ReactorContext& _rctx);
 
     ResponseStateE doCheckResponseState(frame::aio::ReactorContext& _rctx, const MessageHeader& _rmsghdr, MessageId& _rrelay_id, const bool _erase_request);
 
@@ -352,15 +354,14 @@ private:
     {
         return send_buf_cp_kb_ * 1024;
     }
+    const NanoTime& minTimeout() const;
 
 private:
     enum class FlagsE : size_t {
         Active,
         Server,
         Keepalive,
-        WaitKeepAliveTimer,
         StopPeer,
-        HasActivity,
         PollPool,
         PollRelayEngine,
         Stopping,
@@ -414,6 +415,12 @@ private:
     UniqueId           relay_id_;
     uint32_t           peer_version_major_ = InvalidIndex();
     uint32_t           peer_version_minor_ = InvalidIndex();
+    NanoTime           timeout_recv_       = NanoTime::max(); // client and server
+    NanoTime           timeout_send_soft_  = NanoTime::max(); // client and server
+    NanoTime           timeout_send_hard_  = NanoTime::max(); // client and server
+    NanoTime           timeout_secure_     = NanoTime::max(); // server
+    NanoTime           timeout_active_     = NanoTime::max(); // server
+    NanoTime           timeout_keepalive_  = NanoTime::max(); // client
 };
 
 inline Any<>& Connection::any()
@@ -508,6 +515,15 @@ inline bool Connection::isFull(Configuration const& _rconfiguration) const
 inline bool Connection::canHandleMore(Configuration const& _rconfiguration) const
 {
     return msg_writer_.canHandleMore(_rconfiguration.writer);
+}
+
+inline const NanoTime& Connection::minTimeout() const
+{
+    if (isServer()) {
+        return std::min(timeout_send_soft_, std::min(timeout_send_hard_, std::min(timeout_recv_, std::min(timeout_secure_, timeout_active_))));
+    } else {
+        return std::min(timeout_send_soft_, std::min(timeout_send_hard_, std::min(timeout_recv_, timeout_keepalive_)));
+    }
 }
 
 } // namespace mprpc

@@ -21,14 +21,19 @@ namespace solid {
     Basicaly it is a pair of seconds and nanoseconds.
 */
 struct NanoTime : public timespec {
-    typedef std::make_unsigned<time_t>::type TimeT;
-    static const NanoTime                    maximum;
+    using SecondT     = decltype(timespec::tv_sec);
+    using NanoSecondT = decltype(timespec::tv_nsec);
+
+    static NanoTime max()
+    {
+        return NanoTime{std::numeric_limits<SecondT>::max(), std::numeric_limits<NanoSecondT>::max()};
+    }
 
     template <class Rep, class Period>
     NanoTime(const std::chrono::duration<Rep, Period>& _duration)
     {
         tv_sec  = std::chrono::duration_cast<std::chrono::seconds>(_duration).count();
-        tv_nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(_duration).count() % 1000000000l;
+        tv_nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(_duration).count() % 1000000000L;
     }
 
     template <class Clock, class Duration>
@@ -36,20 +41,21 @@ struct NanoTime : public timespec {
     {
         const auto duration = _time_point.time_since_epoch();
         tv_sec              = std::chrono::duration_cast<std::chrono::seconds>(duration).count();
-        tv_nsec             = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count() % 1000000000l;
+        tv_nsec             = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count() % 1000000000L;
     }
 
-    NanoTime()
+    NanoTime(const SecondT _sec = 0, const NanoSecondT _nsec = 0)
     {
-        tv_sec  = 0;
-        tv_nsec = 0;
+        tv_sec  = _sec;
+        tv_nsec = _nsec;
     }
 
-    static NanoTime createSystem()
+    static NanoTime nowSystem()
     {
         return NanoTime(std::chrono::system_clock::now());
     }
-    static NanoTime createSteady()
+
+    static NanoTime nowSteady()
     {
         return NanoTime(std::chrono::steady_clock::now());
     }
@@ -83,7 +89,7 @@ struct NanoTime : public timespec {
     NanoTime& operator=(const std::chrono::duration<Rep, Period>& _duration)
     {
         tv_sec  = std::chrono::duration_cast<std::chrono::seconds>(_duration).count();
-        tv_nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(_duration).count() % 1000000000l;
+        tv_nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(_duration).count() % 1000000000L;
         return *this;
     }
 
@@ -92,12 +98,12 @@ struct NanoTime : public timespec {
     {
         const auto duration = _time_point.time_since_epoch();
         tv_sec              = std::chrono::duration_cast<std::chrono::seconds>(duration).count();
-        tv_nsec             = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count() % 1000000000l;
+        tv_nsec             = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count() % 1000000000L;
         return *this;
     }
 
-    TimeT seconds() const { return tv_sec; }
-    long  nanoSeconds() const { return tv_nsec; }
+    auto seconds() const { return tv_sec; }
+    auto nanoSeconds() const { return tv_nsec; }
 
     bool isMax() const;
 
@@ -109,11 +115,6 @@ struct NanoTime : public timespec {
     bool operator<(const NanoTime& _ts) const;
 
 private:
-    NanoTime(bool)
-    {
-        tv_sec  = -1;
-        tv_nsec = -1;
-    }
     template <class Clock, class Duration>
     void doClockCast(std::chrono::time_point<Clock, Duration>& _rtp, const std::chrono::time_point<Clock, Duration>& /*_rmytp*/) const
     {
@@ -130,6 +131,16 @@ private:
         _rtp                                         = std::chrono::time_point_cast<Duration>(other_now + delta);
     }
 };
+template <class Rep, class Period>
+NanoTime operator+(NanoTime _first, const std::chrono::duration<Rep, Period>& _duration)
+{
+    _first.tv_sec += std::chrono::duration_cast<std::chrono::seconds>(_duration).count();
+    _first.tv_nsec += std::chrono::duration_cast<std::chrono::nanoseconds>(_duration).count() % 1000000000L;
+
+    _first.tv_sec += (_first.tv_nsec / 1000000000L);
+    _first.tv_nsec = (_first.tv_nsec % 1000000000L);
+    return _first;
+}
 
 namespace detail {
 template <class Clock, class RetDuration, class Duration>

@@ -208,7 +208,7 @@ typedef std::vector<UniqueId>             UidVectorT;
 typedef std::deque<ActorStub>             ActorDequeT;
 typedef Queue<ExecStub>                   ExecQueueT;
 typedef Stack<size_t>                     SizeStackT;
-typedef TimeStore<size_t>                 TimeStoreT;
+typedef TimeStore                         TimeStoreT;
 
 struct Reactor::Data {
     Data(
@@ -221,7 +221,7 @@ struct Reactor::Data {
         , crtpushvecsz(0)
         , crtraisevecsz(0)
         , actcnt(0)
-        , timestore(MinEventCapacity)
+        , time_store_(MinEventCapacity)
         , event_actor_ptr(make_shared<EventActor>())
     {
         pcrtpushtskvec = &pushtskvec[1];
@@ -234,8 +234,8 @@ struct Reactor::Data {
             return 0;
         }
 
-        if (timestore.size() != 0u) {
-            if (_rcrt < timestore.next()) {
+        if (!time_store_.empty()) {
+            if (_rcrt < time_store_.expiry()) {
                 const int64_t maxwait = 1000 * 60; // 1 minute
                 int64_t       diff    = 0;
                 //                 NanoTime    delta = timestore.next();
@@ -243,7 +243,7 @@ struct Reactor::Data {
                 //                 diff = (delta.seconds() * 1000);
                 //                 diff += (delta.nanoSeconds() / 1000000);
                 const auto crt_tp  = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
-                const auto next_tp = timestore.next().timePointCast<std::chrono::steady_clock::time_point>();
+                const auto next_tp = time_store_.expiry().timePointCast<std::chrono::steady_clock::time_point>();
                 diff               = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
                 if (diff > maxwait) {
                     return maxwait;
@@ -269,7 +269,8 @@ struct Reactor::Data {
     size_t                  crtpushvecsz;
     size_t                  crtraisevecsz;
     size_t                  actcnt;
-    TimeStoreT              timestore;
+    TimeStoreT              time_store_;
+    NanoTime                current_time_;
     NewTaskVectorT*         pcrtpushtskvec;
     RaiseEventVectorT*      pcrtraisevec;
     mutex                   mtx;
@@ -385,22 +386,21 @@ bool Reactor::push(TaskT&& _ract, Service& _rsvc, Event const& _revent)
 void Reactor::run()
 {
     solid_log(frame_logger, Verbose, "<enter>");
-    bool     running = true;
-    NanoTime crttime;
-
+    bool running         = true;
+    impl_->current_time_ = NanoTime::nowSteady();
     while (running) {
 
         crtload = impl_->actcnt + impl_->exeq.size();
 
-        if (doWaitEvent(crttime)) {
-            crttime = std::chrono::steady_clock::now();
-            doCompleteEvents(crttime);
+        if (doWaitEvent(impl_->current_time_)) {
+            impl_->current_time_ = NanoTime::nowSteady();
+            doCompleteEvents(impl_->current_time_);
         }
-        crttime = std::chrono::steady_clock::now();
-        doCompleteTimer(crttime);
+        impl_->current_time_ = NanoTime::nowSteady();
+        doCompleteTimer(impl_->current_time_);
 
-        crttime = std::chrono::steady_clock::now();
-        doCompleteExec(crttime);
+        impl_->current_time_ = NanoTime::nowSteady();
+        doCompleteExec(impl_->current_time_);
 
         running = impl_->running || (impl_->actcnt != 0) || !impl_->exeq.empty();
     }
@@ -481,35 +481,7 @@ void Reactor::doStopActor(ReactorContext& _rctx)
     this->impl_->freeuidvec.push_back(UniqueId(_rctx.actidx, ros.unique));
 }
 
-struct ChangeTimerIndexCallback {
-    Reactor& r;
-    ChangeTimerIndexCallback(Reactor& _r)
-        : r(_r)
-    {
-    }
-
-    void operator()(const size_t _chidx, const size_t _newidx, const size_t _oldidx) const
-    {
-        r.doUpdateTimerIndex(_chidx, _newidx, _oldidx);
-    }
-};
-
-struct TimerCallback {
-    Reactor&        r;
-    ReactorContext& rctx;
-    TimerCallback(Reactor& _r, ReactorContext& _rctx)
-        : r(_r)
-        , rctx(_rctx)
-    {
-    }
-
-    void operator()(const size_t _tidx, const size_t _chidx) const
-    {
-        r.onTimer(rctx, _tidx, _chidx);
-    }
-};
-
-void Reactor::onTimer(ReactorContext& _rctx, const size_t /*_tidx*/, const size_t _chidx)
+void Reactor::onTimer(ReactorContext& _rctx, const size_t _chidx)
 {
     CompletionHandlerStub& rch = impl_->chdq[_chidx];
 
@@ -524,8 +496,9 @@ void Reactor::onTimer(ReactorContext& _rctx, const size_t /*_tidx*/, const size_
 void Reactor::doCompleteTimer(NanoTime const& _rcrttime)
 {
     ReactorContext ctx(*this, _rcrttime);
-    TimerCallback  tcbk(*this, ctx);
-    impl_->timestore.pop(_rcrttime, tcbk, ChangeTimerIndexCallback(*this));
+    impl_->time_store_.pop(_rcrttime, [this, &ctx](const size_t _chidx, const NanoTime& /* _expiry */, const size_t /* _proxy_index */) {
+        onTimer(ctx, _chidx);
+    });
 }
 
 void Reactor::doCompleteExec(NanoTime const& _rcrttime)
@@ -645,25 +618,17 @@ void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
 bool Reactor::addTimer(CompletionHandler const& _rch, NanoTime const& _rt, size_t& _rstoreidx)
 {
     if (_rstoreidx != InvalidIndex()) {
-        size_t idx = impl_->timestore.change(_rstoreidx, _rt);
-        solid_assert_log(idx == _rch.idxreactor, frame_logger);
+        impl_->time_store_.update(_rstoreidx, impl_->current_time_, _rt);
     } else {
-        _rstoreidx = impl_->timestore.push(_rt, _rch.idxreactor);
+        _rstoreidx = impl_->time_store_.push(impl_->current_time_, _rt, _rch.idxreactor);
     }
     return true;
-}
-
-void Reactor::doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx)
-{
-    CompletionHandlerStub& rch = impl_->chdq[_chidx];
-    solid_assert_log(static_cast<SteadyTimer*>(rch.pch)->storeidx_ == _oldidx, frame_logger);
-    static_cast<SteadyTimer*>(rch.pch)->storeidx_ = _newidx;
 }
 
 bool Reactor::remTimer(CompletionHandler const& /*_rch*/, size_t const& _rstoreidx)
 {
     if (_rstoreidx != InvalidIndex()) {
-        impl_->timestore.pop(_rstoreidx, ChangeTimerIndexCallback(*this));
+        impl_->time_store_.pop(_rstoreidx);
     }
     return true;
 }

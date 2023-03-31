@@ -528,13 +528,13 @@ private:
     void connectionStop(ConnectionContext& _rconctx);
 
     bool connectionStopping(
-        ConnectionContext& _rconctx,
-        ActorIdT const&    _ractuid,
-        ulong&             _rseconds_to_wait,
-        MessageId&         _rmsg_id,
-        MessageBundle*     _pmsg_bundle,
-        Event&             _revent_context,
-        ErrorConditionT&   _rerror);
+        ConnectionContext&         _rconctx,
+        ActorIdT const&            _ractuid,
+        std::chrono::milliseconds& _rwait_duration,
+        MessageId&                 _rmsg_id,
+        MessageBundle*             _pmsg_bundle,
+        Event&                     _revent_context,
+        ErrorConditionT&           _rerror);
 
     void onIncomingConnectionStart(ConnectionContext& _rconctx);
     void onOutgoingConnectionStart(ConnectionContext& _rconctx);

@@ -17,6 +17,7 @@
 #include <pmc.h>
 #elif defined(SOLID_ON_DARWIN)
 #elif defined(SOLID_ON_WINDOWS)
+#define NOMINMAX
 #else
 #include <sys/sysinfo.h>
 #endif
@@ -42,7 +43,6 @@ namespace solid {
 //=============================================================================
 //  NanoTime
 //=============================================================================
-/*static*/ const NanoTime NanoTime::maximum{true};
 
 #ifdef SOLID_HAS_NO_INLINES
 #include "solid/system/nanotime.ipp"

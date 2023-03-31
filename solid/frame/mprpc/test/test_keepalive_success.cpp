@@ -28,6 +28,7 @@
 
 using namespace std;
 using namespace solid;
+using namespace std::chrono_literals;
 
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
@@ -310,8 +311,8 @@ int test_keepalive_success(int argc, char* argv[])
             cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 
             if (test_scenario == 0) {
-                cfg.connection_timeout_inactivity_seconds = 20;
-                cfg.connection_inactivity_keepalive_count = 4;
+                cfg.connection_timeout_recv = cfg.connection_timeout_send_hard = 20s;
+                cfg.server.connection_inactivity_keepalive_count               = 4;
             }
 
             cfg.writer.max_message_count_multiplex = 6;
@@ -339,7 +340,7 @@ int test_keepalive_success(int argc, char* argv[])
             // cfg.send_buffer_capacity = 1024;
 
             if (test_scenario == 0) {
-                cfg.connection_timeout_keepalive_seconds = 10;
+                cfg.client.connection_timeout_keepalive = 10s;
             }
 
             cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;

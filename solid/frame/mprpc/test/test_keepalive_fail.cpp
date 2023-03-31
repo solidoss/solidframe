@@ -29,6 +29,7 @@
 
 using namespace std;
 using namespace solid;
+using namespace std::chrono_literals;
 
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
@@ -167,12 +168,16 @@ void server_connection_stop(frame::mprpc::ConnectionContext& _rctx)
             lock_guard<mutex> lock(mtx);
             running = false;
             cnd.notify_one();
+        } else {
+            solid_throw("Ivalid error received for scenario " << test_scenario << ": " << _rctx.error().message() << ". Expected: " << frame::mprpc::error_connection_too_many_keepalive_packets_received.message());
         }
     } else if (test_scenario == 1) {
         if (_rctx.error() == frame::mprpc::error_connection_inactivity_timeout) {
             lock_guard<mutex> lock(mtx);
             running = false;
             cnd.notify_one();
+        } else {
+            solid_throw("Ivalid error received for scenario " << test_scenario << ": " << _rctx.error().message() << ". Expected: " << frame::mprpc::error_connection_inactivity_timeout.message());
         }
     } else {
         solid_throw("Invalid test scenario.");
@@ -325,11 +330,11 @@ int test_keepalive_fail(int argc, char* argv[])
             cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
 
             if (test_scenario == 0) {
-                cfg.connection_timeout_inactivity_seconds = 60;
-                cfg.connection_inactivity_keepalive_count = 4;
+                cfg.connection_timeout_recv = cfg.connection_timeout_send_hard = 60s;
+                cfg.server.connection_inactivity_keepalive_count               = 4;
             } else if (test_scenario == 1) {
-                cfg.connection_timeout_inactivity_seconds = 20;
-                cfg.connection_inactivity_keepalive_count = 4;
+                cfg.connection_timeout_recv = cfg.connection_timeout_send_hard = 20s;
+                cfg.server.connection_inactivity_keepalive_count               = 4;
             }
 
             cfg.writer.max_message_count_multiplex = 6;
@@ -358,9 +363,9 @@ int test_keepalive_fail(int argc, char* argv[])
             cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
 
             if (test_scenario == 0) {
-                cfg.connection_timeout_keepalive_seconds = 10;
+                cfg.client.connection_timeout_keepalive = 10s;
             } else if (test_scenario == 1) {
-                cfg.connection_timeout_keepalive_seconds = 100;
+                cfg.client.connection_timeout_keepalive = 100s;
             }
 
             cfg.connection_stop_fnc         = &client_connection_stop;

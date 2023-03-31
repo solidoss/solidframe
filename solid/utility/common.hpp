@@ -15,16 +15,6 @@
 
 namespace solid {
 
-#if 0
-bool overflow_safe_great(const uint32_t _u1, const uint32_t _u2){
-    if(_u1 > _u2){
-        return (_u1 - _u2) <= (uint32_t)(0xffffffff/2);
-    }else{
-        return (_u2 - _u1) > (uint32_t)(0xffffffff/2);
-    }
-}
-#endif
-
 inline constexpr bool overflow_safe_less(const uint32_t& _u1, const uint32_t& _u2)
 {
     if (_u1 < _u2) {
