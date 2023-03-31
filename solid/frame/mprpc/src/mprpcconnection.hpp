@@ -361,9 +361,7 @@ private:
         Active,
         Server,
         Keepalive,
-        // WaitKeepAliveTimer,
         StopPeer,
-        // HasActivity,//TODO:vapa
         PollPool,
         PollRelayEngine,
         Stopping,

@@ -442,8 +442,6 @@ void Connection::doStart(frame::aio::ReactorContext& _rctx, const bool _is_incom
             timeout_active_ = NanoTime::max();
         }
         doResetTimer(_rctx);
-        // TODO:vapa
-        // doResetTimerStart(_rctx);
     } else {
         flags_.set(FlagsE::Connected);
         config.client.socket_device_setup_fnc(sock_ptr_->device());
@@ -1040,8 +1038,6 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Eve
                 }
             }
             doResetTimer(_rctx);
-            // TODO:vapa
-            // doResetTimerStart(_rctx);
 
         } else {
 
@@ -1086,8 +1082,6 @@ void Connection::doHandleEventEnterPassive(frame::aio::ReactorContext& _rctx, Ev
         // start receiving messages
         this->postRecvSome(_rctx, recv_buf_->data(), recvBufferCapacity());
 
-        // TODO:vapa
-        // doResetTimerStart(_rctx);
         if (config.server.hasConnectionTimeoutActive()) {
             timeout_active_ = _rctx.nanoTime() + config.server.connection_timeout_active;
         } else {
@@ -1372,7 +1366,6 @@ void Connection::doHandleEventPost(frame::aio::ReactorContext& _rctx, Event& _re
 void Connection::doResetTimer(frame::aio::ReactorContext& _rctx)
 {
     const auto& min_timeout = minTimeout();
-    // TODO:vapa:- what if NanoTime::max?
     timer_.waitUntil(_rctx, min_timeout, onTimer);
 }
 //-----------------------------------------------------------------------------
@@ -1432,144 +1425,9 @@ void Connection::doResetTimer(frame::aio::ReactorContext& _rctx)
     }
 
     const auto& min_timeout = rthis.minTimeout();
-    // TODO:vapa:- what if NanoTime::max?
     rthis.timer_.waitUntil(_rctx, min_timeout, onTimer);
 }
 
-#if 0 // TODO:vapa
-void Connection::doResetTimerStart(frame::aio::ReactorContext& _rctx)
-{
-
-    Configuration const& config = service(_rctx).configuration();
-
-    if (isServer()) {
-
-        if (isActiveState()) {
-            if (config.connection_timeout_recv != std::chrono::milliseconds(0)) {
-                recv_keepalive_count_ = 0;
-                flags_.reset(FlagsE::HasActivity);
-
-                solid_log(logger, Info, this << ' ' << this->id() << " wait for " << config.connection_timeout_recv.count() << "ms");
-
-                timer_.waitFor(_rctx, config.connection_timeout_recv, onTimerInactivity);
-            }
-        } else if (config.server.connection_start_secure && !isSecured() && config.server.connection_timeout_secured != std::chrono::milliseconds(0)) { // wait for secure handshake
-            solid_log(logger, Info, this << ' ' << this->id() << " wait for " << config.server.connection_timeout_secured.count() << "ms");
-
-            timer_.waitFor(_rctx, config.server.connection_timeout_secured, onTimerWaitSecured);
-        } else if (config.server.connection_timeout_activation != std::chrono::milliseconds(0)) { // wait for activate
-            solid_log(logger, Info, this << ' ' << this->id() << " wait for " << config.server.connection_timeout_activation.count() << "ms");
-
-            timer_.waitFor(_rctx, config.server.connection_timeout_activation, onTimerWaitActivation);
-        }
-    } else { // client
-        if (config.client.connection_timeout_keepalive != std::chrono::milliseconds(0)) {
-            flags_.set(FlagsE::WaitKeepAliveTimer);
-
-            solid_log(logger, Info, this << ' ' << this->id() << " wait for " << config.client.connection_timeout_keepalive.count() << "ms");
-
-            timer_.waitFor(_rctx, config.client.connection_timeout_keepalive, onTimerKeepalive);
-        }
-    }
-}
-//-----------------------------------------------------------------------------
-void Connection::doResetTimerSend(frame::aio::ReactorContext& _rctx)
-{
-
-    Configuration const& config = service(_rctx).configuration();
-
-    if (isServer()) {
-        if (config.connection_timeout_send_hard != std::chrono::milliseconds(0)) {
-            flags_.set(FlagsE::HasActivity);
-        }
-    } else { // client
-        if (config.client.connection_timeout_keepalive != std::chrono::milliseconds(0) && isWaitingKeepAliveTimer()) {
-
-            solid_log(logger, Verbose, this << ' ' << this->id() << " wait for " << config.client.connection_timeout_keepalive.count() << "ms");
-
-            timer_.waitFor(_rctx, config.client.connection_timeout_keepalive, onTimerKeepalive);
-        }
-    }
-}
-//-----------------------------------------------------------------------------
-void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
-{
-
-    Configuration const& config = service(_rctx).configuration();
-
-    if (isServer()) {
-        if (config.connection_timeout_recv != std::chrono::milliseconds(0)) {
-            flags_.set(FlagsE::HasActivity);
-        }
-    } else { // client
-        if (config.client.connection_timeout_keepalive != std::chrono::milliseconds(0) && !isWaitingKeepAliveTimer()) {
-            flags_.set(FlagsE::WaitKeepAliveTimer);
-
-            solid_log(logger, Info, this << ' ' << this->id() << " wait for " << config.client.connection_timeout_keepalive.count() << "ms");
-
-            timer_.waitFor(_rctx, config.client.connection_timeout_keepalive, onTimerKeepalive);
-        }
-    }
-}
-//-----------------------------------------------------------------------------
-/*static*/ void Connection::onTimerWaitSecured(frame::aio::ReactorContext& _rctx)
-{
-    Connection& rthis = static_cast<Connection&>(_rctx.actor());
-
-    solid_log(logger, Info, &rthis << " " << rthis.flags_.toString() << " " << rthis.recv_keepalive_count_);
-    solid_assert(rthis.isServer());
-
-    if (!rthis.isSecured()) {
-        rthis.doStop(_rctx, error_connection_inactivity_timeout);
-    }
-}
-
-//-----------------------------------------------------------------------------
-/*static*/ void Connection::onTimerWaitActivation(frame::aio::ReactorContext& _rctx)
-{
-    Connection& rthis = static_cast<Connection&>(_rctx.actor());
-
-    solid_log(logger, Info, &rthis << " " << rthis.flags_.toString() << " " << rthis.recv_keepalive_count_);
-    solid_assert(rthis.isServer());
-    if (!rthis.isActiveState()) {
-        rthis.doStop(_rctx, error_connection_inactivity_timeout);
-    }
-}
-
-//-----------------------------------------------------------------------------
-/*static*/ void Connection::onTimerInactivity(frame::aio::ReactorContext& _rctx)
-{
-    Connection& rthis = static_cast<Connection&>(_rctx.actor());
-
-    solid_log(logger, Info, &rthis << " " << rthis.flags_.toString() << " " << rthis.recv_keepalive_count_);
-
-    if (rthis.flags_.has(FlagsE::HasActivity)) {
-
-        rthis.flags_.reset(FlagsE::HasActivity);
-        rthis.recv_keepalive_count_ = 0;
-
-        Configuration const& config = rthis.service(_rctx).configuration();
-
-        solid_log(logger, Info, &rthis << ' ' << rthis.id() << " wait for " << config.connection_timeout_recv.count() << "ms");
-
-        rthis.timer_.waitFor(_rctx, config.connection_timeout_recv, onTimerInactivity);
-    } else {
-        rthis.doStop(_rctx, error_connection_inactivity_timeout);
-    }
-}
-//-----------------------------------------------------------------------------
-/*static*/ void Connection::onTimerKeepalive(frame::aio::ReactorContext& _rctx)
-{
-
-    Connection& rthis = static_cast<Connection&>(_rctx.actor());
-
-    solid_assert_log(!rthis.isServer(), logger);
-    rthis.flags_.set(FlagsE::Keepalive);
-    rthis.flags_.reset(FlagsE::WaitKeepAliveTimer);
-    solid_log(logger, Info, &rthis << " post send");
-    rthis.post(_rctx, [&rthis](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { rthis.doSend(_rctx); });
-}
-#endif
 //-----------------------------------------------------------------------------
 /*static*/ void Connection::onSendAllRaw(frame::aio::ReactorContext& _rctx, Event& _revent)
 {
@@ -1781,9 +1639,6 @@ struct Connection::Receiver : MessageReader::Receiver {
     Receiver             rcvr(rthis, _rctx, rconfig.reader, rconfig.protocol(), conctx);
     ErrorConditionT      error;
 
-    // TODO:vapa
-    // rthis.doResetTimerRecv(_rctx);
-
     do {
         solid_log(logger, Verbose, &rthis << " received size " << _sz);
         rthis.service(_rctx).wstatistic().connectionRecvBufferSize(_sz, rthis.recvBufferCapacity());
@@ -1940,13 +1795,6 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             }
             --repeatcnt;
         } // while
-#if 0 // TODO:vapa
-        if (sent_something) {
-            solid_log(logger, Info, this << " sent_something");
-            //TODO:vapa
-            //doResetTimerSend(_rctx);
-        }
-#endif
 
         if (repeatcnt == 0) {
             if (sent_something) {
