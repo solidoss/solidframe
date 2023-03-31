@@ -212,8 +212,8 @@ TraceDqT                  trace_dq;
 std::mutex                trace_mtx;
 size_t                    max_per_pool_connection_count = 100;
 std::atomic<size_t>       client_connection_count{0};
-promise<void>             client_connection_promise;
-promise<void>             promise;
+std::promise<void>        client_connection_promise;
+std::promise<void>        promise;
 //-----------------------------------------------------------------------------
 } // namespace
 
