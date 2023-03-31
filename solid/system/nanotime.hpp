@@ -132,7 +132,7 @@ private:
     }
 };
 template <class Rep, class Period>
-constexpr NanoTime operator+(NanoTime _first, const std::chrono::duration<Rep, Period>& _duration)
+NanoTime operator+(NanoTime _first, const std::chrono::duration<Rep, Period>& _duration)
 {
     _first.tv_sec += std::chrono::duration_cast<std::chrono::seconds>(_duration).count();
     _first.tv_nsec += std::chrono::duration_cast<std::chrono::nanoseconds>(_duration).count() % 1000000000L;
