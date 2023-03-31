@@ -30,7 +30,7 @@ int test_perf_timestore(int argc, char* argv[])
     size_t timer_count      = 10000;
     size_t add_update_count = 100;
 
-    int version = 2;
+    int version = 1;
 
     if (argc > 1) {
         version = atoi(argv[1]);

@@ -44,7 +44,8 @@ void        set_current_thread_affinity()
     CPU_ZERO(&cpuset);
     CPU_SET(isolCore, &cpuset);
     int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
-    //solid_check(rc == 0);
+    // solid_check(rc == 0);
+    (void)rc;
 }
 #else
 void set_current_thread_affinity()
