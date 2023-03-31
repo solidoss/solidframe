@@ -128,14 +128,13 @@ private:
     void doCompleteEvents(NanoTime const& _rcrttime);
     void doStoreSpecific();
     void doClearSpecific();
-    void doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx);
 
     void doPost(ReactorContext& _rctx, EventFunctionT&& _revfn, Event&& _uev);
     void doPost(ReactorContext& _rctx, EventFunctionT&& _revfn, Event&& _uev, CompletionHandler const& _rch);
 
     void doStopActor(ReactorContext& _rctx);
 
-    void        onTimer(ReactorContext& _rctx, const size_t _tidx, const size_t _chidx);
+    void        onTimer(ReactorContext& _rctx, const size_t _chidx);
     static void call_actor_on_event(ReactorContext& _rctx, Event&& _uevent);
     static void stop_actor_repost(ReactorContext& _rctx, Event&& _uevent);
     static void stop_actor(ReactorContext& _rctx, Event&& _uevent);

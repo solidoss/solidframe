@@ -156,7 +156,7 @@ private:
 
     void doStopActor(ReactorContext& _rctx);
 
-    void        onTimer(ReactorContext& _rctx, const size_t _tidx, const size_t _chidx);
+    void        onTimer(ReactorContext& _rctx, const size_t _chidx);
     static void call_actor_on_event(ReactorContext& _rctx, Event&& _uev);
     static void increase_event_vector_size(ReactorContext& _rctx, Event&& _uev);
     static void stop_actor(ReactorContext& _rctx, Event&& _uevent);

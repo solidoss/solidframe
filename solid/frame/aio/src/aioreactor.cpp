@@ -427,7 +427,7 @@ using UidVectorT              = std::vector<UniqueId>;
 using ActorDequeT             = std::deque<ActorStub>;
 using ExecQueueT              = Queue<ExecStub, 10>;
 using SizeStackT              = Stack<size_t>;
-using TimeStoreT              = TimeStore<size_t>;
+using TimeStoreT              = TimeStore;
 using SizeTVectorT            = std::vector<size_t>;
 
 //=============================================================================
@@ -442,7 +442,8 @@ struct Reactor::Data {
     AtomicSizeT             crtraisevecsz;
     size_t                  devcnt;
     size_t                  actcnt;
-    TimeStoreT              timestore;
+    NanoTime                current_time_;
+    TimeStoreT              time_store_;
     MutexT                  mtx;
     EventVectorT            eventvec;
     NewTaskVectorT          pushtskvec[2];
@@ -468,7 +469,7 @@ struct Reactor::Data {
         , crtraisevecsz(0)
         , devcnt(0)
         , actcnt(0)
-        , timestore(MinEventCapacity)
+        , time_store_(MinEventCapacity)
         , event_actor_ptr(make_shared<EventActor>())
     {
     }
@@ -478,11 +479,11 @@ struct Reactor::Data {
 
         if (exeq.size()) {
             return NanoTime();
-        } else if (timestore.size()) {
+        } else if (!time_store_.empty()) {
 
-            if (_rcrt < timestore.next()) {
+            if (_rcrt < time_store_.expiry()) {
                 const auto crt_tp  = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
-                const auto next_tp = timestore.next().timePointCast<std::chrono::steady_clock::time_point>();
+                const auto next_tp = time_store_.expiry().timePointCast<std::chrono::steady_clock::time_point>();
                 const auto delta   = next_tp - crt_tp;
 
                 if (delta <= std::chrono::minutes(10)) {
@@ -506,14 +507,14 @@ struct Reactor::Data {
             return 0;
         }
 
-        if (timestore.size() != 0u) {
+        if (!time_store_.empty()) {
 
-            if (_rcrt < timestore.next()) {
+            if (_rcrt < time_store_.expiry()) {
 
                 const int64_t maxwait = 1000 * 60 * 10; // ten minutes
                 int64_t diff = 0;
                 const auto crt_tp = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
-                const auto next_tp = timestore.next().timePointCast<std::chrono::steady_clock::time_point>();
+                const auto next_tp = time_store_.expiry().timePointCast<std::chrono::steady_clock::time_point>();
                 diff = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
 
                 if (diff > maxwait) {
@@ -531,14 +532,14 @@ struct Reactor::Data {
     {
         if (exeq.size()) {
             return 0;
-        } else if (timestore.size()) {
+        } else if (!time_store_.empty()) {
 
-            if (_rcrt < timestore.next()) {
+            if (_rcrt < time_store_.expiry()) {
 
                 constexpr int64_t maxwait = 1000 * 60 * 10; // ten minutes
                 int64_t diff = 0;
                 const auto crt_tp = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
-                const auto next_tp = timestore.next().timePointCast<std::chrono::steady_clock::time_point>();
+                const auto next_tp = time_store_.expiry().timePointCast<std::chrono::steady_clock::time_point>();
                 diff = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
 
                 if (diff > maxwait) {
@@ -745,17 +746,16 @@ void Reactor::run()
     solid_log(logger, Info, "<enter>");
     long     selcnt;
     bool     running = true;
-    NanoTime crttime;
     int      waitmsec;
     NanoTime waittime;
     size_t   waitcnt = 0;
 
     while (running) {
-        crttime = steady_clock::now();
+        impl_->current_time_ = NanoTime::nowSteady();
 
         crtload = impl_->actcnt + impl_->devcnt + impl_->exeq.size();
 #if defined(SOLID_USE_EPOLL2)
-        waittime = impl_->computeWaitDuration(crttime);
+        waittime = impl_->computeWaitDuration(impl_->current_time_);
 
         solid_log(logger, Verbose, "epoll_wait wait = " << waittime);
         selcnt = epoll_pwait2(impl_->reactor_fd, impl_->eventvec.data(), static_cast<int>(impl_->eventvec.size()), waittime != NanoTime::max() ? &waittime : nullptr, nullptr);
@@ -763,23 +763,23 @@ void Reactor::run()
             ++waitcnt;
         }
 #elif defined(SOLID_USE_EPOLL)
-        waitmsec = impl_->computeWaitDuration(crttime);
+        waitmsec = impl_->computeWaitDuration(impl_->current_time_);
 
         solid_log(logger, Verbose, "epoll_wait wait = " << waitmsec);
 
         selcnt = epoll_wait(impl_->reactor_fd, impl_->eventvec.data(), static_cast<int>(impl_->eventvec.size()), waitmsec);
 #elif defined(SOLID_USE_KQUEUE)
-        waittime = impl_->computeWaitDuration(crttime);
+        waittime = impl_->computeWaitDuration(impl_->current_time_);
 
         solid_log(logger, Verbose, "kqueue wait = " << waittime);
 
         selcnt = kevent(impl_->reactor_fd, nullptr, 0, impl_->eventvec.data(), static_cast<int>(impl_->eventvec.size()), waittime != NanoTime::max() ? &waittime : nullptr);
 #elif defined(SOLID_USE_WSAPOLL)
-        waitmsec = impl_->computeWaitDuration(crttime);
+        waitmsec = impl_->computeWaitDuration(impl_->current_time_);
         solid_log(logger, Verbose, "wsapoll wait msec = " << waitmsec);
         selcnt = WSAPoll(impl_->eventvec.data(), impl_->eventvec.size(), waitmsec);
 #endif
-        crttime = steady_clock::now();
+        impl_->current_time_ = NanoTime::nowSteady();
 #ifdef SOLID_AIO_TRACE_DURATION
         const auto start = high_resolution_clock::now();
 #endif
@@ -789,7 +789,7 @@ void Reactor::run()
         if (selcnt > 0) {
 #endif
             crtload += selcnt;
-            doCompleteIo(crttime, selcnt);
+            doCompleteIo(impl_->current_time_, selcnt);
         } else if (selcnt < 0 && errno != EINTR) {
             solid_log(logger, Error, "epoll_wait errno  = " << last_system_error().message());
             running = false;
@@ -800,18 +800,18 @@ void Reactor::run()
 #ifdef SOLID_AIO_TRACE_DURATION
         const auto elapsed_io = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
 #endif
-        crttime = steady_clock::now();
-        doCompleteTimer(crttime);
+        impl_->current_time_ = NanoTime::nowSteady();
+        doCompleteTimer(impl_->current_time_);
 #ifdef SOLID_AIO_TRACE_DURATION
         const auto elapsed_timer = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
 #endif
-        crttime = steady_clock::now();
-        doCompleteEvents(crttime); // See NOTE above
+        impl_->current_time_ = NanoTime::nowSteady();
+        doCompleteEvents(impl_->current_time_); // See NOTE above
 #ifdef SOLID_AIO_TRACE_DURATION
         const auto elapsed_event = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
 #endif
-        crttime           = steady_clock::now();
-        const auto execnt = doCompleteExec(crttime);
+        impl_->current_time_ = NanoTime::nowSteady();
+        const auto execnt    = doCompleteExec(impl_->current_time_);
 #ifdef SOLID_AIO_TRACE_DURATION
         const auto elapsed_total = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
 
@@ -1163,7 +1163,7 @@ void Reactor::remConnect(ReactorContext& _rctx)
 #endif
 //-----------------------------------------------------------------------------
 
-void Reactor::onTimer(ReactorContext& _rctx, const size_t /*_tidx*/, const size_t _chidx)
+void Reactor::onTimer(ReactorContext& _rctx, const size_t _chidx)
 {
     CompletionHandlerStub& rch = impl_->chdq[_chidx];
 
@@ -1180,13 +1180,10 @@ void Reactor::onTimer(ReactorContext& _rctx, const size_t /*_tidx*/, const size_
 void Reactor::doCompleteTimer(NanoTime const& _rcrttime)
 {
     ReactorContext ctx(*this, _rcrttime);
-    impl_->timestore.pop(
+    impl_->time_store_.pop(
         _rcrttime,
-        [this, &ctx](const size_t _tidx, const size_t _chidx) {
-            onTimer(ctx, _tidx, _chidx);
-        },
-        [this](const size_t _chidx, const size_t _newidx, const size_t _oldidx) {
-            doUpdateTimerIndex(_chidx, _newidx, _oldidx);
+        [this, &ctx](const size_t _chidx, const NanoTime& /* _expiry */, const size_t /* _proxy_index */) {
+            onTimer(ctx, _chidx);
         });
 }
 
@@ -1543,10 +1540,9 @@ bool Reactor::remDevice(CompletionHandler const& _rch, Device const& _rsd)
 bool Reactor::addTimer(CompletionHandler const& _rch, NanoTime const& _rt, size_t& _rstoreidx)
 {
     if (_rstoreidx != InvalidIndex()) {
-        size_t idx = impl_->timestore.change(_rstoreidx, _rt);
-        solid_assert_log(idx == _rch.idxreactor, logger);
+        impl_->time_store_.update(_rstoreidx, impl_->current_time_, _rt);
     } else {
-        _rstoreidx = impl_->timestore.push(_rt, _rch.idxreactor);
+        _rstoreidx = impl_->time_store_.push(impl_->current_time_, _rt, _rch.idxreactor);
     }
     return true;
 }
@@ -1565,9 +1561,7 @@ void Reactor::doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, cons
 bool Reactor::remTimer(CompletionHandler const& /*_rch*/, size_t const& _rstoreidx)
 {
     if (_rstoreidx != InvalidIndex()) {
-        impl_->timestore.pop(_rstoreidx, [this](const size_t _chidx, const size_t _newidx, const size_t _oldidx) {
-            doUpdateTimerIndex(_chidx, _newidx, _oldidx);
-        });
+        impl_->time_store_.pop(_rstoreidx);
     }
     return true;
 }

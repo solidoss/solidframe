@@ -50,11 +50,12 @@ struct NanoTime : public timespec {
         tv_nsec = _nsec;
     }
 
-    static NanoTime createSystem()
+    static NanoTime nowSystem()
     {
         return NanoTime(std::chrono::system_clock::now());
     }
-    static NanoTime createSteady()
+
+    static NanoTime nowSteady()
     {
         return NanoTime(std::chrono::steady_clock::now());
     }

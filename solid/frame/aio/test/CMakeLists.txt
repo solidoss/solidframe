@@ -122,6 +122,7 @@ if(OPENSSL_FOUND)
     endif()
     
     add_test(NAME TestPerfActorAio              COMMAND  test_perf test_perf_actor_aio)
+    add_test(NAME TestPerfTimeStore             COMMAND  test_perf test_perf_timestore)
     add_test(NAME TestPerfActorFrame            COMMAND  test_perf test_perf_actor_frame)
     add_test(NAME TestPerfWorkPoolLockFree      COMMAND  test_perf test_perf_workpool_lockfree)
     add_test(NAME TestPerfWorkPoolSynchCtx      COMMAND  test_perf test_perf_workpool_synch_context)
