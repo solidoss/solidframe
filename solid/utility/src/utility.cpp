@@ -14,6 +14,7 @@
 #include "solid/utility/common.hpp"
 #include "solid/utility/queue_lockfree.hpp"
 #include "solid/utility/string.hpp"
+#include "solid/utility/threadpool.hpp"
 #include "solid/utility/workpool.hpp"
 #include <mutex>
 #include <sstream>
@@ -21,6 +22,7 @@
 namespace solid {
 
 const LoggerT workpool_logger{"solid::workpool"};
+const LoggerT threadpool_logger{"solid::threadpool"};
 
 namespace lockfree {
 const LoggerT queue_logger{"solid::lockfree::queue"};
@@ -263,4 +265,16 @@ std::ostream& WorkPoolMulticastStatistic::print(std::ostream& _ros) const
     return _ros;
 }
 } // namespace locking
+
+//-----------------------------------------------------------------------------
+// ThreadPool:
+ThreadPoolStatistic::ThreadPoolStatistic() {}
+
+std::ostream& ThreadPoolStatistic::print(std::ostream& _ros) const
+{
+    return _ros;
+}
+void ThreadPoolStatistic::clear() {}
+//-----------------------------------------------------------------------------
+
 } // namespace solid

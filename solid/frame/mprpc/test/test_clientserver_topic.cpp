@@ -19,6 +19,7 @@
 
 #include "solid/system/exception.hpp"
 #include "solid/system/log.hpp"
+#include "solid/utility/threadpool.hpp"
 #include "solid/utility/workpool.hpp"
 
 using namespace std;
@@ -27,16 +28,21 @@ using namespace solid;
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
 
-#define USE_SYNC_CONTEXT
+#define THREAD_POOL_OPTION 3
 
 namespace {
 
 LoggerT logger("test");
 
+constexpr size_t thread_count = 4;
+
 #ifdef SOLID_ON_LINUX
 vector<int> isolcpus = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 15, 17, 18, 19};
 void        set_current_thread_affinity()
 {
+    if (std::thread::hardware_concurrency() < (thread_count + isolcpus[0])) {
+        return;
+    }
     static std::atomic<int> crtCore(0);
 
     const int isolCore = isolcpus[crtCore.fetch_add(1)];
@@ -53,15 +59,30 @@ void set_current_thread_affinity()
 }
 #endif
 
-#ifdef USE_SYNC_CONTEXT
+using ResolvePoolT = locking::CallPoolT<void(), void(), 80>;
+
+#if THREAD_POOL_OPTION == 1
 
 using CallPoolT     = locking::CallPoolT<void(), void(), 80>;
 using SynchContextT = decltype(declval<CallPoolT>().createSynchronizationContext());
 
-#else
+WorkPoolConfiguration make_tp_config()
+{
+    return WorkPoolConfiguration(thread_count, -1, -1, []() { set_current_thread_affinity(); });
+}
+
+#elif THREAD_POOL_OPTION == 2
 
 using CallPoolT     = lockfree::CallPoolT<void(), void, 80>;
 using SynchContextT = int32_t;
+WorkPoolConfiguration make_tp_config()
+{
+    return WorkPoolConfiguration(thread_count, -1, -1, []() { set_current_thread_affinity(); });
+}
+
+#elif THREAD_POOL_OPTION == 3
+using CallPoolT     = ThreadPool<Function<void(), 80>, Function<void(), 80>>;
+using SynchContextT = decltype(declval<CallPoolT>().createSynchronizationContext());
 
 #endif
 
@@ -232,16 +253,22 @@ int test_clientserver_topic(int argc, char* argv[])
     {
         AioSchedulerT          sch_client;
         AioSchedulerT          sch_server;
-        CallPoolT              resolve_pool;
+        ResolvePoolT           resolve_pool;
         frame::Manager         m;
         frame::mprpc::ServiceT mprpcserver(m);
         frame::mprpc::ServiceT mprpcclient(m);
         frame::ServiceT        generic_service{m};
         ErrorConditionT        err;
         frame::aio::Resolver   resolver([&resolve_pool](std::function<void()>&& _fnc) { resolve_pool.push(std::move(_fnc)); });
-
-        worker_pool.start(WorkPoolConfiguration(1, -1, -1, []() { set_current_thread_affinity(); }));
-        resolve_pool.start(1);
+#if THREAD_POOL_OPTION == 3
+        worker_pool.start(
+            thread_count, 10000,
+            [](const size_t) {},
+            [](const size_t) {});
+#else
+        worker_pool.start(make_tp_config());
+#endif
+        resolve_pool.start(WorkPoolConfiguration(1));
         sch_client.start([]() {set_current_thread_affinity();return true; }, []() {}, 1);
         sch_server.start([]() {set_current_thread_affinity();return true; }, []() {}, 2);
 
@@ -249,7 +276,7 @@ int test_clientserver_topic(int argc, char* argv[])
             // create the topics
             vector<shared_ptr<Topic>> topic_vec;
             for (size_t i = 0; i < topic_count; ++i) {
-#ifdef USE_SYNC_CONTEXT
+#if THREAD_POOL_OPTION != 2
                 topic_vec.emplace_back(make_shared<Topic>(i, worker_pool.createSynchronizationContext()));
 #else
                 topic_vec.emplace_back(make_shared<Topic>(i, i));
@@ -516,8 +543,11 @@ void server_complete_message(
             _rrecv_msg_ptr->time_point_  = microseconds_since_epoch();
             service.sendResponse(recipient_id, _rrecv_msg_ptr);
         };
-
+#if THREAD_POOL_OPTION == 3
+        static_assert(CallPoolT::is_small_task_type<decltype(lambda)>(), "Type not small");
+#else
         static_assert(CallPoolT::is_small_type<decltype(lambda)>(), "Type not small");
+#endif
         if (false) {
             std::lock_guard<mutex> lock(trace_mtx);
             if (!trace_dq.empty()) {
@@ -531,7 +561,7 @@ void server_complete_message(
             }
             // topic_ptr->synch_ctx_.push(std::move(lambda));
         } else {
-#ifdef USE_SYNC_CONTEXT
+#if THREAD_POOL_OPTION != 2
             topic_ptr->synch_ctx_.push(std::move(lambda));
 #else
             worker_pool.push(std::move(lambda));

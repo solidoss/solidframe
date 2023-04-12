@@ -29,6 +29,7 @@ set(Headers
     delegate.hpp
     super.hpp
     sharedbuffer.hpp
+    threadpool.hpp
 )
 
 set(Inlines
