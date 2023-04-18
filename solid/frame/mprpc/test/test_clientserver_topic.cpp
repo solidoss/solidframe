@@ -262,8 +262,10 @@ int test_clientserver_topic(int argc, char* argv[])
         frame::aio::Resolver   resolver([&resolve_pool](std::function<void()>&& _fnc) { resolve_pool.push(std::move(_fnc)); });
 #if THREAD_POOL_OPTION == 3
         worker_pool.start(
-            thread_count, 10000,
-            [](const size_t) {},
+            thread_count, 1000,
+            [](const size_t) {
+                set_current_thread_affinity();
+            },
             [](const size_t) {});
 #else
         worker_pool.start(make_tp_config());

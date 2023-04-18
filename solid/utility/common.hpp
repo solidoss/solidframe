@@ -15,25 +15,21 @@
 
 namespace solid {
 
-inline constexpr bool overflow_safe_less(const uint32_t& _u1, const uint32_t& _u2)
+template <typename T>
+inline constexpr bool overflow_safe_less(const T& _u1, const T& _u2)
 {
+    static_assert(std::is_unsigned_v<T>, "Type must be an unsigned_integer");
+    constexpr T pivot = (std::numeric_limits<T>::max() << 1);
+
     if (_u1 < _u2) {
-        return (_u2 - _u1) <= (uint32_t)(0xffffffff / 2);
+        return (_u2 - _u1) <= pivot;
     } else {
-        return (_u1 - _u2) > (uint32_t)(0xffffffff / 2);
+        return (_u1 - _u2) > pivot;
     }
 }
 
-inline constexpr bool overflow_safe_less(const uint64_t& _u1, const uint64_t& _u2)
-{
-    if (_u1 < _u2) {
-        return (_u2 - _u1) <= ((uint64_t)-1) / 2;
-    } else {
-        return (_u1 - _u2) > ((uint64_t)-1) / 2;
-    }
-}
-
-inline constexpr uint32_t overflow_safe_max(const uint32_t& _u1, const uint32_t& _u2)
+template <typename T>
+inline constexpr T overflow_safe_max(const T& _u1, const T& _u2)
 {
     if (overflow_safe_less(_u1, _u2)) {
         return _u2;

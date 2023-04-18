@@ -11,6 +11,7 @@
 
 #include "solid/system/common.hpp"
 #include <atomic>
+#include <mutex>
 
 #if defined(_MSC_VER)
 #ifndef NOMINMAX
@@ -110,4 +111,7 @@ public:
     }
 };
 #endif
+
+using SpinGuardT = std::lock_guard<SpinLock>;
+
 } // namespace solid
