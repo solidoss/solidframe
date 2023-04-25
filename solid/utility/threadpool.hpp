@@ -881,14 +881,14 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
 //-----------------------------------------------------------------------------
 template <class TaskOne, class TaskAll, class Stats>
 template <class Tsk>
-void ThreadPool<TaskOne, TaskAll, Stats>::consumeAll()
+void ThreadPool<TaskOne, TaskAll, Stats>::consumeAll(uint64_t& _rlocal_all_id)
 {
 
 }
 //-----------------------------------------------------------------------------
 template <class TaskOne, class TaskAll, class Stats>
 template <class Tsk>
-void ThreadPool<TaskOne, TaskAll, Stats>::consumeAll(const uint64_t _all_id)
+void ThreadPool<TaskOne, TaskAll, Stats>::consumeAll(uint64_t& _rlocal_all_id, const uint64_t _all_id)
 {
 
 }
