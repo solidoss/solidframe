@@ -105,7 +105,8 @@ uint64_t microseconds_since_epoch()
 struct Topic {
     const size_t  id_;
     SynchContextT synch_ctx_;
-    uint64_t      value_ = 0;
+    uint64_t      value_   = 0;
+    uint64_t      context_ = 0;
 
     Topic(
         const size_t    _id,
@@ -138,6 +139,7 @@ struct Message : frame::mprpc::Message {
     mutable uint64_t serialization_time_point_ = 0;
     uint64_t         receive_time_point_       = 0;
     uint64_t         topic_value_              = 0;
+    uint64_t         topic_context_            = 0;
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
@@ -153,6 +155,7 @@ struct Message : frame::mprpc::Message {
         _rr.add(_rthis.serialization_time_point_, _rctx, 4, "serialization_time_point");
         _rr.add(_rthis.receive_time_point_, _rctx, 5, "receive_time_point");
         _rr.add(_rthis.topic_value_, _rctx, 6, "topic_value");
+        _rr.add(_rthis.topic_context_, _rctx, 7, "topic_context");
     }
 
     Message() = default;
@@ -204,6 +207,7 @@ void server_complete_message(
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/);
 
+void multicast_run(CallPoolT& _work_pool);
 void wait();
 //-----------------------------------------------------------------------------
 // Time points:
@@ -236,6 +240,7 @@ size_t                    max_per_pool_connection_count = 100;
 std::atomic<size_t>       client_connection_count{0};
 std::promise<void>        client_connection_promise;
 std::promise<void>        promise;
+std::atomic_bool          running = true;
 //-----------------------------------------------------------------------------
 } // namespace
 
@@ -262,7 +267,7 @@ int test_clientserver_topic(int argc, char* argv[])
         frame::aio::Resolver   resolver([&resolve_pool](std::function<void()>&& _fnc) { resolve_pool.push(std::move(_fnc)); });
 #if THREAD_POOL_OPTION == 3
         worker_pool.start(
-            thread_count, 1000,
+            thread_count, 1000, 100,
             [](const size_t) {
                 set_current_thread_affinity();
             },
@@ -398,6 +403,11 @@ int test_clientserver_topic(int argc, char* argv[])
             fut.get();
         }
 
+        thread multicaster{
+            []() {
+                multicast_run(worker_pool);
+            }};
+
         active_message_count      = message_count;
         const uint64_t start_msec = milliseconds_since_epoch();
         solid_dbg(logger, Warning, "========== START sending messages ==========");
@@ -420,6 +430,7 @@ int test_clientserver_topic(int argc, char* argv[])
         cout << "min server delta : " << min_time_server_trip_delta.load() << endl;
         cout << "request count    : " << request_count.load() << endl;
 
+        multicaster.join();
         mprpcserver.stop();
         generic_service.stop();
         worker_pool.stop();
@@ -475,6 +486,22 @@ void WorkerActor::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 
 thread_local uint64_t local_send_duration = 0;
 
+void multicast_run(CallPoolT& _work_pool)
+{
+#if THREAD_POOL_OPTION == 3
+    uint64_t context = 0;
+    while (running) {
+        _work_pool.pushAll(
+            [context]() {
+                for (auto& topic : local_worker_context_ptr->topic_vec_) {
+                    topic->context_ = context;
+                }
+            });
+        ++context;
+    }
+#endif
+}
+
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
@@ -518,7 +545,7 @@ void client_complete_message(
                 _rctx.service().forceCloseConnectionPool(
                     client_id,
                     [](frame::mprpc::ConnectionContext& _rctx) {});
-
+                running = false;
                 promise.set_value();
             }
         }
@@ -541,12 +568,13 @@ void server_complete_message(
 
         auto lambda = [topic_ptr, _rrecv_msg_ptr = std::move(_rrecv_msg_ptr), &service = _rctx.service(), recipient_id = _rctx.recipientId()]() {
             ++topic_ptr->value_;
-            _rrecv_msg_ptr->topic_value_ = topic_ptr->value_;
-            _rrecv_msg_ptr->time_point_  = microseconds_since_epoch();
+            _rrecv_msg_ptr->topic_value_   = topic_ptr->value_;
+            _rrecv_msg_ptr->topic_context_ = topic_ptr->context_;
+            _rrecv_msg_ptr->time_point_    = microseconds_since_epoch();
             service.sendResponse(recipient_id, _rrecv_msg_ptr);
         };
 #if THREAD_POOL_OPTION == 3
-        static_assert(CallPoolT::is_small_task_type<decltype(lambda)>(), "Type not small");
+        static_assert(CallPoolT::is_small_one_type<decltype(lambda)>(), "Type not small");
 #else
         static_assert(CallPoolT::is_small_type<decltype(lambda)>(), "Type not small");
 #endif
