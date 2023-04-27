@@ -311,8 +311,7 @@ inline constexpr size_t array_size(const T (&arr)[S])
     return S;
 }
 
-inline constexpr auto factory = [](const auto& _rt, auto& _rctx, const TypeMapBase* _ptype_map) -> auto
-{
+inline constexpr auto factory = [](const auto& _rt, auto& _rctx, const TypeMapBase* _ptype_map) -> auto {
     using rem_ref_value_t = typename std::remove_reference<decltype(_rt)>::type;
     using value_t         = std::decay_t<decltype(_rt)>;
     if constexpr (std::is_enum_v<value_t>) {

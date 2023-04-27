@@ -131,7 +131,8 @@ class TaskList {
         InnerLinkCount
     };
     struct TaskNode : TaskData<Task>, inner::Node<InnerLinkCount> {
-        uint64_t id_ = 0;
+        uint64_t id_     = 0;
+        uint64_t all_id_ = 0;
     };
     using TaskDqT    = std::deque<TaskNode>;
     using OrderListT = inner::List<TaskDqT, InnerLinkOrder>;
@@ -148,7 +149,7 @@ public:
     {
     }
 
-    void push(Task&& _task, const uint64_t _id)
+    void push(Task&& _task, const uint64_t _all_id, const uint64_t _id)
     {
         size_t index = -1;
         if (!free_tasks_.empty()) {
@@ -158,8 +159,9 @@ public:
             index = tasks_.size();
             tasks_.emplace_back();
         }
-        auto& rnode = tasks_[index];
-        rnode.id_   = _id;
+        auto& rnode   = tasks_[index];
+        rnode.id_     = _id;
+        rnode.all_id_ = _all_id;
         rnode.task(std::move(_task));
 
         if (order_tasks_.empty()) {
@@ -177,10 +179,11 @@ public:
         }
     }
 
-    bool pop(TaskData<Task>& _task_data, const uint64_t _id)
+    bool pop(TaskData<Task>& _task_data, uint64_t& _rall_id, const uint64_t _id)
     {
         if (!order_tasks_.empty() && order_tasks_.front().id_ == _id) {
             _task_data.task(std::move(order_tasks_.front().task()));
+            _rall_id = order_tasks_.front().all_id_;
             order_tasks_.front().destroy();
             free_tasks_.pushBack(order_tasks_.popFront());
             return true;
@@ -226,14 +229,14 @@ public:
             return use_count_.fetch_sub(1) == 1;
         }
 
-        void push(TaskOne&& _task, const uint64_t _consume_id)
+        void push(TaskOne&& _task, const uint64_t _all_id, const uint64_t _consume_id)
         {
-            task_q_.push(std::move(_task), _consume_id);
+            task_q_.push(std::move(_task), _all_id, _consume_id);
         }
 
-        bool pop(TaskData<TaskOne>& _task_data, const uint64_t _consume_id)
+        bool pop(TaskData<TaskOne>& _task_data, uint64_t& _rall_id, const uint64_t _consume_id)
         {
-            return task_q_.pop(_task_data, _consume_id);
+            return task_q_.pop(_task_data, _rall_id, _consume_id);
         }
     };
 
@@ -317,15 +320,22 @@ private:
             pushing_.notify_one();
         }
 
-        LockE waitWhilePop() noexcept
+        template <
+            class Fnc,
+            class AllFnc,
+            typename... Args>
+        LockE waitWhilePop(const Fnc& _try_consume_an_all_fnc, AllFnc& _all_fnc, Args&&... _args) noexcept
         {
             while (true) {
                 const bool already_popping = popping_.test_and_set(std::memory_order_acquire);
                 if (!already_popping) {
                     // wait for lock to be 1 or 2.
                     uint_fast32_t value = lock_.load();
+
                     while (value == to_underlying(LockE::Empty)) {
-                        lock_.wait(value);
+                        if (!_try_consume_an_all_fnc(_all_fnc, std::forward<Args>(_args)...)) {
+                            lock_.wait(value);
+                        }
                         value = lock_.load();
                     }
                     return static_cast<LockE>(value);
@@ -348,14 +358,12 @@ private:
         std::atomic_flag          pushing_ = ATOMIC_FLAG_INIT;
         std::atomic_uint_fast32_t lock_;
         std::atomic_uint_fast32_t use_count_;
+        std::atomic_uint_fast64_t id_;
 
         AllStub()
             : lock_{to_underlying(LockE::Empty)}
             , use_count_{0}
-        {
-        }
-
-        void clear() noexcept
+            , id_{0}
         {
         }
 
@@ -377,11 +385,28 @@ private:
             }
         }
 
-        void notifyWhilePushAll() noexcept
+        void notifyWhilePushAll(const uint32_t _thread_count, const uint64_t _id) noexcept
         {
-            use_count_.store(threads_.size());
+            use_count_.store(_thread_count);
+            id_.store(_id);
             lock_.store(to_underlying(LockE::Filled));
             pushing_.clear(std::memory_order_release);
+        }
+
+        bool notifyWhilePop() noexcept
+        {
+            if (use_count_.fetch_sub(1) == 1) {
+                TaskData<TaskAll>::destroy();
+                lock_.store(to_underlying(LockE::Empty));
+                lock_.notify_one();
+                return true;
+            }
+            return false;
+        }
+
+        bool isFilled(const uint64_t _id) const
+        {
+            return lock_.load() == to_underlying(LockE::Filled) && id_.load() == _id;
         }
     };
 
@@ -390,8 +415,8 @@ private:
     std::atomic<bool>          running_;
     std::atomic_size_t         push_one_index_;
     std::atomic_size_t         pop_one_index_;
+    std::atomic_size_t         pending_all_count_;
     std::atomic_uint_fast64_t  push_all_index_;
-    std::atomic_uint_fast64_t  pop_all_index_;
     std::atomic_uint_fast64_t  commited_all_index_;
     size_t                     one_capacity_ = 0;
     size_t                     all_capacity_ = 0;
@@ -409,27 +434,18 @@ private:
         return pop_one_index_.fetch_add(1) % one_capacity_;
     }
 
-    uint64_t pushAllIndex() noexcept
+    auto pushAllId() noexcept
     {
-        return push_all_index_.fetch_add(1) % all_capacity_;
-    }
-    size_t popAllIndex() noexcept
-    {
-        return pop_all_index_.fetch_add(1) % all_capacity_;
+        return push_all_index_.fetch_add(1);
     }
 
-    void commitAllIndex(const uint64_t _index)
+    void commitAllId(const uint64_t _id)
     {
-        uint64_t index = _index - 1;
-        while (!commited_all_index_.compare_exchange_weak(index, _index)) {
-            index = _index - 1;
+        uint64_t id = _id - 1;
+        while (!commited_all_index_.compare_exchange_weak(id, _id)) {
+            id = _id - 1;
             cpu_pause();
         }
-    }
-
-    bool shouldWakeThreads(const uint64_t _index) const
-    {
-        return (pop_all_index_.load() + 1) == _index;
     }
 
 public:
@@ -437,6 +453,8 @@ public:
         : running_(false)
         , push_one_index_(0)
         , pop_one_index_(0)
+        , pending_all_count_(0)
+        , push_all_index_(1)
         , commited_all_index_(0)
     {
     }
@@ -496,6 +514,15 @@ private:
         OneFnc&      _one_fnc,
         AllFnc&      _all_fnc,
         Args&&... _args);
+
+    template <
+        class AllFnc,
+        typename... Args>
+    bool tryConsumeAnAllTask(uint64_t& _rlocal_all_id, AllFnc& _all_fnc, Args&&... _args);
+    template <
+        class AllFnc,
+        typename... Args>
+    void consumeAll(uint64_t& _rlocal_all_id, const uint64_t _all_id, AllFnc& _all_fnc, Args&&... _args);
 };
 
 } // namespace tpimpl
@@ -805,16 +832,22 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
     AllFnc&      _all_fnc,
     Args&&... _args)
 {
-    uint64_t local_all_id = 0;
+    uint64_t local_all_id = 1;
+
     while (true) {
         const size_t index = popOneIndex();
         auto&        rstub = one_tasks_[index];
-        const auto   lock  = rstub.waitWhilePop();
+        const auto   lock  = rstub.waitWhilePop(
+            [this, &local_all_id](
+                AllFnc& _all_fnc,
+                Args&&... _args) { return tryConsumeAnAllTask(local_all_id, _all_fnc, std::forward<Args>(_args)...); },
+            _all_fnc,
+            std::forward<Args>(_args)...);
 
         if (lock == LockE::Filled) {
             auto  context_produce_id = rstub.context_produce_id_;
             auto* pctx               = rstub.pcontext_;
-            const auto all_id = rstub.all_id_;
+            auto  all_id             = rstub.all_id_;
             {
                 TaskOne task{std::move(rstub.task())};
 
@@ -823,7 +856,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
 
                 rstub.notifyWhilePop();
 
-                consumeAll(local_all_id, all_id);
+                consumeAll(local_all_id, all_id, _all_fnc, std::forward<Args>(_args)...);
 
                 if (pctx == nullptr) {
                     _one_fnc(task, std::forward<Args>(_args)...);
@@ -833,7 +866,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
                 } else {
                     pctx->spin_.lock();
                     if (context_produce_id != pctx->consume_id_.load()) {
-                        pctx->push(std::move(task), context_produce_id);
+                        pctx->push(std::move(task), all_id, context_produce_id);
                         pctx->spin_.unlock();
                         continue;
                     } else {
@@ -849,11 +882,13 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
                 TaskData<TaskOne> task_data;
                 {
                     SpinGuardT lock{pctx->spin_};
-                    if (pctx->pop(task_data, context_produce_id)) {
+                    if (pctx->pop(task_data, all_id, context_produce_id)) {
                     } else {
                         break;
                     }
                 }
+
+                consumeAll(local_all_id, all_id, _all_fnc, std::forward<Args>(_args)...);
 
                 _one_fnc(task_data.task(), std::forward<Args>(_args)...);
 
@@ -866,31 +901,47 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
             if (pctx->release()) {
                 delete pctx;
             }
-
-            consumeAll(local_all_id);
         } else if (lock == LockE::Wake) {
             rstub.notifyWhilePop();
-            consumeAll(local_all_id);
         } else if (lock == LockE::Stop) {
             rstub.notifyWhilePop();
-            consumeAll(local_all_id);
             break;
         }
     }
 }
 //-----------------------------------------------------------------------------
 template <class TaskOne, class TaskAll, class Stats>
-template <class Tsk>
-void ThreadPool<TaskOne, TaskAll, Stats>::consumeAll(uint64_t& _rlocal_all_id)
+template <
+    class AllFnc,
+    typename... Args>
+bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(uint64_t& _rlocal_all_id, AllFnc& _all_fnc, Args&&... _args)
 {
+    auto& rstub = all_tasks_[_rlocal_all_id % all_capacity_];
+    if (rstub.isFilled(_rlocal_all_id)) {
+        TaskAll task{rstub.task()};
+        bool    should_retry = true;
 
+        if (rstub.notifyWhilePop()) {
+            should_retry = pending_all_count_.fetch_sub(1) != 1;
+        }
+
+        _all_fnc(task, std::forward<Args>(_args)...);
+
+        ++_rlocal_all_id;
+        return should_retry;
+    }
+    return pending_all_count_.load() != 0;
 }
 //-----------------------------------------------------------------------------
 template <class TaskOne, class TaskAll, class Stats>
-template <class Tsk>
-void ThreadPool<TaskOne, TaskAll, Stats>::consumeAll(uint64_t& _rlocal_all_id, const uint64_t _all_id)
+template <
+    class AllFnc,
+    typename... Args>
+void ThreadPool<TaskOne, TaskAll, Stats>::consumeAll(uint64_t& _rlocal_all_id, const uint64_t _all_id, AllFnc& _all_fnc, Args&&... _args)
 {
-
+    while (overflow_safe_less(_rlocal_all_id, _all_id)) {
+        tryConsumeAnAllTask(_rlocal_all_id, _all_fnc, std::forward<Args>(_args)...);
+    }
 }
 //-----------------------------------------------------------------------------
 template <class TaskOne, class TaskAll, class Stats>
@@ -915,31 +966,33 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushOne(Tsk&& _task, ContextStub* _p
 }
 //-----------------------------------------------------------------------------
 // NOTE:
-// we cannot guarantee that a onetask at X (OT_X) and another onetask at X+a (OT_Xa) will 
+// we cannot guarantee that a onetask at X (OT_X) and another onetask at X+a (OT_Xa) will
 //  always have OT_X.all_id < OT_Xa.all_id. This means that we cannot guarantee that
 //  a OneTask will always be consumed within the exact all_id context (it might be a newer context).
 template <class TaskOne, class TaskAll, class Stats>
 template <class Tsk>
 void ThreadPool<TaskOne, TaskAll, Stats>::doPushAll(Tsk&& _task)
 {
-    const auto index = pushAllIndex();
-    auto&      rstub = all_tasks_[index];
+    const auto id    = pushAllId();
+    auto&      rstub = all_tasks_[id % all_capacity_];
 
     rstub.waitWhilePushAll();
 
     rstub.task(std::forward<Tsk>(_task));
 
-    rstub.notifyWhilePushAll();
+    const auto shoud_wake_threads = pending_all_count_.fetch_add(1) == 0;
 
-    commitAllIndex(index);
+    rstub.notifyWhilePushAll(threads_.size(), id);
 
-    if (shouldWakeThreads(index)) {
+    commitAllId(id);
+
+    if (shoud_wake_threads) {
         for (size_t i = 0; i < threads_.size(); ++i) {
             auto& rstub = one_tasks_[pushOneIndex()];
 
             rstub.waitWhilePushAll();
 
-            rstub.all_id_ = index;
+            rstub.all_id_ = id;
 
             rstub.notifyWhilePushAll();
         }

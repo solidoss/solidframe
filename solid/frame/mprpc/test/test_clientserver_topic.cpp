@@ -105,8 +105,7 @@ uint64_t microseconds_since_epoch()
 struct Topic {
     const size_t  id_;
     SynchContextT synch_ctx_;
-    uint64_t      value_   = 0;
-    uint64_t      context_ = 0;
+    uint64_t      value_ = 0;
 
     Topic(
         const size_t    _id,
@@ -209,6 +208,11 @@ void server_complete_message(
 
 void multicast_run(CallPoolT& _work_pool);
 void wait();
+
+struct ThreadPoolLocalContext {
+    uint64_t value_ = 0;
+};
+
 //-----------------------------------------------------------------------------
 // Time points:
 // - request send initiate time -> Message::time_offset (snd)
@@ -241,6 +245,9 @@ std::atomic<size_t>       client_connection_count{0};
 std::promise<void>        client_connection_promise;
 std::promise<void>        promise;
 std::atomic_bool          running = true;
+
+thread_local unique_ptr<ThreadPoolLocalContext> local_thread_pool_context_ptr;
+
 //-----------------------------------------------------------------------------
 } // namespace
 
@@ -270,6 +277,7 @@ int test_clientserver_topic(int argc, char* argv[])
             thread_count, 1000, 100,
             [](const size_t) {
                 set_current_thread_affinity();
+                local_thread_pool_context_ptr = std::make_unique<ThreadPoolLocalContext>();
             },
             [](const size_t) {});
 #else
@@ -493,9 +501,7 @@ void multicast_run(CallPoolT& _work_pool)
     while (running) {
         _work_pool.pushAll(
             [context]() {
-                for (auto& topic : local_worker_context_ptr->topic_vec_) {
-                    topic->context_ = context;
-                }
+                local_thread_pool_context_ptr->value_ = context;
             });
         ++context;
     }
@@ -569,7 +575,7 @@ void server_complete_message(
         auto lambda = [topic_ptr, _rrecv_msg_ptr = std::move(_rrecv_msg_ptr), &service = _rctx.service(), recipient_id = _rctx.recipientId()]() {
             ++topic_ptr->value_;
             _rrecv_msg_ptr->topic_value_   = topic_ptr->value_;
-            _rrecv_msg_ptr->topic_context_ = topic_ptr->context_;
+            _rrecv_msg_ptr->topic_context_ = local_thread_pool_context_ptr->value_;
             _rrecv_msg_ptr->time_point_    = microseconds_since_epoch();
             service.sendResponse(recipient_id, _rrecv_msg_ptr);
         };
