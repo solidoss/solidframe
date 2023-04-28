@@ -23,18 +23,18 @@ THE SOFTWARE.
 */
 
 #include "solid/utility/atomic_wait"
-#include <barrier>
 #include <thread>
 
 #ifdef __TABLE
 
 contended_t contention[256];
 
-contended_t * __contention(volatile void const * p) {
+contended_t* __contention(volatile void const* p)
+{
     return contention + ((uintptr_t)p & 255);
 }
 
 #endif //__TABLE
 
-//thread_local size_t __barrier_favorite_hash =
-//    std::hash<std::thread::id>()(std::this_thread::get_id());
+// thread_local size_t __barrier_favorite_hash =
+//     std::hash<std::thread::id>()(std::this_thread::get_id());

@@ -28,22 +28,22 @@
 namespace solid {
 
 struct ThreadPoolStatistic : solid::Statistic {
-    std::atomic_uint_fast64_t create_context_count_ = {0};
-    std::atomic_uint_fast64_t delete_context_count_ = {0};
-    std::atomic_uint_fast64_t run_one_free_count_ = {0};
-    std::atomic_uint_fast64_t max_run_one_free_count_ = {0};
-    std::atomic_uint_fast64_t run_one_context_count_ = {0};
+    std::atomic_uint_fast64_t create_context_count_      = {0};
+    std::atomic_uint_fast64_t delete_context_count_      = {0};
+    std::atomic_uint_fast64_t run_one_free_count_        = {0};
+    std::atomic_uint_fast64_t max_run_one_free_count_    = {0};
+    std::atomic_uint_fast64_t run_one_context_count_     = {0};
     std::atomic_uint_fast64_t max_run_one_context_count_ = {0};
-    std::atomic_uint_fast64_t run_one_push_count_ = {0};
-    std::atomic_uint_fast64_t max_run_one_push_count_ = {0};
-    std::atomic_uint_fast64_t run_all_wake_count_ = {0};
-    std::atomic_uint_fast64_t max_run_all_wake_count_ = {0};
+    std::atomic_uint_fast64_t run_one_push_count_        = {0};
+    std::atomic_uint_fast64_t max_run_one_push_count_    = {0};
+    std::atomic_uint_fast64_t run_all_wake_count_        = {0};
+    std::atomic_uint_fast64_t max_run_all_wake_count_    = {0};
     std::atomic_uint_fast64_t push_one_count_[2];
-    std::atomic_uint_fast64_t push_all_count_ = {0};
-    std::atomic_uint_fast64_t push_all_wake_count_ = {0};
+    std::atomic_uint_fast64_t push_all_count_        = {0};
+    std::atomic_uint_fast64_t push_all_wake_count_   = {0};
     std::atomic_uint_fast64_t max_consume_all_count_ = {0};
-    std::atomic_uint_fast64_t run_all_count_ = {0};
-    std::atomic_uint_fast64_t max_run_all_count_ = {0};
+    std::atomic_uint_fast64_t run_all_count_         = {0};
+    std::atomic_uint_fast64_t max_run_all_count_     = {0};
 
     ThreadPoolStatistic();
 
@@ -354,13 +354,13 @@ private:
     };
     struct /*alignas(std::hardware_destructive_interference_size)*/ OneStub : TaskData<TaskOne> {
 #if defined(__cpp_lib_atomic_wait)
-        std::atomic_flag          pushing_ = ATOMIC_FLAG_INIT;
-        std::atomic_flag          popping_ = ATOMIC_FLAG_INIT;
+        std::atomic_flag pushing_ = ATOMIC_FLAG_INIT;
+        std::atomic_flag popping_ = ATOMIC_FLAG_INIT;
 #else
-        std::atomic_bool           pushing_ = {false};
-        std::atomic_bool           popping_ = {false};
+        std::atomic_bool pushing_ = {false};
+        std::atomic_bool popping_ = {false};
 #endif
-        std::atomic_uint_fast32_t lock_ = {to_underlying(LockE::Empty)};
+        std::atomic_uint_fast32_t lock_               = {to_underlying(LockE::Empty)};
         ContextStub*              pcontext_           = nullptr;
         uint64_t                  all_id_             = 0;
         uint64_t                  context_produce_id_ = 0;
@@ -378,14 +378,14 @@ private:
 #if defined(__cpp_lib_atomic_wait)
                 const bool already_pushing = pushing_.test_and_set(std::memory_order_acquire);
 #else
-                bool expected = false;
+                bool       expected        = false;
                 const bool already_pushing = !pushing_.compare_exchange_strong(expected, true, std::memory_order_acquire);
 #endif
                 if (!already_pushing) {
                     //  wait for lock to be 0.
                     uint_fast32_t value = lock_.load();
                     while (value != to_underlying(LockE::Empty)) {
-                        //lock_.wait(value);
+                        // lock_.wait(value);
                         std::atomic_wait(&lock_, value);
                         value = lock_.load();
                     }
@@ -395,7 +395,7 @@ private:
                     pushing_.wait(true);
 #else
                     std::atomic_wait(&pushing_, true);
-#endif                
+#endif
                 }
             }
         }
@@ -459,7 +459,7 @@ private:
 #if defined(__cpp_lib_atomic_wait)
                 const bool already_popping = popping_.test_and_set(std::memory_order_acquire);
 #else
-                bool expected = false;
+                bool       expected        = false;
                 const bool already_popping = !popping_.compare_exchange_strong(expected, true, std::memory_order_acquire);
 #endif
                 if (!already_popping) {
@@ -499,13 +499,13 @@ private:
 
     struct /*alignas(std::hardware_destructive_interference_size)*/ AllStub : TaskData<TaskAll> {
 #if defined(__cpp_lib_atomic_wait)
-        std::atomic_flag          pushing_ = ATOMIC_FLAG_INIT;
+        std::atomic_flag pushing_ = ATOMIC_FLAG_INIT;
 #else
-        std::atomic_bool          pushing_ = {false};
+        std::atomic_bool pushing_ = {false};
 #endif
-        std::atomic_uint_fast32_t lock_ = {to_underlying(LockE::Empty)};
+        std::atomic_uint_fast32_t lock_      = {to_underlying(LockE::Empty)};
         std::atomic_uint_fast32_t use_count_ = {0};
-        std::atomic_uint_fast64_t id_ = {0};
+        std::atomic_uint_fast64_t id_        = {0};
 
         void waitWhilePushAll() noexcept
         {
@@ -513,7 +513,7 @@ private:
 #if defined(__cpp_lib_atomic_wait)
                 const bool already_pushing = pushing_.test_and_set(std::memory_order_acquire);
 #else
-                bool expected = false;
+                bool       expected        = false;
                 const bool already_pushing = !pushing_.compare_exchange_strong(expected, true, std::memory_order_acquire);
 #endif
                 if (!already_pushing) {
