@@ -1,7 +1,8 @@
 include (CheckIncludeFiles)
 include (CheckCXXSourceRuns)
 include (CheckCXXCompilerFlag)
-INCLUDE(TestBigEndian)
+include (TestBigEndian)
+include (CheckSymbolExists)
 
 # just as an idea
 check_include_files(pthread.h SOLID_USE_PTHREAD)

@@ -269,21 +269,6 @@ std::ostream& WorkPoolMulticastStatistic::print(std::ostream& _ros) const
 //-----------------------------------------------------------------------------
 // ThreadPool:
 ThreadPoolStatistic::ThreadPoolStatistic()
-    : create_context_count_{0}
-    , delete_context_count_{0}
-    , run_one_free_count_{0}
-    , max_run_one_free_count_{0}
-    , run_one_context_count_{0}
-    , max_run_one_context_count_{0}
-    , run_one_push_count_{0}
-    , max_run_one_push_count_{0}
-    , run_all_wake_count_{0}
-    , max_run_all_wake_count_{0}
-    , push_all_count_{0}
-    , push_all_wake_count_{0}
-    , max_consume_all_count_{0}
-    , run_all_count_{0}
-    , max_run_all_count_{0}
 {
     push_one_count_[0] = 0;
     push_one_count_[1] = 0;

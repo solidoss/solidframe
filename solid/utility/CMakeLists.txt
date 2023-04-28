@@ -5,6 +5,7 @@ set(Sources
     src/event.cpp
     src/super.cpp
     src/sharedbuffer.cpp
+    src/atomic_wait.cpp
 )
 
 set(Headers
@@ -38,13 +39,14 @@ set(Inlines
 add_library (solid_utility STATIC
     ${Sources} ${Headers} ${Inlines}
 )
+
 target_include_directories(solid_utility PUBLIC
     $<BUILD_INTERFACE:${SolidFrame_SOURCE_DIR}>
     $<INSTALL_INTERFACE:include>
     PRIVATE src
 )
 target_link_libraries(solid_utility PUBLIC solid_system)
-target_compile_features(solid_utility PUBLIC cxx_std_17)
+#target_compile_features(solid_utility PUBLIC cxx_std_17)
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/utility)
 install (TARGETS solid_utility DESTINATION lib EXPORT SolidFrameConfig)
