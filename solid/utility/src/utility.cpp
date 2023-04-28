@@ -268,10 +268,47 @@ std::ostream& WorkPoolMulticastStatistic::print(std::ostream& _ros) const
 
 //-----------------------------------------------------------------------------
 // ThreadPool:
-ThreadPoolStatistic::ThreadPoolStatistic() {}
+ThreadPoolStatistic::ThreadPoolStatistic()
+    : create_context_count_{0}
+    , delete_context_count_{0}
+    , run_one_free_count_{0}
+    , max_run_one_free_count_{0}
+    , run_one_context_count_{0}
+    , max_run_one_context_count_{0}
+    , run_one_push_count_{0}
+    , max_run_one_push_count_{0}
+    , run_all_wake_count_{0}
+    , max_run_all_wake_count_{0}
+    , push_all_count_{0}
+    , push_all_wake_count_{0}
+    , max_consume_all_count_{0}
+    , run_all_count_{0}
+    , max_run_all_count_{0}
+{
+    push_one_count_[0] = 0;
+    push_one_count_[1] = 0;
+}
 
 std::ostream& ThreadPoolStatistic::print(std::ostream& _ros) const
 {
+    _ros << "create_context_count = " << create_context_count_.load(std::memory_order_relaxed);
+    _ros << " delete_context_count = " << delete_context_count_.load(std::memory_order_relaxed);
+    _ros << " run_one_free_count = " << run_one_free_count_.load(std::memory_order_relaxed);
+    _ros << " max_run_one_free_count = " << max_run_one_free_count_.load(std::memory_order_relaxed);
+    _ros << " run_one_context_count = " << run_one_context_count_.load(std::memory_order_relaxed);
+    _ros << " max_run_one_context_count = " << max_run_one_context_count_.load(std::memory_order_relaxed);
+    _ros << " run_one_push_count = " << run_one_push_count_.load(std::memory_order_relaxed);
+    _ros << " max_run_one_push_count = " << max_run_one_push_count_.load(std::memory_order_relaxed);
+    _ros << " run_all_wake_count = " << run_all_wake_count_.load(std::memory_order_relaxed);
+    _ros << " max_run_all_wake_count = " << max_run_all_wake_count_.load(std::memory_order_relaxed);
+    _ros << " push_one_count[free] = " << push_one_count_[0].load(std::memory_order_relaxed);
+    _ros << " push_one_count[context] = " << push_one_count_[1].load(std::memory_order_relaxed);
+    _ros << " push_all_count = " << push_all_count_.load(std::memory_order_relaxed);
+    _ros << " push_all_wake_count = " << push_all_wake_count_.load(std::memory_order_relaxed);
+    _ros << " max_consume_all_count = " << max_consume_all_count_.load(std::memory_order_relaxed);
+    _ros << " run_all_count = " << run_all_count_.load(std::memory_order_relaxed);
+    _ros << " max_run_all_count = " << max_run_all_count_.load(std::memory_order_relaxed);
+
     return _ros;
 }
 void ThreadPoolStatistic::clear() {}

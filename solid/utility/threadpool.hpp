@@ -9,6 +9,7 @@
 //
 
 #pragma once
+#include <atomic>
 #include <deque>
 #include <functional>
 #include <thread>
@@ -23,10 +24,103 @@
 namespace solid {
 
 struct ThreadPoolStatistic : solid::Statistic {
+    std::atomic_uint_fast64_t create_context_count_;
+    std::atomic_uint_fast64_t delete_context_count_;
+    std::atomic_uint_fast64_t run_one_free_count_;
+    std::atomic_uint_fast64_t max_run_one_free_count_;
+    std::atomic_uint_fast64_t run_one_context_count_;
+    std::atomic_uint_fast64_t max_run_one_context_count_;
+    std::atomic_uint_fast64_t run_one_push_count_;
+    std::atomic_uint_fast64_t max_run_one_push_count_;
+    std::atomic_uint_fast64_t run_all_wake_count_;
+    std::atomic_uint_fast64_t max_run_all_wake_count_;
+    std::atomic_uint_fast64_t push_one_count_[2];
+    std::atomic_uint_fast64_t push_all_count_;
+    std::atomic_uint_fast64_t push_all_wake_count_;
+    std::atomic_uint_fast64_t max_consume_all_count_;
+    std::atomic_uint_fast64_t run_all_count_;
+    std::atomic_uint_fast64_t max_run_all_count_;
+
     ThreadPoolStatistic();
+
+    void createContext()
+    {
+        ++create_context_count_;
+    }
+    void deleteContext()
+    {
+        ++delete_context_count_;
+    }
+
+    void runOneFreeCount(const uint64_t _count)
+    {
+        ++run_one_free_count_;
+        solid_statistic_max(max_run_one_free_count_, _count);
+    }
+    void runOneContextPush(const uint64_t _count)
+    {
+        ++run_one_push_count_;
+        solid_statistic_max(max_run_one_push_count_, _count);
+    }
+    void runOneContextCount(const uint64_t _inc, const uint64_t _count)
+    {
+        run_one_context_count_ += _inc;
+        solid_statistic_max(max_run_one_context_count_, _count);
+    }
+    void runWakeCount(const uint64_t _count)
+    {
+        ++run_all_wake_count_;
+        solid_statistic_max(max_run_all_wake_count_, _count);
+    }
+
+    void tryConsumeAnAllTaskFilled(const bool _should_retry, const uint64_t _count)
+    {
+        ++run_all_count_;
+        solid_statistic_max(max_run_all_count_, _count);
+    }
+
+    void tryConsumeAnAllTaskNotFilled(const bool _should_retry)
+    {
+    }
+
+    void consumeAll(const uint64_t _count)
+    {
+        solid_statistic_max(max_consume_all_count_, _count);
+    }
+
+    void pushOne(const bool _with_context)
+    {
+        ++push_one_count_[_with_context];
+    }
+    void pushAll(const bool _should_wake)
+    {
+        ++push_all_count_;
+    }
 
     std::ostream& print(std::ostream& _ros) const override;
     void          clear();
+};
+
+struct EmptyThreadPoolStatistic : solid::Statistic {
+
+    void createContext() {}
+    void deleteContext() {}
+
+    void runOneFreeCount(const uint64_t _count) {}
+    void runOneContextPush(const uint64_t _count) {}
+    void runOneContextCount(const uint64_t _inc, const uint64_t _count) {}
+    void runWakeCount(const uint64_t _count) {}
+
+    void tryConsumeAnAllTaskFilled(const bool _should_retry, const uint64_t _count) {}
+    void tryConsumeAnAllTaskNotFilled(const bool _should_retry) {}
+    void consumeAll(const uint64_t _count) {}
+    void pushOne(const bool _with_context) {}
+    void pushAll(const bool _should_wake)
+    {
+    }
+
+    std::ostream& print(std::ostream& _ros) const override { return _ros; }
+    void          clear() {}
 };
 
 template <class TaskOne, class TaskAll, class Stats = ThreadPoolStatistic>
@@ -191,7 +285,14 @@ public:
         return false;
     }
 };
-
+struct LocalContext {
+    uint64_t all_id_                 = 1;
+    uint64_t all_count_              = 0;
+    uint64_t one_free_count_         = 0;
+    uint64_t one_context_count_      = 0;
+    uint64_t one_context_push_count_ = 0;
+    uint64_t wake_count_             = 0;
+};
 /*
 NOTE:
     Because we want to execute each TaskOne within the exact TaskAll context
@@ -497,6 +598,7 @@ public:
     {
         if (_pctx) {
             if (_pctx->release()) {
+                statistic_.deleteContext();
                 delete _pctx;
             }
         }
@@ -518,11 +620,11 @@ private:
     template <
         class AllFnc,
         typename... Args>
-    bool tryConsumeAnAllTask(uint64_t& _rlocal_all_id, AllFnc& _all_fnc, Args&&... _args);
+    bool tryConsumeAnAllTask(LocalContext& _rlocal_context, AllFnc& _all_fnc, Args&&... _args);
     template <
         class AllFnc,
         typename... Args>
-    void consumeAll(uint64_t& _rlocal_all_id, const uint64_t _all_id, AllFnc& _all_fnc, Args&&... _args);
+    void consumeAll(LocalContext& _rlocal_context, const uint64_t _all_id, AllFnc& _all_fnc, Args&&... _args);
 };
 
 } // namespace tpimpl
@@ -832,15 +934,16 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
     AllFnc&      _all_fnc,
     Args&&... _args)
 {
-    uint64_t local_all_id = 1;
+    LocalContext local_context;
 
     while (true) {
-        const size_t index = popOneIndex();
-        auto&        rstub = one_tasks_[index];
-        const auto   lock  = rstub.waitWhilePop(
-            [this, &local_all_id](
+        const size_t index                   = popOneIndex();
+        auto&        rstub                   = one_tasks_[index];
+        uint64_t     local_one_context_count = 0;
+        const auto   lock                    = rstub.waitWhilePop(
+            [this, &local_context](
                 AllFnc& _all_fnc,
-                Args&&... _args) { return tryConsumeAnAllTask(local_all_id, _all_fnc, std::forward<Args>(_args)...); },
+                Args&&... _args) { return tryConsumeAnAllTask(local_context, _all_fnc, std::forward<Args>(_args)...); },
             _all_fnc,
             std::forward<Args>(_args)...);
 
@@ -856,22 +959,28 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
 
                 rstub.notifyWhilePop();
 
-                consumeAll(local_all_id, all_id, _all_fnc, std::forward<Args>(_args)...);
+                consumeAll(local_context, all_id, _all_fnc, std::forward<Args>(_args)...);
 
                 if (pctx == nullptr) {
                     _one_fnc(task, std::forward<Args>(_args)...);
+                    ++local_context.one_free_count_;
+                    statistic_.runOneFreeCount(local_context.one_free_count_);
                     continue;
                 } else if (context_produce_id == pctx->consume_id_.load()) {
                     _one_fnc(task, std::forward<Args>(_args)...);
+                    ++local_one_context_count;
                 } else {
                     pctx->spin_.lock();
                     if (context_produce_id != pctx->consume_id_.load()) {
                         pctx->push(std::move(task), all_id, context_produce_id);
                         pctx->spin_.unlock();
+                        ++local_context.one_context_push_count_;
+                        statistic_.runOneContextPush(local_context.one_context_push_count_);
                         continue;
                     } else {
                         pctx->spin_.unlock();
                         _one_fnc(task, std::forward<Args>(_args)...);
+                        ++local_one_context_count;
                     }
                 }
             }
@@ -888,7 +997,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
                     }
                 }
 
-                consumeAll(local_all_id, all_id, _all_fnc, std::forward<Args>(_args)...);
+                consumeAll(local_context, all_id, _all_fnc, std::forward<Args>(_args)...);
 
                 _one_fnc(task_data.task(), std::forward<Args>(_args)...);
 
@@ -896,12 +1005,19 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
 
                 context_produce_id = pctx->consume_id_.fetch_add(1) + 1;
                 pctx->release();
+                ++local_one_context_count;
             } while (true);
 
             if (pctx->release()) {
                 delete pctx;
             }
+
+            local_context.one_context_count_ += local_one_context_count;
+
+            statistic_.runOneContextCount(local_one_context_count, local_context.one_context_count_);
         } else if (lock == LockE::Wake) {
+            ++local_context.wake_count_;
+            statistic_.runWakeCount(local_context.wake_count_);
             rstub.notifyWhilePop();
         } else if (lock == LockE::Stop) {
             rstub.notifyWhilePop();
@@ -914,10 +1030,10 @@ template <class TaskOne, class TaskAll, class Stats>
 template <
     class AllFnc,
     typename... Args>
-bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(uint64_t& _rlocal_all_id, AllFnc& _all_fnc, Args&&... _args)
+bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(LocalContext& _rlocal_context, AllFnc& _all_fnc, Args&&... _args)
 {
-    auto& rstub = all_tasks_[_rlocal_all_id % all_capacity_];
-    if (rstub.isFilled(_rlocal_all_id)) {
+    auto& rstub = all_tasks_[_rlocal_context.all_id_ % all_capacity_];
+    if (rstub.isFilled(_rlocal_context.all_id_)) {
         TaskAll task{rstub.task()};
         bool    should_retry = true;
 
@@ -927,21 +1043,28 @@ bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(uint64_t& _rlocal_
 
         _all_fnc(task, std::forward<Args>(_args)...);
 
-        ++_rlocal_all_id;
+        ++_rlocal_context.all_id_;
+        ++_rlocal_context.all_count_;
+        statistic_.tryConsumeAnAllTaskFilled(should_retry, _rlocal_context.all_count_);
         return should_retry;
     }
-    return pending_all_count_.load() != 0;
+    const auto should_retry = pending_all_count_.load() != 0;
+    statistic_.tryConsumeAnAllTaskNotFilled(should_retry);
+    return should_retry;
 }
 //-----------------------------------------------------------------------------
 template <class TaskOne, class TaskAll, class Stats>
 template <
     class AllFnc,
     typename... Args>
-void ThreadPool<TaskOne, TaskAll, Stats>::consumeAll(uint64_t& _rlocal_all_id, const uint64_t _all_id, AllFnc& _all_fnc, Args&&... _args)
+void ThreadPool<TaskOne, TaskAll, Stats>::consumeAll(LocalContext& _rlocal_context, const uint64_t _all_id, AllFnc& _all_fnc, Args&&... _args)
 {
-    while (overflow_safe_less(_rlocal_all_id, _all_id)) {
-        tryConsumeAnAllTask(_rlocal_all_id, _all_fnc, std::forward<Args>(_args)...);
+    size_t repeat_count = 0;
+    while (overflow_safe_less(_rlocal_context.all_id_, _all_id)) {
+        tryConsumeAnAllTask(_rlocal_context, _all_fnc, std::forward<Args>(_args)...);
+        ++repeat_count;
     }
+    statistic_.consumeAll(repeat_count);
 }
 //-----------------------------------------------------------------------------
 template <class TaskOne, class TaskAll, class Stats>
@@ -963,6 +1086,8 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushOne(Tsk&& _task, ContextStub* _p
     }
 
     rstub.notifyWhilePushOne();
+
+    statistic_.pushOne(_pctx != nullptr);
 }
 //-----------------------------------------------------------------------------
 // NOTE:
@@ -997,11 +1122,13 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushAll(Tsk&& _task)
             rstub.notifyWhilePushAll();
         }
     }
+    statistic_.pushAll(shoud_wake_threads);
 }
 //-----------------------------------------------------------------------------
 template <class TaskOne, class TaskAll, class Stats>
 typename ThreadPool<TaskOne, TaskAll, Stats>::ContextStub* ThreadPool<TaskOne, TaskAll, Stats>::doCreateContext()
 {
+    statistic_.createContext();
     return new ContextStub{};
 }
 
