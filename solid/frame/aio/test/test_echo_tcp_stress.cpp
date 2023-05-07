@@ -49,7 +49,7 @@ std::string          srv_port_str;
 std::string          rly_port_str;
 bool                 be_secure       = false;
 bool                 use_relay       = false;
-unsigned             wait_seconds    = 200;
+unsigned             wait_seconds    = 250;
 constexpr const bool enable_no_delay = true;
 } // namespace
 //-----------------------------------------------------------------------------
@@ -608,7 +608,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
                 if (actuid.isInvalid()) {
                     --concnt;
                 }
-                solid_dbg(generic_logger, Info, "Started Connection Actor: " << actuid.index << ',' << actuid.unique);
+                solid_log(generic_logger, Info, "Started Connection Actor: " << actuid.index << ',' << actuid.unique);
             }
         }
         {
@@ -616,7 +616,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
 
             if (!cnd.wait_for(lock, std::chrono::seconds(wait_seconds), []() { return !running; })) {
                 // solid_throw("Process is taking too long.");
-                solid_dbg(generic_logger, Error, "Process is taking too long.");
+                solid_log(generic_logger, Error, "Process is taking too long.");
                 return -1;
             }
             cout << "Received " << recv_count / 1024 << "KB on " << connection_count << " connections" << endl;
