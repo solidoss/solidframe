@@ -19,7 +19,7 @@
 #include <mutex>
 #include <thread>
 
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 
 #include "solid/system/exception.hpp"
 #include "solid/system/log.hpp"
@@ -29,10 +29,10 @@
 using namespace std;
 using namespace solid;
 
+namespace {
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
-
-namespace {
+using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
 
 struct InitStub {
     size_t                      size;
@@ -347,16 +347,16 @@ int test_relay_disabled(int argc, char* argv[])
     }
 
     {
-        AioSchedulerT                     sch_peera;
-        AioSchedulerT                     sch_peerb;
-        AioSchedulerT                     sch_relay;
-        frame::Manager                    m;
-        frame::mprpc::ServiceT            mprpcrelay(m);
-        frame::mprpc::ServiceT            mprpcpeera(m);
-        frame::mprpc::ServiceT            mprpcpeerb(m);
-        ErrorConditionT                   err;
-        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1)};
-        frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
+        AioSchedulerT          sch_peera;
+        AioSchedulerT          sch_peerb;
+        AioSchedulerT          sch_relay;
+        frame::Manager         m;
+        frame::mprpc::ServiceT mprpcrelay(m);
+        frame::mprpc::ServiceT mprpcpeera(m);
+        frame::mprpc::ServiceT mprpcpeerb(m);
+        ErrorConditionT        err;
+        CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
         sch_peera.start(1);
         sch_peerb.start(1);

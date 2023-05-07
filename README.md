@@ -327,7 +327,7 @@ The library consists of tools needed by upper level libraries:
  * [__event.hpp__](solid/utility/event.hpp): Definition of an Event - a combination between something like std::error_code and an solid::Any<>.
  * [__innerlist.hpp__](solid/utility/innerlist.hpp): A container wrapper which allows implementing bidirectional lists over a std::vector/std::deque (extensively used by the solid_frame_ipc library).
  * [__memoryfile.hpp__](solid/utility/memoryfile.hpp): A data store with file like interface.
- * [__workpool.hpp__](solid/utility/workpool.hpp): Generic thread pool.
+ * [__threadpool.hpp__](solid/utility/threadpool.hpp): Generic thread pool.
  * [_dynamictype.hpp_](solid/utility/dynamictype.hpp): Base for objects with alternative support to dynamic_cast
  * [_dynamicpointer.hpp_](solid/utility/dynamicpointer.hpp): Smart pointer to "dynamic" objects - objects with alternative support to dynamic_cast.
  * [_queue.hpp_](solid/utility/queue.hpp): An alternative to std::queue

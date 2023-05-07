@@ -24,7 +24,7 @@
 #include <mutex>
 #include <thread>
 
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 
 #include "solid/system/exception.hpp"
 
@@ -35,10 +35,11 @@
 using namespace std;
 using namespace solid;
 
+namespace {
+
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
-
-namespace {
+using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
 
 const solid::LoggerT logger("test");
 
@@ -74,15 +75,15 @@ int test_clientserver_versioning(int argc, char* argv[])
 
     solid::log_start(std::cerr, {"test:VIEW"});
 
-    AioSchedulerT                     scheduler;
-    frame::Manager                    manager;
-    lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1)};
-    frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
-    frame::mprpc::ServiceT            service(manager);
-    frame::mprpc::ServiceT            service_v1(manager);
-    frame::mprpc::ServiceT            service_v2(manager);
-    frame::mprpc::ServiceT            service_v3(manager);
-    frame::mprpc::ServiceT            service_v4(manager);
+    AioSchedulerT          scheduler;
+    frame::Manager         manager;
+    CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+    frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
+    frame::mprpc::ServiceT service(manager);
+    frame::mprpc::ServiceT service_v1(manager);
+    frame::mprpc::ServiceT service_v2(manager);
+    frame::mprpc::ServiceT service_v3(manager);
+    frame::mprpc::ServiceT service_v4(manager);
 
     scheduler.start(1);
 

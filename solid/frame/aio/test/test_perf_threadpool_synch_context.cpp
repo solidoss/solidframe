@@ -8,20 +8,22 @@
 #include "solid/system/crashhandler.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/utility/event.hpp"
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 
 using namespace solid;
 using namespace std;
 namespace {
 const LoggerT logger("test");
 
-using WorkPoolT = lockfree::WorkPoolT<Event, void>;
+using ThreadPoolT   = ThreadPool<Event, uint32_t>;
+using SynchContextT = ThreadPoolT::SynchronizationContextT;
+
 atomic<size_t> received_events{0};
 atomic<size_t> accumulate_value{0};
 
 } // namespace
 
-int test_perf_workpool_lockfree(int argc, char* argv[])
+int test_perf_threadpool_synch_context(int argc, char* argv[])
 {
 
     solid::log_start(std::cerr, {".*:EWXS", "test:VIEWS"});
@@ -45,19 +47,39 @@ int test_perf_workpool_lockfree(int argc, char* argv[])
     if (argc > 3) {
         context_count = stoul(argv[3]);
     }
-    (void)context_count;
+
     auto lambda = [&]() {
-        WorkPoolT wp{
-            WorkPoolConfiguration{thread_count},
+        auto        start = std::chrono::steady_clock::now();
+        ThreadPoolT wp{
+            thread_count, 10000, 0, [](const size_t) {}, [](const size_t) {},
             [&](Event& _event) {
                 if (_event == generic_event_raise) {
                     ++received_events;
                     accumulate_value += *_event.any().cast<size_t>();
                 }
                 // solid_log(logger, Verbose, "job " << _r.value_);
-            }};
-        for (size_t i = 0; i < event_count; ++i) {
-            wp.push(make_event(GenericEvents::Raise, i));
+            },
+            [](const uint32_t _v) { // mcast execute
+                // solid_log(logger, Verbose, "mcast " << _v);
+            }
+
+        };
+        {
+            vector<SynchContextT> synch_contexts(context_count);
+
+            for (size_t i = 0; i < context_count; ++i) {
+                synch_contexts[i] = wp.createSynchronizationContext();
+            }
+
+            for (size_t i = 0; i < event_count; ++i) {
+                auto& rsynch_context = synch_contexts[i % context_count];
+                rsynch_context.push(make_event(GenericEvents::Raise, i));
+            }
+        }
+        {
+            auto                          end  = std::chrono::steady_clock::now();
+            std::chrono::duration<double> diff = end - start;
+            solid_log(logger, Verbose, "Duration after push " << diff.count());
         }
     };
 

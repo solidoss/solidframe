@@ -17,14 +17,9 @@ set(Headers
     ioformat.hpp
     memoryfile.hpp
     queue.hpp
-    queue_lockfree.hpp
     sharedmutex.hpp
     stack.hpp
     string.hpp
-    workpool.hpp
-    workpool_lockfree.hpp
-    workpool_locking.hpp
-    workpool_base.hpp
     function.hpp
     typetraits.hpp
     delegate.hpp

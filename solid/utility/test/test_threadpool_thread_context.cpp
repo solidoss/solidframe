@@ -1,7 +1,7 @@
 #include "solid/system/crashhandler.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/utility/function.hpp"
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 #include <atomic>
 #include <functional>
 #include <future>
@@ -35,28 +35,15 @@ struct Context {
         solid_log(generic_logger, Verbose, this << " count = " << count_);
     }
 };
-template <class Job, class MCast>
-#if SOLID_WORKPOOL_OPTION == 0
-using WorkPoolT = lockfree::WorkPool<Job, void, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<90>>;
-#elif SOLID_WORKPOOL_OPTION == 1
-using WorkPoolT = locking::WorkPool<Job, void, workpool_default_node_capacity_bit_count, true, impl::StressTestWorkPoolBase<90>>;
-#else
-using WorkPoolT = locking::WorkPool<Job, MCast, workpool_default_node_capacity_bit_count, true, impl::StressTestWorkPoolBase<90>>;
-#endif
+
+using CallPoolT = ThreadPool<Function<void(Context&&)>, Function<void(Context&&)>>;
 
 } // namespace
 
-int test_workpool_thread_context(int argc, char* argv[])
+int test_threadpool_thread_context(int argc, char* argv[])
 {
     install_crash_handler();
     solid::log_start(std::cerr, {".*:EWXS", "test:VIEWS"});
-#if SOLID_WORKPOOL_OPTION == 0
-    using CallPoolT = lockfree::CallPoolT<void(Context&), void, function_default_data_size, WorkPoolT>;
-#elif SOLID_WORKPOOL_OPTION == 1
-    using CallPoolT  = locking::CallPoolT<void(Context&), void, function_default_data_size, WorkPoolT>;
-#else
-    using CallPoolT = locking::CallPoolT<void(Context&), void(Context&), function_default_data_size, WorkPoolT>;
-#endif
 
     using AtomicPWPT = std::atomic<CallPoolT*>;
 
@@ -83,18 +70,18 @@ int test_workpool_thread_context(int argc, char* argv[])
             auto start = chrono::steady_clock::now();
             {
                 CallPoolT wp{
-                    WorkPoolConfiguration(2),
+                    2, 1000, 0, [](const size_t, Context&&) {}, [](const size_t, Context&&) {},
                     Context("simple text", 0UL)};
 
                 solid_log(logger, Verbose, "wp started");
                 pwp   = &wp;
                 start = chrono::steady_clock::now();
                 for (size_t i = 0; i < cnt; ++i) {
-                    auto l = [i, &val](Context& _rctx) {
+                    auto l = [i, &val](Context&& _rctx) {
                         ++_rctx.count_;
                         val += i;
                     };
-                    wp.push(l);
+                    wp.pushOne(l);
                 };
 
                 pwp = nullptr;

@@ -346,7 +346,7 @@ public:
     };
 
 private:
-    enum struct LockE : uint_fast32_t {
+    enum struct LockE : uint8_t {
         Empty = 0,
         Filled,
         Stop,
@@ -360,10 +360,10 @@ private:
         std::atomic_bool pushing_ = {false};
         std::atomic_bool popping_ = {false};
 #endif
-        std::atomic_uint_fast32_t lock_               = {to_underlying(LockE::Empty)};
-        ContextStub*              pcontext_           = nullptr;
-        uint64_t                  all_id_             = 0;
-        uint64_t                  context_produce_id_ = 0;
+        std::atomic_uint8_t lock_               = {to_underlying(LockE::Empty)};
+        ContextStub*        pcontext_           = nullptr;
+        uint64_t            all_id_             = 0;
+        uint64_t            context_produce_id_ = 0;
 
         void clear() noexcept
         {
@@ -383,7 +383,7 @@ private:
 #endif
                 if (!already_pushing) {
                     //  wait for lock to be 0.
-                    uint_fast32_t value = lock_.load();
+                    auto value = lock_.load();
                     while (value != to_underlying(LockE::Empty)) {
                         // lock_.wait(value);
                         std::atomic_wait(&lock_, value);
@@ -464,10 +464,10 @@ private:
 #endif
                 if (!already_popping) {
                     // wait for lock to be 1 or 2.
-                    uint_fast32_t value = lock_.load();
+                    auto value = lock_.load();
 
                     while (value == to_underlying(LockE::Empty)) {
-                        if (!_try_consume_an_all_fnc(_all_fnc, std::forward<Args>(_args)...)) {
+                        if (!_try_consume_an_all_fnc(&lock_, _all_fnc, std::forward<Args>(_args)...)) {
                             std::atomic_wait(&lock_, value);
                         }
                         value = lock_.load();
@@ -503,9 +503,9 @@ private:
 #else
         std::atomic_bool pushing_ = {false};
 #endif
-        std::atomic_uint_fast32_t lock_      = {to_underlying(LockE::Empty)};
-        std::atomic_uint_fast32_t use_count_ = {0};
-        std::atomic_uint_fast64_t id_        = {0};
+        std::atomic_uint8_t  lock_      = {to_underlying(LockE::Empty)};
+        std::atomic_uint32_t use_count_ = {0};
+        std::atomic_uint64_t id_        = {0};
 
         void waitWhilePushAll() noexcept
         {
@@ -518,7 +518,7 @@ private:
 #endif
                 if (!already_pushing) {
                     //  wait for lock to be 0.
-                    uint_fast32_t value = lock_.load();
+                    auto value = lock_.load();
                     while (value != to_underlying(LockE::Empty)) {
                         std::atomic_wait(&lock_, value);
                         value = lock_.load();
@@ -565,14 +565,14 @@ private:
 
     using ThreadVectorT = std::vector<std::thread>;
 
-    std::atomic<bool>          running_;
-    std::atomic_size_t         push_one_index_;
-    std::atomic_size_t         pop_one_index_;
-    std::atomic_size_t         pending_all_count_;
-    std::atomic_uint_fast64_t  push_all_index_;
-    std::atomic_uint_fast64_t  commited_all_index_;
-    size_t                     one_capacity_ = 0;
-    size_t                     all_capacity_ = 0;
+    std::atomic<bool>          running_            = {false};
+    std::atomic_size_t         push_one_index_     = {0};
+    std::atomic_size_t         pop_one_index_      = {0};
+    std::atomic_size_t         pending_all_count_  = {0};
+    std::atomic_uint_fast64_t  push_all_index_     = {1};
+    std::atomic_uint_fast64_t  commited_all_index_ = {0};
+    size_t                     one_capacity_       = 0;
+    size_t                     all_capacity_       = 0;
     std::unique_ptr<OneStub[]> one_tasks_;
     std::unique_ptr<AllStub[]> all_tasks_;
     ThreadVectorT              threads_;
@@ -602,15 +602,7 @@ private:
     }
 
 public:
-    ThreadPool()
-        : running_(false)
-        , push_one_index_(0)
-        , pop_one_index_(0)
-        , pending_all_count_(0)
-        , push_all_index_(1)
-        , commited_all_index_(0)
-    {
-    }
+    ThreadPool() = default;
 
     template <
         class StartFnc,
@@ -672,7 +664,7 @@ private:
     template <
         class AllFnc,
         typename... Args>
-    bool tryConsumeAnAllTask(LocalContext& _rlocal_context, AllFnc& _all_fnc, Args&&... _args);
+    bool tryConsumeAnAllTask(std::atomic_uint8_t* _plock, LocalContext& _rlocal_context, AllFnc& _all_fnc, Args&&... _args);
     template <
         class AllFnc,
         typename... Args>
@@ -878,6 +870,11 @@ public:
         impl_.doStop();
     }
 
+    ~ThreadPool()
+    {
+        impl_.doStop();
+    }
+
     SynchronizationContextT createSynchronizationContext()
     {
         return SynchronizationContextT{this, impl_.doCreateContext()};
@@ -934,22 +931,25 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doStart(
     if (!running_.compare_exchange_strong(expect, true)) {
         return;
     }
+    threads_.clear();
+    threads_.reserve(_thread_count);
 
-    // tasks_.resize(std::max(_capacity, _thread_count));
-    one_capacity_ = _one_capacity;
-    one_tasks_.reset(new OneStub[_one_capacity]);
-    all_capacity_ = _all_capacity;
-    all_tasks_.reset(new AllStub[_all_capacity]);
+    const auto thread_count = _thread_count ? _thread_count : std::thread::hardware_concurrency();
 
-    for (size_t i = 0; i < _thread_count; ++i) {
+    one_capacity_ = _one_capacity >= thread_count ? _one_capacity : std::max(static_cast<size_t>(1024), thread_count);
+    one_tasks_.reset(new OneStub[one_capacity_]);
+    all_capacity_ = _all_capacity ? _all_capacity : 1;
+    all_tasks_.reset(new AllStub[all_capacity_]);
+
+    for (size_t i = 0; i < thread_count; ++i) {
         threads_.emplace_back(
             std::thread{
-                [this, i, start_fnc = std::move(_start_fnc), stop_fnc = std::move(_stop_fnc), one_fnc = std::move(_one_fnc), all_fnc = std::move(_all_fnc)](Args&&... _args) {
-                    start_fnc(i, _args...);
+                [this, i, start_fnc = std::move(_start_fnc), stop_fnc = std::move(_stop_fnc), one_fnc = std::move(_one_fnc), all_fnc = std::move(_all_fnc)](Args&&... _args) mutable {
+                    start_fnc(i, std::forward<Args>(_args)...);
                     doRun(i, one_fnc, all_fnc, std::forward<Args>(_args)...);
-                    stop_fnc(i, _args...);
+                    stop_fnc(i, std::forward<Args>(_args)...);
                 },
-                _args...});
+                std::forward<Args>(_args)...});
     }
 }
 //-----------------------------------------------------------------------------
@@ -994,8 +994,9 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
         uint64_t     local_one_context_count = 0;
         const auto   lock                    = rstub.waitWhilePop(
             [this, &local_context](
-                AllFnc& _all_fnc,
-                Args&&... _args) { return tryConsumeAnAllTask(local_context, _all_fnc, std::forward<Args>(_args)...); },
+                std::atomic_uint8_t* _plock,
+                AllFnc&              _all_fnc,
+                Args&&... _args) { return tryConsumeAnAllTask(_plock, local_context, _all_fnc, std::forward<Args>(_args)...); },
             _all_fnc,
             std::forward<Args>(_args)...);
 
@@ -1010,7 +1011,6 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
                 rstub.clear();
 
                 rstub.notifyWhilePop();
-
                 consumeAll(local_context, all_id, _all_fnc, std::forward<Args>(_args)...);
 
                 if (pctx == nullptr) {
@@ -1048,7 +1048,6 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
                         break;
                     }
                 }
-
                 consumeAll(local_context, all_id, _all_fnc, std::forward<Args>(_args)...);
 
                 _one_fnc(task_data.task(), std::forward<Args>(_args)...);
@@ -1082,10 +1081,17 @@ template <class TaskOne, class TaskAll, class Stats>
 template <
     class AllFnc,
     typename... Args>
-bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(LocalContext& _rlocal_context, AllFnc& _all_fnc, Args&&... _args)
+bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(std::atomic_uint8_t* _plock, LocalContext& _rlocal_context, AllFnc& _all_fnc, Args&&... _args)
 {
     auto& rstub = all_tasks_[_rlocal_context.all_id_ % all_capacity_];
     if (rstub.isFilled(_rlocal_context.all_id_)) {
+        if (_plock && *_plock != to_underlying(LockE::Empty)) {
+            // NOTE: this is to ensure that pushOnes and pushAlls from
+            //  the same producer are processed in the same order they
+            //  were produced.
+            return false; // will wait on lock
+        }
+
         TaskAll task{rstub.task()};
         bool    should_retry = true;
 
@@ -1112,8 +1118,8 @@ template <
 void ThreadPool<TaskOne, TaskAll, Stats>::consumeAll(LocalContext& _rlocal_context, const uint64_t _all_id, AllFnc& _all_fnc, Args&&... _args)
 {
     size_t repeat_count = 0;
-    while (overflow_safe_less(_rlocal_context.all_id_, _all_id)) {
-        tryConsumeAnAllTask(_rlocal_context, _all_fnc, std::forward<Args>(_args)...);
+    while (overflow_safe_less(_rlocal_context.all_id_, _all_id) || _rlocal_context.all_id_ == _all_id) {
+        tryConsumeAnAllTask(nullptr, _rlocal_context, _all_fnc, std::forward<Args>(_args)...);
         ++repeat_count;
     }
     statistic_.consumeAll(repeat_count);

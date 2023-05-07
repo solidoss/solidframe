@@ -18,7 +18,7 @@
 #include <thread>
 
 #include "solid/utility/event.hpp"
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 
 #include "cxxopts.hpp"
 
@@ -58,7 +58,7 @@ frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr)
     static frame::aio::Resolver& r = *_pres;
     return r;
 }
-
+using CallPoolT = ThreadPool<Function<void(), 80>, Function<void(), 80>>;
 } // namespace
 
 //------------------------------------------------------------------
@@ -379,8 +379,8 @@ int main(int argc, char* argv[])
 
     cout << "sizeof(Connection) = " << sizeof(Connection) << endl;
 
-    lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1)};
-    frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
+    CallPoolT            cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+    frame::aio::Resolver resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
     async_resolver(&resolver);
     {

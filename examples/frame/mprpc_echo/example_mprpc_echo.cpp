@@ -17,7 +17,7 @@
 #include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 
 #include "solid/system/socketaddress.hpp"
 #include <condition_variable>
@@ -134,6 +134,7 @@ void outgoing_connection_start(frame::mprpc::ConnectionContext& _rctx)
 std::string loadFile(const char* _path);
 
 //------------------------------------------------------------------
+using CallPoolT = ThreadPool<Function<void(), 80>, Function<void(), 80>>;
 
 bool parseArguments(Params& _par, int argc, char* argv[]);
 bool restart(
@@ -169,11 +170,11 @@ int main(int argc, char* argv[])
     {
         AioSchedulerT sch;
 
-        frame::Manager                    m;
-        frame::mprpc::ServiceT            ipcsvc(m);
-        ErrorConditionT                   err;
-        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1)};
-        frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
+        frame::Manager         m;
+        frame::mprpc::ServiceT ipcsvc(m);
+        ErrorConditionT        err;
+        CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
         if (!restart(ipcsvc, resolver, sch)) {
             return 1;

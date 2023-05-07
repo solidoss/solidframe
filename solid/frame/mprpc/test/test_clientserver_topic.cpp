@@ -20,15 +20,12 @@
 #include "solid/system/exception.hpp"
 #include "solid/system/log.hpp"
 #include "solid/utility/threadpool.hpp"
-#include "solid/utility/workpool.hpp"
 
 using namespace std;
 using namespace solid;
 
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
-
-#define THREAD_POOL_OPTION 3
 
 namespace {
 
@@ -59,32 +56,10 @@ void set_current_thread_affinity()
 }
 #endif
 
-using ResolvePoolT = locking::CallPoolT<void(), void(), 80>;
+using ResolvePoolT = ThreadPool<Function<void(), 80>, Function<void(), 80>>;
 
-#if THREAD_POOL_OPTION == 1
-
-using CallPoolT     = locking::CallPoolT<void(), void(), 80>;
-using SynchContextT = decltype(declval<CallPoolT>().createSynchronizationContext());
-
-WorkPoolConfiguration make_tp_config()
-{
-    return WorkPoolConfiguration(thread_count, -1, -1, []() { set_current_thread_affinity(); });
-}
-
-#elif THREAD_POOL_OPTION == 2
-
-using CallPoolT     = lockfree::CallPoolT<void(), void, 80>;
-using SynchContextT = int32_t;
-WorkPoolConfiguration make_tp_config()
-{
-    return WorkPoolConfiguration(thread_count, -1, -1, []() { set_current_thread_affinity(); });
-}
-
-#elif THREAD_POOL_OPTION == 3
 using CallPoolT     = ThreadPool<Function<void(), 80>, Function<void(), 80>>;
 using SynchContextT = decltype(declval<CallPoolT>().createSynchronizationContext());
-
-#endif
 
 inline auto milliseconds_since_epoch(const std::chrono::system_clock::time_point& _time = std::chrono::system_clock::now())
 {
@@ -271,8 +246,8 @@ int test_clientserver_topic(int argc, char* argv[])
         frame::mprpc::ServiceT mprpcclient(m);
         frame::ServiceT        generic_service{m};
         ErrorConditionT        err;
-        frame::aio::Resolver   resolver([&resolve_pool](std::function<void()>&& _fnc) { resolve_pool.push(std::move(_fnc)); });
-#if THREAD_POOL_OPTION == 3
+        frame::aio::Resolver   resolver([&resolve_pool](std::function<void()>&& _fnc) { resolve_pool.pushOne(std::move(_fnc)); });
+
         worker_pool.start(
             thread_count, 1000, 100,
             [](const size_t) {
@@ -280,10 +255,9 @@ int test_clientserver_topic(int argc, char* argv[])
                 local_thread_pool_context_ptr = std::make_unique<ThreadPoolLocalContext>();
             },
             [](const size_t) {});
-#else
-        worker_pool.start(make_tp_config());
-#endif
-        resolve_pool.start(WorkPoolConfiguration(1));
+
+        resolve_pool.start(
+            1, 100, 0, [](const size_t) {}, [](const size_t) {});
         sch_client.start([]() {set_current_thread_affinity();return true; }, []() {}, 1);
         sch_server.start([]() {set_current_thread_affinity();return true; }, []() {}, 2);
 
@@ -291,11 +265,7 @@ int test_clientserver_topic(int argc, char* argv[])
             // create the topics
             vector<shared_ptr<Topic>> topic_vec;
             for (size_t i = 0; i < topic_count; ++i) {
-#if THREAD_POOL_OPTION != 2
                 topic_vec.emplace_back(make_shared<Topic>(i, worker_pool.createSynchronizationContext()));
-#else
-                topic_vec.emplace_back(make_shared<Topic>(i, i));
-#endif
             }
             ErrorConditionT err;
             const auto      worker_count = sch_server.workerCount();
@@ -579,11 +549,7 @@ void server_complete_message(
             _rrecv_msg_ptr->time_point_    = microseconds_since_epoch();
             service.sendResponse(recipient_id, _rrecv_msg_ptr);
         };
-#if THREAD_POOL_OPTION == 3
         static_assert(CallPoolT::is_small_one_type<decltype(lambda)>(), "Type not small");
-#else
-        static_assert(CallPoolT::is_small_type<decltype(lambda)>(), "Type not small");
-#endif
         if (false) {
             std::lock_guard<mutex> lock(trace_mtx);
             if (!trace_dq.empty()) {
@@ -597,11 +563,7 @@ void server_complete_message(
             }
             // topic_ptr->synch_ctx_.push(std::move(lambda));
         } else {
-#if THREAD_POOL_OPTION != 2
             topic_ptr->synch_ctx_.push(std::move(lambda));
-#else
-            worker_pool.push(std::move(lambda));
-#endif
             //
             // lambda();
         }

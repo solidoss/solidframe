@@ -96,8 +96,8 @@ if(OPENSSL_FOUND)
     set( testPerfSuite
         test_perf_actor_aio.cpp
         test_perf_actor_frame.cpp
-        test_perf_workpool_lockfree.cpp
-        test_perf_workpool_synch_context.cpp
+        test_perf_threadpool_lockfree.cpp
+        test_perf_threadpool_synch_context.cpp
         test_perf_timestore.cpp
     )
     #
@@ -124,7 +124,7 @@ if(OPENSSL_FOUND)
     add_test(NAME TestPerfActorAio              COMMAND  test_perf test_perf_actor_aio)
     add_test(NAME TestPerfTimeStore             COMMAND  test_perf test_perf_timestore)
     add_test(NAME TestPerfActorFrame            COMMAND  test_perf test_perf_actor_frame)
-    add_test(NAME TestPerfWorkPoolLockFree      COMMAND  test_perf test_perf_workpool_lockfree)
-    add_test(NAME TestPerfWorkPoolSynchCtx      COMMAND  test_perf test_perf_workpool_synch_context)
+    add_test(NAME TestPerfWorkPoolLockFree      COMMAND  test_perf test_perf_threadpool_lockfree)
+    add_test(NAME TestPerfWorkPoolSynchCtx      COMMAND  test_perf test_perf_threadpool_synch_context)
 endif(OPENSSL_FOUND)
 

@@ -8,7 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "solid/system/log.hpp"
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 #include <iostream>
 #include <thread>
 
@@ -19,15 +19,16 @@ int main(int argc, char* argv[])
 {
     solid::log_start(std::cerr, {".*:VIEW"});
 
-    lockfree::WorkPool<int, void> wp{
-        WorkPoolConfiguration(2),
+    ThreadPool<int, size_t> wp{
+        1, 100, 0, [](const size_t) {}, [](const size_t) {},
         [](int _v) {
             solid_log(generic_logger, Info, "v = " << _v);
             std::this_thread::sleep_for(std::chrono::milliseconds(_v * 10));
-        }};
+        },
+        [](const size_t) {}};
 
     for (int i(0); i < 100; ++i) {
-        wp.push(i);
+        wp.pushOne(i);
     }
     return 0;
 }
