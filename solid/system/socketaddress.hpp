@@ -47,7 +47,7 @@ struct ResolveIterator {
     int              protocol() const;
     size_t           size() const;
     sockaddr*        sockAddr() const;
-                     operator bool() const;
+    operator bool() const;
     ResolveIterator& operator++();
     bool             operator==(const ResolveIterator& _rrit) const;
 
@@ -231,7 +231,7 @@ public:
     const socklen_t& size() const;
 
     const sockaddr* sockAddr() const;
-                    operator const sockaddr*() const;
+    operator const sockaddr*() const;
 
     bool operator<(const SocketAddress& _raddr) const;
     bool operator==(const SocketAddress& _raddr) const;
@@ -251,7 +251,7 @@ public:
 
 private:
     friend class SocketDevice;
-              operator sockaddr*();
+    operator sockaddr*();
     sockaddr* sockAddr();
     AddrUnion d;
     socklen_t sz;
@@ -290,7 +290,7 @@ public:
     const socklen_t& size() const;
 
     const sockaddr* sockAddr() const;
-                    operator const sockaddr*() const;
+    operator const sockaddr*() const;
 
     bool toBinary(DataArray4T& _bin, uint16_t& _port) const;
     bool toBinary(DataArray6T& _bin, uint16_t& _port) const;
@@ -313,7 +313,7 @@ public:
 
 private:
     friend class SocketDevice;
-              operator sockaddr*();
+    operator sockaddr*();
     sockaddr* sockAddr();
     AddrUnion d;
     socklen_t sz;
@@ -373,7 +373,7 @@ public:
 
 private:
     friend class SocketDevice;
-              operator sockaddr*();
+    operator sockaddr*();
     sockaddr* sockAddr();
     AddrUnion d;
 };
@@ -407,7 +407,7 @@ public:
     socklen_t size() const;
 
     const sockaddr* sockAddr() const;
-                    operator const sockaddr*() const;
+    operator const sockaddr*() const;
 
     void toBinary(DataArrayT& _bin, uint16_t& _port) const;
 
@@ -428,7 +428,7 @@ public:
 
 private:
     friend class SocketDevice;
-              operator sockaddr*();
+    operator sockaddr*();
     sockaddr* sockAddr();
     AddrUnion d;
 };
@@ -475,7 +475,7 @@ public:
     const socklen_t& size() const;
 
     const sockaddr* sockAddr() const;
-                    operator const sockaddr*() const;
+    operator const sockaddr*() const;
 
     bool operator<(const SocketAddressLocal& _raddr) const;
     bool operator==(const SocketAddressLocal& _raddr) const;
@@ -489,7 +489,7 @@ public:
 
 private:
     friend class SocketDevice;
-              operator sockaddr*();
+    operator sockaddr*();
     sockaddr* sockAddr();
     AddrUnion d;
     socklen_t sz;

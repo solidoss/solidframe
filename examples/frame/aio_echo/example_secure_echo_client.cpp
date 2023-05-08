@@ -21,7 +21,7 @@
 #include <thread>
 
 #include "solid/utility/event.hpp"
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 
 #include "cxxopts.hpp"
 
@@ -115,6 +115,8 @@ protected:
 
 bool parseArguments(Params& _par, int argc, char* argv[]);
 
+using CallPoolT = ThreadPool<Function<void(), 80>, Function<void(), 80>>;
+
 int main(int argc, char* argv[])
 {
     Params params;
@@ -172,9 +174,9 @@ int main(int argc, char* argv[])
         frame::ServiceT service(manager);
         frame::ActorIdT actuid;
 
-        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1)};
-        frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
-        ErrorConditionT                   err;
+        CallPoolT            cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        frame::aio::Resolver resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
+        ErrorConditionT      err;
 
         scheduler.start(1);
 

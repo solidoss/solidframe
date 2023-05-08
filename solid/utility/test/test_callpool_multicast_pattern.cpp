@@ -1,6 +1,6 @@
 #include "solid/system/crashhandler.hpp"
 #include "solid/system/exception.hpp"
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 #include <atomic>
 #include <functional>
 #include <future>
@@ -28,7 +28,7 @@ int test_callpool_multicast_pattern(int argc, char* argv[])
     install_crash_handler();
 
     solid::log_start(std::cerr, {".*:EWXS", "test:VIEWS"});
-    using CallPoolT  = locking::CallPoolT<void(Context&)>;
+    using CallPoolT  = ThreadPool<Function<void(Context&)>, Function<void(Context&)>>;
     using AtomicPWPT = std::atomic<CallPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
@@ -48,7 +48,7 @@ int test_callpool_multicast_pattern(int argc, char* argv[])
     auto lambda = [&]() {
         for (int i = 0; i < loop_cnt; ++i) {
             {
-                CallPoolT cp{WorkPoolConfiguration{2}, std::ref(context)};
+                CallPoolT cp{2, 100000, 100000, [](const size_t, Context&) {}, [](const size_t, Context& _rctx) {}, std::ref(context)};
                 pwp = &cp;
 
                 for (size_t j = 0; j < cnt; ++j) {
@@ -56,7 +56,7 @@ int test_callpool_multicast_pattern(int argc, char* argv[])
                         local_set.insert(j);
                         // solid_log(logger, Info, "local insert "<<j);
                     });
-                    cp.push([j](Context&) {
+                    cp.pushOne([j](Context&) {
                         solid_check(local_set.find(j) != local_set.end());
                         // solid_log(logger, Info, "local check "<<j);
                     });
@@ -64,7 +64,7 @@ int test_callpool_multicast_pattern(int argc, char* argv[])
                         local_set.erase(j);
                         // solid_log(logger, Info, "local eraser "<<j);
                     });
-                    cp.push([j](Context&) {
+                    cp.pushOne([j](Context&) {
                         solid_check(local_set.find(j) == local_set.end());
                         // solid_log(logger, Info, "local check "<<j);
                     });

@@ -1018,27 +1018,28 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Eve
 
             doSend(_rctx);
 
-            // start receiving messages
-            this->postRecvSome(_rctx, recv_buf_->data(), recvBufferCapacity());
+            if (!isStopping()) {
+                // start receiving messages
+                this->postRecvSome(_rctx, recv_buf_->data(), recvBufferCapacity());
 
-            if (rconfig.hasConnectionTimeoutRecv()) {
-                timeout_recv_ = _rctx.nanoTime() + rconfig.connection_timeout_recv;
-                solid_log(logger, Verbose, this << " timeout_recv = " << timeout_recv_);
-            } else {
-                solid_log(logger, Verbose, this << " timeout_recv = " << timeout_recv_);
-                timeout_recv_ = NanoTime::max();
-            }
-            if (!isServer()) {
-                if (rconfig.client.hasConnectionTimeoutKeepAlive()) {
-                    timeout_keepalive_ = _rctx.nanoTime() + rconfig.client.connection_timeout_keepalive;
-                    solid_log(logger, Verbose, this << " timeout_keepalive = " << timeout_keepalive_);
+                if (rconfig.hasConnectionTimeoutRecv()) {
+                    timeout_recv_ = _rctx.nanoTime() + rconfig.connection_timeout_recv;
+                    solid_log(logger, Verbose, this << " timeout_recv = " << timeout_recv_);
                 } else {
-                    timeout_keepalive_ = NanoTime::max();
-                    solid_log(logger, Verbose, this << " timeout_keepalive = " << timeout_keepalive_);
+                    solid_log(logger, Verbose, this << " timeout_recv = " << timeout_recv_);
+                    timeout_recv_ = NanoTime::max();
                 }
+                if (!isServer()) {
+                    if (rconfig.client.hasConnectionTimeoutKeepAlive()) {
+                        timeout_keepalive_ = _rctx.nanoTime() + rconfig.client.connection_timeout_keepalive;
+                        solid_log(logger, Verbose, this << " timeout_keepalive = " << timeout_keepalive_);
+                    } else {
+                        timeout_keepalive_ = NanoTime::max();
+                        solid_log(logger, Verbose, this << " timeout_keepalive = " << timeout_keepalive_);
+                    }
+                }
+                doResetTimer(_rctx);
             }
-            doResetTimer(_rctx);
-
         } else {
 
             if (pdata != nullptr) {

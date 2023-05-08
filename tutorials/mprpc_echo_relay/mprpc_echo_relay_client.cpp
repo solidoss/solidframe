@@ -9,13 +9,14 @@
 
 #include "mprpc_echo_relay_register.hpp"
 
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 #include <iostream>
 
 using namespace solid;
 using namespace std;
 
 using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
+using CallPoolT     = ThreadPool<Function<void()>, Function<void()>>;
 
 //-----------------------------------------------------------------------------
 //      Parameters
@@ -66,14 +67,12 @@ int main(int argc, char* argv[])
         return 0;
 
     {
-        AioSchedulerT                     scheduler;
-        frame::Manager                    manager;
-        frame::mprpc::ServiceT            rpcservice(manager);
-        ErrorConditionT                   err;
-        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1)};
-        frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
-
-        (WorkPoolConfiguration());
+        AioSchedulerT          scheduler;
+        frame::Manager         manager;
+        frame::mprpc::ServiceT rpcservice(manager);
+        ErrorConditionT        err;
+        CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
         scheduler.start(1);
 

@@ -1,6 +1,6 @@
 #include "solid/system/crashhandler.hpp"
 #include "solid/system/exception.hpp"
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 #include <atomic>
 #include <functional>
 #include <future>
@@ -14,19 +14,12 @@ namespace {
 const LoggerT logger("test_basic");
 }
 
-int test_workpool_chain(int argc, char* argv[])
+int test_threadpool_chain(int argc, char* argv[])
 {
     install_crash_handler();
     solid::log_start(std::cerr, {".*:EWXS", "test_basic:VIEWS"});
-#if SOLID_WORKPOOL_OPTION == 0
-    using WorkPoolT = lockfree::WorkPool<size_t, void, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<100>>;
-#elif SOLID_WORKPOOL_OPTION == 1
-    using WorkPoolT = locking::WorkPool<size_t, void, workpool_default_node_capacity_bit_count, true, impl::StressTestWorkPoolBase<100>>;
-#else
-    using WorkPoolT = locking::WorkPool<size_t, size_t, workpool_default_node_capacity_bit_count, true, impl::StressTestWorkPoolBase<100>>;
-#endif
-
-    using AtomicPWPT = std::atomic<WorkPoolT*>;
+    using ThreadPoolT = ThreadPool<size_t, size_t>;
+    using AtomicPWPT  = std::atomic<ThreadPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
 
@@ -53,33 +46,23 @@ int test_workpool_chain(int argc, char* argv[])
     auto lambda = [&]() {
         for (int i = 0; i < loop_cnt; ++i) {
             {
-                WorkPoolT wp_b
-                {
-                    WorkPoolConfiguration(thread_count),
-                        [&val](const size_t _v) {
-                            val += _v;
-                        }
-#if SOLID_WORKPOOL_OPTION == 2
-                    ,
-                        [](const size_t) {}
-#endif
-                };
-                WorkPoolT wp_f
-                {
-                    WorkPoolConfiguration(thread_count),
-                        [&wp_b](const size_t _v) {
-                            wp_b.push(_v);
-                        }
-#if SOLID_WORKPOOL_OPTION == 2
-                    ,
-                        [](const size_t) {}
-#endif
-                };
+                ThreadPoolT wp_b{
+                    thread_count, 10000, 1000, [](const size_t) {}, [](const size_t) {},
+                    [&val](const size_t _v) {
+                        val += _v;
+                    },
+                    [](const size_t) {}};
+                ThreadPoolT wp_f{
+                    thread_count, 10000, 1000, [](const size_t) {}, [](const size_t) {},
+                    [&wp_b](const size_t _v) {
+                        wp_b.pushOne(_v);
+                    },
+                    [](const size_t) {}};
 
                 pwp = &wp_b;
 
                 for (size_t i = 0; i < cnt; ++i) {
-                    wp_f.push(i);
+                    wp_f.pushOne(i);
                 };
                 pwp = nullptr;
             }

@@ -407,8 +407,8 @@ struct PollStub : WSAPOLLFD {
     }
     void clear()
     {
-        this->fd = SocketDevice::invalidDescriptor();
-        this->events = 0;
+        this->fd      = SocketDevice::invalidDescriptor();
+        this->events  = 0;
         this->revents = 0;
     }
 };
@@ -512,10 +512,10 @@ struct Reactor::Data {
             if (_rcrt < time_store_.expiry()) {
 
                 const int64_t maxwait = 1000 * 60 * 10; // ten minutes
-                int64_t diff = 0;
-                const auto crt_tp = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
-                const auto next_tp = time_store_.expiry().timePointCast<std::chrono::steady_clock::time_point>();
-                diff = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
+                int64_t       diff    = 0;
+                const auto    crt_tp  = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
+                const auto    next_tp = time_store_.expiry().timePointCast<std::chrono::steady_clock::time_point>();
+                diff                  = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
 
                 if (diff > maxwait) {
                     return maxwait;
@@ -537,10 +537,10 @@ struct Reactor::Data {
             if (_rcrt < time_store_.expiry()) {
 
                 constexpr int64_t maxwait = 1000 * 60 * 10; // ten minutes
-                int64_t diff = 0;
-                const auto crt_tp = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
-                const auto next_tp = time_store_.expiry().timePointCast<std::chrono::steady_clock::time_point>();
-                diff = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
+                int64_t           diff    = 0;
+                const auto        crt_tp  = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
+                const auto        next_tp = time_store_.expiry().timePointCast<std::chrono::steady_clock::time_point>();
+                diff                      = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
 
                 if (diff > maxwait) {
                     return connectvec.empty() ? maxwait : 1000; // wait 1 sec when connect opperations are in place
@@ -583,8 +583,8 @@ void EventHandler::write(Reactor& _rreactor)
     }
 #elif defined(SOLID_USE_WSAPOLL)
     const uint32_t v = 1;
-    bool can_retry;
-    ErrorCodeT err;
+    bool           can_retry;
+    ErrorCodeT     err;
     dev.send(reinterpret_cast<const char*>(&v), sizeof(v), can_retry, err);
 #endif
 }
@@ -924,7 +924,7 @@ inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events, declty
         break;
     case POLLRDNORM | POLLWRNORM:
         retval = ReactorEventRecvSend;
-        _revs = 0;
+        _revs  = 0;
         break;
     default:
         solid_assert_log(false, logger);
@@ -1090,14 +1090,14 @@ void Reactor::doCompleteIo(NanoTime const& _rcrttime, const size_t _sz)
         ctx.channel_index_ = rev.data.u64;
 #elif defined(SOLID_USE_KQUEUE)
     for (size_t i = 0; i < _sz; ++i) {
-        struct kevent& rev = impl_->eventvec[i];
+        struct kevent&         rev = impl_->eventvec[i];
         CompletionHandlerStub& rch = impl_->chdq[voidToIndex(rev.udata)];
 
         ctx.reactor_event_ = systemEventsToReactorEvents(rev.flags, rev.filter);
         ctx.channel_index_ = voidToIndex(rev.udata);
 #elif defined(SOLID_USE_WSAPOLL)
     const size_t vecsz = impl_->eventvec.size();
-    size_t evcnt = _sz;
+    size_t       evcnt = _sz;
     for (size_t i = 0; i < vecsz; ++i) {
         if (evcnt == 0)
             break;
@@ -1107,8 +1107,8 @@ void Reactor::doCompleteIo(NanoTime const& _rcrttime, const size_t _sz)
             continue;
         --evcnt;
         CompletionHandlerStub& rch = impl_->chdq[i];
-        ctx.reactor_event_ = systemEventsToReactorEvents(rev.revents, rev.events);
-        ctx.channel_index_ = i;
+        ctx.reactor_event_         = systemEventsToReactorEvents(rev.revents, rev.events);
+        ctx.channel_index_         = i;
         if (rch.connectidx != InvalidIndex()) {
             // we have events on a connecting socket
             // so we remove it from connect waiting list
@@ -1340,7 +1340,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
         impl_->event_actor_ptr->post(_rctx, &Reactor::increase_event_vector_size);
     }
 #elif defined(SOLID_USE_KQUEUE)
-    int read_flags = EV_ADD;
+    int read_flags  = EV_ADD;
     int write_flags = EV_ADD;
 
     switch (_req) {
@@ -1397,7 +1397,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
         impl_->eventvec.resize(_rctx.channel_index_ + 1);
     }
 
-    impl_->eventvec[_rctx.channel_index_].fd = reinterpret_cast<SocketDevice::DescriptorT>(_rsd.descriptor());
+    impl_->eventvec[_rctx.channel_index_].fd     = reinterpret_cast<SocketDevice::DescriptorT>(_rsd.descriptor());
     impl_->eventvec[_rctx.channel_index_].events = reactorRequestsToSystemEvents(_req);
 #endif
     return true;
@@ -1419,8 +1419,8 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
         return false;
     }
 #elif defined(SOLID_USE_KQUEUE)
-    int read_flags = 0;
-    int write_flags = 0;
+    int           read_flags  = 0;
+    int           write_flags = 0;
     struct kevent ev[2];
 
     switch (_req) {

@@ -1,7 +1,7 @@
 #include "solid/system/exception.hpp"
 #include "solid/system/log.hpp"
 #include "solid/utility/function.hpp"
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 #include <atomic>
 #include <future>
 #include <iostream>
@@ -27,10 +27,10 @@ struct Context {
     {
     }
 };
-
+using CallPoolT = ThreadPool<Function<void(Context&)>, Function<void(Context&)>>;
 } // namespace
 
-int test_workpool_context(int argc, char* argv[])
+int test_threadpool_context(int argc, char* argv[])
 {
     solid::log_start(std::cerr, {".*:EWXS", "test_context:VIEWS"});
 
@@ -43,25 +43,16 @@ int test_workpool_context(int argc, char* argv[])
         for (int i = 0; i < loop_cnt; ++i) {
             Context ctx{"test", 1, cnt + 1};
             {
-#if SOLID_WORKPOOL_OPTION == 0
-                lockfree::CallPoolT<void(Context&), void> wp
-                {
-#elif SOLID_WORKPOOL_OPTION == 1
-                locking::CallPoolT<void(Context&), void> wp
-                {
-#else
-                locking::CallPoolT<void(Context&)> wp{
-#endif
-                    WorkPoolConfiguration(2),
-                        std::ref(ctx)
-                };
+                CallPoolT wp{
+                    2, 10000, 100, [](const size_t, Context&) {}, [](const size_t, Context& _rctx) {},
+                    std::ref(ctx)};
 
                 solid_log(generic_logger, Verbose, "wp started");
                 for (size_t i = 0; i < cnt; ++i) {
                     auto l = [](Context& _rctx) {
                         ++_rctx.v_;
                     };
-                    wp.push(l);
+                    wp.pushOne(l);
                 };
             }
             solid_check(ctx.v_ == ctx.c_, ctx.v_ << " != " << ctx.c_);

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 #-----------------------------------------------------------------
 # The project
 #-----------------------------------------------------------------
-project (SolidFrame VERSION 7.8)
+project (SolidFrame VERSION 8.1)
 
 message("SolidFrame version: ${PROJECT_VERSION} - ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 #-----------------------------------------------------------------
@@ -73,7 +73,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "release" CACHE STRING "Choose the type of build." FORCE)
     # Set the possible values of build type for cmake-gui
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
-        "release" "debug" "maintain")
+        "release" "debug" "maintain" "custom")
 endif()
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
@@ -83,7 +83,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "release")
     set(CMAKE_CONFIGURATION_TYPES "release")
     set(CONFIGURATION_TYPE "release")
     set(SOLID_HAS_STATISTICS TRUE)
-endif(CMAKE_BUILD_TYPE STREQUAL "release")
+endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "maintain")
     #set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -94,7 +94,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "maintain")
     #force a single configuration type on Windows builds
     set(CMAKE_CONFIGURATION_TYPES "RelWithDebInfo")
     set(CONFIGURATION_TYPE "RelWithDebInfo")
-endif(CMAKE_BUILD_TYPE STREQUAL "maintain")
+endif()
 
 
 if(CMAKE_BUILD_TYPE STREQUAL "debug")
@@ -106,7 +106,14 @@ if(CMAKE_BUILD_TYPE STREQUAL "debug")
     #force a single configuration type on Windows builds
     set(CMAKE_CONFIGURATION_TYPES "debug")
     set(CONFIGURATION_TYPE "debug")
-endif(CMAKE_BUILD_TYPE STREQUAL "debug")
+endif()
+
+
+if(CMAKE_BUILD_TYPE STREQUAL "custom")
+    #force a single configuration type on Windows builds
+    set(CMAKE_CONFIGURATION_TYPES "custom")
+    set(CONFIGURATION_TYPE "custom")
+endif()
 
 set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}" CACHE STRING
      "Add the native configuration"
@@ -142,9 +149,8 @@ if(CMAKE_SYSTEM MATCHES "FreeBSD*")
     set(SOLID_ON_POSIX TRUE)
     
     add_compile_options(
-        "$<$<CONFIG:RELASE>:-O3>"
-        "$<$<CONFIG:DEBUG>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
-        "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-O3;-g3>"
+        "$<$<CONFIG:MAINTAIN>:SHELL: ${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized>"
+        "$<$<CONFIG:CUSTOM>:>"
     )
 
     set(SYSTEM_BASIC_LIBRARIES pmc rt Threads::Threads)
@@ -155,7 +161,7 @@ if(CMAKE_SYSTEM MATCHES "FreeBSD*")
         message("Execinfo library found: ${EXECINFO_LIBRARY}")
         list(APPEND SYSTEM_BASIC_LIBRARIES ${EXECINFO_LIBRARY})
     endif()
-endif(CMAKE_SYSTEM MATCHES "FreeBSD*")
+endif()
 
 if(CMAKE_SYSTEM MATCHES "Darwin*")
     message("Detected system ON_DARWIN")
@@ -164,15 +170,14 @@ if(CMAKE_SYSTEM MATCHES "Darwin*")
     set(SOLID_ON_POSIX TRUE)
     
     add_compile_options(
-        "$<$<CONFIG:RELASE>:-O3>"
-        "$<$<CONFIG:DEBUG>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
-        "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wabi;-O3;-g3>"
+        "$<$<CONFIG:MAINTAIN>:SHELL: ${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized -Wabi>"
+        "$<$<CONFIG:CUSTOM>:>"
     )
     
     string(APPEND CMAKE_EXE_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
     
     set(SYSTEM_BASIC_LIBRARIES Threads::Threads)
-endif(CMAKE_SYSTEM MATCHES "Darwin*")
+endif()
 
 if(CMAKE_SYSTEM MATCHES "Linux*")
     message("Detected system ON_LINUX")
@@ -184,15 +189,13 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
 
     if(CMAKE_CXX_COMPILER MATCHES "clang")
         add_compile_options(
-            "$<$<CONFIG:RELASE>:-O3>"
-            "$<$<CONFIG:DEBUG>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-Wdelete-non-virtual-dtor;-Wnon-virtual-dtor;-g3>"
-            "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wdelete-non-virtual-dtor;-Wnon-virtual-dtor;-O3;-g3>"
+            "$<$<CONFIG:MAINTAIN>:SHELL: ${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized -Wdelete-non-virtual-dtor -Wnon-virtual-dtor>"
+            "$<$<CONFIG:CUSTOM>:>"
         )
     else()
         add_compile_options(
-            "$<$<CONFIG:RELASE>:-O3>"
-            "$<$<CONFIG:DEBUG>:-Wall;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-Wdelete-non-virtual-dtor;-Wnon-virtual-dtor;-g3>"
-            "$<$<CONFIG:MAINTAIN>:-Wall;-Wdelete-non-virtual-dtor;-Wnon-virtual-dtor;-O3;-g3>"
+           "$<$<CONFIG:MAINTAIN>:SHELL: ${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -Wall -Wdelete-non-virtual-dtor -Wnon-virtual-dtor>"
+           "$<$<CONFIG:CUSTOM>:>"
         )
     endif()
     
@@ -204,7 +207,7 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
         message("Atomic library found: ${ATOMIC_LIBRARY}")
         list(APPEND SYSTEM_BASIC_LIBRARIES atomic)
     endif()
-endif(CMAKE_SYSTEM MATCHES "Linux*")
+endif()
 
 if(CMAKE_SYSTEM MATCHES "Windows*")
     message("Detected system ON_WINDOWS")
@@ -212,9 +215,10 @@ if(CMAKE_SYSTEM MATCHES "Windows*")
     set(SOLID_ON_WINDOWS TRUE)
     
     add_compile_options(
-        "$<$<CONFIG:RELASE>:/D_CRT_SECURE_NO_WARNINGS;/Ox>"
-        "$<$<CONFIG:DEBUG>:/D_CRT_SECURE_NO_WARNINGS;/Zi;/Od>"
+        #"$<$<CONFIG:RELASE>:/D_CRT_SECURE_NO_WARNINGS;/Ox>"
+        #"$<$<CONFIG:DEBUG>:/D_CRT_SECURE_NO_WARNINGS;/Zi;/Od>"
         "$<$<CONFIG:MAINTAIN>:/D_CRT_SECURE_NO_WARNINGS;/Zi;/Od>"
+        "$<$<CONFIG:CUSTOM>:>"
     )
     
     add_compile_options(-D_WIN32_WINNT=0x0601 -DWINVER=0x0601)
@@ -232,13 +236,12 @@ if(CMAKE_SYSTEM MATCHES "Android*")
     set(NO_EXTERNAL TRUE)
 
     add_compile_options(
-        "$<$<CONFIG:RELASE>:-O3>"
-        "$<$<CONFIG:DEBUG>:-Wall;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
-        "$<$<CONFIG:MAINTAIN>:-Wall;-O3;-g3>"
+        "$<$<CONFIG:MAINTAIN>:SHELL: ${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -Wall>"
+        "$<$<CONFIG:CUSTOM>:>"
     )
 
     set(SYSTEM_BASIC_LIBRARIES rt)
-endif(CMAKE_SYSTEM MATCHES "Android*")
+endif()
 
 if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm") 
     add_compile_options("SHELL: -mcpu=native")

@@ -9,7 +9,7 @@
 //
 #include "solid/system/filedevice.hpp"
 #include "solid/system/memory.hpp"
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 #include <cerrno>
 #include <cstring>
 #include <deque>
@@ -65,6 +65,8 @@ struct Context {
     char*               buf;
 };
 
+using CallPoolT = ThreadPool<Function<void(), 80>, Function<void(), 80>>;
+
 } // namespace
 
 int main(int argc, char* argv[])
@@ -103,10 +105,10 @@ int main(int argc, char* argv[])
     cout << "fdq size = " << fdq.size() << " total size " << totsz << endl;
     // return 0;
 
-    using WorkPoolT = lockfree::WorkPool<FileDevice*, void>;
-    Context   context;
-    WorkPoolT wp{
-        solid::WorkPoolConfiguration(),
+    using ThreadPoolT = ThreadPool<FileDevice*, size_t>;
+    Context     context;
+    ThreadPoolT wp{
+        1, 100, 0, [](const size_t, Context&) {}, [](const size_t, Context&) {},
         [](FileDevice* _pfile, Context& _rctx) {
             int64_t sz = _pfile->size();
             int     toread;
@@ -120,9 +122,11 @@ int main(int argc, char* argv[])
                 sz -= rv;
             }
         },
+        [](const size_t, Context&) {},
         std::ref(context)};
+
     for (FileDeuqeT::iterator it(fdq.begin()); it != fdq.end(); ++it) {
-        wp.push(&(*it));
+        wp.pushOne(&(*it));
     }
     return 0;
 }

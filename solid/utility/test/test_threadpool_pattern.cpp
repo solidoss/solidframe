@@ -1,6 +1,6 @@
 #include "solid/system/crashhandler.hpp"
 #include "solid/system/exception.hpp"
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 #include <atomic>
 #include <functional>
 #include <future>
@@ -14,19 +14,14 @@ namespace {
 const LoggerT logger("test_pattern");
 }
 
-int test_workpool_pattern(int argc, char* argv[])
+int test_threadpool_pattern(int argc, char* argv[])
 {
     install_crash_handler();
     solid::log_start(std::cerr, {".*:EWXS", "test_basic:VIEWS"});
-#if SOLID_WORKPOOL_OPTION == 0
-    using WorkPoolT = lockfree::WorkPoolT<size_t>;
-#elif SOLID_WORKPOOL_OPTION == 1
-    using WorkPoolT = locking::WorkPoolT<size_t>;
-#else
-    using WorkPoolT = locking::WorkPoolT<size_t, size_t>;
-#endif
 
-    using AtomicPWPT = std::atomic<WorkPoolT*>;
+    using ThreadPoolT = ThreadPool<size_t, size_t>;
+
+    using AtomicPWPT = std::atomic<ThreadPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
 
@@ -63,34 +58,29 @@ int test_workpool_pattern(int argc, char* argv[])
     const size_t producer_loop_count{producer_pattern.size() * 10};
 
     auto lambda = [&]() {
-        WorkPoolT wp
-        {
-            WorkPoolConfiguration(consumer_cnt),
-                [&sum, &consummer_pattern, loop = consummer_pattern[0].first, idx = 0](const size_t _v) mutable {
-                    sum += _v;
-                    --loop;
-                    if (loop == 0) {
-                        this_thread::sleep_for(chrono::milliseconds(consummer_pattern[idx % consummer_pattern.size()].second));
-                        ++idx;
-                        loop = consummer_pattern[idx % consummer_pattern.size()].first;
-                    }
+        ThreadPoolT wp{
+            consumer_cnt, 10000, 0, [](const size_t) {}, [](const size_t) {},
+            [&sum, &consummer_pattern, loop = consummer_pattern[0].first, idx = 0](const size_t _v) mutable {
+                sum += _v;
+                --loop;
+                if (loop == 0) {
+                    this_thread::sleep_for(chrono::milliseconds(consummer_pattern[idx % consummer_pattern.size()].second));
+                    ++idx;
+                    loop = consummer_pattern[idx % consummer_pattern.size()].first;
                 }
-#if SOLID_WORKPOOL_OPTION == 2
-            ,
-                [](const size_t) {}
-#endif
-        };
+            },
+            [](const size_t) {}};
 
         vector<thread> thr_vec;
 
         for (size_t i = 0; i < producer_cnt; ++i) {
             thr_vec.emplace_back(
                 thread{
-                    [producer_loop_count, &producer_pattern](WorkPoolT& _wp) {
+                    [producer_loop_count, &producer_pattern](ThreadPoolT& _wp) {
                         for (size_t i = 0; i < producer_loop_count; ++i) {
                             const size_t cnt = producer_pattern[i % producer_pattern.size()].first;
                             for (size_t j = 0; j < cnt; ++j) {
-                                _wp.push(j);
+                                _wp.pushOne(j);
                             }
                             this_thread::sleep_for(chrono::milliseconds(producer_pattern[i % producer_pattern.size()].second));
                         }

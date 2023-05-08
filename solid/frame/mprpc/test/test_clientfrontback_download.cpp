@@ -16,7 +16,7 @@
 #include "solid/frame/aio/aiotimer.hpp"
 
 #include "solid/utility/string.hpp"
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 
 #include "solid/system/directory.hpp"
 #include "solid/system/exception.hpp"
@@ -32,10 +32,11 @@
 using namespace std;
 using namespace solid;
 
+namespace {
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
+using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
 
-namespace {
 LoggerT logger("test");
 
 frame::mprpc::ServiceT* pmprpc_back_client  = nullptr;
@@ -338,17 +339,17 @@ int test_clientfrontback_download(int argc, char* argv[])
     solid_log(logger, Info, "Done creating files");
 
     {
-        AioSchedulerT                     sch_client;
-        AioSchedulerT                     sch_front;
-        AioSchedulerT                     sch_back;
-        frame::Manager                    m;
-        frame::mprpc::ServiceT            mprpc_front_client(m);
-        frame::mprpc::ServiceT            mprpc_front_server(m);
-        frame::mprpc::ServiceT            mprpc_back_client(m);
-        frame::mprpc::ServiceT            mprpc_back_server(m);
-        ErrorConditionT                   err;
-        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1)};
-        frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
+        AioSchedulerT          sch_client;
+        AioSchedulerT          sch_front;
+        AioSchedulerT          sch_back;
+        frame::Manager         m;
+        frame::mprpc::ServiceT mprpc_front_client(m);
+        frame::mprpc::ServiceT mprpc_front_server(m);
+        frame::mprpc::ServiceT mprpc_back_client(m);
+        frame::mprpc::ServiceT mprpc_back_server(m);
+        ErrorConditionT        err;
+        CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
         sch_client.start(1);
         sch_front.start(1);

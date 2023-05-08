@@ -1,6 +1,6 @@
 #include "solid/system/crashhandler.hpp"
 #include "solid/system/exception.hpp"
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 #include <atomic>
 #include <functional>
 #include <future>
@@ -31,18 +31,18 @@ struct Record {
     }
 };
 
-using WorkPoolT = locking::WorkPoolT<Record, uint32_t>;
+using ThreadPoolT = ThreadPool<Record, uint32_t>;
 
 struct SynchContext {
-    WorkPoolT::SynchronizationContextT ctx_;
-    size_t                             validation_ = 0;
+    ThreadPoolT::SynchronizationContextT ctx_;
+    size_t                               validation_ = 0;
 };
 
 size_t synch_contexts_validations[synch_context_count] = {0};
 
 } // namespace
 
-int test_workpool_multicast_synchronization_context_basic(int argc, char* argv[])
+int test_threadpool_multicast_synchronization_context_basic(int argc, char* argv[])
 {
 
     solid::log_start(std::cerr, {".*:EWXS", "test:VIEWS"});
@@ -58,8 +58,8 @@ int test_workpool_multicast_synchronization_context_basic(int argc, char* argv[]
         deque<Record> record_dq;
         record_dq.resize(count);
 
-        WorkPoolT wp{
-            WorkPoolConfiguration{2},
+        ThreadPoolT wp{
+            2, 10000, 1000, [](const size_t) {}, [](const size_t) {},
             [&record_dq](const Record& _r) {
                 solid_check(record_dq[_r.value_].multicast_value_ == static_cast<uint32_t>(-1));
                 record_dq[_r.value_].multicast_value_ = thread_local_value;
@@ -92,7 +92,7 @@ int test_workpool_multicast_synchronization_context_basic(int argc, char* argv[]
                 if (!rsynch_context.ctx_.empty()) {
                     rsynch_context.ctx_.push(Record{i, i % synch_context_count, rsynch_context.validation_++});
                 } else {
-                    wp.push(Record{i, InvalidIndex{}}); // async
+                    wp.pushOne(Record{i, InvalidIndex{}}); // async
                 }
             }
         }

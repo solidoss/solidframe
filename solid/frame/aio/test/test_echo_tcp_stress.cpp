@@ -22,7 +22,7 @@
 #include "solid/system/socketdevice.hpp"
 
 #include "solid/utility/event.hpp"
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 
 #include <functional>
 #include <future>
@@ -32,12 +32,13 @@
 
 using namespace std;
 using namespace solid;
-
+//-----------------------------------------------------------------------------
+namespace {
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using AtomicSizeT    = atomic<size_t>;
 using SecureContextT = frame::aio::openssl::Context;
-//-----------------------------------------------------------------------------
-namespace {
+using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
+
 bool                 running = true;
 mutex                mtx;
 condition_variable   cnd;
@@ -48,7 +49,7 @@ std::string          srv_port_str;
 std::string          rly_port_str;
 bool                 be_secure       = false;
 bool                 use_relay       = false;
-unsigned             wait_seconds    = 200;
+unsigned             wait_seconds    = 250;
 constexpr const bool enable_no_delay = true;
 } // namespace
 //-----------------------------------------------------------------------------
@@ -203,6 +204,8 @@ private:
     using StreamSocketT = frame::aio::Stream<frame::aio::openssl::Socket>;
     StreamSocketT sock;
 };
+
+using CallPoolT = ThreadPool<Function<void(), 80>, Function<void(), 80>>;
 
 } // namespace server
 
@@ -480,12 +483,12 @@ int test_echo_tcp_stress(int argc, char* argv[])
     }
 
     auto lambda = [&]() -> int {
-        AioSchedulerT                     srv_sch;
-        frame::Manager                    srv_mgr;
-        SecureContextT                    srv_secure_ctx{SecureContextT::create()};
-        frame::ServiceT                   srv_svc{srv_mgr};
-        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1)};
-        frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
+        AioSchedulerT        srv_sch;
+        frame::Manager       srv_mgr;
+        SecureContextT       srv_secure_ctx{SecureContextT::create()};
+        frame::ServiceT      srv_svc{srv_mgr};
+        CallPoolT            cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        frame::aio::Resolver resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
         async_resolver(&resolver);
 
@@ -605,7 +608,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
                 if (actuid.isInvalid()) {
                     --concnt;
                 }
-                solid_dbg(generic_logger, Info, "Started Connection Actor: " << actuid.index << ',' << actuid.unique);
+                solid_log(generic_logger, Info, "Started Connection Actor: " << actuid.index << ',' << actuid.unique);
             }
         }
         {
@@ -613,7 +616,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
 
             if (!cnd.wait_for(lock, std::chrono::seconds(wait_seconds), []() { return !running; })) {
                 // solid_throw("Process is taking too long.");
-                solid_dbg(generic_logger, Error, "Process is taking too long.");
+                solid_log(generic_logger, Error, "Process is taking too long.");
                 return -1;
             }
             cout << "Received " << recv_count / 1024 << "KB on " << connection_count << " connections" << endl;

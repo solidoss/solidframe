@@ -10,9 +10,9 @@ set( UtilityTestSuite
     test_memory_file.cpp
     test_callpool_multicast_basic.cpp
     test_callpool_multicast_pattern.cpp
-    test_workpool_multicast_basic.cpp
-    test_workpool_multicast_sleep.cpp
-    test_workpool_multicast_synchronization_context_basic.cpp
+    test_threadpool_multicast_basic.cpp
+    test_threadpool_multicast_sleep.cpp
+    test_threadpool_multicast_synchronization_context_basic.cpp
     test_ioformat.cpp
     test_function.cpp
     test_function_perf.cpp
@@ -22,14 +22,14 @@ set( UtilityTestSuite
     test_shared_buffer.cpp
 )
 
-set( WorkPoolTestSuite
-    test_workpool_context.cpp
-    test_workpool_thread_context.cpp
-    test_workpool.cpp
-    test_workpool_basic.cpp
-    test_workpool_chain.cpp
-    test_workpool_pattern.cpp
-    test_workpool_try.cpp
+set( ThreadPoolTestSuite
+    test_threadpool_context.cpp
+    test_threadpool_thread_context.cpp
+    test_threadpool.cpp
+    test_threadpool_basic.cpp
+    test_threadpool_chain.cpp
+    test_threadpool_pattern.cpp
+    #test_threadpool_try.cpp
 )
 
 create_test_sourcelist( UtilityTests test_utility.cpp ${UtilityTestSuite})
@@ -42,31 +42,15 @@ target_link_libraries(test_utility
     ${SYSTEM_BASIC_LIBRARIES}
 )
 
-create_test_sourcelist( WorkPoolLockfreeTests test_workpool_lockfree.cpp ${WorkPoolTestSuite})
+create_test_sourcelist( ThreadPoolTests test_threadpool_suite.cpp ${ThreadPoolTestSuite})
 
-add_executable(test_workpool_lockfree ${WorkPoolLockfreeTests})
+add_executable(test_threadpool ${ThreadPoolTests})
 
-target_link_libraries(test_workpool_lockfree
+target_link_libraries(test_threadpool
     solid_utility
     solid_system
     ${SYSTEM_BASIC_LIBRARIES}
 )
-
-target_compile_definitions(test_workpool_lockfree PRIVATE SOLID_WORKPOOL_OPTION=0)
-
-create_test_sourcelist( WorkPoolLockingTests test_workpool_locking.cpp ${WorkPoolTestSuite})
-
-create_test_sourcelist( WorkPoolMulticastTests test_workpool_multicast.cpp ${WorkPoolTestSuite})
-
-add_executable(test_workpool_multicast ${WorkPoolMulticastTests})
-
-target_link_libraries(test_workpool_multicast
-    solid_utility
-    solid_system
-    ${SYSTEM_BASIC_LIBRARIES}
-)
-
-target_compile_definitions(test_workpool_multicast PRIVATE SOLID_WORKPOOL_OPTION=2)
 
 ### test_utility
 add_test(NAME TestUtilityIoFormat                       COMMAND  test_utility test_ioformat)
@@ -84,95 +68,34 @@ add_test(NAME TestUtilityFunction                       COMMAND  test_utility te
 add_test(NAME TestUtilityTemplateFunction               COMMAND  test_utility test_template_function)
 add_test(NAME TestUtilityFunctionAnySpeedFullSolid      COMMAND  test_utility test_function_any_speed_full_solid)
 add_test(NAME TestUtilityFunctionAnySpeedFullStl        COMMAND  test_utility test_function_any_speed_full_stl)
-add_test(NAME TestUtilityWorkpoolMulticastBasic         COMMAND  test_utility test_workpool_multicast_basic)
-add_test(NAME TestUtilityWorkpoolMulticastSleep         COMMAND  test_utility test_workpool_multicast_sleep)
+add_test(NAME TestUtilityThreadpoolMulticastBasic       COMMAND  test_utility test_threadpool_multicast_basic)
+add_test(NAME TestUtilityThreadpoolMulticastSleep       COMMAND  test_utility test_threadpool_multicast_sleep)
 add_test(NAME TestUtilityCallPoolMulticastBasic         COMMAND  test_utility test_callpool_multicast_basic)
 add_test(NAME TestUtilityCallPoolMulticastPattern       COMMAND  test_utility test_callpool_multicast_pattern)
-add_test(NAME TestUtilityCallPoolMulticastSynchCtxBasic COMMAND  test_utility test_workpool_multicast_synchronization_context_basic)
-#add_test(NAME TestUtilityFunctionPerf_s_0_10000_1000           COMMAND  test_utility test_function_perf s 0 10000 1000)
-#add_test(NAME TestUtilityFunctionPerf_S_0_10000_1000           COMMAND  test_utility test_function_perf S 0 10000 1000)
-
-#add_test(NAME TestUtilityFunctionPerf_s_1_10000_1000           COMMAND  test_utility test_function_perf s 1 10000 1000)
-#add_test(NAME TestUtilityFunctionPerf_S_1_10000_1000           COMMAND  test_utility test_function_perf S 1 10000 1000)
-
+add_test(NAME TestUtilityCallPoolMulticastSynchCtxBasic COMMAND  test_utility test_threadpool_multicast_synchronization_context_basic)
 add_test(NAME TestUtilityFunctionPerf_s_2_10000_1000    COMMAND  test_utility test_function_perf s 2 10000 1000)
 add_test(NAME TestUtilityFunctionPerf_S_2_10000_1000    COMMAND  test_utility test_function_perf S 2 10000 1000)
-
-#add_test(NAME TestUtilityFunctionPerf_s_4_10000_1000           COMMAND  test_utility test_function_perf s 4 10000 1000)
-#add_test(NAME TestUtilityFunctionPerf_S_4_10000_1000           COMMAND  test_utility test_function_perf S 4 10000 1000)
-
-#add_test(NAME TestUtilityFunctionPerf_s_16_10000_1000           COMMAND  test_utility test_function_perf s 16 10000 1000)
-#add_test(NAME TestUtilityFunctionPerf_S_16_10000_1000           COMMAND  test_utility test_function_perf S 16 10000 1000)
-
-
-### test_workpool_lockfree
-add_test(NAME TestWorkPoolLockfreeThreadContext          COMMAND  test_workpool_lockfree test_workpool_thread_context)
-add_test(NAME TestWorkPoolLockfreeContext                COMMAND  test_workpool_lockfree test_workpool_context)
-add_test(NAME TestWorkPoolLockfreePattern                COMMAND  test_workpool_lockfree test_workpool_pattern)
-add_test(NAME TestWorkPoolLockfreeBasic                  COMMAND  test_workpool_lockfree test_workpool_basic)
-add_test(NAME TestWorkPoolLockfreeTry                    COMMAND  test_workpool_lockfree test_workpool_try)
-#add_test(NAME TestWorkPoolLockfreeChain1                 COMMAND  test_workpool_lockfree test_workpool_chain 1)
-add_test(NAME TestWorkPoolLockfreeChain2                 COMMAND  test_workpool_lockfree test_workpool_chain 2)
-add_test(NAME TestWorkPoolLockfreeChain4                 COMMAND  test_workpool_lockfree test_workpool_chain 4)
-add_test(NAME TestWorkPoolLockfreeChain8                 COMMAND  test_workpool_lockfree test_workpool_chain 8)
-add_test(NAME TestWorkPoolLockfreeChain10                COMMAND  test_workpool_lockfree test_workpool_chain 10)
-#add_test(NAME TestWorkPoolLockfreeChain                  COMMAND  test_workpool_lockfree test_workpool_chain)
-#add_test(NAME TestWorkPoolLockfreeChain0_1               COMMAND  test_workpool_lockfree test_workpool_chain 0 1)
-#add_test(NAME TestWorkPoolLockfreeChain0_2               COMMAND  test_workpool_lockfree test_workpool_chain 0 2)
-
-# test_workpool args: JOB_COUNT WAIT_SECONDS QUEUE_SIZE PRODUCER_COUNT CONSUMER_COUNT PUSH_SLEEP_MSECS JOB_SLEEP_MSECS
-add_test(NAME TestWorkPoolLockfree                       COMMAND  test_workpool_lockfree test_workpool)
-
-add_test(NAME TestWorkPoolLockfree_0                     COMMAND  test_workpool_lockfree test_workpool 1000 10 0 0 1 0 0)
-add_test(NAME TestWorkPoolLockfree_1                     COMMAND  test_workpool_lockfree test_workpool 100000 10 100 0 2 0 0)
-add_test(NAME TestWorkPoolLockfree_2                     COMMAND  test_workpool_lockfree test_workpool 10 10 0 0 2 100 0)
-add_test(NAME TestWorkPoolLockfree_3                     COMMAND  test_workpool_lockfree test_workpool 10 10 0 0 2 0 100)
-add_test(NAME TestWorkPoolLockfree_4                     COMMAND  test_workpool_lockfree test_workpool 1  10 0 0 2 100 100)
-
-add_test(NAME TestWorkPoolLockfree_1_2                   COMMAND  test_workpool_lockfree test_workpool 100000 10 100 2 2 0 0)
-add_test(NAME TestWorkPoolLockfree_2_2                   COMMAND  test_workpool_lockfree test_workpool 10 10 0 2 2 100 0)
-add_test(NAME TestWorkPoolLockfree_3_2                   COMMAND  test_workpool_lockfree test_workpool 10 10 0 2 2 0 100)
-add_test(NAME TestWorkPoolLockfree_4_2                   COMMAND  test_workpool_lockfree test_workpool 1  10 0 2 2 100 100)
-
-add_test(NAME TestWorkPoolLockfree_1_4                   COMMAND  test_workpool_lockfree test_workpool 100000 10 100 4 4 0 0)
-add_test(NAME TestWorkPoolLockfree_2_4                   COMMAND  test_workpool_lockfree test_workpool 10 10 0 4 4 100 0)
-add_test(NAME TestWorkPoolLockfree_3_4                   COMMAND  test_workpool_lockfree test_workpool 10 10 0 4 4 0 100)
-add_test(NAME TestWorkPoolLockfree_4_4                   COMMAND  test_workpool_lockfree test_workpool 1  10 0 4 4 100 100)
-
-### test_workpool_multicast
-add_test(NAME TestWorkPoolMulticastThreadContext          COMMAND  test_workpool_multicast test_workpool_thread_context)
-add_test(NAME TestWorkPoolMulticastContext                COMMAND  test_workpool_multicast test_workpool_context)
-add_test(NAME TestWorkPoolMulticastPattern                COMMAND  test_workpool_multicast test_workpool_pattern)
-add_test(NAME TestWorkPoolMulticastBasic                  COMMAND  test_workpool_multicast test_workpool_basic)
-add_test(NAME TestWorkPoolMulticastTry                    COMMAND  test_workpool_multicast test_workpool_try)
-#add_test(NAME TestWorkPoolMulticastChain1                 COMMAND  test_workpool_multicast test_workpool_chain 1)
-add_test(NAME TestWorkPoolMulticastChain2                 COMMAND  test_workpool_multicast test_workpool_chain 2)
-add_test(NAME TestWorkPoolMulticastChain4                 COMMAND  test_workpool_multicast test_workpool_chain 4)
-add_test(NAME TestWorkPoolMulticastChain8                 COMMAND  test_workpool_multicast test_workpool_chain 8)
-add_test(NAME TestWorkPoolMulticastChain10                COMMAND  test_workpool_multicast test_workpool_chain 10)
-#add_test(NAME TestWorkPoolMulticastChain                  COMMAND  test_workpool_multicast test_workpool_chain)
-#add_test(NAME TestWorkPoolMulticastChain0_1               COMMAND  test_workpool_multicast test_workpool_chain 0 1)
-#add_test(NAME TestWorkPoolMulticastChain0_2               COMMAND  test_workpool_multicast test_workpool_chain 0 2)
-
-# test_workpool args: JOB_COUNT WAIT_SECONDS QUEUE_SIZE PRODUCER_COUNT CONSUMER_COUNT PUSH_SLEEP_MSECS JOB_SLEEP_MSECS
-add_test(NAME TestWorkPoolMulticast                       COMMAND  test_workpool_multicast test_workpool)
-
-add_test(NAME TestWorkPoolMulticast_0                     COMMAND  test_workpool_multicast test_workpool 1000 10 0 0 1 0 0)
-add_test(NAME TestWorkPoolMulticast_1                     COMMAND  test_workpool_multicast test_workpool 100000 20 100 0 2 0 0)
-add_test(NAME TestWorkPoolMulticast_2                     COMMAND  test_workpool_multicast test_workpool 10 10 0 0 2 100 0)
-add_test(NAME TestWorkPoolMulticast_3                     COMMAND  test_workpool_multicast test_workpool 10 10 0 0 2 0 100)
-add_test(NAME TestWorkPoolMulticast_4                     COMMAND  test_workpool_multicast test_workpool 1  10 0 0 2 100 100)
-
-add_test(NAME TestWorkPoolMulticast_1_2                   COMMAND  test_workpool_multicast test_workpool 100000 20 100 2 2 0 0)
-add_test(NAME TestWorkPoolMulticast_2_2                   COMMAND  test_workpool_multicast test_workpool 10 10 0 2 2 100 0)
-add_test(NAME TestWorkPoolMulticast_3_2                   COMMAND  test_workpool_multicast test_workpool 10 10 0 2 2 0 100)
-add_test(NAME TestWorkPoolMulticast_4_2                   COMMAND  test_workpool_multicast test_workpool 1  10 0 2 2 100 100)
-
-add_test(NAME TestWorkPoolMulticast_1_4                   COMMAND  test_workpool_multicast test_workpool 100000 20 100 4 4 0 0)
-add_test(NAME TestWorkPoolMulticast_2_4                   COMMAND  test_workpool_multicast test_workpool 10 10 0 4 4 100 0)
-add_test(NAME TestWorkPoolMulticast_3_4                   COMMAND  test_workpool_multicast test_workpool 10 10 0 4 4 0 100)
-add_test(NAME TestWorkPoolMulticast_4_4                   COMMAND  test_workpool_multicast test_workpool 1  10 0 4 4 100 100)
-
-
+add_test(NAME TestThreadPoolThreadContext               COMMAND  test_threadpool test_threadpool_thread_context)
+add_test(NAME TestThreadPoolContext                     COMMAND  test_threadpool test_threadpool_context)
+add_test(NAME TestThreadPoolPattern                     COMMAND  test_threadpool test_threadpool_pattern)
+add_test(NAME TestThreadPoolBasic                       COMMAND  test_threadpool test_threadpool_basic)
+add_test(NAME TestThreadPoolChain2                      COMMAND  test_threadpool test_threadpool_chain 2)
+add_test(NAME TestThreadPoolChain4                      COMMAND  test_threadpool test_threadpool_chain 4)
+add_test(NAME TestThreadPoolChain8                      COMMAND  test_threadpool test_threadpool_chain 8)
+add_test(NAME TestThreadPoolChain10                     COMMAND  test_threadpool test_threadpool_chain 10)
+add_test(NAME TestThreadPool                            COMMAND  test_threadpool test_threadpool)
+add_test(NAME TestThreadPool_0                          COMMAND  test_threadpool test_threadpool 1000 10 0 0 1 0 0)
+add_test(NAME TestThreadPool_1                          COMMAND  test_threadpool test_threadpool 100000 10 100 0 2 0 0)
+add_test(NAME TestThreadPool_2                          COMMAND  test_threadpool test_threadpool 10 10 0 0 2 100 0)
+add_test(NAME TestThreadPool_3                          COMMAND  test_threadpool test_threadpool 10 10 0 0 2 0 100)
+add_test(NAME TestThreadPool_4                          COMMAND  test_threadpool test_threadpool 1  10 0 0 2 100 100)
+add_test(NAME TestThreadPool_1_2                        COMMAND  test_threadpool test_threadpool 100000 10 100 2 2 0 0)
+add_test(NAME TestThreadPool_2_2                        COMMAND  test_threadpool test_threadpool 10 10 0 2 2 100 0)
+add_test(NAME TestThreadPool_3_2                        COMMAND  test_threadpool test_threadpool 10 10 0 2 2 0 100)
+add_test(NAME TestThreadPool_4_2                        COMMAND  test_threadpool test_threadpool 1  10 0 2 2 100 100)
+add_test(NAME TestThreadPool_1_4                        COMMAND  test_threadpool test_threadpool 100000 10 100 4 4 0 0)
+add_test(NAME TestThreadPool_2_4                        COMMAND  test_threadpool test_threadpool 10 10 0 4 4 100 0)
+add_test(NAME TestThreadPool_3_4                        COMMAND  test_threadpool test_threadpool 10 10 0 4 4 0 100)
+add_test(NAME TestThreadPool_4_4                        COMMAND  test_threadpool test_threadpool 1  10 0 4 4 100 100)
 
 #==============================================================================

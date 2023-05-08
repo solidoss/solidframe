@@ -14,7 +14,7 @@
 #include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 
 #include "solid/system/exception.hpp"
 #include "solid/system/log.hpp"
@@ -27,10 +27,10 @@
 using namespace std;
 using namespace solid;
 
+namespace {
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
-
-namespace {
+using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
 
 struct InitStub {
     size_t                      size;
@@ -353,12 +353,12 @@ int test_raw_basic(int argc, char* argv[])
         AioSchedulerT sch_client;
         AioSchedulerT sch_server;
 
-        frame::Manager                    m;
-        frame::mprpc::ServiceT            mprpcserver(m);
-        frame::mprpc::ServiceT            mprpcclient(m);
-        ErrorConditionT                   err;
-        lockfree::CallPoolT<void(), void> cwp{WorkPoolConfiguration(1)};
-        frame::aio::Resolver              resolver([&cwp](std::function<void()>&& _fnc) { cwp.push(std::move(_fnc)); });
+        frame::Manager         m;
+        frame::mprpc::ServiceT mprpcserver(m);
+        frame::mprpc::ServiceT mprpcclient(m);
+        ErrorConditionT        err;
+        CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
         sch_client.start(1);
         sch_server.start(1);

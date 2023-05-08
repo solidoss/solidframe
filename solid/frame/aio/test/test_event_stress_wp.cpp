@@ -4,10 +4,12 @@
  * actors and schedulers.
  */
 
+#include "solid/system/cassert.hpp"
 #include "solid/system/crashhandler.hpp"
+#include "solid/system/log.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/string.hpp"
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 
 #include <future>
 #include <iostream>
@@ -17,7 +19,7 @@ using namespace std;
 using namespace solid;
 
 namespace {
-
+const LoggerT logger("test");
 using AtomicSizeT  = atomic<size_t>;
 using AtomicSSizeT = atomic<ssize_t>;
 
@@ -25,12 +27,9 @@ struct AccountContext;
 struct ConnectionContext;
 struct DeviceContext;
 
-template <class Job, class>
-using WorkPoolT = lockfree::WorkPool<Job, void, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<30>>;
-
-using AccountCallPoolT    = CallPool<void(AccountContext&), void, function_default_data_size, WorkPoolT>;
-using ConnectionCallPoolT = CallPool<void(ConnectionContext&), void, function_default_data_size, WorkPoolT>;
-using DeviceCallPoolT     = CallPool<void(DeviceContext&), void, function_default_data_size, WorkPoolT>;
+using AccountCallPoolT    = ThreadPool<Function<void(AccountContext&)>, Function<void(AccountContext&)>>;
+using ConnectionCallPoolT = ThreadPool<Function<void(ConnectionContext&)>, Function<void(ConnectionContext&)>>;
+using DeviceCallPoolT     = ThreadPool<Function<void(DeviceContext&)>, Function<void(DeviceContext&)>>;
 
 struct GlobalContext {
     atomic<bool>       stopping_;
@@ -113,7 +112,7 @@ struct DeviceContext : Context {
 void AccountContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat_count)
 {
     enter();
-    rconn_cp_.push(
+    rconn_cp_.pushOne(
         [_acc, _acc_con, _repeat_count](ConnectionContext& _rctx) mutable {
             solid_assert(_repeat_count > 0 && _repeat_count < 1000000);
             --_repeat_count;
@@ -127,7 +126,7 @@ void AccountContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat
 void AccountContext::pushConnectionToDevice(size_t _acc, size_t _acc_con, size_t _repeat_count)
 {
     enter();
-    rdev_cp_.push(
+    rdev_cp_.pushOne(
         [_acc, _acc_con, _repeat_count](DeviceContext& _rctx) mutable {
             _rctx.pushConnection(_acc, _acc_con, _repeat_count);
         });
@@ -137,7 +136,7 @@ void AccountContext::pushConnectionToDevice(size_t _acc, size_t _acc_con, size_t
 void ConnectionContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat_count)
 {
     enter();
-    racc_cp_.push(
+    racc_cp_.pushOne(
         [_acc, _acc_con, _repeat_count](AccountContext& _rctx) mutable {
             _rctx.pushConnectionToDevice(_acc, _acc_con, _repeat_count);
         });
@@ -147,7 +146,7 @@ void ConnectionContext::pushConnection(size_t _acc, size_t _acc_con, size_t _rep
 void DeviceContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat_count)
 {
     enter();
-    rconn_cp_.push(
+    rconn_cp_.pushOne(
         [_acc, _acc_con, _repeat_count](ConnectionContext& _rctx) mutable {
             size_t             repeat_count = _repeat_count;
             ConnectionContext* pctx         = &_rctx;
@@ -155,16 +154,16 @@ void DeviceContext::pushConnection(size_t _acc, size_t _acc_con, size_t _repeat_
             --repeat_count;
             if (repeat_count) {
                 if (_rctx.conn_cnt_ <= 0) {
-                    solid_log(workpool_logger, Warning, "OVERPUSH " << _acc << ' ' << _acc_con << ' ' << repeat_count);
+                    solid_log(logger, Warning, "OVERPUSH " << _acc << ' ' << _acc_con << ' ' << repeat_count);
                 }
                 solid_assert(_rctx.conn_cnt_ > 0);
                 pctx->pushConnection(_acc, _acc_con, repeat_count);
             } else if (_rctx.conn_cnt_.fetch_sub(1) == 1) {
                 // last connection
                 _rctx.rprom_.set_value();
-                solid_log(workpool_logger, Warning, "DONE - notify " << _acc << ' ' << _acc_con << ' ' << _repeat_count);
+                solid_log(logger, Warning, "DONE - notify " << _acc << ' ' << _acc_con << ' ' << _repeat_count);
             } else if (_rctx.conn_cnt_ < 0) {
-                solid_assert_log(false, workpool_logger, "DONE - notify " << _acc << ' ' << _acc_con << ' ' << _repeat_count);
+                solid_assert_log(false, logger, "DONE - notify " << _acc << ' ' << _acc_con << ' ' << _repeat_count);
             }
         });
     exit();
@@ -224,9 +223,12 @@ int test_event_stress_wp(int argc, char* argv[])
 
             gctx.stopping_ = false;
 
-            account_cp.start(WorkPoolConfiguration(thread_count), std::ref(acc_ctx));
-            connection_cp.start(WorkPoolConfiguration(thread_count), std::ref(conn_ctx));
-            device_cp.start(WorkPoolConfiguration(thread_count), std::ref(dev_ctx));
+            account_cp.start(
+                thread_count, account_count, 0, [](const size_t, AccountContext&) {}, [](const size_t, AccountContext&) {}, std::ref(acc_ctx));
+            connection_cp.start(
+                thread_count, account_count * account_connection_count, 0, [](const size_t, ConnectionContext&) {}, [](const size_t, ConnectionContext&) {}, std::ref(conn_ctx));
+            device_cp.start(
+                thread_count, account_count * account_connection_count, 0, [](const size_t, DeviceContext&) {}, [](const size_t, DeviceContext&) {}, std::ref(dev_ctx));
 
             conn_ctx.conn_cnt_  = (account_connection_count * account_count);
             auto produce_lambda = [&]() {
@@ -236,9 +238,9 @@ int test_event_stress_wp(int argc, char* argv[])
                             _rctx.pushConnection(i, j, repeat_count);
                         }
                     };
-                    account_cp.push(lambda);
+                    account_cp.pushOne(lambda);
                 }
-                solid_log(workpool_logger, Statistic, "producer done");
+                solid_log(logger, Statistic, "producer done");
             };
             if ((0)) {
                 auto fut = async(launch::async, produce_lambda);
@@ -249,34 +251,34 @@ int test_event_stress_wp(int argc, char* argv[])
             {
                 auto fut = prom.get_future();
                 if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
-                    solid_log(workpool_logger, Statistic, "Connection pool: " << connection_cp.statistic());
-                    solid_log(workpool_logger, Statistic, "Device pool: " << device_cp.statistic());
-                    solid_log(workpool_logger, Statistic, "Account pool: " << account_cp.statistic());
-                    solid_log(workpool_logger, Warning, "sleep - wait for locked threads");
+                    solid_log(logger, Statistic, "Connection pool: " << connection_cp.statistic());
+                    solid_log(logger, Statistic, "Device pool: " << device_cp.statistic());
+                    solid_log(logger, Statistic, "Account pool: " << account_cp.statistic());
+                    solid_log(logger, Warning, "sleep - wait for locked threads");
                     this_thread::sleep_for(chrono::seconds(100));
-                    solid_log(workpool_logger, Warning, "wake - waited for locked threads");
+                    solid_log(logger, Warning, "wake - waited for locked threads");
                     // we must throw here otherwise it will crash because workpool(s) is/are used after destroy
                     solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
                 }
                 fut.get();
             }
-            solid_log(workpool_logger, Statistic, "connections done");
+            solid_log(logger, Statistic, "connections done");
             // this_thread::sleep_for(chrono::milliseconds(100));
             gctx.stopping_ = true;
             conn_ctx.wait();
-            solid_log(workpool_logger, Statistic, "conn_ctx done");
+            solid_log(logger, Statistic, "conn_ctx done");
             acc_ctx.wait();
-            solid_log(workpool_logger, Statistic, "acc_ctx done");
+            solid_log(logger, Statistic, "acc_ctx done");
             dev_ctx.wait();
-            solid_log(workpool_logger, Statistic, "dev_ctx done");
+            solid_log(logger, Statistic, "dev_ctx done");
 
             // need explicit stop because pools use contexts which are destroyed before pools
             account_cp.stop();
-            solid_log(workpool_logger, Statistic, "account pool stopped " << &account_cp);
+            solid_log(logger, Statistic, "account pool stopped " << &account_cp);
             device_cp.stop();
-            solid_log(workpool_logger, Statistic, "device pool stopped " << &device_cp);
+            solid_log(logger, Statistic, "device pool stopped " << &device_cp);
             connection_cp.stop();
-            solid_log(workpool_logger, Statistic, "connection pool stopped " << &connection_cp);
+            solid_log(logger, Statistic, "connection pool stopped " << &connection_cp);
         }
         int* p = new int[1000];
         delete[] p;

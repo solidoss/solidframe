@@ -19,7 +19,7 @@
 
 #include "solid/system/exception.hpp"
 #include "solid/system/log.hpp"
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 
 using namespace std;
 using namespace solid;
@@ -27,16 +27,19 @@ using namespace solid;
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
 
-#define USE_SYNC_CONTEXT
-
 namespace {
 
 LoggerT logger("test");
+
+constexpr size_t thread_count = 4;
 
 #ifdef SOLID_ON_LINUX
 vector<int> isolcpus = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 15, 17, 18, 19};
 void        set_current_thread_affinity()
 {
+    if (std::thread::hardware_concurrency() < (thread_count + isolcpus[0])) {
+        return;
+    }
     static std::atomic<int> crtCore(0);
 
     const int isolCore = isolcpus[crtCore.fetch_add(1)];
@@ -53,17 +56,10 @@ void set_current_thread_affinity()
 }
 #endif
 
-#ifdef USE_SYNC_CONTEXT
+using ResolvePoolT = ThreadPool<Function<void(), 80>, Function<void(), 80>>;
 
-using CallPoolT     = locking::CallPoolT<void(), void(), 80>;
+using CallPoolT     = ThreadPool<Function<void(), 80>, Function<void(), 80>>;
 using SynchContextT = decltype(declval<CallPoolT>().createSynchronizationContext());
-
-#else
-
-using CallPoolT     = lockfree::CallPoolT<void(), void, 80>;
-using SynchContextT = int32_t;
-
-#endif
 
 inline auto milliseconds_since_epoch(const std::chrono::system_clock::time_point& _time = std::chrono::system_clock::now())
 {
@@ -117,6 +113,7 @@ struct Message : frame::mprpc::Message {
     mutable uint64_t serialization_time_point_ = 0;
     uint64_t         receive_time_point_       = 0;
     uint64_t         topic_value_              = 0;
+    uint64_t         topic_context_            = 0;
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
@@ -132,6 +129,7 @@ struct Message : frame::mprpc::Message {
         _rr.add(_rthis.serialization_time_point_, _rctx, 4, "serialization_time_point");
         _rr.add(_rthis.receive_time_point_, _rctx, 5, "receive_time_point");
         _rr.add(_rthis.topic_value_, _rctx, 6, "topic_value");
+        _rr.add(_rthis.topic_context_, _rctx, 7, "topic_context");
     }
 
     Message() = default;
@@ -183,7 +181,13 @@ void server_complete_message(
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/);
 
+void multicast_run(CallPoolT& _work_pool);
 void wait();
+
+struct ThreadPoolLocalContext {
+    uint64_t value_ = 0;
+};
+
 //-----------------------------------------------------------------------------
 // Time points:
 // - request send initiate time -> Message::time_offset (snd)
@@ -215,6 +219,10 @@ size_t                    max_per_pool_connection_count = 100;
 std::atomic<size_t>       client_connection_count{0};
 std::promise<void>        client_connection_promise;
 std::promise<void>        promise;
+std::atomic_bool          running = true;
+
+thread_local unique_ptr<ThreadPoolLocalContext> local_thread_pool_context_ptr;
+
 //-----------------------------------------------------------------------------
 } // namespace
 
@@ -232,16 +240,24 @@ int test_clientserver_topic(int argc, char* argv[])
     {
         AioSchedulerT          sch_client;
         AioSchedulerT          sch_server;
-        CallPoolT              resolve_pool;
+        ResolvePoolT           resolve_pool;
         frame::Manager         m;
         frame::mprpc::ServiceT mprpcserver(m);
         frame::mprpc::ServiceT mprpcclient(m);
         frame::ServiceT        generic_service{m};
         ErrorConditionT        err;
-        frame::aio::Resolver   resolver([&resolve_pool](std::function<void()>&& _fnc) { resolve_pool.push(std::move(_fnc)); });
+        frame::aio::Resolver   resolver([&resolve_pool](std::function<void()>&& _fnc) { resolve_pool.pushOne(std::move(_fnc)); });
 
-        worker_pool.start(WorkPoolConfiguration(1, -1, -1, []() { set_current_thread_affinity(); }));
-        resolve_pool.start(1);
+        worker_pool.start(
+            thread_count, 1000, 100,
+            [](const size_t) {
+                set_current_thread_affinity();
+                local_thread_pool_context_ptr = std::make_unique<ThreadPoolLocalContext>();
+            },
+            [](const size_t) {});
+
+        resolve_pool.start(
+            1, 100, 0, [](const size_t) {}, [](const size_t) {});
         sch_client.start([]() {set_current_thread_affinity();return true; }, []() {}, 1);
         sch_server.start([]() {set_current_thread_affinity();return true; }, []() {}, 2);
 
@@ -249,11 +265,7 @@ int test_clientserver_topic(int argc, char* argv[])
             // create the topics
             vector<shared_ptr<Topic>> topic_vec;
             for (size_t i = 0; i < topic_count; ++i) {
-#ifdef USE_SYNC_CONTEXT
                 topic_vec.emplace_back(make_shared<Topic>(i, worker_pool.createSynchronizationContext()));
-#else
-                topic_vec.emplace_back(make_shared<Topic>(i, i));
-#endif
             }
             ErrorConditionT err;
             const auto      worker_count = sch_server.workerCount();
@@ -369,6 +381,11 @@ int test_clientserver_topic(int argc, char* argv[])
             fut.get();
         }
 
+        thread multicaster{
+            []() {
+                multicast_run(worker_pool);
+            }};
+
         active_message_count      = message_count;
         const uint64_t start_msec = milliseconds_since_epoch();
         solid_dbg(logger, Warning, "========== START sending messages ==========");
@@ -391,6 +408,7 @@ int test_clientserver_topic(int argc, char* argv[])
         cout << "min server delta : " << min_time_server_trip_delta.load() << endl;
         cout << "request count    : " << request_count.load() << endl;
 
+        multicaster.join();
         mprpcserver.stop();
         generic_service.stop();
         worker_pool.stop();
@@ -446,6 +464,20 @@ void WorkerActor::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 
 thread_local uint64_t local_send_duration = 0;
 
+void multicast_run(CallPoolT& _work_pool)
+{
+#if THREAD_POOL_OPTION == 3
+    uint64_t context = 0;
+    while (running) {
+        _work_pool.pushAll(
+            [context]() {
+                local_thread_pool_context_ptr->value_ = context;
+            });
+        ++context;
+    }
+#endif
+}
+
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
@@ -489,7 +521,7 @@ void client_complete_message(
                 _rctx.service().forceCloseConnectionPool(
                     client_id,
                     [](frame::mprpc::ConnectionContext& _rctx) {});
-
+                running = false;
                 promise.set_value();
             }
         }
@@ -512,12 +544,12 @@ void server_complete_message(
 
         auto lambda = [topic_ptr, _rrecv_msg_ptr = std::move(_rrecv_msg_ptr), &service = _rctx.service(), recipient_id = _rctx.recipientId()]() {
             ++topic_ptr->value_;
-            _rrecv_msg_ptr->topic_value_ = topic_ptr->value_;
-            _rrecv_msg_ptr->time_point_  = microseconds_since_epoch();
+            _rrecv_msg_ptr->topic_value_   = topic_ptr->value_;
+            _rrecv_msg_ptr->topic_context_ = local_thread_pool_context_ptr->value_;
+            _rrecv_msg_ptr->time_point_    = microseconds_since_epoch();
             service.sendResponse(recipient_id, _rrecv_msg_ptr);
         };
-
-        static_assert(CallPoolT::is_small_type<decltype(lambda)>(), "Type not small");
+        static_assert(CallPoolT::is_small_one_type<decltype(lambda)>(), "Type not small");
         if (false) {
             std::lock_guard<mutex> lock(trace_mtx);
             if (!trace_dq.empty()) {
@@ -531,11 +563,7 @@ void server_complete_message(
             }
             // topic_ptr->synch_ctx_.push(std::move(lambda));
         } else {
-#ifdef USE_SYNC_CONTEXT
             topic_ptr->synch_ctx_.push(std::move(lambda));
-#else
-            worker_pool.push(std::move(lambda));
-#endif
             //
             // lambda();
         }

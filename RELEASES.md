@@ -1,5 +1,9 @@
 # SolidFrame Releases
 
+## Version 8.1
+
+* (DONE) WorkPool to ThreadPool
+
 ## Version 6.0
 
 * (DONE) rename mpipc library to mprpc

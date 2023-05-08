@@ -1,6 +1,6 @@
 #include "solid/system/crashhandler.hpp"
 #include "solid/system/exception.hpp"
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 #include <algorithm>
 #include <atomic>
 #include <deque>
@@ -37,27 +37,22 @@ struct Context {
 
 // #define EXTRA_CHECKING
 
-int test_workpool(int argc, char* argv[])
+int test_threadpool(int argc, char* argv[])
 {
     install_crash_handler();
 
     solid::log_start(std::cerr, {".*:IEWXS"});
 
     cout << "usage: " << argv[0] << " JOB_COUNT WAIT_SECONDS QUEUE_SIZE PRODUCER_COUNT CONSUMER_COUNT PUSH_SLEEP_MSECS JOB_SLEEP_MSECS" << endl;
-#if SOLID_WORKPOOL_OPTION == 0
-    using WorkPoolT = lockfree::WorkPool<size_t, void, workpool_default_node_capacity_bit_count, impl::StressTestWorkPoolBase<10>>;
-#elif SOLID_WORKPOOL_OPTION == 1
-    using WorkPoolT = locking::WorkPool<size_t, void, workpool_default_node_capacity_bit_count, true, impl::StressTestWorkPoolBase<10>>;
-#else
-    using WorkPoolT = locking::WorkPool<size_t, size_t, workpool_default_node_capacity_bit_count, true, impl::StressTestWorkPoolBase<10>>;
-#endif
-    using AtomicPWPT = std::atomic<WorkPoolT*>;
+
+    using ThreadPoolT = ThreadPool<size_t, size_t>;
+    using AtomicPWPT  = std::atomic<ThreadPoolT*>;
 
     size_t        job_count        = 5000000;
     int           wait_seconds     = 100;
-    int           queue_size       = -1;
+    size_t        queue_size       = 100000;
     int           producer_count   = 0;
-    int           consumer_count   = thread::hardware_concurrency();
+    size_t        consumer_count   = 4;
     int           push_sleep_msecs = 0;
     int           job_sleep_msecs  = 0;
     deque<size_t> gdq;
@@ -93,26 +88,23 @@ int test_workpool(int argc, char* argv[])
     if (argc > 7) {
         job_sleep_msecs = atoi(argv[7]);
     }
-
+    // 1000 10 0 0 1 0 0
     auto lambda = [&]() {
-        WorkPoolT wp
-        {
-            WorkPoolConfiguration(consumer_count, queue_size <= 0 ? std::numeric_limits<size_t>::max() : queue_size),
-                [job_sleep_msecs](size_t _v, Context&& _rctx) {
-                    // solid_check(_rs == "this is a string", "failed string check");
-                    val += _v;
-                    if (job_sleep_msecs != 0) {
-                        this_thread::sleep_for(chrono::milliseconds(job_sleep_msecs));
-                    }
+        ThreadPoolT wp{
+            consumer_count, queue_size, 0, [](size_t, Context&&) {}, [](size_t, Context&&) {},
+
+            [job_sleep_msecs](size_t _v, Context&& _rctx) {
+                // solid_check(_rs == "this is a string", "failed string check");
+                val += _v;
+                if (job_sleep_msecs != 0) {
+                    this_thread::sleep_for(chrono::milliseconds(job_sleep_msecs));
+                }
 #ifdef EXTRA_CHECKING
-                    _rctx.ldq_.emplace_back(_v);
+                _rctx.ldq_.emplace_back(_v);
 #endif
-                },
-#if SOLID_WORKPOOL_OPTION == 2
-                [](size_t, Context&&) {},
-#endif
-                Context(gdq, gmtx)
-        };
+            },
+            [](size_t, Context&&) {},
+            Context(gdq, gmtx)};
 
         pwp = &wp;
 
@@ -121,7 +113,7 @@ int test_workpool(int argc, char* argv[])
                 if (push_sleep_msecs != 0) {
                     this_thread::sleep_for(chrono::milliseconds(push_sleep_msecs));
                 }
-                wp.push(i);
+                wp.pushOne(i);
             };
         };
 

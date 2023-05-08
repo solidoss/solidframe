@@ -1,6 +1,6 @@
 #include "solid/system/crashhandler.hpp"
 #include "solid/system/exception.hpp"
-#include "solid/utility/workpool.hpp"
+#include "solid/utility/threadpool.hpp"
 #include <atomic>
 #include <functional>
 #include <future>
@@ -29,7 +29,7 @@ int test_callpool_multicast_basic(int argc, char* argv[])
     install_crash_handler();
 
     solid::log_start(std::cerr, {".*:EWXS", "test:VIEWS"});
-    using CallPoolT  = locking::CallPoolT<void(Context&, deque<uint32_t>&)>;
+    using CallPoolT  = ThreadPool<Function<void(Context&, deque<uint32_t>&)>, Function<void(Context&, deque<uint32_t>&)>>;
     using AtomicPWPT = std::atomic<CallPoolT*>;
 
     solid_log(logger, Statistic, "thread concurrency: " << thread::hardware_concurrency());
@@ -53,14 +53,14 @@ int test_callpool_multicast_basic(int argc, char* argv[])
             record_dq.resize(cnt, -1);
             atomic<size_t> worker_start_count{0};
             atomic<size_t> worker_stop_count{0};
-            auto           worker_start = [&worker_start_count]() {
+            auto           worker_start = [&worker_start_count](const size_t, Context&, deque<uint32_t>&) {
                 ++worker_start_count;
             };
-            auto worker_stop = [&worker_stop_count]() {
+            auto worker_stop = [&worker_stop_count](const size_t, Context&, deque<uint32_t>&) {
                 ++worker_stop_count;
             };
             {
-                CallPoolT cp{WorkPoolConfiguration{worker_count, 0, 0, worker_start, worker_stop}, std::ref(context), std::ref(record_dq)};
+                CallPoolT cp{worker_count, 100000, 1000, worker_start, worker_stop, std::ref(context), std::ref(record_dq)};
 
                 pwp = &cp;
                 std::promise<void> barrier;
@@ -86,7 +86,7 @@ int test_callpool_multicast_basic(int argc, char* argv[])
                 barrier_future.wait();
 
                 for (size_t i = 0; i < cnt; ++i) {
-                    cp.push(
+                    cp.pushOne(
                         [i](Context& _rctx, deque<uint32_t>& _rdq) {
                             _rctx.val += i;
                             solid_check(_rdq[i] == static_cast<uint32_t>(-1));
