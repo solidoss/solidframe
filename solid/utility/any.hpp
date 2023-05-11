@@ -312,7 +312,9 @@ public:
         return alignof(T) <= alignof(max_align_t) && sizeof(T) <= small_capacity;
     }
 
-    constexpr Any() noexcept {}
+    constexpr Any() noexcept {
+        storage_.type_data_ = 0;
+    }
 
     Any(const ThisT& _other)
     {
@@ -499,7 +501,7 @@ public:
         case any_impl::RepresentationE::Small:
             return static_cast<const T*>(storage_.small_.prtti_->pget_if_fnc_(std::type_index(typeid(T)), &storage_.small_.data_));
         case any_impl::RepresentationE::Big:
-            return static_cast<const T*>(storage_.small_.prtti_->pget_if_fnc_(std::type_index(typeid(T)), storage_.big_.ptr_));
+            return static_cast<const T*>(storage_.big_.prtti_->pget_if_fnc_(std::type_index(typeid(T)), storage_.big_.ptr_));
         default:
             return nullptr;
         }

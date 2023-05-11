@@ -13,36 +13,6 @@
 namespace solid {
 
 //-----------------------------------------------------------------------------
-const EventCategory<GenericEvents> generic_event_category{
-    "solid::generic_event_category",
-    [](const GenericEvents _evt) {
-        switch (_evt) {
-        case GenericEvents::Default:
-            return "default";
-        case GenericEvents::Start:
-            return "start";
-        case GenericEvents::Stop:
-            return "stop";
-        case GenericEvents::Raise:
-            return "raise";
-        case GenericEvents::Message:
-            return "message";
-        case GenericEvents::Timer:
-            return "timer";
-        case GenericEvents::Pause:
-            return "pause";
-        case GenericEvents::Resume:
-            return "resume";
-        case GenericEvents::Update:
-            return "update";
-        case GenericEvents::Kill:
-            return "kill";
-        default:
-            return "unknown";
-        }
-    }};
-
-//-----------------------------------------------------------------------------
 
 std::ostream& Event::print(std::ostream& _ros) const
 {

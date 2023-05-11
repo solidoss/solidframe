@@ -71,30 +71,30 @@ const BetaEventCategory beta_event_category{
 class Base {
 public:
     virtual ~Base() {}
-    virtual void handleEvent(Event&& _revt) = 0;
+    virtual void handleEvent(EventBase&& _revt) = 0;
 };
 
 class Object : public Base {
 private:
-    /*virtual*/ void handleEvent(Event&& _revt) override;
+    /*virtual*/ void handleEvent(EventBase&& _revt) override;
 };
 
-void Object::handleEvent(Event&& _revt)
+void Object::handleEvent(EventBase&& _revt)
 {
     static const EventHandler<void, Object&> event_handler = {
-        [](Event& _revt, Object& _robj) { cout << "handle_invalid_event on " << &_robj << " for " << _revt << endl; },
-        {{global_event_category.event(GlobalEvents::First),
-             [](Event& _revt, Object& _robj) { cout << "handle_global_first on " << &_robj << " for " << _revt << endl; }},
-            {alpha_event_category.event(AlphaEvents::First),
-                [](Event& _revt, Object& _robj) { cout << "handle_alpha_first on " << &_robj << " for " << _revt << endl; }},
-            {alpha_event_category.event(AlphaEvents::Second),
-                [](Event& _revt, Object& _robj) { cout << "handle_alpha_second on " << &_robj << " for " << _revt << endl; }},
-            {beta_event_category.event(BetaEvents::First),
-                [](Event& _revt, Object& _robj) { cout << "handle_beta_first on " << &_robj << " for " << _revt << endl; }},
-            {beta_event_category.event(BetaEvents::Third),
-                [](Event& _revt, Object& _robj) { cout << "handle_beta_third on " << &_robj << " for " << _revt << endl; }},
-            {make_event(GenericEvents::Message),
-                [](Event& _revt, Object& _robj) { cout << "handle_generic_message on " << &_robj << " for " << _revt << " any value = " << *_revt.any().cast<std::string>() << endl; }}}};
+        [](EventBase& _revt, Object& _robj) { cout << "handle_invalid_event on " << &_robj << " for " << _revt << endl; },
+        {{make_event(global_event_category, GlobalEvents::First),
+             [](EventBase& _revt, Object& _robj) { cout << "handle_global_first on " << &_robj << " for " << _revt << endl; }},
+            {make_event(alpha_event_category, AlphaEvents::First),
+                [](EventBase& _revt, Object& _robj) { cout << "handle_alpha_first on " << &_robj << " for " << _revt << endl; }},
+            {make_event(alpha_event_category, AlphaEvents::Second),
+                [](EventBase& _revt, Object& _robj) { cout << "handle_alpha_second on " << &_robj << " for " << _revt << endl; }},
+            {make_event(beta_event_category, BetaEvents::First),
+                [](EventBase& _revt, Object& _robj) { cout << "handle_beta_first on " << &_robj << " for " << _revt << endl; }},
+            {make_event(beta_event_category, BetaEvents::Third),
+                [](EventBase& _revt, Object& _robj) { cout << "handle_beta_third on " << &_robj << " for " << _revt << endl; }},
+            {generic_event_message,
+                [](EventBase& _revt, Object& _robj) { cout << "handle_generic_message on " << &_robj << " for " << _revt << " any value = " << *_revt.cast<std::string>() << endl; }}}};
 
     event_handler.handle(_revt, *this);
 }
@@ -102,17 +102,15 @@ void Object::handleEvent(Event&& _revt)
 int test_event(int /*argc*/, char* /*argv*/[])
 {
 
-    cout << "Event::any_size = " << Event::any_size << endl;
-
     Object obj;
 
     Base& rbase(obj);
 
-    rbase.handleEvent(global_event_category.event(GlobalEvents::First));
-    rbase.handleEvent(alpha_event_category.event(AlphaEvents::Second));
-    rbase.handleEvent(beta_event_category.event(BetaEvents::Third));
-    rbase.handleEvent(beta_event_category.event(BetaEvents::Second));
-    rbase.handleEvent(make_event(GenericEvents::Message, std::string("Some text")));
+    rbase.handleEvent(make_event(global_event_category, GlobalEvents::First));
+    rbase.handleEvent(make_event(alpha_event_category, AlphaEvents::Second));
+    rbase.handleEvent(make_event(beta_event_category, BetaEvents::Third));
+    rbase.handleEvent(make_event(beta_event_category, BetaEvents::Second));
+    rbase.handleEvent(make_event(generic_event_category, GenericEvents::Message, std::string("Some text")));
 
     return 0;
 }
