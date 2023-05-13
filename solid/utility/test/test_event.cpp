@@ -1,3 +1,5 @@
+#include <vector>
+#include <set>
 #include "solid/utility/event.hpp"
 
 using namespace std;
@@ -25,7 +27,8 @@ using GlobalEventCategory = EventCategory<GlobalEvents>;
 using AlphaEventCategory  = EventCategory<AlphaEvents>;
 using BetaEventCategory   = EventCategory<BetaEvents>;
 
-const GlobalEventCategory global_event_category{
+template <>
+inline const GlobalEventCategory solid::category<GlobalEvents>{
     "::global_event_category",
     [](const GlobalEvents _evt) {
         switch (_evt) {
@@ -39,7 +42,8 @@ const GlobalEventCategory global_event_category{
             return "unknown";
         }
     }};
-const AlphaEventCategory alpha_event_category{
+template <>
+inline const AlphaEventCategory solid::category<AlphaEvents>{
     "::alpha_event_category",
     [](const AlphaEvents _evt) {
         switch (_evt) {
@@ -53,8 +57,10 @@ const AlphaEventCategory alpha_event_category{
             return "unknown";
         }
     }};
-const BetaEventCategory beta_event_category{
-    "::alpha_event_category",
+
+template <>
+inline const BetaEventCategory solid::category<BetaEvents>{
+    "::beta_event_category",
     [](const BetaEvents _evt) {
         switch (_evt) {
         case BetaEvents::First:
@@ -83,18 +89,18 @@ void Object::handleEvent(EventBase&& _revt)
 {
     static const EventHandler<void, Object&> event_handler = {
         [](EventBase& _revt, Object& _robj) { cout << "handle_invalid_event on " << &_robj << " for " << _revt << endl; },
-        {{make_event(global_event_category, GlobalEvents::First),
+        {{make_event(GlobalEvents::First),
              [](EventBase& _revt, Object& _robj) { cout << "handle_global_first on " << &_robj << " for " << _revt << endl; }},
-            {make_event(alpha_event_category, AlphaEvents::First),
+            {make_event(AlphaEvents::First),
                 [](EventBase& _revt, Object& _robj) { cout << "handle_alpha_first on " << &_robj << " for " << _revt << endl; }},
-            {make_event(alpha_event_category, AlphaEvents::Second),
+            {make_event(AlphaEvents::Second),
                 [](EventBase& _revt, Object& _robj) { cout << "handle_alpha_second on " << &_robj << " for " << _revt << endl; }},
-            {make_event(beta_event_category, BetaEvents::First),
+            {make_event(BetaEvents::First),
                 [](EventBase& _revt, Object& _robj) { cout << "handle_beta_first on " << &_robj << " for " << _revt << endl; }},
-            {make_event(beta_event_category, BetaEvents::Third),
+            {make_event(BetaEvents::Third),
                 [](EventBase& _revt, Object& _robj) { cout << "handle_beta_third on " << &_robj << " for " << _revt << endl; }},
-            {generic_event_message,
-                [](EventBase& _revt, Object& _robj) { cout << "handle_generic_message on " << &_robj << " for " << _revt << " any value = " << *_revt.cast<std::string>() << endl; }}}};
+            {generic_event<GenericEventE::Message>,
+                [](EventBase& _revt, Object& _robj) { cout << "handle_generic_message on " << &_robj << " for " << _revt << " data = " << *_revt.cast<std::string>() << endl; }}}};
 
     event_handler.handle(_revt, *this);
 }
@@ -106,11 +112,46 @@ int test_event(int /*argc*/, char* /*argv*/[])
 
     Base& rbase(obj);
 
-    rbase.handleEvent(make_event(global_event_category, GlobalEvents::First));
-    rbase.handleEvent(make_event(alpha_event_category, AlphaEvents::Second));
-    rbase.handleEvent(make_event(beta_event_category, BetaEvents::Third));
-    rbase.handleEvent(make_event(beta_event_category, BetaEvents::Second));
-    rbase.handleEvent(make_event(generic_event_category, GenericEvents::Message, std::string("Some text")));
+    rbase.handleEvent(make_event(GlobalEvents::First));
+    rbase.handleEvent(make_event(AlphaEvents::Second));
+    rbase.handleEvent(make_event(BetaEvents::Third));
+    rbase.handleEvent(make_event(BetaEvents::Second));
+    rbase.handleEvent(make_event(GenericEventE::Message, std::string("Some text")));
 
+
+    auto tuple_event = make_event(BetaEvents::Second, std::make_tuple(to_string(10), vector<int>{1, 2, 3, 4}, set<std::string>{"a", "b", "c"}));
+
+    auto check_event = [](EventBase &_event)
+    {
+        solid_check(_event.get_if<string>());
+        solid_check(*_event.get_if<string>() == to_string(10));
+        auto *pvec =_event.get_if<vector<int>>(); 
+        solid_check(pvec && pvec->size() == 4 && pvec->at(3) == 4);
+
+        auto *pset = _event.get_if<set<string>>();
+        solid_check(pset && pset->size() == 3 && pset->find("b") != pset->end()); 
+    };
+
+    check_event(tuple_event);
+
+    Event<8> tuple_event8(tuple_event);
+    check_event(tuple_event8);
+    check_event(tuple_event);
+    
+    {
+        Event<8> tuple_event8(std::move(tuple_event));
+        check_event(tuple_event8);
+        solid_check(!tuple_event);
+    }
+
+    tuple_event = tuple_event8;
+    check_event(tuple_event8);
+    check_event(tuple_event);
+
+    Event<10> tuple_event10;
+
+    tuple_event10 = std::move(tuple_event);
+    solid_check(!tuple_event);
+    check_event(tuple_event10);
     return 0;
 }

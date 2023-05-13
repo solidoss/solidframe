@@ -159,18 +159,18 @@ IndexT fast_smart_resize(V& _rv, const size_t _bitby)
     return _rv.size();
 }
 
-enum ReactorEventsE {
-    ReactorEventNone  = 0,
-    ReactorEventError = 8,
-    ReactorEventClear = 128,
-    ReactorEventInit  = 256,
-    ReactorEventTimer = 512,
+enum struct ReactorEventE {
+    None  = 0,
+    Error = 8,
+    Clear = 128,
+    Init  = 256,
+    Timer = 512,
 };
 
-enum ReactorWaitRequestsE {
-    ReactorWaitNone = 0,
+enum struct ReactorWaitRequestE {
+    None = 0,
     // Add above!
-    ReactorWaitError
+    Error
 };
 
 } // namespace frame

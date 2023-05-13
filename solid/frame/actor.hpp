@@ -19,8 +19,7 @@
 
 namespace solid {
 namespace frame {
-
-class Reactor;
+class impl::Reactor;
 struct ReactorContext;
 class CompletionHandler;
 
@@ -51,7 +50,7 @@ private:
 class Actor : public ActorBase, ForwardCompletionHandler {
 protected:
     friend class CompletionHandler;
-    friend class Reactor;
+    friend class impl::Reactor;
 
     Actor() = default;
 
@@ -74,21 +73,21 @@ protected:
     }
 
     template <class F>
-    void postStop(ReactorContext& _rctx, F&& _f, Event&& _revent = Event())
+    void postStop(ReactorContext& _rctx, F&& _f, EventBase&& _revent = Event<>())
     {
         if (doPrepareStop(_rctx)) {
-            _rctx.reactor().postActorStop(_rctx, std::forward<F>(_f), _revent);
+            _rctx.reactor().postActorStop(_rctx, std::forward<F>(_f), std::move(_revent));
         }
     }
 
     template <class F>
-    void post(ReactorContext& _rctx, F&& _f, Event&& _revent = Event())
+    void post(ReactorContext& _rctx, F&& _f, EventBase&& _revent = Event<>())
     {
         _rctx.reactor().post(_rctx, std::forward<F>(_f), std::move(_revent));
     }
 
 private:
-    virtual void onEvent(ReactorContext& _rctx, Event&& _uevent);
+    virtual void onEvent(ReactorContext& _rctx, EventBase&& _uevent);
     bool         doPrepareStop(ReactorContext& _rctx);
 };
 

@@ -20,18 +20,26 @@ struct NanoTime;
 namespace frame {
 
 class Actor;
+namespace impl{
 class Reactor;
+}//namespace
 struct ActorProxy;
 struct ReactorContext;
 struct ReactorEvent;
 
 class CompletionHandler : public ForwardCompletionHandler {
-    static void on_init_completion(CompletionHandler&, ReactorContext&);
-
 protected:
     static void               on_dummy_completion(CompletionHandler&, ReactorContext&);
     static CompletionHandler* completion_handler(ReactorContext&);
     typedef void (*CallbackT)(CompletionHandler&, ReactorContext&);
+private:
+    friend class impl::Reactor;
+    friend class Actor;
+
+    ForwardCompletionHandler* pprev;
+    size_t                    idxreactor; // index within reactor
+    CallbackT                 call;
+    static void on_init_completion(CompletionHandler&, ReactorContext&);
 
 public:
     CompletionHandler(
@@ -56,8 +64,8 @@ protected:
     CompletionHandler(CallbackT _pcall = &on_init_completion);
 
     void           completionCallback(CallbackT _pcbk);
-    ReactorEventsE reactorEvent(ReactorContext& _rctx) const;
-    Reactor&       reactor(ReactorContext& _rctx) const;
+    ReactorEventE reactorEvent(ReactorContext& _rctx) const;
+    impl::Reactor&       reactor(ReactorContext& _rctx) const;
     void           error(ReactorContext& _rctx, ErrorConditionT const& _err) const;
     void           errorClear(ReactorContext& _rctx) const;
     void           systemError(ReactorContext& _rctx, ErrorCodeT const& _err) const;
@@ -65,20 +73,12 @@ protected:
     void           remTimer(ReactorContext& _rctx, size_t const& _storedidx);
 
 private:
-    friend class Reactor;
 
     void handleCompletion(ReactorContext& _rctx)
     {
         (*call)(*this, _rctx);
     }
 
-private:
-    friend class Actor;
-
-private:
-    ForwardCompletionHandler* pprev;
-    size_t                    idxreactor; // index within reactor
-    CallbackT                 call;
 };
 
 inline void CompletionHandler::completionCallback(CallbackT _pcbk)

@@ -26,10 +26,16 @@ class SchedulerBase;
  * time, e.g. because of an event.
  */
 class ReactorBase : NonCopyable {
+    typedef Stack<UniqueId> UidStackT;
+
+    SchedulerBase& rsch;
+    size_t         schidx;
+    size_t         crtidx;
+    UidStackT      uidstk;
 public:
     virtual ~ReactorBase();
-    virtual bool raise(UniqueId const& _ractuid, Event const& _re) = 0;
-    virtual bool raise(UniqueId const& _ractuid, Event&& _ue)      = 0;
+    virtual bool wake(UniqueId const& _ractuid, EventBase const& _re) = 0;
+    virtual bool wake(UniqueId const& _ractuid, EventBase&& _ue)      = 0;
     virtual void stop()                                            = 0;
 
     bool   prepareThread(const bool _success);
@@ -60,14 +66,6 @@ protected:
 private:
     friend class SchedulerBase;
     size_t idInScheduler() const;
-
-private:
-    typedef Stack<UniqueId> UidStackT;
-
-    SchedulerBase& rsch;
-    size_t         schidx;
-    size_t         crtidx;
-    UidStackT      uidstk;
 };
 
 inline SchedulerBase& ReactorBase::scheduler()

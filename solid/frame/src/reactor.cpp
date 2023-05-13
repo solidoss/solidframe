@@ -7,21 +7,20 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
+#include <fcntl.h>
 #include <cerrno>
 #include <cstring>
 #include <deque>
-#include <fcntl.h>
 #include <queue>
 #include <vector>
+#include <condition_variable>
+#include <thread>
 
 #include "solid/system/common.hpp"
 #include "solid/system/device.hpp"
 #include "solid/system/error.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/system/nanotime.hpp"
-#include <condition_variable>
-#include <mutex>
-#include <thread>
 
 #include "solid/utility/event.hpp"
 #include "solid/utility/queue.hpp"
@@ -41,6 +40,284 @@ using namespace std;
 namespace solid {
 namespace frame {
 
+namespace{
+
+void dummy_completion(CompletionHandler&, ReactorContext&)
+{
+}
+
+struct EventActor : public Actor {
+    CompletionHandler dummy_handler_;
+
+    EventActor()
+        : dummy_handler_(proxy(), dummy_completion)
+    {
+    }
+
+    void stop()
+    {
+        dummy_handler_.deactivate();
+        dummy_handler_.unregister();
+    }
+
+    template <class F>
+    void post(ReactorContext& _rctx, F _f)
+    {
+        Actor::post(_rctx, _f);
+    }
+
+};
+
+
+struct CompletionHandlerStub {
+    CompletionHandler* pcompletion_handler_;
+    size_t             actor_idx_;
+    UniqueT            unique_ = 0;
+    
+    CompletionHandlerStub(
+        CompletionHandler* _pch    = nullptr,
+        const size_t       _actidx = InvalidIndex())
+        : pcompletion_handler_(_pch)
+        , actor_idx_(_actidx)
+    {
+    }
+};
+
+struct ActorStub {
+    UniqueT  unique_ = 0;
+    Service* pservice_ = nullptr;
+    ActorPointerT    actor_ptr_;
+
+    void clear(){
+        actor_ptr_.reset();
+        pservice_ = nullptr;
+        ++unique_;
+    }
+};
+
+constexpr size_t min_event_capacity = 32;
+constexpr size_t max_event_capacity = 1024 * 64;
+
+using UniqueIdVectorT = std::vector<UniqueId>;
+using CompletionHandlerDequeT = std::deque<CompletionHandlerStub>;
+using ActorDequeT = std::deque<ActorStub>;
+using SizeStackT = Stack<size_t>;
+}//namespace
+
+
+struct impl::Reactor::Data {
+    bool                    running_ = false;
+    bool                    must_stop_ = false;
+    TimeStore               time_store_{max_event_capacity};
+    NanoTime                current_time_;
+    std::mutex              mutex_;
+    condition_variable      cnd_var_;
+    shared_ptr<EventActor>  event_actor_ptr_;
+    CompletionHandlerDequeT completion_handler_dq_;
+    UniqueIdVectorT         freeuid_vec_;
+    ActorDequeT             actor_dq_;
+    SizeStackT              completion_handler_index_stk_;
+
+    NanoTime computeWaitDuration(NanoTime const& _rcrt, const bool _exec_q_empty) const
+    {
+        if (!_exec_q_empty) {
+            return NanoTime();
+        } else if (!time_store_.empty()) {
+
+            if (_rcrt < time_store_.expiry()) {
+                const auto crt_tp  = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
+                const auto next_tp = time_store_.expiry().timePointCast<std::chrono::steady_clock::time_point>();
+                const auto delta   = next_tp - crt_tp;
+
+                if (delta <= std::chrono::minutes(10)) {
+                    return delta;
+                } else {
+                    return std::chrono::minutes(10);
+                }
+
+            } else {
+                return NanoTime();
+            }
+        } else {
+            return NanoTime::max();
+        }
+    }
+
+    UniqueId dummyCompletionHandlerUid() const
+    {
+        const size_t idx = event_actor_ptr_->dummy_handler_.idxreactor;
+        return UniqueId(idx, completion_handler_dq_[idx].unique_);
+    }
+};
+
+namespace impl
+{
+
+
+Reactor::Reactor(
+    SchedulerBase& _rsched,
+    const size_t   _idx)
+    : ReactorBase(_rsched, _idx)
+    , impl_(make_pimpl<Data>())
+{
+    solid_log(frame_logger, Verbose, "");
+}
+
+Reactor::~Reactor()
+{
+    solid_log(frame_logger, Verbose, "");
+}
+
+bool Reactor::start()
+{
+    doStoreSpecific();
+    solid_log(frame_logger, Verbose, "");
+
+    impl_->actor_dq_.push_back(ActorStub());
+    impl_->actor_dq_.back().actor_ptr_ = impl_->event_actor_ptr_;
+
+    popUid(*impl_->actor_dq_.back().actor_ptr_);
+
+    impl_->event_actor_ptr_->registerCompletionHandlers();
+
+    impl_->running_ = true;
+
+    return true;
+}
+
+/*virtual*/ void Reactor::stop()
+{
+    solid_log(frame_logger, Verbose, "");
+    lock_guard<std::mutex> lock(impl_->mutex_);
+    impl_->must_stop_ = true;
+    impl_->cnd_var_.notify_one();
+}
+
+void Reactor::run()
+{
+    solid_log(frame_logger, Verbose, "<enter>");
+    bool running         = true;
+    impl_->current_time_ = NanoTime::nowSteady();
+    while (running) {
+
+        crtload = actor_count_ + impl_->exeq.size();
+
+        if (doWaitEvent(impl_->current_time_)) {
+            impl_->current_time_ = NanoTime::nowSteady();
+            doCompleteEvents(impl_->current_time_);
+        }
+        impl_->current_time_ = NanoTime::nowSteady();
+        doCompleteTimer(impl_->current_time_);
+
+        impl_->current_time_ = NanoTime::nowSteady();
+        doCompleteExec(impl_->current_time_);
+
+        running = impl_->running_ || (actor_count_ != 0) || !impl_->exeq.empty();
+    }
+    impl_->event_actor_ptr_->stop();
+    doClearSpecific();
+    solid_log(frame_logger, Verbose, "<exit>");
+}
+
+UniqueId Reactor::actorUid(ReactorContext const& _rctx) const
+{
+    return UniqueId(_rctx.actor_idx_, impl_->actor_dq_[_rctx.actor_idx_].unique_);
+}
+
+Service& Reactor::service(ReactorContext const& _rctx) const
+{
+    return *impl_->actor_dq_[_rctx.actor_idx_].pservice_;
+}
+
+Actor& Reactor::actor(ReactorContext const& _rctx) const
+{
+    return *impl_->actor_dq_[_rctx.actor_idx_].actor_ptr_;
+}
+
+CompletionHandler* Reactor::completionHandler(ReactorContext const& _rctx) const
+{
+    return impl_->completion_handler_dq_[_rctx.completion_heandler_idx_].pcompletion_handler_;
+}
+
+void Reactor::addActor(UniqueId const&_uid, Service &_rservice, ActorPointerT &&_actor_ptr)
+{
+    if (_uid.index >= impl_->actor_dq_.size()) {
+        impl_->actor_dq_.resize(static_cast<size_t>(_uid.index + 1));
+    }
+
+    ActorStub& rstub = impl_->actor_dq_[static_cast<size_t>(_uid.index)];
+    solid_assert_log(rstub.unique == _uid.unique, frame_logger);
+
+    {
+        // NOTE: we must lock the mutex of the actor
+        // in order to ensure that actor is fully registered onto the manager
+
+        lock_guard<std::mutex> lock(_rservice.mutex(*_actor_ptr));
+    }
+
+    rstub.actor_ptr_ = std::move(_actor_ptr);
+    rstub.pservice_   = &_rservice;
+    rstub.actor_ptr_->registerCompletionHandlers();
+}
+
+bool Reactor::isValid(UniqueId const&_actor_uid, UniqueId const&_completion_handler_uid)const
+{
+    ActorStub&   ras(impl_->actor_dq_[static_cast<size_t>(_actor_uid.index)]);
+    CompletionHandlerStub& rcs(impl_->completion_handler_dq_[static_cast<size_t>(_completion_handler_uid.index)]);
+    return ras.unique_ == _actor_uid.unique && rcs.unique_ == _completion_handler_uid.unique;
+}
+
+void Reactor::postActorStop(ReactorContext& _rctx)
+{
+    doPostActorStop(_rctx, impl_->dummyCompletionHandlerUid());
+}
+
+/*static*/ void Reactor::stop_actor_repost(ReactorContext& _rctx, EventBase&& /*_uevent*/)
+{
+    Reactor& rthis = _rctx.reactor();
+    rthis.doStopActorRepost(_rctx, rthis.impl_->dummyCompletionHandlerUid());
+}
+
+/*static*/ void Reactor::stop_actor(ReactorContext& _rctx, EventBase&&)
+{
+    Reactor& rthis = _rctx.reactor();
+    rthis.doStopActor(_rctx);
+}
+
+void Reactor::doStopActor(ReactorContext& _rctx)
+{
+    ActorStub& rstub = impl_->actor_dq_[_rctx.actor_idx_];
+
+    this->stopActor(*rstub.actor_ptr_, rstub.pservice_->manager());
+
+    rstub.clear();
+    --actor_count_;
+    impl_->freeuid_vec_.push_back(UniqueId(_rctx.actor_idx_, rstub.unique_));
+}
+
+void Reactor::onTimer(ReactorContext& _rctx, const size_t _chidx)
+{
+    CompletionHandlerStub& rch = impl_->completion_handler_dq_[_chidx];
+
+    _rctx.reactor_event_ = ReactorEventE::Timer;
+    _rctx.completion_heandler_idx_   = _chidx;
+    _rctx.actor_idx_   = rch.actor_idx_;
+
+    rch.pcompletion_handler_->handleCompletion(_rctx);
+    _rctx.clearError();
+}
+
+void Reactor::doCompleteTimer(NanoTime const& _rcrttime)
+{
+    ReactorContext ctx(*this, _rcrttime);
+    impl_->time_store_.pop(_rcrttime, [this, &ctx](const size_t _chidx, const NanoTime& /* _expiry */, const size_t /* _proxy_index */) {
+        onTimer(ctx, _chidx);
+    });
+}
+
+}//namespace impl
+
+#ifdef false
 namespace {
 
 void dummy_completion(CompletionHandler&, ReactorContext&)
@@ -48,6 +325,7 @@ void dummy_completion(CompletionHandler&, ReactorContext&)
 }
 
 } // namespace
+
 
 typedef std::atomic<bool>   AtomicBoolT;
 typedef std::atomic<size_t> AtomicSizeT;
@@ -702,7 +980,7 @@ void Reactor::doClearSpecific()
     solid_log(frame_logger, Verbose, "");
     return *safeSpecific();
 }
-
+#endif
 //=============================================================================
 //      ReactorContext
 //=============================================================================

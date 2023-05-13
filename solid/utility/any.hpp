@@ -312,7 +312,8 @@ public:
         return alignof(T) <= alignof(max_align_t) && sizeof(T) <= small_capacity;
     }
 
-    constexpr Any() noexcept {
+    constexpr Any() noexcept
+    {
         storage_.type_data_ = 0;
     }
 
@@ -375,7 +376,8 @@ public:
 
     ThisT& operator=(const ThisT& _other)
     {
-        *this = ThisT{_other};
+        reset();
+        doCopyFrom(_other);
         return *this;
     }
 
