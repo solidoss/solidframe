@@ -26,7 +26,7 @@
 
 namespace solid {
 
-struct Event;
+struct EventBase;
 
 namespace frame {
 
@@ -52,9 +52,10 @@ class Manager final : NonCopyable {
     using OnLockedStartFunctionT = std::function<void(std::unique_lock<std::mutex>&)>;
     struct Data;
     PimplT<Data> pimpl_;
+
 public:
-    using ChunkMutexT = SpinLock;
-    using ActorMutexT = ChunkMutexT;
+    using ChunkMutexT   = SpinLock;
+    using ActorMutexT   = ChunkMutexT;
     using ServiceMutexT = std::mutex;
 
     class VisitContext {
@@ -150,8 +151,8 @@ private:
 
     ActorIdT unsafeId(const ActorBase& _ractor) const;
 
-    ActorMutexT& mutex(const Service& _rservice) const;
-    ServiceMutexT& mutex(const ActorBase& _ractor) const;
+    ServiceMutexT& mutex(const Service& _rservice) const;
+    ActorMutexT&   mutex(const ActorBase& _ractor) const;
 
     ServiceStatusE status(const Service& _rservice, std::unique_lock<ServiceMutexT>& _rlock) const;
 

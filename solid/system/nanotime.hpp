@@ -60,6 +60,11 @@ struct NanoTime : public timespec {
         return NanoTime(std::chrono::steady_clock::now());
     }
 
+    explicit operator bool() const noexcept
+    {
+        return tv_sec == 0 && tv_nsec == 0;
+    }
+
     template <class TimePoint>
     TimePoint timePointCast() const
     {
@@ -82,7 +87,7 @@ struct NanoTime : public timespec {
     template <class Duration>
     Duration durationCast() const
     {
-        return std::chrono::duration_cast<Duration>(std::chrono::seconds(tv_sec) + std::chrono::nanoseconds(tv_nsec));
+        return std::chrono::duration_cast<Duration>(std::chrono::seconds(tv_sec)) + std::chrono::duration_cast<Duration>(std::chrono::nanoseconds(tv_nsec));
     }
 
     template <class Rep, class Period>

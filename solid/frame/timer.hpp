@@ -37,10 +37,10 @@ class SteadyTimer : public CompletionHandler {
         ThisT& rthis = static_cast<ThisT&>(_rch);
 
         switch (rthis.reactorEvent(_rctx)) {
-        case ReactorEventTimer:
+        case ReactorEventE::Timer:
             rthis.doExec(_rctx);
             break;
-        case ReactorEventClear:
+        case ReactorEventE::Clear:
             rthis.doClear(_rctx);
             rthis.function_ = &on_dummy;
             break;
@@ -108,7 +108,7 @@ public:
     }
 
 private:
-    friend class Reactor;
+    friend class impl::Reactor;
     void doExec(ReactorContext& _rctx)
     {
         FunctionT tmpf;

@@ -19,7 +19,6 @@
 
 namespace solid {
 namespace frame {
-class impl::Reactor;
 struct ReactorContext;
 class CompletionHandler;
 

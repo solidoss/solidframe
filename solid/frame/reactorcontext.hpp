@@ -15,17 +15,17 @@
 #include "solid/system/nanotime.hpp"
 #include "solid/system/socketdevice.hpp"
 
-#include "solid/frame/aio/aiocommon.hpp"
+#include "solid/frame/service.hpp"
+
 #include <mutex>
 
 namespace solid {
 namespace frame {
 
-class Service;
 class Actor;
-namespace impl{
+namespace impl {
 class Reactor;
-}//namespace impl
+} // namespace impl
 class CompletionHandler;
 
 class ReactorContext : NonCopyable {
@@ -42,7 +42,7 @@ class ReactorContext : NonCopyable {
     ErrorConditionT error_;
 
     ReactorContext(
-        impl::Reactor&        _rreactor,
+        impl::Reactor&  _rreactor,
         const NanoTime& _rcrttm)
         : rreactor_(_rreactor)
         , rcurrent_time_(_rcrttm)
@@ -107,8 +107,8 @@ public:
     Service& service() const;
     Manager& manager() const;
 
-    ActorIdT    actorId() const;
-    std::mutex& actorMutex() const;
+    ActorIdT              actorId() const;
+    Service::ActorMutexT& actorMutex() const;
 
     void clearError()
     {

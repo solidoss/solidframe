@@ -1,6 +1,6 @@
-#include <vector>
-#include <set>
 #include "solid/utility/event.hpp"
+#include <set>
+#include <vector>
 
 using namespace std;
 using namespace solid;
@@ -118,18 +118,16 @@ int test_event(int /*argc*/, char* /*argv*/[])
     rbase.handleEvent(make_event(BetaEvents::Second));
     rbase.handleEvent(make_event(GenericEventE::Message, std::string("Some text")));
 
-
     auto tuple_event = make_event(BetaEvents::Second, std::make_tuple(to_string(10), vector<int>{1, 2, 3, 4}, set<std::string>{"a", "b", "c"}));
 
-    auto check_event = [](EventBase &_event)
-    {
+    auto check_event = [](EventBase& _event) {
         solid_check(_event.get_if<string>());
         solid_check(*_event.get_if<string>() == to_string(10));
-        auto *pvec =_event.get_if<vector<int>>(); 
+        auto* pvec = _event.get_if<vector<int>>();
         solid_check(pvec && pvec->size() == 4 && pvec->at(3) == 4);
 
-        auto *pset = _event.get_if<set<string>>();
-        solid_check(pset && pset->size() == 3 && pset->find("b") != pset->end()); 
+        auto* pset = _event.get_if<set<string>>();
+        solid_check(pset && pset->size() == 3 && pset->find("b") != pset->end());
     };
 
     check_event(tuple_event);
@@ -137,7 +135,7 @@ int test_event(int /*argc*/, char* /*argv*/[])
     Event<8> tuple_event8(tuple_event);
     check_event(tuple_event8);
     check_event(tuple_event);
-    
+
     {
         Event<8> tuple_event8(std::move(tuple_event));
         check_event(tuple_event8);

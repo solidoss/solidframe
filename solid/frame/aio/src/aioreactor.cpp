@@ -69,7 +69,7 @@ namespace frame {
 namespace aio {
 
 //=============================================================================
-
+#if false
 namespace {
 
 void dummy_completion(CompletionHandler&, ReactorContext&)
@@ -1649,7 +1649,7 @@ void Reactor::doClearSpecific()
     solid_log(logger, Verbose, "");
     return *safeSpecific();
 }
-
+#endif
 //-----------------------------------------------------------------------------
 //      ReactorContext
 //-----------------------------------------------------------------------------

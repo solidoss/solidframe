@@ -9,36 +9,47 @@
 //
 
 #pragma once
-#include <mutex>
 #include "solid/frame/common.hpp"
 #include "solid/frame/reactorbase.hpp"
 #include "solid/frame/reactorcontext.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/pimpl.hpp"
+#include "solid/utility/event.hpp"
+#include "solid/utility/queue.hpp"
+#include <mutex>
 
 namespace solid {
 struct NanoTime;
 namespace frame {
-
-class Service;
 class Actor;
+class Service;
 class ReactorContext;
-class CompletionHandler;
 struct ChangeTimerIndexCallback;
 struct TimerCallback;
 
+extern const LoggerT frame_logger;
+
 using ActorPointerT = std::shared_ptr<Actor>;
 
-namespace impl{
+namespace impl {
 
-class Reactor : public frame::ReactorBase{
-    friend class CompletionHandler;
-    friend class ReactorContext;
+class Reactor : public frame::ReactorBase {
+    friend class solid::frame::CompletionHandler;
+    friend class solid::frame::ReactorContext;
+    friend class solid::frame::Actor;
 
-    using EventFunctionT = solid_function_t(void(ReactorContext&, EventBase&&)) ;
+    using EventFunctionT = solid_function_t(void(ReactorContext&, EventBase&&));
     struct Data;
     PimplT<Data> impl_;
+
 protected:
-    size_t  actor_count_ = 0;
+    uint32_t current_wake_index_ = 0;
+    uint32_t current_push_index_ = 0;
+    size_t   actor_count_        = 0;
+    size_t   current_push_size_  = 0;
+    size_t   current_wake_size_  = 0;
+    size_t   current_exec_size_  = 0;
+
 protected:
     Reactor(SchedulerBase& _rsched, const size_t _schedidx);
     ~Reactor();
@@ -63,8 +74,31 @@ protected:
     void postActorStop(ReactorContext& _rctx, Function&& _f, EventBase&& _uev)
     {
         using RealF = typename std::decay<Function>::type;
-        StopActorF<RealF> stopfnc{std::forward<RealF>(_f)};
-        EventFunctionT    eventfnc(stopfnc);
+
+        struct StopActorF {
+            Function function;
+            bool     repost = true;
+
+            explicit StopActorF(Function&& _function)
+                : function{std::move(_function)}
+            {
+            }
+
+            void operator()(ReactorContext& _rctx, EventBase&& _revent)
+            {
+                if (repost) { // skip one round - to guarantee that all remaining posts were delivered
+                    repost = false;
+                    EventFunctionT eventfnc(*this);
+                    _rctx.reactor().doPost(_rctx, std::move(eventfnc), std::move(_revent));
+                } else {
+                    function(_rctx, _revent);
+                    _rctx.reactor().doStopActor(_rctx);
+                }
+            }
+        };
+
+        StopActorF     stopfnc{std::move(_f)};
+        EventFunctionT eventfnc(stopfnc);
         doPost(_rctx, std::move(eventfnc), std::move(_uev));
     }
 
@@ -88,29 +122,31 @@ protected:
     CompletionHandler* completionHandler(ReactorContext const& _rctx) const;
 
     std::mutex& mutex();
-    void notifyOne();
+    void        notifyOne();
 
-    void addActor(UniqueId const&_uid, Service &_rservice, ActorPointerT &&_actor_ptr);
-    bool isValid(UniqueId const&_actor_uid, UniqueId const&_completion_handler_uid)const;
+    void addActor(UniqueId const& _uid, Service& _rservice, ActorPointerT&& _actor_ptr);
+    bool isValid(UniqueId const& _actor_uid, UniqueId const& _completion_handler_uid) const;
+
+    UniqueId popUid(Actor&);
+
 private:
-
     static Reactor* safeSpecific();
     static Reactor& specific();
 
-    bool doWaitEvent(NanoTime const& _rcrttime);
+    bool doWaitEvent(NanoTime const& _rcrttime, const bool _exec_q_empty);
 
     void doCompleteTimer(NanoTime const& _rcrttime);
-    void doCompleteExec(NanoTime const& _rcrttime);
-    void doCompleteEvents(NanoTime const& _rcrttime);
     void doStoreSpecific();
     void doClearSpecific();
 
     void doPost(ReactorContext& _rctx, EventFunctionT&& _revfn, EventBase&& _uev);
     void doPost(ReactorContext& _rctx, EventFunctionT&& _revfn, EventBase&& _uev, CompletionHandler const& _rch);
-    
-    virtual void doPostActorStop(ReactorContext& _rctx, const UniqueId &_completion_handler_uid) = 0;
-    virtual void doPost(ReactorContext& _rctx, EventFunctionT&& _revfn, EventBase&& _uev, const UniqueId &_completion_handler_uid) = 0;
-    virtual void doStopActorRepost(ReactorContext& _rctx, const UniqueId &_completion_handler_uid) = 0;
+
+    virtual void doPostActorStop(ReactorContext& _rctx, const UniqueId& _completion_handler_uid)                                   = 0;
+    virtual void doPost(ReactorContext& _rctx, EventFunctionT&& _revfn, EventBase&& _uev, const UniqueId& _completion_handler_uid) = 0;
+    virtual void doStopActorRepost(ReactorContext& _rctx, const UniqueId& _completion_handler_uid)                                 = 0;
+    virtual void doCompleteExec(NanoTime const& _rcrttime)                                                                         = 0;
+    virtual void doCompleteEvents(NanoTime const& _rcrttime, const UniqueId& _completion_handler_uid)                              = 0;
 
     void doStopActor(ReactorContext& _rctx);
 
@@ -147,14 +183,14 @@ struct ExecStub {
     }
 
     ExecStub(
-        UniqueId const& _ruid, Event&& _revent)
+        UniqueId const& _ruid, EventBase&& _revent)
         : actor_uid_(_ruid)
         , event_(std::move(_revent))
     {
     }
 
     ExecStub(
-        UniqueId const& _ruid, Event const& _revent = Event())
+        UniqueId const& _ruid, EventBase const& _revent = Event<>())
         : actor_uid_(_ruid)
         , event_(_revent)
     {
@@ -174,7 +210,7 @@ template <class Evnt>
 struct WakeStub {
     UniqueId uid_;
     Evnt     event_;
-    
+
     WakeStub(
         UniqueId const& _ruid, EventBase const& _revent)
         : uid_(_ruid)
@@ -184,7 +220,7 @@ struct WakeStub {
 
     WakeStub(
         UniqueId const& _ruid, EventBase&& _uevent)
-        : uid(_ruid)
+        : uid_(_ruid)
         , event_(std::move(_uevent))
     {
     }
@@ -201,10 +237,10 @@ struct WakeStub {
 
 template <class Evnt>
 struct PushStub {
-    UniqueId uid_;
-    ActorPointerT    actor_ptr_;
-    Service& rservice_;
-    Evnt    event_;
+    UniqueId      uid_;
+    ActorPointerT actor_ptr_;
+    Service&      rservice_;
+    Evnt          event_;
 
     PushStub(
         UniqueId const& _ruid, ActorPointerT&& _ractptr, Service& _rsvc, EventBase const& _revent)
@@ -215,7 +251,7 @@ struct PushStub {
     {
     }
     PushStub(
-        UniqueId const& _ruid, ActorPointerT&& _ractptr, Service& _rsvc, EventBase && _revent)
+        UniqueId const& _ruid, ActorPointerT&& _ractptr, Service& _rsvc, EventBase&& _revent)
         : uid_(_ruid)
         , actor_ptr_(std::move(_ractptr))
         , rservice_(_rsvc)
@@ -224,68 +260,73 @@ struct PushStub {
     }
 };
 
-}//namespace impl
+} // namespace impl
 
 template <class Evnt>
-class Reactor: public impl::Reactor{
-    using ExecStubT = impl::ExecStub<Evnt>;
-    using WakeStubT = impl::WakeStub<Evnt>;
-    using PushStubT = impl::PushStub<Evnt>;
+class Reactor : public impl::Reactor {
+    using ExecStubT  = impl::ExecStub<Evnt>;
+    using WakeStubT  = impl::WakeStub<Evnt>;
+    using PushStubT  = impl::PushStub<Evnt>;
     using ExecQueueT = Queue<ExecStubT>;
     using WakeQueueT = Queue<WakeStubT>;
     using PushQueueT = Queue<PushStubT>;
-    
+
     ExecQueueT exec_q_;
     WakeQueueT wake_q_[2];
     PushQueueT push_q_[2];
-    uint32_t   current_wake_index_ = 0;
-    uint32_t   current_push_index_ = 0;
+
 public:
-    Reactor(SchedulerBase& _rsched, const size_t _sched_idx): impl::Reactor(_rsched, _sched_idx){}
+    Reactor(SchedulerBase& _rsched, const size_t _sched_idx)
+        : impl::Reactor(_rsched, _sched_idx)
+    {
+    }
 
-    bool push(ActorPointerT&& _ract, Service& _rsvc, EventBase const& _revt)
+    bool push(ActorPointerT&& _ract, Service& _rsvc, EventBase const& _revent)
     {
         bool notify = false;
         {
             std::lock_guard<std::mutex> lock(mutex());
-            const UniqueId    uid = this->popUid(*_ract);
-            auto & rpush_q = push_q_[current_push_index_];
-            notify = rpush_q.empty();
-            rpush_q.(PushStub(uid, std::move(_ract), _rsvc, _revent));
+            const UniqueId              uid     = this->popUid(*_ract);
+            auto&                       rpush_q = push_q_[current_push_index_];
+            notify                              = rpush_q.empty();
+            rpush_q.push(PushStubT(uid, std::move(_ract), _rsvc, _revent));
+            current_push_size_ = rpush_q.size();
         }
-        if(notify){
+        if (notify) {
             notifyOne();
         }
         return true;
     }
 
-    bool push(ActorPointerT&& _ract, Service& _rsvc, EventBase&& _revt)
+    bool push(ActorPointerT&& _ract, Service& _rsvc, EventBase&& _revent)
     {
         bool notify = false;
         {
             std::lock_guard<std::mutex> lock(mutex());
-            const UniqueId    uid = this->popUid(*_ract);
-            auto & rpush_q = push_q_[current_push_index_];
-            notify = rpush_q.empty();
-            rpush_q.(PushStub(uid, std::move(_ract), _rsvc, std::move(_revent)));
+            const UniqueId              uid     = this->popUid(*_ract);
+            auto&                       rpush_q = push_q_[current_push_index_];
+            notify                              = rpush_q.empty();
+            rpush_q.push(PushStubT(uid, std::move(_ract), _rsvc, std::move(_revent)));
+            current_push_size_ = rpush_q.size();
         }
-        if(notify){
+        if (notify) {
             notifyOne();
         }
         return true;
     }
-    
+
 private:
     bool wake(UniqueId const& _ractuid, EventBase const& _revent) override
     {
         bool notify = false;
         {
             std::lock_guard<std::mutex> lock(mutex());
-            auto & rwake_q = wake_q_[current_wake_index_];
-            notify = rwake_q.empty();
-            rwake_q.push(WakeStub(_ractuid, _revent));
+            auto&                       rwake_q = wake_q_[current_wake_index_];
+            notify                              = rwake_q.empty();
+            rwake_q.push(WakeStubT(_ractuid, _revent));
+            current_wake_size_ = rwake_q.size();
         }
-        if(notify){
+        if (notify) {
             notifyOne();
         }
         return true;
@@ -295,71 +336,76 @@ private:
         bool notify = false;
         {
             std::lock_guard<std::mutex> lock(mutex());
-            auto & rwake_q = wake_q_[current_wake_index_];
-            notify = rwake_q.empty();
-            rwake_q.push(WakeStub(_ractuid, std::move(_revent)));
+            auto&                       rwake_q = wake_q_[current_wake_index_];
+            notify                              = rwake_q.empty();
+            rwake_q.push(WakeStubT(_ractuid, std::move(_revent)));
+            current_wake_size_ = rwake_q.size();
         }
-        if(notify){
+        if (notify) {
             notifyOne();
         }
         return true;
     }
 
-    void doPost(ReactorContext& _rctx, EventFunctionT&& _revent_fnc, EventBase&& _uev, const UniqueId &_completion_handler_uid) override{
+    void doPost(ReactorContext& _rctx, EventFunctionT&& _revent_fnc, EventBase&& _uev, const UniqueId& _completion_handler_uid) override
+    {
         exec_q_.push(ExecStubT(_rctx.actorUid(), std::move(_uev)));
-        exec_q_.back().exec_fnc_ = std::move(_revent_fnc);
+        exec_q_.back().exec_fnc_               = std::move(_revent_fnc);
         exec_q_.back().completion_handler_uid_ = _completion_handler_uid;
+        current_exec_size_                     = exec_q_.size();
     }
 
-    void Reactor::doStopActorRepost(ReactorContext& _rctx, const UniqueId &_completion_handler_uid)
+    void doStopActorRepost(ReactorContext& _rctx, const UniqueId& _completion_handler_uid)
     {
         exec_q_.push(ExecStubT(_rctx.actorUid()));
-        exec_q_.back().exefnc = &stop_actor;
+        exec_q_.back().exefnc                  = &stop_actor;
         exec_q_.back().completion_handler_uid_ = _completion_handler_uid;
+        current_exec_size_                     = exec_q_.size();
     }
     /*NOTE:
         We do not stop the actor rightaway - we make sure that any
         pending Events are delivered to the actor before we stop
     */
-    void doPostActorStop(ReactorContext& _rctx, const UniqueId &_completion_handler_uid) override
+    void doPostActorStop(ReactorContext& _rctx, const UniqueId& _completion_handler_uid) override
     {
         exec_q_.push(ExecStubT(_rctx.actorUid()));
-        exec_q_.back().exec_fnc_ = &stop_actor_repost;
+        exec_q_.back().exec_fnc_               = &stop_actor_repost;
         exec_q_.back().completion_handler_uid_ = _completion_handler_uid;
+        current_exec_size_                     = exec_q_.size();
     }
 
-    void doCompleteEvents(NanoTime const& _rcrttime, const UniqueId &_completion_handler_uid)
+    void doCompleteEvents(NanoTime const& _rcrttime, const UniqueId& _completion_handler_uid)
     {
         solid_log(frame_logger, Verbose, "");
 
         PushQueueT&    push_q = push_q_[(current_push_index_ + 1) & 1];
-        WakeQueueT&    wake_q = wake_q_[(current_wale_index_ + 1) & 1];
-        ReactorContext     ctx(*this, _rcrttime);
-        
+        WakeQueueT&    wake_q = wake_q_[(current_wake_index_ + 1) & 1];
+        ReactorContext ctx(*this, _rcrttime);
+
         incrementActorCount(push_q.size());
 
         actor_count_ += push_q.size();
 
-        while(!push_q.empty()) {
-            auto &rstub = push_q.front();
-            
+        while (!push_q.empty()) {
+            auto& rstub = push_q.front();
+
             addActor(rstub.uid_, rstub.rservice_, std::move(rstub.actor_ptr_));
 
             exec_q_.push(ExecStubT(rstub.uid_, &call_actor_on_event, _completion_handler_uid, std::move(rstub.event_)));
             push_q.pop();
+            current_exec_size_ = exec_q_.size();
         }
 
-        while(!wake_q.empty())
-        {
-            auto &rstub = wake_q.front();
+        while (!wake_q.empty()) {
+            auto& rstub = wake_q.front();
 
             exec_q_.push(ExecStubT(rstub.uid_, &call_actor_on_event, _completion_handler_uid, std::move(rstub.event_)));
-
             wake_q.pop();
+            current_exec_size_ = exec_q_.size();
         }
     }
 
-    void doCompleteExec(NanoTime const& _rcrttime)
+    void doCompleteExec(NanoTime const& _rcrttime) override
     {
         ReactorContext ctx(*this, _rcrttime);
         size_t         sz = exec_q_.size();
@@ -367,17 +413,17 @@ private:
         while ((sz--) != 0) {
             auto& rexec(exec_q_.front());
 
-            if(isValid(rexec.actor_uid_, rexec.completion_handler_uid_)){
+            if (isValid(rexec.actor_uid_, rexec.completion_handler_uid_)) {
                 ctx.clearError();
                 ctx.completion_heandler_idx_ = static_cast<size_t>(rexec.completion_handler_uid_.index);
-                ctx.actor_idx_ = static_cast<size_t>(rexec.actor_uid_.index);
+                ctx.actor_idx_               = static_cast<size_t>(rexec.actor_uid_.index);
                 rexec.exec_fnc_(ctx, std::move(rexec.event_));
             }
             exec_q_.pop();
+            current_exec_size_ = exec_q_.size();
         }
     }
 };
-
 
 #if false
 class Reactor : public frame::ReactorBase {

@@ -19,7 +19,7 @@
 #include <vector>
 
 namespace solid {
-struct Event;
+struct EventBase;
 namespace frame {
 
 class ActorBase;
@@ -70,11 +70,14 @@ protected:
         UseServiceShell _force_shell, A&& _a, const bool _start = true);
 
 public:
+    using ActorMutexT   = Manager::ActorMutexT;
+    using ServiceMutexT = Manager::ServiceMutexT;
+
     virtual ~Service();
 
     bool registered() const;
 
-    void notifyAll(Event const& _e);
+    void notifyAll(EventBase const& _e);
 
     template <class F>
     bool forEach(F& _rf);
@@ -83,7 +86,7 @@ public:
 
     Manager& manager();
 
-    std::mutex& mutex(const ActorBase& _ract) const;
+    ActorMutexT& mutex(const ActorBase& _ract) const;
 
     ActorIdT id(const ActorBase& _ract) const;
 
@@ -99,9 +102,9 @@ public:
     ServiceStatusE status() const;
 
 protected:
-    std::mutex& mutex() const;
+    ServiceMutexT& mutex() const;
 
-    ServiceStatusE status(std::unique_lock<std::mutex>& _rlock) const;
+    ServiceStatusE status(std::unique_lock<ServiceMutexT>& _rlock) const;
 
     void doStart();
 
@@ -175,7 +178,7 @@ inline void Service::index(const size_t _idx)
     idx_.store(_idx);
 }
 
-inline void Service::notifyAll(Event const& _revt)
+inline void Service::notifyAll(EventBase const& _revt)
 {
     rm_.notifyAll(*this, _revt);
 }
@@ -183,7 +186,7 @@ inline void Service::notifyAll(Event const& _revt)
 inline void Service::doStart()
 {
     rm_.startService(
-        *this, [](std::unique_lock<std::mutex>&) {});
+        *this, [](std::unique_lock<ServiceMutexT>&) {});
 }
 
 template <typename AnyType>
@@ -191,7 +194,7 @@ inline void Service::doStart(AnyType&& _any)
 {
     Any<> any{std::forward<AnyType>(_any)};
     rm_.startService(
-        *this, [this, &any](std::unique_lock<std::mutex>&) { any_ = std::move(any); });
+        *this, [this, &any](std::unique_lock<ServiceMutexT>&) { any_ = std::move(any); });
 }
 
 template <typename AnyType, typename F>
@@ -199,14 +202,14 @@ inline void Service::doStartWithAny(AnyType&& _any, F&& _on_locked_start)
 {
     Any<> any{std::forward<AnyType>(_any)};
     rm_.startService(
-        *this, [this, &any, &_on_locked_start](std::unique_lock<std::mutex>& _lock) { any_ = std::move(any); _on_locked_start(_lock); });
+        *this, [this, &any, &_on_locked_start](std::unique_lock<ServiceMutexT>& _lock) { any_ = std::move(any); _on_locked_start(_lock); });
 }
 
 template <typename F>
 inline void Service::doStartWithoutAny(F&& _on_locked_start)
 {
     rm_.startService(
-        *this, [&_on_locked_start](std::unique_lock<std::mutex>& _lock) { _on_locked_start(_lock); });
+        *this, [&_on_locked_start](std::unique_lock<ServiceMutexT>& _lock) { _on_locked_start(_lock); });
 }
 
 inline void Service::stop(const bool _wait)
@@ -214,7 +217,7 @@ inline void Service::stop(const bool _wait)
     rm_.stopService(*this, _wait);
 }
 
-inline std::mutex& Service::mutex(const ActorBase& _ract) const
+inline Service::ActorMutexT& Service::mutex(const ActorBase& _ract) const
 {
     return rm_.mutex(_ract);
 }
@@ -224,12 +227,12 @@ inline ActorIdT Service::id(const ActorBase& _ract) const
     return rm_.id(_ract);
 }
 
-inline std::mutex& Service::mutex() const
+inline Service::ServiceMutexT& Service::mutex() const
 {
     return rm_.mutex(*this);
 }
 
-inline ServiceStatusE Service::status(std::unique_lock<std::mutex>& _rlock) const
+inline ServiceStatusE Service::status(std::unique_lock<ServiceMutexT>& _rlock) const
 {
     return rm_.status(*this, _rlock);
 }
