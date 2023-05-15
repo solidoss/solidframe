@@ -315,6 +315,7 @@ class Reactor : public impl::Reactor {
 
 public:
     using ActorT = Actor;
+    using EventT = Evnt;
 
     Reactor(SchedulerBase& _rsched, const size_t _sched_idx)
         : impl::Reactor(_rsched, _sched_idx)

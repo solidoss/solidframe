@@ -20,13 +20,14 @@ class Service;
 
 template <class R>
 class Scheduler : private SchedulerBase {
+    using ReactorT = R;
+
 public:
-    using ActorT        = typename R::ActorT;
+    using ActorT        = typename ReactorT::ActorT;
+    using EventT        = typename ReactorT::EventT;
     using ActorPointerT = std::shared_ptr<ActorT>;
 
 private:
-    typedef R ReactorT;
-
     struct Worker {
         static void run(SchedulerBase* _psched, const size_t _idx)
         {

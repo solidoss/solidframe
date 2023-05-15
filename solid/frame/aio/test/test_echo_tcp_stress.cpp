@@ -849,7 +849,7 @@ struct ResolvFunc {
 
     void operator()(ResolveData& _rrd, ErrorCodeT const& /*_rerr*/)
     {
-        frame::aio::ReactorEventT ev(make_event(GenericEventE::Message));
+        AioSchedulerT::EventT ev(make_event(GenericEventE::Message));
 
         ev = std::move(_rrd);
 
@@ -1030,7 +1030,7 @@ struct ResolvFunc {
 
     void operator()(ResolveData& _rrd, ErrorCodeT const& /*_rerr*/)
     {
-        frame::aio::ReactorEventT ev(make_event(GenericEventE::Message));
+        AioSchedulerT::EventT ev(make_event(GenericEventE::Message));
 
         ev = std::move(_rrd);
 
