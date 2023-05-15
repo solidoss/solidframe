@@ -42,27 +42,27 @@ class Stream : public CompletionHandler {
         ThisT& rthis = static_cast<ThisT&>(_rch);
 
         switch (rthis.s.filterReactorEvents(rthis.reactorEvent(_rctx))) {
-        case ReactorEventNone:
+        case ReactorEventE::None:
             break;
-        case ReactorEventRecv:
+        case ReactorEventE::Recv:
             rthis.doRecv(_rctx);
             break;
-        case ReactorEventSend:
+        case ReactorEventE::Send:
             rthis.doSend(_rctx);
             break;
-        case ReactorEventRecvSend:
+        case ReactorEventE::RecvSend:
             rthis.doRecv(_rctx);
             rthis.doSend(_rctx);
             break;
-        case ReactorEventSendRecv:
+        case ReactorEventE::SendRecv:
             rthis.doSend(_rctx);
             rthis.doRecv(_rctx);
             break;
-        case ReactorEventHangup:
-        case ReactorEventError:
+        case ReactorEventE::Hangup:
+        case ReactorEventE::Error:
             rthis.doError(_rctx);
             break;
-        case ReactorEventClear:
+        case ReactorEventE::Clear:
             rthis.doClear(_rctx);
             break;
         default:
@@ -71,7 +71,7 @@ class Stream : public CompletionHandler {
     }
 
     //-------------
-    static void on_posted_recv_some(ReactorContext& _rctx, Event const&)
+    static void on_posted_recv_some(ReactorContext& _rctx, EventBase const&)
     {
         ThisT& rthis = static_cast<ThisT&>(*completion_handler(_rctx));
         solid_log(logger, Verbose, "");
@@ -79,7 +79,7 @@ class Stream : public CompletionHandler {
         rthis.doRecv(_rctx);
     }
 
-    static void on_posted_send_all(ReactorContext& _rctx, Event const&)
+    static void on_posted_send_all(ReactorContext& _rctx, EventBase const&)
     {
         ThisT& rthis = static_cast<ThisT&>(*completion_handler(_rctx));
         solid_log(logger, Verbose, "");

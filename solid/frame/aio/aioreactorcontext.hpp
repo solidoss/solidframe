@@ -16,6 +16,9 @@
 #include "solid/system/socketdevice.hpp"
 
 #include "solid/frame/aio/aiocommon.hpp"
+
+#include "solid/frame/service.hpp"
+
 #include <mutex>
 
 namespace solid {
@@ -27,7 +30,11 @@ class Manager;
 namespace aio {
 
 class Actor;
+
+namespace impl {
 class Reactor;
+} // namespace impl
+
 class CompletionHandler;
 
 struct ReactorContext : NonCopyable {
@@ -59,8 +66,8 @@ struct ReactorContext : NonCopyable {
     Service& service() const;
     Manager& manager() const;
 
-    ActorIdT    actorId() const;
-    std::mutex& actorMutex() const;
+    ActorIdT              actorId() const;
+    Service::ActorMutexT& actorMutex() const;
 
     void clearError()
     {
@@ -70,20 +77,20 @@ struct ReactorContext : NonCopyable {
 
 private:
     friend class CompletionHandler;
-    friend class Reactor;
+    friend class impl::Reactor;
     friend class Actor;
     friend class SocketBase;
 
-    Reactor& reactor()
+    impl::Reactor& reactor()
     {
         return rreactor_;
     }
 
-    Reactor const& reactor() const
+    impl::Reactor const& reactor() const
     {
         return rreactor_;
     }
-    ReactorEventsE reactorEvent() const
+    ReactorEventE reactorEvent() const
     {
         return reactor_event_;
     }
@@ -111,21 +118,21 @@ private:
     }
 
     ReactorContext(
-        Reactor&        _rreactor,
+        impl::Reactor&  _rreactor,
         const NanoTime& _rcurrent_time)
         : rreactor_(_rreactor)
         , rcurrent_time_(_rcurrent_time)
         , channel_index_(InvalidIndex())
         , actor_index_(InvalidIndex())
-        , reactor_event_(ReactorEventNone)
+        , reactor_event_(ReactorEventE::None)
     {
     }
 
-    Reactor&        rreactor_;
+    impl::Reactor&  rreactor_;
     const NanoTime& rcurrent_time_;
     size_t          channel_index_;
     size_t          actor_index_;
-    ReactorEventsE  reactor_event_;
+    ReactorEventE   reactor_event_;
     ErrorCodeT      system_error_;
     ErrorConditionT error_;
 };

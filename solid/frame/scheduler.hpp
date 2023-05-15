@@ -54,9 +54,9 @@ private:
     struct ScheduleCommand {
         ActorPointerT&& ractptr;
         Service&        rsvc;
-        Event&&         revt;
+        EventBase&&     revt;
 
-        ScheduleCommand(ActorPointerT&& _ractptr, Service& _rsvc, Event&& _revt)
+        ScheduleCommand(ActorPointerT&& _ractptr, Service& _rsvc, EventBase&& _revt)
             : ractptr(std::move(_ractptr))
             , rsvc(_rsvc)
             , revt(std::move(_revt))
@@ -99,7 +99,7 @@ public:
 
     ActorIdT startActor(
         ActorPointerT&& _ractptr, Service& _rsvc,
-        Event&& _revt, ErrorConditionT& _rerr)
+        EventBase&& _revt, ErrorConditionT& _rerr)
     {
         ScheduleCommand   cmd(std::move(_ractptr), _rsvc, std::move(_revt));
         ScheduleFunctionT fct([&cmd](ReactorBase& _rreactor) { return cmd(_rreactor); });
@@ -109,7 +109,7 @@ public:
 
     ActorIdT startActor(
         ActorPointerT&& _ractptr, Service& _rsvc, const size_t _worker_index,
-        Event&& _revt, ErrorConditionT& _rerr)
+        EventBase&& _revt, ErrorConditionT& _rerr)
     {
         ScheduleCommand   cmd(std::move(_ractptr), _rsvc, std::move(_revt));
         ScheduleFunctionT fct([&cmd](ReactorBase& _rreactor) { return cmd(_rreactor); });
@@ -119,15 +119,15 @@ public:
 };
 
 template <class Actr, class Schd, class Srvc, class... P>
-inline ActorIdT make_actor(Schd& _rschd, Srvc& _rsrvc, Event&& _revt, ErrorConditionT& _rerr, P&&... _p)
+inline ActorIdT make_actor(Schd& _rschd, Srvc& _rsrvc, EventBase&& _revt, ErrorConditionT& _rerr, P&&... _p)
 {
-    return _rschd.startActor(std::make_shared<Actr>(std::forward<P>(_p)...), _rsrvc, std::forward<Event>(_revt), _rerr);
+    return _rschd.startActor(std::make_shared<Actr>(std::forward<P>(_p)...), _rsrvc, std::move(_revt), _rerr);
 }
 
 template <class Actr, class Schd, class Srvc, class... P>
-inline ActorIdT make_actor(Schd& _rschd, Srvc& _rsrvc, const size_t _worker_index, Event&& _revt, ErrorConditionT& _rerr, P&&... _p)
+inline ActorIdT make_actor(Schd& _rschd, Srvc& _rsrvc, const size_t _worker_index, EventBase&& _revt, ErrorConditionT& _rerr, P&&... _p)
 {
-    return _rschd.startActor(std::make_shared<Actr>(std::forward<P>(_p)...), _rsrvc, _worker_index, std::forward<Event>(_revt), _rerr);
+    return _rschd.startActor(std::make_shared<Actr>(std::forward<P>(_p)...), _rsrvc, _worker_index, std::move(_revt), _rerr);
 }
 
 } // namespace frame

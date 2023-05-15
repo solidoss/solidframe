@@ -25,6 +25,7 @@ struct ActorProxy;
 struct ReactorContext;
 
 class SteadyTimer : public CompletionHandler {
+    friend class impl::Reactor;
     typedef SteadyTimer ThisT;
 
     static void on_init_completion(CompletionHandler& _rch, ReactorContext& _rctx)
@@ -38,10 +39,10 @@ class SteadyTimer : public CompletionHandler {
         ThisT& rthis = static_cast<ThisT&>(_rch);
 
         switch (rthis.reactorEvent(_rctx)) {
-        case ReactorEventTimer:
+        case ReactorEventE::Timer:
             rthis.doExec(_rctx);
             break;
-        case ReactorEventClear:
+        case ReactorEventE::Clear:
             rthis.doClear(_rctx);
             rthis.function_ = &on_dummy;
             break;
@@ -128,7 +129,6 @@ public:
     }
 
 private:
-    friend class Reactor;
     void doExec(ReactorContext& _rctx)
     {
         FunctionT tmpf;

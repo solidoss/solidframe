@@ -76,11 +76,11 @@ class ReactorContext : NonCopyable {
     {
         system_error_ = _err;
     }
+
+public:
     ~ReactorContext()
     {
     }
-
-public:
     UniqueId actorUid() const;
 
     const NanoTime& currentTime() const

@@ -35,7 +35,7 @@ const LoggerT logger("solid::frame::aio");
     Listener& rthis = static_cast<Listener&>(_rch);
 
     switch (rthis.reactorEvent(_rctx)) {
-    case ReactorEventRecv:
+    case ReactorEventE::Recv:
         if (!solid_function_empty(rthis.f)) {
             SocketDevice sd;
             FunctionT    tmpf;
@@ -46,8 +46,8 @@ const LoggerT logger("solid::frame::aio");
             tmpf(_rctx, sd);
         }
         break;
-    case ReactorEventError:
-    case ReactorEventHangup:
+    case ReactorEventE::Error:
+    case ReactorEventE::Hangup:
         if (!solid_function_empty(rthis.f)) {
             SocketDevice sd;
             FunctionT    tmpf;
@@ -58,7 +58,7 @@ const LoggerT logger("solid::frame::aio");
             tmpf(_rctx, sd);
         }
         break;
-    case ReactorEventClear:
+    case ReactorEventE::Clear:
         rthis.doClear(_rctx);
         break;
     default:
@@ -66,7 +66,7 @@ const LoggerT logger("solid::frame::aio");
     }
 }
 
-/*static*/ void Listener::on_posted_accept(ReactorContext& _rctx, Event&&)
+/*static*/ void Listener::on_posted_accept(ReactorContext& _rctx, EventBase&&)
 {
     Listener*    pthis = static_cast<Listener*>(completion_handler(_rctx));
     Listener&    rthis = *pthis;
@@ -100,7 +100,7 @@ SocketDevice Listener::reset(ReactorContext& _rctx, SocketDevice&& _rnewdev)
 
 void Listener::doPostAccept(ReactorContext& _rctx)
 {
-    reactor(_rctx).post(_rctx, Listener::on_posted_accept, Event(), *this);
+    reactor(_rctx).post(_rctx, Listener::on_posted_accept, Event<>(), *this);
 }
 
 bool Listener::doTryAccept(ReactorContext& _rctx, SocketDevice& _rsd)

@@ -110,7 +110,7 @@ struct impl::Reactor::Data {
     NanoTime                current_time_;
     std::mutex              mutex_;
     condition_variable      cnd_var_;
-    shared_ptr<EventActor>  event_actor_ptr_;
+    shared_ptr<EventActor>  event_actor_ptr_ = make_shared<EventActor>();
     CompletionHandlerDequeT completion_handler_dq_;
     UniqueIdVectorT         freeuid_vec_;
     ActorDequeT             actor_dq_;
@@ -164,6 +164,11 @@ Reactor::~Reactor()
     solid_log(frame_logger, Verbose, "");
 }
 
+std::mutex& Reactor::mutex()
+{
+    return impl_->mutex_;
+}
+
 bool Reactor::start()
 {
     doStoreSpecific();
@@ -186,6 +191,11 @@ bool Reactor::start()
     solid_log(frame_logger, Verbose, "");
     lock_guard<std::mutex> lock(impl_->mutex_);
     impl_->must_stop_ = true;
+    impl_->cnd_var_.notify_one();
+}
+
+void Reactor::notifyOne()
+{
     impl_->cnd_var_.notify_one();
 }
 
@@ -278,6 +288,15 @@ void Reactor::postActorStop(ReactorContext& _rctx)
 {
     Reactor& rthis = _rctx.reactor();
     rthis.doStopActor(_rctx);
+}
+
+void Reactor::doPost(ReactorContext& _rctx, EventFunctionT&& _revfn, EventBase&& _uev)
+{
+    doPost(_rctx, std::move(_revfn), std::move(_uev), impl_->dummyCompletionHandlerUid());
+}
+void Reactor::doPost(ReactorContext& _rctx, EventFunctionT&& _revfn, EventBase&& _uev, CompletionHandler const& _rch)
+{
+    doPost(_rctx, std::move(_revfn), std::move(_uev), UniqueId(_rch.idxreactor, impl_->completion_handler_dq_[_rch.idxreactor].unique_));
 }
 
 void Reactor::doStopActor(ReactorContext& _rctx)

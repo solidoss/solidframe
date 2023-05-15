@@ -38,7 +38,6 @@ class Reactor : public frame::ReactorBase {
     friend class solid::frame::ReactorContext;
     friend class solid::frame::Actor;
 
-    using EventFunctionT = solid_function_t(void(ReactorContext&, EventBase&&));
     struct Data;
     PimplT<Data> impl_;
 
@@ -49,6 +48,13 @@ protected:
     size_t   current_push_size_  = 0;
     size_t   current_wake_size_  = 0;
     size_t   current_exec_size_  = 0;
+
+public:
+    using EventFunctionT = solid_function_t(void(ReactorContext&, EventBase&&));
+
+    bool start();
+    void stop() override;
+    void run();
 
 protected:
     Reactor(SchedulerBase& _rsched, const size_t _schedidx);
@@ -105,14 +111,8 @@ protected:
     bool addTimer(CompletionHandler const& _rch, NanoTime const& _rt, size_t& _rstoreidx);
     bool remTimer(CompletionHandler const& _rch, size_t const& _rstoreidx);
 
-    bool start();
-
-    void stop() override;
-
     void registerCompletionHandler(CompletionHandler& _rch, Actor const& _ract);
     void unregisterCompletionHandler(CompletionHandler& _rch);
-
-    void run();
 
     Service& service(ReactorContext const& _rctx) const;
 
@@ -127,7 +127,19 @@ protected:
     void addActor(UniqueId const& _uid, Service& _rservice, ActorPointerT&& _actor_ptr);
     bool isValid(UniqueId const& _actor_uid, UniqueId const& _completion_handler_uid) const;
 
-    UniqueId popUid(Actor&);
+    UniqueId       popUid(Actor&);
+    ReactorContext context(NanoTime const& _rcrttime)
+    {
+        return ReactorContext(*this, _rcrttime);
+    }
+    void update(ReactorContext& _rctx, const size_t _completion_handler_index, const size_t _actor_index) const
+    {
+        _rctx.completion_heandler_idx_ = _completion_handler_index;
+        _rctx.actor_idx_               = _actor_index;
+    }
+    static void call_actor_on_event(ReactorContext& _rctx, EventBase&& _uevent);
+    static void stop_actor_repost(ReactorContext& _rctx, EventBase&& _uevent);
+    static void stop_actor(ReactorContext& _rctx, EventBase&& _uevent);
 
 private:
     static Reactor* safeSpecific();
@@ -150,10 +162,7 @@ private:
 
     void doStopActor(ReactorContext& _rctx);
 
-    void        onTimer(ReactorContext& _rctx, const size_t _chidx);
-    static void call_actor_on_event(ReactorContext& _rctx, EventBase&& _uevent);
-    static void stop_actor_repost(ReactorContext& _rctx, EventBase&& _uevent);
-    static void stop_actor(ReactorContext& _rctx, EventBase&& _uevent);
+    void onTimer(ReactorContext& _rctx, const size_t _chidx);
 };
 
 template <class Evnt>
@@ -198,7 +207,7 @@ struct ExecStub {
 
     ExecStub(
         ExecStub&& _other) noexcept
-        : actor_uid_(_other.actuid)
+        : actor_uid_(_other.actor_uid_)
         , completion_handler_uid_(_other.completion_handler_uid_)
         , event_(std::move(_other.event_))
     {
@@ -229,8 +238,8 @@ struct WakeStub {
 
     WakeStub(
         WakeStub&& _other) noexcept
-        : uid_(_other.uid)
-        , event_(std::move(_other.event))
+        : uid_(_other.uid_)
+        , event_(std::move(_other.event_))
     {
     }
 };
@@ -276,6 +285,8 @@ class Reactor : public impl::Reactor {
     PushQueueT push_q_[2];
 
 public:
+    using ActorT = Actor;
+
     Reactor(SchedulerBase& _rsched, const size_t _sched_idx)
         : impl::Reactor(_rsched, _sched_idx)
     {
@@ -349,7 +360,7 @@ private:
 
     void doPost(ReactorContext& _rctx, EventFunctionT&& _revent_fnc, EventBase&& _uev, const UniqueId& _completion_handler_uid) override
     {
-        exec_q_.push(ExecStubT(_rctx.actorUid(), std::move(_uev)));
+        exec_q_.push(ExecStubT(actorUid(_rctx), std::move(_uev)));
         exec_q_.back().exec_fnc_               = std::move(_revent_fnc);
         exec_q_.back().completion_handler_uid_ = _completion_handler_uid;
         current_exec_size_                     = exec_q_.size();
@@ -357,8 +368,8 @@ private:
 
     void doStopActorRepost(ReactorContext& _rctx, const UniqueId& _completion_handler_uid)
     {
-        exec_q_.push(ExecStubT(_rctx.actorUid()));
-        exec_q_.back().exefnc                  = &stop_actor;
+        exec_q_.push(ExecStubT(actorUid(_rctx)));
+        exec_q_.back().exec_fnc_               = &stop_actor;
         exec_q_.back().completion_handler_uid_ = _completion_handler_uid;
         current_exec_size_                     = exec_q_.size();
     }
@@ -368,7 +379,7 @@ private:
     */
     void doPostActorStop(ReactorContext& _rctx, const UniqueId& _completion_handler_uid) override
     {
-        exec_q_.push(ExecStubT(_rctx.actorUid()));
+        exec_q_.push(ExecStubT(actorUid(_rctx)));
         exec_q_.back().exec_fnc_               = &stop_actor_repost;
         exec_q_.back().completion_handler_uid_ = _completion_handler_uid;
         current_exec_size_                     = exec_q_.size();
@@ -380,9 +391,7 @@ private:
 
         PushQueueT&    push_q = push_q_[(current_push_index_ + 1) & 1];
         WakeQueueT&    wake_q = wake_q_[(current_wake_index_ + 1) & 1];
-        ReactorContext ctx(*this, _rcrttime);
-
-        incrementActorCount(push_q.size());
+        ReactorContext ctx(context(_rcrttime));
 
         actor_count_ += push_q.size();
 
@@ -407,7 +416,7 @@ private:
 
     void doCompleteExec(NanoTime const& _rcrttime) override
     {
-        ReactorContext ctx(*this, _rcrttime);
+        ReactorContext ctx(context(_rcrttime));
         size_t         sz = exec_q_.size();
 
         while ((sz--) != 0) {
@@ -415,8 +424,7 @@ private:
 
             if (isValid(rexec.actor_uid_, rexec.completion_handler_uid_)) {
                 ctx.clearError();
-                ctx.completion_heandler_idx_ = static_cast<size_t>(rexec.completion_handler_uid_.index);
-                ctx.actor_idx_               = static_cast<size_t>(rexec.actor_uid_.index);
+                update(ctx, static_cast<size_t>(rexec.completion_handler_uid_.index), static_cast<size_t>(rexec.actor_uid_.index));
                 rexec.exec_fnc_(ctx, std::move(rexec.event_));
             }
             exec_q_.pop();
@@ -424,6 +432,10 @@ private:
         }
     }
 };
+
+constexpr size_t reactor_default_event_small_size = std::max(sizeof(Function<void()>), sizeof(std::function<void()>));
+using ReactorEventT                               = Event<reactor_default_event_small_size>;
+using ReactorT                                    = Reactor<ReactorEventT>;
 
 #if false
 class Reactor : public frame::ReactorBase {

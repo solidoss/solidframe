@@ -79,8 +79,8 @@ public:
 
     ErrorCodeT renegotiate(bool& _can_retry);
 
-    ReactorEventsE filterReactorEvents(
-        const ReactorEventsE _evt) const;
+    ReactorEventE filterReactorEvents(
+        const ReactorEventE _evt) const;
 
     ssize_t recv(ReactorContext& _rctx, char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr);
 
