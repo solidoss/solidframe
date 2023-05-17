@@ -34,6 +34,8 @@ class SocketBase;
 class Listener;
 template <class Socket>
 class Stream;
+template <class Socket>
+class Datagram;
 using ActorPointerT = std::shared_ptr<Actor>;
 
 namespace impl {
@@ -44,6 +46,8 @@ class Reactor : public frame::ReactorBase {
     friend class solid::frame::aio::Listener;
     template <class Socket>
     friend class solid::frame::aio::Stream;
+    template <class Socket>
+    friend class solid::frame::aio::Datagram;
     friend struct ChangeTimerIndexCallback;
     friend struct TimerCallback;
     friend struct solid::frame::aio::ReactorContext;
@@ -110,10 +114,10 @@ protected:
             {
                 if (repost) { // skip one round - to guarantee that all remaining posts were delivered
                     repost = false;
-                    EventFunctionT eventfnc(*this);
+                    EventFunctionT eventfnc(std::move(*this));
                     _rctx.reactor().doPost(_rctx, std::move(eventfnc), std::move(_revent));
                 } else {
-                    function(_rctx, _revent);
+                    function(_rctx, std::move(_revent));
                     _rctx.reactor().doStopActor(_rctx);
                 }
             }
@@ -160,8 +164,8 @@ protected:
 
     void update(ReactorContext& _rctx, const size_t _completion_handler_index, const size_t _actor_index) const
     {
-        _rctx.channel_index_ = _completion_handler_index;
-        _rctx.actor_index_   = _actor_index;
+        _rctx.completion_heandler_index_ = _completion_handler_index;
+        _rctx.actor_index_               = _actor_index;
     }
 
     static void call_actor_on_event(ReactorContext& _rctx, EventBase&& _uevent);

@@ -20,7 +20,7 @@
 using namespace solid;
 using namespace std;
 
-using SchedulerT = frame::Scheduler<frame::Reactor>;
+using SchedulerT = frame::Scheduler<frame::Reactor<Event<8>>>;
 
 struct GlobalId {
     GlobalId()
@@ -53,7 +53,7 @@ public:
     }
 
 private:
-    void onEvent(frame::ReactorContext& _rctx, Event&& _revent) override;
+    void onEvent(frame::ReactorContext& _rctx, EventBase&& _revent) override;
     void onTimer(frame::ReactorContext& _rctx);
 
 private:
@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
                 {
                     lock_guard<mutex> lock(mtx);
 
-                    actuid = s.startActor(std::move(actptr), svc, make_event(GenericEvents::Start), err);
+                    actuid = s.startActor(std::move(actptr), svc, make_event(GenericEventE::Start), err);
 
                     solid_log(generic_logger, Info, "Started BasicActor: " << actuid.index << ',' << actuid.unique);
 
@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
             cout << "Notify all update: START" << endl;
             auto start_time = std::chrono::steady_clock::now();
 
-            svc.notifyAll(generic_event_update);
+            svc.notifyAll(generic_event<GenericEventE::Update>);
 
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time);
 
@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
 
             cout << "Notify all raise: START" << endl;
             start_time = std::chrono::steady_clock::now();
-            svc.notifyAll(generic_event_raise);
+            svc.notifyAll(generic_event<GenericEventE::Wake>);
             duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time);
             cout << "Notify all raise: DONE. " << duration.count() << "ms" << endl;
             {
@@ -152,10 +152,10 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-/*virtual*/ void BasicActor::onEvent(frame::ReactorContext& _rctx, Event&& _uevent)
+/*virtual*/ void BasicActor::onEvent(frame::ReactorContext& _rctx, EventBase&& _uevent)
 {
     solid_log(generic_logger, Info, "event = " << _uevent);
-    if (_uevent == generic_event_start) {
+    if (_uevent == generic_event<GenericEventE::Start>) {
         {
             lock_guard<mutex> lock(mtx);
             ++started_actcnt;
@@ -163,9 +163,9 @@ int main(int argc, char* argv[])
                 cnd.notify_one();
             }
         }
-    } else if (_uevent == generic_event_kill) {
+    } else if (_uevent == generic_event<GenericEventE::Kill>) {
         postStop(_rctx);
-    } else if (_uevent == generic_event_raise) {
+    } else if (_uevent == generic_event<GenericEventE::Update>) {
         if (status_ != StatusOnDisk) {
             status_ = StatusOnDisk;
             timer_.cancel(_rctx);
@@ -175,7 +175,7 @@ int main(int argc, char* argv[])
                 cnd.notify_one();
             }
         }
-    } else if (_uevent == generic_event_update) {
+    } else if (_uevent == generic_event<GenericEventE::Wake>) {
         active_ = true;
         timer_.waitFor(_rctx, std::chrono::seconds(10) + std::chrono::milliseconds(this->id() % 1000), [this](frame::ReactorContext& _rctx) { return onTimer(_rctx); });
     }

@@ -30,7 +30,7 @@ mutex              mtx;
 //  EventSendE,
 // };
 
-typedef frame::Scheduler<frame::Reactor> SchedulerT;
+typedef frame::Scheduler<frame::Reactor<Event<8>>> SchedulerT;
 
 class BasicActor : public frame::Actor {
 public:
@@ -42,7 +42,7 @@ public:
     }
 
 private:
-    void onEvent(frame::ReactorContext& _rctx, Event&& _revent) override;
+    void onEvent(frame::ReactorContext& _rctx, EventBase&& _revent) override;
     void onTimer(frame::ReactorContext& _rctx, size_t _idx);
 
 private:
@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
                 solid::ErrorConditionT err;
                 solid::frame::ActorIdT actuid;
 
-                actuid = s.startActor(make_shared<BasicActor>(10UL), svc, make_event(GenericEvents::Start), err);
+                actuid = s.startActor(make_shared<BasicActor>(10UL), svc, make_event(GenericEventE::Start), err);
                 solid_log(generic_logger, Info, "Started BasicActor: " << actuid.index << ',' << actuid.unique);
             }
 
@@ -86,13 +86,13 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-/*virtual*/ void BasicActor::onEvent(frame::ReactorContext& _rctx, Event&& _uevent)
+/*virtual*/ void BasicActor::onEvent(frame::ReactorContext& _rctx, EventBase&& _uevent)
 {
     solid_log(generic_logger, Info, "event = " << _uevent);
-    if (_uevent == generic_event_start) {
+    if (_uevent == generic_event<GenericEventE::Start>) {
         t1.waitUntil(_rctx, _rctx.steadyTime() + std::chrono::seconds(5), [this](frame::ReactorContext& _rctx) { return onTimer(_rctx, 0); });
         t2.waitUntil(_rctx, _rctx.steadyTime() + std::chrono::seconds(10), [this](frame::ReactorContext& _rctx) { return onTimer(_rctx, 1); });
-    } else if (_uevent == generic_event_kill) {
+    } else if (_uevent == generic_event<GenericEventE::Kill>) {
         postStop(_rctx);
     }
 }

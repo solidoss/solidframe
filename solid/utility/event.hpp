@@ -356,7 +356,7 @@ enum class GenericEventE : uintptr_t {
     Default,
     Start,
     Stop,
-    Raise,
+    Wake,
     Message,
     Timer,
     Pause,
@@ -379,7 +379,7 @@ inline EventCategory<GenericEventE> category<GenericEventE>{
             return "start";
         case GenericEventE::Stop:
             return "stop";
-        case GenericEventE::Raise:
+        case GenericEventE::Wake:
             return "raise";
         case GenericEventE::Message:
             return "message";
@@ -443,6 +443,12 @@ public:
     template <class Events>
     Event(const Events _event)
         : EventBase(category<Events>, to_underlying(_event))
+    {
+    }
+
+    template <class Events>
+    Event(const EventCategoryBase& _category, const Events _event)
+        : EventBase(_category, to_underlying(_event))
     {
     }
 };
@@ -513,6 +519,19 @@ public:
         }
     }
 
+    template <typename Evs, class T, std::enable_if_t<std::conjunction_v<std::negation<is_event<std::decay_t<T>>>, std::negation<is_specialization<std::decay_t<T>, std::in_place_type_t>>>, int> = 0>
+    Event(const EventCategoryBase& _category, const Evs _ev, T&& _rvalue)
+        : EventBase(_category, to_underlying(_ev))
+    {
+
+        if constexpr (is_small_type<T>()) {
+            auto& rval = reinterpret_cast<T&>(data_);
+            doEmplaceSmall<std::decay_t<T>>(const_cast<void*>(static_cast<const volatile void*>(std::addressof(rval))), small_capacity, std::forward<T>(_rvalue));
+        } else {
+            doEmplaceBig<std::decay_t<T>>(std::forward<T>(_rvalue));
+        }
+    }
+
     template <typename Evs, class T, class... Args,
         std::enable_if_t<
             std::conjunction_v<std::is_constructible<std::decay_t<T>, Args...>>,
@@ -529,6 +548,22 @@ public:
         }
     }
 
+    template <typename Evs, class T, class... Args,
+        std::enable_if_t<
+            std::conjunction_v<std::is_constructible<std::decay_t<T>, Args...>>,
+            int>
+        = 0>
+    explicit Event(const EventCategoryBase& _category, const Evs _ev, std::in_place_type_t<T>, Args&&... _args)
+        : EventBase(_category, to_underlying(_ev))
+    {
+        if constexpr (is_small_type<T>()) {
+            auto& rval = reinterpret_cast<T&>(data_);
+            doEmplaceSmall<std::decay_t<T>>(const_cast<void*>(static_cast<const volatile void*>(std::addressof(rval))), small_capacity, std::forward<Args>(_args)...);
+        } else {
+            doEmplaceBig<std::decay_t<T>>(std::forward<Args>(_args)...);
+        }
+    }
+
     template <typename Evs, class T, class E, class... Args,
         std::enable_if_t<std::conjunction_v<std::is_constructible<std::decay_t<T>, std::initializer_list<E>&, Args...>,
                              std::is_copy_constructible<std::decay_t<T>>>,
@@ -536,6 +571,23 @@ public:
         = 0>
     explicit Event(const Evs _ev, std::in_place_type_t<T>, std::initializer_list<E> _ilist, Args&&... _args)
         : EventBase(category<Evs>, to_underlying(_ev))
+    {
+        // doEmplace<std::decay_t<T>>(_ilist, std::forward<Args>(_args)...);
+        if constexpr (is_small_type<T>()) {
+            auto& rval = reinterpret_cast<T&>(data_);
+            doEmplaceSmall<std::decay_t<T>>(const_cast<void*>(static_cast<const volatile void*>(std::addressof(rval))), small_capacity, _ilist, std::forward<Args>(_args)...);
+        } else {
+            doEmplaceBig<std::decay_t<T>>(_ilist, std::forward<Args>(_args)...);
+        }
+    }
+
+    template <typename Evs, class T, class E, class... Args,
+        std::enable_if_t<std::conjunction_v<std::is_constructible<std::decay_t<T>, std::initializer_list<E>&, Args...>,
+                             std::is_copy_constructible<std::decay_t<T>>>,
+            int>
+        = 0>
+    explicit Event(const EventCategoryBase& _category, const Evs _ev, std::in_place_type_t<T>, std::initializer_list<E> _ilist, Args&&... _args)
+        : EventBase(_category, to_underlying(_ev))
     {
         // doEmplace<std::decay_t<T>>(_ilist, std::forward<Args>(_args)...);
         if constexpr (is_small_type<T>()) {
@@ -645,27 +697,50 @@ public:
 //-----------------------------------------------------------------------------
 //      make_event
 //-----------------------------------------------------------------------------
-template <class Events>
+template <class Events, std::enable_if_t<std::is_enum_v<Events>, int> = 0>
 inline Event<> make_event(const Events _id)
 {
     return Event<>(_id);
 }
 
-template <class Events, typename T>
+template <class Events, std::enable_if_t<std::is_enum_v<Events>, int> = 0>
+inline Event<> make_event(const EventCategoryBase& _category, const Events _id)
+{
+    return Event<>(_category, _id);
+}
+
+template <class Events, typename T, std::enable_if_t<std::is_enum_v<Events>, int> = 0>
 inline Event<sizeof(std::decay_t<T>)> make_event(const Events _id, T&& _data)
 {
     return Event<sizeof(std::decay_t<T>)>(_id, std::forward<T>(_data));
 }
 
-template <class Events, class T, class... Args>
+template <class Events, class T, class... Args, std::enable_if_t<std::is_enum_v<Events>, int> = 0>
 Event<sizeof(std::decay_t<T>)> make_event(const Events _id, Args&&... _args)
 {
     return Event<sizeof(std::decay_t<T>)>{_id, std::in_place_type<T>, std::forward<Args>(_args)...};
 }
-template <class Events, class T, class E, class... Args>
+template <class Events, class T, class E, class... Args, std::enable_if_t<std::is_enum_v<Events>, int> = 0>
 Event<sizeof(std::decay_t<T>)> make_event(const Events _id, std::initializer_list<E> _ilist, Args&&... _args)
 {
     return Event<sizeof(std::decay_t<T>)>{_id, std::in_place_type<T>, _ilist, std::forward<Args>(_args)...};
+}
+
+template <class Events, typename T, std::enable_if_t<std::is_enum_v<Events>, int> = 0>
+inline Event<sizeof(std::decay_t<T>)> make_event(const EventCategoryBase& _category, const Events _id, T&& _data)
+{
+    return Event<sizeof(std::decay_t<T>)>(_category, _id, std::forward<T>(_data));
+}
+
+template <class Events, class T, class... Args, std::enable_if_t<std::is_enum_v<Events>, int> = 0>
+Event<sizeof(std::decay_t<T>)> make_event(const EventCategoryBase& _category, const Events _id, Args&&... _args)
+{
+    return Event<sizeof(std::decay_t<T>)>{_category, _id, std::in_place_type<T>, std::forward<Args>(_args)...};
+}
+template <class Events, class T, class E, class... Args, std::enable_if_t<std::is_enum_v<Events>, int> = 0>
+Event<sizeof(std::decay_t<T>)> make_event(const EventCategoryBase& _category, const Events _id, std::initializer_list<E> _ilist, Args&&... _args)
+{
+    return Event<sizeof(std::decay_t<T>)>{_category, _id, std::in_place_type<T>, _ilist, std::forward<Args>(_args)...};
 }
 
 //-----------------------------------------------------------------------------

@@ -35,8 +35,8 @@ class ReactorContext : NonCopyable {
 
     impl::Reactor&  rreactor_;
     const NanoTime& rcurrent_time_;
-    size_t          completion_heandler_idx_;
-    size_t          actor_idx_;
+    size_t          completion_heandler_index_;
+    size_t          actor_index_;
     ReactorEventE   reactor_event_;
     ErrorCodeT      system_error_;
     ErrorConditionT error_;
@@ -46,8 +46,8 @@ class ReactorContext : NonCopyable {
         const NanoTime& _rcrttm)
         : rreactor_(_rreactor)
         , rcurrent_time_(_rcrttm)
-        , completion_heandler_idx_(InvalidIndex())
-        , actor_idx_(InvalidIndex())
+        , completion_heandler_index_(InvalidIndex())
+        , actor_index_(InvalidIndex())
         , reactor_event_(ReactorEventE::None)
     {
     }

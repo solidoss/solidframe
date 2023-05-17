@@ -24,7 +24,7 @@
 using namespace std;
 using namespace solid;
 
-using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
 
 namespace {
@@ -103,7 +103,7 @@ struct WorkerContext {
 
 struct WorkerActor : frame::aio::Actor {
 private:
-    void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
+    void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent) override;
 };
 
 struct Message : frame::mprpc::Message {
@@ -271,7 +271,7 @@ int test_clientserver_topic(int argc, char* argv[])
             const auto      worker_count = sch_server.workerCount();
             for (size_t i = 0; i < worker_count; ++i) {
                 worker_actor_id_vec.emplace_back(
-                    frame::make_actor<WorkerActor>(sch_server, generic_service, i, make_event(GenericEvents::Start, topic_vec), err));
+                    frame::make_actor<WorkerActor>(sch_server, generic_service, i, make_event(GenericEventE::Start, topic_vec), err));
             }
 
             // TODO: at this point we're not sure that the topic_vec has reached all the threads
@@ -364,7 +364,7 @@ int test_clientserver_topic(int argc, char* argv[])
 
         err = mprpcclient.createConnectionPool(
             "127.0.0.1", client_id,
-            [](frame::mprpc::ConnectionContext& _rctx, Event&& _revent, const ErrorConditionT& _rerr) {
+            [](frame::mprpc::ConnectionContext& _rctx, EventBase&& _revent, const ErrorConditionT& _rerr) {
                 solid_dbg(logger, Info, "client pool event: " << _revent << " error: " << _rerr.message());
                 if (_revent == frame::mprpc::pool_event_connection_activate) {
                     const auto count = client_connection_count.fetch_add(1);
@@ -450,13 +450,13 @@ void wait()
     solid_check(fut.wait_for(chrono::seconds(150)) == future_status::ready, "Taking too long - waited 150 secs");
     fut.get();
 }
-void WorkerActor::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
+void WorkerActor::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent)
 {
-    if (_revent == generic_event_start) {
+    if (_revent == generic_event<GenericEventE::Start>) {
         solid_assert(!local_worker_context_ptr);
-        local_worker_context_ptr = make_unique<WorkerContext>(std::move(*_revent.any().cast<vector<shared_ptr<Topic>>>()));
+        local_worker_context_ptr = make_unique<WorkerContext>(std::move(*_revent.cast<vector<shared_ptr<Topic>>>()));
         solid_dbg(logger, Info, "Created local WorkerContex " << local_worker_context_ptr.get() << " " << local_worker_context_ptr->topic_vec_.size());
-    } else if (_revent == generic_event_kill) {
+    } else if (_revent == generic_event<GenericEventE::Kill>) {
         local_worker_context_ptr.reset();
         postStop(_rctx);
     }

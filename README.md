@@ -433,8 +433,8 @@ void Actor::handleEvent(Event &&_revt){
                 [](Event &_revt, Actor &_robj){cout<<"handle event "<<_revt<<" on "<<&_robj<<endl;}
             },
             {
-                generic_event_category.event(GenericEvents::Message),
-                [](Event &_revt, Actor &_robj){cout<<"handle event "<<_revt<<"("<<*_revt.any().cast<std::string>()<<") on "<<&_robj<<endl;}
+                generic_event_category.event(GenericEventE::Message),
+                [](Event &_revt, Actor &_robj){cout<<"handle event "<<_revt<<"("<<*_revt.cast<std::string>()<<") on "<<&_robj<<endl;}
             }
         }
     };
@@ -448,7 +448,7 @@ Creating events:
 ```C++
 //...
 rbase.handleEvent(alpha_event_category.event(AlphaEvents::Second));
-rbase.handleEvent(generic_event_category.event(GenericEvents::Message, std::string("Some text")));
+rbase.handleEvent(generic_event_category.event(GenericEventE::Message, std::string("Some text")));
 //...
 ```
 

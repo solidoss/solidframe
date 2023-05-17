@@ -38,8 +38,8 @@ using namespace std;
 using namespace solid;
 using namespace std::placeholders;
 
-typedef frame::Scheduler<frame::aio::Reactor> AioSchedulerT;
-typedef frame::aio::openssl::Context          SecureContextT;
+typedef frame::Scheduler<frame::aio::Reactor<Event<32>>> AioSchedulerT;
+typedef frame::aio::openssl::Context                     SecureContextT;
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
@@ -105,7 +105,7 @@ public:
     }
 
 private:
-    /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent);
+    /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent);
     void             onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd);
 
     typedef frame::aio::Listener    ListenerSocketT;
@@ -134,7 +134,7 @@ public:
     ~Connection() {}
 
 protected:
-    /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent);
+    /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent);
     static void      onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
     static void      onSend(frame::aio::ReactorContext& _rctx);
     static void      onSecureAccept(frame::aio::ReactorContext& _rctx);
@@ -209,7 +209,7 @@ int main(int argc, char* argv[])
                 solid::ErrorConditionT err;
                 solid::frame::ActorIdT actuid;
 
-                actuid = sch.startActor(make_shared<Listener>(svc, sch, std::move(sd)), svc, make_event(GenericEvents::Start), err);
+                actuid = sch.startActor(make_shared<Listener>(svc, sch, std::move(sd)), svc, make_event(GenericEventE::Start), err);
                 solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
@@ -263,13 +263,13 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 //      Listener
 //-----------------------------------------------------------------------------
 
-/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
+/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent)
 {
     solid_log(generic_logger, Info, "event = " << _revent);
-    if (generic_event_start == _revent) {
+    if (generic_event<GenericEventE::Start> == _revent) {
         sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));
         // sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
-    } else if (generic_event_kill == _revent) {
+    } else if (generic_event<GenericEventE::Kill> == _revent) {
         postStop(_rctx);
     }
 }
@@ -289,7 +289,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             solid_log(generic_logger, Error, "new_connection");
             solid::ErrorConditionT err;
 
-            rsch.startActor(make_shared<Connection>(std::move(_rsd), secure_ctx), rsvc, make_event(GenericEvents::Start), err);
+            rsch.startActor(make_shared<Connection>(std::move(_rsd), secure_ctx), rsvc, make_event(GenericEventE::Start), err);
 
 #else
             cout << "Accepted connection: " << _rsd.descriptor() << endl;
@@ -313,10 +313,10 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 //      Connection
 //-----------------------------------------------------------------------------
 #ifdef USE_CONNECTION
-/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
+/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent)
 {
     solid_log(generic_logger, Error, this << " " << _revent);
-    if (generic_event_start == _revent) {
+    if (generic_event<GenericEventE::Start> == _revent) {
         sock.secureSetCheckHostName(_rctx, "echo-client");
         sock.secureSetVerifyCallback(_rctx, frame::aio::openssl::VerifyModePeer, onSecureVerify);
         if (sock.secureAccept(_rctx, Connection::onSecureAccept)) {
@@ -327,7 +327,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
                 postStop(_rctx);
             }
         }
-    } else if (generic_event_kill == _revent) {
+    } else if (generic_event<GenericEventE::Kill> == _revent) {
         solid_log(generic_logger, Error, this << " postStop");
         sock.shutdown(_rctx);
         postStop(_rctx);

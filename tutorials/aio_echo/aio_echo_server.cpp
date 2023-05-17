@@ -20,7 +20,7 @@
 using namespace std;
 using namespace solid;
 
-using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT = frame::Scheduler<frame::aio::Reactor<Event<8>>>;
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
@@ -60,7 +60,7 @@ public:
     }
 
 private:
-    void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
+    void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent) override;
     void onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd);
 
     using ListenerSocketT = frame::aio::Listener;
@@ -80,7 +80,7 @@ public:
     }
 
 private:
-    void        onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
+    void        onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent) override;
     static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
     static void onSend(frame::aio::ReactorContext& _rctx);
 
@@ -100,7 +100,7 @@ public:
     }
 
 private:
-    void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
+    void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent) override;
     void onRecv(frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz);
     void onSend(frame::aio::ReactorContext& _rctx);
 
@@ -143,7 +143,7 @@ int main(int argc, char* argv[])
             solid::ErrorConditionT error;
             solid::frame::ActorIdT actuid;
 
-            actuid = scheduler.startActor(make_shared<Listener>(service, scheduler, std::move(sd)), service, make_event(GenericEvents::Start), error);
+            actuid = scheduler.startActor(make_shared<Listener>(service, scheduler, std::move(sd)), service, make_event(GenericEventE::Start), error);
             (void)actuid;
         } else {
             cout << "Error creating listener socket" << endl;
@@ -165,7 +165,7 @@ int main(int argc, char* argv[])
             solid::ErrorConditionT error;
             solid::frame::ActorIdT actuid;
 
-            actuid = scheduler.startActor(make_shared<Talker>(std::move(sd)), service, make_event(GenericEvents::Start), error);
+            actuid = scheduler.startActor(make_shared<Talker>(std::move(sd)), service, make_event(GenericEventE::Start), error);
 
             (void)actuid;
 
@@ -204,11 +204,11 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 //      Listener
 //-----------------------------------------------------------------------------
 
-/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
+/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent)
 {
-    if (generic_event_start == _revent) {
+    if (generic_event<GenericEventE::Start> == _revent) {
         sock.postAccept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { return onAccept(_rctx, _rsd); });
-    } else if (generic_event_kill == _revent) {
+    } else if (generic_event<GenericEventE::Kill> == _revent) {
         postStop(_rctx);
     }
 }
@@ -221,7 +221,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
         if (!_rctx.error()) {
             solid::ErrorConditionT err;
 
-            rscheduler.startActor(make_shared<Connection>(std::move(_rsd)), rservice, make_event(GenericEvents::Start), err);
+            rscheduler.startActor(make_shared<Connection>(std::move(_rsd)), rservice, make_event(GenericEventE::Start), err);
         } else {
             // e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             timer.waitFor(
@@ -246,11 +246,11 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 //-----------------------------------------------------------------------------
 //      Connection
 //-----------------------------------------------------------------------------
-/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
+/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent)
 {
-    if (generic_event_start == _revent) {
+    if (generic_event<GenericEventE::Start> == _revent) {
         sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); // fully asynchronous call
-    } else if (generic_event_kill == _revent) {
+    } else if (generic_event<GenericEventE::Kill> == _revent) {
         sock.shutdown(_rctx);
         postStop(_rctx);
     }
@@ -297,13 +297,13 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 //      Talker
 //-----------------------------------------------------------------------------
 
-/*virtual*/ void Talker::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
+/*virtual*/ void Talker::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent)
 {
-    if (generic_event_start == _revent) {
+    if (generic_event<GenericEventE::Start> == _revent) {
         sock.postRecvFrom(
             _rctx, buf, BufferCapacity,
             [this](frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz) { onRecv(_rctx, _raddr, _sz); }); // fully asynchronous call
-    } else if (generic_event_kill == _revent) {
+    } else if (generic_event<GenericEventE::Kill> == _revent) {
         postStop(_rctx);
     }
 }

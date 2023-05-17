@@ -17,7 +17,7 @@
 #include "solid/system/socketdevice.hpp"
 
 namespace solid {
-struct Event;
+struct EventBase;
 namespace frame {
 namespace aio {
 namespace openssl {
@@ -42,7 +42,7 @@ public:
 
 private:
     Service& service(frame::aio::ReactorContext& _rctx);
-    void     onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
+    void     onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent) override;
 
     void onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd);
 

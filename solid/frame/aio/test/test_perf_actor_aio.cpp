@@ -16,7 +16,7 @@ using namespace std;
 namespace {
 const LoggerT logger("test");
 
-using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT = frame::Scheduler<frame::aio::Reactor<Event<128>>>;
 // using SchedulerT    = frame::Scheduler<frame::Reactor>;
 atomic<size_t> received_events{0};
 atomic<size_t> accumulate_value{0};
@@ -24,15 +24,15 @@ atomic<size_t> accumulate_value{0};
 class Actor final : public frame::aio::Actor {
     promise<void>& rprom_;
 
-    void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override
+    void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent) override
     {
-        if (generic_event_start == _revent) {
-        } else if (generic_event_raise == _revent) {
-            accumulate_value += *_revent.any().cast<size_t>();
+        if (generic_event<GenericEventE::Start> == _revent) {
+        } else if (generic_event<GenericEventE::Wake> == _revent) {
+            accumulate_value += *_revent.cast<size_t>();
             if (received_events.fetch_sub(1) == 1) {
                 rprom_.set_value();
             }
-        } else if (generic_event_kill == _revent) {
+        } else if (generic_event<GenericEventE::Kill> == _revent) {
             postStop(_rctx);
         }
     }
@@ -84,12 +84,12 @@ int test_perf_actor_aio(int argc, char* argv[])
 
         for (size_t i = 0; i < context_count; ++i) {
             ErrorConditionT err;
-            actors.emplace_back(scheduler.startActor(make_shared<Actor>(prom), service, make_event(GenericEvents::Start), err));
+            actors.emplace_back(scheduler.startActor(make_shared<Actor>(prom), service, make_event(GenericEventE::Start), err));
             solid_check(!err);
         }
 
         for (size_t i = 0; i < event_count; ++i) {
-            manager.notify(actors[i % actors.size()], make_event(GenericEvents::Raise, i));
+            manager.notify(actors[i % actors.size()], make_event(GenericEventE::Wake, i));
         }
 
         auto fut = prom.get_future();

@@ -134,8 +134,8 @@ protected:
     }
     void update(ReactorContext& _rctx, const size_t _completion_handler_index, const size_t _actor_index) const
     {
-        _rctx.completion_heandler_idx_ = _completion_handler_index;
-        _rctx.actor_idx_               = _actor_index;
+        _rctx.completion_heandler_index_ = _completion_handler_index;
+        _rctx.actor_index_               = _actor_index;
     }
     static void call_actor_on_event(ReactorContext& _rctx, EventBase&& _uevent);
     static void stop_actor_repost(ReactorContext& _rctx, EventBase&& _uevent);

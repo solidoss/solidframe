@@ -33,7 +33,7 @@ using namespace solid;
 using namespace std::chrono_literals;
 
 namespace {
-using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
 using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
 
@@ -124,28 +124,24 @@ private:
             onConnect(_rctx);
         }
     }
-    void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override
+    void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent) override
     {
         solid_dbg(generic_logger, Info, "event = " << _revent);
-        if (_revent == generic_event_start) {
+        if (_revent == generic_event<GenericEventE::Start>) {
             // we must resolve the address then connect
             solid_dbg(generic_logger, Info, "async_resolve = "
                     << "127.0.0.1"
                     << " " << server_port);
             async_resolver().requestResolve(
                 [&rm = _rctx.service().manager(), actor_id = _rctx.service().manager().id(*this), this](ResolveData& _rrd, ErrorCodeT const& /*_rerr*/) {
-                    Event ev(make_event(GenericEvents::Message));
-
-                    ev.any() = std::move(_rrd);
-
                     solid_dbg(generic_logger, Info, this << " send resolv_message");
-                    rm.notify(actor_id, std::move(ev));
+                    rm.notify(actor_id, make_event(GenericEventE::Message, std::move(_rrd)));
                 },
                 "127.0.0.1", server_port.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
-        } else if (_revent == generic_event_kill) {
+        } else if (_revent == generic_event<GenericEventE::Kill>) {
             postStop(_rctx);
-        } else if (generic_event_message == _revent) {
-            ResolveData* presolvemsg = _revent.any().cast<ResolveData>();
+        } else if (generic_event<GenericEventE::Message> == _revent) {
+            ResolveData* presolvemsg = _revent.cast<ResolveData>();
             if (presolvemsg != nullptr) {
                 if (presolvemsg->empty()) {
                     solid_dbg(generic_logger, Error, this << " postStop");
@@ -284,7 +280,7 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
             solid::ErrorConditionT err;
             solid::frame::ActorIdT actuid;
 
-            actuid = sch_client.startActor(make_shared<Connection>(), svc_client, make_event(GenericEvents::Start), err);
+            actuid = sch_client.startActor(make_shared<Connection>(), svc_client, make_event(GenericEventE::Start), err);
 
             if (actuid.isInvalid()) {
                 solid_check(false);

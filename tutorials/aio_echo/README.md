@@ -75,7 +75,7 @@ Let us start with the include part and with the declaration of the scheduler we 
 using namespace std;
 using namespace solid;
 
-using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 ```
 
 Next we need a function to convert the program arguments to a data structure that we will be using later:
@@ -121,7 +121,7 @@ So, if you want to notify a single actor with a specific event, you'll use the m
 ```C++
 solid::frame::ActorUidT objuid = scheduler.startActor(/*...*/);
 //...
-manager.notify(objuid, make_event(GenericEvents::Message));
+manager.notify(objuid, make_event(GenericEventE::Message));
 ```
 
 While if you want to broadcast a specific event to all actors from a service you will use the service:
@@ -167,7 +167,7 @@ Next we will instantiate and start a Listener (which is a solid::frame::aio::Act
         solid::ErrorConditionT              error;
         solid::frame::ActorIdT             objuid;
 
-        objuid = scheduler.startActor(make_dynamic<Listener>(service, scheduler, std::move(sd)), service, make_event(GenericEvents::Start), error);
+        objuid = scheduler.startActor(make_dynamic<Listener>(service, scheduler, std::move(sd)), service, make_event(GenericEventE::Start), error);
         (void)objuid;
     }else{
         cout<<"Error creating listener socket"<<endl;
@@ -188,7 +188,7 @@ After the Listener actor is created it must be _atomically_:
 This is done in the line:
 
 ```C++
-objuid = scheduler.startActor(make_dynamic<Listener>(service, scheduler, std::move(sd)), service, make_event(GenericEvents::Start), error);
+objuid = scheduler.startActor(make_dynamic<Listener>(service, scheduler, std::move(sd)), service, make_event(GenericEventE::Start), error);
 ```
 
 The startActor method parameters are:
@@ -223,7 +223,7 @@ Now, lets get back to the main function and instantiate a Talker (a UDP socket) 
         solid::ErrorConditionT              error;
         solid::frame::ActorIdT             objuid;
 
-        objuid = scheduler.startActor(make_dynamic<Taker>(std::move(sd)), service, make_event(GenericEvents::Start), error);
+        objuid = scheduler.startActor(make_dynamic<Taker>(std::move(sd)), service, make_event(GenericEventE::Start), error);
 
         (void)objuid;
 
@@ -248,7 +248,7 @@ Now, before delving into the Listener and Talker code, lets see what happens aft
 The SolidFrame Asynchronous environment shuts down in the following order:
  * the _service_
    * stops accepting new actors
-   * notifies all existing actors with make_event(GenericEvents::Kill)
+   * notifies all existing actors with make_event(GenericEventE::Kill)
    * waits until all actors die
  * the _manager_ (because every _service_ has a reference to the _manager_, the _manager_ must outlive all services)
    * ensures that all services are stopped
@@ -285,9 +285,9 @@ The definition of the __onEvent__ method is simple - only handle Start and Kill 
 
 ```C++
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
-    if(generic_event_start == _revent){
+    if(generic_event<GenericEventE::Start> == _revent){
         sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
-    }else if(generic_event_kill == _revent){
+    }else if(generic_event<GenericEventE::Kill> == _revent){
         postStop(_rctx);
     }
 }
@@ -314,7 +314,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
         if(!_rctx.error()){
             solid::ErrorConditionT              err;
 
-            rscheduler.startActor(make_dynamic<Connection>(std::move(_rsd)), rservice, make_event(GenericEvents::Start), err);
+            rscheduler.startActor(make_dynamic<Connection>(std::move(_rsd)), rservice, make_event(GenericEventE::Start), err);
         }else{
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             timer.waitFor(
@@ -366,9 +366,9 @@ The __Connection::onEvent__ implementation is somehow similar to the one from th
 
 ```C++
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
-    if(generic_event_start == _revent){
+    if(generic_event<GenericEventE::Start> == _revent){
         sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
-    }else if(generic_event_kill == _revent){
+    }else if(generic_event<GenericEventE::Kill> == _revent){
         sock.shutdown(_rctx);
         postStop(_rctx);
     }
@@ -445,12 +445,12 @@ Secondly with its __onEvent__ method:
 
 ```C++
 /*virtual*/ void Talker::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
-    if(generic_event_start == _revent){
+    if(generic_event<GenericEventE::Start> == _revent){
         sock.postRecvFrom(
             _rctx, buf, BufferCapacity,
             [this](frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, size_t _sz){onRecv(_rctx, _raddr, _sz);}
         );//fully asynchronous call
-    }else if(generic_event_kill == _revent){
+    }else if(generic_event<GenericEventE::Kill> == _revent){
         postStop(_rctx);
     }
 }

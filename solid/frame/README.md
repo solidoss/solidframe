@@ -89,7 +89,7 @@ int main(int argc, char *argv[]){
         sd.prepareAccept(rd.begin(), 2000);
 
         if(sd.ok()){
-            listeneruid = scheduler.startActor(make_dynamic<Listener>(service, scheduler, std::move(sd)), service, generic_event_category.event(GenericEvents::Start), error);
+            listeneruid = scheduler.startActor(make_dynamic<Listener>(service, scheduler, std::move(sd)), service, generic_event_category.event(GenericEventE::Start), error);
 
             if(error){
                 solid_assert(listeneruid.isInvalid());
@@ -106,7 +106,7 @@ int main(int argc, char *argv[]){
     //...
     //send listener a dummy event
     if(
-        not manager.notify(listeneruid, generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")))
+        not manager.notify(listeneruid, generic_event_category.event(GenericEventE::Message, std::string("Some ignored message")))
     ){
         cout<<"Message not delivered"<<endl;
     }
@@ -138,7 +138,7 @@ After this, if we have a valid socket device, we can create and start a Listener
 
 ```C++
 if(sd.ok()){
-    listeneruid = scheduler.startActor(make_dynamic<Listener>(service, scheduler, std::move(sd)), service, generic_event_category.event(GenericEvents::Start), error);
+    listeneruid = scheduler.startActor(make_dynamic<Listener>(service, scheduler, std::move(sd)), service, generic_event_category.event(GenericEventE::Start), error);
 
     if(listeneruid.isInvalid()){
         cout<<"Error starting actor: "<<error.message()<<endl;
@@ -156,7 +156,7 @@ As you can see above, the Listener constructor needs:
 The next line:
 
  ```C++
-    listeneruid = scheduler.startActor(make_dynamic<Listener>(service, scheduler, std::move(sd)), service, generic_event_category.event(GenericEvents::Start), error);
+    listeneruid = scheduler.startActor(make_dynamic<Listener>(service, scheduler, std::move(sd)), service, generic_event_category.event(GenericEventE::Start), error);
  ```
 
 will try to atomically:
@@ -170,7 +170,7 @@ Every actor must override:
     virtual void Actor::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
  ```
 
-to receive the events, so on the above code, once the Listener got started, Listener::onEvent will be called on the scheduler thread with the GenericEvents::Start event.
+to receive the events, so on the above code, once the Listener got started, Listener::onEvent will be called on the scheduler thread with the GenericEventE::Start event.
 What will Listener do on onEvent will see later. For now let us stay a little bit more on the scheduler.startActor line.
 
 As we can see it returns a frame::ActorIdT and an error. While the error value is obvious, the returned ActorIdT value is the temporally unique run-time ID explained above.
@@ -178,14 +178,14 @@ As we can see it returns a frame::ActorIdT and an error. While the error value i
 This way "listeneruid" can be used at any time during the lifetime of "manager" to notify the Listener actor with a custom event, as we do with the following line:
 
  ```C++
-    manager.notify(listeneruid, generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")))
+    manager.notify(listeneruid, generic_event_category.event(GenericEventE::Message, std::string("Some ignored message")))
  ```
 
 **Notes:**
   * One can easily forge a valid ActorIdT and be able to send an event to a valid Actor. This problem will be addressed by future versions of SolidFrame.
   * The actor that ActorIdT value addresses, may not exist when manager.notify(...) is called.
   * Once manager.notify(...) returned true the event will be delivered to the Actor.
-  * ```generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")``` constructs a generic Message event and instantiates the "any" value contained by the event with a std::string. On the receiving side, the any value can only be retrieved using event.any().cast\<std::string\>() which returns a pointer to std::string.
+  * ```generic_event_category.event(GenericEventE::Message, std::string("Some ignored message")``` constructs a generic Message event and instantiates the "any" value contained by the event with a std::string. On the receiving side, the any value can only be retrieved using event.any().cast\<std::string\>() which returns a pointer to std::string.
 
 Now that you have had a birds eye view of Actor/Manager/Service/Scheduler architecture, let us go back to the Connection::onReceiveAuthentication hypothetical code, and rewrite it with SolidFrame concepts:
 
@@ -215,7 +215,7 @@ For simple cases where we have few notification events we can use a generic even
 ```C++
 using AuthenticationResultT = std::pair<std::shared_ptr<UserStub>, std::error_condition>;
 /*static*/ Event Connection::createAuthenticationResultEvent(std::shared_ptr<UserStub> &_user_stub_ptr, const std::error_condition &_error){
-    return  generic_event_category.event(GenericEvents::Message, AuthenticationResultT(_user_stub_ptr, _error));
+    return  generic_event_category.event(GenericEventE::Message, AuthenticationResultT(_user_stub_ptr, _error));
 }
 ```
 
@@ -223,8 +223,8 @@ and do the dispatch using solid::Any<>::cast:
 
 ```C++
 void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
-    if(_revent == generic_event_category.event(GenericEvents::Message)){
-        AuthenticationResultT *pauth_result = _revent.any().cast<AuthenticationResultT>();
+    if(_revent == generic_event_category.event(GenericEventE::Message)){
+        AuthenticationResultT *pauth_result = _revent.cast<AuthenticationResultT>();
         if(pauth_result){
             if(pauth_result->second){
                 //authentication failed
@@ -282,13 +282,13 @@ void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
         },
         {
             {
-                generic_event_category.event(GenericEvents::Start),
+                generic_event_category.event(GenericEventE::Start),
                 [](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
                     _rcon.doHandleEventStart(_rctx, _revt);
                 }
             },
             {
-                generic_event_category.event(GenericEvents::Kill),
+                generic_event_category.event(GenericEventE::Kill),
                 [](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
                     _rcon.doHandleEventKill(_rctx, _revt);
                 }

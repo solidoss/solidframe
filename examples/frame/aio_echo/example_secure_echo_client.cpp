@@ -33,8 +33,8 @@ using namespace std;
 using namespace solid;
 using namespace std::placeholders;
 
-typedef frame::Scheduler<frame::aio::Reactor> AioSchedulerT;
-typedef frame::aio::openssl::Context          SecureContextT;
+typedef frame::Scheduler<frame::aio::Reactor<Event<32>>> AioSchedulerT;
+typedef frame::aio::openssl::Context                     SecureContextT;
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
@@ -82,7 +82,7 @@ public:
     static void onConnect(frame::aio::ReactorContext& _rctx, ConnectFunction& _rconnect);
 
 protected:
-    /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent);
+    /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent);
     static void      onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
     static void      onSent(frame::aio::ReactorContext& _rctx);
     static void      onSecureConnect(frame::aio::ReactorContext& _rctx);
@@ -184,7 +184,7 @@ int main(int argc, char* argv[])
 
             solid::ErrorConditionT err;
 
-            actuid = scheduler.startActor(make_shared<Connection>(secure_ctx), service, make_event(GenericEvents::Start, ConnectStub(resolver, params.connect_addr, params.connect_port)), err);
+            actuid = scheduler.startActor(make_shared<Connection>(secure_ctx), service, make_event(GenericEventE::Start, ConnectStub(resolver, params.connect_addr, params.connect_port)), err);
 
             solid_log(generic_logger, Info, "Started Client Connection actor: " << actuid.index << ',' << actuid.unique);
         }
@@ -198,7 +198,7 @@ int main(int argc, char* argv[])
                 break;
             }
             line += "\r\n";
-            if (manager.notify(actuid, make_event(GenericEvents::Message, std::move(line)))) {
+            if (manager.notify(actuid, make_event(GenericEventE::Message, std::move(line)))) {
             } else
                 break;
         }
@@ -241,7 +241,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 //-----------------------------------------------------------------------------
 
 struct ConnectFunction {
-    Event                       event;
+    Event<32>                   event;
     ResolveData::const_iterator iterator;
 
     ConnectFunction() {}
@@ -252,17 +252,17 @@ struct ConnectFunction {
     {
         Connection::onConnect(_rctx, *this);
     }
-    void operator()(frame::aio::ReactorContext& _rctx, Event&& /*_revent*/)
+    void operator()(frame::aio::ReactorContext& _rctx, EventBase&& /*_revent*/)
     {
         Connection::onConnect(_rctx, *this);
     }
 };
 
-/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
+/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent)
 {
     solid_log(generic_logger, Error, this << " " << _revent);
-    if (generic_event_message == _revent) {
-        std::string* pline = _revent.any().cast<std::string>();
+    if (generic_event<GenericEventE::Message> == _revent) {
+        std::string* pline = _revent.cast<std::string>();
 
         solid_check(pline != nullptr);
 
@@ -273,8 +273,8 @@ struct ConnectFunction {
             sock.postSendAll(_rctx, send_strs[crtSendIdx()].data(), send_strs[crtSendIdx()].size(), onSent);
         }
 
-    } else if (generic_event_start == _revent) {
-        ConnectStub* pconnect_stub = _revent.any().cast<ConnectStub>();
+    } else if (generic_event<GenericEventE::Start> == _revent) {
+        ConnectStub* pconnect_stub = _revent.cast<ConnectStub>();
 
         solid_check(pconnect_stub != nullptr);
         solid_log(generic_logger, Info, "Resolving: " << pconnect_stub->connect_addr << ':' << pconnect_stub->connect_port);
@@ -285,12 +285,12 @@ struct ConnectFunction {
         pconnect_stub->resolver.requestResolve(
             [&manager, actuid](ResolveData& _rrd, ErrorCodeT const& /*_rerr*/) {
                 solid_log(generic_logger, Info, "send resolv_message");
-                manager.notify(actuid, make_event(GenericEvents::Raise, std::move(_rrd)));
+                manager.notify(actuid, make_event(GenericEventE::Wake, std::move(_rrd)));
             },
             pconnect_stub->connect_addr.c_str(),
             pconnect_stub->connect_port.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
-    } else if (generic_event_raise == _revent) {
-        ResolveData* presolve_data = _revent.any().cast<ResolveData>();
+    } else if (generic_event<GenericEventE::Wake> == _revent) {
+        ResolveData* presolve_data = _revent.cast<ResolveData>();
 
         solid_check(presolve_data != nullptr);
 
@@ -309,7 +309,7 @@ struct ConnectFunction {
             solid_log(generic_logger, Error, this << " postStop");
             postStop(_rctx);
         }
-    } else if (generic_event_kill == _revent) {
+    } else if (generic_event<GenericEventE::Kill> == _revent) {
         solid_log(generic_logger, Error, this << " postStop");
         sock.shutdown(_rctx);
         postStop(_rctx);
@@ -382,7 +382,7 @@ struct ConnectFunction {
             onSecureConnect(_rctx);
         }
     } else {
-        ResolveData* presolve_data = _rcf.event.any().cast<ResolveData>();
+        ResolveData* presolve_data = _rcf.event.cast<ResolveData>();
 
         solid_check(presolve_data != nullptr);
 

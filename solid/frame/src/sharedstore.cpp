@@ -194,18 +194,18 @@ void StoreBase::notifyActor(UniqueId const& _ruid)
         do_raise = impl_->pfillerasevec->size() == 1;
     }
     if (do_raise) {
-        manager().notify(manager().id(*this), make_event(GenericEventE::Raise));
+        manager().notify(manager().id(*this), make_event(GenericEventE::Wake));
     }
 }
 
 void StoreBase::raise()
 {
-    manager().notify(manager().id(*this), make_event(GenericEventE::Raise));
+    manager().notify(manager().id(*this), make_event(GenericEventE::Wake));
 }
 
 /*virtual*/ void StoreBase::onEvent(frame::ReactorContext& _rctx, EventBase&& _revent)
 {
-    if (_revent == generic_event<GenericEventE::Raise>) {
+    if (_revent == generic_event<GenericEventE::Wake>) {
         {
             std::lock_guard<std::mutex> lock(mutex());
             ulong                       sm = 0;
@@ -219,7 +219,7 @@ void StoreBase::raise()
             this->post(
                 _rctx,
                 [this](frame::ReactorContext& _rctx, EventBase&& _revent) { onEvent(_rctx, std::move(_revent)); },
-                make_event(GenericEventE::Raise));
+                make_event(GenericEventE::Wake));
         }
         impl_->pconserasevec->clear();
     } else if (_revent == generic_event<GenericEventE::Kill>) {

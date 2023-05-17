@@ -137,12 +137,12 @@ inline void CompletionHandler::systemError(ReactorContext& _rctx, ErrorCodeT con
 inline void CompletionHandler::contextBind(ReactorContext& _rctx) const
 {
     solid_assert_log(isActive(), generic_logger);
-    _rctx.channel_index_ = idxreactor;
+    _rctx.completion_heandler_index_ = idxreactor;
 }
 
 inline void CompletionHandler::contextUnbind(ReactorContext& _rctx) const
 {
-    _rctx.channel_index_ = InvalidIndex();
+    _rctx.completion_heandler_index_ = InvalidIndex();
 }
 
 SocketDevice& dummy_socket_device();

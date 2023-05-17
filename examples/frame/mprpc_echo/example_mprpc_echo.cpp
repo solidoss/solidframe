@@ -35,7 +35,7 @@
 using namespace std;
 using namespace solid;
 
-using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
 
 //------------------------------------------------------------------

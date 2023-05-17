@@ -111,7 +111,7 @@ private:
     ReactorContext(const ReactorContext& _rother)
         : rreactor_(_rother.rreactor_)
         , rcurrent_time_(_rother.rcurrent_time_)
-        , channel_index_(_rother.channel_index_)
+        , completion_heandler_index_(_rother.completion_heandler_index_)
         , actor_index_(_rother.actor_index_)
         , reactor_event_(_rother.reactor_event_)
     {
@@ -122,7 +122,7 @@ private:
         const NanoTime& _rcurrent_time)
         : rreactor_(_rreactor)
         , rcurrent_time_(_rcurrent_time)
-        , channel_index_(InvalidIndex())
+        , completion_heandler_index_(InvalidIndex())
         , actor_index_(InvalidIndex())
         , reactor_event_(ReactorEventE::None)
     {
@@ -130,7 +130,7 @@ private:
 
     impl::Reactor&  rreactor_;
     const NanoTime& rcurrent_time_;
-    size_t          channel_index_;
+    size_t          completion_heandler_index_;
     size_t          actor_index_;
     ReactorEventE   reactor_event_;
     ErrorCodeT      system_error_;

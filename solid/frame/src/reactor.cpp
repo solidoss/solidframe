@@ -227,22 +227,22 @@ void Reactor::run()
 
 UniqueId Reactor::actorUid(ReactorContext const& _rctx) const
 {
-    return UniqueId(_rctx.actor_idx_, impl_->actor_dq_[_rctx.actor_idx_].unique_);
+    return UniqueId(_rctx.actor_index_, impl_->actor_dq_[_rctx.actor_index_].unique_);
 }
 
 Service& Reactor::service(ReactorContext const& _rctx) const
 {
-    return *impl_->actor_dq_[_rctx.actor_idx_].pservice_;
+    return *impl_->actor_dq_[_rctx.actor_index_].pservice_;
 }
 
 Actor& Reactor::actor(ReactorContext const& _rctx) const
 {
-    return *impl_->actor_dq_[_rctx.actor_idx_].actor_ptr_;
+    return *impl_->actor_dq_[_rctx.actor_index_].actor_ptr_;
 }
 
 CompletionHandler* Reactor::completionHandler(ReactorContext const& _rctx) const
 {
-    return impl_->completion_handler_dq_[_rctx.completion_heandler_idx_].pcompletion_handler_;
+    return impl_->completion_handler_dq_[_rctx.completion_heandler_index_].pcompletion_handler_;
 }
 
 void Reactor::addActor(UniqueId const& _uid, Service& _rservice, ActorPointerT&& _actor_ptr)
@@ -301,22 +301,22 @@ void Reactor::doPost(ReactorContext& _rctx, EventFunctionT&& _revfn, EventBase&&
 
 void Reactor::doStopActor(ReactorContext& _rctx)
 {
-    ActorStub& rstub = impl_->actor_dq_[_rctx.actor_idx_];
+    ActorStub& rstub = impl_->actor_dq_[_rctx.actor_index_];
 
     this->stopActor(*rstub.actor_ptr_, rstub.pservice_->manager());
 
     rstub.clear();
     --actor_count_;
-    impl_->freeuid_vec_.push_back(UniqueId(_rctx.actor_idx_, rstub.unique_));
+    impl_->freeuid_vec_.push_back(UniqueId(_rctx.actor_index_, rstub.unique_));
 }
 
 void Reactor::onTimer(ReactorContext& _rctx, const size_t _chidx)
 {
     CompletionHandlerStub& rch = impl_->completion_handler_dq_[_chidx];
 
-    _rctx.reactor_event_           = ReactorEventE::Timer;
-    _rctx.completion_heandler_idx_ = _chidx;
-    _rctx.actor_idx_               = rch.actor_idx_;
+    _rctx.reactor_event_             = ReactorEventE::Timer;
+    _rctx.completion_heandler_index_ = _chidx;
+    _rctx.actor_index_               = rch.actor_idx_;
 
     rch.pcompletion_handler_->handleCompletion(_rctx);
     _rctx.clearError();
@@ -419,9 +419,9 @@ void Reactor::registerCompletionHandler(CompletionHandler& _rch, Actor const& _r
         NanoTime       dummytime;
         ReactorContext ctx(*this, dummytime);
 
-        ctx.reactor_event_           = ReactorEventE::Init;
-        ctx.actor_idx_               = rcs.actor_idx_;
-        ctx.completion_heandler_idx_ = idx;
+        ctx.reactor_event_             = ReactorEventE::Init;
+        ctx.actor_index_               = rcs.actor_idx_;
+        ctx.completion_heandler_index_ = idx;
 
         _rch.handleCompletion(ctx);
     }
@@ -435,9 +435,9 @@ void Reactor::unregisterCompletionHandler(CompletionHandler& _rch)
         NanoTime       dummytime;
         ReactorContext ctx(*this, dummytime);
 
-        ctx.reactor_event_           = ReactorEventE::Clear;
-        ctx.actor_idx_               = rcs.actor_idx_;
-        ctx.completion_heandler_idx_ = _rch.idxreactor;
+        ctx.reactor_event_             = ReactorEventE::Clear;
+        ctx.actor_index_               = rcs.actor_idx_;
+        ctx.completion_heandler_index_ = _rch.idxreactor;
 
         _rch.handleCompletion(ctx);
     }

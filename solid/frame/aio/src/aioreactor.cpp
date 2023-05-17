@@ -711,7 +711,7 @@ Actor& Reactor::actor(ReactorContext const& _rctx) const
 
 CompletionHandler* Reactor::completionHandler(ReactorContext const& _rctx) const
 {
-    return impl_->completion_handler_dq_[_rctx.channel_index_].pcompletion_handler_;
+    return impl_->completion_handler_dq_[_rctx.completion_heandler_index_].pcompletion_handler_;
 }
 
 //-----------------------------------------------------------------------------
@@ -790,15 +790,15 @@ void Reactor::doCompleteIo(NanoTime const& _rcrttime, const size_t _sz)
         epoll_event&           rev = impl_->event_vec_[i];
         CompletionHandlerStub& rch = impl_->completion_handler_dq_[rev.data.u64];
 
-        ctx.reactor_event_ = systemEventsToReactorEvents(rev.events);
-        ctx.channel_index_ = rev.data.u64;
+        ctx.reactor_event_             = systemEventsToReactorEvents(rev.events);
+        ctx.completion_heandler_index_ = rev.data.u64;
 #elif defined(SOLID_USE_KQUEUE)
     for (size_t i = 0; i < _sz; ++i) {
         struct kevent&         rev = impl_->event_vec_[i];
         CompletionHandlerStub& rch = impl_->completion_handler_dq_[void_to_index(rev.udata)];
 
-        ctx.reactor_event_ = systemEventsToReactorEvents(rev.flags, rev.filter);
-        ctx.channel_index_ = void_to_index(rev.udata);
+        ctx.reactor_event_             = systemEventsToReactorEvents(rev.flags, rev.filter);
+        ctx.completion_heandler_index_ = void_to_index(rev.udata);
 #elif defined(SOLID_USE_WSAPOLL)
     const size_t vecsz = impl_->event_vec_.size();
     size_t       evcnt = _sz;
@@ -810,9 +810,9 @@ void Reactor::doCompleteIo(NanoTime const& _rcrttime, const size_t _sz)
         if (rev.revents == 0 || rev.revents & POLLNVAL)
             continue;
         --evcnt;
-        CompletionHandlerStub& rch = impl_->completion_handler_dq_[i];
-        ctx.reactor_event_         = systemEventsToReactorEvents(rev.revents, rev.events);
-        ctx.channel_index_         = i;
+        CompletionHandlerStub& rch     = impl_->completion_handler_dq_[i];
+        ctx.reactor_event_             = systemEventsToReactorEvents(rev.revents, rev.events);
+        ctx.completion_heandler_index_ = i;
         if (rch.connect_idx_ != InvalidIndex()) {
             // we have events on a connecting socket
             // so we remove it from connect waiting list
@@ -832,9 +832,9 @@ void Reactor::doCompleteIo(NanoTime const& _rcrttime, const size_t _sz)
 
         if (SocketDevice::error(rev.fd)) {
 
-            ctx.reactor_event_ = systemEventsToReactorEvents(POLLERR, rev.events);
-            ctx.channel_index_ = i;
-            ctx.actor_index_   = rch.actor_idx_;
+            ctx.reactor_event_             = systemEventsToReactorEvents(POLLERR, rev.events);
+            ctx.completion_heandler_index_ = i;
+            ctx.actor_index_               = rch.actor_idx_;
 
             remConnect(ctx);
 
@@ -851,14 +851,14 @@ void Reactor::doCompleteIo(NanoTime const& _rcrttime, const size_t _sz)
 #if defined(SOLID_USE_WSAPOLL)
 void Reactor::addConnect(ReactorContext& _rctx)
 {
-    CompletionHandlerStub& rch = impl_->completion_handler_dq_[_rctx.channel_index_];
+    CompletionHandlerStub& rch = impl_->completion_handler_dq_[_rctx.completion_heandler_index_];
     rch.connect_idx_           = impl_->connect_vec_.size();
-    impl_->connect_vec_.emplace_back(_rctx.channel_index_);
+    impl_->connect_vec_.emplace_back(_rctx.completion_heandler_index_);
 }
 
 void Reactor::remConnect(ReactorContext& _rctx)
 {
-    CompletionHandlerStub& rch                                             = impl_->completion_handler_dq_[_rctx.channel_index_];
+    CompletionHandlerStub& rch                                             = impl_->completion_handler_dq_[_rctx.completion_heandler_index_];
     impl_->connect_vec_[rch.connect_idx_]                                  = impl_->connect_vec_.back();
     impl_->completion_handler_dq_[impl_->connect_vec_.back()].connect_idx_ = rch.connect_idx_;
     rch.connect_idx_                                                       = InvalidIndex();
@@ -871,9 +871,9 @@ void Reactor::onTimer(ReactorContext& _rctx, const size_t _chidx)
 {
     CompletionHandlerStub& rch = impl_->completion_handler_dq_[_chidx];
 
-    _rctx.reactor_event_ = ReactorEventE::Timer;
-    _rctx.channel_index_ = _chidx;
-    _rctx.actor_index_   = rch.actor_idx_;
+    _rctx.reactor_event_             = ReactorEventE::Timer;
+    _rctx.completion_heandler_index_ = _chidx;
+    _rctx.actor_index_               = rch.actor_idx_;
 
     rch.pcompletion_handler_->handleCompletion(_rctx);
     _rctx.clearError();
@@ -934,7 +934,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
 
 #if defined(SOLID_USE_EPOLL)
     epoll_event ev;
-    ev.data.u64 = _rctx.channel_index_;
+    ev.data.u64 = _rctx.completion_heandler_index_;
     ev.events   = reactorRequestsToSystemEvents(_req);
 
     if (epoll_ctl(impl_->reactor_fd_, EPOLL_CTL_ADD, _rsd.Device::descriptor(), &ev) != 0) {
@@ -967,7 +967,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
         break;
     case ReactorWaitRequestE::User: {
         struct kevent ev;
-        EV_SET(&ev, _rsd.descriptor(), EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, index_to_void(_rctx.channel_index_));
+        EV_SET(&ev, _rsd.descriptor(), EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, index_to_void(_rctx.completion_heandler_index_));
         if (kevent(impl_->reactor_fd_, &ev, 1, nullptr, 0, nullptr)) {
             solid_log(logger, Error, "kevent: " << last_system_error().message());
             solid_assert_log(false, logger);
@@ -986,8 +986,8 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
     }
 
     struct kevent ev[2];
-    EV_SET(&ev[0], _rsd.descriptor(), EVFILT_READ, read_flags | EV_CLEAR, 0, 0, index_to_void(_rctx.channel_index_));
-    EV_SET(&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags | EV_CLEAR, 0, 0, index_to_void(_rctx.channel_index_));
+    EV_SET(&ev[0], _rsd.descriptor(), EVFILT_READ, read_flags | EV_CLEAR, 0, 0, index_to_void(_rctx.completion_heandler_index_));
+    EV_SET(&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags | EV_CLEAR, 0, 0, index_to_void(_rctx.completion_heandler_index_));
     if (kevent(impl_->reactor_fd_, ev, 2, nullptr, 0, nullptr)) {
         solid_log(logger, Error, "kevent: " << last_system_error().message());
         solid_assert_log(false, logger);
@@ -999,12 +999,12 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
         }
     }
 #elif defined(SOLID_USE_WSAPOLL)
-    if (_rctx.channel_index_ >= impl_->event_vec_.size()) {
-        impl_->event_vec_.resize(_rctx.channel_index_ + 1);
+    if (_rctx.completion_heandler_index_ >= impl_->event_vec_.size()) {
+        impl_->event_vec_.resize(_rctx.completion_heandler_index_ + 1);
     }
 
-    impl_->event_vec_[_rctx.channel_index_].fd     = reinterpret_cast<SocketDevice::DescriptorT>(_rsd.descriptor());
-    impl_->event_vec_[_rctx.channel_index_].events = reactorRequestsToSystemEvents(_req);
+    impl_->event_vec_[_rctx.completion_heandler_index_].fd     = reinterpret_cast<SocketDevice::DescriptorT>(_rsd.descriptor());
+    impl_->event_vec_[_rctx.completion_heandler_index_].events = reactorRequestsToSystemEvents(_req);
 #endif
     return true;
 }
@@ -1017,7 +1017,7 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
 #if defined(SOLID_USE_EPOLL)
     epoll_event ev;
 
-    ev.data.u64 = _rctx.channel_index_;
+    ev.data.u64 = _rctx.completion_heandler_index_;
     ev.events   = reactorRequestsToSystemEvents(_req);
 
     if (epoll_ctl(impl_->reactor_fd_, EPOLL_CTL_MOD, _rsd.Device::descriptor(), &ev) != 0) {
@@ -1049,7 +1049,7 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
 
         struct kevent ev;
 
-        EV_SET(&ev, _rsd.descriptor(), EVFILT_USER, EV_ADD, 0, 0, index_to_void(_rctx.channel_index_));
+        EV_SET(&ev, _rsd.descriptor(), EVFILT_USER, EV_ADD, 0, 0, index_to_void(_rctx.completion_heandler_index_));
 
         if (kevent(impl_->reactor_fd_, &ev, 1, nullptr, 0, nullptr)) {
             solid_log(logger, Error, "kevent: " << last_system_error().message());
@@ -1068,8 +1068,8 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
         return false;
     }
 
-    EV_SET(&ev[0], _rsd.descriptor(), EVFILT_READ, read_flags, 0, 0, index_to_void(_rctx.channel_index_));
-    EV_SET(&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags, 0, 0, index_to_void(_rctx.channel_index_));
+    EV_SET(&ev[0], _rsd.descriptor(), EVFILT_READ, read_flags, 0, 0, index_to_void(_rctx.completion_heandler_index_));
+    EV_SET(&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags, 0, 0, index_to_void(_rctx.completion_heandler_index_));
 
     if (kevent(impl_->reactor_fd_, ev, 2, nullptr, 0, nullptr)) {
         solid_log(logger, Error, "kevent: " << last_system_error().message());
@@ -1083,9 +1083,9 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
     }
 #elif defined(SOLID_USE_WSAPOLL)
     if (_req != ReactorWaitRequestE::None) {
-        impl_->event_vec_[_rctx.channel_index_].events |= reactorRequestsToSystemEvents(_req);
+        impl_->event_vec_[_rctx.completion_heandler_index_].events |= reactorRequestsToSystemEvents(_req);
     } else {
-        impl_->event_vec_[_rctx.channel_index_].events = reactorRequestsToSystemEvents(_req);
+        impl_->event_vec_[_rctx.completion_heandler_index_].events = reactorRequestsToSystemEvents(_req);
     }
 #endif
     return true;
@@ -1199,9 +1199,9 @@ void Reactor::registerCompletionHandler(CompletionHandler& _rch, Actor const& _r
         NanoTime       dummytime;
         ReactorContext ctx(*this, dummytime);
 
-        ctx.reactor_event_ = ReactorEventE::Init;
-        ctx.actor_index_   = rcs.actor_idx_;
-        ctx.channel_index_ = idx;
+        ctx.reactor_event_             = ReactorEventE::Init;
+        ctx.actor_index_               = rcs.actor_idx_;
+        ctx.completion_heandler_index_ = idx;
 
         _rch.handleCompletion(ctx);
     }
@@ -1219,9 +1219,9 @@ void Reactor::unregisterCompletionHandler(CompletionHandler& _rch)
         NanoTime       dummytime;
         ReactorContext ctx(*this, dummytime);
 
-        ctx.reactor_event_ = ReactorEventE::Clear;
-        ctx.actor_index_   = rcs.actor_idx_;
-        ctx.channel_index_ = _rch.idxreactor;
+        ctx.reactor_event_             = ReactorEventE::Clear;
+        ctx.actor_index_               = rcs.actor_idx_;
+        ctx.completion_heandler_index_ = _rch.idxreactor;
 
         _rch.handleCompletion(ctx);
     }

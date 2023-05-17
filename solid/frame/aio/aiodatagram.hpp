@@ -43,27 +43,27 @@ class Datagram : public CompletionHandler {
         ThisT& rthis = static_cast<ThisT&>(_rch);
 
         switch (rthis.s.filterReactorEvents(rthis.reactorEvent(_rctx))) {
-        case ReactorEventNone:
+        case ReactorEventE::None:
             break;
-        case ReactorEventRecv:
+        case ReactorEventE::Recv:
             rthis.doRecv(_rctx);
             break;
-        case ReactorEventSend:
+        case ReactorEventE::Send:
             rthis.doSend(_rctx);
             break;
-        case ReactorEventRecvSend:
+        case ReactorEventE::RecvSend:
             rthis.doRecv(_rctx);
             rthis.doSend(_rctx);
             break;
-        case ReactorEventSendRecv:
+        case ReactorEventE::SendRecv:
             rthis.doSend(_rctx);
             rthis.doRecv(_rctx);
             break;
-        case ReactorEventHangup:
-        case ReactorEventError:
+        case ReactorEventE::Hangup:
+        case ReactorEventE::Error:
             rthis.doError(_rctx);
             break;
-        case ReactorEventClear:
+        case ReactorEventE::Clear:
             rthis.doClear(_rctx);
             break;
         default:
@@ -72,14 +72,14 @@ class Datagram : public CompletionHandler {
     }
 
     //-----------
-    static void on_posted_recv(ReactorContext& _rctx, Event const&)
+    static void on_posted_recv(ReactorContext& _rctx, EventBase const&)
     {
         ThisT& rthis         = static_cast<ThisT&>(*completion_handler(_rctx));
         rthis.recv_is_posted = false;
         rthis.doRecv(_rctx);
     }
 
-    static void on_posted_send(ReactorContext& _rctx, Event const&)
+    static void on_posted_send(ReactorContext& _rctx, EventBase const&)
     {
         ThisT& rthis         = static_cast<ThisT&>(*completion_handler(_rctx));
         rthis.send_is_posted = false;
@@ -586,11 +586,11 @@ public:
 private:
     void doPostRecvSome(ReactorContext& _rctx)
     {
-        reactor(_rctx).post(_rctx, on_posted_recv, Event(), *this);
+        reactor(_rctx).post(_rctx, on_posted_recv, Event<>(), *this);
     }
     void doPostSendAll(ReactorContext& _rctx)
     {
-        reactor(_rctx).post(_rctx, on_posted_send, Event(), *this);
+        reactor(_rctx).post(_rctx, on_posted_send, Event<>(), *this);
     }
 
     void doRecv(ReactorContext& _rctx)
