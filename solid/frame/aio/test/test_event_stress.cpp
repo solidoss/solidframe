@@ -191,7 +191,7 @@ int test_event_stress(int argc, char* argv[])
         account_device_count = make_number(argv[4]);
     }
 
-    solid::log_start(std::cerr, {"test:EWX"});
+    solid::log_start(std::cerr, {".*:EWX"});
 
     auto lambda = [&]() {
         ErrorConditionT err;

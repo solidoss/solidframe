@@ -388,7 +388,8 @@ bool Reactor::start()
     popUid(*impl_->actor_dq_.back().actor_ptr_);
 
     impl_->event_actor_ptr_->registerCompletionHandlers();
-
+    impl_->event_vec_.resize(min_event_capacity);
+    impl_->event_vec_.resize(impl_->event_vec_.capacity());
     impl_->running_ = true;
 
     return true;
@@ -438,7 +439,7 @@ void Reactor::run()
 #if defined(SOLID_USE_EPOLL2)
         waittime = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0);
 
-        solid_log(logger, Verbose, "epoll_wait wait = " << waittime);
+        solid_log(logger, Verbose, "epoll_wait wait = " << waittime << ' ' << impl_->reactor_fd_ << ' ' << impl_->event_vec_.size());
         selcnt = epoll_pwait2(impl_->reactor_fd_, impl_->event_vec_.data(), static_cast<int>(impl_->event_vec_.size()), waittime != NanoTime::max() ? &waittime : nullptr, nullptr);
         if (waittime.seconds() != 0 && waittime.nanoSeconds() != 0) {
             ++waitcnt;
@@ -661,7 +662,7 @@ inline uint32_t reactorRequestsToSystemEvents(const ReactorWaitRequestE _request
 #endif
 //-----------------------------------------------------------------------------
 
-inline UniqueId Reactor::actorUid(ReactorContext const& _rctx) const
+UniqueId Reactor::actorUid(ReactorContext const& _rctx) const
 {
     return UniqueId(_rctx.actor_index_, impl_->actor_dq_[_rctx.actor_index_].unique_);
 }
@@ -724,6 +725,15 @@ void Reactor::doPost(ReactorContext& _rctx, EventFunctionT&& _revfn, EventBase&&
     doPost(_rctx, std::move(_revfn), std::move(_uev), UniqueId(_rch.idxreactor, impl_->completion_handler_dq_[_rch.idxreactor].unique_));
 }
 //-----------------------------------------------------------------------------
+
+void Reactor::pushFreeUids()
+{
+    for (const auto& v : impl_->freeuid_vec_) {
+        this->pushUid(v);
+    }
+    impl_->freeuid_vec_.clear();
+}
+
 UniqueId Reactor::popUid(Actor& _ractor)
 {
     return ReactorBase::popUid(_ractor);

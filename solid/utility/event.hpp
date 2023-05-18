@@ -601,17 +601,18 @@ public:
     Event(const EventBase& _other)
         : EventBase(_other)
     {
+        doCopyFrom(data_, small_capacity, _other);
     }
 
     Event(EventBase&& _other)
         : EventBase(_other)
     {
+        doMoveFrom(data_, small_capacity, _other);
     }
 
     ThisT& operator=(const ThisT& _other)
     {
-        reset(_other);
-        doCopyFrom(data_, small_capacity, _other);
+        *this = ThisT{_other};
         return *this;
     }
 

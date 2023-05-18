@@ -296,7 +296,7 @@ void server_complete_message(
 int test_clientserver_split(int argc, char* argv[])
 {
 
-    solid::log_start(std::cerr, {".*:EWX", "\\*:EWX"});
+    solid::log_start(std::cerr, {".*:EWX", "\\*:VIEWX"});
 
     size_t max_per_pool_connection_count = 1;
 

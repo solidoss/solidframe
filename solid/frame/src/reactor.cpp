@@ -357,15 +357,13 @@ bool Reactor::doWaitEvent(NanoTime const& _rcrttime, const bool _exec_q_empty)
         }
         impl_->freeuid_vec_.clear();
 
-        const size_t current_push_index = current_push_index_;
-        current_push_index_             = ((current_push_index + 1) & 1);
-        rv                              = true;
+        current_push_index_ = ((current_push_index_ + 1) & 1);
+        rv                  = true;
     }
     if (current_wake_size_ != 0u) {
-        current_wake_size_              = 0;
-        const size_t current_push_index = current_wake_index_;
-        current_wake_index_             = ((current_push_index + 1) & 1);
-        rv                              = true;
+        current_wake_size_  = 0;
+        current_wake_index_ = ((current_wake_index_ + 1) & 1);
+        rv                  = true;
     }
     return rv;
 }

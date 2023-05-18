@@ -38,6 +38,8 @@ template <class Socket>
 class Datagram;
 using ActorPointerT = std::shared_ptr<Actor>;
 
+extern const LoggerT logger;
+
 namespace impl {
 class Reactor : public frame::ReactorBase {
     friend struct solid::frame::aio::EventHandler;
@@ -62,12 +64,12 @@ protected:
 #else
     using MutexT = mutex;
 #endif
-    uint32_t current_wake_index_ = 0;
-    uint32_t current_push_index_ = 0;
-    size_t   actor_count_        = 0;
-    size_t   current_push_size_  = 0;
-    size_t   current_wake_size_  = 0;
-    size_t   current_exec_size_  = 0;
+    uint32_t           current_wake_index_ = 0;
+    uint32_t           current_push_index_ = 0;
+    size_t             actor_count_        = 0;
+    size_t             current_exec_size_  = 0;
+    std::atomic_size_t current_push_size_  = {0};
+    std::atomic_size_t current_wake_size_  = {0};
 
 public:
     using EventFunctionT = solid_function_t(void(ReactorContext&, EventBase&&));
@@ -149,6 +151,7 @@ protected:
 
     CompletionHandler* completionHandler(ReactorContext const& _rctx) const;
 
+    void     pushFreeUids();
     UniqueId popUid(Actor&);
     void     notifyOne();
     MutexT&  mutex();
@@ -363,6 +366,7 @@ public:
 private:
     bool wake(UniqueId const& _ractuid, EventBase const& _revent) override
     {
+        solid_log(logger, Verbose, (void*)this << " uid = " << _ractuid.index << ',' << _ractuid.unique << " event = " << _revent);
         bool notify = false;
         {
             std::lock_guard<MutexT> lock(mutex());
@@ -378,6 +382,7 @@ private:
     }
     bool wake(UniqueId const& _ractuid, EventBase&& _revent) override
     {
+        solid_log(logger, Verbose, (void*)this << " uid = " << _ractuid.index << ',' << _ractuid.unique << " event = " << _revent);
         bool notify = false;
         {
             std::lock_guard<MutexT> lock(mutex());
@@ -421,7 +426,17 @@ private:
 
     void doCompleteEvents(NanoTime const& _rcrttime, const UniqueId& _completion_handler_uid)
     {
-        solid_log(frame_logger, Verbose, "");
+        solid_log(logger, Verbose, "");
+
+        if (current_push_size_.load() || current_wake_size_.load()) {
+            std::lock_guard<MutexT> lock(mutex());
+            current_wake_index_ = ((current_wake_index_ + 1) & 1);
+            current_push_index_ = ((current_push_index_ + 1) & 1);
+            current_push_size_.store(0);
+            current_wake_size_.store(0);
+
+            pushFreeUids();
+        }
 
         PushQueueT&    push_q = push_q_[(current_push_index_ + 1) & 1];
         WakeQueueT&    wake_q = wake_q_[(current_wake_index_ + 1) & 1];
@@ -456,7 +471,7 @@ private:
 
         while ((sz--) != 0) {
             auto& rexec(exec_q_.front());
-
+            solid_log(logger, Verbose, sz << " qsz = " << exec_q_.size());
             if (isValid(rexec.actor_uid_, rexec.completion_handler_uid_)) {
                 ctx.clearError();
                 update(ctx, static_cast<size_t>(rexec.completion_handler_uid_.index), static_cast<size_t>(rexec.actor_uid_.index));

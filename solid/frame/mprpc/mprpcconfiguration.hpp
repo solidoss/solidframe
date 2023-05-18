@@ -513,6 +513,9 @@ public:
         , protocol_ptr(std::static_pointer_cast<Protocol>(_rprotcol_ptr))
         , prelayengine(&_rrelayengine)
     {
+        actor_create_fnc = [&_rsch](aio::ActorPointerT&& _actor_ptr, frame::Service& _rsvc, EventBase&& _event, ErrorConditionT& _rerror) {
+            return _rsch.startActor(std::move(_actor_ptr), _rsvc, std::move(_event), _rerror);
+        };
         init();
     }
 

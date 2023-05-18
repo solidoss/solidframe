@@ -376,8 +376,7 @@ public:
 
     ThisT& operator=(const ThisT& _other)
     {
-        reset();
-        doCopyFrom(_other);
+        *this = ThisT{_other};
         return *this;
     }
 

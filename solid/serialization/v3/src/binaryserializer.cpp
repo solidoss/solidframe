@@ -97,7 +97,6 @@ Base::ReturnE SerializerBase::store_byte(SerializerBase& _rs, Runnable& _rr, voi
 
 Base::ReturnE SerializerBase::store_integer(SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/)
 {
-
     return _rs.doStoreInteger(_rr);
 }
 

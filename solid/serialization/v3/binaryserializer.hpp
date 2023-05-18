@@ -249,7 +249,7 @@ public: // should be protected
     {
         static_assert(std::is_integral_v<T>, "only integral types are accepted");
         solid_log(logger, Info, _name << ' ' << _rb);
-        Runnable r{std::addressof(_rb), &store_integer, sizeof(T), static_cast<uint64_t>(_rb), _name};
+        Runnable r{nullptr, &store_integer, sizeof(T), static_cast<uint64_t>(_rb), _name};
         if (isRunEmpty()) {
             if (doStoreInteger(r) == ReturnE::Done) {
                 return;
@@ -763,7 +763,9 @@ private:
     inline Base::ReturnE doStoreInteger(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
+            data_.u64_ = _rr.data_;
             _rr.call_ = store_binary;
+            _rr.ptr_   = data_.buf_;
             return doStoreBinary(_rr);
         }
         return ReturnE::Wait;
