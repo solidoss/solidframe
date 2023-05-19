@@ -98,6 +98,7 @@ bool try_stop()
         lock_guard<mutex> lock(mtx);
         running = false;
         cnd.notify_one();
+        solid_dbg(generic_logger, Warning, "--STOPPING--");
         return true;
     }
     return false;
@@ -265,17 +266,14 @@ void peera_complete_message(
     solid_check(!_rerror, "Error sending message: " << _rerror.message());
 
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
-    if (!_rrecv_msg_ptr->check()) {
-        solid_throw("Message check failed.");
-    }
+
+    solid_check(_rrecv_msg_ptr->check(), "Message check failed.");
 
     // cout<< _rmsgptr->str.size()<<'\n';
     transfered_size += _rrecv_msg_ptr->str.size();
     ++transfered_count;
 
-    if (!_rrecv_msg_ptr->isBackOnSender()) {
-        solid_throw("Message not back on sender!.");
-    }
+    solid_check(_rrecv_msg_ptr->isBackOnSender(), "Message not back on sender!.");
     ++response_count;
     try_stop();
 }
@@ -441,9 +439,10 @@ int test_relay_cancel_response(int argc, char* argv[])
 
         { // mprpc relay initialization
             auto con_start = [](frame::mprpc::ConnectionContext& _rctx) {
-                solid_dbg(generic_logger, Info, _rctx.recipientId());
+                solid_dbg(generic_logger, Info, _rctx.recipientId() << " relay connection start isActive " << _rctx.isConnectionActive());
             };
             auto con_stop = [](frame::mprpc::ConnectionContext& _rctx) {
+                solid_dbg(generic_logger, Info, _rctx.recipientId() << " relay connection stop");
                 if (!running) {
                     ++connection_count;
                 }
@@ -481,8 +480,8 @@ int test_relay_cancel_response(int argc, char* argv[])
             cfg.server.listener_address_str      = "0.0.0.0:0";
             cfg.pool_max_active_connection_count = 2 * max_per_pool_connection_count;
             cfg.connection_stop_fnc              = std::move(con_stop);
-            cfg.client.connection_start_fnc      = std::move(con_start);
-            cfg.client.connection_start_state    = frame::mprpc::ConnectionState::Active;
+            cfg.server.connection_start_fnc      = std::move(con_start);
+            cfg.server.connection_start_state    = frame::mprpc::ConnectionState::Active;
             cfg.relay_enabled                    = true;
 
             if (secure) {

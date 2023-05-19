@@ -764,7 +764,7 @@ private:
     {
         if (pcrt_ != pend_) {
             data_.u64_ = _rr.data_;
-            _rr.call_ = store_binary;
+            _rr.call_  = store_binary;
             _rr.ptr_   = data_.buf_;
             return doStoreBinary(_rr);
         }

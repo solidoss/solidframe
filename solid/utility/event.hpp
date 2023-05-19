@@ -267,10 +267,6 @@ protected:
     template <class T, class... Args>
     T& doEmplaceSmall(void* _psmall_data, const size_t _small_capacity, Args&&... _args)
     {
-        // if constexpr (is_small_type<T>()) {
-        // auto& rval = reinterpret_cast<T&>(storage_.small_.data_);
-
-        //::new (const_cast<void*>(static_cast<const volatile void*>(std::addressof(rval)))) T{std::forward<Args>(_args)...};
         auto* pdata   = ::new (_psmall_data) T{std::forward<Args>(_args)...};
         pdata_        = _psmall_data;
         rtti_.psmall_ = &any_impl::small_rtti<T>;
@@ -572,7 +568,6 @@ public:
     explicit Event(const Evs _ev, std::in_place_type_t<T>, std::initializer_list<E> _ilist, Args&&... _args)
         : EventBase(category<Evs>, to_underlying(_ev))
     {
-        // doEmplace<std::decay_t<T>>(_ilist, std::forward<Args>(_args)...);
         if constexpr (is_small_type<T>()) {
             auto& rval = reinterpret_cast<T&>(data_);
             doEmplaceSmall<std::decay_t<T>>(const_cast<void*>(static_cast<const volatile void*>(std::addressof(rval))), small_capacity, _ilist, std::forward<Args>(_args)...);
@@ -589,7 +584,6 @@ public:
     explicit Event(const EventCategoryBase& _category, const Evs _ev, std::in_place_type_t<T>, std::initializer_list<E> _ilist, Args&&... _args)
         : EventBase(_category, to_underlying(_ev))
     {
-        // doEmplace<std::decay_t<T>>(_ilist, std::forward<Args>(_args)...);
         if constexpr (is_small_type<T>()) {
             auto& rval = reinterpret_cast<T&>(data_);
             doEmplaceSmall<std::decay_t<T>>(const_cast<void*>(static_cast<const volatile void*>(std::addressof(rval))), small_capacity, _ilist, std::forward<Args>(_args)...);
