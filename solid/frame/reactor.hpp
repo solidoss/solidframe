@@ -367,7 +367,7 @@ private:
         current_exec_size_                     = exec_q_.size();
     }
 
-    void doStopActorRepost(ReactorContext& _rctx, const UniqueId& _completion_handler_uid)
+    void doStopActorRepost(ReactorContext& _rctx, const UniqueId& _completion_handler_uid) override
     {
         exec_q_.push(ExecStubT(actorUid(_rctx)));
         exec_q_.back().exec_fnc_               = &stop_actor;
@@ -386,7 +386,7 @@ private:
         current_exec_size_                     = exec_q_.size();
     }
 
-    void doCompleteEvents(NanoTime const& _rcrttime, const UniqueId& _completion_handler_uid)
+    void doCompleteEvents(NanoTime const& _rcrttime, const UniqueId& _completion_handler_uid) override
     {
         solid_log(frame_logger, Verbose, "");
 

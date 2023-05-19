@@ -371,8 +371,8 @@ bool Reactor::start()
         return false;
     }
 #elif defined(SOLID_USE_KQUEUE)
-    impl_->reactor_fd = kqueue();
-    if (impl_->reactor_fd < 0) {
+    impl_->reactor_fd_ = kqueue();
+    if (impl_->reactor_fd_ < 0) {
         solid_log(logger, Error, "reactor create: " << last_system_error().message());
         return false;
     }
@@ -1043,19 +1043,19 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
     case ReactorWaitRequestE::None:
         read_flags |= EV_DISABLE;
         write_flags |= EV_DISABLE;
-    case ReactorWaitRequestE:: ::Read:
+    case ReactorWaitRequestE::Read:
         read_flags |= (EV_ENABLE | EV_CLEAR);
         write_flags |= EV_DISABLE;
         break;
-    case ReactorWaitRequestE:: ::Write:
+    case ReactorWaitRequestE::Write:
         read_flags |= EV_DISABLE;
         write_flags |= (EV_ENABLE | EV_CLEAR);
         break;
-    case ReactorWaitRequestE:: ::ReadOrWrite:
+    case ReactorWaitRequestE::ReadOrWrite:
         read_flags |= (EV_ENABLE | EV_CLEAR);
         write_flags |= (EV_ENABLE | EV_CLEAR);
         break;
-    case ReactorWaitRequestE:: ::User: {
+    case ReactorWaitRequestE::User: {
 
         struct kevent ev;
 
