@@ -312,9 +312,9 @@ struct impl::Reactor::Data {
                 diff                      = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
 
                 if (diff > maxwait) {
-                    return connectvec.empty() ? maxwait : 1000; // wait 1 sec when connect opperations are in place
+                    return connect_vec_.empty() ? maxwait : 1000; // wait 1 sec when connect opperations are in place
                 } else {
-                    return connectvec.empty() ? static_cast<int>(diff) : 1000;
+                    return connect_vec_.empty() ? static_cast<int>(diff) : 1000;
                 }
 
             } else {
@@ -322,7 +322,7 @@ struct impl::Reactor::Data {
             }
 
         } else {
-            return connectvec.empty() ? -1 : 1000;
+            return connect_vec_.empty() ? -1 : 1000;
         }
     }
 #endif
@@ -1380,7 +1380,7 @@ void EventHandler::write(impl::Reactor& _rreactor)
     ErrorCodeT       err;
     rthis.dev_.recv(buf, buf_sz, can_retry, err);
     rthis.contextBind(_rctx);
-    rthis.reactor(_rctx).modDevice(_rctx, rthis.dev_, ReactorWaitRead);
+    rthis.reactor(_rctx).modDevice(_rctx, rthis.dev_, ReactorWaitRequestE::Read);
 #endif
     rthis.reactor(_rctx).doCompleteEvents(_rctx);
 }

@@ -37,7 +37,6 @@ class Service;
 class ActorBase;
 class SchedulerBase;
 class ReactorBase;
-
 struct ServiceStub;
 
 enum struct ServiceStatusE {

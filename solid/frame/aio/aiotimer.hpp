@@ -22,7 +22,7 @@ namespace frame {
 namespace aio {
 
 struct ActorProxy;
-struct ReactorContext;
+class ReactorContext;
 
 class SteadyTimer : public CompletionHandler {
     friend class impl::Reactor;

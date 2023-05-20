@@ -21,7 +21,7 @@ namespace solid {
 namespace frame {
 
 struct ActorProxy;
-struct ReactorContext;
+class ReactorContext;
 
 class SteadyTimer : public CompletionHandler {
     typedef SteadyTimer ThisT;

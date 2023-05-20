@@ -22,7 +22,7 @@
 namespace solid {
 namespace frame {
 
-struct ReactorContext;
+class ReactorContext;
 
 namespace shared {
 

@@ -81,7 +81,6 @@ int main(int argc, char* argv[])
 
     {
         SchedulerT s;
-
         frame::Manager         m;
         frame::ServiceT        svc(m);
         solid::ErrorConditionT err;
@@ -136,7 +135,7 @@ int main(int argc, char* argv[])
 
             cout << "Notify all raise: START" << endl;
             start_time = std::chrono::steady_clock::now();
-            svc.notifyAll(generic_event<GenericEventE::Wake>);
+            //svc.notifyAll(generic_event<GenericEventE::Wake>);
             duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time);
             cout << "Notify all raise: DONE. " << duration.count() << "ms" << endl;
             {

@@ -28,7 +28,7 @@ using AlphaEventCategory  = EventCategory<AlphaEvents>;
 using BetaEventCategory   = EventCategory<BetaEvents>;
 
 template <>
-inline const GlobalEventCategory solid::category<GlobalEvents>{
+const GlobalEventCategory solid::category<GlobalEvents>{
     "::global_event_category",
     [](const GlobalEvents _evt) {
         switch (_evt) {
@@ -43,7 +43,7 @@ inline const GlobalEventCategory solid::category<GlobalEvents>{
         }
     }};
 template <>
-inline const AlphaEventCategory solid::category<AlphaEvents>{
+const AlphaEventCategory solid::category<AlphaEvents>{
     "::alpha_event_category",
     [](const AlphaEvents _evt) {
         switch (_evt) {
@@ -59,7 +59,7 @@ inline const AlphaEventCategory solid::category<AlphaEvents>{
     }};
 
 template <>
-inline const BetaEventCategory solid::category<BetaEvents>{
+const BetaEventCategory solid::category<BetaEvents>{
     "::beta_event_category",
     [](const BetaEvents _evt) {
         switch (_evt) {

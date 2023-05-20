@@ -52,7 +52,7 @@ class Reactor : public frame::ReactorBase {
     friend class solid::frame::aio::Datagram;
     friend struct ChangeTimerIndexCallback;
     friend struct TimerCallback;
-    friend struct solid::frame::aio::ReactorContext;
+    friend class solid::frame::aio::ReactorContext;
     friend class solid::frame::aio::Actor;
 
     struct Data;

@@ -19,7 +19,7 @@
 
 namespace solid {
 namespace frame {
-struct ReactorContext;
+class ReactorContext;
 class CompletionHandler;
 
 class Actor;

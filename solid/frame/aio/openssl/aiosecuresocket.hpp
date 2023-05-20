@@ -20,7 +20,7 @@ namespace solid {
 namespace frame {
 namespace aio {
 
-struct ReactorContext;
+class ReactorContext;
 
 namespace openssl {
 

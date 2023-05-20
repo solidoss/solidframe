@@ -24,7 +24,7 @@ namespace impl {
 class Reactor;
 } // namespace impl
 struct ActorProxy;
-struct ReactorContext;
+class ReactorContext;
 struct ReactorEvent;
 
 class CompletionHandler : public ForwardCompletionHandler {

@@ -23,7 +23,7 @@ namespace frame {
 namespace aio {
 
 struct ActorProxy;
-struct ReactorContext;
+class ReactorContext;
 
 class Listener : public CompletionHandler {
     static void on_completion(CompletionHandler& _rch, ReactorContext& _rctx);

@@ -37,11 +37,23 @@ class Reactor;
 
 class CompletionHandler;
 
-struct ReactorContext : NonCopyable {
+class ReactorContext : NonCopyable {
+    friend class CompletionHandler;
+    friend class impl::Reactor;
+    friend class Actor;
+    friend class SocketBase;
+
+    impl::Reactor&  rreactor_;
+    const NanoTime& rcurrent_time_;
+    size_t          completion_heandler_index_;
+    size_t          actor_index_;
+    ReactorEventE   reactor_event_;
+    ErrorCodeT      system_error_;
+    ErrorConditionT error_;
+public:
     ~ReactorContext()
     {
     }
-
     const NanoTime& nanoTime() const
     {
         return rcurrent_time_;
@@ -76,10 +88,6 @@ struct ReactorContext : NonCopyable {
     }
 
 private:
-    friend class CompletionHandler;
-    friend class impl::Reactor;
-    friend class Actor;
-    friend class SocketBase;
 
     impl::Reactor& reactor()
     {
@@ -127,14 +135,6 @@ private:
         , reactor_event_(ReactorEventE::None)
     {
     }
-
-    impl::Reactor&  rreactor_;
-    const NanoTime& rcurrent_time_;
-    size_t          completion_heandler_index_;
-    size_t          actor_index_;
-    ReactorEventE   reactor_event_;
-    ErrorCodeT      system_error_;
-    ErrorConditionT error_;
 };
 
 } // namespace aio

@@ -23,7 +23,6 @@ class EventBase;
 namespace frame {
 
 class ActorBase;
-
 class Service;
 
 template <class S = Service>

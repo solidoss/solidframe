@@ -31,7 +31,7 @@ namespace solid {
 namespace frame {
 
 namespace aio {
-struct ReactorContext;
+class ReactorContext;
 } // namespace aio
 
 namespace mprpc {

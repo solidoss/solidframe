@@ -21,7 +21,7 @@ namespace frame {
 namespace aio {
 
 struct ActorProxy;
-struct ReactorContext;
+class ReactorContext;
 
 template <class Sock>
 class Stream : public CompletionHandler {
