@@ -26,7 +26,7 @@
 
 namespace solid {
 
-struct EventBase;
+class EventBase;
 
 namespace frame {
 

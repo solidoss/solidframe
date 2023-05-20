@@ -19,7 +19,7 @@
 #include <vector>
 
 namespace solid {
-struct EventBase;
+class EventBase;
 namespace frame {
 
 class ActorBase;

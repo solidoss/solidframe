@@ -18,7 +18,7 @@
 #include "solid/frame/aio/aiosocketbase.hpp"
 
 namespace solid {
-struct EventBase;
+class EventBase;
 namespace frame {
 namespace aio {
 

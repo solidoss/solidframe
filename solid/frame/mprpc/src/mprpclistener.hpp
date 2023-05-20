@@ -17,7 +17,7 @@
 #include "solid/system/socketdevice.hpp"
 
 namespace solid {
-struct EventBase;
+class EventBase;
 namespace frame {
 namespace aio {
 namespace openssl {
