@@ -50,6 +50,7 @@ class ReactorContext : NonCopyable {
     ReactorEventE   reactor_event_;
     ErrorCodeT      system_error_;
     ErrorConditionT error_;
+
 public:
     ~ReactorContext()
     {
@@ -88,7 +89,6 @@ public:
     }
 
 private:
-
     impl::Reactor& reactor()
     {
         return rreactor_;
