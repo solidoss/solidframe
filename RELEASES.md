@@ -1,5 +1,15 @@
 # SolidFrame Releases
 
+## Version 9.0
+
+* (DONE) Improved Event
+  * integrated 'Any' support
+  * template on small size
+  * copy/move via EventBase
+* (DONE) frame::Reactor and frame::aio::Reactor, template on Event type.
+* (DONE) other fixes and improvements
+
+
 ## Version 8.1
 
 * (DONE) WorkPool to ThreadPool
