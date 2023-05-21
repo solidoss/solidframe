@@ -34,9 +34,9 @@ using namespace std;
 using namespace solid;
 using namespace std::placeholders;
 
-typedef frame::IndexT                         IndexT;
-typedef frame::Scheduler<frame::aio::Reactor> AioSchedulerT;
-typedef frame::Scheduler<frame::Reactor>      SchedulerT;
+typedef frame::IndexT                                    IndexT;
+typedef frame::Scheduler<frame::aio::Reactor<Event<32>>> AioSchedulerT;
+typedef frame::Scheduler<frame::Reactor<Event<32>>>      SchedulerT;
 
 enum Events {
     EventStartE = 0,
@@ -102,7 +102,7 @@ public:
     }
 
 private:
-    /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent);
+    /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent);
     void             onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd);
 
     typedef frame::aio::Listener ListenerSocketT;
@@ -126,7 +126,7 @@ public:
     ~Connection();
 
 private:
-    /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent);
+    /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent);
     static void      onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
     static void      onSend(frame::aio::ReactorContext& _rctx);
     const char*      findEnd(const char* _p);
@@ -240,7 +240,7 @@ int main(int argc, char* argv[])
 
             {
                 SchedulerT::ActorPointerT actptr(filestoreptr);
-                actuid = sched.startActor(std::move(actptr), svc, make_event(GenericEvents::Start), err);
+                actuid = sched.startActor(std::move(actptr), svc, make_event(GenericEventE::Start), err);
             }
 
             {
@@ -255,7 +255,7 @@ int main(int argc, char* argv[])
                     solid::ErrorConditionT err;
                     solid::frame::ActorIdT actuid;
 
-                    actuid = aiosched.startActor(make_shared<Listener>(svc, aiosched, sd), svc, make_event(GenericEvents::Start), err);
+                    actuid = aiosched.startActor(make_shared<Listener>(svc, aiosched, sd), svc, make_event(GenericEventE::Start), err);
                     solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
                 } else {
                     cout << "Error creating listener socket" << endl;
@@ -318,12 +318,12 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 }
 //------------------------------------------------------------------
 //------------------------------------------------------------------
-/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
+/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent)
 {
     solid_log(generic_logger, Info, "event = " << _revent);
-    if (generic_event_start == _revent) {
+    if (generic_event<GenericEventE::Start> == _revent) {
         sock.postAccept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { return onAccept(_rctx, _rsd); });
-    } else if (generic_event_kill == _revent) {
+    } else if (generic_event<GenericEventE::Kill> == _revent) {
         postStop(_rctx);
     }
 }
@@ -337,7 +337,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
         if (!_rctx.error()) {
             solid::ErrorConditionT err;
 
-            rsch.startActor(make_shared<Connection>(_rsd), rsvc, make_event(GenericEvents::Start), err);
+            rsch.startActor(make_shared<Connection>(_rsd), rsvc, make_event(GenericEventE::Start), err);
         } else {
             // e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             // timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
@@ -401,19 +401,19 @@ const char* Connection::findEnd(const char* _p)
     return p - (crtpat - patt);
 }
 
-/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
+/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent)
 {
     solid_log(generic_logger, Info, "" << _revent);
-    if (generic_event_start == _revent) {
+    if (generic_event<GenericEventE::Start> == _revent) {
         solid_log(generic_logger, Info, "Start");
         sock.postRecvSome(_rctx, bbeg, BufferCapacity, Connection::onRecv);
         state = ReadCommand;
-    } else if (generic_event_kill == _revent) {
+    } else if (generic_event<GenericEventE::Kill> == _revent) {
         solid_log(generic_logger, Info, "Stop");
         this->postStop(_rctx);
-    } else if (generic_event_message == _revent) {
+    } else if (generic_event<GenericEventE::Message> == _revent) {
         solid_log(generic_logger, Info, "Message");
-        FilePointerMessage* pfileptrmsg = _revent.any().cast<FilePointerMessage>();
+        FilePointerMessage* pfileptrmsg = _revent.cast<FilePointerMessage>();
         if (pfileptrmsg) {
             this->handle(*pfileptrmsg);
         }
@@ -514,8 +514,8 @@ struct OpenCbk {
     )
     {
         solid_log(generic_logger, Info, "");
-        Event ev{generic_event_message};
-        ev.any().emplace<FilePointerMessage>(_rptr);
+        auto ev{make_event(GenericEventE::Message, FilePointerMessage(_rptr))};
+        // ev.emplace<FilePointerMessage>(_rptr);
 
         rm.notify(uid, std::move(ev));
     }

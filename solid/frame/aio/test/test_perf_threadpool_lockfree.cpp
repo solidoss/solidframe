@@ -15,7 +15,7 @@ using namespace std;
 namespace {
 const LoggerT logger("test");
 
-using ThreadPoolT = ThreadPool<Event, size_t>;
+using ThreadPoolT = ThreadPool<Event<128>, size_t>;
 atomic<size_t> received_events{0};
 atomic<size_t> accumulate_value{0};
 
@@ -49,16 +49,16 @@ int test_perf_threadpool_lockfree(int argc, char* argv[])
     auto lambda = [&]() {
         ThreadPoolT wp{
             thread_count, 10000, 0, [](const size_t) {}, [](const size_t) {},
-            [&](Event& _event) {
-                if (_event == generic_event_raise) {
+            [&](EventBase& _event) {
+                if (_event == generic_event<GenericEventE::Wake>) {
                     ++received_events;
-                    accumulate_value += *_event.any().cast<size_t>();
+                    accumulate_value += *_event.cast<size_t>();
                 }
                 // solid_log(logger, Verbose, "job " << _r.value_);
             },
             [](const size_t) {}};
         for (size_t i = 0; i < event_count; ++i) {
-            wp.pushOne(make_event(GenericEvents::Raise, i));
+            wp.pushOne(make_event(GenericEventE::Wake, i));
         }
     };
 

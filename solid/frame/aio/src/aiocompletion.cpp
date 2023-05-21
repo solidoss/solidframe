@@ -53,8 +53,8 @@ CompletionHandler::~CompletionHandler()
 
 bool CompletionHandler::activate(Actor const& _ract)
 {
-    Reactor* preactor = nullptr;
-    if (!isActive() && (preactor = Reactor::safeSpecific()) != nullptr) {
+    impl::Reactor* preactor = nullptr;
+    if (!isActive() && (preactor = impl::Reactor::safeSpecific()) != nullptr) {
         preactor->registerCompletionHandler(*this, _ract);
     }
     return isActive();
@@ -73,8 +73,8 @@ void CompletionHandler::unregister()
 
 void CompletionHandler::deactivate()
 {
-    Reactor* preactor = nullptr;
-    if (isActive() && (preactor = Reactor::safeSpecific()) != nullptr) {
+    impl::Reactor* preactor = nullptr;
+    if (isActive() && (preactor = impl::Reactor::safeSpecific()) != nullptr) {
         // the actor has entered the reactor
         preactor->unregisterCompletionHandler(*this);
         idxreactor = InvalidIndex();

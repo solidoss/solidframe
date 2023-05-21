@@ -31,7 +31,7 @@ using namespace std;
 using namespace solid;
 using namespace std::placeholders;
 
-using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT = frame::Scheduler<frame::aio::Reactor<Event<32>>>;
 using BufferPairT   = pair<const char*, size_t>;
 
 //------------------------------------------------------------------
@@ -82,7 +82,7 @@ public:
     }
 
 private:
-    void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
+    void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent) override;
     void onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd);
 
     void onTimer(frame::aio::ReactorContext& _rctx);
@@ -122,10 +122,10 @@ public:
     ~Connection() {}
 
 protected:
-    void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
+    void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent) override;
     void onStop(frame::Manager& _rm) override
     {
-        _rm.notify(peer_actuid, Event(generic_event_kill));
+        _rm.notify(peer_actuid, Event(generic_event<GenericEventE::Kill>));
     }
 
     static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
@@ -205,7 +205,7 @@ int main(int argc, char* argv[])
                 solid::ErrorConditionT err;
                 solid::frame::ActorIdT actuid;
 
-                actuid = sch.startActor(make_shared<Listener>(svc, sch, std::move(sd)), svc, make_event(GenericEvents::Start), err);
+                actuid = sch.startActor(make_shared<Listener>(svc, sch, std::move(sd)), svc, make_event(GenericEventE::Start), err);
                 solid_log(generic_logger, Info, "Started Listener actor: " << actuid.index << ',' << actuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
@@ -266,12 +266,12 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 //      Listener
 //-----------------------------------------------------------------------------
 
-/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
+/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent)
 {
     solid_log(generic_logger, Info, "event = " << _revent);
-    if (_revent == generic_event_start) {
+    if (_revent == generic_event<GenericEventE::Start>) {
         sock.postAccept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { this->onAccept(_rctx, _rsd); });
-    } else if (_revent == generic_event_kill) {
+    } else if (_revent == generic_event<GenericEventE::Kill>) {
         postStop(_rctx);
     }
 }
@@ -292,8 +292,8 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             _rsd.enableNoDelay();
 
             solid::ErrorConditionT err;
-            frame::ActorIdT        actuid = rsch.startActor(make_shared<Connection>(std::move(_rsd)), rsvc, make_event(GenericEvents::Start), err);
-            rsch.startActor(make_shared<Connection>(actuid), rsvc, make_event(GenericEvents::Start), err);
+            frame::ActorIdT        actuid = rsch.startActor(make_shared<Connection>(std::move(_rsd)), rsvc, make_event(GenericEventE::Start), err);
+            rsch.startActor(make_shared<Connection>(actuid), rsvc, make_event(GenericEventE::Start), err);
 
         } else {
             // e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
@@ -326,18 +326,14 @@ struct ResolvFunc {
 
     void operator()(ResolveData& _rrd, ErrorCodeT const& _rerr)
     {
-        Event ev(make_event(GenericEvents::Message));
-
-        ev.any() = std::move(_rrd);
-
         solid_log(generic_logger, Info, this << " send resolv_message");
-        rm.notify(actuid, std::move(ev));
+        rm.notify(actuid, make_event(GenericEventE::Message, _rrd));
     }
 };
 
 size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
 {
-    _rctx.manager().notify(peer_actuid, make_event(GenericEvents::Raise));
+    _rctx.manager().notify(peer_actuid, make_event(GenericEventE::Wake));
 
     const size_t sz = buf_sending[buf_pop_sending].second;
 
@@ -348,11 +344,11 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
     return sz;
 }
 
-/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
+/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent)
 {
     solid_log(generic_logger, Error, this << " " << _revent);
-    if (generic_event_raise == _revent) {
-        BufferPairT* pbufpair = _revent.any().cast<BufferPairT>();
+    if (generic_event<GenericEventE::Wake> == _revent) {
+        BufferPairT* pbufpair = _revent.cast<BufferPairT>();
 
         if (pbufpair) {
             // new data to send
@@ -382,7 +378,7 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
             buf_ack_send = (buf_ack_send + 1) % BufferCount;
         }
 
-    } else if (generic_event_start == _revent) {
+    } else if (generic_event<GenericEventE::Start> == _revent) {
         if (sock.device()) {
             sock.device().enableNoDelay();
             // the accepted socket
@@ -394,11 +390,11 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
                 ResolvFunc(_rctx.manager(), _rctx.manager().id(*this)), params.connect_addr_str.c_str(),
                 params.connect_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
         }
-    } else if (generic_event_kill == _revent) {
+    } else if (generic_event<GenericEventE::Kill> == _revent) {
         solid_log(generic_logger, Error, this << " postStop");
         postStop(_rctx);
-    } else if (generic_event_message == _revent) {
-        ResolveData* presolvemsg = _revent.any().cast<ResolveData>();
+    } else if (generic_event<GenericEventE::Message> == _revent) {
+        ResolveData* presolvemsg = _revent.cast<ResolveData>();
         if (presolvemsg) {
             if (presolvemsg->empty()) {
                 solid_log(generic_logger, Error, this << " postStop");
@@ -410,7 +406,7 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
             }
         }
 
-        frame::ActorIdT* ppeer_actuid = _revent.any().cast<frame::ActorIdT>();
+        frame::ActorIdT* ppeer_actuid = _revent.cast<frame::ActorIdT>();
         if (ppeer_actuid) {
             // peer connection established
             peer_actuid = *ppeer_actuid;
@@ -427,9 +423,7 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
     if (!_rctx.error()) {
         solid_log(generic_logger, Info, &rthis << " SUCCESS");
 
-        Event ev(make_event(GenericEvents::Message));
-
-        ev.any() = _rctx.manager().id(rthis);
+        auto ev(make_event(GenericEventE::Message, _rctx.manager().id(rthis)));
 
         solid_log(generic_logger, Info, &rthis << " send resolv_message");
         if (_rctx.manager().notify(rthis.peer_actuid, std::move(ev))) {
@@ -456,9 +450,7 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
 
     if (!_rctx.error()) {
 
-        Event ev(make_event(GenericEvents::Raise));
-
-        ev.any().emplace<BufferPairT>(rthis.buf[rthis.buf_crt_recv], _sz);
+        Event ev(make_event(GenericEventE::Wake, BufferPairT(rthis.buf[rthis.buf_crt_recv], _sz)));
 
         _rctx.manager().notify(rthis.peer_actuid, std::move(ev));
 

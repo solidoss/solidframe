@@ -29,8 +29,8 @@ public:
 
     Socket() {}
 
-    ReactorEventsE filterReactorEvents(
-        const ReactorEventsE _evt) const
+    ReactorEventE filterReactorEvents(
+        const ReactorEventE _evt) const
     {
         return _evt;
     }
@@ -40,7 +40,7 @@ public:
         const ssize_t rv = device().recv(_pb, _bl, _can_retry, _rerr);
 #if defined(SOLID_USE_WSAPOLL)
         if (rv < 0 && _can_retry) {
-            modifyReactorRequestEvents(_rctx, ReactorWaitRead);
+            modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
         }
 #endif
         return rv;
@@ -51,7 +51,7 @@ public:
         const ssize_t rv = device().send(_pb, _bl, _can_retry, _rerr);
 #if defined(SOLID_USE_WSAPOLL)
         if (rv < 0 && _can_retry) {
-            modifyReactorRequestEvents(_rctx, ReactorWaitWrite);
+            modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
         }
 #endif
         return rv;
@@ -62,7 +62,7 @@ public:
         const ssize_t rv = device().recv(_pb, _bl, _addr, _can_retry, _rerr);
 #if defined(SOLID_USE_WSAPOLL)
         if (rv < 0 && _can_retry) {
-            modifyReactorRequestEvents(_rctx, ReactorWaitRead);
+            modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
         }
 #endif
         return rv;
@@ -73,7 +73,7 @@ public:
         const ssize_t rv = device().send(_pb, _bl, _rsas, _can_retry, _rerr);
 #if defined(SOLID_USE_WSAPOLL)
         if (rv < 0 && _can_retry) {
-            modifyReactorRequestEvents(_rctx, ReactorWaitWrite);
+            modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
         }
 #endif
         return rv;

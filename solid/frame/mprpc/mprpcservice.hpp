@@ -31,7 +31,7 @@ namespace solid {
 namespace frame {
 
 namespace aio {
-struct ReactorContext;
+class ReactorContext;
 } // namespace aio
 
 namespace mprpc {
@@ -40,13 +40,16 @@ namespace openssl {
 class SocketStub;
 } // namespace openssl
 
-extern const Event pool_event_connect;
-extern const Event pool_event_disconnect;
-extern const Event pool_event_connection_start;
-extern const Event pool_event_connection_activate;
-extern const Event pool_event_connection_stop;
-extern const Event pool_event_pool_disconnect;
-extern const Event pool_event_pool_stop;
+constexpr size_t event_small_size = 32;
+using EventT                      = Event<event_small_size>;
+
+extern const Event<> pool_event_connect;
+extern const Event<> pool_event_disconnect;
+extern const Event<> pool_event_connection_start;
+extern const Event<> pool_event_connection_activate;
+extern const Event<> pool_event_connection_stop;
+extern const Event<> pool_event_pool_disconnect;
+extern const Event<> pool_event_pool_stop;
 
 struct Message;
 class Configuration;
@@ -533,7 +536,7 @@ private:
         std::chrono::milliseconds& _rwait_duration,
         MessageId&                 _rmsg_id,
         MessageBundle*             _pmsg_bundle,
-        Event&                     _revent_context,
+        EventT&                    _revent_context,
         ErrorConditionT&           _rerror);
 
     void onIncomingConnectionStart(ConnectionContext& _rconctx);
@@ -562,7 +565,7 @@ private:
         const size_t     _pool_idx,
         const MessageId& _rmsg_id);
 
-    void forwardResolveMessage(ConnectionPoolId const& _rconpoolid, Event& _revent);
+    void forwardResolveMessage(ConnectionPoolId const& _rconpoolid, EventBase& _revent);
 
     ErrorConditionT doSendMessage(
         const char*               _recipient_url,
@@ -1043,7 +1046,7 @@ ErrorConditionT Service::connectionNotifyRecvSomeRawData(
 inline ErrorConditionT Service::createConnectionPool(const std::string_view& _recipient_url, const size_t _persistent_connection_count)
 {
     RecipientId          recipient_id;
-    PoolOnEventFunctionT fnc([](ConnectionContext& _rctx, Event&&, const ErrorConditionT&) {});
+    PoolOnEventFunctionT fnc([](ConnectionContext& _rctx, EventBase&&, const ErrorConditionT&) {});
     return doCreateConnectionPool(_recipient_url, recipient_id, fnc, _persistent_connection_count);
 }
 //-------------------------------------------------------------------------

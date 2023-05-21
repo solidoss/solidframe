@@ -50,13 +50,13 @@ private:
     }
 
     bool postSendAll(
-        frame::aio::ReactorContext& _rctx, OnSendAllRawF _pf, const char* _pbuf, size_t _bufcp, Event& _revent) override final
+        frame::aio::ReactorContext& _rctx, OnSendAllRawF _pf, const char* _pbuf, size_t _bufcp, EventBase& _revent) override final
     {
         struct Closure {
             OnSendAllRawF pf;
-            Event         event;
+            EventT        event;
 
-            Closure(OnSendAllRawF _pf, Event const& _revent)
+            Closure(OnSendAllRawF _pf, EventBase const& _revent)
                 : pf(_pf)
                 , event(_revent)
             {
@@ -81,13 +81,13 @@ private:
     }
 
     bool postRecvSome(
-        frame::aio::ReactorContext& _rctx, OnRecvSomeRawF _pf, char* _pbuf, size_t _bufcp, Event& _revent) override final
+        frame::aio::ReactorContext& _rctx, OnRecvSomeRawF _pf, char* _pbuf, size_t _bufcp, EventBase& _revent) override final
     {
         struct Closure {
             OnRecvSomeRawF pf;
-            Event          event;
+            EventT         event;
 
-            Closure(OnRecvSomeRawF _pf, Event const& _revent)
+            Closure(OnRecvSomeRawF _pf, EventBase const& _revent)
                 : pf(_pf)
                 , event(_revent)
             {

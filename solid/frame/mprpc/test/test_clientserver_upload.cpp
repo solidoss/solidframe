@@ -33,7 +33,7 @@ using namespace solid;
 
 namespace {
 using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
-using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
 
 LoggerT logger("test");

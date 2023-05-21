@@ -23,7 +23,7 @@ namespace fs = std::filesystem;
 
 namespace {
 
-using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 
 //-----------------------------------------------------------------------------
 //      Parameters

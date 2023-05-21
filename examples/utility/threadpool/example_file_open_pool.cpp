@@ -79,17 +79,17 @@ int main(int argc, char* argv[])
     char name[1024];
     int  filecnt   = atoi(argv[2]);
     int  foldercnt = atoi(argv[3]);
-    sprintf(name, "%s", argv[1]);
+    snprintf(name, 1024, "%s", argv[1]);
     char*      fldname = name + strlen(argv[1]);
     char*      fname   = name + strlen(argv[1]) + 1 + 8;
     FileDeuqeT fdq;
     int        cnt   = 0;
     uint64_t   totsz = 0;
     for (int i = foldercnt; i; --i) {
-        sprintf(fldname, "/%08u", i);
+        snprintf(fldname, 1024 - (fldname - name), "/%08u", i);
         *fname = 0;
         for (int j = filecnt; j; --j) {
-            sprintf(fname, "/%08u.txt", j);
+            snprintf(fname, 1024 - (fname - name), "/%08u.txt", j);
             ++cnt;
             fdq.push_back(FileDevice());
             if (fdq.back().open(name, FileDevice::ReadWriteE)) {

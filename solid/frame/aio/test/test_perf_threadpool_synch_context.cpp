@@ -15,7 +15,7 @@ using namespace std;
 namespace {
 const LoggerT logger("test");
 
-using ThreadPoolT   = ThreadPool<Event, uint32_t>;
+using ThreadPoolT   = ThreadPool<Event<128>, uint32_t>;
 using SynchContextT = ThreadPoolT::SynchronizationContextT;
 
 atomic<size_t> received_events{0};
@@ -52,10 +52,10 @@ int test_perf_threadpool_synch_context(int argc, char* argv[])
         auto        start = std::chrono::steady_clock::now();
         ThreadPoolT wp{
             thread_count, 10000, 0, [](const size_t) {}, [](const size_t) {},
-            [&](Event& _event) {
-                if (_event == generic_event_raise) {
+            [&](EventBase& _event) {
+                if (_event == generic_event<GenericEventE::Wake>) {
                     ++received_events;
-                    accumulate_value += *_event.any().cast<size_t>();
+                    accumulate_value += *_event.cast<size_t>();
                 }
                 // solid_log(logger, Verbose, "job " << _r.value_);
             },
@@ -73,7 +73,7 @@ int test_perf_threadpool_synch_context(int argc, char* argv[])
 
             for (size_t i = 0; i < event_count; ++i) {
                 auto& rsynch_context = synch_contexts[i % context_count];
-                rsynch_context.push(make_event(GenericEvents::Raise, i));
+                rsynch_context.push(make_event(GenericEventE::Wake, i));
             }
         }
         {

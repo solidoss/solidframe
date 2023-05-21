@@ -12,6 +12,7 @@
 
 #include "solid/system/flags.hpp"
 
+#include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aioreactorcontext.hpp"
 
@@ -339,7 +340,6 @@ using RecvAllocateBufferFunctionT               = solid_function_t(RecvBufferPoi
 using CompressFunctionT                         = solid_function_t(size_t(char*, size_t, ErrorConditionT&));
 using UncompressFunctionT                       = solid_function_t(size_t(char*, const char*, size_t, ErrorConditionT&));
 using ExtractRecipientNameFunctionT             = solid_function_t(const char*(const char*, std::string&, std::string&));
-using AioSchedulerT                             = frame::Scheduler<frame::aio::Reactor>;
 using ConnectionEnterActiveCompleteFunctionT    = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
 using ConnectionPostCompleteFunctionT           = solid_function_t(void(ConnectionContext&));
 using ConnectionSendTimeoutSoftFunctionT        = solid_function_t(void(ConnectionContext&));
@@ -347,8 +347,9 @@ using ConnectionEnterPassiveCompleteFunctionT   = solid_function_t(void(Connecti
 using ConnectionSecureHandhakeCompleteFunctionT = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
 using ConnectionSendRawDataCompleteFunctionT    = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
 using ConnectionRecvRawDataCompleteFunctionT    = solid_function_t(void(ConnectionContext&, const char*, size_t&, ErrorConditionT const&));
-using ConnectionOnEventFunctionT                = solid_function_t(void(ConnectionContext&, Event&));
-using PoolOnEventFunctionT                      = solid_function_t(void(ConnectionContext&, Event&&, const ErrorConditionT&));
+using ConnectionOnEventFunctionT                = solid_function_t(void(ConnectionContext&, EventBase&));
+using PoolOnEventFunctionT                      = solid_function_t(void(ConnectionContext&, EventBase&&, const ErrorConditionT&));
+using ActorCreateFunctionT                      = solid_function_t(ActorIdT(aio::ActorPointerT&&, frame::Service&, EventBase&&, ErrorConditionT&));
 
 enum struct ConnectionState {
     Raw,
@@ -373,98 +374,43 @@ struct WriterConfiguration {
 };
 
 class Configuration {
+    friend class Service;
+
     Configuration(Configuration&&)                 = default;
     Configuration& operator=(const Configuration&) = delete;
     Configuration& operator=(Configuration&&)      = default;
+    Configuration()                                = default;
+
+    RelayEngine* prelayengine = nullptr;
 
 public:
-    template <class P>
-    Configuration(
-        AioSchedulerT&      _rsch,
-        std::shared_ptr<P>& _rprotcol_ptr)
-        : pools_count(1024 * 10)
-        , pools_mutex_count(1024)
-        , protocol_ptr(std::static_pointer_cast<Protocol>(_rprotcol_ptr))
-        , pscheduler(&_rsch)
-        , prelayengine(&RelayEngine::instance())
-    {
-        init();
-    }
-
-    template <class P>
-    Configuration(
-        AioSchedulerT&      _rsch,
-        RelayEngine&        _rrelayengine,
-        std::shared_ptr<P>& _rprotcol_ptr)
-        : pools_count(1024 * 10)
-        , pools_mutex_count(1024)
-        , protocol_ptr(std::static_pointer_cast<Protocol>(_rprotcol_ptr))
-        , pscheduler(&_rsch)
-        , prelayengine(&_rrelayengine)
-    {
-        init();
-    }
-
-    Configuration& reset(Configuration&& _ucfg)
-    {
-        *this = std::move(_ucfg);
-        prepare();
-        return *this;
-    }
-
-    void clear(Configuration&& _ucfg)
-    {
-        _ucfg = std::move(*this);
-        Configuration cfg;
-        *this = std::move(cfg);
-    }
-
-    AioSchedulerT& scheduler() const
-    {
-        return *pscheduler;
-    }
-
-    RelayEngine& relayEngine() const
-    {
-        return *prelayengine;
-    }
-
-    bool isServer() const
-    {
-        return server.listener_address_str.size() != 0;
-    }
-
-    bool isClient() const
-    {
-        return !solid_function_empty(client.name_resolve_fnc);
-    }
-
-    bool isServerOnly() const
-    {
-        return isServer() && !isClient();
-    }
-
-    bool isClientOnly() const
-    {
-        return !isServer() && isClient();
-    }
-
-    RecvBufferPointerT allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) const;
-
-    SendBufferPointerT allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const;
-
-    void check() const;
-
     size_t pool_max_active_connection_count;
     size_t pool_max_pending_connection_count;
     size_t pool_max_message_queue_size;
 
-    size_t pools_count;
-    size_t pools_mutex_count;
+    size_t pool_count;
+    size_t pool_mutex_count;
     bool   relay_enabled;
 
     ReaderConfiguration reader;
     WriterConfiguration writer;
+
+    std::chrono::milliseconds          connection_timeout_recv                  = std::chrono::minutes(10);
+    std::chrono::milliseconds          connection_timeout_send_soft             = std::chrono::seconds(10);
+    std::chrono::milliseconds          connection_timeout_send_hard             = std::chrono::minutes(5);
+    uint8_t                            connection_recv_buffer_start_capacity_kb = 0;
+    uint8_t                            connection_recv_buffer_max_capacity_kb   = 64;
+    uint8_t                            connection_send_buffer_start_capacity_kb = 0;
+    uint8_t                            connection_send_buffer_max_capacity_kb   = 64;
+    uint16_t                           connection_relay_buffer_count            = 8;
+    ExtractRecipientNameFunctionT      extract_recipient_name_fnc;
+    ConnectionStopFunctionT            connection_stop_fnc;
+    ConnectionOnEventFunctionT         connection_on_event_fnc;
+    ConnectionSendTimeoutSoftFunctionT connection_on_send_timeout_soft_ = [](ConnectionContext&) {};
+    RecvAllocateBufferFunctionT        connection_recv_buffer_allocate_fnc;
+    SendAllocateBufferFunctionT        connection_send_buffer_allocate_fnc;
+    Protocol::PointerT                 protocol_ptr;
+    ActorCreateFunctionT               actor_create_fnc;
 
     struct Server {
         using ConnectionCreateSocketFunctionT    = solid_function_t(SocketStubPtrT(Configuration const&, frame::aio::ActorProxy const&, SocketDevice&&, char*));
@@ -542,21 +488,81 @@ public:
 
     } client;
 
-    std::chrono::milliseconds          connection_timeout_recv                  = std::chrono::minutes(10);
-    std::chrono::milliseconds          connection_timeout_send_soft             = std::chrono::seconds(10);
-    std::chrono::milliseconds          connection_timeout_send_hard             = std::chrono::minutes(5);
-    uint8_t                            connection_recv_buffer_start_capacity_kb = 0;
-    uint8_t                            connection_recv_buffer_max_capacity_kb   = 64;
-    uint8_t                            connection_send_buffer_start_capacity_kb = 0;
-    uint8_t                            connection_send_buffer_max_capacity_kb   = 64;
-    uint16_t                           connection_relay_buffer_count            = 8;
-    ExtractRecipientNameFunctionT      extract_recipient_name_fnc;
-    ConnectionStopFunctionT            connection_stop_fnc;
-    ConnectionOnEventFunctionT         connection_on_event_fnc;
-    ConnectionSendTimeoutSoftFunctionT connection_on_send_timeout_soft_ = [](ConnectionContext&) {};
-    RecvAllocateBufferFunctionT        connection_recv_buffer_allocate_fnc;
-    SendAllocateBufferFunctionT        connection_send_buffer_allocate_fnc;
-    Protocol::PointerT                 protocol_ptr;
+    template <class Sched, class Proto>
+    Configuration(
+        Sched&                  _rsch,
+        std::shared_ptr<Proto>& _rprotcol_ptr)
+        : pool_count(1024 * 10)
+        , pool_mutex_count(1024)
+        , protocol_ptr(std::static_pointer_cast<Protocol>(_rprotcol_ptr))
+        , prelayengine(&RelayEngine::instance())
+    {
+        actor_create_fnc = [&_rsch](aio::ActorPointerT&& _actor_ptr, frame::Service& _rsvc, EventBase&& _event, ErrorConditionT& _rerror) {
+            return _rsch.startActor(std::move(_actor_ptr), _rsvc, std::move(_event), _rerror);
+        };
+        init();
+    }
+
+    template <class Sched, class Proto>
+    Configuration(
+        Sched&                  _rsch,
+        RelayEngine&            _rrelayengine,
+        std::shared_ptr<Proto>& _rprotcol_ptr)
+        : pool_count(1024 * 10)
+        , pool_mutex_count(1024)
+        , protocol_ptr(std::static_pointer_cast<Protocol>(_rprotcol_ptr))
+        , prelayengine(&_rrelayengine)
+    {
+        actor_create_fnc = [&_rsch](aio::ActorPointerT&& _actor_ptr, frame::Service& _rsvc, EventBase&& _event, ErrorConditionT& _rerror) {
+            return _rsch.startActor(std::move(_actor_ptr), _rsvc, std::move(_event), _rerror);
+        };
+        init();
+    }
+
+    Configuration& reset(Configuration&& _ucfg)
+    {
+        *this = std::move(_ucfg);
+        prepare();
+        return *this;
+    }
+
+    void clear(Configuration&& _ucfg)
+    {
+        _ucfg = std::move(*this);
+        Configuration cfg;
+        *this = std::move(cfg);
+    }
+
+    RelayEngine& relayEngine() const
+    {
+        return *prelayengine;
+    }
+
+    bool isServer() const
+    {
+        return server.listener_address_str.size() != 0;
+    }
+
+    bool isClient() const
+    {
+        return !solid_function_empty(client.name_resolve_fnc);
+    }
+
+    bool isServerOnly() const
+    {
+        return isServer() && !isClient();
+    }
+
+    bool isClientOnly() const
+    {
+        return !isServer() && isClient();
+    }
+
+    RecvBufferPointerT allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) const;
+
+    SendBufferPointerT allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const;
+
+    void check() const;
 
     Protocol& protocol()
     {
@@ -586,19 +592,6 @@ private:
     void init();
     void prepare();
     void createListenerDevice(SocketDevice& _rsd) const;
-
-private:
-    AioSchedulerT* pscheduler;
-    RelayEngine*   prelayengine;
-
-private:
-    friend class Service;
-    // friend class MessageWriter;
-    Configuration()
-        : pscheduler(nullptr)
-        , prelayengine(nullptr)
-    {
-    }
 };
 
 class InternetResolverF {

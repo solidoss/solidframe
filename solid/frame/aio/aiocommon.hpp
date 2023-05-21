@@ -16,30 +16,30 @@ namespace solid {
 namespace frame {
 namespace aio {
 
-enum ReactorEventsE {
-    ReactorEventNone       = 0,
-    ReactorEventRecv       = 1,
-    ReactorEventSend       = 2,
-    ReactorEventRecvSend   = ReactorEventRecv | ReactorEventSend,
-    ReactorEventSendRecv   = 4,
-    ReactorEventError      = 8,
-    ReactorEventHangup     = 16,
-    ReactorEventOOB        = 32, // receive Out Of Band Data
-    ReactorEventOOBSend    = ReactorEventOOB | ReactorEventSend,
-    ReactorEventRecvHangup = 64,
-    ReactorEventClear      = 128,
-    ReactorEventInit       = 256,
-    ReactorEventTimer      = 512,
+enum struct ReactorEventE : uint32_t {
+    None       = 0,
+    Recv       = 1,
+    Send       = 2,
+    RecvSend   = Recv | Send,
+    SendRecv   = 4,
+    Error      = 8,
+    Hangup     = 16,
+    OOB        = 32, // receive Out Of Band Data
+    OOBSend    = OOB | Send,
+    RecvHangup = 64,
+    Clear      = 128,
+    Init       = 256,
+    Timer      = 512,
 };
 
-enum ReactorWaitRequestsE {
-    ReactorWaitNone = 0,
-    ReactorWaitRead,
-    ReactorWaitWrite,
-    ReactorWaitReadOrWrite,
-    ReactorWaitUser,
+enum ReactorWaitRequestE {
+    None = 0,
+    Read,
+    Write,
+    ReadOrWrite,
+    User,
     // Add above!
-    ReactorWaitError
+    Error
 };
 
 } // namespace aio

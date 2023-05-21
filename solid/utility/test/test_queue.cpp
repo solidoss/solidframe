@@ -8,13 +8,6 @@
 using namespace solid;
 using namespace std;
 
-struct Node {
-    using Storage = typename std::aligned_storage<sizeof(Event), alignof(Event)>::type;
-    // unsigned char data[sizeof(Event)];
-    Storage data[10];
-    void*   pv_;
-};
-
 using IndexT  = uint64_t;
 using UniqueT = uint32_t;
 
@@ -59,12 +52,18 @@ struct UniqueId {
     }
 };
 
-typedef solid_function_t(void(size_t&, Event&&)) EventFunctionT;
+typedef solid_function_t(void(size_t&, EventBase&&)) EventFunctionT;
 
 struct ExecStub {
+    using EventT = Event<256>;
+    UniqueId       actuid;
+    UniqueId       chnuid;
+    EventFunctionT exefnc;
+    EventT         event;
+
     template <class F>
     ExecStub(
-        UniqueId const& _ruid, F _f, Event&& _uevent = Event())
+        UniqueId const& _ruid, F _f, EventT&& _uevent = EventT())
         : actuid(_ruid)
         , exefnc(_f)
         , event(std::move(_uevent))
@@ -73,7 +72,7 @@ struct ExecStub {
 
     template <class F>
     ExecStub(
-        UniqueId const& _ruid, F _f, UniqueId const& _rchnuid, Event&& _uevent = Event())
+        UniqueId const& _ruid, F _f, UniqueId const& _rchnuid, EventT&& _uevent = EventT())
         : actuid(_ruid)
         , chnuid(_rchnuid)
         , exefnc(std::move(_f))
@@ -82,7 +81,7 @@ struct ExecStub {
     }
 
     ExecStub(
-        UniqueId const& _ruid, Event&& _uevent = Event())
+        UniqueId const& _ruid, EventT&& _uevent = EventT())
         : actuid(_ruid)
         , event(std::move(_uevent))
     {
@@ -98,11 +97,6 @@ struct ExecStub {
     {
         std::swap(exefnc, _res.exefnc);
     }
-
-    UniqueId       actuid;
-    UniqueId       chnuid;
-    EventFunctionT exefnc;
-    Event          event;
 };
 
 int test_queue(int args, char* argv[])
@@ -114,28 +108,19 @@ int test_queue(int args, char* argv[])
     // using EventQueueT = queue<Event>;
     EventQueueT eventq;
 
-    // void * pv;
-    // unsigned char buf[sizeof(Event)];
-
-    auto pn = new Node;
-
-    cout << alignof(Event) << endl;
-    cout << pn << endl;
-    cout << static_cast<void*>(&pn->data[0]) << endl;
-    cout << std::launder(reinterpret_cast<Event*>(&pn->data[0])) << endl;
-
-    new (std::launder(reinterpret_cast<Event*>(&pn->data[0]))) Event(make_event(GenericEvents::Default));
-
-    // new (std::launder(reinterpret_cast<Event*>(&pn->data[0]))) Event(make_event(GenericEvents::Default));
-
     size_t v = 0;
     for (int i = 0; i < 100; ++i) {
         eventq.push(ExecStub(
-            UniqueId(i, i), [](size_t& _sz, Event&& _evt) { ++_sz; }, make_event(GenericEvents::Default)));
+            UniqueId(i, i),
+            [](size_t& _sz, EventBase&& _evt) {
+                ++_sz;
+                cout << _sz << " eventdata: " << *_evt.cast<std::string>() << endl;
+            },
+            make_event(GenericEventE::Message, to_string(i))));
     }
 
     while (!eventq.empty()) {
-        eventq.front().exefnc(v, Event(eventq.front().event));
+        eventq.front().exefnc(v, Event<128>(eventq.front().event));
         eventq.pop();
     }
     cout << "v = " << v << endl;

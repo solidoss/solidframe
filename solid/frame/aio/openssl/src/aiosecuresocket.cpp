@@ -496,40 +496,40 @@ ErrorCodeT Socket::renegotiate(bool& /*_can_retry*/)
     return ssl_category.makeError(err_code);
 }
 
-ReactorEventsE Socket::filterReactorEvents(
-    const ReactorEventsE _evt) const
+ReactorEventE Socket::filterReactorEvents(
+    const ReactorEventE _evt) const
 {
     switch (_evt) {
-    case ReactorEventRecv:
+    case ReactorEventE::Recv:
         // solid_log(logger, Info, "EventRecv "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
         if (want_read_on_send && want_read_on_recv) {
-            return ReactorEventSendRecv;
+            return ReactorEventE::SendRecv;
         } else if (want_read_on_send) {
-            return ReactorEventSend;
+            return ReactorEventE::Send;
         } else if (want_read_on_recv) {
-            return ReactorEventRecv;
+            return ReactorEventE::Recv;
         }
         break;
-    case ReactorEventSend:
+    case ReactorEventE::Send:
         // solid_log(logger, Info, "EventSend "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
         if (want_write_on_send && want_write_on_recv) {
-            return ReactorEventRecvSend;
+            return ReactorEventE::RecvSend;
         } else if (want_write_on_recv) {
-            return ReactorEventRecv;
+            return ReactorEventE::Recv;
         } else if (want_write_on_send) {
-            return ReactorEventSend;
+            return ReactorEventE::Send;
         }
         break;
-    case ReactorEventRecvSend:
+    case ReactorEventE::RecvSend:
         // solid_log(logger, Info, "EventRecvSend "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
         if (want_read_on_send && (want_read_on_recv || want_write_on_recv)) {
-            return ReactorEventSendRecv;
+            return ReactorEventE::SendRecv;
         } else if ((want_write_on_send || want_write_on_send) && (want_write_on_recv || want_read_on_recv)) {
             return _evt;
         } else if (want_write_on_send || want_read_on_send) {
-            return ReactorEventSend;
+            return ReactorEventE::Send;
         } else if (want_read_on_recv || want_write_on_recv) {
-            return ReactorEventRecv;
+            return ReactorEventE::Recv;
         }
         break;
     default:
@@ -567,14 +567,14 @@ ssize_t Socket::recv(ReactorContext& _rctx, char* _pb, size_t _bl, bool& _can_re
         _can_retry        = true;
         want_read_on_recv = true;
 #if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitRead);
+        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
 #endif
         return -1;
     case SSL_ERROR_WANT_WRITE:
         _can_retry         = true;
         want_write_on_recv = true;
 #if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitWrite);
+        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
 #endif
         return -1;
     case SSL_ERROR_SYSCALL:
@@ -628,14 +628,14 @@ ssize_t Socket::send(ReactorContext& _rctx, const char* _pb, size_t _bl, bool& _
         _can_retry        = true;
         want_read_on_send = true;
 #if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitRead);
+        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
 #endif
         return -1;
     case SSL_ERROR_WANT_WRITE:
         _can_retry         = true;
         want_write_on_send = true;
 #if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitWrite);
+        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
 #endif
         return -1;
     case SSL_ERROR_SYSCALL:
@@ -688,14 +688,14 @@ bool Socket::secureAccept(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& _
         _can_retry        = true;
         want_read_on_recv = true;
 #if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitRead);
+        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
 #endif
         return false;
     case SSL_ERROR_WANT_WRITE:
         _can_retry         = true;
         want_write_on_recv = true;
 #if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitWrite);
+        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
 #endif
         return false;
     case SSL_ERROR_SYSCALL:
@@ -750,14 +750,14 @@ bool Socket::secureConnect(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& 
         _can_retry        = true;
         want_read_on_send = true;
 #if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitRead);
+        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
 #endif
         return false;
     case SSL_ERROR_WANT_WRITE:
         _can_retry         = true;
         want_write_on_send = true;
 #if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitWrite);
+        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
 #endif
         return false;
     case SSL_ERROR_SYSCALL:
@@ -810,14 +810,14 @@ bool Socket::secureShutdown(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT&
         _can_retry        = true;
         want_read_on_send = true;
 #if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitRead);
+        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
 #endif
         return false;
     case SSL_ERROR_WANT_WRITE:
         _can_retry         = true;
         want_write_on_send = true;
 #if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitWrite);
+        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
 #endif
         return false;
     case SSL_ERROR_SYSCALL:

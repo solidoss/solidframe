@@ -23,8 +23,8 @@ struct ConnectionContext;
 
 class SocketStub {
 public:
-    typedef void (*OnSendAllRawF)(frame::aio::ReactorContext&, Event&);
-    typedef void (*OnRecvSomeRawF)(frame::aio::ReactorContext&, const size_t, Event&);
+    typedef void (*OnSendAllRawF)(frame::aio::ReactorContext&, EventBase&);
+    typedef void (*OnRecvSomeRawF)(frame::aio::ReactorContext&, const size_t, EventBase&);
     typedef void (*OnConnectF)(frame::aio::ReactorContext&);
     typedef void (*OnRecvF)(frame::aio::ReactorContext&, size_t);
     typedef void (*OnSendF)(frame::aio::ReactorContext&);
@@ -49,7 +49,7 @@ public:
     virtual SocketDevice&       device()       = 0;
 
     virtual bool postSendAll(
-        frame::aio::ReactorContext& _rctx, OnSendAllRawF _pf, const char* _pbuf, size_t _bufcp, Event& _revent)
+        frame::aio::ReactorContext& _rctx, OnSendAllRawF _pf, const char* _pbuf, size_t _bufcp, EventBase& _revent)
         = 0;
 
     virtual bool postRecvSome(
@@ -57,7 +57,7 @@ public:
         = 0;
 
     virtual bool postRecvSome(
-        frame::aio::ReactorContext& _rctx, OnRecvSomeRawF _pf, char* _pbuf, size_t _bufcp, Event& _revent)
+        frame::aio::ReactorContext& _rctx, OnRecvSomeRawF _pf, char* _pbuf, size_t _bufcp, EventBase& _revent)
         = 0;
 
     virtual bool hasValidSocket() const = 0;

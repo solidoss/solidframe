@@ -84,7 +84,7 @@ void empty_connection_stop(ConnectionContext&) {}
 
 void empty_connection_start(ConnectionContext&) {}
 
-void empty_connection_on_event(ConnectionContext&, Event&) {}
+void empty_connection_on_event(ConnectionContext&, EventBase&) {}
 
 size_t default_compress(char*, size_t, ErrorConditionT&)
 {
@@ -372,8 +372,8 @@ void Configuration::prepare()
     if (!client.hasSecureConfiguration()) {
         client.connection_start_secure = false;
     }
-    if (pools_count < pools_mutex_count) {
-        pools_mutex_count = pools_count;
+    if (pool_count < pool_mutex_count) {
+        pool_mutex_count = pool_count;
     }
 }
 

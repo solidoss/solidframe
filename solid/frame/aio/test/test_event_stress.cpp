@@ -33,8 +33,8 @@
 using namespace std;
 using namespace solid;
 
-using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
-using SchedulerT    = frame::Scheduler<frame::Reactor>;
+using AioSchedulerT = frame::Scheduler<frame::aio::ReactorT>;
+using SchedulerT    = frame::Scheduler<frame::ReactorT>;
 using AtomicSizeT   = atomic<size_t>;
 
 namespace {
@@ -59,7 +59,7 @@ public:
     {
     }
     ~Connection() override {}
-    void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
+    void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent) override;
 
 private:
     const frame::ActorIdT acc_id_;
@@ -72,7 +72,7 @@ private:
 
 class Device final : public frame::Actor {
 public:
-    void onEvent(frame::ReactorContext& _rctx, Event&& _revent) override;
+    void onEvent(frame::ReactorContext& _rctx, EventBase&& _revent) override;
 
 private:
     size_t value_ = 0;
@@ -80,19 +80,19 @@ private:
 
 class Account final : public frame::Actor {
 public:
-    void onEvent(frame::ReactorContext& _rctx, Event&& _revent) override;
+    void onEvent(frame::ReactorContext& _rctx, EventBase&& _revent) override;
 
 private:
     vector<frame::ActorIdT> device_vec_;
 };
 
-void Account::onEvent(frame::ReactorContext& _rctx, Event&& _revent)
+void Account::onEvent(frame::ReactorContext& _rctx, EventBase&& _revent)
 {
     solid_log(logger, Info, "account " << this << " event: " << _revent);
 
-    if (_revent == generic_event_start) {
-    } else if (_revent == generic_event_resume) {
-        CreateTupleT* pt = _revent.any().cast<CreateTupleT>();
+    if (_revent == generic_event<GenericEventE::Start>) {
+    } else if (_revent == generic_event<GenericEventE::Resume>) {
+        CreateTupleT* pt = _revent.cast<CreateTupleT>();
         solid_check(pt != nullptr);
         SchedulerT&      device_scheduler     = std::get<0>(*pt);
         frame::ServiceT& device_service       = std::get<1>(*pt);
@@ -102,33 +102,33 @@ void Account::onEvent(frame::ReactorContext& _rctx, Event&& _revent)
         solid_log(logger, Info, "Create " << account_device_count << " devices");
 
         for (size_t i = 0; i < account_device_count; ++i) {
-            device_vec_.emplace_back(device_scheduler.startActor(make_shared<Device>(), device_service, make_event(GenericEvents::Start), err));
+            device_vec_.emplace_back(device_scheduler.startActor(make_shared<Device>(), device_service, make_event(GenericEventE::Start), err));
         }
-    } else if (generic_event_kill == _revent) {
+    } else if (generic_event<GenericEventE::Kill> == _revent) {
         solid_log(generic_logger, Error, this << " postStop");
         postStop(_rctx);
-    } else if (generic_event_message == _revent) {
-        RequestTupleT* pt = _revent.any().cast<RequestTupleT>();
+    } else if (generic_event<GenericEventE::Message> == _revent) {
+        RequestTupleT* pt = _revent.cast<RequestTupleT>();
         solid_check(pt != nullptr);
         frame::ActorIdT con_id    = std::get<0>(*pt);
         size_t          device_id = std::get<1>(*pt);
         solid_log(logger, Verbose, "actor " << this << " con_id = " << con_id << " device: " << device_id);
-        _rctx.manager().notify(device_vec_[device_id % device_vec_.size()], make_event(GenericEvents::Message, RequestTupleT(*pt)));
+        _rctx.manager().notify(device_vec_[device_id % device_vec_.size()], make_event(GenericEventE::Message, RequestTupleT(*pt)));
     }
 }
 
-void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
+void Connection::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent)
 {
     const frame::ActorIdT my_id = _rctx.service().id(*this);
     solid_log(logger, Info, "connection " << this << " " << my_id << " event: " << _revent);
 
-    if (_revent == generic_event_resume) {
-        _rctx.manager().notify(acc_id_, make_event(GenericEvents::Message, RequestTupleT(make_tuple(my_id, device_id_))));
+    if (_revent == generic_event<GenericEventE::Resume>) {
+        _rctx.manager().notify(acc_id_, make_event(GenericEventE::Message, RequestTupleT(make_tuple(my_id, device_id_))));
         ++device_id_;
-    } else if (generic_event_kill == _revent) {
+    } else if (generic_event<GenericEventE::Kill> == _revent) {
         solid_log(generic_logger, Error, this << "ignore kill event");
-    } else if (generic_event_message == _revent) {
-        ResponseTupleT* pt = _revent.any().cast<ResponseTupleT>();
+    } else if (generic_event<GenericEventE::Message> == _revent) {
+        ResponseTupleT* pt = _revent.cast<ResponseTupleT>();
         solid_check(pt != nullptr);
         size_t value = std::get<0>(*pt);
         value_ += value;
@@ -137,7 +137,7 @@ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 
         --repeat_count_;
         if (repeat_count_ != 0) {
-            _rctx.manager().notify(acc_id_, make_event(GenericEvents::Message, RequestTupleT(make_tuple(my_id, device_id_))));
+            _rctx.manager().notify(acc_id_, make_event(GenericEventE::Message, RequestTupleT(make_tuple(my_id, device_id_))));
             ++device_id_;
         } else {
             postStop(_rctx);
@@ -148,19 +148,19 @@ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
     }
 }
 
-void Device::onEvent(frame::ReactorContext& _rctx, Event&& _revent)
+void Device::onEvent(frame::ReactorContext& _rctx, EventBase&& _revent)
 {
     solid_log(logger, Info, "device " << this << " event: " << _revent);
 
-    if (generic_event_kill == _revent) {
+    if (generic_event<GenericEventE::Kill> == _revent) {
         solid_log(generic_logger, Error, this << " postStop");
         postStop(_rctx);
-    } else if (generic_event_message == _revent) {
-        RequestTupleT* pt = _revent.any().cast<RequestTupleT>();
+    } else if (generic_event<GenericEventE::Message> == _revent) {
+        RequestTupleT* pt = _revent.cast<RequestTupleT>();
         solid_check(pt != nullptr);
         frame::ActorIdT con_id = std::get<0>(*pt);
         solid_log(logger, Verbose, "device " << this << " con_id = " << con_id);
-        _rctx.manager().notify(con_id, make_event(GenericEvents::Message, ResponseTupleT(value_)));
+        _rctx.manager().notify(con_id, make_event(GenericEventE::Message, ResponseTupleT(value_)));
         ++value_;
     }
 }
@@ -191,7 +191,7 @@ int test_event_stress(int argc, char* argv[])
         account_device_count = make_number(argv[4]);
     }
 
-    solid::log_start(std::cerr, {"test:EWX"});
+    solid::log_start(std::cerr, {".*:EWX"});
 
     auto lambda = [&]() {
         ErrorConditionT err;
@@ -210,16 +210,16 @@ int test_event_stress(int argc, char* argv[])
         device_scheduler.start(1);
 
         for (size_t i = 0; i < account_count; ++i) {
-            const auto acc_id = account_scheduler.startActor(make_shared<Account>(), account_service, make_event(GenericEvents::Start), err);
+            const auto acc_id = account_scheduler.startActor(make_shared<Account>(), account_service, make_event(GenericEventE::Start), err);
             for (size_t j = 0; j < account_connection_count; ++j) {
                 ++connection_count;
-                connection_scheduler.startActor(make_shared<Connection>(acc_id, repeat_count, j, connection_count, prom), connection_service, make_event(GenericEvents::Start), err);
+                connection_scheduler.startActor(make_shared<Connection>(acc_id, repeat_count, j, connection_count, prom), connection_service, make_event(GenericEventE::Start), err);
             }
         }
 
-        account_service.notifyAll(make_event(GenericEvents::Resume, CreateTupleT(make_tuple(std::ref(device_scheduler), std::ref(device_service), account_device_count))));
+        account_service.notifyAll(make_event(GenericEventE::Resume, CreateTupleT(make_tuple(std::ref(device_scheduler), std::ref(device_service), account_device_count))));
 
-        connection_service.notifyAll(make_event(GenericEvents::Resume));
+        connection_service.notifyAll(make_event(GenericEventE::Resume));
 
         auto fut = prom.get_future();
         solid_check(fut.wait_for(chrono::seconds(wait_seconds)) == future_status::ready);

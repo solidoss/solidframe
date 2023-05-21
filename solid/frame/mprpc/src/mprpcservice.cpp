@@ -89,11 +89,11 @@ const LoggerT& service_logger()
 using NameMapT      = std::unordered_map<const char*, ConnectionPoolId, CStringHash, CStringEqual>;
 using ActorIdQueueT = Queue<ActorIdT>;
 
-/*extern*/ const Event pool_event_connection_start    = make_event(pool_event_category, PoolEvents::ConnectionStart);
-/*extern*/ const Event pool_event_connection_activate = make_event(pool_event_category, PoolEvents::ConnectionActivate);
-/*extern*/ const Event pool_event_connection_stop     = make_event(pool_event_category, PoolEvents::ConnectionStop);
-/*extern*/ const Event pool_event_pool_disconnect     = make_event(pool_event_category, PoolEvents::PoolDisconnect);
-/*extern*/ const Event pool_event_pool_stop           = make_event(pool_event_category, PoolEvents::PoolStop);
+/*extern*/ const Event<> pool_event_connection_start    = make_event(pool_event_category, PoolEvents::ConnectionStart);
+/*extern*/ const Event<> pool_event_connection_activate = make_event(pool_event_category, PoolEvents::ConnectionActivate);
+/*extern*/ const Event<> pool_event_connection_stop     = make_event(pool_event_category, PoolEvents::ConnectionStop);
+/*extern*/ const Event<> pool_event_pool_disconnect     = make_event(pool_event_category, PoolEvents::PoolDisconnect);
+/*extern*/ const Event<> pool_event_pool_stop           = make_event(pool_event_category, PoolEvents::PoolStop);
 
 enum struct MessageInnerLink {
     Order = 0,
@@ -678,7 +678,7 @@ struct Service::Data {
         std::chrono::milliseconds& _rwait_duration,
         MessageId&                 _rmsg_id,
         MessageBundle*             _pmsg_bundle,
-        Event&                     _revent_context,
+        EventT&                    _revent_context,
         ErrorConditionT&           _rerror);
 
     bool doMainConnectionStoppingNotLast(
@@ -687,7 +687,7 @@ struct Service::Data {
         std::chrono::milliseconds& _rwait_duration,
         MessageId& /*_rmsg_id*/,
         MessageBundle* /*_pmsg_bundle*/,
-        Event&           _revent_context,
+        EventT&          _revent_context,
         ErrorConditionT& _rerror);
 
     bool doMainConnectionStoppingCleanOneShot(
@@ -695,7 +695,7 @@ struct Service::Data {
         std::chrono::milliseconds& _rwait_duration,
         MessageId&                 _rmsg_id,
         MessageBundle*             _rmsg_bundle,
-        Event&                     _revent_context,
+        EventT&                    _revent_context,
         ErrorConditionT&           _rerror);
 
     bool doMainConnectionStoppingCleanAll(
@@ -703,7 +703,7 @@ struct Service::Data {
         std::chrono::milliseconds& _rwait_duration,
         MessageId&                 _rmsg_id,
         MessageBundle*             _rmsg_bundle,
-        Event&                     _revent_context,
+        EventT&                    _revent_context,
         ErrorConditionT&           _rerror);
 
     bool doMainConnectionStoppingPrepareCleanOneShot(
@@ -712,7 +712,7 @@ struct Service::Data {
         std::chrono::milliseconds& /*_rwait_duration*/,
         MessageId& /*_rmsg_id*/,
         MessageBundle* /*_rmsg_bundle*/,
-        Event& _revent_context,
+        EventT& _revent_context,
         ErrorConditionT& /*_rerror*/);
 
     bool doMainConnectionStoppingPrepareCleanAll(
@@ -720,7 +720,7 @@ struct Service::Data {
         std::chrono::milliseconds& /*_rwait_duration*/,
         MessageId& /*_rmsg_id*/,
         MessageBundle* /*_rmsg_bundle*/,
-        Event&           _revent_context,
+        EventT&          _revent_context,
         ErrorConditionT& _rerror);
 
     bool doMainConnectionRestarting(
@@ -729,7 +729,7 @@ struct Service::Data {
         std::chrono::milliseconds& /*_rwait_duration*/,
         MessageId& /*_rmsg_id*/,
         MessageBundle* /*_rmsg_bundle*/,
-        Event&           _revent_context,
+        EventT&          _revent_context,
         ErrorConditionT& _rerror);
     void doFetchResendableMessagesFromConnection(
         Service&    _rsvc,
@@ -826,17 +826,17 @@ void Service::doFinalizeStart(ServiceStartStatus& _status, Configuration&& _ucfg
 
     pimpl_ = std::make_shared<Data>(*this, std::move(_ucfg));
 
-    if (configuration().pools_mutex_count > pimpl_->mutex_count_) {
+    if (configuration().pool_mutex_count > pimpl_->mutex_count_) {
         delete[] pimpl_->pmutexes_;
-        pimpl_->pmutexes_    = new std::mutex[configuration().pools_mutex_count];
-        pimpl_->mutex_count_ = configuration().pools_mutex_count;
+        pimpl_->pmutexes_    = new std::mutex[configuration().pool_mutex_count];
+        pimpl_->mutex_count_ = configuration().pool_mutex_count;
     }
 
-    pimpl_->pool_dq_.resize(configuration().pools_count);
+    pimpl_->pool_dq_.resize(configuration().pool_count);
 
     pimpl_->pool_free_list_.clear();
 
-    for (size_t i = 0; i < configuration().pools_count; ++i) {
+    for (size_t i = 0; i < configuration().pool_count; ++i) {
         pimpl_->pool_free_list_.pushBack(i);
     }
 
@@ -848,7 +848,7 @@ void Service::doFinalizeStart(ServiceStartStatus& _status, Configuration&& _ucfg
         _lock.unlock(); // temporary unlock the mutex so we can create the listener Actor
 
         ErrorConditionT error;
-        ActorIdT        conuid = _ucfg.scheduler().startActor(make_shared<Listener>(_usd), *this, make_event(GenericEvents::Start), error);
+        ActorIdT        conuid = _ucfg.actor_create_fnc(make_shared<Listener>(_usd), *this, make_event(GenericEventE::Start), error);
         (void)conuid;
 
         _lock.lock();
@@ -876,7 +876,7 @@ void Service::doFinalizeStart(ServiceStartStatus& _status, std::unique_lock<std:
         _lock.unlock();
 
         ErrorConditionT error;
-        ActorIdT        conuid = configuration().scheduler().startActor(make_shared<Listener>(sd), *this, make_event(GenericEvents::Start), error);
+        ActorIdT        conuid = configuration().actor_create_fnc(make_shared<Listener>(sd), *this, make_event(GenericEventE::Start), error);
         (void)conuid;
 
         _lock.lock();
@@ -893,12 +893,12 @@ struct OnRelsolveF {
 
     Manager& rm;
     ActorIdT actuid;
-    Event    event;
+    EventT   event;
 
     OnRelsolveF(
-        Manager&        _rm,
-        const ActorIdT& _ractuid,
-        const Event&    _revent)
+        Manager&         _rm,
+        const ActorIdT&  _ractuid,
+        const EventBase& _revent)
         : rm(_rm)
         , actuid(_ractuid)
         , event(_revent)
@@ -908,7 +908,7 @@ struct OnRelsolveF {
     void operator()(AddressVectorT&& _raddrvec)
     {
         solid_log(logger, Info, "OnResolveF(addrvec of size " << _raddrvec.size() << ")");
-        event.any().emplace<ResolveMessage>(std::move(_raddrvec));
+        event.emplace<ResolveMessage>(std::move(_raddrvec));
         rm.notify(actuid, std::move(event));
     }
 };
@@ -1951,7 +1951,7 @@ bool Service::closeConnection(RecipientId const& _rrecipient_id)
 
     return manager().notify(
         _rrecipient_id.connectionId(),
-        make_event(GenericEvents::Kill));
+        make_event(GenericEventE::Kill));
 }
 //-----------------------------------------------------------------------------
 bool Service::connectionStopping(
@@ -1960,7 +1960,7 @@ bool Service::connectionStopping(
     std::chrono::milliseconds& _rwait_duration,
     MessageId&                 _rmsg_id,
     MessageBundle*             _pmsg_bundle,
-    Event&                     _revent_context,
+    EventT&                    _revent_context,
     ErrorConditionT&           _rerror)
 {
     solid_log(logger, Verbose, this);
@@ -2029,7 +2029,7 @@ bool Service::Data::Data::doNonMainConnectionStopping(
     std::chrono::milliseconds& /*_rwait_duration*/,
     MessageId& /*_rmsg_id*/,
     MessageBundle* _rmsg_bundle,
-    Event& /*_revent_context*/,
+    EventT& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
 )
 {
@@ -2074,7 +2074,7 @@ bool Service::Data::doMainConnectionStoppingNotLast(
     std::chrono::milliseconds& _rseconds_to_wait,
     MessageId& /*_rmsg_id*/,
     MessageBundle* /*_pmsg_bundle*/,
-    Event& /*_revent_context*/,
+    EventT& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
 )
 {
@@ -2102,7 +2102,7 @@ bool Service::Data::doMainConnectionStoppingCleanOneShot(
     std::chrono::milliseconds& _rwait_duration,
     MessageId&                 _rmsg_id,
     MessageBundle*             _pmsg_bundle,
-    Event&                     _revent_context,
+    EventT&                    _revent_context,
     ErrorConditionT& /*_rerror*/
 )
 {
@@ -2111,7 +2111,7 @@ bool Service::Data::doMainConnectionStoppingCleanOneShot(
 
     solid_log(logger, Info, this << ' ' << &_rcon << " pending = " << rpool.pending_connection_count_ << " active = " << rpool.active_connection_count_);
 
-    size_t*      pmsgidx   = _revent_context.any().cast<size_t>();
+    size_t*      pmsgidx   = _revent_context.cast<size_t>();
     const size_t crtmsgidx = *pmsgidx;
 
     if (crtmsgidx != InvalidIndex()) {
@@ -2160,7 +2160,7 @@ bool Service::Data::doMainConnectionStoppingCleanAll(
     std::chrono::milliseconds& /*_rwait_duration*/,
     MessageId&     _rmsg_id,
     MessageBundle* _pmsg_bundle,
-    Event& /*_revent_context*/,
+    EventT& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
 )
 {
@@ -2207,7 +2207,7 @@ bool Service::Data::doMainConnectionStoppingPrepareCleanOneShot(
     std::chrono::milliseconds& /*_rwait_duration*/,
     MessageId& /*_rmsg_id*/,
     MessageBundle* _pmsg_bundle,
-    Event&         _revent_context,
+    EventT&        _revent_context,
     ErrorConditionT& /*_rerror*/
 )
 {
@@ -2226,7 +2226,7 @@ bool Service::Data::doMainConnectionStoppingPrepareCleanOneShot(
         if (_pmsg_bundle != nullptr) {
             rpool.setCleaningOneShotMessages();
 
-            _revent_context.any() = rpool.message_order_inner_list_.frontIndex();
+            _revent_context = rpool.message_order_inner_list_.frontIndex();
         }
         return false;
     }
@@ -2260,7 +2260,7 @@ bool Service::Data::doMainConnectionStoppingPrepareCleanAll(
     std::chrono::milliseconds& /*_rwait_duration*/,
     MessageId& /*_rmsg_id*/,
     MessageBundle* /*_rmsg_bundle*/,
-    Event& /*_revent_context*/,
+    EventT& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
 )
 {
@@ -2291,7 +2291,7 @@ bool Service::Data::doMainConnectionRestarting(
     std::chrono::milliseconds& _rwait_duration,
     MessageId& /*_rmsg_id*/,
     MessageBundle* /*_rmsg_bundle*/,
-    Event& /*_revent_context*/,
+    EventT& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
 )
 {
@@ -2417,7 +2417,7 @@ bool Service::Data::doTryCreateNewConnectionForPool(Service& _rsvc, const size_t
         solid_log(logger, Info, this << " try create new connection in pool " << rpool.active_connection_count_ << " pending connections " << rpool.pending_connection_count_);
 
         auto     actptr(new_connection(config_, ConnectionPoolId(_pool_index, rpool.unique_), rpool.name_));
-        ActorIdT conuid = config_.scheduler().startActor(std::move(actptr), _rsvc, make_event(GenericEvents::Start), _rerror);
+        ActorIdT conuid = config_.actor_create_fnc(std::move(actptr), _rsvc, make_event(GenericEventE::Start), _rerror);
 
         if (!_rerror) {
 
@@ -2437,9 +2437,9 @@ bool Service::Data::doTryCreateNewConnectionForPool(Service& _rsvc, const size_t
 
             } else {
                 // use the rest of the already resolved addresses
-                Event event = Connection::eventResolve();
+                EventT event = Connection::eventResolve();
 
-                event.any().emplace<ResolveMessage>(std::move(rpool.connect_addr_vec_));
+                event.emplace<ResolveMessage>(std::move(rpool.connect_addr_vec_));
 
                 _rsvc.manager().notify(conuid, std::move(event));
             }
@@ -2452,11 +2452,11 @@ bool Service::Data::doTryCreateNewConnectionForPool(Service& _rsvc, const size_t
     return false;
 }
 //-----------------------------------------------------------------------------
-void Service::forwardResolveMessage(ConnectionPoolId const& _rpoolid, Event& _revent)
+void Service::forwardResolveMessage(ConnectionPoolId const& _rpoolid, EventBase& _revent)
 {
     solid_log(logger, Verbose, this);
 
-    ResolveMessage* presolvemsg = _revent.any().cast<ResolveMessage>();
+    ResolveMessage* presolvemsg = _revent.cast<ResolveMessage>();
     ErrorConditionT error;
 
     if (!presolvemsg->addrvec.empty()) {
@@ -2466,7 +2466,7 @@ void Service::forwardResolveMessage(ConnectionPoolId const& _rpoolid, Event& _re
         if (rpool.pending_connection_count_ < configuration().pool_max_pending_connection_count) {
 
             auto     actptr(new_connection(configuration(), _rpoolid, rpool.name_));
-            ActorIdT conuid = pimpl_->config_.scheduler().startActor(std::move(actptr), *this, std::move(_revent), error);
+            ActorIdT conuid = pimpl_->config_.actor_create_fnc(std::move(actptr), *this, std::move(_revent), error);
 
             if (!error) {
                 ++rpool.pending_connection_count_;
@@ -2626,8 +2626,8 @@ void Service::acceptIncomingConnection(SocketDevice& _rsd)
         ConnectionPoolStub&    rpool(pimpl_->pool_dq_[pool_index]);
         auto                   actptr(new_connection(configuration(), _rsd, ConnectionPoolId(pool_index, rpool.unique_), rpool.name_));
         solid::ErrorConditionT error;
-        ActorIdT               con_id = pimpl_->config_.scheduler().startActor(
-            std::move(actptr), *this, make_event(GenericEvents::Start), error);
+        ActorIdT               con_id = pimpl_->config_.actor_create_fnc(
+            std::move(actptr), *this, make_event(GenericEventE::Start), error);
 
         solid_log(logger, Info, this << " receive connection [" << con_id << "] error = " << error.message());
 

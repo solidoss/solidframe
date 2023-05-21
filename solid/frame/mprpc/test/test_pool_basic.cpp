@@ -31,7 +31,7 @@ using namespace solid;
 
 namespace {
 
-using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
 using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
 
@@ -413,7 +413,7 @@ int test_pool_basic(int argc, char* argv[])
 
         err = mprpcclient.createConnectionPool(
             "localhost", client_id,
-            [](frame::mprpc::ConnectionContext& _rctx, Event&& _revent, const ErrorConditionT& _rerr) {
+            [](frame::mprpc::ConnectionContext& _rctx, EventBase&& _revent, const ErrorConditionT& _rerr) {
                 solid_dbg(generic_logger, Warning, "client pool event: " << _revent << " error: " << _rerr.message());
             },
             max_per_pool_connection_count);

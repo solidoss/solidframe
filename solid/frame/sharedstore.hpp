@@ -22,7 +22,7 @@
 namespace solid {
 namespace frame {
 
-struct ReactorContext;
+class ReactorContext;
 
 namespace shared {
 
@@ -124,7 +124,7 @@ private:
     virtual void doResizeActorVector(const size_t _newsz)                            = 0;
     virtual void doExecuteOnSignal(ulong _sm)                                        = 0;
 
-    /*virtual*/ void onEvent(frame::ReactorContext& _rctx, Event&& _revent) override;
+    /*virtual*/ void onEvent(frame::ReactorContext& _rctx, EventBase&& _revent) override;
 
 private:
     struct Data;

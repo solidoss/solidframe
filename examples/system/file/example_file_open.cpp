@@ -56,10 +56,10 @@ int main(int argc, char* argv[])
     cout << "insert a char: ";
     cin >> c;
     for (int i = foldercnt; i; --i) {
-        sprintf(fldname, "/%08u", i);
+        snprintf(fldname, name_sz - (fname - name), "/%08u", i);
         *fname = 0;
         for (int j = filecnt; j; --j) {
-            sprintf(fname, "/%08u.txt", j);
+            snprintf(fname, name_sz - (fname - name), "/%08u.txt", j);
             ++cnt;
             // ulong sz = (filecnt * minsz + (j * (maxsz - minsz)))/filecnt;
             fdq.push_back(FileDevice());

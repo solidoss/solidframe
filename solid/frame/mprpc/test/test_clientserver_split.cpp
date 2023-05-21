@@ -29,12 +29,9 @@
 using namespace std;
 using namespace solid;
 
-using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
-using SecureContextT = frame::aio::openssl::Context;
-
 namespace {
 
-using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
 using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
 
@@ -299,7 +296,7 @@ void server_complete_message(
 int test_clientserver_split(int argc, char* argv[])
 {
 
-    solid::log_start(std::cerr, {".*:EWX", "\\*:EWX"});
+    solid::log_start(std::cerr, {".*:EWX", "\\*:VIEWX"});
 
     size_t max_per_pool_connection_count = 1;
 

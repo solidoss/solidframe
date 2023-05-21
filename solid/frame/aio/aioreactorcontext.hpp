@@ -16,6 +16,9 @@
 #include "solid/system/socketdevice.hpp"
 
 #include "solid/frame/aio/aiocommon.hpp"
+
+#include "solid/frame/service.hpp"
+
 #include <mutex>
 
 namespace solid {
@@ -27,14 +30,31 @@ class Manager;
 namespace aio {
 
 class Actor;
+
+namespace impl {
 class Reactor;
+} // namespace impl
+
 class CompletionHandler;
 
-struct ReactorContext : NonCopyable {
+class ReactorContext : NonCopyable {
+    friend class CompletionHandler;
+    friend class impl::Reactor;
+    friend class Actor;
+    friend class SocketBase;
+
+    impl::Reactor&  rreactor_;
+    const NanoTime& rcurrent_time_;
+    size_t          completion_heandler_index_;
+    size_t          actor_index_;
+    ReactorEventE   reactor_event_;
+    ErrorCodeT      system_error_;
+    ErrorConditionT error_;
+
+public:
     ~ReactorContext()
     {
     }
-
     const NanoTime& nanoTime() const
     {
         return rcurrent_time_;
@@ -59,8 +79,8 @@ struct ReactorContext : NonCopyable {
     Service& service() const;
     Manager& manager() const;
 
-    ActorIdT    actorId() const;
-    std::mutex& actorMutex() const;
+    ActorIdT              actorId() const;
+    Service::ActorMutexT& actorMutex() const;
 
     void clearError()
     {
@@ -69,21 +89,16 @@ struct ReactorContext : NonCopyable {
     }
 
 private:
-    friend class CompletionHandler;
-    friend class Reactor;
-    friend class Actor;
-    friend class SocketBase;
-
-    Reactor& reactor()
+    impl::Reactor& reactor()
     {
         return rreactor_;
     }
 
-    Reactor const& reactor() const
+    impl::Reactor const& reactor() const
     {
         return rreactor_;
     }
-    ReactorEventsE reactorEvent() const
+    ReactorEventE reactorEvent() const
     {
         return reactor_event_;
     }
@@ -104,30 +119,22 @@ private:
     ReactorContext(const ReactorContext& _rother)
         : rreactor_(_rother.rreactor_)
         , rcurrent_time_(_rother.rcurrent_time_)
-        , channel_index_(_rother.channel_index_)
+        , completion_heandler_index_(_rother.completion_heandler_index_)
         , actor_index_(_rother.actor_index_)
         , reactor_event_(_rother.reactor_event_)
     {
     }
 
     ReactorContext(
-        Reactor&        _rreactor,
+        impl::Reactor&  _rreactor,
         const NanoTime& _rcurrent_time)
         : rreactor_(_rreactor)
         , rcurrent_time_(_rcurrent_time)
-        , channel_index_(InvalidIndex())
+        , completion_heandler_index_(InvalidIndex())
         , actor_index_(InvalidIndex())
-        , reactor_event_(ReactorEventNone)
+        , reactor_event_(ReactorEventE::None)
     {
     }
-
-    Reactor&        rreactor_;
-    const NanoTime& rcurrent_time_;
-    size_t          channel_index_;
-    size_t          actor_index_;
-    ReactorEventsE  reactor_event_;
-    ErrorCodeT      system_error_;
-    ErrorConditionT error_;
 };
 
 } // namespace aio

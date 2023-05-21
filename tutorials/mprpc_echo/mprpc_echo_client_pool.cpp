@@ -18,7 +18,7 @@
 using namespace solid;
 using namespace std;
 
-using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using CallPoolT     = ThreadPool<Function<void()>, Function<void()>>;
 
 //-----------------------------------------------------------------------------
@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
         rpcservice.createConnectionPool(
             p.server_addr.c_str(),
             recipient_id,
-            [](frame::mprpc::ConnectionContext& _rctx, Event&& _revt, const ErrorConditionT& _rerr) {
+            [](frame::mprpc::ConnectionContext& _rctx, EventBase&& _revt, const ErrorConditionT& _rerr) {
                 solid_log(generic_logger, Verbose, "Connection pool event: " << _revt);
             });
 

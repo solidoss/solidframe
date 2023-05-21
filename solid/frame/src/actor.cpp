@@ -22,7 +22,7 @@ namespace frame {
 //----  Actor  ----
 //---------------------------------------------------------------------
 
-/*virtual*/ void Actor::onEvent(ReactorContext& /*_rctx*/, Event&& /*_uevent*/)
+/*virtual*/ void Actor::onEvent(ReactorContext& /*_rctx*/, EventBase&& /*_uevent*/)
 {
 }
 

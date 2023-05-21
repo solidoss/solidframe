@@ -27,9 +27,11 @@ namespace aio {
 extern const LoggerT logger;
 
 class Actor;
+namespace impl {
 class Reactor;
+} // namespace impl
 struct ActorProxy;
-struct ReactorContext;
+class ReactorContext;
 struct ReactorEvent;
 
 class CompletionHandler : public ForwardCompletionHandler {
@@ -63,8 +65,8 @@ protected:
     CompletionHandler(CallbackT _pcall = &on_init_completion);
 
     void           completionCallback(CallbackT _pcbk = &on_dummy_completion);
-    ReactorEventsE reactorEvent(ReactorContext& _rctx) const;
-    Reactor&       reactor(ReactorContext& _rctx) const;
+    ReactorEventE  reactorEvent(ReactorContext& _rctx) const;
+    impl::Reactor& reactor(ReactorContext& _rctx) const;
     void           error(ReactorContext& _rctx, ErrorConditionT const& _err) const;
     void           errorClear(ReactorContext& _rctx) const;
     void           systemError(ReactorContext& _rctx, ErrorCodeT const& _err) const;
@@ -76,7 +78,7 @@ protected:
     size_t         indexWithinReactor() const;
 
 private:
-    friend class Reactor;
+    friend class impl::Reactor;
 
     void handleCompletion(ReactorContext& _rctx)
     {
@@ -102,7 +104,7 @@ inline size_t CompletionHandler::indexWithinReactor() const
     return idxreactor;
 }
 
-inline ReactorEventsE CompletionHandler::reactorEvent(ReactorContext& _rctx) const
+inline ReactorEventE CompletionHandler::reactorEvent(ReactorContext& _rctx) const
 {
     return _rctx.reactorEvent();
 }
@@ -112,7 +114,7 @@ inline /*static*/ CompletionHandler* CompletionHandler::completion_handler(React
     return _rctx.completionHandler();
 }
 
-inline Reactor& CompletionHandler::reactor(ReactorContext& _rctx) const
+inline impl::Reactor& CompletionHandler::reactor(ReactorContext& _rctx) const
 {
     return _rctx.reactor();
 }
@@ -135,12 +137,12 @@ inline void CompletionHandler::systemError(ReactorContext& _rctx, ErrorCodeT con
 inline void CompletionHandler::contextBind(ReactorContext& _rctx) const
 {
     solid_assert_log(isActive(), generic_logger);
-    _rctx.channel_index_ = idxreactor;
+    _rctx.completion_heandler_index_ = idxreactor;
 }
 
 inline void CompletionHandler::contextUnbind(ReactorContext& _rctx) const
 {
-    _rctx.channel_index_ = InvalidIndex();
+    _rctx.completion_heandler_index_ = InvalidIndex();
 }
 
 SocketDevice& dummy_socket_device();

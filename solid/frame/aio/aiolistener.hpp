@@ -18,17 +18,17 @@
 #include "solid/frame/aio/aiosocketbase.hpp"
 
 namespace solid {
-struct Event;
+class EventBase;
 namespace frame {
 namespace aio {
 
 struct ActorProxy;
-struct ReactorContext;
+class ReactorContext;
 
 class Listener : public CompletionHandler {
     static void on_completion(CompletionHandler& _rch, ReactorContext& _rctx);
     static void on_init_completion(CompletionHandler& _rch, ReactorContext& _rctx);
-    static void on_posted_accept(ReactorContext& _rctx, Event&&);
+    static void on_posted_accept(ReactorContext& _rctx, EventBase&&);
     static void on_dummy(ReactorContext&, SocketDevice&);
 
 public:

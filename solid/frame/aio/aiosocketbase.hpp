@@ -67,18 +67,18 @@ public:
     void initAccept(ReactorContext& _rctx)
     {
 #if defined(SOLID_USE_EPOLL) || defined(SOLID_USE_KQUEUE)
-        addReactorRequestEvents(_rctx, ReactorWaitRead);
+        addReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
 #else
-        addReactorRequestEvents(_rctx, ReactorWaitNone);
+        addReactorRequestEvents(_rctx, ReactorWaitRequestE::None);
 #endif
     }
 
     void init(ReactorContext& _rctx)
     {
 #if defined(SOLID_USE_EPOLL) || defined(SOLID_USE_KQUEUE)
-        addReactorRequestEvents(_rctx, ReactorWaitReadOrWrite);
+        addReactorRequestEvents(_rctx, ReactorWaitRequestE::ReadOrWrite);
 #else
-        addReactorRequestEvents(_rctx, ReactorWaitNone);
+        addReactorRequestEvents(_rctx, ReactorWaitRequestE::None);
 #endif
     }
 
@@ -87,7 +87,7 @@ public:
         ErrorCodeT err = device().accept(_rsd, _can_retry);
 #if defined(SOLID_USE_WSAPOLL)
         if (err && _can_retry) {
-            modifyReactorRequestEvents(_rctx, ReactorWaitRead);
+            modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
         }
 #endif
         return err;
@@ -99,9 +99,9 @@ public:
         if (!_rerr) {
             _rerr = device().makeNonBlocking();
 #if defined(SOLID_USE_WSAPOLL)
-            addReactorRequestEvents(_rctx, ReactorWaitNone);
+            addReactorRequestEvents(_rctx, ReactorWaitRequestE::None);
 #else
-            addReactorRequestEvents(_rctx, ReactorWaitWrite);
+            addReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
 #endif
         }
         return !_rerr;
@@ -112,7 +112,7 @@ public:
         _rerr = device().connect(_rsas, _can_retry);
 #if defined(SOLID_USE_WSAPOLL)
         if (_rerr && _can_retry) {
-            modifyReactorRequestEvents(_rctx, ReactorWaitWrite);
+            modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
             addReactorConnect(_rctx);
         }
 #endif
@@ -124,9 +124,9 @@ public:
         ErrorCodeT err = device().error();
         if (!err) {
 #if defined(SOLID_USE_EPOLL) || defined(SOLID_USE_KQUEUE)
-            modifyReactorRequestEvents(_rctx, ReactorWaitReadOrWrite);
+            modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::ReadOrWrite);
 #else
-            modifyReactorRequestEvents(_rctx, ReactorWaitNone);
+            modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::None);
 #endif
         }
         return err;
@@ -143,11 +143,11 @@ public:
     }
 
 protected:
-    void addReactorRequestEvents(ReactorContext& _rctx, const ReactorWaitRequestsE _req) const
+    void addReactorRequestEvents(ReactorContext& _rctx, const ReactorWaitRequestE _req) const
     {
         _rctx.reactor().addDevice(_rctx, device(), _req);
     }
-    void modifyReactorRequestEvents(ReactorContext& _rctx, const ReactorWaitRequestsE _req) const
+    void modifyReactorRequestEvents(ReactorContext& _rctx, const ReactorWaitRequestE _req) const
     {
         _rctx.reactor().modDevice(_rctx, device(), _req);
     }

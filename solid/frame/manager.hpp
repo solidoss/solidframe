@@ -20,12 +20,13 @@
 #include "solid/system/error.hpp"
 #include "solid/system/log.hpp"
 #include "solid/system/pimpl.hpp"
+#include "solid/system/spinlock.hpp"
 #include "solid/utility/delegate.hpp"
 #include "solid/utility/function.hpp"
 
 namespace solid {
 
-struct Event;
+class EventBase;
 
 namespace frame {
 
@@ -36,7 +37,6 @@ class Service;
 class ActorBase;
 class SchedulerBase;
 class ReactorBase;
-
 struct ServiceStub;
 
 enum struct ServiceStatusE {
@@ -53,6 +53,10 @@ class Manager final : NonCopyable {
     PimplT<Data> pimpl_;
 
 public:
+    using ChunkMutexT   = SpinLock;
+    using ActorMutexT   = ChunkMutexT;
+    using ServiceMutexT = std::mutex;
+
     class VisitContext {
         friend class Manager;
         Manager&     rmanager_;
@@ -75,8 +79,8 @@ public:
             return ractor_;
         }
 
-        bool raiseActor(Event const& _revent) const;
-        bool raiseActor(Event&& _uevent) const;
+        bool wakeActor(EventBase const& _revent) const;
+        bool wakeActor(EventBase&& _uevent) const;
     };
 
     Manager(
@@ -93,9 +97,9 @@ public:
 
     void start();
 
-    bool notify(ActorIdT const& _ruid, Event&& _uevent);
+    bool notify(ActorIdT const& _ruid, EventBase&& _uevent);
 
-    bool notify(ActorIdT const& _ruid, const Event& _event);
+    bool notify(ActorIdT const& _ruid, const EventBase& _event);
 
     template <class F>
     bool visit(ActorIdT const& _ruid, F _f);
@@ -132,11 +136,11 @@ private:
 
     static bool notify_actor(
         ActorBase& _ractor, ReactorBase& _rreactor,
-        Event const& _revent, const size_t _sigmsk);
+        EventBase const& _revent, const size_t _sigmsk);
 
     static bool notify_actor(
         ActorBase& _ractor, ReactorBase& _rreactor,
-        Event&& _uevent, const size_t _sigmsk);
+        EventBase&& _uevent, const size_t _sigmsk);
 
     bool registerService(Service& _rservice, const bool _start);
     void unregisterService(Service& _rservice);
@@ -146,10 +150,10 @@ private:
 
     ActorIdT unsafeId(const ActorBase& _ractor) const;
 
-    std::mutex& mutex(const Service& _rservice) const;
-    std::mutex& mutex(const ActorBase& _ractor) const;
+    ServiceMutexT& mutex(const Service& _rservice) const;
+    ActorMutexT&   mutex(const ActorBase& _ractor) const;
 
-    ServiceStatusE status(const Service& _rservice, std::unique_lock<std::mutex>& _rlock) const;
+    ServiceStatusE status(const Service& _rservice, std::unique_lock<ServiceMutexT>& _rlock) const;
 
     ServiceStatusE status(const Service& _rservice);
 
@@ -160,7 +164,7 @@ private:
         ScheduleFunctionT& _rfct,
         ErrorConditionT&   _rerr);
 
-    size_t notifyAll(const Service& _rservice, Event const& _revent);
+    size_t notifyAll(const Service& _rservice, EventBase const& _revent);
 
     template <typename F>
     size_t forEachServiceActor(const Service& _rservice, F _f);

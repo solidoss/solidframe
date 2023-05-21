@@ -37,15 +37,15 @@ inline Service& Listener::service(frame::aio::ReactorContext& _rctx)
     return static_cast<Service&>(_rctx.service());
 }
 
-/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, Event&& _uevent)
+/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _uevent)
 {
     solid_log(logger, Info, "event = " << _uevent);
     if (
-        _uevent == generic_event_start || _uevent == generic_event_timer) {
+        _uevent == generic_event<GenericEventE::Start> || _uevent == generic_event<GenericEventE::Timer>) {
         sock.postAccept(
             _rctx,
             [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); });
-    } else if (_uevent == generic_event_kill) {
+    } else if (_uevent == generic_event<GenericEventE::Kill>) {
         postStop(_rctx);
     }
 }
@@ -66,7 +66,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             solid_log(logger, Info, "listen error" << _rctx.error().message());
             timer.waitFor(
                 _rctx, std::chrono::seconds(10),
-                [this](frame::aio::ReactorContext& _rctx) { onEvent(_rctx, make_event(GenericEvents::Timer)); });
+                [this](frame::aio::ReactorContext& _rctx) { onEvent(_rctx, make_event(GenericEventE::Timer)); });
             break;
         }
         --repeatcnt;

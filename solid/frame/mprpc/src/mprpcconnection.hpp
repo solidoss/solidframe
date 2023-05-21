@@ -74,20 +74,20 @@ class Connection final : public frame::aio::Actor {
 public:
     using PointerT = std::shared_ptr<Connection>;
 
-    static Event eventResolve();
-    static Event eventNewMessage();
-    static Event eventNewMessage(const MessageId&);
-    static Event eventNewQueueMessage();
-    static Event eventCancelConnMessage(const MessageId&);
-    static Event eventCancelPoolMessage(const MessageId&);
-    static Event eventClosePoolMessage(const MessageId&);
-    static Event eventStopping();
-    static Event eventEnterActive(ConnectionEnterActiveCompleteFunctionT&&, const size_t _send_buffer_capacity);
-    static Event eventEnterPassive(ConnectionEnterPassiveCompleteFunctionT&&);
-    static Event eventStartSecure(ConnectionSecureHandhakeCompleteFunctionT&&);
-    static Event eventSendRaw(ConnectionSendRawDataCompleteFunctionT&&, std::string&&);
-    static Event eventRecvRaw(ConnectionRecvRawDataCompleteFunctionT&&);
-    static Event eventPost(ConnectionPostCompleteFunctionT&&);
+    static EventT eventResolve();
+    static EventT eventNewMessage();
+    static EventT eventNewMessage(const MessageId&);
+    static EventT eventNewQueueMessage();
+    static EventT eventCancelConnMessage(const MessageId&);
+    static EventT eventCancelPoolMessage(const MessageId&);
+    static EventT eventClosePoolMessage(const MessageId&);
+    static EventT eventStopping();
+    static EventT eventEnterActive(ConnectionEnterActiveCompleteFunctionT&&, const size_t _send_buffer_capacity);
+    static EventT eventEnterPassive(ConnectionEnterPassiveCompleteFunctionT&&);
+    static EventT eventStartSecure(ConnectionSecureHandhakeCompleteFunctionT&&);
+    static EventT eventSendRaw(ConnectionSendRawDataCompleteFunctionT&&, std::string&&);
+    static EventT eventRecvRaw(ConnectionRecvRawDataCompleteFunctionT&&);
+    static EventT eventPost(ConnectionPostCompleteFunctionT&&);
 
     Connection(
         Configuration const&    _rconfiguration,
@@ -185,8 +185,8 @@ public:
     }
 #endif
 
-    static void onSendAllRaw(frame::aio::ReactorContext& _rctx, Event& _revent);
-    static void onRecvSomeRaw(frame::aio::ReactorContext& _rctx, const size_t _sz, Event& _revent);
+    static void onSendAllRaw(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+    static void onRecvSomeRaw(frame::aio::ReactorContext& _rctx, const size_t _sz, EventBase& _revent);
 
 protected:
     static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
@@ -210,7 +210,7 @@ private:
     Service& service(frame::aio::ReactorContext& _rctx) const;
     ActorIdT uid(frame::aio::ReactorContext& _rctx) const;
 
-    void onEvent(frame::aio::ReactorContext& _rctx, Event&& _uevent) override;
+    void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _uevent) override;
 
     bool shouldSendKeepAlive() const;
     bool shouldPollPool() const;
@@ -246,7 +246,7 @@ private:
 
     void doActivate(
         frame::aio::ReactorContext& _rctx,
-        Event&                      _revent);
+        EventBase&                  _revent);
 
     void doOptimizeRecvBuffer();
     void doOptimizeRecvBufferForced();
@@ -308,27 +308,27 @@ private:
         const bool                  _is_last,
         ErrorConditionT&            _rerror);
 
-    void doHandleEventKill(frame::aio::ReactorContext& _rctx, Event& _revent);
-    void doHandleEventStart(frame::aio::ReactorContext& _rctx, Event& _revent);
-    void doHandleEventResolve(frame::aio::ReactorContext& _rctx, Event& _revent);
-    void doHandleEventNewPoolMessage(frame::aio::ReactorContext& _rctx, Event& _revent);
-    void doHandleEventNewPoolQueueMessage(frame::aio::ReactorContext& _rctx, Event& _revent);
-    void doHandleEventNewConnMessage(frame::aio::ReactorContext& _rctx, Event& _revent);
-    void doHandleEventCancelConnMessage(frame::aio::ReactorContext& _rctx, Event& _revent);
-    void doHandleEventCancelPoolMessage(frame::aio::ReactorContext& _rctx, Event& _revent);
-    void doHandleEventClosePoolMessage(frame::aio::ReactorContext& _rctx, Event& _revent);
-    void doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Event& _revent);
-    void doHandleEventEnterPassive(frame::aio::ReactorContext& _rctx, Event& _revent);
-    void doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Event& _revent);
-    void doHandleEventSendRaw(frame::aio::ReactorContext& _rctx, Event& _revent);
-    void doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, Event& _revent);
-    void doHandleEventRelayNew(frame::aio::ReactorContext& _rctx, Event& _revent);
-    void doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event& _revent);
-    void doHandleEventPost(frame::aio::ReactorContext& _rctx, Event& _revent);
+    void doHandleEventKill(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+    void doHandleEventStart(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+    void doHandleEventResolve(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+    void doHandleEventNewPoolMessage(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+    void doHandleEventNewPoolQueueMessage(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+    void doHandleEventNewConnMessage(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+    void doHandleEventCancelConnMessage(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+    void doHandleEventCancelPoolMessage(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+    void doHandleEventClosePoolMessage(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+    void doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+    void doHandleEventEnterPassive(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+    void doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+    void doHandleEventSendRaw(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+    void doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+    void doHandleEventRelayNew(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+    void doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+    void doHandleEventPost(frame::aio::ReactorContext& _rctx, EventBase& _revent);
 
     void doContinueStopping(
         frame::aio::ReactorContext& _rctx,
-        const Event&                _revent);
+        const EventT&               _revent);
 
     void doCompleteAllMessages(
         frame::aio::ReactorContext& _rctx,
@@ -336,9 +336,9 @@ private:
     void doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint8_t _request_buffer_ack_count, ErrorConditionT& _rerr);
 
 private:
-    bool postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, Event& _revent);
+    bool postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, EventBase& _revent);
     bool postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp);
-    bool postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp, Event& _revent);
+    bool postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp, EventBase& _revent);
     bool hasValidSocket() const;
     bool connect(frame::aio::ReactorContext& _rctx, const SocketAddressInet& _raddr);
     bool recvSome(frame::aio::ReactorContext& _rctx, char* _buf, size_t _bufcp, size_t& _sz);

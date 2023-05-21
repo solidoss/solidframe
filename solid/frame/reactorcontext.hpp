@@ -15,105 +15,106 @@
 #include "solid/system/nanotime.hpp"
 #include "solid/system/socketdevice.hpp"
 
-#include "solid/frame/aio/aiocommon.hpp"
+#include "solid/frame/service.hpp"
+
 #include <mutex>
 
 namespace solid {
 namespace frame {
 
-class Service;
 class Actor;
+namespace impl {
 class Reactor;
+} // namespace impl
 class CompletionHandler;
 
-struct ReactorContext : NonCopyable {
-    ~ReactorContext()
+class ReactorContext : NonCopyable {
+    friend class CompletionHandler;
+    friend class impl::Reactor;
+    friend class Actor;
+
+    impl::Reactor&  rreactor_;
+    const NanoTime& rcurrent_time_;
+    size_t          completion_heandler_index_;
+    size_t          actor_index_;
+    ReactorEventE   reactor_event_;
+    ErrorCodeT      system_error_;
+    ErrorConditionT error_;
+
+    ReactorContext(
+        impl::Reactor&  _rreactor,
+        const NanoTime& _rcrttm)
+        : rreactor_(_rreactor)
+        , rcurrent_time_(_rcrttm)
+        , completion_heandler_index_(InvalidIndex())
+        , actor_index_(InvalidIndex())
+        , reactor_event_(ReactorEventE::None)
     {
     }
 
-    const NanoTime& nanoTime() const
+    impl::Reactor& reactor()
     {
-        return rcrttm;
+        return rreactor_;
+    }
+
+    impl::Reactor const& reactor() const
+    {
+        return rreactor_;
+    }
+    ReactorEventE reactorEvent() const
+    {
+        return reactor_event_;
+    }
+    CompletionHandler* completionHandler() const;
+
+    void error(ErrorConditionT const& _err)
+    {
+        error_ = _err;
+    }
+
+    void systemError(ErrorCodeT const& _err)
+    {
+        system_error_ = _err;
+    }
+
+public:
+    ~ReactorContext()
+    {
+    }
+    UniqueId actorUid() const;
+
+    const NanoTime& currentTime() const
+    {
+        return rcurrent_time_;
     }
 
     std::chrono::steady_clock::time_point steadyTime() const
     {
-        return rcrttm.timePointCast<std::chrono::steady_clock::time_point>();
+        return rcurrent_time_.timePointCast<std::chrono::steady_clock::time_point>();
     }
 
     ErrorCodeT const& systemError() const
     {
-        return syserr;
+        return system_error_;
     }
 
     ErrorConditionT const& error() const
     {
-        return err;
+        return error_;
     }
 
     Actor&   actor() const;
     Service& service() const;
     Manager& manager() const;
 
-    ActorIdT    actorId() const;
-    std::mutex& actorMutex() const;
+    ActorIdT              actorId() const;
+    Service::ActorMutexT& actorMutex() const;
 
     void clearError()
     {
-        err.clear();
-        syserr.clear();
+        error_.clear();
+        system_error_.clear();
     }
-
-private:
-    friend class CompletionHandler;
-    friend class Reactor;
-    friend class Actor;
-
-    Reactor& reactor()
-    {
-        return rreactor;
-    }
-
-    Reactor const& reactor() const
-    {
-        return rreactor;
-    }
-    ReactorEventsE reactorEvent() const
-    {
-        return reactevn;
-    }
-    CompletionHandler* completionHandler() const;
-
-    void error(ErrorConditionT const& _err)
-    {
-        err = _err;
-    }
-
-    void systemError(ErrorCodeT const& _err)
-    {
-        syserr = _err;
-    }
-
-    UniqueId actorUid() const;
-
-    ReactorContext(
-        Reactor&        _rreactor,
-        const NanoTime& _rcrttm)
-        : rreactor(_rreactor)
-        , rcrttm(_rcrttm)
-        , chnidx(InvalidIndex())
-        , actidx(InvalidIndex())
-        , reactevn(ReactorEventNone)
-    {
-    }
-
-    Reactor&        rreactor;
-    const NanoTime& rcrttm;
-    size_t          chnidx;
-    size_t          actidx;
-    ReactorEventsE  reactevn;
-    ErrorCodeT      syserr;
-    ErrorConditionT err;
 };
 
 } // namespace frame
