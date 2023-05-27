@@ -152,9 +152,10 @@ namespace impl {
 
 Reactor::Reactor(
     SchedulerBase& _rsched,
-    const size_t   _idx)
+    const size_t _idx, const size_t _wake_capacity)
     : ReactorBase(_rsched, _idx)
     , impl_(make_pimpl<Data>())
+    , wake_capacity_(_wake_capacity)
 {
     solid_log(frame_logger, Verbose, "");
 }
@@ -336,7 +337,7 @@ bool Reactor::doWaitEvent(NanoTime const& _rcrttime, const bool _exec_q_empty)
     auto                    wait_duration = impl_->computeWaitDuration(_rcrttime, _exec_q_empty);
     unique_lock<std::mutex> lock(impl_->mutex_);
 
-    if (current_push_size_ == 0u && current_wake_size_ == 0u && !impl_->must_stop_) {
+    if (current_push_size_ == 0u /*&& current_wake_size_ == 0u*/ && !impl_->must_stop_) {
         if (wait_duration) {
             const auto nanosecs = wait_duration.durationCast<std::chrono::nanoseconds>();
             impl_->cnd_var_.wait_for(lock, nanosecs);
@@ -360,11 +361,13 @@ bool Reactor::doWaitEvent(NanoTime const& _rcrttime, const bool _exec_q_empty)
         current_push_index_ = ((current_push_index_ + 1) & 1);
         rv                  = true;
     }
+#if false
     if (current_wake_size_ != 0u) {
         current_wake_size_  = 0;
         current_wake_index_ = ((current_wake_index_ + 1) & 1);
         rv                  = true;
     }
+#endif
     return rv;
 }
 

@@ -18,6 +18,8 @@ namespace frame {
 
 class Service;
 
+constexpr size_t default_reactor_wake_capacity = 1024;
+
 template <class R>
 class Scheduler : private SchedulerBase {
     using ReactorT = R;
@@ -29,9 +31,9 @@ public:
 
 private:
     struct Worker {
-        static void run(SchedulerBase* _psched, const size_t _idx)
+        static void run(SchedulerBase* _psched, const size_t _idx, const size_t _wake_capacity)
         {
-            ReactorT reactor(*_psched, _idx);
+            ReactorT reactor{*_psched, _idx, _wake_capacity};
 
             if (!reactor.prepareThread(reactor.start())) {
                 return;
@@ -40,11 +42,11 @@ private:
             reactor.unprepareThread();
         }
 
-        static bool create(SchedulerBase& _rsched, const size_t _idx, std::thread& _rthr)
+        static bool create(SchedulerBase& _rsched, const size_t _idx, std::thread& _rthr, const size_t _wake_capacity)
         {
             bool rv = false;
             try {
-                _rthr = std::thread(Worker::run, &_rsched, _idx);
+                _rthr = std::thread(Worker::run, &_rsched, _idx, _wake_capacity);
                 rv    = true;
             } catch (...) {
             }
@@ -73,19 +75,19 @@ private:
 public:
     Scheduler() = default;
 
-    void start(const size_t _reactorcnt = 1)
+    void start(const size_t _reactorcnt = 1, const size_t _wake_capacity = default_reactor_wake_capacity)
     {
         ThreadEnterFunctionT enf;
         ThreadExitFunctionT  exf;
-        SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt);
+        SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt, _wake_capacity);
     }
 
     template <class EnterFct, class ExitFct>
-    void start(EnterFct _enf, ExitFct _exf, const size_t _reactorcnt = 1)
+    void start(EnterFct _enf, ExitFct _exf, const size_t _reactorcnt = 1, const size_t _wake_capacity = default_reactor_wake_capacity)
     {
         ThreadEnterFunctionT enf(std::move(_enf));
         ThreadExitFunctionT  exf(std::move(_exf));
-        SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt);
+        SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt, _wake_capacity);
     }
 
     size_t workerCount() const

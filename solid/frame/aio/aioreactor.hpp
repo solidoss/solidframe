@@ -324,7 +324,7 @@ public:
     using ActorT = Actor;
     using EventT = Evnt;
 
-    Reactor(SchedulerBase& _rsched, const size_t _sched_idx)
+    Reactor(SchedulerBase& _rsched, const size_t _sched_idx, const size_t _wake_capacity)
         : impl::Reactor(_rsched, _sched_idx)
     {
     }
