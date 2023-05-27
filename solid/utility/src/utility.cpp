@@ -179,6 +179,12 @@ ThreadPoolStatistic::ThreadPoolStatistic()
     push_one_count_[0] = 0;
     push_one_count_[1] = 0;
 }
+std::atomic_uint_fast64_t push_one_wait_lock_count_    = {0};
+std::atomic_uint_fast64_t push_one_wait_pushing_count_ = {0};
+std::atomic_uint_fast64_t pop_one_wait_lock_count_     = {0};
+std::atomic_uint_fast64_t pop_one_wait_popping_count_  = {0};
+std::atomic_uint_fast64_t push_all_wait_lock_count_    = {0};
+std::atomic_uint_fast64_t push_all_wait_pushing_count_ = {0};
 
 std::ostream& ThreadPoolStatistic::print(std::ostream& _ros) const
 {
@@ -199,7 +205,12 @@ std::ostream& ThreadPoolStatistic::print(std::ostream& _ros) const
     _ros << " max_consume_all_count = " << max_consume_all_count_.load(std::memory_order_relaxed);
     _ros << " run_all_count = " << run_all_count_.load(std::memory_order_relaxed);
     _ros << " max_run_all_count = " << max_run_all_count_.load(std::memory_order_relaxed);
-
+    _ros << " push_one_wait_lock_count = " << push_one_wait_lock_count_.load(std::memory_order_relaxed);
+    _ros << " push_one_wait_pushing_count = " << push_one_wait_pushing_count_.load(std::memory_order_relaxed);
+    _ros << " pop_one_wait_lock_count = " << pop_one_wait_lock_count_.load(std::memory_order_relaxed);
+    _ros << " pop_one_wait_popping_count = " << pop_one_wait_popping_count_.load(std::memory_order_relaxed);
+    _ros << " push_all_wait_lock_count = " << push_all_wait_lock_count_.load(std::memory_order_relaxed);
+    _ros << " push_all_wait_pushing_count = " << push_all_wait_pushing_count_.load(std::memory_order_relaxed);
     return _ros;
 }
 void ThreadPoolStatistic::clear() {}
