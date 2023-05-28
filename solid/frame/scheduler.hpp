@@ -33,13 +33,13 @@ private:
     struct Worker {
         static void run(SchedulerBase* _psched, const size_t _idx, const size_t _wake_capacity)
         {
-            ReactorT reactor{*_psched, _idx, _wake_capacity};
+            auto reactor_ptr = std::make_shared<ReactorT>(*_psched, _idx, _wake_capacity);
 
-            if (!reactor.prepareThread(reactor.start())) {
+            if (!reactor_ptr->prepareThread(reactor_ptr->start())) {
                 return;
             }
-            reactor.run();
-            reactor.unprepareThread();
+            reactor_ptr->run();
+            reactor_ptr->unprepareThread();
         }
 
         static bool create(SchedulerBase& _rsched, const size_t _idx, std::thread& _rthr, const size_t _wake_capacity)

@@ -12,6 +12,7 @@
 
 #include "solid/frame/actorbase.hpp"
 #include "solid/utility/stack.hpp"
+#include <memory>
 
 namespace solid {
 class EventBase;
@@ -25,7 +26,7 @@ class SchedulerBase;
  * The manager will call raise when an actor needs processor
  * time, e.g. because of an event.
  */
-class ReactorBase : NonCopyable {
+class ReactorBase : public std::enable_shared_from_this<ReactorBase>, NonCopyable {
     typedef Stack<UniqueId> UidStackT;
 
     SchedulerBase& rsch;
@@ -68,6 +69,8 @@ private:
     friend class SchedulerBase;
     size_t idInScheduler() const;
 };
+
+using ReactorBasePtrT = std::shared_ptr<ReactorBase>;
 
 inline SchedulerBase& ReactorBase::scheduler()
 {
