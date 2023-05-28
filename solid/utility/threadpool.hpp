@@ -588,8 +588,10 @@ private:
             lock_.store(to_underlying(LockE::Filled));
 #if defined(__cpp_lib_atomic_wait)
             pushing_.clear(std::memory_order_release);
+            pushing_.notify_one();
 #else
             pushing_.store(false, std::memory_order_release);
+            std::atomic_notify_one(&pushing_);
 #endif
         }
 

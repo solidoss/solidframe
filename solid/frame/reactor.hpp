@@ -275,10 +275,9 @@ struct WakeStubBase {
         }
     }
 
-    void notifyWhilePushOne() noexcept
+    void notifyWhilePush() noexcept
     {
         lock_.store(to_underlying(LockE::Filled));
-        std::atomic_notify_one(&lock_);
 #if defined(__cpp_lib_atomic_wait)
         pushing_.clear(std::memory_order_release);
         pushing_.notify_one();
@@ -286,6 +285,17 @@ struct WakeStubBase {
         pushing_.store(false, std::memory_order_release);
         std::atomic_notify_one(&pushing_);
 #endif
+    }
+
+    void notifyWhilePop() noexcept
+    {
+        lock_.store(to_underlying(LockE::Empty));
+        std::atomic_notify_one(&lock_);
+    }
+
+    bool isFilled() const noexcept
+    {
+        return lock_.load() == to_underlying(LockE::Filled);
     }
 };
 
@@ -413,6 +423,7 @@ private:
             rstub.notifyWhilePush();
         }
         if (notify) {
+            std::lock_guard<std::mutex> lock(mutex());
             notifyOne();
         }
         return true;
@@ -433,6 +444,7 @@ private:
             rstub.notifyWhilePush();
         }
         if (notify) {
+            std::lock_guard<std::mutex> lock(mutex());
             notifyOne();
         }
         return true;
@@ -483,6 +495,21 @@ private:
             push_q.pop();
             current_exec_size_ = exec_q_.size();
         }
+
+        while (true) {
+            const size_t index = pop_wake_index_.load() % wake_capacity_;
+            auto&        rstub = wake_arr_[index];
+            if (rstub.isFilled()) {
+                exec_q_.push(ExecStubT(rstub.uid_, &call_actor_on_event, _completion_handler_uid, std::move(rstub.event_)));
+                --pending_wake_count_;
+                ++pop_wake_index_;
+                rstub.clear();
+                rstub.notifyWhilePop();
+            } else {
+                break;
+            }
+        }
+
 #if false
         while (!wake_q.empty()) {
             auto& rstub = wake_q.front();

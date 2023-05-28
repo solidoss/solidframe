@@ -83,7 +83,11 @@ public:
     }
 
     template <class EnterFct, class ExitFct>
-    void start(EnterFct _enf, ExitFct _exf, const size_t _reactorcnt = 1, const size_t _wake_capacity = default_reactor_wake_capacity)
+    std::enable_if_t<
+        std::conjunction_v<
+            std::is_invocable_r<bool, EnterFct>,
+            std::is_invocable<ExitFct>>>
+    start(EnterFct _enf, ExitFct _exf, const size_t _reactorcnt = 1, const size_t _wake_capacity = default_reactor_wake_capacity)
     {
         ThreadEnterFunctionT enf(std::move(_enf));
         ThreadExitFunctionT  exf(std::move(_exf));

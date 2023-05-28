@@ -745,8 +745,7 @@ bool Manager::doVisit(ActorIdT const& _actor_id, const ActorVisitFunctionT& _rfc
     ActorChunkPtrT*               pchunk_ptr = pimpl_->chunkPointer(_actor_id.index, chunk_lock);
     if (pchunk_ptr != nullptr) {
         ActorChunk& rchunk = *(*pchunk_ptr);
-        // std::lock_guard<std::mutex> actor_lock{pimpl_->actorMutex(_actor_id.index)};
-        ActorStub& ras = rchunk[_actor_id.index % pimpl_->actor_chunk_size_];
+        ActorStub&  ras    = rchunk[_actor_id.index % pimpl_->actor_chunk_size_];
 
         if (ras.unique_ == _actor_id.unique && ras.pactor_ != nullptr && ras.preactor_ != nullptr) {
             VisitContext ctx(*this, *ras.preactor_, *ras.pactor_);
@@ -758,7 +757,6 @@ bool Manager::doVisit(ActorIdT const& _actor_id, const ActorVisitFunctionT& _rfc
 
 Manager::ActorMutexT& Manager::mutex(const ActorBase& _ractor) const
 {
-    // return pimpl_->actorMutex(static_cast<size_t>(_ractor.id()));
     ChunkMutexT* pmutex = nullptr;
     pimpl_->actor_chunk_store_.aquirePointer(
         static_cast<size_t>(_ractor.id()) / pimpl_->actor_chunk_size_,

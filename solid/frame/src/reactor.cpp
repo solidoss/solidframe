@@ -337,7 +337,7 @@ bool Reactor::doWaitEvent(NanoTime const& _rcrttime, const bool _exec_q_empty)
     auto                    wait_duration = impl_->computeWaitDuration(_rcrttime, _exec_q_empty);
     unique_lock<std::mutex> lock(impl_->mutex_);
 
-    if (current_push_size_ == 0u /*&& current_wake_size_ == 0u*/ && !impl_->must_stop_) {
+    if (current_push_size_ == 0u && pending_wake_count_.load() == 0u && !impl_->must_stop_) {
         if (wait_duration) {
             const auto nanosecs = wait_duration.durationCast<std::chrono::nanoseconds>();
             impl_->cnd_var_.wait_for(lock, nanosecs);
@@ -368,7 +368,7 @@ bool Reactor::doWaitEvent(NanoTime const& _rcrttime, const bool _exec_q_empty)
         rv                  = true;
     }
 #endif
-    return rv;
+    return rv || pending_wake_count_.load() != 0u;
 }
 
 UniqueId Reactor::popUid(Actor& _ractor)

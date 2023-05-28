@@ -105,7 +105,7 @@ void Account::onEvent(frame::ReactorContext& _rctx, EventBase&& _revent)
             device_vec_.emplace_back(device_scheduler.startActor(make_shared<Device>(), device_service, make_event(GenericEventE::Start), err));
         }
     } else if (generic_event<GenericEventE::Kill> == _revent) {
-        solid_log(generic_logger, Error, this << " postStop");
+        solid_log(generic_logger, Info, this << " postStop");
         postStop(_rctx);
     } else if (generic_event<GenericEventE::Message> == _revent) {
         RequestTupleT* pt = _revent.cast<RequestTupleT>();
@@ -153,7 +153,7 @@ void Device::onEvent(frame::ReactorContext& _rctx, EventBase&& _revent)
     solid_log(logger, Info, "device " << this << " event: " << _revent);
 
     if (generic_event<GenericEventE::Kill> == _revent) {
-        solid_log(generic_logger, Error, this << " postStop");
+        solid_log(generic_logger, Info, this << " postStop");
         postStop(_rctx);
     } else if (generic_event<GenericEventE::Message> == _revent) {
         RequestTupleT* pt = _revent.cast<RequestTupleT>();
@@ -206,8 +206,8 @@ int test_event_stress(int argc, char* argv[])
         promise<void>   prom;
 
         connection_scheduler.start(1);
-        account_scheduler.start(1);
-        device_scheduler.start(1);
+        account_scheduler.start([]() { return true; }, []() {}, 1, account_count * account_device_count);
+        device_scheduler.start(1, account_count * account_device_count);
 
         for (size_t i = 0; i < account_count; ++i) {
             const auto acc_id = account_scheduler.startActor(make_shared<Account>(), account_service, make_event(GenericEventE::Start), err);
