@@ -34,6 +34,61 @@ extern const LoggerT frame_logger;
 
 using ActorPointerT = std::shared_ptr<Actor>;
 
+struct ReactorStatistic : ReactorStatisticBase {
+    std::atomic_uint64_t push_notify_count_;
+    std::atomic_uint64_t push_count_;
+    std::atomic_uint64_t wake_notify_count_;
+    std::atomic_uint64_t wake_count_;
+    std::atomic_uint64_t post_count_;
+    std::atomic_uint64_t post_stop_count_;
+    std::atomic_size_t   max_exec_size_;
+    std::atomic_size_t   actor_count_;
+    std::atomic_size_t   max_actor_count_;
+
+    void actorCount(const size_t _count)
+    {
+        actor_count_ = _count;
+        solid_statistic_max(max_actor_count_, _count);
+    }
+    void pushNotify()
+    {
+        ++push_notify_count_;
+    }
+
+    void push()
+    {
+        ++push_count_;
+    }
+
+    void wakeNotify()
+    {
+        ++wake_notify_count_;
+    }
+
+    void wake()
+    {
+        ++wake_count_;
+    }
+
+    void post()
+    {
+        ++post_count_;
+    }
+
+    void postStop()
+    {
+        ++post_stop_count_;
+    }
+    void execSize(const size_t _sz)
+    {
+        solid_statistic_max(max_exec_size_, _sz);
+    }
+
+    std::ostream& print(std::ostream& _ros) const override;
+
+    void clear();
+};
+
 namespace impl {
 
 class Reactor : public frame::ReactorBase {
@@ -46,6 +101,7 @@ class Reactor : public frame::ReactorBase {
 
 protected:
     const size_t       wake_capacity_;
+    ReactorStatistic&  rstatistic_;
     std::atomic_size_t push_wake_index_    = {0};
     std::atomic_size_t pop_wake_index_     = {0};
     std::atomic_size_t pending_wake_count_ = {0};
@@ -53,6 +109,7 @@ protected:
     size_t             current_exec_size_  = 0;
 
 public:
+    using StatisticT     = ReactorStatistic;
     using EventFunctionT = solid_function_t(void(ReactorContext&, EventBase&&));
 
     bool start();
@@ -60,7 +117,7 @@ public:
     void run();
 
 protected:
-    Reactor(SchedulerBase& _rsched, const size_t _schedidx, const size_t _wake_capacity);
+    Reactor(SchedulerBase& _rsched, StatisticT& _rstatistic, const size_t _schedidx, const size_t _wake_capacity);
     ~Reactor();
 
     size_t pushWakeIndex() noexcept
@@ -282,8 +339,8 @@ public:
     using ActorT = Actor;
     using EventT = Evnt;
 
-    Reactor(SchedulerBase& _rsched, const size_t _sched_idx, const size_t _wake_capacity)
-        : impl::Reactor(_rsched, _sched_idx, _wake_capacity)
+    Reactor(SchedulerBase& _rsched, StatisticT& _rstatistic, const size_t _sched_idx, const size_t _wake_capacity)
+        : impl::Reactor(_rsched, _rstatistic, _sched_idx, _wake_capacity)
         , wake_arr_(new WakeStubT[_wake_capacity])
     {
     }
@@ -307,9 +364,13 @@ public:
             rstub.notifyWhilePush();
         }
         if (notify) {
-            std::lock_guard<std::mutex> lock(mutex());
-            notifyOne();
+            {
+                std::lock_guard<std::mutex> lock(mutex());
+                notifyOne();
+            }
+            rstatistic_.pushNotify();
         }
+        rstatistic_.push();
         return true;
     }
 
@@ -323,7 +384,7 @@ public:
             const auto index = pushWakeIndex();
             auto&      rstub = wake_arr_[index];
 
-            rstub.waitWhilePush();
+            rstub.waitWhilePush(rstatistic_);
 
             rstub.reset(uid, std::move(_revent), std::move(_ract), &_rsvc);
 
@@ -333,9 +394,13 @@ public:
         }
 
         if (notify) {
-            std::lock_guard<std::mutex> lock(mutex());
-            notifyOne();
+            {
+                std::lock_guard<std::mutex> lock(mutex());
+                notifyOne();
+            }
+            rstatistic_.pushNotify();
         }
+        rstatistic_.push();
         return true;
     }
 
@@ -347,7 +412,7 @@ private:
             const auto index = pushWakeIndex();
             auto&      rstub = wake_arr_[index];
 
-            rstub.waitWhilePush();
+            rstub.waitWhilePush(rstatistic_);
 
             rstub.reset(_ractuid, _revent);
 
@@ -356,9 +421,13 @@ private:
             rstub.notifyWhilePush();
         }
         if (notify) {
-            std::lock_guard<std::mutex> lock(mutex());
-            notifyOne();
+            {
+                std::lock_guard<std::mutex> lock(mutex());
+                notifyOne();
+            }
+            rstatistic_.wakeNotify();
         }
+        rstatistic_.wake();
         return true;
     }
     bool wake(UniqueId const& _ractuid, EventBase&& _revent) override
@@ -368,7 +437,7 @@ private:
             const auto index = pushWakeIndex();
             auto&      rstub = wake_arr_[index];
 
-            rstub.waitWhilePush();
+            rstub.waitWhilePush(rstatistic_);
 
             rstub.reset(_ractuid, std::move(_revent));
 
@@ -377,9 +446,13 @@ private:
             rstub.notifyWhilePush();
         }
         if (notify) {
-            std::lock_guard<std::mutex> lock(mutex());
-            notifyOne();
+            {
+                std::lock_guard<std::mutex> lock(mutex());
+                notifyOne();
+                rstatistic_.wakeNotify();
+            }
         }
+        rstatistic_.wake();
         return true;
     }
 
@@ -389,6 +462,7 @@ private:
         exec_q_.back().exec_fnc_               = std::move(_revent_fnc);
         exec_q_.back().completion_handler_uid_ = _completion_handler_uid;
         current_exec_size_                     = exec_q_.size();
+        rstatistic_.post();
     }
 
     void doStopActorRepost(ReactorContext& _rctx, const UniqueId& _completion_handler_uid) override
@@ -408,6 +482,7 @@ private:
         exec_q_.back().exec_fnc_               = &stop_actor_repost;
         exec_q_.back().completion_handler_uid_ = _completion_handler_uid;
         current_exec_size_                     = exec_q_.size();
+        rstatistic_.postStop();
     }
 
     void doCompleteEvents(NanoTime const& _rcrttime, const UniqueId& _completion_handler_uid) override
@@ -422,6 +497,7 @@ private:
             if (rstub.isFilled()) {
                 if (rstub.actor_ptr_) [[unlikely]] {
                     ++actor_count_;
+                    rstatistic_.actorCount(actor_count_);
                     addActor(rstub.uid_, *rstub.pservice_, std::move(rstub.actor_ptr_));
                 }
                 exec_q_.push(ExecStubT(rstub.uid_, &call_actor_on_event, _completion_handler_uid, std::move(rstub.event_)));
@@ -439,6 +515,8 @@ private:
     {
         ReactorContext ctx(context(_rcrttime));
         size_t         sz = exec_q_.size();
+
+        rstatistic_.execSize(sz);
 
         while ((sz--) != 0) {
             auto& rexec(exec_q_.front());

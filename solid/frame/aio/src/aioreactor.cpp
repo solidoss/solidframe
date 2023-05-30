@@ -340,11 +340,12 @@ struct impl::Reactor::Data {
 //-----------------------------------------------------------------------------
 namespace impl {
 Reactor::Reactor(
-    SchedulerBase& _rsched,
+    SchedulerBase& _rsched, StatisticT& _rstatistic,
     const size_t _idx, const size_t _wake_capacity)
     : ReactorBase(_rsched, _idx)
     , impl_(make_pimpl<Data>())
     , wake_capacity_(_wake_capacity)
+    , rstatistic_(_rstatistic)
 {
     solid_log(logger, Verbose, "");
 }
@@ -735,6 +736,11 @@ void Reactor::pushFreeUids()
     impl_->freeuid_vec_.clear();
 }
 
+bool Reactor::emptyFreeUids() const
+{
+    return impl_->freeuid_vec_.empty();
+}
+
 UniqueId Reactor::popUid(Actor& _ractor)
 {
     return ReactorBase::popUid(_ractor);
@@ -785,6 +791,7 @@ void Reactor::doStopActor(ReactorContext& _rctx)
 
     ras.clear();
     --actor_count_;
+    rstatistic_.actorCount(actor_count_);
     this->impl_->freeuid_vec_.push_back(UniqueId(_rctx.actor_index_, ras.unique_));
 }
 
@@ -1419,6 +1426,38 @@ bool EventHandler::init()
     dev_.makeNonBlocking();
 #endif
     return true;
+}
+
+//=============================================================================
+//      ReactorStatistic
+//=============================================================================
+std::ostream& ReactorStatistic::print(std::ostream& _ros) const
+{
+    ReactorStatisticBase::print(_ros);
+    _ros << " push_notify_count = " << push_notify_count_;
+    _ros << " push_count = " << push_count_;
+    _ros << " wake_notify_count = " << wake_notify_count_;
+    _ros << " wake_count = " << wake_count_;
+    _ros << " post_count = " << post_count_;
+    _ros << " post_stop_count = " << post_stop_count_;
+    _ros << " max_exec_size = " << max_exec_size_;
+    _ros << " actor_count = " << actor_count_;
+    _ros << " max_actor_count = " << max_actor_count_;
+    return _ros;
+}
+
+void ReactorStatistic::clear()
+{
+    ReactorStatisticBase::clear();
+    push_notify_count_ = 0;
+    push_count_        = 0;
+    wake_notify_count_ = 0;
+    wake_count_        = 0;
+    post_count_        = 0;
+    post_stop_count_   = 0;
+    max_exec_size_     = 0;
+    actor_count_       = 0;
+    max_actor_count_   = 0;
 }
 
 } // namespace aio

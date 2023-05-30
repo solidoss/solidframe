@@ -191,7 +191,7 @@ int test_event_stress(int argc, char* argv[])
         account_device_count = make_number(argv[4]);
     }
 
-    solid::log_start(std::cerr, {".*:EWX"});
+    solid::log_start(std::cerr, {".*:EWXS"});
 
     auto lambda = [&]() {
         ErrorConditionT err;
@@ -224,6 +224,9 @@ int test_event_stress(int argc, char* argv[])
         auto fut = prom.get_future();
         solid_check(fut.wait_for(chrono::seconds(wait_seconds)) == future_status::ready);
         fut.get();
+        solid_log(logger, Statistic, "ConnectionScheduler: " << connection_scheduler.statistic());
+        solid_log(logger, Statistic, "AccountScheduler: " << account_scheduler.statistic());
+        solid_log(logger, Statistic, "DeviceScheduler: " << device_scheduler.statistic());
     };
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {

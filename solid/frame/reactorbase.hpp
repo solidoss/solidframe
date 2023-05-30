@@ -15,6 +15,7 @@
 #include "solid/utility/atomic_wait"
 #endif
 #include "solid/frame/actorbase.hpp"
+#include "solid/system/statistic.hpp"
 #include "solid/utility/stack.hpp"
 
 namespace solid {
@@ -23,6 +24,25 @@ namespace frame {
 
 class Manager;
 class SchedulerBase;
+
+struct ReactorStatisticBase : solid::Statistic {
+
+    std::atomic_uint64_t push_while_wait_lock_count_    = {0};
+    std::atomic_uint64_t push_while_wait_pushing_count_ = {0};
+
+    void pushWhileWaitLock()
+    {
+        ++push_while_wait_lock_count_;
+    }
+    void pushWhileWaitPushing()
+    {
+        ++push_while_wait_pushing_count_;
+    }
+
+    std::ostream& print(std::ostream& _ros) const override;
+
+    void clear();
+};
 
 namespace impl {
 
@@ -43,7 +63,7 @@ struct WakeStubBase {
 #endif
     std::atomic_uint8_t lock_ = {to_underlying(LockE::Empty)};
 
-    void waitWhilePush() noexcept
+    void waitWhilePush(ReactorStatisticBase& _rstats) noexcept
     {
         while (true) {
 #if defined(__cpp_lib_atomic_wait)
@@ -61,6 +81,8 @@ struct WakeStubBase {
                         std::atomic_wait(&lock_, value);
                         value = lock_.load();
                     } while (value != to_underlying(LockE::Empty));
+
+                    _rstats.pushWhileWaitLock();
                 }
                 return;
             } else {
@@ -69,6 +91,7 @@ struct WakeStubBase {
 #else
                 std::atomic_wait(&pushing_, true);
 #endif
+                _rstats.pushWhileWaitPushing();
             }
         }
     }
