@@ -9,10 +9,13 @@
 //
 
 #pragma once
-
+#include <atomic>
+#include <memory>
+#if !defined(__cpp_lib_atomic_wait)
+#include "solid/utility/atomic_wait"
+#endif
 #include "solid/frame/actorbase.hpp"
 #include "solid/utility/stack.hpp"
-#include <memory>
 
 namespace solid {
 class EventBase;
@@ -20,6 +23,81 @@ namespace frame {
 
 class Manager;
 class SchedulerBase;
+
+namespace impl {
+
+enum struct LockE : uint8_t {
+    Empty = 0,
+    Filled,
+    Stop,
+    Wake,
+};
+
+struct WakeStubBase {
+#if defined(__cpp_lib_atomic_wait)
+    std::atomic_flag pushing_ = ATOMIC_FLAG_INIT;
+    std::atomic_flag popping_ = ATOMIC_FLAG_INIT;
+#else
+    std::atomic_bool pushing_ = {false};
+    std::atomic_bool popping_ = {false};
+#endif
+    std::atomic_uint8_t lock_ = {to_underlying(LockE::Empty)};
+
+    void waitWhilePush() noexcept
+    {
+        while (true) {
+#if defined(__cpp_lib_atomic_wait)
+            const bool already_pushing = pushing_.test_and_set(std::memory_order_acquire);
+#else
+            bool       expected        = false;
+            const bool already_pushing = !pushing_.compare_exchange_strong(expected, true, std::memory_order_acquire);
+#endif
+            if (!already_pushing) {
+                //  wait for lock to be 0.
+                auto value = lock_.load();
+                if (value != to_underlying(LockE::Empty)) {
+
+                    do {
+                        std::atomic_wait(&lock_, value);
+                        value = lock_.load();
+                    } while (value != to_underlying(LockE::Empty));
+                }
+                return;
+            } else {
+#if defined(__cpp_lib_atomic_wait)
+                pushing_.wait(true);
+#else
+                std::atomic_wait(&pushing_, true);
+#endif
+            }
+        }
+    }
+
+    void notifyWhilePush() noexcept
+    {
+        lock_.store(to_underlying(LockE::Filled));
+#if defined(__cpp_lib_atomic_wait)
+        pushing_.clear(std::memory_order_release);
+        pushing_.notify_one();
+#else
+        pushing_.store(false, std::memory_order_release);
+        std::atomic_notify_one(&pushing_);
+#endif
+    }
+
+    void notifyWhilePop() noexcept
+    {
+        lock_.store(to_underlying(LockE::Empty));
+        std::atomic_notify_one(&lock_);
+    }
+
+    bool isFilled() const noexcept
+    {
+        return lock_.load() == to_underlying(LockE::Filled);
+    }
+};
+
+} // namespace impl
 
 //! The base for every selector
 /*!

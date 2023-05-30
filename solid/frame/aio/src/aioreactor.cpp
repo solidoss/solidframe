@@ -243,10 +243,10 @@ struct impl::Reactor::Data {
 #endif
 
 #if defined(SOLID_USE_EPOLL2) || defined(SOLID_USE_KQUEUE)
-    NanoTime computeWaitDuration(NanoTime const& _rcrt, const bool _exec_q_empty) const
+    NanoTime computeWaitDuration(NanoTime const& _rcrt, const bool _can_wait) const
     {
 
-        if (!_exec_q_empty) {
+        if (!_can_wait) {
             return NanoTime();
         } else if (!time_store_.empty()) {
 
@@ -269,10 +269,10 @@ struct impl::Reactor::Data {
         }
     }
 #elif defined(SOLID_USE_EPOLL)
-    int          computeWaitDuration(NanoTime const& _rcrt, const bool _exec_q_empty) const
+    int          computeWaitDuration(NanoTime const& _rcrt, const bool _can_wait) const
     {
 
-        if (!_exec_q_empty) {
+        if (!_can_wait) {
             return 0;
         }
 
@@ -297,9 +297,9 @@ struct impl::Reactor::Data {
         return -1;
     }
 #elif defined(SOLID_USE_WSAPOLL)
-    int computeWaitDuration(NanoTime const& _rcrt, const bool _exec_q_empty) const
+    int computeWaitDuration(NanoTime const& _rcrt, const bool _can_wait) const
     {
-        if (!_exec_q_empty) {
+        if (!_can_wait) {
             return 0;
         } else if (!time_store_.empty()) {
 
@@ -341,9 +341,10 @@ struct impl::Reactor::Data {
 namespace impl {
 Reactor::Reactor(
     SchedulerBase& _rsched,
-    const size_t   _idx)
+    const size_t _idx, const size_t _wake_capacity)
     : ReactorBase(_rsched, _idx)
     , impl_(make_pimpl<Data>())
+    , wake_capacity_(_wake_capacity)
 {
     solid_log(logger, Verbose, "");
 }
@@ -437,7 +438,7 @@ void Reactor::run()
 
         crtload = actor_count_ + impl_->device_count_ + current_exec_size_;
 #if defined(SOLID_USE_EPOLL2)
-        waittime = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0);
+        waittime = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0 && pending_wake_count_.load() == 0);
 
         solid_log(logger, Verbose, "epoll_wait wait = " << waittime << ' ' << impl_->reactor_fd_ << ' ' << impl_->event_vec_.size());
         selcnt = epoll_pwait2(impl_->reactor_fd_, impl_->event_vec_.data(), static_cast<int>(impl_->event_vec_.size()), waittime != NanoTime::max() ? &waittime : nullptr, nullptr);
@@ -445,19 +446,19 @@ void Reactor::run()
             ++waitcnt;
         }
 #elif defined(SOLID_USE_EPOLL)
-        waitmsec = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0);
+        waitmsec = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0 && pending_wake_count_.load() == 0);
 
         solid_log(logger, Verbose, "epoll_wait wait = " << waitmsec);
 
         selcnt = epoll_wait(impl_->reactor_fd_, impl_->event_vec_.data(), static_cast<int>(impl_->event_vec_.size()), waitmsec);
 #elif defined(SOLID_USE_KQUEUE)
-        waittime = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0);
+        waittime = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0 && pending_wake_count_.load() == 0);
 
         solid_log(logger, Verbose, "kqueue wait = " << waittime);
 
         selcnt = kevent(impl_->reactor_fd_, nullptr, 0, impl_->event_vec_.data(), static_cast<int>(impl_->event_vec_.size()), waittime != NanoTime::max() ? &waittime : nullptr);
 #elif defined(SOLID_USE_WSAPOLL)
-        waitmsec = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0);
+        waitmsec = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0 && pending_wake_count_.load() == 0);
         solid_log(logger, Verbose, "wsapoll wait msec = " << waitmsec);
         selcnt = WSAPoll(impl_->event_vec_.data(), impl_->event_vec_.size(), waitmsec);
 #endif

@@ -271,6 +271,7 @@ bool Reactor::isValid(UniqueId const& _actor_uid, UniqueId const& _completion_ha
 {
     ActorStub&             ras(impl_->actor_dq_[static_cast<size_t>(_actor_uid.index)]);
     CompletionHandlerStub& rcs(impl_->completion_handler_dq_[static_cast<size_t>(_completion_handler_uid.index)]);
+    solid_assert(ras.actor_ptr_);
     return ras.unique_ == _actor_uid.unique && rcs.unique_ == _completion_handler_uid.unique;
 }
 
@@ -337,7 +338,7 @@ bool Reactor::doWaitEvent(NanoTime const& _rcrttime, const bool _exec_q_empty)
     auto                    wait_duration = impl_->computeWaitDuration(_rcrttime, _exec_q_empty);
     unique_lock<std::mutex> lock(impl_->mutex_);
 
-    if (current_push_size_ == 0u && pending_wake_count_.load() == 0u && !impl_->must_stop_) {
+    if (pending_wake_count_.load() == 0u && !impl_->must_stop_) {
         if (wait_duration) {
             const auto nanosecs = wait_duration.durationCast<std::chrono::nanoseconds>();
             impl_->cnd_var_.wait_for(lock, nanosecs);
@@ -351,24 +352,14 @@ bool Reactor::doWaitEvent(NanoTime const& _rcrttime, const bool _exec_q_empty)
         impl_->must_stop_ = false;
     }
 
-    if (current_push_size_ != 0u) {
-        current_push_size_ = 0;
+    if (pending_wake_count_.load() != 0u) {
         for (auto& v : impl_->freeuid_vec_) {
             this->pushUid(v);
         }
         impl_->freeuid_vec_.clear();
-
-        current_push_index_ = ((current_push_index_ + 1) & 1);
-        rv                  = true;
+        rv = true;
     }
-#if false
-    if (current_wake_size_ != 0u) {
-        current_wake_size_  = 0;
-        current_wake_index_ = ((current_wake_index_ + 1) & 1);
-        rv                  = true;
-    }
-#endif
-    return rv || pending_wake_count_.load() != 0u;
+    return rv;
 }
 
 UniqueId Reactor::popUid(Actor& _ractor)

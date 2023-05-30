@@ -16,11 +16,7 @@
 #include "solid/system/pimpl.hpp"
 #include "solid/utility/event.hpp"
 #include "solid/utility/queue.hpp"
-#include <atomic>
 #include <mutex>
-#if !defined(__cpp_lib_atomic_wait)
-#include "solid/utility/atomic_wait"
-#endif
 
 namespace solid {
 
@@ -53,9 +49,7 @@ protected:
     std::atomic_size_t push_wake_index_    = {0};
     std::atomic_size_t pop_wake_index_     = {0};
     std::atomic_size_t pending_wake_count_ = {0};
-    uint32_t           current_push_index_ = 0;
     size_t             actor_count_        = 0;
-    size_t             current_push_size_  = 0;
     size_t             current_exec_size_  = 0;
 
 public:
@@ -228,86 +222,20 @@ struct ExecStub {
         std::swap(exec_fnc_, _other.exec_fnc_);
     }
 };
-enum struct LockE : uint8_t {
-    Empty = 0,
-    Filled,
-    Stop,
-    Wake,
-};
-
-struct WakeStubBase {
-#if defined(__cpp_lib_atomic_wait)
-    std::atomic_flag pushing_ = ATOMIC_FLAG_INIT;
-    std::atomic_flag popping_ = ATOMIC_FLAG_INIT;
-#else
-    std::atomic_bool pushing_ = {false};
-    std::atomic_bool popping_ = {false};
-#endif
-    std::atomic_uint8_t lock_ = {to_underlying(LockE::Empty)};
-
-    void waitWhilePush() noexcept
-    {
-        while (true) {
-#if defined(__cpp_lib_atomic_wait)
-            const bool already_pushing = pushing_.test_and_set(std::memory_order_acquire);
-#else
-            bool       expected        = false;
-            const bool already_pushing = !pushing_.compare_exchange_strong(expected, true, std::memory_order_acquire);
-#endif
-            if (!already_pushing) {
-                //  wait for lock to be 0.
-                auto value = lock_.load();
-                if (value != to_underlying(LockE::Empty)) {
-
-                    do {
-                        std::atomic_wait(&lock_, value);
-                        value = lock_.load();
-                    } while (value != to_underlying(LockE::Empty));
-                }
-                return;
-            } else {
-#if defined(__cpp_lib_atomic_wait)
-                pushing_.wait(true);
-#else
-                std::atomic_wait(&pushing_, true);
-#endif
-            }
-        }
-    }
-
-    void notifyWhilePush() noexcept
-    {
-        lock_.store(to_underlying(LockE::Filled));
-#if defined(__cpp_lib_atomic_wait)
-        pushing_.clear(std::memory_order_release);
-        pushing_.notify_one();
-#else
-        pushing_.store(false, std::memory_order_release);
-        std::atomic_notify_one(&pushing_);
-#endif
-    }
-
-    void notifyWhilePop() noexcept
-    {
-        lock_.store(to_underlying(LockE::Empty));
-        std::atomic_notify_one(&lock_);
-    }
-
-    bool isFilled() const noexcept
-    {
-        return lock_.load() == to_underlying(LockE::Filled);
-    }
-};
 
 template <class Evnt>
 struct WakeStub : WakeStubBase {
-    UniqueId uid_;
-    Evnt     event_;
+    UniqueId      uid_;
+    Evnt          event_;
+    ActorPointerT actor_ptr_;
+    Service*      pservice_ = nullptr;
 
     void clear() noexcept
     {
         uid_.clear();
         event_.reset();
+        actor_ptr_.reset();
+        pservice_ = nullptr;
     }
 
     void reset(UniqueId const& _ruid, EventBase const& _revent)
@@ -321,30 +249,21 @@ struct WakeStub : WakeStubBase {
         uid_   = _ruid;
         event_ = std::move(_uevent);
     }
-};
 
-template <class Evnt>
-struct PushStub {
-    UniqueId      uid_;
-    ActorPointerT actor_ptr_;
-    Service&      rservice_;
-    Evnt          event_;
-
-    PushStub(
-        UniqueId const& _ruid, ActorPointerT&& _ractptr, Service& _rsvc, EventBase const& _revent)
-        : uid_(_ruid)
-        , actor_ptr_(std::move(_ractptr))
-        , rservice_(_rsvc)
-        , event_(_revent)
+    void reset(UniqueId const& _ruid, EventBase const& _revent, ActorPointerT&& _actor_ptr, Service* _pservice)
     {
+        uid_       = _ruid;
+        event_     = _revent;
+        actor_ptr_ = std::move(_actor_ptr);
+        pservice_  = _pservice;
     }
-    PushStub(
-        UniqueId const& _ruid, ActorPointerT&& _ractptr, Service& _rsvc, EventBase&& _revent)
-        : uid_(_ruid)
-        , actor_ptr_(std::move(_ractptr))
-        , rservice_(_rsvc)
-        , event_(std::move(_revent))
+
+    void reset(UniqueId const& _ruid, EventBase&& _uevent, ActorPointerT&& _actor_ptr, Service* _pservice)
     {
+        uid_       = _ruid;
+        event_     = std::move(_uevent);
+        actor_ptr_ = std::move(_actor_ptr);
+        pservice_  = _pservice;
     }
 };
 
@@ -353,13 +272,10 @@ struct PushStub {
 template <class Evnt>
 class Reactor : public impl::Reactor {
     using ExecStubT  = impl::ExecStub<Evnt>;
-    using PushStubT  = impl::PushStub<Evnt>;
     using WakeStubT  = impl::WakeStub<Evnt>;
     using ExecQueueT = Queue<ExecStubT>;
-    using PushQueueT = Queue<PushStubT>;
 
     ExecQueueT                   exec_q_;
-    PushQueueT                   push_q_[2];
     std::unique_ptr<WakeStubT[]> wake_arr_;
 
 public:
@@ -376,14 +292,22 @@ public:
     {
         bool notify = false;
         {
-            std::lock_guard<std::mutex> lock(mutex());
-            const UniqueId              uid     = this->popUid(*_ract);
-            auto&                       rpush_q = push_q_[current_push_index_];
-            notify                              = rpush_q.empty();
-            rpush_q.push(PushStubT(uid, std::move(_ract), _rsvc, _revent));
-            current_push_size_ = rpush_q.size();
+            mutex().lock();
+            const UniqueId uid = this->popUid(*_ract);
+            mutex().unlock();
+            const auto index = pushWakeIndex();
+            auto&      rstub = wake_arr_[index];
+
+            rstub.waitWhilePush();
+
+            rstub.reset(uid, _revent, std::move(_ract), &_rsvc);
+
+            notify = pending_wake_count_.fetch_add(1) == 0;
+
+            rstub.notifyWhilePush();
         }
         if (notify) {
+            std::lock_guard<std::mutex> lock(mutex());
             notifyOne();
         }
         return true;
@@ -393,14 +317,23 @@ public:
     {
         bool notify = false;
         {
-            std::lock_guard<std::mutex> lock(mutex());
-            const UniqueId              uid     = this->popUid(*_ract);
-            auto&                       rpush_q = push_q_[current_push_index_];
-            notify                              = rpush_q.empty();
-            rpush_q.push(PushStubT(uid, std::move(_ract), _rsvc, std::move(_revent)));
-            current_push_size_ = rpush_q.size();
+            mutex().lock();
+            const UniqueId uid = this->popUid(*_ract);
+            mutex().unlock();
+            const auto index = pushWakeIndex();
+            auto&      rstub = wake_arr_[index];
+
+            rstub.waitWhilePush();
+
+            rstub.reset(uid, std::move(_revent), std::move(_ract), &_rsvc);
+
+            notify = pending_wake_count_.fetch_add(1) == 0;
+
+            rstub.notifyWhilePush();
         }
+
         if (notify) {
+            std::lock_guard<std::mutex> lock(mutex());
             notifyOne();
         }
         return true;
@@ -481,25 +414,16 @@ private:
     {
         solid_log(frame_logger, Verbose, "");
 
-        PushQueueT&    push_q = push_q_[(current_push_index_ + 1) & 1];
         ReactorContext ctx(context(_rcrttime));
-
-        actor_count_ += push_q.size();
-
-        while (!push_q.empty()) {
-            auto& rstub = push_q.front();
-
-            addActor(rstub.uid_, rstub.rservice_, std::move(rstub.actor_ptr_));
-
-            exec_q_.push(ExecStubT(rstub.uid_, &call_actor_on_event, _completion_handler_uid, std::move(rstub.event_)));
-            push_q.pop();
-            current_exec_size_ = exec_q_.size();
-        }
 
         while (true) {
             const size_t index = pop_wake_index_.load() % wake_capacity_;
             auto&        rstub = wake_arr_[index];
             if (rstub.isFilled()) {
+                if (rstub.actor_ptr_) [[unlikely]] {
+                    ++actor_count_;
+                    addActor(rstub.uid_, *rstub.pservice_, std::move(rstub.actor_ptr_));
+                }
                 exec_q_.push(ExecStubT(rstub.uid_, &call_actor_on_event, _completion_handler_uid, std::move(rstub.event_)));
                 --pending_wake_count_;
                 ++pop_wake_index_;
@@ -509,16 +433,6 @@ private:
                 break;
             }
         }
-
-#if false
-        while (!wake_q.empty()) {
-            auto& rstub = wake_q.front();
-
-            exec_q_.push(ExecStubT(rstub.uid_, &call_actor_on_event, _completion_handler_uid, std::move(rstub.event_)));
-            wake_q.pop();
-            current_exec_size_ = exec_q_.size();
-        }
-#endif
     }
 
     void doCompleteExec(NanoTime const& _rcrttime) override
