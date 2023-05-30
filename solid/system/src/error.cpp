@@ -13,7 +13,7 @@
 #include <sstream>
 #ifdef SOLID_ON_WINDOWS
 #define NOMINMAX
-#include <Windows.h>
+#include <windows.h>
 #endif
 
 namespace solid {

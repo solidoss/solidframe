@@ -12,7 +12,7 @@
 #ifdef SOLID_ON_WINDOWS
 #define NOMINMAX
 #include <WinSock2.h>
-#include <Windows.h>
+#include <windows.h>
 
 #include <Mstcpip.h>
 

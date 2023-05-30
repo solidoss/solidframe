@@ -12,7 +12,7 @@
 
 #ifdef SOLID_ON_WINDOWS
 #define NOMINMAX
-#include <Windows.h>
+#include <windows.h>
 #else
 #include <unistd.h>
 #endif
