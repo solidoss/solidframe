@@ -185,7 +185,7 @@ private:
 int test_clientserver_timeout_secure(int argc, char* argv[])
 {
 
-    solid::log_start(std::cerr, {".*:EW", "\\*:VIEW"});
+    solid::log_start(std::clog, {".*:EW", "\\*:VIEW"});
     int connection_count = 10;
 
     if (argc > 1) {
@@ -215,12 +215,10 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
         CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
         frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
         frame::ServiceT        svc_client{m};
-
         async_resolver(&resolver);
-
         sch_client.start(1);
         sch_server.start(1);
-
+        
         { // mprpc server initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
@@ -245,7 +243,7 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
                 cfg.server.connection_timeout_active = 1000s;
                 cfg.server.connection_timeout_secure = 5s;
 
-                solid_dbg(generic_logger, Info, "Configure SSL server -------------------------------------");
+                solid_log(generic_logger, Info, "Configure SSL server -------------------------------------");
                 frame::mprpc::openssl::setup_server(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
@@ -270,12 +268,12 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
                 std::ostringstream oss;
                 oss << start_status.listen_addr_vec_.back().port();
                 server_port = oss.str();
-                solid_dbg(generic_logger, Info, "server listens on: " << start_status.listen_addr_vec_.back());
+                solid_log(generic_logger, Info, "server listens on: " << start_status.listen_addr_vec_.back());
             }
         }
 
         wait_count = connection_count;
-
+        
         for (int i = 0; i < connection_count; ++i) {
             solid::ErrorConditionT err;
             solid::frame::ActorIdT actuid;
@@ -285,9 +283,10 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
             if (actuid.isInvalid()) {
                 solid_check(false);
             }
-            solid_dbg(generic_logger, Info, "Started Connection Actor: " << actuid.index << ',' << actuid.unique);
+            solid_log(generic_logger, Info, "Started Connection Actor: " << actuid.index << ',' << actuid.unique);
         }
-
+        
+        
         unique_lock<mutex> lock(mtx);
 
         if (!cnd.wait_for(lock, std::chrono::seconds(50), []() { return !running; })) {
