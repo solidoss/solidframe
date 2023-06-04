@@ -59,7 +59,7 @@ public:
     using ServiceMutexT = std::mutex;
 
     class VisitContext {
-        using ActorRunIdT = decltype(std::declval<ActorBase>().runId());
+        using ActorRunIdT = std::decay_t<decltype(std::declval<ActorBase>().runId())>;
         friend class Manager;
         Manager&          rmanager_;
         ReactorBasePtrT   reactor_ptr_;
