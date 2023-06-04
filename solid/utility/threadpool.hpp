@@ -1049,7 +1049,6 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
         const size_t index                   = popOneIndex();
         auto&        rstub                   = one_tasks_[index];
         uint64_t     local_one_context_count = 0;
-        const auto   local_all_id            = local_context.next_all_id_;
         const auto   event                   = rstub.waitWhilePop(
             statistic_,
             [this, &local_context](
