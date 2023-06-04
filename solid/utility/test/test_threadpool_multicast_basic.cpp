@@ -55,7 +55,7 @@ int test_threadpool_multicast_basic(int argc, char* argv[])
                     },
                     [&all_val](const size_t _v) { // mcast execute
                         const uint32_t value  = static_cast<uint32_t>(_v);
-                        uint32_t expect = thread_local_value;
+                        uint32_t       expect = thread_local_value;
                         all_val.compare_exchange_strong(expect, value);
 
                         thread_local_value = value;

@@ -17,8 +17,8 @@
 #if !defined(__cpp_lib_atomic_wait)
 #include "solid/utility/atomic_wait"
 #endif
-#include "solid/system/log.hpp"
 #include "solid/system/exception.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/spinlock.hpp"
 #include "solid/system/statistic.hpp"
 #include "solid/utility/common.hpp"
@@ -425,7 +425,7 @@ private:
                     //  wait for lock to be 0.
                     uint8_t value = to_underlying(LockE::Empty);
 
-                    if (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing))){
+                    if (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing))) {
                         do {
                             std::atomic_wait(&lock_, value);
                             value = to_underlying(LockE::Empty);
@@ -512,9 +512,8 @@ private:
                 if (!already_popping) {
                     // wait for lock to be 1 or 2.
                     uint8_t value = to_underlying(LockE::Filled);
-                    
-                    if (!lock_.compare_exchange_weak(value, to_underlying(LockE::Popping)))
-                    {
+
+                    if (!lock_.compare_exchange_weak(value, to_underlying(LockE::Popping))) {
                         do {
                             if (!_try_consume_an_all_fnc(&lock_, _all_fnc, std::forward<Args>(_args)...)) {
                                 std::atomic_wait(&lock_, value);
@@ -1052,17 +1051,17 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
         const size_t index                   = popOneIndex();
         auto&        rstub                   = one_tasks_[index];
         uint64_t     local_one_context_count = 0;
-        const auto         local_all_id            = local_context.next_all_id_;
-        const auto   event                    = rstub.waitWhilePop(
+        const auto   local_all_id            = local_context.next_all_id_;
+        const auto   event                   = rstub.waitWhilePop(
             statistic_,
             [this, &local_context](
                 std::atomic_uint8_t* _plock,
                 AllFnc&              _all_fnc,
                 Args&&... _args) {
-                    //we need to make sure that, after processing an all_task, no new one_task can have
-                    // the all_id less than the all task that we have just processed.
-                    return tryConsumeAnAllTask(_plock, local_context, _all_fnc, std::forward<Args>(_args)...);
-                },
+                // we need to make sure that, after processing an all_task, no new one_task can have
+                //  the all_id less than the all task that we have just processed.
+                return tryConsumeAnAllTask(_plock, local_context, _all_fnc, std::forward<Args>(_args)...);
+            },
             _all_fnc,
             std::forward<Args>(_args)...);
 
@@ -1152,12 +1151,12 @@ bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(std::atomic_uint8_
 {
     auto& rstub = all_tasks_[_rlocal_context.next_all_id_ % all_capacity_];
     if (rstub.isFilled(_rlocal_context.next_all_id_)) {
-        //NOTE: first we fetch the commited_all_index than we check if the
-        // current stub is reserved (some thread is starting to push something)
-        // - this is to ensure that we are not processing an all task prior to being
-        // used by any one task. This is guranteed because when adding a new one task,
-        // before attaching the last commited_all_index to the current one task,
-        // we're atomicaly marking the one stub as Pushing.
+        // NOTE: first we fetch the commited_all_index than we check if the
+        //  current stub is reserved (some thread is starting to push something)
+        //  - this is to ensure that we are not processing an all task prior to being
+        //  used by any one task. This is guranteed because when adding a new one task,
+        //  before attaching the last commited_all_index to the current one task,
+        //  we're atomicaly marking the one stub as Pushing.
         const auto commited_all_index = commited_all_index_.load();
 
         if (_plock && *_plock != to_underlying(LockE::Empty)) {
@@ -1166,7 +1165,7 @@ bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(std::atomic_uint8_
             //  were produced.
             return false; // will wait on lock
         }
-        
+
         if (_rlocal_context.next_all_id_ > commited_all_index) {
             cpu_pause();
             return true;
@@ -1246,7 +1245,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushAll(Tsk&& _task)
     const auto shoud_wake_threads = pending_all_count_.fetch_add(1) == 0;
 
     rstub.notifyWhilePushAll(static_cast<uint32_t>(threads_.size()), id);
-    
+
     commitAllId(id);
 
     if (shoud_wake_threads) {

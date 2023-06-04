@@ -857,8 +857,8 @@ size_t Manager::doForEachServiceActor(const size_t _first_actor_chunk, const Act
     while (chunk_index != InvalidIndex()) {
 
         std::unique_lock<ChunkMutexT> chunk_lock;
-        ActorChunkPtrT&               rchunk_ptr = pimpl_->chunk(chunk_index * pimpl_->actor_chunk_size_, chunk_lock);
-        ActorChunk&                   rchunk     = *rchunk_ptr;
+        ActorChunkPtrT&               rchunk_ptr  = pimpl_->chunk(chunk_index * pimpl_->actor_chunk_size_, chunk_lock);
+        ActorChunk&                   rchunk      = *rchunk_ptr;
         const size_t                  actor_count = rchunk.actor_count_;
 
         for (size_t i{0}, cnt{0}; i < pimpl_->actor_chunk_size_ && cnt < std::max(actor_count, rchunk.actor_count_); ++i) {

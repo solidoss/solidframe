@@ -20,7 +20,7 @@ struct Context {
     std::atomic<size_t>   val{0};
 };
 
-const size_t worker_count = 4;
+const size_t worker_count = 2;
 
 } // namespace
 
@@ -76,7 +76,7 @@ int test_callpool_multicast_basic(int argc, char* argv[])
                                     [v = (i / 10 + 1)](Context& _rctx, deque<uint32_t>&) {
                                         uint32_t expect = thread_local_value;
                                         _rctx.all_val.compare_exchange_strong(expect, v);
-                                        solid_check_log(thread_local_value < v, logger, "" << thread_local_value << " < "<<v);
+                                        solid_check_log(thread_local_value < v, logger, "" << thread_local_value << " < " << v);
                                         thread_local_value = v;
                                     });
                             }
@@ -90,7 +90,7 @@ int test_callpool_multicast_basic(int argc, char* argv[])
                     cp.pushOne(
                         [i](Context& _rctx, deque<uint32_t>& _rdq) {
                             _rctx.val += i;
-                            solid_check_log(_rdq[i] == static_cast<uint32_t>(-1), logger, "push one check"<<i);
+                            solid_check_log(_rdq[i] == static_cast<uint32_t>(-1), logger, "push one check" << i);
                             _rdq[i] = thread_local_value;
                         });
                 };
