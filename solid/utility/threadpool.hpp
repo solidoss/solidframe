@@ -1045,8 +1045,6 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
 {
     LocalContext local_context;
 
-    auto prev_all_id = local_context.next_all_id_ - 1;
-
     while (true) {
         const size_t index                   = popOneIndex();
         auto&        rstub                   = one_tasks_[index];
@@ -1077,7 +1075,6 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
 
                 rstub.notifyWhilePop();
                 consumeAll(local_context, all_id, _all_fnc, std::forward<Args>(_args)...);
-                prev_all_id = all_id;
 
                 if (pctx == nullptr) {
                     _one_fnc(task, std::forward<Args>(_args)...);

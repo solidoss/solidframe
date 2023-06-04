@@ -144,12 +144,11 @@ public:
     size_t load() const;
 
 protected:
-    typedef std::atomic<size_t> AtomicSizeT;
+    std::atomic_size_t crtload = {0};
 
     ReactorBase(
         SchedulerBase& _rsch, const size_t _schidx, const size_t _crtidx = 0)
-        : crtload(0)
-        , rsch(_rsch)
+        : rsch(_rsch)
         , schidx(_schidx)
         , crtidx(_crtidx)
     {
@@ -159,8 +158,6 @@ protected:
     SchedulerBase& scheduler();
     UniqueId       popUid(ActorBase& _ract);
     void           pushUid(UniqueId const& _ruid);
-
-    AtomicSizeT crtload;
 
     size_t runIndex(ActorBase& _ract) const;
 
