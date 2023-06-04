@@ -54,10 +54,11 @@ int test_threadpool_multicast_basic(int argc, char* argv[])
                         // solid_log(logger, Verbose, "job "<<_v);
                     },
                     [&all_val](const size_t _v) { // mcast execute
+                        const uint32_t value  = static_cast<uint32_t>(_v);
                         uint32_t expect = thread_local_value;
-                        all_val.compare_exchange_strong(expect, _v);
+                        all_val.compare_exchange_strong(expect, value);
 
-                        thread_local_value = _v;
+                        thread_local_value = value;
                         // solid_log(logger, Verbose, "mcast");
                     }};
 

@@ -48,9 +48,8 @@ namespace impl {
 
 enum struct LockE : uint8_t {
     Empty = 0,
+    Pushing,
     Filled,
-    Stop,
-    Wake,
 };
 
 struct WakeStubBase {
@@ -74,14 +73,13 @@ struct WakeStubBase {
 #endif
             if (!already_pushing) {
                 //  wait for lock to be 0.
-                auto value = lock_.load();
-                if (value != to_underlying(LockE::Empty)) {
+                uint8_t value = to_underlying(LockE::Empty);
 
+                if (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing))) {
                     do {
                         std::atomic_wait(&lock_, value);
-                        value = lock_.load();
-                    } while (value != to_underlying(LockE::Empty));
-
+                        value = to_underlying(LockE::Empty);
+                    } while (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing)));
                     _rstats.pushWhileWaitLock();
                 }
                 return;
