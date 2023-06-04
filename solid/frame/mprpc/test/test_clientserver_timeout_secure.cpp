@@ -218,7 +218,7 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
         async_resolver(&resolver);
         sch_client.start(1);
         sch_server.start(1);
-        
+
         { // mprpc server initialization
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
@@ -273,7 +273,7 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
         }
 
         wait_count = connection_count;
-        
+
         for (int i = 0; i < connection_count; ++i) {
             solid::ErrorConditionT err;
             solid::frame::ActorIdT actuid;
@@ -285,8 +285,7 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
             }
             solid_log(generic_logger, Info, "Started Connection Actor: " << actuid.index << ',' << actuid.unique);
         }
-        
-        
+
         unique_lock<mutex> lock(mtx);
 
         if (!cnd.wait_for(lock, std::chrono::seconds(50), []() { return !running; })) {
