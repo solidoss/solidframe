@@ -164,8 +164,6 @@ protected:
     template <typename Function>
     void postActorStop(ReactorContext& _rctx, Function&& _f, EventBase&& _uev)
     {
-        using RealF = typename std::decay<Function>::type;
-
         struct StopActorF {
             Function function;
             bool     repost = true;
