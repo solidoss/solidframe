@@ -21,7 +21,7 @@ int getV(){
 }
 
 #ifdef _WIN32
-#include <Windows.h>
+#include <windows.h>
 
 static CRITICAL_SECTION cs;
 

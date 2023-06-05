@@ -246,7 +246,7 @@ protected:
     {
         EventData ed{_rctx.manager().id(*this), std::move(rbufptr_), _bufsz};
         rbufptr_ = std::move(ed.bufptr_->next_);
-
+#if false // TODO:vapa:refactor
         auto l = [&ed](frame::Manager::VisitContext& _rctx, Connection& _rcon) {
             if (_rcon.pushEventDataOnRecv(ed)) {
                 _rctx.wakeActor(make_event(GenericEventE::Wake));
@@ -255,10 +255,12 @@ protected:
         };
 
         _rctx.manager().visitExplicitCast<Connection>(peer_actuid_, l);
+#endif
     }
 
     void notifyPeerOnSend(frame::aio::ReactorContext& _rctx)
     {
+#if false // TODO:vapa:refactor
         auto& red = wpop_ed_vec[wpop_ed_vec_off++];
         auto  l   = [&red](frame::Manager::VisitContext& _rctx, Connection& _rcon) {
             if (_rcon.pushSentBuffer(std::move(red.bufptr_))) {
@@ -267,6 +269,7 @@ protected:
             return true;
         };
         _rctx.manager().visitExplicitCast<Connection>(red.senderid_, l);
+#endif
     }
 
     bool pushSentBuffer(BufferPtrT&& _rbufptr)

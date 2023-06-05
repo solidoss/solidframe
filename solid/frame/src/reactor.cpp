@@ -151,10 +151,12 @@ struct impl::Reactor::Data {
 namespace impl {
 
 Reactor::Reactor(
-    SchedulerBase& _rsched,
-    const size_t   _idx)
+    SchedulerBase& _rsched, StatisticT& _rstatistic,
+    const size_t _idx, const size_t _wake_capacity)
     : ReactorBase(_rsched, _idx)
     , impl_(make_pimpl<Data>())
+    , wake_capacity_(_wake_capacity)
+    , rstatistic_(_rstatistic)
 {
     solid_log(frame_logger, Verbose, "");
 }
@@ -270,6 +272,7 @@ bool Reactor::isValid(UniqueId const& _actor_uid, UniqueId const& _completion_ha
 {
     ActorStub&             ras(impl_->actor_dq_[static_cast<size_t>(_actor_uid.index)]);
     CompletionHandlerStub& rcs(impl_->completion_handler_dq_[static_cast<size_t>(_completion_handler_uid.index)]);
+    solid_assert(ras.actor_ptr_);
     return ras.unique_ == _actor_uid.unique && rcs.unique_ == _completion_handler_uid.unique;
 }
 
@@ -307,6 +310,7 @@ void Reactor::doStopActor(ReactorContext& _rctx)
 
     rstub.clear();
     --actor_count_;
+    rstatistic_.actorCount(actor_count_);
     impl_->freeuid_vec_.push_back(UniqueId(_rctx.actor_index_, rstub.unique_));
 }
 
@@ -336,7 +340,7 @@ bool Reactor::doWaitEvent(NanoTime const& _rcrttime, const bool _exec_q_empty)
     auto                    wait_duration = impl_->computeWaitDuration(_rcrttime, _exec_q_empty);
     unique_lock<std::mutex> lock(impl_->mutex_);
 
-    if (current_push_size_ == 0u && current_wake_size_ == 0u && !impl_->must_stop_) {
+    if (pending_wake_count_.load() == 0u && !impl_->must_stop_) {
         if (wait_duration) {
             const auto nanosecs = wait_duration.durationCast<std::chrono::nanoseconds>();
             impl_->cnd_var_.wait_for(lock, nanosecs);
@@ -350,20 +354,12 @@ bool Reactor::doWaitEvent(NanoTime const& _rcrttime, const bool _exec_q_empty)
         impl_->must_stop_ = false;
     }
 
-    if (current_push_size_ != 0u) {
-        current_push_size_ = 0;
+    if (pending_wake_count_.load() != 0u) {
         for (auto& v : impl_->freeuid_vec_) {
             this->pushUid(v);
         }
         impl_->freeuid_vec_.clear();
-
-        current_push_index_ = ((current_push_index_ + 1) & 1);
-        rv                  = true;
-    }
-    if (current_wake_size_ != 0u) {
-        current_wake_size_  = 0;
-        current_wake_index_ = ((current_wake_index_ + 1) & 1);
-        rv                  = true;
+        rv = true;
     }
     return rv;
 }
@@ -546,6 +542,53 @@ void ReactorBase::unprepareThread()
 }
 
 ReactorBase::~ReactorBase() {}
+
+//=============================================================================
+//      ReactorStatisticBase
+//=============================================================================
+std::ostream& ReactorStatisticBase::print(std::ostream& _ros) const
+{
+    _ros << " push_while_wait_lock_count = " << push_while_wait_lock_count_;
+    _ros << " push_while_wait_pushing_count = " << push_while_wait_pushing_count_;
+    return _ros;
+}
+
+void ReactorStatisticBase::clear()
+{
+    push_while_wait_lock_count_    = 0;
+    push_while_wait_pushing_count_ = 0;
+}
+//=============================================================================
+//      ReactorStatistic
+//=============================================================================
+std::ostream& ReactorStatistic::print(std::ostream& _ros) const
+{
+    ReactorStatisticBase::print(_ros);
+    _ros << " push_notify_count = " << push_notify_count_;
+    _ros << " push_count = " << push_count_;
+    _ros << " wake_notify_count = " << wake_notify_count_;
+    _ros << " wake_count = " << wake_count_;
+    _ros << " post_count = " << post_count_;
+    _ros << " post_stop_count = " << post_stop_count_;
+    _ros << " max_exec_size = " << max_exec_size_;
+    _ros << " actor_count = " << actor_count_;
+    _ros << " max_actor_count = " << max_actor_count_;
+    return _ros;
+}
+
+void ReactorStatistic::clear()
+{
+    ReactorStatisticBase::clear();
+    push_notify_count_ = 0;
+    push_count_        = 0;
+    wake_notify_count_ = 0;
+    wake_count_        = 0;
+    post_count_        = 0;
+    post_stop_count_   = 0;
+    max_exec_size_     = 0;
+    actor_count_       = 0;
+    max_actor_count_   = 0;
+}
 
 } // namespace frame
 } // namespace solid

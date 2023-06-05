@@ -3,14 +3,11 @@ else()
     set(STDFS_LIB stdc++fs)
 endif()
     
-set(CMAKE_REQUIRED_FLAGS -std=c++17 -l${STDFS_LIB})
 include(CheckCXXSymbolExists)
 CHECK_CXX_SYMBOL_EXISTS(std::filesystem::path::preferred_separator filesystem cxx17fs)
 
 if(cxx17fs)
     add_executable (tutorial_mprpc_file_server mprpc_file_server.cpp mprpc_file_messages.hpp)
-    
-    set_property(TARGET tutorial_mprpc_file_server PROPERTY CXX_STANDARD 17)
     
     target_link_libraries (tutorial_mprpc_file_server
         solid_frame_mprpc

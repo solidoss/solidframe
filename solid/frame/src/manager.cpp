@@ -194,26 +194,30 @@ using AtomicStatusT = std::atomic<StatusE>;
 //-----------------------------------------------------------------------------
 // POD structure
 struct ActorStub {
-    ActorBase*   pactor_;
-    ReactorBase* preactor_;
-    UniqueT      unique_;
+    ActorBase*      pactor_;
+    ReactorBasePtrT reactor_ptr_;
+    UniqueT         unique_;
 };
 
 struct ActorChunk {
-    char*                 this_buf_;
+    std::byte*            this_buf_;
     Manager::ChunkMutexT& rmutex_;
     size_t                service_index_;
     size_t                next_chunk_;
     size_t                actor_count_;
-    ActorStub             sentinel_;
+    ActorStub             sentinel_[1];
 
     static ActorChunk* allocate(const size_t _chunk_size, Manager::ChunkMutexT& _rmtx)
     {
-        char* pdata = new char[sizeof(ActorChunk) + (_chunk_size - 1) * sizeof(ActorStub)];
-        return new (pdata) ActorChunk(pdata, _rmtx);
+        auto* pdata  = new std::byte[sizeof(ActorChunk) + (_chunk_size - 1) * sizeof(ActorStub)];
+        auto* pchunk = new (pdata) ActorChunk(pdata, _rmtx);
+        for (size_t i = 1; i < _chunk_size; ++i) {
+            new (pchunk->actors() + i) ActorStub;
+        }
+        return pchunk;
     }
 
-    ActorChunk(char* _this_buf, Manager::ChunkMutexT& _rmutex)
+    ActorChunk(std::byte* _this_buf, Manager::ChunkMutexT& _rmutex)
         : this_buf_(_this_buf)
         , rmutex_(_rmutex)
         , service_index_(InvalidIndex())
@@ -229,14 +233,14 @@ struct ActorChunk {
         actor_count_   = 0;
     }
 
-    char* data()
+    std::byte* data()
     {
         return this_buf_;
     }
 
     ActorStub* actors()
     {
-        return &sentinel_;
+        return sentinel_;
     }
 
     ActorStub& operator[](const size_t _idx)
@@ -246,7 +250,7 @@ struct ActorChunk {
 
     const ActorStub* actors() const
     {
-        return &sentinel_;
+        return sentinel_;
     }
 
     ActorStub const& operator[](const size_t _idx) const
@@ -381,9 +385,9 @@ struct Manager::Data {
 
         for (size_t i = 0; i < actor_chunk_size_; ++i) {
             ActorStub& ras(ractor_chunk[i]);
-            ras.pactor_   = nullptr;
-            ras.preactor_ = nullptr;
-            ras.unique_   = 0;
+            ras.pactor_ = nullptr;
+            ras.reactor_ptr_.reset();
+            ras.unique_ = 0;
         }
         return &ractor_chunk;
     }
@@ -640,10 +644,10 @@ ActorIdT Manager::registerActor(
 
             ActorStub& ras = rchunk[actor_index % pimpl_->actor_chunk_size_];
 
-            ras.pactor_   = &_ractor;
-            ras.preactor_ = &_rreactor;
-            retval.index  = actor_index;
-            retval.unique = ras.unique_;
+            ras.pactor_      = &_ractor;
+            ras.reactor_ptr_ = _rreactor.shared_from_this();
+            retval.index     = actor_index;
+            retval.unique    = ras.unique_;
             ++rchunk.actor_count_;
             ++rss.actor_count_;
         } else {
@@ -668,8 +672,8 @@ void Manager::unregisterActor(ActorBase& _ractor)
         // std::lock_guard<std::mutex> actor_lock{pimpl_->actorMutex(actor_index)};
         ActorStub& ras = rchunk[actor_index % pimpl_->actor_chunk_size_];
 
-        ras.pactor_   = nullptr;
-        ras.preactor_ = nullptr;
+        ras.pactor_ = nullptr;
+        ras.reactor_ptr_.reset();
         ++ras.unique_;
 
         _ractor.id(InvalidIndex());
@@ -705,8 +709,8 @@ bool Manager::disableActorVisits(ActorBase& _ractor)
         // std::lock_guard<std::mutex> actor_lock{pimpl_->actorMutex(actor_index)};
 
         ActorStub& ras = rchunk[actor_index % pimpl_->actor_chunk_size_];
-        retval         = (ras.preactor_ != nullptr);
-        ras.preactor_  = nullptr;
+        retval         = (ras.reactor_ptr_.get() != nullptr);
+        ras.reactor_ptr_.reset();
     }
     return retval;
 }
@@ -745,11 +749,12 @@ bool Manager::doVisit(ActorIdT const& _actor_id, const ActorVisitFunctionT& _rfc
     ActorChunkPtrT*               pchunk_ptr = pimpl_->chunkPointer(_actor_id.index, chunk_lock);
     if (pchunk_ptr != nullptr) {
         ActorChunk& rchunk = *(*pchunk_ptr);
-        // std::lock_guard<std::mutex> actor_lock{pimpl_->actorMutex(_actor_id.index)};
-        ActorStub& ras = rchunk[_actor_id.index % pimpl_->actor_chunk_size_];
+        ActorStub&  ras    = rchunk[_actor_id.index % pimpl_->actor_chunk_size_];
 
-        if (ras.unique_ == _actor_id.unique && ras.pactor_ != nullptr && ras.preactor_ != nullptr) {
-            VisitContext ctx(*this, *ras.preactor_, *ras.pactor_);
+        if (ras.unique_ == _actor_id.unique && ras.pactor_ != nullptr && ras.reactor_ptr_) {
+            VisitContext ctx(*this, ras.reactor_ptr_, ras.pactor_->runId());
+            chunk_lock.unlock();
+
             retval = _rfct(ctx);
         }
     }
@@ -758,7 +763,6 @@ bool Manager::doVisit(ActorIdT const& _actor_id, const ActorVisitFunctionT& _rfc
 
 Manager::ActorMutexT& Manager::mutex(const ActorBase& _ractor) const
 {
-    // return pimpl_->actorMutex(static_cast<size_t>(_ractor.id()));
     ChunkMutexT* pmutex = nullptr;
     pimpl_->actor_chunk_store_.aquirePointer(
         static_cast<size_t>(_ractor.id()) / pimpl_->actor_chunk_size_,
@@ -853,17 +857,19 @@ size_t Manager::doForEachServiceActor(const size_t _first_actor_chunk, const Act
     while (chunk_index != InvalidIndex()) {
 
         std::unique_lock<ChunkMutexT> chunk_lock;
-        ActorChunkPtrT&               rchunk_ptr = pimpl_->chunk(chunk_index * pimpl_->actor_chunk_size_, chunk_lock);
-        ActorChunk&                   rchunk     = *rchunk_ptr;
+        ActorChunkPtrT&               rchunk_ptr  = pimpl_->chunk(chunk_index * pimpl_->actor_chunk_size_, chunk_lock);
+        ActorChunk&                   rchunk      = *rchunk_ptr;
+        const size_t                  actor_count = rchunk.actor_count_;
 
-        for (size_t i(0), cnt(0); i < pimpl_->actor_chunk_size_ && cnt < rchunk.actor_count_; ++i) {
-            // std::lock_guard<std::mutex> actor_lock{pimpl_->actorMutex(chunk_index * pimpl_->actor_chunk_size_ + i)};
+        for (size_t i{0}, cnt{0}; i < pimpl_->actor_chunk_size_ && cnt < std::max(actor_count, rchunk.actor_count_); ++i) {
             ActorStub& ractor = rchunk[i];
-            if (ractor.pactor_ != nullptr && ractor.preactor_ != nullptr) {
-                VisitContext ctx(*this, *ractor.preactor_, *ractor.pactor_);
+            if (ractor.pactor_ != nullptr && ractor.reactor_ptr_) {
+                VisitContext ctx(*this, ractor.reactor_ptr_, ractor.pactor_->runId());
+                chunk_lock.unlock();
                 _rvisit_fnc(ctx);
                 ++visited_count;
                 ++cnt;
+                chunk_lock.lock();
             }
         }
 
@@ -1054,12 +1060,12 @@ void Manager::stop()
 //-----------------------------------------------------------------------------
 bool Manager::VisitContext::wakeActor(EventBase const& _revent) const
 {
-    return rreactor_.wake(actor().runId(), _revent);
+    return reactor_ptr_->wake(actor_run_id_, _revent);
 }
 
 bool Manager::VisitContext::wakeActor(EventBase&& _uevent) const
 {
-    return rreactor_.wake(actor().runId(), std::move(_uevent));
+    return reactor_ptr_->wake(actor_run_id_, std::move(_uevent));
 }
 //-----------------------------------------------------------------------------
 

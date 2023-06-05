@@ -76,21 +76,6 @@ struct is_container<
 template <class T>
 inline constexpr bool is_container_v = is_container<T>::value;
 
-template <class F, class... Args>
-struct is_callable_helper {
-    template <class U>
-    static auto test(U* p) -> decltype((*p)(std::declval<Args>()...), void(), std::true_type());
-    template <class U>
-    static auto test(...) -> decltype(std::false_type());
-
-    static constexpr bool value = decltype(test<F>(0))::value;
-    using type                  = decltype(test<F>(0));
-};
-
-template <class F, class... Args>
-struct is_callable : std::conditional<is_callable_helper<F, Args...>::value, std::true_type, std::false_type>::type {
-};
-
 template <class _Type, template <class...> class _Template>
 inline constexpr bool is_specialization_v = false;
 template <template <class...> class _Template, class... _Types>

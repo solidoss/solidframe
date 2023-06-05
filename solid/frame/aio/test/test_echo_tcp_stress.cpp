@@ -1112,6 +1112,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
     if (repeatcnt == 0) {
         bool rv = rthis.sock1.postRecvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1); // fully asynchronous call
         solid_assert(!rv);
+        (void)rv;
     }
 }
 
@@ -1143,6 +1144,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
     if (repeatcnt == 0) {
         bool rv = rthis.sock2.postRecvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2); // fully asynchronous call
         solid_assert(!rv);
+        (void)rv;
     }
 }
 

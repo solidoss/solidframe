@@ -9,42 +9,80 @@
 //
 
 #pragma once
-
 #include "solid/frame/manager.hpp"
 #include "solid/frame/schedulerbase.hpp"
+#include <deque>
 
 namespace solid {
 namespace frame {
 
 class Service;
 
+constexpr size_t default_reactor_wake_capacity = 1024;
+
+template <class ReactorStats>
+struct SchedulerStatistic : solid::Statistic {
+    std::deque<ReactorStats> reactor_stats_dq_;
+
+    void resize(const size_t _size)
+    {
+        reactor_stats_dq_.resize(_size);
+    }
+
+    ReactorStats& reactorStatistic(const size_t _index)
+    {
+        return reactor_stats_dq_[_index];
+    }
+
+    std::ostream& print(std::ostream& _ros) const override
+    {
+        for (size_t i = 0; i < reactor_stats_dq_.size(); ++i) {
+            _ros << '[' << i << "]{";
+            reactor_stats_dq_[i].print(_ros) << '}';
+        }
+        return _ros;
+    }
+
+    void clear()
+    {
+        for (auto& rs : reactor_stats_dq_) {
+            rs.clear();
+        }
+    }
+};
+
 template <class R>
 class Scheduler : private SchedulerBase {
     using ReactorT = R;
+    using ThisT    = Scheduler<ReactorT>;
 
 public:
-    using ActorT        = typename ReactorT::ActorT;
-    using EventT        = typename ReactorT::EventT;
-    using ActorPointerT = std::shared_ptr<ActorT>;
+    using ActorT            = typename ReactorT::ActorT;
+    using EventT            = typename ReactorT::EventT;
+    using ReactorStatisticT = typename ReactorT::StatisticT;
+    using ActorPointerT     = std::shared_ptr<ActorT>;
+    using StatisticT        = SchedulerStatistic<ReactorStatisticT>;
 
 private:
+    StatisticT statistic_;
     struct Worker {
-        static void run(SchedulerBase* _psched, const size_t _idx)
+        static void run(SchedulerBase* _psched, const size_t _idx, const size_t _wake_capacity)
         {
-            ReactorT reactor(*_psched, _idx);
+            auto& rthis       = *static_cast<ThisT*>(_psched);
+            auto  reactor_ptr = std::make_shared<ReactorT>(*_psched, rthis.statistic_.reactorStatistic(_idx), _idx, _wake_capacity);
 
-            if (!reactor.prepareThread(reactor.start())) {
+            if (!reactor_ptr->prepareThread(reactor_ptr->start())) {
                 return;
             }
-            reactor.run();
-            reactor.unprepareThread();
+            reactor_ptr->run();
+            reactor_ptr->unprepareThread();
         }
 
-        static bool create(SchedulerBase& _rsched, const size_t _idx, std::thread& _rthr)
+        static bool create(SchedulerBase& _rsched, const size_t _idx, std::thread& _rthr, const size_t _wake_capacity)
         {
             bool rv = false;
             try {
-                _rthr = std::thread(Worker::run, &_rsched, _idx);
+                _rthr = std::thread(Worker::run, &_rsched, _idx, _wake_capacity);
                 rv    = true;
             } catch (...) {
             }
@@ -73,19 +111,42 @@ private:
 public:
     Scheduler() = default;
 
-    void start(const size_t _reactorcnt = 1)
+    ~Scheduler()
+    {
+        doStop(true);
+    }
+
+    void start(const size_t _reactorcnt = 1, const size_t _wake_capacity = default_reactor_wake_capacity)
     {
         ThreadEnterFunctionT enf;
         ThreadExitFunctionT  exf;
-        SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt);
+        statistic_.resize(_reactorcnt);
+        statistic_.clear();
+        SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt, _wake_capacity);
     }
 
     template <class EnterFct, class ExitFct>
-    void start(EnterFct _enf, ExitFct _exf, const size_t _reactorcnt = 1)
+    std::enable_if_t<
+        std::conjunction_v<
+            std::is_invocable_r<bool, EnterFct>,
+            std::is_invocable<ExitFct>>>
+    start(EnterFct _enf, ExitFct _exf, const size_t _reactorcnt = 1, const size_t _wake_capacity = default_reactor_wake_capacity)
     {
         ThreadEnterFunctionT enf(std::move(_enf));
         ThreadExitFunctionT  exf(std::move(_exf));
-        SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt);
+        statistic_.resize(_reactorcnt);
+        statistic_.clear();
+        SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt, _wake_capacity);
+    }
+
+    StatisticT& statistic()
+    {
+        return statistic_;
+    }
+
+    const StatisticT& statistic() const
+    {
+        return statistic_;
     }
 
     size_t workerCount() const

@@ -33,7 +33,7 @@ class SchedulerBase : NonCopyable {
     PimplT<Data> pimpl_;
 
 protected:
-    typedef bool (*CreateWorkerF)(SchedulerBase& _rsch, const size_t, std::thread& _rthr);
+    typedef bool (*CreateWorkerF)(SchedulerBase& _rsch, const size_t, std::thread& _rthr, const size_t _wake_capacity);
 
     typedef solid_function_t(bool()) ThreadEnterFunctionT;
     typedef solid_function_t(void()) ThreadExitFunctionT;
@@ -42,7 +42,7 @@ protected:
         CreateWorkerF         _pf,
         ThreadEnterFunctionT& _renf,
         ThreadExitFunctionT&  _rexf,
-        size_t                _reactorcnt);
+        size_t _reactorcnt, const size_t _wake_capacity);
 
     void doStop(const bool _wait = true);
 

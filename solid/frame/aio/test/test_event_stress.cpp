@@ -105,7 +105,7 @@ void Account::onEvent(frame::ReactorContext& _rctx, EventBase&& _revent)
             device_vec_.emplace_back(device_scheduler.startActor(make_shared<Device>(), device_service, make_event(GenericEventE::Start), err));
         }
     } else if (generic_event<GenericEventE::Kill> == _revent) {
-        solid_log(generic_logger, Error, this << " postStop");
+        solid_log(generic_logger, Info, this << " postStop");
         postStop(_rctx);
     } else if (generic_event<GenericEventE::Message> == _revent) {
         RequestTupleT* pt = _revent.cast<RequestTupleT>();
@@ -153,7 +153,7 @@ void Device::onEvent(frame::ReactorContext& _rctx, EventBase&& _revent)
     solid_log(logger, Info, "device " << this << " event: " << _revent);
 
     if (generic_event<GenericEventE::Kill> == _revent) {
-        solid_log(generic_logger, Error, this << " postStop");
+        solid_log(generic_logger, Info, this << " postStop");
         postStop(_rctx);
     } else if (generic_event<GenericEventE::Message> == _revent) {
         RequestTupleT* pt = _revent.cast<RequestTupleT>();
@@ -191,7 +191,7 @@ int test_event_stress(int argc, char* argv[])
         account_device_count = make_number(argv[4]);
     }
 
-    solid::log_start(std::cerr, {".*:EWX"});
+    solid::log_start(std::cerr, {".*:EWXS"});
 
     auto lambda = [&]() {
         ErrorConditionT err;
@@ -206,8 +206,8 @@ int test_event_stress(int argc, char* argv[])
         promise<void>   prom;
 
         connection_scheduler.start(1);
-        account_scheduler.start(1);
-        device_scheduler.start(1);
+        account_scheduler.start([]() { return true; }, []() {}, 1, account_count * account_device_count);
+        device_scheduler.start(1, account_count * account_device_count);
 
         for (size_t i = 0; i < account_count; ++i) {
             const auto acc_id = account_scheduler.startActor(make_shared<Account>(), account_service, make_event(GenericEventE::Start), err);
@@ -224,6 +224,9 @@ int test_event_stress(int argc, char* argv[])
         auto fut = prom.get_future();
         solid_check(fut.wait_for(chrono::seconds(wait_seconds)) == future_status::ready);
         fut.get();
+        solid_log(logger, Statistic, "ConnectionScheduler: " << connection_scheduler.statistic());
+        solid_log(logger, Statistic, "AccountScheduler: " << account_scheduler.statistic());
+        solid_log(logger, Statistic, "DeviceScheduler: " << device_scheduler.statistic());
     };
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {

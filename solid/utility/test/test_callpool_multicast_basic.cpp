@@ -55,6 +55,7 @@ int test_callpool_multicast_basic(int argc, char* argv[])
             atomic<size_t> worker_stop_count{0};
             auto           worker_start = [&worker_start_count](const size_t, Context&, deque<uint32_t>&) {
                 ++worker_start_count;
+                thread_local_value = 0;
             };
             auto worker_stop = [&worker_stop_count](const size_t, Context&, deque<uint32_t>&) {
                 ++worker_stop_count;
@@ -75,7 +76,7 @@ int test_callpool_multicast_basic(int argc, char* argv[])
                                     [v = (i / 10 + 1)](Context& _rctx, deque<uint32_t>&) {
                                         uint32_t expect = thread_local_value;
                                         _rctx.all_val.compare_exchange_strong(expect, v);
-
+                                        solid_check_log(thread_local_value < v, logger, "" << thread_local_value << " < " << v);
                                         thread_local_value = v;
                                     });
                             }
@@ -89,7 +90,7 @@ int test_callpool_multicast_basic(int argc, char* argv[])
                     cp.pushOne(
                         [i](Context& _rctx, deque<uint32_t>& _rdq) {
                             _rctx.val += i;
-                            solid_check(_rdq[i] == static_cast<uint32_t>(-1));
+                            solid_check_log(_rdq[i] == static_cast<uint32_t>(-1), logger, "push one check" << i);
                             _rdq[i] = thread_local_value;
                         });
                 };
@@ -97,17 +98,19 @@ int test_callpool_multicast_basic(int argc, char* argv[])
                 pwp = nullptr;
 
                 all_thr.join();
+                cp.stop();
+                solid_log(logger, Statistic, "CP stats" << cp.statistic());
             }
 
             solid_log(logger, Verbose, "after loop");
 
-            solid_check(worker_start_count == worker_count && worker_stop_count == worker_count);
+            solid_check_log(worker_start_count == worker_count && worker_stop_count == worker_count, logger, "first check after loop");
 
             for (size_t i = 1; i < record_dq.size(); ++i) {
-                solid_check(record_dq[i] >= record_dq[i - 1]);
+                solid_check_log(record_dq[i] >= record_dq[i - 1], logger, "record check " << i << ' ' << record_dq[i] << " vs " << record_dq[i - 1]);
             }
 
-            solid_check(v == context.val, "val = " << context.val << " v = " << v);
+            solid_check_log(v == context.val, logger, "val = " << context.val << " v = " << v);
             context.val = 0;
         }
     };

@@ -492,10 +492,10 @@ public:
     Configuration(
         Sched&                  _rsch,
         std::shared_ptr<Proto>& _rprotcol_ptr)
-        : pool_count(1024 * 10)
+        : prelayengine(&RelayEngine::instance())
+        , pool_count(1024 * 10)
         , pool_mutex_count(1024)
         , protocol_ptr(std::static_pointer_cast<Protocol>(_rprotcol_ptr))
-        , prelayengine(&RelayEngine::instance())
     {
         actor_create_fnc = [&_rsch](aio::ActorPointerT&& _actor_ptr, frame::Service& _rsvc, EventBase&& _event, ErrorConditionT& _rerror) {
             return _rsch.startActor(std::move(_actor_ptr), _rsvc, std::move(_event), _rerror);
@@ -508,10 +508,10 @@ public:
         Sched&                  _rsch,
         RelayEngine&            _rrelayengine,
         std::shared_ptr<Proto>& _rprotcol_ptr)
-        : pool_count(1024 * 10)
+        : prelayengine(&_rrelayengine)
+        , pool_count(1024 * 10)
         , pool_mutex_count(1024)
         , protocol_ptr(std::static_pointer_cast<Protocol>(_rprotcol_ptr))
-        , prelayengine(&_rrelayengine)
     {
         actor_create_fnc = [&_rsch](aio::ActorPointerT&& _actor_ptr, frame::Service& _rsvc, EventBase&& _event, ErrorConditionT& _rerror) {
             return _rsch.startActor(std::move(_actor_ptr), _rsvc, std::move(_event), _rerror);

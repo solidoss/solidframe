@@ -1,5 +1,10 @@
 # SolidFrame Releases
 
+## Version 9.1
+
+* (DONE) Use for reactor event notification system the same technique used by ThreadPool
+* (DONE) Fix and improve how ThreadPool handles the All Tasks.
+
 ## Version 9.0
 
 * (DONE) Improved Event

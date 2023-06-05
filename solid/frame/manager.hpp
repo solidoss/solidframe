@@ -16,6 +16,7 @@
 
 #include "solid/frame/actorbase.hpp"
 #include "solid/frame/common.hpp"
+#include "solid/frame/reactorbase.hpp"
 #include "solid/frame/schedulerbase.hpp"
 #include "solid/system/error.hpp"
 #include "solid/system/log.hpp"
@@ -58,15 +59,16 @@ public:
     using ServiceMutexT = std::mutex;
 
     class VisitContext {
+        using ActorRunIdT = std::decay_t<decltype(std::declval<ActorBase>().runId())>;
         friend class Manager;
-        Manager&     rmanager_;
-        ReactorBase& rreactor_;
-        ActorBase&   ractor_;
+        Manager&          rmanager_;
+        ReactorBasePtrT   reactor_ptr_;
+        const ActorRunIdT actor_run_id_;
 
-        VisitContext(Manager& _rmanager, ReactorBase& _rreactor, ActorBase& _ractor)
+        VisitContext(Manager& _rmanager, const ReactorBasePtrT& _reactor_ptr, const ActorRunIdT& _actor_run_id)
             : rmanager_(_rmanager)
-            , rreactor_(_rreactor)
-            , ractor_(_ractor)
+            , reactor_ptr_(_reactor_ptr)
+            , actor_run_id_(_actor_run_id)
         {
         }
 
@@ -74,11 +76,6 @@ public:
         VisitContext& operator=(const VisitContext&);
 
     public:
-        ActorBase& actor() const
-        {
-            return ractor_;
-        }
-
         bool wakeActor(EventBase const& _revent) const;
         bool wakeActor(EventBase&& _uevent) const;
     };
@@ -104,11 +101,13 @@ public:
     template <class F>
     bool visit(ActorIdT const& _ruid, F _f);
 
+#if false // TODO:vapa:delete
     template <class T, class F>
     bool visitDynamicCast(ActorIdT const& _ruid, F _f);
 
     template <class T, class F>
     bool visitExplicitCast(ActorIdT const& _ruid, F _f);
+#endif
 
     ActorIdT id(const ActorBase& _ractor) const;
 
@@ -190,7 +189,7 @@ inline bool Manager::visit(ActorIdT const& _ruid, F _f)
 {
     return doVisit(_ruid, ActorVisitFunctionT{_f});
 }
-
+#if false
 template <class T, class F>
 inline bool Manager::visitDynamicCast(ActorIdT const& _ruid, F _f)
 {
@@ -220,6 +219,7 @@ inline bool Manager::visitExplicitCast(ActorIdT const& _ruid, F _f)
 
     return doVisit(_ruid, ActorVisitFunctionT{lambda});
 }
+#endif
 
 template <typename F>
 inline size_t Manager::forEachServiceActor(const Service& _rservice, F _f)

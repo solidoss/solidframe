@@ -243,10 +243,10 @@ struct impl::Reactor::Data {
 #endif
 
 #if defined(SOLID_USE_EPOLL2) || defined(SOLID_USE_KQUEUE)
-    NanoTime computeWaitDuration(NanoTime const& _rcrt, const bool _exec_q_empty) const
+    NanoTime computeWaitDuration(NanoTime const& _rcrt, const bool _can_wait) const
     {
 
-        if (!_exec_q_empty) {
+        if (!_can_wait) {
             return NanoTime();
         } else if (!time_store_.empty()) {
 
@@ -269,10 +269,10 @@ struct impl::Reactor::Data {
         }
     }
 #elif defined(SOLID_USE_EPOLL)
-    int          computeWaitDuration(NanoTime const& _rcrt, const bool _exec_q_empty) const
+    int          computeWaitDuration(NanoTime const& _rcrt, const bool _can_wait) const
     {
 
-        if (!_exec_q_empty) {
+        if (!_can_wait) {
             return 0;
         }
 
@@ -297,9 +297,9 @@ struct impl::Reactor::Data {
         return -1;
     }
 #elif defined(SOLID_USE_WSAPOLL)
-    int computeWaitDuration(NanoTime const& _rcrt, const bool _exec_q_empty) const
+    int computeWaitDuration(NanoTime const& _rcrt, const bool _can_wait) const
     {
-        if (!_exec_q_empty) {
+        if (!_can_wait) {
             return 0;
         } else if (!time_store_.empty()) {
 
@@ -340,10 +340,12 @@ struct impl::Reactor::Data {
 //-----------------------------------------------------------------------------
 namespace impl {
 Reactor::Reactor(
-    SchedulerBase& _rsched,
-    const size_t   _idx)
+    SchedulerBase& _rsched, StatisticT& _rstatistic,
+    const size_t _idx, const size_t _wake_capacity)
     : ReactorBase(_rsched, _idx)
     , impl_(make_pimpl<Data>())
+    , wake_capacity_(_wake_capacity)
+    , rstatistic_(_rstatistic)
 {
     solid_log(logger, Verbose, "");
 }
@@ -437,7 +439,7 @@ void Reactor::run()
 
         crtload = actor_count_ + impl_->device_count_ + current_exec_size_;
 #if defined(SOLID_USE_EPOLL2)
-        waittime = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0);
+        waittime = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0 && pending_wake_count_.load() == 0);
 
         solid_log(logger, Verbose, "epoll_wait wait = " << waittime << ' ' << impl_->reactor_fd_ << ' ' << impl_->event_vec_.size());
         selcnt = epoll_pwait2(impl_->reactor_fd_, impl_->event_vec_.data(), static_cast<int>(impl_->event_vec_.size()), waittime != NanoTime::max() ? &waittime : nullptr, nullptr);
@@ -445,19 +447,19 @@ void Reactor::run()
             ++waitcnt;
         }
 #elif defined(SOLID_USE_EPOLL)
-        waitmsec = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0);
+        waitmsec = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0 && pending_wake_count_.load() == 0);
 
         solid_log(logger, Verbose, "epoll_wait wait = " << waitmsec);
 
         selcnt = epoll_wait(impl_->reactor_fd_, impl_->event_vec_.data(), static_cast<int>(impl_->event_vec_.size()), waitmsec);
 #elif defined(SOLID_USE_KQUEUE)
-        waittime = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0);
+        waittime = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0 && pending_wake_count_.load() == 0);
 
         solid_log(logger, Verbose, "kqueue wait = " << waittime);
 
         selcnt = kevent(impl_->reactor_fd_, nullptr, 0, impl_->event_vec_.data(), static_cast<int>(impl_->event_vec_.size()), waittime != NanoTime::max() ? &waittime : nullptr);
 #elif defined(SOLID_USE_WSAPOLL)
-        waitmsec = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0);
+        waitmsec = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0 && pending_wake_count_.load() == 0);
         solid_log(logger, Verbose, "wsapoll wait msec = " << waitmsec);
         selcnt = WSAPoll(impl_->event_vec_.data(), impl_->event_vec_.size(), waitmsec);
 #endif
@@ -734,6 +736,11 @@ void Reactor::pushFreeUids()
     impl_->freeuid_vec_.clear();
 }
 
+bool Reactor::emptyFreeUids() const
+{
+    return impl_->freeuid_vec_.empty();
+}
+
 UniqueId Reactor::popUid(Actor& _ractor)
 {
     return ReactorBase::popUid(_ractor);
@@ -784,6 +791,7 @@ void Reactor::doStopActor(ReactorContext& _rctx)
 
     ras.clear();
     --actor_count_;
+    rstatistic_.actorCount(actor_count_);
     this->impl_->freeuid_vec_.push_back(UniqueId(_rctx.actor_index_, ras.unique_));
 }
 
@@ -1418,6 +1426,38 @@ bool EventHandler::init()
     dev_.makeNonBlocking();
 #endif
     return true;
+}
+
+//=============================================================================
+//      ReactorStatistic
+//=============================================================================
+std::ostream& ReactorStatistic::print(std::ostream& _ros) const
+{
+    ReactorStatisticBase::print(_ros);
+    _ros << " push_notify_count = " << push_notify_count_;
+    _ros << " push_count = " << push_count_;
+    _ros << " wake_notify_count = " << wake_notify_count_;
+    _ros << " wake_count = " << wake_count_;
+    _ros << " post_count = " << post_count_;
+    _ros << " post_stop_count = " << post_stop_count_;
+    _ros << " max_exec_size = " << max_exec_size_;
+    _ros << " actor_count = " << actor_count_;
+    _ros << " max_actor_count = " << max_actor_count_;
+    return _ros;
+}
+
+void ReactorStatistic::clear()
+{
+    ReactorStatisticBase::clear();
+    push_notify_count_ = 0;
+    push_count_        = 0;
+    wake_notify_count_ = 0;
+    wake_count_        = 0;
+    post_count_        = 0;
+    post_stop_count_   = 0;
+    max_exec_size_     = 0;
+    actor_count_       = 0;
+    max_actor_count_   = 0;
 }
 
 } // namespace aio

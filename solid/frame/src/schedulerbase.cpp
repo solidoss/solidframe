@@ -168,7 +168,7 @@ size_t SchedulerBase::workerCount() const
 void SchedulerBase::doStart(
     CreateWorkerF         _pf,
     ThreadEnterFunctionT& _renter_fnc, ThreadExitFunctionT& _rexit_fnc,
-    size_t _reactorcnt)
+    size_t _reactorcnt, const size_t _wake_capacity)
 {
     if (_reactorcnt == 0) {
         _reactorcnt = thread::hardware_concurrency();
@@ -205,7 +205,7 @@ void SchedulerBase::doStart(
         for (size_t i = 0; i < _reactorcnt; ++i) {
             ReactorStub& rrs = pimpl_->reactor_vec_[i];
 
-            if (!(*_pf)(*this, i, rrs.thread_)) {
+            if (!(*_pf)(*this, i, rrs.thread_, _wake_capacity)) {
                 start_err = true;
                 break;
             }

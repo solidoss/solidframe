@@ -17,8 +17,8 @@
 #if !defined(__cpp_lib_atomic_wait)
 #include "solid/utility/atomic_wait"
 #endif
-
 #include "solid/system/exception.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/spinlock.hpp"
 #include "solid/system/statistic.hpp"
 #include "solid/utility/common.hpp"
@@ -39,11 +39,17 @@ struct ThreadPoolStatistic : solid::Statistic {
     std::atomic_uint_fast64_t run_all_wake_count_        = {0};
     std::atomic_uint_fast64_t max_run_all_wake_count_    = {0};
     std::atomic_uint_fast64_t push_one_count_[2];
-    std::atomic_uint_fast64_t push_all_count_        = {0};
-    std::atomic_uint_fast64_t push_all_wake_count_   = {0};
-    std::atomic_uint_fast64_t max_consume_all_count_ = {0};
-    std::atomic_uint_fast64_t run_all_count_         = {0};
-    std::atomic_uint_fast64_t max_run_all_count_     = {0};
+    std::atomic_uint_fast64_t push_all_count_              = {0};
+    std::atomic_uint_fast64_t push_all_wake_count_         = {0};
+    std::atomic_uint_fast64_t max_consume_all_count_       = {0};
+    std::atomic_uint_fast64_t run_all_count_               = {0};
+    std::atomic_uint_fast64_t max_run_all_count_           = {0};
+    std::atomic_uint_fast64_t push_one_wait_lock_count_    = {0};
+    std::atomic_uint_fast64_t push_one_wait_pushing_count_ = {0};
+    std::atomic_uint_fast64_t pop_one_wait_lock_count_     = {0};
+    std::atomic_uint_fast64_t pop_one_wait_popping_count_  = {0};
+    std::atomic_uint_fast64_t push_all_wait_lock_count_    = {0};
+    std::atomic_uint_fast64_t push_all_wait_pushing_count_ = {0};
 
     ThreadPoolStatistic();
 
@@ -100,6 +106,30 @@ struct ThreadPoolStatistic : solid::Statistic {
     {
         ++push_all_count_;
     }
+    void pushOneWaitLock()
+    {
+        ++push_one_wait_lock_count_;
+    }
+    void pushOneWaitPushing()
+    {
+        ++push_one_wait_pushing_count_;
+    }
+    void popOneWaitLock()
+    {
+        ++pop_one_wait_lock_count_;
+    }
+    void popOneWaitPopping()
+    {
+        ++pop_one_wait_popping_count_;
+    }
+    void pushAllWaitLock()
+    {
+        ++push_all_wait_lock_count_;
+    }
+    void pushAllWaitPushing()
+    {
+        ++push_all_wait_pushing_count_;
+    }
 
     std::ostream& print(std::ostream& _ros) const override;
     void          clear();
@@ -119,9 +149,13 @@ struct EmptyThreadPoolStatistic : solid::Statistic {
     void tryConsumeAnAllTaskNotFilled(const bool _should_retry) {}
     void consumeAll(const uint64_t _count) {}
     void pushOne(const bool _with_context) {}
-    void pushAll(const bool _should_wake)
-    {
-    }
+    void pushAll(const bool _should_wake) {}
+    void pushOneWaitLock() {}
+    void pushOneWaitPushing() {}
+    void popOneWaitLock() {}
+    void popOneWaitPopping() {}
+    void pushAllWaitLock() {}
+    void pushAllWaitPushing() {}
 
     std::ostream& print(std::ostream& _ros) const override { return _ros; }
     void          clear() {}
@@ -290,7 +324,7 @@ public:
     }
 };
 struct LocalContext {
-    uint64_t all_id_                 = 1;
+    uint64_t next_all_id_            = 1;
     uint64_t all_count_              = 0;
     uint64_t one_free_count_         = 0;
     uint64_t one_context_count_      = 0;
@@ -348,7 +382,12 @@ public:
 private:
     enum struct LockE : uint8_t {
         Empty = 0,
+        Pushing,
         Filled,
+        Popping
+    };
+    enum struct EventE : uint8_t {
+        Fill,
         Stop,
         Wake,
     };
@@ -361,6 +400,7 @@ private:
         std::atomic_bool popping_ = {false};
 #endif
         std::atomic_uint8_t lock_               = {to_underlying(LockE::Empty)};
+        std::uint8_t        event_              = {to_underlying(EventE::Fill)};
         ContextStub*        pcontext_           = nullptr;
         uint64_t            all_id_             = 0;
         uint64_t            context_produce_id_ = 0;
@@ -372,7 +412,7 @@ private:
             context_produce_id_ = 0;
         }
 
-        void waitWhilePushOne() noexcept
+        void waitWhilePushOne(Stats& _rstats) noexcept
         {
             while (true) {
 #if defined(__cpp_lib_atomic_wait)
@@ -383,11 +423,14 @@ private:
 #endif
                 if (!already_pushing) {
                     //  wait for lock to be 0.
-                    auto value = lock_.load();
-                    while (value != to_underlying(LockE::Empty)) {
-                        // lock_.wait(value);
-                        std::atomic_wait(&lock_, value);
-                        value = lock_.load();
+                    uint8_t value = to_underlying(LockE::Empty);
+
+                    if (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing))) {
+                        do {
+                            std::atomic_wait(&lock_, value);
+                            value = to_underlying(LockE::Empty);
+                        } while (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing)));
+                        _rstats.pushOneWaitLock();
                     }
                     return;
                 } else {
@@ -396,12 +439,14 @@ private:
 #else
                     std::atomic_wait(&pushing_, true);
 #endif
+                    _rstats.pushOneWaitPushing();
                 }
             }
         }
 
         void notifyWhilePushOne() noexcept
         {
+            event_ = to_underlying(EventE::Fill);
             lock_.store(to_underlying(LockE::Filled));
             std::atomic_notify_one(&lock_);
 #if defined(__cpp_lib_atomic_wait)
@@ -413,19 +458,20 @@ private:
 #endif
         }
 
-        void waitWhileStop() noexcept
+        void waitWhileStop(Stats& _rstats) noexcept
         {
-            waitWhilePushOne();
+            waitWhilePushOne(_rstats);
         }
 
-        void waitWhilePushAll() noexcept
+        void waitWhilePushAll(Stats& _rstats) noexcept
         {
-            waitWhilePushOne();
+            waitWhilePushOne(_rstats);
         }
 
         void notifyWhileStop() noexcept
         {
-            lock_.store(to_underlying(LockE::Stop));
+            event_ = to_underlying(EventE::Stop);
+            lock_.store(to_underlying(LockE::Filled));
             std::atomic_notify_one(&lock_);
 #if defined(__cpp_lib_atomic_wait)
             pushing_.clear(std::memory_order_release);
@@ -438,7 +484,8 @@ private:
 
         void notifyWhilePushAll() noexcept
         {
-            lock_.store(to_underlying(LockE::Wake));
+            event_ = to_underlying(EventE::Wake);
+            lock_.store(to_underlying(LockE::Filled));
             std::atomic_notify_one(&lock_);
 #if defined(__cpp_lib_atomic_wait)
             pushing_.clear(std::memory_order_release);
@@ -453,7 +500,7 @@ private:
             class Fnc,
             class AllFnc,
             typename... Args>
-        LockE waitWhilePop(const Fnc& _try_consume_an_all_fnc, AllFnc& _all_fnc, Args&&... _args) noexcept
+        EventE waitWhilePop(Stats& _rstats, const Fnc& _try_consume_an_all_fnc, AllFnc& _all_fnc, Args&&... _args) noexcept
         {
             while (true) {
 #if defined(__cpp_lib_atomic_wait)
@@ -464,21 +511,25 @@ private:
 #endif
                 if (!already_popping) {
                     // wait for lock to be 1 or 2.
-                    auto value = lock_.load();
+                    uint8_t value = to_underlying(LockE::Filled);
 
-                    while (value == to_underlying(LockE::Empty)) {
-                        if (!_try_consume_an_all_fnc(&lock_, _all_fnc, std::forward<Args>(_args)...)) {
-                            std::atomic_wait(&lock_, value);
-                        }
-                        value = lock_.load();
+                    if (!lock_.compare_exchange_weak(value, to_underlying(LockE::Popping))) {
+                        do {
+                            if (!_try_consume_an_all_fnc(&lock_, _all_fnc, std::forward<Args>(_args)...)) {
+                                std::atomic_wait(&lock_, value);
+                            }
+                            value = to_underlying(LockE::Filled);
+                        } while (!lock_.compare_exchange_weak(value, to_underlying(LockE::Popping)));
+                        _rstats.popOneWaitLock();
                     }
-                    return static_cast<LockE>(value);
+                    return static_cast<EventE>(event_);
                 } else {
 #if defined(__cpp_lib_atomic_wait)
                     popping_.wait(true);
 #else
                     std::atomic_wait(&popping_, true);
 #endif
+                    _rstats.popOneWaitPopping();
                 }
             }
         }
@@ -507,7 +558,7 @@ private:
         std::atomic_uint32_t use_count_ = {0};
         std::atomic_uint64_t id_        = {0};
 
-        void waitWhilePushAll() noexcept
+        void waitWhilePushAll(Stats& _rstats) noexcept
         {
             while (true) {
 #if defined(__cpp_lib_atomic_wait)
@@ -517,11 +568,14 @@ private:
                 const bool already_pushing = !pushing_.compare_exchange_strong(expected, true, std::memory_order_acquire);
 #endif
                 if (!already_pushing) {
-                    //  wait for lock to be 0.
-                    auto value = lock_.load();
-                    while (value != to_underlying(LockE::Empty)) {
-                        std::atomic_wait(&lock_, value);
-                        value = lock_.load();
+                    uint8_t value = to_underlying(LockE::Empty);
+
+                    if (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing))) {
+                        do {
+                            std::atomic_wait(&lock_, value);
+                            value = to_underlying(LockE::Empty);
+                        } while (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing)));
+                        _rstats.pushAllWaitLock();
                     }
                     return;
                 } else {
@@ -530,6 +584,7 @@ private:
 #else
                     std::atomic_wait(&pushing_, true);
 #endif
+                    _rstats.pushAllWaitPushing();
                 }
             }
         }
@@ -541,8 +596,10 @@ private:
             lock_.store(to_underlying(LockE::Filled));
 #if defined(__cpp_lib_atomic_wait)
             pushing_.clear(std::memory_order_release);
+            pushing_.notify_one();
 #else
             pushing_.store(false, std::memory_order_release);
+            std::atomic_notify_one(&pushing_);
 #endif
         }
 
@@ -966,7 +1023,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doStop()
     for (size_t i = 0; i < threads_.size(); ++i) {
         auto& rstub = one_tasks_[pushOneIndex()];
 
-        rstub.waitWhileStop();
+        rstub.waitWhileStop(statistic_);
         rstub.notifyWhileStop();
     }
 
@@ -992,15 +1049,20 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
         const size_t index                   = popOneIndex();
         auto&        rstub                   = one_tasks_[index];
         uint64_t     local_one_context_count = 0;
-        const auto   lock                    = rstub.waitWhilePop(
+        const auto   event                   = rstub.waitWhilePop(
+            statistic_,
             [this, &local_context](
                 std::atomic_uint8_t* _plock,
                 AllFnc&              _all_fnc,
-                Args&&... _args) { return tryConsumeAnAllTask(_plock, local_context, _all_fnc, std::forward<Args>(_args)...); },
+                Args&&... _args) {
+                // we need to make sure that, after processing an all_task, no new one_task can have
+                //  the all_id less than the all task that we have just processed.
+                return tryConsumeAnAllTask(_plock, local_context, _all_fnc, std::forward<Args>(_args)...);
+            },
             _all_fnc,
             std::forward<Args>(_args)...);
 
-        if (lock == LockE::Filled) {
+        if (event == EventE::Fill) {
             auto  context_produce_id = rstub.context_produce_id_;
             auto* pctx               = rstub.pcontext_;
             auto  all_id             = rstub.all_id_;
@@ -1066,11 +1128,11 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
             local_context.one_context_count_ += local_one_context_count;
 
             statistic_.runOneContextCount(local_one_context_count, local_context.one_context_count_);
-        } else if (lock == LockE::Wake) {
+        } else if (event == EventE::Wake) {
             ++local_context.wake_count_;
             statistic_.runWakeCount(local_context.wake_count_);
             rstub.notifyWhilePop();
-        } else if (lock == LockE::Stop) {
+        } else if (event == EventE::Stop) {
             rstub.notifyWhilePop();
             break;
         }
@@ -1083,13 +1145,26 @@ template <
     typename... Args>
 bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(std::atomic_uint8_t* _plock, LocalContext& _rlocal_context, AllFnc& _all_fnc, Args&&... _args)
 {
-    auto& rstub = all_tasks_[_rlocal_context.all_id_ % all_capacity_];
-    if (rstub.isFilled(_rlocal_context.all_id_)) {
+    auto& rstub = all_tasks_[_rlocal_context.next_all_id_ % all_capacity_];
+    if (rstub.isFilled(_rlocal_context.next_all_id_)) {
+        // NOTE: first we fetch the commited_all_index than we check if the
+        //  current stub is reserved (some thread is starting to push something)
+        //  - this is to ensure that we are not processing an all task prior to being
+        //  used by any one task. This is guranteed because when adding a new one task,
+        //  before attaching the last commited_all_index to the current one task,
+        //  we're atomicaly marking the one stub as Pushing.
+        const auto commited_all_index = commited_all_index_.load();
+
         if (_plock && *_plock != to_underlying(LockE::Empty)) {
             // NOTE: this is to ensure that pushOnes and pushAlls from
             //  the same producer are processed in the same order they
             //  were produced.
             return false; // will wait on lock
+        }
+
+        if (_rlocal_context.next_all_id_ > commited_all_index) {
+            cpu_pause();
+            return true;
         }
 
         TaskAll task{rstub.task()};
@@ -1101,7 +1176,7 @@ bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(std::atomic_uint8_
 
         _all_fnc(task, std::forward<Args>(_args)...);
 
-        ++_rlocal_context.all_id_;
+        ++_rlocal_context.next_all_id_;
         ++_rlocal_context.all_count_;
         statistic_.tryConsumeAnAllTaskFilled(should_retry, _rlocal_context.all_count_);
         return should_retry;
@@ -1118,7 +1193,7 @@ template <
 void ThreadPool<TaskOne, TaskAll, Stats>::consumeAll(LocalContext& _rlocal_context, const uint64_t _all_id, AllFnc& _all_fnc, Args&&... _args)
 {
     size_t repeat_count = 0;
-    while (overflow_safe_less(_rlocal_context.all_id_, _all_id) || _rlocal_context.all_id_ == _all_id) {
+    while (overflow_safe_less(_rlocal_context.next_all_id_, _all_id) || _rlocal_context.next_all_id_ == _all_id) {
         tryConsumeAnAllTask(nullptr, _rlocal_context, _all_fnc, std::forward<Args>(_args)...);
         ++repeat_count;
     }
@@ -1132,7 +1207,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushOne(Tsk&& _task, ContextStub* _p
     const auto index = pushOneIndex();
     auto&      rstub = one_tasks_[index];
 
-    rstub.waitWhilePushOne();
+    rstub.waitWhilePushOne(statistic_);
 
     rstub.task(std::forward<Tsk>(_task));
     rstub.pcontext_ = _pctx;
@@ -1159,13 +1234,13 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushAll(Tsk&& _task)
     const auto id    = pushAllId();
     auto&      rstub = all_tasks_[id % all_capacity_];
 
-    rstub.waitWhilePushAll();
+    rstub.waitWhilePushAll(statistic_);
 
     rstub.task(std::forward<Tsk>(_task));
 
     const auto shoud_wake_threads = pending_all_count_.fetch_add(1) == 0;
 
-    rstub.notifyWhilePushAll(threads_.size(), id);
+    rstub.notifyWhilePushAll(static_cast<uint32_t>(threads_.size()), id);
 
     commitAllId(id);
 
@@ -1173,7 +1248,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushAll(Tsk&& _task)
         for (size_t i = 0; i < threads_.size(); ++i) {
             auto& rstub = one_tasks_[pushOneIndex()];
 
-            rstub.waitWhilePushAll();
+            rstub.waitWhilePushAll(statistic_);
 
             rstub.all_id_ = id;
 
