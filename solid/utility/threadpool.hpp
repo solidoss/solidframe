@@ -628,8 +628,8 @@ private:
     std::atomic_size_t         pending_all_count_  = {0};
     std::atomic_uint_fast64_t  push_all_index_     = {1};
     std::atomic_uint_fast64_t  commited_all_index_ = {0};
-    size_t                     one_capacity_       = 0;
-    size_t                     all_capacity_       = 0;
+    size_t                     capacity_one_       = 0;
+    size_t                     capacity_all_       = 0;
     std::unique_ptr<OneStub[]> one_tasks_;
     std::unique_ptr<AllStub[]> all_tasks_;
     ThreadVectorT              threads_;
@@ -637,11 +637,11 @@ private:
 
     size_t pushOneIndex() noexcept
     {
-        return push_one_index_.fetch_add(1) % one_capacity_;
+        return push_one_index_.fetch_add(1) % capacity_one_;
     }
     size_t popOneIndex() noexcept
     {
-        return pop_one_index_.fetch_add(1) % one_capacity_;
+        return pop_one_index_.fetch_add(1) % capacity_one_;
     }
 
     auto pushAllId() noexcept
@@ -707,6 +707,12 @@ public:
 
     ContextStub* doCreateContext();
 
+    size_t capacityOne()const{
+        return capacity_one_;
+    }
+    size_t capacityAll()const{
+        return capacity_all_;
+    }
 private:
     template <
         class OneFnc,
@@ -835,6 +841,12 @@ public:
     {
         impl_.doPushAll(std::forward<Tsk>(_task));
     }
+    size_t capacityOne()const{
+        return impl_.capacityOne();
+    }
+    size_t capacityAll()const{
+        return impl_.capacityAll();
+    }
 
 private:
     void release(typename ImplT::ContextStub* _pctx)
@@ -958,7 +970,12 @@ public:
     {
         impl_.doPushAll(std::forward<Tsk>(_task));
     }
-
+    size_t capacityOne()const{
+        return impl_.capacityOne();
+    }
+    size_t capacityAll()const{
+        return impl_.capacityAll();
+    }
 private:
     void release(typename ImplT::ContextStub* _pctx)
     {
@@ -993,10 +1010,10 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doStart(
 
     const auto thread_count = _thread_count ? _thread_count : std::thread::hardware_concurrency();
 
-    one_capacity_ = _one_capacity >= thread_count ? _one_capacity : std::max(static_cast<size_t>(1024), thread_count);
-    one_tasks_.reset(new OneStub[one_capacity_]);
-    all_capacity_ = _all_capacity ? _all_capacity : 1;
-    all_tasks_.reset(new AllStub[all_capacity_]);
+    capacity_one_ = _one_capacity >= thread_count ? _one_capacity : std::max(static_cast<size_t>(1024), thread_count);
+    one_tasks_.reset(new OneStub[capacity_one_]);
+    capacity_all_ = _all_capacity ? _all_capacity : 1;
+    all_tasks_.reset(new AllStub[capacity_all_]);
 
     for (size_t i = 0; i < thread_count; ++i) {
         threads_.emplace_back(
@@ -1145,7 +1162,7 @@ template <
     typename... Args>
 bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(std::atomic_uint8_t* _plock, LocalContext& _rlocal_context, AllFnc& _all_fnc, Args&&... _args)
 {
-    auto& rstub = all_tasks_[_rlocal_context.next_all_id_ % all_capacity_];
+    auto& rstub = all_tasks_[_rlocal_context.next_all_id_ % capacity_all_];
     if (rstub.isFilled(_rlocal_context.next_all_id_)) {
         // NOTE: first we fetch the commited_all_index than we check if the
         //  current stub is reserved (some thread is starting to push something)
@@ -1232,7 +1249,7 @@ template <class Tsk>
 void ThreadPool<TaskOne, TaskAll, Stats>::doPushAll(Tsk&& _task)
 {
     const auto id    = pushAllId();
-    auto&      rstub = all_tasks_[id % all_capacity_];
+    auto&      rstub = all_tasks_[id % capacity_all_];
 
     rstub.waitWhilePushAll(statistic_);
 
