@@ -707,12 +707,15 @@ public:
 
     ContextStub* doCreateContext();
 
-    size_t capacityOne()const{
+    size_t capacityOne() const
+    {
         return capacity_one_;
     }
-    size_t capacityAll()const{
+    size_t capacityAll() const
+    {
         return capacity_all_;
     }
+
 private:
     template <
         class OneFnc,
@@ -841,10 +844,12 @@ public:
     {
         impl_.doPushAll(std::forward<Tsk>(_task));
     }
-    size_t capacityOne()const{
+    size_t capacityOne() const
+    {
         return impl_.capacityOne();
     }
-    size_t capacityAll()const{
+    size_t capacityAll() const
+    {
         return impl_.capacityAll();
     }
 
@@ -970,12 +975,15 @@ public:
     {
         impl_.doPushAll(std::forward<Tsk>(_task));
     }
-    size_t capacityOne()const{
+    size_t capacityOne() const
+    {
         return impl_.capacityOne();
     }
-    size_t capacityAll()const{
+    size_t capacityAll() const
+    {
         return impl_.capacityAll();
     }
+
 private:
     void release(typename ImplT::ContextStub* _pctx)
     {
