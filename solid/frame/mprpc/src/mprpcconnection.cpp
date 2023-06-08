@@ -1071,7 +1071,7 @@ void Connection::doHandleEventEnterPassive(frame::aio::ReactorContext& _rctx, Ev
         // start receiving messages
         this->postRecvSome(_rctx, recv_buf_->data(), recvBufferCapacity());
 
-        if (config.server.hasConnectionTimeoutActive()) {
+        if (isServer() && config.server.hasConnectionTimeoutActive()) {
             timeout_active_ = _rctx.nanoTime() + config.server.connection_timeout_active;
         } else {
             timeout_active_ = NanoTime::max();
