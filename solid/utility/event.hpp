@@ -598,7 +598,7 @@ public:
         doCopyFrom(data_, small_capacity, _other);
     }
 
-    Event(EventBase&& _other)
+    Event(EventBase&& _other) noexcept
         : EventBase(_other)
     {
         doMoveFrom(data_, small_capacity, _other);
@@ -610,7 +610,7 @@ public:
         return *this;
     }
 
-    ThisT& operator=(ThisT&& _other)
+    ThisT& operator=(ThisT&& _other) noexcept
     {
         reset(_other);
         doMoveFrom(data_, small_capacity, _other);

@@ -54,7 +54,7 @@ struct MessageHeader {
     {
     }
 
-    MessageHeader& operator=(MessageHeader&& _umh)
+    MessageHeader& operator=(MessageHeader&& _umh) noexcept
     {
         sender_request_id_    = _umh.sender_request_id_;
         recipient_request_id_ = _umh.recipient_request_id_;

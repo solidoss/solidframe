@@ -35,7 +35,8 @@ constexpr size_t thread_count = 4;
 
 #ifdef SOLID_ON_LINUX
 vector<int> isolcpus = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 15, 17, 18, 19};
-void        set_current_thread_affinity()
+
+void set_current_thread_affinity()
 {
     if (std::thread::hardware_concurrency() < (thread_count + isolcpus[0])) {
         return;

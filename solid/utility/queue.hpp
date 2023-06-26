@@ -54,7 +54,7 @@ public:
 public:
     Queue() {}
 
-    Queue(Queue&& _rthat)
+    Queue(Queue&& _rthat) noexcept
         : size_(_rthat.size_)
         , current_node_pop_count_(_rthat.current_node_pop_count_)
         , pback_(_rthat.pback_)
@@ -76,7 +76,7 @@ public:
         clear();
     }
 
-    Queue& operator=(Queue&& _rthat)
+    Queue& operator=(Queue&& _rthat) noexcept
     {
         clear();
 

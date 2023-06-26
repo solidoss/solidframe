@@ -125,7 +125,7 @@ struct RelayData {
     RelayData() {}
 
     RelayData(
-        RelayData&& _rrelmsg)
+        RelayData&& _rrelmsg) noexcept
         : bufptr_(std::move(_rrelmsg.bufptr_))
         , pdata_(_rrelmsg.pdata_)
         , data_size_(_rrelmsg.data_size_)
@@ -136,7 +136,7 @@ struct RelayData {
     {
     }
 
-    RelayData& operator=(RelayData&& _rrelmsg)
+    RelayData& operator=(RelayData&& _rrelmsg) noexcept
     {
         bufptr_          = std::move(_rrelmsg.bufptr_);
         pdata_           = _rrelmsg.pdata_;

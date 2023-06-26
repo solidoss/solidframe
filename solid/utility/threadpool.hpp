@@ -183,7 +183,7 @@ public:
 
     SynchronizationContext(const SynchronizationContext& _other) = delete;
 
-    SynchronizationContext(SynchronizationContext&& _other)
+    SynchronizationContext(SynchronizationContext&& _other) noexcept
         : pthread_pool_(_other.pthread_pool_)
         , pcontext_(_other.pcontext_)
     {
@@ -198,7 +198,7 @@ public:
 
     SynchronizationContext& operator=(const SynchronizationContext& _other) = delete;
 
-    SynchronizationContext& operator=(SynchronizationContext&& _other)
+    SynchronizationContext& operator=(SynchronizationContext&& _other) noexcept
     {
         if (this != &_other) {
             clear();
