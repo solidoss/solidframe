@@ -19,6 +19,7 @@
 
 #include "solid/system/exception.hpp"
 #include "solid/system/log.hpp"
+#include "solid/utility/stack.hpp"
 #include "solid/utility/threadpool.hpp"
 
 using namespace std;
@@ -203,26 +204,53 @@ using DurationDqT    = std::deque<DurationTupleT>;
 using TraceRecordT   = tuple<uint64_t, uint64_t>;
 using TraceDqT       = std::deque<TraceRecordT>;
 
-vector<frame::ActorIdT>   worker_actor_id_vec;
-CallPoolT                 worker_pool;
-size_t                    per_message_loop_count = 100;
-std::atomic<size_t>       active_message_count;
-std::atomic<uint64_t>     max_time_delta{0};
-std::atomic<uint64_t>     min_time_delta{std::numeric_limits<uint64_t>::max()};
-std::atomic<uint64_t>     max_time_server_trip_delta{0};
-std::atomic<uint64_t>     min_time_server_trip_delta{std::numeric_limits<uint64_t>::max()};
-std::atomic<uint64_t>     request_count{0};
-frame::mprpc::RecipientId client_id;
-DurationDqT               duration_dq;
-TraceDqT                  trace_dq;
-std::mutex                trace_mtx;
-size_t                    max_per_pool_connection_count = 100;
-std::atomic<size_t>       client_connection_count{0};
-std::promise<void>        client_connection_promise;
-std::promise<void>        promise;
-std::atomic_bool          running = true;
-
+vector<frame::ActorIdT>                         worker_actor_id_vec;
+CallPoolT                                       worker_pool;
+size_t                                          per_message_loop_count = 100;
+std::atomic<size_t>                             active_message_count;
+std::atomic<uint64_t>                           max_time_delta{0};
+std::atomic<uint64_t>                           min_time_delta{std::numeric_limits<uint64_t>::max()};
+std::atomic<uint64_t>                           max_time_server_trip_delta{0};
+std::atomic<uint64_t>                           min_time_server_trip_delta{std::numeric_limits<uint64_t>::max()};
+std::atomic<uint64_t>                           request_count{0};
+frame::mprpc::RecipientId                       client_id;
+DurationDqT                                     duration_dq;
+TraceDqT                                        trace_dq;
+std::mutex                                      trace_mtx;
+size_t                                          max_per_pool_connection_count = 100;
+std::atomic<size_t>                             client_connection_count{0};
+std::promise<void>                              client_connection_promise;
+std::promise<void>                              promise;
+std::atomic_bool                                running              = true;
+bool                                            cache_local_messages = false;
 thread_local unique_ptr<ThreadPoolLocalContext> local_thread_pool_context_ptr;
+template <class T>
+thread_local Stack<std::shared_ptr<T>> local_msg_ptr_stk;
+
+auto create_message_ptr = [](auto& _rctx, auto& _rmsgptr) {
+    using PtrType = std::decay_t<decltype(_rmsgptr)>;
+
+    if (cache_local_messages) {
+        auto& stk = local_msg_ptr_stk<typename PtrType::element_type>;
+        if (!stk.empty()) {
+            _rmsgptr = std::move(stk.top());
+            stk.pop();
+            return;
+        }
+    }
+    _rmsgptr = std::make_shared<typename PtrType::element_type>();
+};
+
+auto destroy_message_ptr = [](auto& _rctx, auto& _rmsgptr) {
+    using PtrType = std::decay_t<decltype(_rmsgptr)>;
+    if (cache_local_messages) {
+        if (_rmsgptr.use_count() == 1) {
+            auto& stk = local_msg_ptr_stk<typename PtrType::element_type>;
+            stk.push(std::move(_rmsgptr));
+        }
+    }
+    _rmsgptr.reset();
+};
 
 //-----------------------------------------------------------------------------
 } // namespace
@@ -287,7 +315,7 @@ int test_clientserver_topic(int argc, char* argv[])
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
-                    _rmap.template registerMessage<Message>(1, "Message", server_complete_message);
+                    _rmap.template registerMessage<Message>(1, "Message", server_complete_message, create_message_ptr);
                 });
             frame::mprpc::Configuration cfg(sch_server, proto);
 
@@ -330,7 +358,7 @@ int test_clientserver_topic(int argc, char* argv[])
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
-                    _rmap.template registerMessage<Message>(1, "Message", client_complete_message);
+                    _rmap.template registerMessage<Message>(1, "Message", client_complete_message, create_message_ptr);
                 });
             frame::mprpc::Configuration cfg(sch_client, proto);
 

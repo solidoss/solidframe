@@ -46,13 +46,12 @@ struct ReactorStatisticBase : solid::Statistic {
 
 namespace impl {
 
-enum struct LockE : uint8_t {
-    Empty = 0,
-    Pushing,
-    Filled,
-};
-
 struct WakeStubBase {
+    enum struct LockE : uint8_t {
+        Empty = 0,
+        Pushing,
+        Filled,
+    };
 #if defined(__cpp_lib_atomic_wait)
     std::atomic_flag pushing_ = ATOMIC_FLAG_INIT;
     std::atomic_flag popping_ = ATOMIC_FLAG_INIT;
@@ -62,7 +61,8 @@ struct WakeStubBase {
 #endif
     std::atomic_uint8_t lock_ = {to_underlying(LockE::Empty)};
 
-    void waitWhilePush(ReactorStatisticBase& _rstats) noexcept
+    template <typename Statistic>
+    void waitWhilePush(Statistic& _rstats) noexcept
     {
         while (true) {
 #if defined(__cpp_lib_atomic_wait)

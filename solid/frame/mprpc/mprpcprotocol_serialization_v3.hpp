@@ -208,6 +208,7 @@ class Protocol : public mprpc::Protocol {
         {
             return rmap_.template registerCast<T, B>();
         }
+
         template <class T, typename CompleteFnc>
         size_t registerMessage(const TypeId _id, const std::string_view _name, CompleteFnc _complete_fnc)
         {
@@ -215,7 +216,7 @@ class Protocol : public mprpc::Protocol {
             using CompleteHandlerT = CompleteHandler<CompleteFncT,
                 typename message_complete_traits<CompleteFncT>::send_type,
                 typename message_complete_traits<CompleteFncT>::recv_type>;
-            auto init_lambda       = [](auto& _rctx, auto& _rptr) {
+            auto create_lambda     = [](auto& _rctx, auto& _rptr) {
                 using PtrType = std::decay_t<decltype(_rptr)>;
                 using CtxType = std::decay_t<decltype(_rctx)>;
                 if constexpr (solid::is_shared_ptr_v<PtrType>) {
@@ -225,7 +226,39 @@ class Protocol : public mprpc::Protocol {
                     }
                 }
             };
-            const size_t index = rmap_.template registerType<T, mprpc::Message>(extract_category(_id), extract_id(_id), _name, init_lambda);
+
+            const size_t index = rmap_.template registerType<T, mprpc::Message>(extract_category(_id), extract_id(_id), _name, create_lambda);
+
+            if (index >= rproto_.type_data_vec_.size()) {
+                rproto_.type_data_vec_.resize(index + 1);
+            }
+            auto complete_handler                       = CompleteHandlerT(std::move(_complete_fnc));
+            rproto_.type_data_vec_[index].complete_fnc_ = std::move(complete_handler);
+            return index;
+        }
+
+        template <class T, typename CompleteFnc, typename CreateFnc>
+        size_t registerMessage(const TypeId _id, const std::string_view _name, CompleteFnc _complete_fnc, CreateFnc _create_fnc)
+        {
+            using CompleteFncT     = CompleteFnc;
+            using CompleteHandlerT = CompleteHandler<CompleteFncT,
+                typename message_complete_traits<CompleteFncT>::send_type,
+                typename message_complete_traits<CompleteFncT>::recv_type>;
+            auto create_lambda     = [_create_fnc](auto& _rctx, auto& _rptr) {
+                using PtrType = std::decay_t<decltype(_rptr)>;
+                using CtxType = std::decay_t<decltype(_rctx)>;
+                if constexpr (solid::is_shared_ptr_v<PtrType>) {
+
+                    _create_fnc(_rctx, _rptr);
+
+                    if constexpr (std::is_same_v<ConnectionContext, CtxType>) {
+                        _rptr->header(_rctx);
+                    }
+                }
+            };
+
+            const size_t index = rmap_.template registerType<T, mprpc::Message>(extract_category(_id), extract_id(_id), _name, create_lambda);
+
             if (index >= rproto_.type_data_vec_.size()) {
                 rproto_.type_data_vec_.resize(index + 1);
             }
