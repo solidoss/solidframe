@@ -108,45 +108,6 @@ private:
     void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent) override;
 };
 
-#if false
-struct Message : frame::mprpc::Message {
-    uint32_t         topic_id_;
-    uint32_t         iteration_                = 0;
-    uint64_t         time_point_               = -1;
-    mutable uint64_t serialization_time_point_ = 0;
-    uint64_t         receive_time_point_       = 0;
-    uint64_t         topic_value_              = 0;
-    uint64_t         topic_context_            = 0;
-
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
-    {
-        using ReflectorT = decay_t<decltype(_rr)>;
-
-        if constexpr (ReflectorT::is_const_reflector) {
-            _rthis.serialization_time_point_ = microseconds_since_epoch();
-        }
-
-        _rr.add(_rthis.topic_id_, _rctx, 1, "topic_id");
-        _rr.add(_rthis.iteration_, _rctx, 2, "iteration");
-        _rr.add(_rthis.time_point_, _rctx, 3, "time_point");
-        _rr.add(_rthis.serialization_time_point_, _rctx, 4, "serialization_time_point");
-        _rr.add(_rthis.receive_time_point_, _rctx, 5, "receive_time_point");
-        _rr.add(_rthis.topic_value_, _rctx, 6, "topic_value");
-        _rr.add(_rthis.topic_context_, _rctx, 7, "topic_context");
-    }
-
-    Message() = default;
-
-    Message(
-        const uint32_t _topic_id,
-        const uint64_t _time_point)
-        : topic_id_(_topic_id)
-        , time_point_(_time_point)
-    {
-    }
-};
-#endif
-
 std::atomic_size_t req_count = {0};
 std::atomic_size_t res_count = {0};
 
@@ -629,58 +590,6 @@ void client_complete_request(
     }
 }
 
-#if 0
-void client_complete_messag(
-    frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
-    ErrorConditionT const& _rerror)
-{
-    solid_dbg(logger, Info, _rctx.recipientId());
-
-    if (_rrecv_msg_ptr) {
-        solid_check(_rsent_msg_ptr);
-        solid_check(_rrecv_msg_ptr->time_point_ >= _rsent_msg_ptr->time_point_);
-        solid_check(_rrecv_msg_ptr->topic_value_ > _rsent_msg_ptr->topic_value_);
-
-        const auto now = microseconds_since_epoch();
-
-        solid_statistic_max(max_time_delta, now - _rsent_msg_ptr->time_point_);
-        solid_statistic_min(min_time_delta, now - _rsent_msg_ptr->time_point_);
-        solid_statistic_max(max_time_server_trip_delta, _rrecv_msg_ptr->time_point_ - _rsent_msg_ptr->time_point_);
-        solid_statistic_min(min_time_server_trip_delta, _rrecv_msg_ptr->time_point_ - _rsent_msg_ptr->time_point_);
-
-        duration_dq.emplace_back(
-            _rctx.recipientId().connectionId().index,
-            _rsent_msg_ptr->time_point_,
-            _rsent_msg_ptr->serialization_time_point_ /*  - _rsent_msg_ptr->time_point_ */, // client serialization offset
-            _rrecv_msg_ptr->receive_time_point_ /*  - _rsent_msg_ptr->time_point_ */, // receive offset
-            _rrecv_msg_ptr->time_point_ /*  - _rsent_msg_ptr->time_point_ */, // process offset
-            _rrecv_msg_ptr->serialization_time_point_ /*  - _rsent_msg_ptr->time_point_ */, // server serialization offset
-            now /* - _rsent_msg_ptr->time_point_ */ // roundtrip offset
-        );
-
-        _rrecv_msg_ptr->time_point_ = now;
-        ++_rrecv_msg_ptr->iteration_;
-
-        if (_rrecv_msg_ptr->iteration_ < per_message_loop_count) {
-            _rrecv_msg_ptr->clearHeader();
-            _rctx.service().sendMessage(client_id, std::move(_rrecv_msg_ptr), {frame::mprpc::MessageFlagsE::AwaitResponse});
-            local_send_duration += (microseconds_since_epoch() - now);
-            solid_statistic_inc(request_count);
-        } else {
-            if (active_message_count.fetch_sub(1) == 1) {
-                solid_dbg(logger, Warning, "Local client send duration: " << local_send_duration);
-                _rctx.service().forceCloseConnectionPool(
-                    client_id,
-                    [](frame::mprpc::ConnectionContext& _rctx) {});
-                running = false;
-                promise.set_value();
-            }
-        }
-    }
-}
-#endif
-
 void server_complete_response(
     frame::mprpc::ConnectionContext&     _rctx,
     std::shared_ptr<CacheableResponseT>& _rsent_msg_ptr, std::shared_ptr<CacheableResponseT>& _rrecv_msg_ptr,
@@ -706,7 +615,6 @@ void server_complete_request(
     auto& topic_ptr                = local_worker_context_ptr->topic_vec_[_rrecv_msg_ptr->topic_id_ % local_worker_context_ptr->topic_vec_.size()];
     auto  reply_ptr                = EnableCacheable<Response>::create();
     reply_ptr->receive_time_point_ = microseconds_since_epoch();
-    reply_ptr->header(_rrecv_msg_ptr->header());
 
     cacheable_cache(std::move(_rrecv_msg_ptr));
 
