@@ -12,6 +12,7 @@
 
 #include "solid/system/common.hpp"
 #include "solid/system/exception.hpp"
+#include "solid/utility/cacheable.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/typetraits.hpp"
 
@@ -159,7 +160,7 @@ struct MessageHeader {
     }
 };
 
-struct Message : std::enable_shared_from_this<Message> {
+struct Message : Cacheable {
 
     using FlagsT = MessageFlagsValueT;
 
@@ -289,7 +290,7 @@ struct Message : std::enable_shared_from_this<Message> {
 
     void header(const MessageHeader& _umh)
     {
-        header_ = std::move(_umh);
+        header_ = _umh;
     }
 
     void header(frame::mprpc::ConnectionContext& _rctx)
@@ -300,6 +301,12 @@ struct Message : std::enable_shared_from_this<Message> {
     const MessageHeader& header() const
     {
         return header_;
+    }
+
+    Message& operator=(const Message& _other)
+    {
+        header(_other.header_);
+        return *this;
     }
 
     bool isOnSender() const
