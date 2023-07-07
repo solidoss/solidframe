@@ -54,10 +54,8 @@ struct WakeStubBase {
     };
 #if defined(__cpp_lib_atomic_wait)
     std::atomic_flag pushing_ = ATOMIC_FLAG_INIT;
-    std::atomic_flag popping_ = ATOMIC_FLAG_INIT;
 #else
     std::atomic_bool pushing_ = {false};
-    std::atomic_bool popping_ = {false};
 #endif
     std::atomic_uint8_t lock_ = {to_underlying(LockE::Empty)};
 

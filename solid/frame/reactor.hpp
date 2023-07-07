@@ -100,13 +100,13 @@ class Reactor : public frame::ReactorBase {
     PimplT<Data> impl_;
 
 protected:
-    const size_t       wake_capacity_;
-    ReactorStatistic&  rstatistic_;
-    std::atomic_size_t push_wake_index_    = {0};
-    std::atomic_size_t pop_wake_index_     = {0};
-    std::atomic_size_t pending_wake_count_ = {0};
-    size_t             actor_count_        = 0;
-    size_t             current_exec_size_  = 0;
+    const size_t      wake_capacity_;
+    ReactorStatistic& rstatistic_;
+    size_t            actor_count_                                                      = 0;
+    size_t            current_exec_size_                                                = 0;
+    alignas(hardware_destructive_interference_size) std::atomic_size_t push_wake_index_ = {0};
+    alignas(hardware_destructive_interference_size) std::atomic_size_t pop_wake_index_  = {0};
+    std::atomic_size_t pending_wake_count_                                              = {0};
 
 public:
     using StatisticT     = ReactorStatistic;

@@ -25,6 +25,18 @@ using ushort    = unsigned short;
 using longlong  = long long;
 using ulonglong = unsigned long long;
 
+#ifdef __cpp_lib_hardware_interference_size
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winterference-size"
+constexpr std::size_t  hardware_constructive_interference_size = std::hardware_constructive_interference_size;
+constexpr std::size_t  hardware_destructive_interference_size  = std::hardware_destructive_interference_size;
+#pragma GCC diagnostic pop
+#else
+// 64 bytes on x86-64 │ L1_CACHE_BYTES │ L1_CACHE_SHIFT │ __cacheline_aligned │ ...
+constexpr std::size_t hardware_constructive_interference_size = 64;
+constexpr std::size_t hardware_destructive_interference_size  = 64;
+#endif
+
 enum SeekRef {
     SeekBeg = 0,
     SeekCur = 1,

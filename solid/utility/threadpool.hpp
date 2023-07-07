@@ -391,7 +391,7 @@ private:
         Stop,
         Wake,
     };
-    struct /*alignas(std::hardware_destructive_interference_size)*/ OneStub : TaskData<TaskOne> {
+    struct OneStub : TaskData<TaskOne> {
 #if defined(__cpp_lib_atomic_wait)
         std::atomic_flag pushing_ = ATOMIC_FLAG_INIT;
         std::atomic_flag popping_ = ATOMIC_FLAG_INIT;
@@ -548,7 +548,7 @@ private:
         }
     };
 
-    struct /*alignas(std::hardware_destructive_interference_size)*/ AllStub : TaskData<TaskAll> {
+    struct AllStub : TaskData<TaskAll> {
 #if defined(__cpp_lib_atomic_wait)
         std::atomic_flag pushing_ = ATOMIC_FLAG_INIT;
 #else
@@ -622,14 +622,14 @@ private:
 
     using ThreadVectorT = std::vector<std::thread>;
 
-    std::atomic<bool>          running_            = {false};
-    std::atomic_size_t         push_one_index_     = {0};
-    std::atomic_size_t         pop_one_index_      = {0};
-    std::atomic_size_t         pending_all_count_  = {0};
-    std::atomic_uint_fast64_t  push_all_index_     = {1};
-    std::atomic_uint_fast64_t  commited_all_index_ = {0};
-    size_t                     capacity_one_       = 0;
-    size_t                     capacity_all_       = 0;
+    std::atomic<bool> running_                                                         = {false};
+    alignas(hardware_destructive_interference_size) std::atomic_size_t push_one_index_ = {0};
+    alignas(hardware_destructive_interference_size) std::atomic_size_t pop_one_index_  = {0};
+    std::atomic_size_t         pending_all_count_                                      = {0};
+    std::atomic_uint_fast64_t  push_all_index_                                         = {1};
+    std::atomic_uint_fast64_t  commited_all_index_                                     = {0};
+    size_t                     capacity_one_                                           = 0;
+    size_t                     capacity_all_                                           = 0;
     std::unique_ptr<OneStub[]> one_tasks_;
     std::unique_ptr<AllStub[]> all_tasks_;
     ThreadVectorT              threads_;
