@@ -30,7 +30,7 @@ class Cacheable : public std::enable_shared_from_this<Cacheable> {
     virtual void doCache() {}
 
 public:
-    virtual ~Cacheable(){}
+    virtual ~Cacheable() {}
 
     void cache()
     {
