@@ -30,6 +30,8 @@ class Cacheable : public std::enable_shared_from_this<Cacheable> {
     virtual void doCache() {}
 
 public:
+    virtual ~Cacheable(){}
+
     void cache()
     {
         auto next = std::move(next_);
