@@ -43,22 +43,25 @@ public:
     template <class Other>
     void cacheAttach(const std::shared_ptr<Other>& _other)
     {
-        doAttach(static_pointer_cast<Cacheable>(_other));
+        doAttach(std::static_pointer_cast<Cacheable>(_other));
     }
     template <class Other>
     void cacheAttach(std::shared_ptr<Other>&& _other)
     {
-        doAttach(static_pointer_cast<Cacheable>(std::move(_other)));
+        doAttach(std::static_pointer_cast<Cacheable>(std::move(_other)));
     }
 };
-
+#ifdef __cpp_concepts
 template <typename What>
 concept CacheableDerived = std::is_base_of_v<Cacheable, What>;
 
 template <CacheableDerived What>
+#else
+template <class What>
+#endif
 void cacheable_cache(std::shared_ptr<What>&& _what_ptr)
 {
-    if (_what_ptr) {
+    if (_what_ptr) [[likely]] {
         _what_ptr->cache();
         _what_ptr.reset();
     }
