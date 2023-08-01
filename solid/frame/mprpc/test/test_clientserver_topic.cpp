@@ -1,7 +1,11 @@
+#include <cmath>
 #include <fstream>
 #include <future>
 #include <string>
 #include <vector>
+#ifdef __cpp_lib_ranges
+#include <ranges>
+#endif
 
 #include "solid/frame/mprpc/mprpcsocketstub_openssl.hpp"
 
@@ -27,6 +31,8 @@ using namespace solid;
 
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
+
+// #define TRACE_DURATION
 
 namespace {
 
@@ -108,45 +114,6 @@ private:
     void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent) override;
 };
 
-#if false
-struct Message : frame::mprpc::Message {
-    uint32_t         topic_id_;
-    uint32_t         iteration_                = 0;
-    uint64_t         time_point_               = -1;
-    mutable uint64_t serialization_time_point_ = 0;
-    uint64_t         receive_time_point_       = 0;
-    uint64_t         topic_value_              = 0;
-    uint64_t         topic_context_            = 0;
-
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
-    {
-        using ReflectorT = decay_t<decltype(_rr)>;
-
-        if constexpr (ReflectorT::is_const_reflector) {
-            _rthis.serialization_time_point_ = microseconds_since_epoch();
-        }
-
-        _rr.add(_rthis.topic_id_, _rctx, 1, "topic_id");
-        _rr.add(_rthis.iteration_, _rctx, 2, "iteration");
-        _rr.add(_rthis.time_point_, _rctx, 3, "time_point");
-        _rr.add(_rthis.serialization_time_point_, _rctx, 4, "serialization_time_point");
-        _rr.add(_rthis.receive_time_point_, _rctx, 5, "receive_time_point");
-        _rr.add(_rthis.topic_value_, _rctx, 6, "topic_value");
-        _rr.add(_rthis.topic_context_, _rctx, 7, "topic_context");
-    }
-
-    Message() = default;
-
-    Message(
-        const uint32_t _topic_id,
-        const uint64_t _time_point)
-        : topic_id_(_topic_id)
-        , time_point_(_time_point)
-    {
-    }
-};
-#endif
-
 std::atomic_size_t req_count = {0};
 std::atomic_size_t res_count = {0};
 
@@ -214,6 +181,23 @@ struct Response : frame::mprpc::Message {
         ++res_count;
     }
 };
+
+template <typename T>
+auto lin_value(T _from, T _to, const size_t _index, const size_t _n)
+{
+    assert(_n > 1 && _index < _n);
+    const auto amount = static_cast<T>(_index) / (_n - 1);
+    const auto v      = std::lerp(_from, _to, amount);
+    return v;
+}
+
+#ifdef __cpp_lib_ranges
+template <typename T>
+auto lin_space(T _from, T _to, const size_t _n)
+{
+    return std::views::iota(size_t{0}, _n) | views::transform([=](auto i) { return lin_value(_from, _to, i, _n); });
+}
+#endif
 
 using CacheableResponseT = EnableCacheable<Response>;
 
@@ -286,17 +270,19 @@ using DurationDqT    = std::deque<DurationTupleT>;
 using TraceRecordT   = tuple<uint64_t, uint64_t>;
 using TraceDqT       = std::deque<TraceRecordT>;
 
-vector<frame::ActorIdT>                         worker_actor_id_vec;
-CallPoolT                                       worker_pool;
-size_t                                          per_message_loop_count = 100;
-std::atomic<size_t>                             active_message_count;
-std::atomic<uint64_t>                           max_time_delta{0};
-std::atomic<uint64_t>                           min_time_delta{std::numeric_limits<uint64_t>::max()};
-std::atomic<uint64_t>                           max_time_server_trip_delta{0};
-std::atomic<uint64_t>                           min_time_server_trip_delta{std::numeric_limits<uint64_t>::max()};
-std::atomic<uint64_t>                           request_count{0};
-frame::mprpc::RecipientId                       client_id;
-DurationDqT                                     duration_dq;
+vector<frame::ActorIdT>   worker_actor_id_vec;
+CallPoolT                 worker_pool;
+size_t                    per_message_loop_count = 100;
+std::atomic<size_t>       active_message_count;
+std::atomic<uint64_t>     max_time_delta{0};
+std::atomic<uint64_t>     min_time_delta{std::numeric_limits<uint64_t>::max()};
+std::atomic<uint64_t>     max_time_server_trip_delta{0};
+std::atomic<uint64_t>     min_time_server_trip_delta{std::numeric_limits<uint64_t>::max()};
+std::atomic<uint64_t>     request_count{0};
+frame::mprpc::RecipientId client_id;
+#ifdef TRACE_DURATION
+DurationDqT duration_dq;
+#endif
 TraceDqT                                        trace_dq;
 std::mutex                                      trace_mtx;
 size_t                                          max_per_pool_connection_count = 100;
@@ -306,6 +292,7 @@ std::promise<void>                              promise;
 std::atomic_bool                                running              = true;
 bool                                            cache_local_messages = false;
 thread_local unique_ptr<ThreadPoolLocalContext> local_thread_pool_context_ptr;
+chrono::microseconds                            test_duration{chrono::seconds(1)};
 
 auto create_message_ptr = [](auto& _rctx, auto& _rmsgptr) {
     using PtrT  = std::decay_t<decltype(_rmsgptr)>;
@@ -481,14 +468,26 @@ int test_clientserver_topic(int argc, char* argv[])
 
         active_message_count      = message_count;
         const uint64_t start_msec = milliseconds_since_epoch();
-        solid_dbg(logger, Warning, "========== START sending messages ==========");
 
-        {
+        solid_log(logger, Warning, "========== START sending messages ==========");
+
+        if (false) {
             const uint64_t startms = microseconds_since_epoch();
             for (size_t i = 0; i < message_count; ++i) {
                 mprpcclient.sendMessage(client_id, std::make_shared<Request>(i, microseconds_since_epoch()), {frame::mprpc::MessageFlagsE::AwaitResponse});
             }
-            solid_dbg(logger, Warning, "========== DONE sending messages ========== " << (microseconds_since_epoch() - startms) << "us");
+            solid_log(logger, Warning, "========== DONE sending messages ========== " << (microseconds_since_epoch() - startms) << "us");
+        } else {
+            const double   stop    = test_duration.count();
+            const uint64_t startms = microseconds_since_epoch();
+
+            const auto start = chrono::high_resolution_clock::now();
+
+            for (size_t i = 0; i < message_count; ++i) {
+                this_thread::sleep_until(start + chrono::microseconds(static_cast<int64_t>(lin_value(0.0, stop, i, message_count))));
+                mprpcclient.sendMessage(client_id, make_shared<Request>(i, microseconds_since_epoch()), {frame::mprpc::MessageFlagsE::AwaitResponse});
+            }
+            solid_log(logger, Warning, "========== DONE sending messages ========== " << (microseconds_since_epoch() - startms) << "us");
         }
 
         solid_statistic_add(request_count, message_count);
@@ -512,15 +511,18 @@ int test_clientserver_topic(int argc, char* argv[])
         solid_log(logger, Statistic, "mprpcclient statistic: " << mprpcclient.statistic());
         solid_log(logger, Statistic, "req_count: " << req_count.load() << " res_count: " << res_count.load());
 
-        if (0) {
+#ifdef TRACE_DURATION
+        if (1) {
             ofstream ofs("duration.csv");
             if (ofs) {
                 for (const auto& t : duration_dq) {
-                    ofs << get<0>(t) << ", " << get<1>(t) << ", " << get<2>(t) << ", " << get<3>(t) << ", " << get<4>(t) << ", " << get<5>(t) << ", " << get<6>(t) << "," << endl;
+                    // ofs << get<0>(t) << ", " << get<1>(t) << ", " << get<2>(t) << ", " << get<3>(t) << ", " << get<4>(t) << ", " << get<5>(t) << ", " << get<6>(t) << "," << endl;
+                    ofs << get<0>(t) << ", " << get<2>(t) - get<1>(t) << ", " << get<3>(t) - get<1>(t) << ", " << get<4>(t) - get<1>(t) << ", " << get<5>(t) - get<1>(t) << ", " << get<6>(t) - get<1>(t) << "," << endl;
                 }
                 ofs.close();
             }
         }
+#endif
         if (0) {
             ofstream ofs("trace.csv");
             if (ofs) {
@@ -597,6 +599,7 @@ void client_complete_request(
     solid_statistic_max(max_time_server_trip_delta, _rrecv_msg_ptr->time_point_ - _rsent_msg_ptr->time_point_);
     solid_statistic_min(min_time_server_trip_delta, _rrecv_msg_ptr->time_point_ - _rsent_msg_ptr->time_point_);
 
+#ifdef TRACE_DURATION
     duration_dq.emplace_back(
         _rctx.recipientId().connectionId().index,
         _rsent_msg_ptr->time_point_,
@@ -606,6 +609,7 @@ void client_complete_request(
         _rrecv_msg_ptr->serialization_time_point_ /*  - _rsent_msg_ptr->time_point_ */, // server serialization offset
         now /* - _rsent_msg_ptr->time_point_ */ // roundtrip offset
     );
+#endif
 
     cacheable_cache(std::move(_rrecv_msg_ptr));
 
