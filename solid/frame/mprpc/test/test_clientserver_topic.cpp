@@ -182,6 +182,8 @@ struct Response : frame::mprpc::Message {
     }
 };
 
+using CacheableResponseT = EnableCacheable<Response>;
+
 template <typename T>
 auto lin_value(T _from, T _to, const size_t _index, const size_t _n)
 {
@@ -198,8 +200,6 @@ auto lin_space(T _from, T _to, const size_t _n)
     return std::views::iota(size_t{0}, _n) | views::transform([=](auto i) { return lin_value(_from, _to, i, _n); });
 }
 #endif
-
-using CacheableResponseT = EnableCacheable<Response>;
 
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
@@ -270,22 +270,19 @@ using DurationDqT    = std::deque<DurationTupleT>;
 using TraceRecordT   = tuple<uint64_t, uint64_t>;
 using TraceDqT       = std::deque<TraceRecordT>;
 
-vector<frame::ActorIdT>   worker_actor_id_vec;
-CallPoolT                 worker_pool;
-size_t                    per_message_loop_count = 100;
-std::atomic<size_t>       active_message_count;
-std::atomic<uint64_t>     max_time_delta{0};
-std::atomic<uint64_t>     min_time_delta{std::numeric_limits<uint64_t>::max()};
-std::atomic<uint64_t>     max_time_server_trip_delta{0};
-std::atomic<uint64_t>     min_time_server_trip_delta{std::numeric_limits<uint64_t>::max()};
-std::atomic<uint64_t>     request_count{0};
-frame::mprpc::RecipientId client_id;
-#ifdef TRACE_DURATION
-DurationDqT duration_dq;
-#endif
+vector<frame::ActorIdT>                         worker_actor_id_vec;
+CallPoolT                                       worker_pool;
+size_t                                          per_message_loop_count = 10;
+std::atomic<size_t>                             active_message_count;
+std::atomic<uint64_t>                           max_time_delta{0};
+std::atomic<uint64_t>                           min_time_delta{std::numeric_limits<uint64_t>::max()};
+std::atomic<uint64_t>                           max_time_server_trip_delta{0};
+std::atomic<uint64_t>                           min_time_server_trip_delta{std::numeric_limits<uint64_t>::max()};
+std::atomic<uint64_t>                           request_count{0};
+frame::mprpc::RecipientId                       client_id;
 TraceDqT                                        trace_dq;
 std::mutex                                      trace_mtx;
-size_t                                          max_per_pool_connection_count = 100;
+size_t                                          max_per_pool_connection_count = 10;
 std::atomic<size_t>                             client_connection_count{0};
 std::promise<void>                              client_connection_promise;
 std::promise<void>                              promise;
@@ -293,6 +290,10 @@ std::atomic_bool                                running              = true;
 bool                                            cache_local_messages = false;
 thread_local unique_ptr<ThreadPoolLocalContext> local_thread_pool_context_ptr;
 chrono::microseconds                            test_duration{chrono::seconds(1)};
+
+#ifdef TRACE_DURATION
+DurationDqT duration_dq;
+#endif
 
 auto create_message_ptr = [](auto& _rctx, auto& _rmsgptr) {
     using PtrT  = std::decay_t<decltype(_rmsgptr)>;
@@ -313,7 +314,7 @@ int test_clientserver_topic(int argc, char* argv[])
     size_t topic_count   = 1000;
     bool   secure        = false;
     bool   compress      = false;
-    size_t message_count = 10000;
+    size_t message_count = 100000;
 
     {
         AioSchedulerT          sch_client;
@@ -337,7 +338,13 @@ int test_clientserver_topic(int argc, char* argv[])
         resolve_pool.start(
             1, 100, 0, [](const size_t) {}, [](const size_t) {});
         sch_client.start([]() {set_current_thread_affinity();return true; }, []() {}, 1);
-        sch_server.start([]() {set_current_thread_affinity();return true; }, []() {}, 2);
+        sch_server.start([]() {
+            set_current_thread_affinity();
+            for(size_t  i = 0; i < 2000; ++i){
+                auto  reply_ptr = std::make_shared<CacheableResponseT>();
+                reply_ptr->cache();
+            }
+            return true; }, []() {}, 2);
 
         {
             // create the topics
@@ -641,7 +648,7 @@ void server_complete_response(
     solid_check(_rsent_msg_ptr);
     solid_check(!_rrecv_msg_ptr);
     solid_dbg(logger, Info, _rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
-    _rsent_msg_ptr->cache();
+    cacheable_cache(std::move(_rsent_msg_ptr));
 }
 
 void server_complete_request(
@@ -654,9 +661,8 @@ void server_complete_request(
     solid_check(_rrecv_msg_ptr->isOnPeer());
 
     solid_dbg(logger, Info, _rctx.recipientId());
-
     auto& topic_ptr                = local_worker_context_ptr->topic_vec_[_rrecv_msg_ptr->topic_id_ % local_worker_context_ptr->topic_vec_.size()];
-    auto  reply_ptr                = EnableCacheable<Response>::create();
+    auto  reply_ptr                = CacheableResponseT::create();
     reply_ptr->receive_time_point_ = microseconds_since_epoch();
     reply_ptr->header(_rrecv_msg_ptr->header());
 
