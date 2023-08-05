@@ -31,9 +31,9 @@ class Connection;
 
 struct MessageHeader {
     using FlagsT = MessageFlagsValueT;
+    FlagsT      flags_{0};
     RequestId   sender_request_id_;
     RequestId   recipient_request_id_;
-    FlagsT      flags_;
     std::string uri_;
 
     static MessageFlagsT fetch_state_flags(const MessageFlagsT& _flags)
@@ -41,44 +41,41 @@ struct MessageHeader {
         static const MessageFlagsT state_flags{MessageFlagsE::OnPeer, MessageFlagsE::BackOnSender, MessageFlagsE::Relayed};
         return _flags & state_flags;
     }
-
-    MessageHeader()
-        : flags_(0)
-    {
-    }
+    
+    MessageHeader() = default;
 
     MessageHeader(
         const MessageHeader& _rmsgh)
-        : sender_request_id_(_rmsgh.sender_request_id_)
+        : flags_(fetch_state_flags(_rmsgh.flags_).toUnderlyingType())
+        , sender_request_id_(_rmsgh.sender_request_id_)
         , recipient_request_id_(_rmsgh.recipient_request_id_)
-        , flags_(fetch_state_flags(_rmsgh.flags_).toUnderlyingType())
     {
     }
 
     MessageHeader& operator=(MessageHeader&& _umh) noexcept
     {
+        flags_                = _umh.flags_;
         sender_request_id_    = _umh.sender_request_id_;
         recipient_request_id_ = _umh.recipient_request_id_;
-        flags_                = _umh.flags_;
         uri_                  = std::move(_umh.uri_);
         return *this;
     }
 
     MessageHeader& operator=(const MessageHeader& _rmh)
     {
+        flags_                = fetch_state_flags(_rmh.flags_).toUnderlyingType();
         sender_request_id_    = _rmh.sender_request_id_;
         recipient_request_id_ = _rmh.recipient_request_id_;
-        flags_                = fetch_state_flags(_rmh.flags_).toUnderlyingType();
         uri_                  = _rmh.uri_;
         return *this;
     }
 
     void clear()
     {
+        flags_ = 0;
         sender_request_id_.clear();
         recipient_request_id_.clear();
         uri_.clear();
-        flags_ = 0;
     }
 
     SOLID_REFLECT_V1(_rs, _rthis, _rctx)
