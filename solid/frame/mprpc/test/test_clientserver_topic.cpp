@@ -66,7 +66,7 @@ void set_current_thread_affinity()
 
 using ResolvePoolT = ThreadPool<Function<void(), 80>, Function<void(), 80>>;
 
-using CallPoolT     = ThreadPool<Function<void(), 128>, Function<void(), 80>>;
+using CallPoolT     = ThreadPool<Function<void(), 128>, Function<void(), 80> /* , EmptyThreadPoolStatistic */>;
 using SynchContextT = decltype(declval<CallPoolT>().createSynchronizationContext());
 
 inline auto milliseconds_since_epoch(const std::chrono::system_clock::time_point& _time = std::chrono::system_clock::now())
@@ -524,7 +524,7 @@ int test_clientserver_topic(int argc, char* argv[])
             if (ofs) {
                 for (const auto& t : duration_dq) {
                     // ofs << get<0>(t) << ", " << get<1>(t) << ", " << get<2>(t) << ", " << get<3>(t) << ", " << get<4>(t) << ", " << get<5>(t) << ", " << get<6>(t) << "," << endl;
-                    ofs << get<0>(t) << ", " << get<2>(t) - get<1>(t) << ", " << get<3>(t) - get<1>(t) << ", " << get<4>(t) - get<1>(t) << ", " << get<5>(t) - get<1>(t) << ", " << get<6>(t) - get<1>(t) << "," << endl;
+                    ofs << get<0>(t) << ", " << get<2>(t) - get<1>(t) << ", " << get<3>(t) - get<1>(t) << ", " << get<4>(t) - get<3>(t) << ", " << get<5>(t) - get<1>(t) << ", " << get<6>(t) - get<1>(t) << "," << endl;
                 }
                 ofs.close();
             }

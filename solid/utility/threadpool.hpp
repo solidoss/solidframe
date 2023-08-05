@@ -344,19 +344,12 @@ class ThreadPool : NonCopyable {
 public:
     struct ContextStub {
         using TaskQueueT = TaskList<TaskOne>;
-        std::atomic_size_t        use_count_;
-        std::atomic_uint_fast64_t produce_id_;
-        std::atomic_uint_fast64_t consume_id_;
+        std::atomic_size_t        use_count_{1};
+        std::atomic_uint_fast64_t produce_id_{0};
         ContextStub*              pnext_ = nullptr;
         SpinLock                  spin_;
         TaskQueueT                task_q_;
-
-        ContextStub()
-            : use_count_{1}
-            , produce_id_{0}
-            , consume_id_{0}
-        {
-        }
+        alignas(hardware_destructive_interference_size) std::atomic_uint_fast64_t consume_id_{0};
 
         void acquire()
         {
@@ -622,24 +615,22 @@ private:
 
     using ThreadVectorT = std::vector<std::thread>;
 
-    alignas(hardware_destructive_interference_size) std::atomic_size_t push_one_index_ = {0};
-    alignas(hardware_destructive_interference_size) std::atomic_size_t pop_one_index_  = {0};
-    alignas(hardware_constructive_interference_size) struct {
-        size_t                     capacity_ = 0;
+    /* alignas(hardware_constructive_interference_size) */ struct {
+        size_t                     capacity_{0};
+        std::atomic_size_t         pending_count_{0};
+        std::atomic_uint_fast64_t  push_index_{1};
+        std::atomic_uint_fast64_t  commited_index_{0};
         std::unique_ptr<AllStub[]> tasks_;
-        std::atomic_size_t         pending_count_  = {0};
-        std::atomic_uint_fast64_t  push_index_     = {1};
-        std::atomic_uint_fast64_t  commited_index_ = {0};
     } all_;
-
-    alignas(hardware_constructive_interference_size) struct {
-        size_t                     capacity_ = 0;
+    /* alignas(hardware_constructive_interference_size) */ struct {
+        size_t                     capacity_{0};
         std::unique_ptr<OneStub[]> tasks_;
     } one_;
-
+    Stats statistic_;
+    alignas(hardware_destructive_interference_size) std::atomic_size_t push_one_index_{0};
+    alignas(hardware_destructive_interference_size) std::atomic_size_t pop_one_index_{0};
     ThreadVectorT     threads_;
-    Stats             statistic_;
-    std::atomic<bool> running_ = {false};
+    std::atomic<bool> running_{false};
 
     size_t pushOneIndex() noexcept
     {
@@ -1111,12 +1102,12 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
                     ++local_context.one_free_count_;
                     statistic_.runOneFreeCount(local_context.one_free_count_);
                     continue;
-                } else if (context_produce_id == pctx->consume_id_.load()) {
+                } else if (context_produce_id == pctx->consume_id_.load(std::memory_order_relaxed)) {
                     _one_fnc(task, std::forward<Args>(_args)...);
                     ++local_one_context_count;
                 } else {
                     pctx->spin_.lock();
-                    if (context_produce_id != pctx->consume_id_.load()) {
+                    if (context_produce_id != pctx->consume_id_.load(std::memory_order_relaxed)) {
                         pctx->push(std::move(task), all_id, context_produce_id);
                         pctx->spin_.unlock();
                         ++local_context.one_context_push_count_;

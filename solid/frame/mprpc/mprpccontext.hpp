@@ -354,7 +354,7 @@ private:
     MessageFlagsT  message_flags;
     RequestId      request_id;
     MessageId      message_id;
-    std::string*   pmessage_url; // we cannot make it const - serializer constraint
+    std::string*   pmessage_uri; // we cannot make it const - serializer constraint
 
     ConnectionContext(
         Service& _rsrv, Connection& _rcon)
@@ -362,7 +362,7 @@ private:
         , rconnection(_rcon)
         , pmessage_header(nullptr)
         , message_flags(0)
-        , pmessage_url(nullptr)
+        , pmessage_uri(nullptr)
     {
     }
 

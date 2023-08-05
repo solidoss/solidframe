@@ -2525,7 +2525,7 @@ void Service::Data::doPushFrontMessageToPool(
                 _rmsgbundle.message_type_id,
                 _rmsgbundle.complete_fnc,
                 _rmsgbundle.message_flags,
-                std::move(_rmsgbundle.message_url));
+                std::move(_rmsgbundle.message_uri));
         } else {
             rpool.reinsertFrontMessage(
                 _rmsgid,
@@ -2533,7 +2533,7 @@ void Service::Data::doPushFrontMessageToPool(
                 _rmsgbundle.message_type_id,
                 _rmsgbundle.complete_fnc,
                 _rmsgbundle.message_flags,
-                std::move(_rmsgbundle.message_url));
+                std::move(_rmsgbundle.message_uri));
         }
     }
 }
