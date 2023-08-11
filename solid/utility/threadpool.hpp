@@ -612,19 +612,20 @@ private:
             return lock_.load() == to_underlying(LockE::Filled) && id_.load() == _id;
         }
     };
-
+    using AllStubT      = AllStub;
+    using OneStubT      = OneStub;
     using ThreadVectorT = std::vector<std::thread>;
 
     /* alignas(hardware_constructive_interference_size) */ struct {
-        size_t                     capacity_{0};
-        std::atomic_size_t         pending_count_{0};
-        std::atomic_uint_fast64_t  push_index_{1};
-        std::atomic_uint_fast64_t  commited_index_{0};
-        std::unique_ptr<AllStub[]> tasks_;
+        size_t                      capacity_{0};
+        std::atomic_size_t          pending_count_{0};
+        std::atomic_uint_fast64_t   push_index_{1};
+        std::atomic_uint_fast64_t   commited_index_{0};
+        std::unique_ptr<AllStubT[]> tasks_;
     } all_;
     /* alignas(hardware_constructive_interference_size) */ struct {
-        size_t                     capacity_{0};
-        std::unique_ptr<OneStub[]> tasks_;
+        size_t                      capacity_{0};
+        std::unique_ptr<OneStubT[]> tasks_;
     } one_;
     Stats statistic_;
     alignas(hardware_destructive_interference_size) std::atomic_size_t push_one_index_{0};
@@ -1010,15 +1011,18 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doStart(
     if (!running_.compare_exchange_strong(expect, true)) {
         return;
     }
+
+    solid_dbg(generic_logger, Error, "sizeof(OneStub) = " << sizeof(OneStubT) << " sizeof(AllStub) = " << sizeof(AllStubT));
+
     threads_.clear();
     threads_.reserve(_thread_count);
 
     const auto thread_count = _thread_count ? _thread_count : std::thread::hardware_concurrency();
 
     one_.capacity_ = _one_capacity >= thread_count ? _one_capacity : std::max(static_cast<size_t>(1024), thread_count);
-    one_.tasks_.reset(new OneStub[one_.capacity_]);
+    one_.tasks_.reset(new OneStubT[one_.capacity_]);
     all_.capacity_ = _all_capacity ? _all_capacity : 1;
-    all_.tasks_.reset(new AllStub[all_.capacity_]);
+    all_.tasks_.reset(new AllStubT[all_.capacity_]);
 
     for (size_t i = 0; i < thread_count; ++i) {
         threads_.emplace_back(
@@ -1093,8 +1097,8 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
 
                 rstub.destroy();
                 rstub.clear();
-
                 rstub.notifyWhilePop();
+
                 consumeAll(local_context, all_id, _all_fnc, std::forward<Args>(_args)...);
 
                 if (pctx == nullptr) {

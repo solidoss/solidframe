@@ -41,7 +41,7 @@ struct MessageHeader {
         static const MessageFlagsT state_flags{MessageFlagsE::OnPeer, MessageFlagsE::BackOnSender, MessageFlagsE::Relayed};
         return _flags & state_flags;
     }
-    
+
     MessageHeader() = default;
 
     MessageHeader(

@@ -278,6 +278,8 @@ std::atomic<uint64_t>                           max_time_delta{0};
 std::atomic<uint64_t>                           min_time_delta{std::numeric_limits<uint64_t>::max()};
 std::atomic<uint64_t>                           max_time_server_trip_delta{0};
 std::atomic<uint64_t>                           min_time_server_trip_delta{std::numeric_limits<uint64_t>::max()};
+std::atomic<uint64_t>                           max_time_server_threadpool_latency{0};
+std::atomic<uint64_t>                           min_time_server_threadpool_latency{std::numeric_limits<uint64_t>::max()};
 std::atomic<uint64_t>                           request_count{0};
 frame::mprpc::RecipientId                       client_id;
 TraceDqT                                        trace_dq;
@@ -328,7 +330,7 @@ int test_clientserver_topic(int argc, char* argv[])
         frame::aio::Resolver   resolver([&resolve_pool](std::function<void()>&& _fnc) { resolve_pool.pushOne(std::move(_fnc)); });
 
         worker_pool.start(
-            thread_count, 1000, 100,
+            thread_count, 10000, 100,
             [](const size_t) {
                 set_current_thread_affinity();
                 local_thread_pool_context_ptr = std::make_unique<ThreadPoolLocalContext>();
@@ -501,10 +503,12 @@ int test_clientserver_topic(int argc, char* argv[])
 
         wait();
 
-        cout << "max delta        : " << max_time_delta.load() << endl;
-        cout << "min delta        : " << min_time_delta.load() << endl;
-        cout << "max server delta : " << max_time_server_trip_delta.load() << endl;
-        cout << "min server delta : " << min_time_server_trip_delta.load() << endl;
+        cout << "max delta              : " << max_time_delta.load() << endl;
+        cout << "min delta              : " << min_time_delta.load() << endl;
+        cout << "max server delta       : " << max_time_server_trip_delta.load() << endl;
+        cout << "min server delta       : " << min_time_server_trip_delta.load() << endl;
+        cout << "max threadpool latency : " << max_time_server_threadpool_latency.load() << endl;
+        cout << "min threadpool latency : " << min_time_server_threadpool_latency.load() << endl;
         cout << "request count    : " << request_count.load() << endl;
 
         multicaster.join();
@@ -605,6 +609,8 @@ void client_complete_request(
     solid_statistic_min(min_time_delta, now - _rsent_msg_ptr->time_point_);
     solid_statistic_max(max_time_server_trip_delta, _rrecv_msg_ptr->time_point_ - _rsent_msg_ptr->time_point_);
     solid_statistic_min(min_time_server_trip_delta, _rrecv_msg_ptr->time_point_ - _rsent_msg_ptr->time_point_);
+    solid_statistic_max(max_time_server_threadpool_latency, _rrecv_msg_ptr->time_point_ - _rrecv_msg_ptr->receive_time_point_);
+    solid_statistic_min(min_time_server_threadpool_latency, _rrecv_msg_ptr->time_point_ - _rrecv_msg_ptr->receive_time_point_);
 
 #ifdef TRACE_DURATION
     duration_dq.emplace_back(
