@@ -343,7 +343,6 @@ Reactor::Reactor(
     SchedulerBase& _rsched, StatisticT& _rstatistic,
     const size_t _idx, const size_t _wake_capacity)
     : ReactorBase(_rsched, _idx)
-    , impl_(make_pimpl<Data>())
     , wake_capacity_(_wake_capacity)
     , rstatistic_(_rstatistic)
 {

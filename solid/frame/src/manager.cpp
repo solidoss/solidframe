@@ -458,13 +458,13 @@ Manager::Manager(
     const size_t _service_mutex_count,
     const size_t _actor_mutex_count,
     const size_t _chunk_mutex_count)
-    : pimpl_(make_pimpl<Data>(
+    : pimpl_(
         _service_capacity,
         _actor_capacity,
         _actor_bucket_size == 0 ? (memory_page_size() - sizeof(ActorChunk) + sizeof(ActorStub)) / sizeof(ActorStub) : _actor_bucket_size,
         _service_mutex_count == 0 ? _service_capacity : _service_mutex_count,
         _actor_mutex_count == 0 ? 1024 : _actor_mutex_count,
-        _chunk_mutex_count == 0 ? 1024 : _chunk_mutex_count))
+        _chunk_mutex_count == 0 ? 1024 : _chunk_mutex_count)
 {
     solid_log(frame_logger, Verbose, "" << this);
 }

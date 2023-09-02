@@ -326,7 +326,7 @@ struct EngineCore::Data {
 };
 //-----------------------------------------------------------------------------
 EngineCore::EngineCore(Manager& _rm)
-    : impl_(make_pimpl<Data>(_rm))
+    : impl_(_rm)
 {
     solid_log(logger, Info, this);
 }

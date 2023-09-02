@@ -97,7 +97,7 @@ class Reactor : public frame::ReactorBase {
     friend class solid::frame::Actor;
 
     struct Data;
-    PimplT<Data> impl_;
+    Pimpl<Data, 624> impl_;
 
 protected:
     const size_t      wake_capacity_;

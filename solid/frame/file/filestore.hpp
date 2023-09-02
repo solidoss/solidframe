@@ -268,7 +268,7 @@ private:
 
 private:
     struct Data;
-    PimplT<Data> impl_;
+    Pimpl<Data, 504> impl_;
 };
 
 struct Utf8PathStub {

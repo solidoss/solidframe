@@ -51,7 +51,7 @@ enum struct ServiceStatusE {
 class Manager final : NonCopyable {
     using OnLockedStartFunctionT = std::function<void(std::unique_lock<std::mutex>&)>;
     struct Data;
-    PimplT<Data> pimpl_;
+    Pimpl<Data, 296> pimpl_;
 
 public:
     using ChunkMutexT   = SpinLock;
