@@ -5,7 +5,7 @@
 
 class Test {
     struct Data;
-    solid::Pimpl<Data, 40> pimpl_;
+    solid::Pimpl<Data, 64> pimpl_;
 
 public:
     Test();

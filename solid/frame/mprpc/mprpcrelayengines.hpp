@@ -32,7 +32,7 @@ private:
 
 private:
     struct Data;
-    Pimpl<Data, 64> impl_;
+    Pimpl<Data, 96> impl_;
 };
 
 } // namespace relay
