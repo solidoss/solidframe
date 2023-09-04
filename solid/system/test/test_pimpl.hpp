@@ -17,3 +17,18 @@ public:
 
     std::ostream& print(std::ostream& _ros) const;
 };
+
+class TestMoveOnly {
+    struct Data;
+    solid::Pimpl<Data, 64> pimpl_;
+
+public:
+    TestMoveOnly();
+    TestMoveOnly(int _v1, const std::string_view& _v2);
+    ~TestMoveOnly();
+
+    //TestMoveOnly(const TestMoveOnly&);
+    TestMoveOnly(TestMoveOnly&&);
+
+    std::ostream& print(std::ostream& _ros) const;
+};

@@ -25,5 +25,11 @@ int test_pimpl(int argc, char* argv[])
         test2.print(cout);
     }
 #endif
+
+    {
+        TestMoveOnly testmo1{2, "somethingelse"};
+        TestMoveOnly testmo2{std::move(testmo1)};
+        testmo2.print(cout);
+    }
     return 0;
 }
