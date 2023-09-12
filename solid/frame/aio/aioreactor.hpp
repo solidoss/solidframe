@@ -112,7 +112,7 @@ class Reactor : public frame::ReactorBase {
     friend class solid::frame::aio::Actor;
 
     struct Data;
-    PimplT<Data> impl_;
+    Pimpl<Data, 576> impl_;
 
 protected:
 #ifdef SOLID_FRAME_AIO_REACTOR_USE_SPINLOCK

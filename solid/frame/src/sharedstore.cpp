@@ -81,7 +81,7 @@ void StoreBase::Accessor::notify()
 
 StoreBase::StoreBase(
     Manager& _rm)
-    : impl_(make_pimpl<Data>(_rm))
+    : impl_(_rm)
 {
 }
 

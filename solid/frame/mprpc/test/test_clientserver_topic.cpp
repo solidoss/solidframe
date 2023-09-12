@@ -702,6 +702,7 @@ void server_complete_request(
         }
         // topic_ptr->synch_ctx_.push(std::move(lambda));
     } else {
+        // worker_pool.pushOne(std::move(lambda));
         topic_ptr->synch_ctx_.push(std::move(lambda));
         //
         // lambda();

@@ -128,7 +128,7 @@ private:
 
 private:
     struct Data;
-    PimplT<Data> impl_;
+    Pimpl<Data, 360> impl_;
 };
 
 struct PointerBase {

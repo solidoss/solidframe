@@ -67,7 +67,8 @@ struct BigRTTI {
     template <class T>
     static void destroy(void* const _what) noexcept
     {
-        ::delete static_cast<T*>(_what);
+        //::delete static_cast<T*>(_what);
+        std::destroy_at(std::launder(static_cast<T*>(_what)));
     }
 
     template <class T>
