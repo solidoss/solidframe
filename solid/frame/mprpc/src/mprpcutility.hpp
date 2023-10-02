@@ -171,7 +171,7 @@ struct MessageBundle {
     MessageFlagsT            message_flags;
     MessagePointerT          message_ptr;
     MessageCompleteFunctionT complete_fnc;
-    std::string              message_uri;
+    MessageRelayHeader       message_relay_header_;
 
     MessageBundle()
         : message_type_id(InvalidIndex())
@@ -188,7 +188,7 @@ struct MessageBundle {
         : message_type_id(_msg_type_idx)
         , message_flags(_flags)
         , message_ptr(std::move(_rmsgptr))
-        , message_uri(std::move(_rmessage_uri))
+        , message_relay_header_(std::move(_rmessage_uri))
     {
         std::swap(complete_fnc, _complete_fnc);
     }
@@ -210,17 +210,17 @@ struct MessageBundle {
         : message_type_id(_rmsgbundle.message_type_id)
         , message_flags(_rmsgbundle.message_flags)
         , message_ptr(std::move(_rmsgbundle.message_ptr))
-        , message_uri(std::move(_rmsgbundle.message_uri))
+        , message_relay_header_(std::move(_rmsgbundle.message_relay_header_))
     {
         std::swap(complete_fnc, _rmsgbundle.complete_fnc);
     }
 
     MessageBundle& operator=(MessageBundle&& _rmsgbundle)
     {
-        message_type_id = _rmsgbundle.message_type_id;
-        message_flags   = _rmsgbundle.message_flags;
-        message_ptr     = std::move(_rmsgbundle.message_ptr);
-        message_uri     = std::move(_rmsgbundle.message_uri);
+        message_type_id       = _rmsgbundle.message_type_id;
+        message_flags         = _rmsgbundle.message_flags;
+        message_ptr           = std::move(_rmsgbundle.message_ptr);
+        message_relay_header_ = std::move(_rmsgbundle.message_relay_header_);
         solid_function_clear(complete_fnc);
         std::swap(complete_fnc, _rmsgbundle.complete_fnc);
         return *this;
@@ -231,7 +231,7 @@ struct MessageBundle {
         message_type_id = InvalidIndex();
         message_flags.reset();
         message_ptr.reset();
-        message_uri.clear();
+        message_relay_header_.clear();
         solid_function_clear(complete_fnc);
     }
 };

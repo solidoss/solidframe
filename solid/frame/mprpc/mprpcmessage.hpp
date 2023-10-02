@@ -29,12 +29,48 @@ namespace mprpc {
 class Service;
 class Connection;
 
+struct MessageRelayHeader {
+    std::string uri_;
+
+    MessageRelayHeader() = default;
+
+    MessageRelayHeader(const std::string& _uri)
+        : uri_(_uri)
+    {
+    }
+    MessageRelayHeader(std::string&& _uri)
+        : uri_(std::move(_uri))
+    {
+    }
+
+    SOLID_REFLECT_V1(_rs, _rthis, _rctx)
+    {
+        if constexpr (std::decay_t<decltype(_rs)>::is_const_reflector) {
+            _rs.add(_rctx.pmessage_relay_header_->uri_, _rctx, 1, "uri", [](auto& _rmeta) { _rmeta.maxSize(20); });
+        } else {
+            _rs.add(_rthis.uri_, _rctx, 1, "uri", [](auto& _rmeta) { _rmeta.maxSize(20); });
+        }
+    }
+
+    bool empty() const noexcept
+    {
+        return uri_.empty();
+    }
+
+    void clear()
+    {
+        uri_.clear();
+    }
+};
+
+std::ostream& operator<<(std::ostream& _ros, const MessageRelayHeader& _header);
+
 struct MessageHeader {
     using FlagsT = MessageFlagsValueT;
-    FlagsT      flags_{0};
-    RequestId   sender_request_id_;
-    RequestId   recipient_request_id_;
-    std::string uri_;
+    FlagsT             flags_{0};
+    RequestId          sender_request_id_;
+    RequestId          recipient_request_id_;
+    MessageRelayHeader relay_;
 
     static MessageFlagsT fetch_state_flags(const MessageFlagsT& _flags)
     {
@@ -57,7 +93,7 @@ struct MessageHeader {
         flags_                = _umh.flags_;
         sender_request_id_    = _umh.sender_request_id_;
         recipient_request_id_ = _umh.recipient_request_id_;
-        uri_                  = std::move(_umh.uri_);
+        relay_                = std::move(_umh.relay_);
         return *this;
     }
 
@@ -66,7 +102,7 @@ struct MessageHeader {
         flags_                = fetch_state_flags(_rmh.flags_).toUnderlyingType();
         sender_request_id_    = _rmh.sender_request_id_;
         recipient_request_id_ = _rmh.recipient_request_id_;
-        uri_                  = _rmh.uri_;
+        relay_                = _rmh.relay_;
         return *this;
     }
 
@@ -75,26 +111,35 @@ struct MessageHeader {
         flags_ = 0;
         sender_request_id_.clear();
         recipient_request_id_.clear();
-        uri_.clear();
+        relay_.clear();
     }
 
-    SOLID_REFLECT_V1(_rs, _rthis, _rctx)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        if constexpr (std::decay_t<decltype(_rs)>::is_const_reflector) {
+        if constexpr (std::decay_t<decltype(_rr)>::is_const_reflector) {
             const MessageFlagsValueT tmp = _rctx.message_flags.toUnderlyingType();
-            _rs.add(tmp, _rctx, 1, "flags");
-            _rs.add(_rctx.request_id.index, _rctx, 2, "sender_request_index");
-            _rs.add(_rctx.request_id.unique, _rctx, 3, "sender_request_unique");
-            _rs.add(_rthis.sender_request_id_.index, _rctx, 4, "recipient_request_index");
-            _rs.add(_rthis.sender_request_id_.unique, _rctx, 5, "recipient_request_unique");
-            _rs.add(*_rctx.pmessage_uri, _rctx, 6, "uri", [](auto& _rmeta) { _rmeta.maxSize(20); });
+            _rr.add(tmp, _rctx, 1, "flags");
+            _rr.add(_rctx.request_id.index, _rctx, 2, "sender_request_index");
+            _rr.add(_rctx.request_id.unique, _rctx, 3, "sender_request_unique");
+            _rr.add(_rthis.sender_request_id_.index, _rctx, 4, "recipient_request_index");
+            _rr.add(_rthis.sender_request_id_.unique, _rctx, 5, "recipient_request_unique");
+            if (_rctx.message_flags.has(MessageFlagsE::Relayed)) {
+                _rr.add(_rthis.relay_, _rctx, 6, "relay");
+            }
         } else {
-            _rs.add(_rthis.flags_, _rctx, 1, "flags");
-            _rs.add(_rthis.sender_request_id_.index, _rctx, 2, "sender_request_index");
-            _rs.add(_rthis.sender_request_id_.unique, _rctx, 3, "sender_request_unique");
-            _rs.add(_rthis.recipient_request_id_.index, _rctx, 4, "recipient_request_index");
-            _rs.add(_rthis.recipient_request_id_.unique, _rctx, 5, "recipient_request_unique");
-            _rs.add(_rthis.uri_, _rctx, 6, "uri", [](auto& _rmeta) { _rmeta.maxSize(20); });
+            _rr.add(_rthis.flags_, _rctx, 1, "flags");
+            _rr.add(_rthis.sender_request_id_.index, _rctx, 2, "sender_request_index");
+            _rr.add(_rthis.sender_request_id_.unique, _rctx, 3, "sender_request_unique");
+            _rr.add(_rthis.recipient_request_id_.index, _rctx, 4, "recipient_request_index");
+            _rr.add(_rthis.recipient_request_id_.unique, _rctx, 5, "recipient_request_unique");
+            _rr.add(
+                [&_rthis](auto& _rr, auto& _rctx) {
+                    const MessageFlagsT flags(_rthis.flags_);
+                    if (flags.has(MessageFlagsE::Relayed)) {
+                        _rr.add(_rthis.relay_, _rctx, 6, "relay");
+                    }
+                },
+                _rctx);
         }
     }
 };
@@ -288,7 +333,7 @@ struct Message : Cacheable {
 
     const std::string& uri() const
     {
-        return header_.uri_;
+        return header_.relay_.uri_;
     }
 
     void clearStateFlags()

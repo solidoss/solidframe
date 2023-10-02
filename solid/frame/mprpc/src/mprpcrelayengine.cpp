@@ -537,7 +537,7 @@ bool EngineCore::doRelayStart(
 
     _rrelay_id = MessageId(msgidx, rmsg.unique_);
 
-    const size_t    rcv_conidx = doRegisterNamedConnection(std::move(rmsg.header_.uri_));
+    const size_t    rcv_conidx = doRegisterNamedConnection(std::move(rmsg.header_.relay_.uri_));
     ConnectionStub& rrcvcon    = impl_->con_dq_[rcv_conidx];
     ConnectionStub& rsndcon    = impl_->con_dq_[snd_conidx];
 

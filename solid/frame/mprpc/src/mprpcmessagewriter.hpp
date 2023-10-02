@@ -258,7 +258,7 @@ private:
 
         bool isRelay() const noexcept
         {
-            return !msgbundle_.message_uri.empty() || Message::is_relayed(msgbundle_.message_flags); // TODO: optimize!!
+            return !msgbundle_.message_relay_header_.empty() || Message::is_relayed(msgbundle_.message_flags); // TODO: optimize!!
         }
 
         bool isRelayed() const noexcept

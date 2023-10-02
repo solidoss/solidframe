@@ -27,7 +27,7 @@ public:
     TestMoveOnly(int _v1, const std::string_view& _v2);
     ~TestMoveOnly();
 
-    //TestMoveOnly(const TestMoveOnly&);
+    // TestMoveOnly(const TestMoveOnly&);
     TestMoveOnly(TestMoveOnly&&);
 
     std::ostream& print(std::ostream& _ros) const;

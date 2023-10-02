@@ -50,8 +50,6 @@ std::ostream& Test::print(std::ostream& _ros) const
     return _ros;
 }
 
-
-
 struct TestMoveOnly::Data {
     std::atomic<uint64_t> v1_{0};
     string                v2_;
@@ -85,8 +83,8 @@ TestMoveOnly::TestMoveOnly(int _v1, const std::string_view& _v2)
 }
 TestMoveOnly::~TestMoveOnly() {}
 
-//TestMoveOnly::TestMoveOnly(const TestMoveOnly&) = default;
-TestMoveOnly::TestMoveOnly(TestMoveOnly&&)      = default;
+// TestMoveOnly::TestMoveOnly(const TestMoveOnly&) = default;
+TestMoveOnly::TestMoveOnly(TestMoveOnly&&) = default;
 
 std::ostream& TestMoveOnly::print(std::ostream& _ros) const
 {
