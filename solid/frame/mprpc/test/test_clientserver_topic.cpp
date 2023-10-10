@@ -682,7 +682,7 @@ void server_complete_request(
         reply_ptr->topic_context_ = local_thread_pool_context_ptr->value_;
         reply_ptr->time_point_    = microseconds_since_epoch();
 
-        reply_ptr->cacheAttach(std::move(_rrecv_msg_ptr));
+        reply_ptr->cacheableAttach(std::move(_rrecv_msg_ptr));
 
         service.sendResponse(recipient_id, reply_ptr);
     };

@@ -28,6 +28,7 @@ class Cacheable : public std::enable_shared_from_this<Cacheable> {
         }
     }
     virtual void doCache() {}
+    virtual void cacheableClear() {}
 
 public:
     virtual ~Cacheable() {}
@@ -35,20 +36,24 @@ public:
     void cache()
     {
         auto next = std::move(next_);
+        cacheableClear();
         doCache();
         while (next) {
             auto tmp = std::move(next->next_);
+            next->cacheableClear();
             next->doCache();
             std::swap(next, tmp);
         }
     }
+
     template <class Other>
-    void cacheAttach(const std::shared_ptr<Other>& _other)
+    void cacheableAttach(const std::shared_ptr<Other>& _other)
     {
         doAttach(std::static_pointer_cast<Cacheable>(_other));
     }
+
     template <class Other>
-    void cacheAttach(std::shared_ptr<Other>&& _other)
+    void cacheableAttach(std::shared_ptr<Other>&& _other)
     {
         doAttach(std::static_pointer_cast<Cacheable>(std::move(_other)));
     }
