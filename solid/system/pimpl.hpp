@@ -69,12 +69,12 @@ public:
         return *ptr_;
     }
 
-    T* operator->() const noexcept
+    const T* operator->() const noexcept
     {
         return ptr_;
     }
 
-    T& operator*() const noexcept
+    const T& operator*() const noexcept
     {
         return *ptr_;
     }

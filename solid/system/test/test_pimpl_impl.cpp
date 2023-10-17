@@ -50,6 +50,11 @@ std::ostream& Test::print(std::ostream& _ros) const
     return _ros;
 }
 
+std::string const& Test::value() const
+{
+    return pimpl_->v2_;
+}
+
 struct TestMoveOnly::Data {
     std::atomic<uint64_t> v1_{0};
     string                v2_;

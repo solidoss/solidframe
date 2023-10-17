@@ -110,11 +110,15 @@ protected:
     UidVectorT& consumeEraseVector() const;
     UidVectorT& fillEraseVector() const;
 
-    SizeVectorT&     indexVector() const;
-    ExecWaitVectorT& executeWaitVector() const;
-    Accessor         accessor();
-    void             notifyActor(UniqueId const& _ruid);
-    void             raise();
+    const SizeVectorT&     indexVector() const;
+    const ExecWaitVectorT& executeWaitVector() const;
+
+    SizeVectorT&     indexVector();
+    ExecWaitVectorT& executeWaitVector();
+
+    Accessor accessor();
+    void     notifyActor(UniqueId const& _ruid);
+    void     raise();
 
 private:
     friend struct PointerBase;

@@ -16,6 +16,8 @@ public:
     Test(Test&&);
 
     std::ostream& print(std::ostream& _ros) const;
+
+    std::string const& value() const;
 };
 
 class TestMoveOnly {

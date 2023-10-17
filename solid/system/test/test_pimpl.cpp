@@ -11,6 +11,8 @@ int test_pimpl(int argc, char* argv[])
     test1.print(cout);
     cout << "_2 ";
     test2.print(cout);
+    // test2.value() = "test";
+    test2.print(cout);
 #if 1
     {
         Test test3{test2};

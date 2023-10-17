@@ -158,6 +158,27 @@ public:
     }
 
     template <typename F>
+    const T& aquire(const size_t _index, const F& _rf) const
+    {
+        solid_assert(_index < data_size_);
+        const T& rt = data_vec_[_index];
+        _rf(_index, rt);
+        return rt;
+    }
+
+    template <typename F>
+    const T* aquirePointer(const size_t _index, const F& _rf) const
+    {
+        if (_index < data_size_.load()) {
+            const T& rt = data_vec_[_index];
+            _rf(_index, rt);
+            return &rt;
+        } else {
+            return nullptr;
+        }
+    }
+
+    template <typename F>
     T& aquire(const size_t _index, const F& _rf)
     {
         solid_assert(_index < data_size_);
@@ -392,6 +413,23 @@ struct Manager::Data {
         return &ractor_chunk;
     }
 
+    inline ActorChunkPtrT const& chunk(const size_t _actor_index, std::unique_lock<ChunkMutexT>& _rlock) const
+    {
+        return actor_chunk_store_.aquire(
+            _actor_index / actor_chunk_size_,
+            [&_rlock](const size_t, const ActorChunkPtrT& _chunk_ptr) {
+                _rlock = std::unique_lock<ChunkMutexT>(_chunk_ptr->mutex());
+            });
+    }
+
+    inline ActorChunkPtrT const& chunk(const size_t _actor_index) const
+    {
+        return actor_chunk_store_.aquire(
+            _actor_index / actor_chunk_size_,
+            [](const size_t, const ActorChunkPtrT&) {
+            });
+    }
+
     inline ActorChunkPtrT& chunk(const size_t _actor_index, std::unique_lock<ChunkMutexT>& _rlock)
     {
         return actor_chunk_store_.aquire(
@@ -429,6 +467,23 @@ struct Manager::Data {
         return actor_mutex_array_ptr_[_actor_index % actor_mutex_count_];
     }
 
+    inline const ServiceStub& service(const size_t _service_index, std::unique_lock<ServiceMutexT>& _rlock) const
+    {
+        return service_store_.aquire(
+            _service_index,
+            [&_rlock](const size_t _index, const ServiceStub& _rss) {
+                _rlock = std::unique_lock<ServiceMutexT>(_rss.mutex());
+            });
+    }
+    inline const ServiceStub* servicePointer(const size_t _service_index, std::unique_lock<ServiceMutexT>& _rlock) const
+    {
+        return service_store_.aquirePointer(
+            _service_index,
+            [&_rlock](const size_t _index, const ServiceStub& _rss) {
+                _rlock = std::unique_lock<ServiceMutexT>(_rss.mutex());
+            });
+    }
+
     inline ServiceStub& service(const size_t _service_index, std::unique_lock<ServiceMutexT>& _rlock)
     {
         return service_store_.aquire(
@@ -437,6 +492,7 @@ struct Manager::Data {
                 _rlock = std::unique_lock<ServiceMutexT>(_rss.mutex());
             });
     }
+
     inline ServiceStub* servicePointer(const size_t _service_index, std::unique_lock<ServiceMutexT>& _rlock)
     {
         return service_store_.aquirePointer(
@@ -766,7 +822,7 @@ Manager::ActorMutexT& Manager::mutex(const ActorBase& _ractor) const
     ChunkMutexT* pmutex = nullptr;
     pimpl_->actor_chunk_store_.aquirePointer(
         static_cast<size_t>(_ractor.id()) / pimpl_->actor_chunk_size_,
-        [&pmutex](const size_t, ActorChunkPtrT& _chunk_ptr) {
+        [&pmutex](const size_t, const ActorChunkPtrT& _chunk_ptr) {
             pmutex = &_chunk_ptr->mutex();
         });
     return *pmutex;
@@ -779,12 +835,12 @@ ActorIdT Manager::id(const ActorBase& _ractor) const
 
     if (actor_index != InvalidIndex()) {
         std::unique_lock<ChunkMutexT> chunk_lock;
-        ActorChunkPtrT&               rchunk_ptr = pimpl_->chunk(actor_index, chunk_lock);
-        ActorChunk&                   rchunk     = *rchunk_ptr;
+        const ActorChunkPtrT&         rchunk_ptr = pimpl_->chunk(actor_index, chunk_lock);
+        const ActorChunk&             rchunk     = *rchunk_ptr;
         // std::lock_guard<std::mutex> actor_lock{pimpl_->actorMutex(actor_index)};
-        ActorStub& ras = rchunk[actor_index % pimpl_->actor_chunk_size_];
+        const ActorStub& ras = rchunk[actor_index % pimpl_->actor_chunk_size_];
 
-        ActorBase* pactor = ras.pactor_;
+        const ActorBase* pactor = ras.pactor_;
         solid_assert_log(pactor == &_ractor, frame_logger);
         retval = ActorIdT(actor_index, ras.unique_);
     }
@@ -798,7 +854,7 @@ Manager::ServiceMutexT& Manager::mutex(const Service& _rservice) const
 
     pimpl_->service_store_.aquire(
         service_index,
-        [&pmutex](const size_t _index, ServiceStub& _rss) {
+        [&pmutex](const size_t _index, const ServiceStub& _rss) {
             pmutex = &_rss.mutex();
         });
 
@@ -812,7 +868,7 @@ ServiceStatusE Manager::status(const Service& _rservice, std::unique_lock<Servic
 
     pimpl_->service_store_.aquire(
         service_index,
-        [&_rlock, &status](const size_t _index, ServiceStub& _rss) {
+        [&_rlock, &status](const size_t _index, const ServiceStub& _rss) {
             _rlock = std::unique_lock<ServiceMutexT>{_rss.mutex()};
             status = _rss.status_;
         });
@@ -888,15 +944,15 @@ Service& Manager::service(const ActorBase& _ractor) const
     {
         const size_t                  actor_index = static_cast<size_t>(_ractor.id());
         std::unique_lock<ChunkMutexT> chunk_lock;
-        ActorChunkPtrT&               rchunk_ptr = pimpl_->chunk(actor_index, chunk_lock);
-        ActorChunk&                   rchunk     = *rchunk_ptr;
+        const ActorChunkPtrT&         rchunk_ptr = pimpl_->chunk(actor_index, chunk_lock);
+        const ActorChunk&             rchunk     = *rchunk_ptr;
 
         service_index = rchunk.service_index_;
     }
 
     {
         std::unique_lock<ServiceMutexT> service_lock;
-        ServiceStub&                    rss = pimpl_->service(service_index, service_lock);
+        const ServiceStub&              rss = pimpl_->service(service_index, service_lock);
 
         pservice = rss.pservice_;
     }
