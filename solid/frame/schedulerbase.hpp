@@ -30,7 +30,7 @@ typedef solid_function_t(bool(ReactorBase&)) ScheduleFunctionT;
 //! A base class for all schedulers
 class SchedulerBase : NonCopyable {
     struct Data;
-    PimplT<Data> pimpl_;
+    Pimpl<Data, 304> pimpl_;
 
 protected:
     typedef bool (*CreateWorkerF)(SchedulerBase& _rsch, const size_t, std::thread& _rthr, const size_t _wake_capacity);

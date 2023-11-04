@@ -154,7 +154,6 @@ Reactor::Reactor(
     SchedulerBase& _rsched, StatisticT& _rstatistic,
     const size_t _idx, const size_t _wake_capacity)
     : ReactorBase(_rsched, _idx)
-    , impl_(make_pimpl<Data>())
     , wake_capacity_(_wake_capacity)
     , rstatistic_(_rstatistic)
 {
@@ -270,8 +269,8 @@ void Reactor::addActor(UniqueId const& _uid, Service& _rservice, ActorPointerT&&
 
 bool Reactor::isValid(UniqueId const& _actor_uid, UniqueId const& _completion_handler_uid) const
 {
-    ActorStub&             ras(impl_->actor_dq_[static_cast<size_t>(_actor_uid.index)]);
-    CompletionHandlerStub& rcs(impl_->completion_handler_dq_[static_cast<size_t>(_completion_handler_uid.index)]);
+    const ActorStub&             ras(impl_->actor_dq_[static_cast<size_t>(_actor_uid.index)]);
+    const CompletionHandlerStub& rcs(impl_->completion_handler_dq_[static_cast<size_t>(_completion_handler_uid.index)]);
     solid_assert(ras.actor_ptr_);
     return ras.unique_ == _actor_uid.unique && rcs.unique_ == _completion_handler_uid.unique;
 }

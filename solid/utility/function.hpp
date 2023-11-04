@@ -354,7 +354,7 @@ public:
         return *this;
     }
 
-    ThisT& operator=(ThisT&& _other)
+    ThisT& operator=(ThisT&& _other) noexcept
     {
         reset();
         doMoveFrom(_other);

@@ -149,11 +149,6 @@ MutexStoreT& mutexStore()
     return mtxstore;
 }
 
-// size_t specificId(){
-//  static const size_t id(Thread::specificId());
-//  return id;
-// }
-
 std::mutex& global_mutex()
 {
     static std::mutex mtx;
@@ -179,12 +174,6 @@ ThreadPoolStatistic::ThreadPoolStatistic()
     push_one_count_[0] = 0;
     push_one_count_[1] = 0;
 }
-std::atomic_uint_fast64_t push_one_wait_lock_count_    = {0};
-std::atomic_uint_fast64_t push_one_wait_pushing_count_ = {0};
-std::atomic_uint_fast64_t pop_one_wait_lock_count_     = {0};
-std::atomic_uint_fast64_t pop_one_wait_popping_count_  = {0};
-std::atomic_uint_fast64_t push_all_wait_lock_count_    = {0};
-std::atomic_uint_fast64_t push_all_wait_pushing_count_ = {0};
 
 std::ostream& ThreadPoolStatistic::print(std::ostream& _ros) const
 {

@@ -1,5 +1,11 @@
 # SolidFrame Releases
 
+## Version 10.0
+
+* (DONE) New Pimpl implementation which avoids the extra memory allocation similarly to solid::Any<>
+* (DONE) Optimize mprpc::MessageHeader - separate the relay part. Breakes backward compatibility on protocol.
+* (DONE) Introducing solid::Cacheable - used for implementing local thread caches of e.g. mprpc::Message in order to avoid message allocations.
+
 ## Version 9.1
 
 * (DONE) Use for reactor event notification system the same technique used by ThreadPool

@@ -53,7 +53,7 @@ public:
     {
     }
 
-    Stack(Stack&& _rthat)
+    Stack(Stack&& _rthat) noexcept
         : size_(_rthat.size_)
         , ptop_(_rthat.ptop_)
         , ptop_cached_nodes_(_rthat.ptop_cached_nodes_)
@@ -75,7 +75,7 @@ public:
         }
     }
 
-    Stack& operator=(Stack&& _rthat)
+    Stack& operator=(Stack&& _rthat) noexcept
     {
         size_              = _rthat.size_;
         ptop_              = _rthat.ptop_;

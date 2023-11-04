@@ -587,7 +587,7 @@ size_t MessageWriter::doWritePacketData(
 
             rmsgstub.state_ = MessageStub::StateE::WriteHeadStart;
 
-            solid_log(logger, Info, this << " message header url: " << rmsgstub.msgbundle_.message_url << " isRelay = " << rmsgstub.isRelay());
+            solid_log(logger, Info, this << " message header relay: [" << rmsgstub.msgbundle_.message_relay_header_ << "] isRelay = " << rmsgstub.isRelay());
 
             cmd = PacketHeader::CommandE::NewMessage;
         }
@@ -612,7 +612,7 @@ size_t MessageWriter::doWritePacketData(
 
             rmsgstub.state_ = MessageStub::StateE::RelayedHeadStart;
 
-            solid_log(logger, Verbose, this << " message header url: " << rmsgstub.prelay_data_->pmessage_header_->url_);
+            solid_log(logger, Verbose, this << " message header relay: " << rmsgstub.prelay_data_->pmessage_header_->relay_);
 
             cmd = PacketHeader::CommandE::NewMessage;
         }
@@ -669,7 +669,10 @@ char* MessageWriter::doWriteMessageHead(
     _rsender.context().request_id.index  = static_cast<uint32_t>(_msgidx + 1);
     _rsender.context().request_id.unique = rmsgstub.unique_;
     _rsender.context().message_flags     = rmsgstub.msgbundle_.message_flags;
-    _rsender.context().pmessage_url      = &rmsgstub.msgbundle_.message_url;
+    if (!rmsgstub.msgbundle_.message_relay_header_.empty()) {
+        _rsender.context().message_flags.set(MessageFlagsE::Relayed);
+    }
+    _rsender.context().pmessage_relay_header_ = &rmsgstub.msgbundle_.message_relay_header_;
 
     const ptrdiff_t rv = rmsgstub.state_ == MessageStub::StateE::WriteHeadStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos, rmsgstub.msgbundle_.message_ptr->header_) : rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
     rmsgstub.state_    = MessageStub::StateE::WriteHeadContinue;
@@ -715,7 +718,10 @@ char* MessageWriter::doWriteMessageBody(
     _rsender.context().request_id.index  = static_cast<uint32_t>(_msgidx + 1);
     _rsender.context().request_id.unique = rmsgstub.unique_;
     _rsender.context().message_flags     = rmsgstub.msgbundle_.message_flags;
-    _rsender.context().pmessage_url      = &rmsgstub.msgbundle_.message_url;
+    if (!rmsgstub.msgbundle_.message_relay_header_.empty()) {
+        _rsender.context().message_flags.set(MessageFlagsE::Relayed);
+    }
+    _rsender.context().pmessage_relay_header_ = &rmsgstub.msgbundle_.message_relay_header_;
 
     const ptrdiff_t rv = rmsgstub.state_ == MessageStub::StateE::WriteBodyStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos, rmsgstub.msgbundle_.message_ptr, rmsgstub.msgbundle_.message_type_id) : rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
     rmsgstub.state_    = MessageStub::StateE::WriteBodyContinue;
@@ -772,7 +778,7 @@ char* MessageWriter::doWriteRelayedHead(
     _rsender.context().request_id.unique = rmsgstub.unique_;
     _rsender.context().message_flags     = rmsgstub.prelay_data_->pmessage_header_->flags_;
     _rsender.context().message_flags.set(MessageFlagsE::Relayed);
-    _rsender.context().pmessage_url = &rmsgstub.prelay_data_->pmessage_header_->url_;
+    _rsender.context().pmessage_relay_header_ = &rmsgstub.prelay_data_->pmessage_header_->relay_;
 
     const ptrdiff_t rv = rmsgstub.state_ == MessageStub::StateE::RelayedHeadStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos, *rmsgstub.prelay_data_->pmessage_header_) : rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
     rmsgstub.state_    = MessageStub::StateE::RelayedHeadContinue;

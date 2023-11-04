@@ -68,6 +68,7 @@ protected:
     using CastVectorT      = std::vector<CastStub>;
     using ReflectFunctionT = std::function<void(void*, const void*, void*, const ReverseCastFunctionT&)>;
     using CreateFunctionT  = std::function<void(void*, void*, const CastFunctionT&)>;
+
     struct ReflectorStub {
         ReflectFunctionT reflect_fnc_;
         CreateFunctionT  create_shared_fnc_;
@@ -411,7 +412,7 @@ class TypeMap : public TypeMapBase {
         template <class T>
         size_t registerType(const size_t _category, const size_t _id, const std::string_view _name)
         {
-            auto init_lambda = [](auto& _rctx, auto& _rptr) {
+            auto create_lambda = [](auto& _rctx, auto& _rptr) {
                 using PtrType = std::decay_t<decltype(_rptr)>;
                 if constexpr (solid::is_shared_ptr_v<PtrType>) {
                     _rptr = std::make_shared<typename PtrType::element_type>();
@@ -419,13 +420,14 @@ class TypeMap : public TypeMapBase {
                     _rptr = std::make_unique<typename PtrType::element_type>();
                 }
             };
-            const size_t rv = rtype_map_.doRegisterType<T>(_category, _id, _name, init_lambda, rtype_map_.doRegisterCast<T, T>());
+
+            const size_t rv = rtype_map_.doRegisterType<T>(_category, _id, _name, create_lambda, rtype_map_.doRegisterCast<T, T>());
             return rv;
         }
         template <class T, class B>
         size_t registerType(const size_t _category, const size_t _id, const std::string_view _name)
         {
-            auto init_lambda = [](auto& _rctx, auto& _rptr) {
+            auto create_lambda = [](auto& _rctx, auto& _rptr) {
                 using PtrType = std::decay_t<decltype(_rptr)>;
                 if constexpr (solid::is_shared_ptr_v<PtrType>) {
                     _rptr = std::make_shared<typename PtrType::element_type>();
@@ -433,20 +435,30 @@ class TypeMap : public TypeMapBase {
                     _rptr = std::make_unique<typename PtrType::element_type>();
                 }
             };
-            const size_t rv = rtype_map_.doRegisterType<T>(_category, _id, _name, init_lambda, rtype_map_.doRegisterCast<T, T>(), std::type_index{typeid(B)}, rtype_map_.doRegisterCast<T, B>());
+
+            const size_t rv = rtype_map_.doRegisterType<T>(
+                _category, _id, _name, create_lambda,
+                rtype_map_.doRegisterCast<T, T>(), std::type_index{typeid(B)}, rtype_map_.doRegisterCast<T, B>());
             return rv;
         }
 
-        template <class T, class InitF>
-        size_t registerType(const size_t _category, const size_t _id, const std::string_view _name, InitF _init_f)
+        template <class T, class CreateF>
+        size_t registerType(
+            const size_t _category, const size_t _id,
+            const std::string_view _name,
+            CreateF                _create_f)
         {
-            const size_t rv = rtype_map_.doRegisterType<T>(_category, _id, _name, _init_f, rtype_map_.doRegisterCast<T, T>());
+            const size_t rv = rtype_map_.doRegisterType<T>(_category, _id, _name, _create_f, rtype_map_.doRegisterCast<T, T>());
             return rv;
         }
-        template <class T, class B, class InitF>
-        size_t registerType(const size_t _category, const size_t _id, const std::string_view _name, InitF _init_f)
+        template <class T, class B, class CreateF>
+        size_t registerType(
+            const size_t _category, const size_t _id, const std::string_view _name,
+            CreateF _create_f)
         {
-            const size_t rv = rtype_map_.doRegisterType<T>(_category, _id, _name, _init_f, rtype_map_.doRegisterCast<T, T>(), std::type_index{typeid(B)}, rtype_map_.doRegisterCast<T, B>());
+            const size_t rv = rtype_map_.doRegisterType<T>(
+                _category, _id, _name, _create_f,
+                rtype_map_.doRegisterCast<T, T>(), std::type_index{typeid(B)}, rtype_map_.doRegisterCast<T, B>());
             return rv;
         }
 
@@ -459,8 +471,8 @@ class TypeMap : public TypeMapBase {
     };
 
 private:
-    template <class InitF, class T, class Ref, class... Rem>
-    void doInitTypeReflect(InitF _init_f, const size_t _type_index, const size_t _index = 0)
+    template <class CreateF, class T, class Ref, class... Rem>
+    void doInitTypeReflect(const CreateF& _create_f, const size_t _type_index, const size_t _index = 0)
     {
         type_vec_[_type_index].reflector_vec_[_index].reflect_fnc_ = [](void* _pref, const void* _pval, void* _pctx, const ReverseCastFunctionT& _reverse_cast_fnc) {
             Ref&                    rref = *reinterpret_cast<Ref*>(_pref);
@@ -474,29 +486,28 @@ private:
                 rref.add(rval, rctx, 0, "");
             }
         };
-        type_vec_[_type_index].reflector_vec_[_index].create_shared_fnc_ = [_init_f](void* _pctx, void* _pptr, const CastFunctionT& _cast) {
-            // auto ptr = std::make_shared<T>();
+        type_vec_[_type_index].reflector_vec_[_index].create_shared_fnc_ = [_create_f](void* _pctx, void* _pptr, const CastFunctionT& _cast) {
             typename Ref::ContextT& rctx = *reinterpret_cast<typename Ref::ContextT*>(_pctx);
             std::shared_ptr<T>      ptr;
-            _init_f(rctx, ptr);
+            _create_f(rctx, ptr);
             _cast(_pptr, &ptr);
         };
-        type_vec_[_type_index].reflector_vec_[_index].create_unique_fnc_ = [_init_f](void* _pctx, void* _pptr, const CastFunctionT& _cast) {
-            // auto ptr = std::make_unique<T>();
+        type_vec_[_type_index].reflector_vec_[_index].create_unique_fnc_ = [_create_f](void* _pctx, void* _pptr, const CastFunctionT& _cast) {
             typename Ref::ContextT& rctx = *reinterpret_cast<typename Ref::ContextT*>(_pctx);
             std::unique_ptr<T>      ptr;
-            _init_f(rctx, ptr);
+            _create_f(rctx, ptr);
             _cast(_pptr, &ptr);
         };
+
         if constexpr (!is_empty_pack<Rem...>::value) {
-            doInitTypeReflect<InitF, T, Rem...>(_init_f, _type_index, _index + 1);
+            doInitTypeReflect<CreateF, T, Rem...>(_create_f, _type_index, _index + 1);
         }
     }
 
-    template <class T, class InitF>
+    template <class T, class CreateF>
     size_t doRegisterType(
         const size_t _category, const size_t _id, const std::string_view _name,
-        InitF                 _init_f,
+        CreateF               _create_f,
         const size_t          _this_cast_index,
         const std::type_index _base_type_index = std::type_index{typeid(void)},
         const size_t          _base_cast_index = 0)
@@ -520,7 +531,7 @@ private:
         type_vec_.back().base_cast_index_ = _base_cast_index;
         type_vec_.back().reflector_vec_.resize(reflector_index_vector().size());
 
-        doInitTypeReflect<InitF, T, Reflector...>(_init_f, index);
+        doInitTypeReflect<CreateF, T, Reflector...>(_create_f, index);
         return index;
     }
 

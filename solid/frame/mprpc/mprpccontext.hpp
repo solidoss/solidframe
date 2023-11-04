@@ -34,6 +34,7 @@ namespace mprpc {
 struct Message;
 class Service;
 struct MessageHeader;
+struct MessageRelayHeader;
 
 namespace relay {
 class EngineCore;
@@ -343,26 +344,24 @@ private:
     friend class MessageWriter;
     friend class MessageReader;
     friend struct MessageHeader;
+    friend struct MessageRelayHeader;
     friend struct Message;
     friend class TestEntryway;
     friend class relay::EngineCore;
     friend class Service;
 
-    Service&       rservice;
-    Connection&    rconnection;
-    MessageHeader* pmessage_header;
-    MessageFlagsT  message_flags;
-    RequestId      request_id;
-    MessageId      message_id;
-    std::string*   pmessage_url; // we cannot make it const - serializer constraint
+    Service&            rservice;
+    Connection&         rconnection;
+    MessageHeader*      pmessage_header{nullptr};
+    MessageFlagsT       message_flags{0};
+    RequestId           request_id;
+    MessageId           message_id;
+    MessageRelayHeader* pmessage_relay_header_{nullptr}; // we cannot make it const - serializer constraint
 
     ConnectionContext(
         Service& _rsrv, Connection& _rcon)
         : rservice(_rsrv)
         , rconnection(_rcon)
-        , pmessage_header(nullptr)
-        , message_flags(0)
-        , pmessage_url(nullptr)
     {
     }
 

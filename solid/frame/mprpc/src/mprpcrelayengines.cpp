@@ -39,7 +39,6 @@ struct SingleNameEngine::Data {
 //-----------------------------------------------------------------------------
 SingleNameEngine::SingleNameEngine(Manager& _rm)
     : EngineCore(_rm)
-    , impl_(make_pimpl<Data>())
 {
 }
 //-----------------------------------------------------------------------------

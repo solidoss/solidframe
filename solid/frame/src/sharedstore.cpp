@@ -81,7 +81,7 @@ void StoreBase::Accessor::notify()
 
 StoreBase::StoreBase(
     Manager& _rm)
-    : impl_(make_pimpl<Data>(_rm))
+    : impl_(_rm)
 {
 }
 
@@ -118,11 +118,20 @@ UidVectorT& StoreBase::consumeEraseVector() const
     return *impl_->pconserasevec;
 }
 
-StoreBase::SizeVectorT& StoreBase::indexVector() const
+const StoreBase::SizeVectorT& StoreBase::indexVector() const
 {
     return impl_->cacheobjidxvec;
 }
-StoreBase::ExecWaitVectorT& StoreBase::executeWaitVector() const
+const StoreBase::ExecWaitVectorT& StoreBase::executeWaitVector() const
+{
+    return impl_->exewaitvec;
+}
+
+StoreBase::SizeVectorT& StoreBase::indexVector()
+{
+    return impl_->cacheobjidxvec;
+}
+StoreBase::ExecWaitVectorT& StoreBase::executeWaitVector()
 {
     return impl_->exewaitvec;
 }

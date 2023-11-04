@@ -2525,7 +2525,7 @@ void Service::Data::doPushFrontMessageToPool(
                 _rmsgbundle.message_type_id,
                 _rmsgbundle.complete_fnc,
                 _rmsgbundle.message_flags,
-                std::move(_rmsgbundle.message_url));
+                std::move(_rmsgbundle.message_relay_header_.uri_));
         } else {
             rpool.reinsertFrontMessage(
                 _rmsgid,
@@ -2533,7 +2533,7 @@ void Service::Data::doPushFrontMessageToPool(
                 _rmsgbundle.message_type_id,
                 _rmsgbundle.complete_fnc,
                 _rmsgbundle.message_flags,
-                std::move(_rmsgbundle.message_url));
+                std::move(_rmsgbundle.message_relay_header_.uri_));
         }
     }
 }
@@ -2765,6 +2765,12 @@ std::ostream& operator<<(std::ostream& _ros, RequestId const& _msg_id)
 std::ostream& operator<<(std::ostream& _ros, MessageId const& _msg_id)
 {
     _ros << '{' << _msg_id.index << ',' << _msg_id.unique << '}';
+    return _ros;
+}
+//-----------------------------------------------------------------------------
+std::ostream& operator<<(std::ostream& _ros, const MessageRelayHeader& _header)
+{
+    _ros << "uri = " << _header.uri_;
     return _ros;
 }
 //=============================================================================

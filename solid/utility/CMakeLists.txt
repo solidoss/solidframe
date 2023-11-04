@@ -26,6 +26,7 @@ set(Headers
     super.hpp
     sharedbuffer.hpp
     threadpool.hpp
+    cacheable.hpp
 )
 
 set(Inlines

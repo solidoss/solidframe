@@ -12,6 +12,7 @@
 
 #include "solid/system/common.hpp"
 #include "solid/system/exception.hpp"
+#include "solid/utility/cacheable.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/typetraits.hpp"
 
@@ -28,12 +29,48 @@ namespace mprpc {
 class Service;
 class Connection;
 
+struct MessageRelayHeader {
+    std::string uri_;
+
+    MessageRelayHeader() = default;
+
+    MessageRelayHeader(const std::string& _uri)
+        : uri_(_uri)
+    {
+    }
+    MessageRelayHeader(std::string&& _uri)
+        : uri_(std::move(_uri))
+    {
+    }
+
+    SOLID_REFLECT_V1(_rs, _rthis, _rctx)
+    {
+        if constexpr (std::decay_t<decltype(_rs)>::is_const_reflector) {
+            _rs.add(_rctx.pmessage_relay_header_->uri_, _rctx, 1, "uri", [](auto& _rmeta) { _rmeta.maxSize(20); });
+        } else {
+            _rs.add(_rthis.uri_, _rctx, 1, "uri", [](auto& _rmeta) { _rmeta.maxSize(20); });
+        }
+    }
+
+    bool empty() const noexcept
+    {
+        return uri_.empty();
+    }
+
+    void clear()
+    {
+        uri_.clear();
+    }
+};
+
+std::ostream& operator<<(std::ostream& _ros, const MessageRelayHeader& _header);
+
 struct MessageHeader {
     using FlagsT = MessageFlagsValueT;
-    RequestId   sender_request_id_;
-    RequestId   recipient_request_id_;
-    FlagsT      flags_;
-    std::string url_;
+    FlagsT             flags_{0};
+    RequestId          sender_request_id_;
+    RequestId          recipient_request_id_;
+    MessageRelayHeader relay_;
 
     static MessageFlagsT fetch_state_flags(const MessageFlagsT& _flags)
     {
@@ -41,125 +78,73 @@ struct MessageHeader {
         return _flags & state_flags;
     }
 
-    MessageHeader()
-        : flags_(0)
-    {
-    }
+    MessageHeader() = default;
 
     MessageHeader(
         const MessageHeader& _rmsgh)
-        : sender_request_id_(_rmsgh.sender_request_id_)
+        : flags_(fetch_state_flags(_rmsgh.flags_).toUnderlyingType())
+        , sender_request_id_(_rmsgh.sender_request_id_)
         , recipient_request_id_(_rmsgh.recipient_request_id_)
-        , flags_(fetch_state_flags(_rmsgh.flags_).toUnderlyingType())
     {
     }
 
-    MessageHeader& operator=(MessageHeader&& _umh)
+    MessageHeader& operator=(MessageHeader&& _umh) noexcept
     {
+        flags_                = _umh.flags_;
         sender_request_id_    = _umh.sender_request_id_;
         recipient_request_id_ = _umh.recipient_request_id_;
-        flags_                = _umh.flags_;
-        url_                  = std::move(_umh.url_);
+        relay_                = std::move(_umh.relay_);
         return *this;
     }
 
     MessageHeader& operator=(const MessageHeader& _rmh)
     {
+        flags_                = fetch_state_flags(_rmh.flags_).toUnderlyingType();
         sender_request_id_    = _rmh.sender_request_id_;
         recipient_request_id_ = _rmh.recipient_request_id_;
-        flags_                = fetch_state_flags(_rmh.flags_).toUnderlyingType();
-        url_                  = _rmh.url_;
+        relay_                = _rmh.relay_;
         return *this;
     }
 
     void clear()
     {
+        flags_ = 0;
         sender_request_id_.clear();
         recipient_request_id_.clear();
-        url_.clear();
-        flags_ = 0;
-    }
-    template <class S>
-    void solidSerializeV1(S& _rs, frame::mprpc::ConnectionContext& _rctx)
-    {
-        if (S::IsSerializer) {
-            // because a message can be sent to multiple destinations
-            // on serialization we cannot use/modify the values stored by ipc::Message
-            // so, we'll use ones store in the context. Because the context is volatile
-            // we'll store as values.
-
-            _rs.pushCross(sender_request_id_.index, "recipient_request_index");
-            _rs.pushCross(sender_request_id_.unique, "recipient_request_unique");
-
-            _rs.pushCross(_rctx.request_id.index, "sender_request_index");
-            _rs.pushCross(_rctx.request_id.unique, "sender_request_unique");
-            solid_check_log(_rctx.pmessage_url, service_logger(), "message url must not be null");
-            _rs.push(*_rctx.pmessage_url, "url");
-            uint64_t tmp = _rctx.message_flags.toUnderlyingType(); // not nice but safe - better solution in future versions
-            _rs.pushCross(tmp, "flags");
-        } else {
-
-            _rs.pushCross(recipient_request_id_.index, "recipient_request_index");
-            _rs.pushCross(recipient_request_id_.unique, "recipient_request_unique");
-
-            _rs.pushCross(sender_request_id_.index, "sender_request_index");
-            _rs.pushCross(sender_request_id_.unique, "sender_request_unique");
-
-            _rs.push(url_, "url");
-            _rs.pushCross(flags_, "flags");
-        }
+        relay_.clear();
     }
 
-    template <class S>
-    void solidSerializeV2(S& _rs, frame::mprpc::ConnectionContext& _rctx, std::true_type /*_is_serializer*/, const char* _name)
+    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        solid_check_log(_rctx.pmessage_url, service_logger(), "message url must not be null");
-        const MessageFlagsValueT tmp = _rctx.message_flags.toUnderlyingType();
-        _rs.add(tmp, _rctx, "flags").add(*_rctx.pmessage_url, _rctx, "url");
-        _rs.add(_rctx.request_id.index, _rctx, "sender_request_index");
-        _rs.add(_rctx.request_id.unique, _rctx, "sender_request_unique");
-        _rs.add(sender_request_id_.index, _rctx, "recipient_request_index");
-        _rs.add(sender_request_id_.unique, _rctx, "recipient_request_unique");
-    }
-
-    template <class S>
-    void solidSerializeV2(S& _rs, frame::mprpc::ConnectionContext& _rctx, std::false_type /*_is_deserializer*/, const char* _name)
-    {
-        _rs.add(flags_, _rctx, "flags_").add(url_, _rctx, "url");
-        _rs.add(sender_request_id_.index, _rctx, "sender_request_index");
-        _rs.add(sender_request_id_.unique, _rctx, "sender_request_unique");
-        _rs.add(recipient_request_id_.index, _rctx, "recipient_request_index");
-        _rs.add(recipient_request_id_.unique, _rctx, "recipient_request_unique");
-    }
-
-    template <class S>
-    void solidSerializeV2(S& _rs, frame::mprpc::ConnectionContext& _rctx, const char* _name)
-    {
-        solidSerializeV2(_rs, _rctx, std::bool_constant<S::is_serializer>(), _name);
-    }
-
-    SOLID_REFLECT_V1(_rs, _rthis, _rctx)
-    {
-        if constexpr (std::decay_t<decltype(_rs)>::is_const_reflector) {
+        if constexpr (std::decay_t<decltype(_rr)>::is_const_reflector) {
             const MessageFlagsValueT tmp = _rctx.message_flags.toUnderlyingType();
-            _rs.add(tmp, _rctx, 1, "flags");
-            _rs.add(*_rctx.pmessage_url, _rctx, 2, "url");
-            _rs.add(_rctx.request_id.index, _rctx, 3, "sender_request_index");
-            _rs.add(_rctx.request_id.unique, _rctx, 4, "sender_request_unique");
-            _rs.add(_rthis.sender_request_id_.index, _rctx, 5, "recipient_request_index");
-            _rs.add(_rthis.sender_request_id_.unique, _rctx, 6, "recipient_request_unique");
+            _rr.add(tmp, _rctx, 1, "flags");
+            _rr.add(_rctx.request_id.index, _rctx, 2, "sender_request_index");
+            _rr.add(_rctx.request_id.unique, _rctx, 3, "sender_request_unique");
+            _rr.add(_rthis.sender_request_id_.index, _rctx, 4, "recipient_request_index");
+            _rr.add(_rthis.sender_request_id_.unique, _rctx, 5, "recipient_request_unique");
+            if (_rctx.message_flags.has(MessageFlagsE::Relayed)) {
+                _rr.add(_rthis.relay_, _rctx, 6, "relay");
+            }
         } else {
-            _rs.add(_rthis.flags_, _rctx, 1, "flags");
-            _rs.add(_rthis.url_, _rctx, 2, "url");
-            _rs.add(_rthis.sender_request_id_.index, _rctx, 3, "sender_request_index");
-            _rs.add(_rthis.sender_request_id_.unique, _rctx, 4, "sender_request_unique");
-            _rs.add(_rthis.recipient_request_id_.index, _rctx, 5, "recipient_request_index");
-            _rs.add(_rthis.recipient_request_id_.unique, _rctx, 6, "recipient_request_unique");
+            _rr.add(_rthis.flags_, _rctx, 1, "flags");
+            _rr.add(_rthis.sender_request_id_.index, _rctx, 2, "sender_request_index");
+            _rr.add(_rthis.sender_request_id_.unique, _rctx, 3, "sender_request_unique");
+            _rr.add(_rthis.recipient_request_id_.index, _rctx, 4, "recipient_request_index");
+            _rr.add(_rthis.recipient_request_id_.unique, _rctx, 5, "recipient_request_unique");
+            _rr.add(
+                [&_rthis](auto& _rr, auto& _rctx) {
+                    const MessageFlagsT flags(_rthis.flags_);
+                    if (flags.has(MessageFlagsE::Relayed)) {
+                        _rr.add(_rthis.relay_, _rctx, 6, "relay");
+                    }
+                },
+                _rctx);
         }
     }
 };
 
-struct Message : std::enable_shared_from_this<Message> {
+struct Message : Cacheable {
 
     using FlagsT = MessageFlagsValueT;
 
@@ -289,7 +274,7 @@ struct Message : std::enable_shared_from_this<Message> {
 
     void header(const MessageHeader& _umh)
     {
-        header_ = std::move(_umh);
+        header_ = _umh;
     }
 
     void header(frame::mprpc::ConnectionContext& _rctx)
@@ -300,6 +285,12 @@ struct Message : std::enable_shared_from_this<Message> {
     const MessageHeader& header() const
     {
         return header_;
+    }
+
+    Message& operator=(const Message& _other)
+    {
+        header(_other.header_);
+        return *this;
     }
 
     bool isOnSender() const
@@ -340,9 +331,9 @@ struct Message : std::enable_shared_from_this<Message> {
         return is_response_last(flags());
     }
 
-    const std::string& url() const
+    const std::string& uri() const
     {
-        return header_.url_;
+        return header_.relay_.uri_;
     }
 
     void clearStateFlags()
@@ -358,37 +349,6 @@ struct Message : std::enable_shared_from_this<Message> {
     MessageFlagsT flags() const
     {
         return MessageFlagsT(header_.flags_);
-    }
-
-    template <class S, class T>
-    static void solidSerializeV1(S& _rs, T& _rt, const char* _name)
-    {
-        _rs.push(_rt, _name);
-        if (S::IsDeserializer) {
-            _rs.pushCall(
-                [&_rt](S& /*_rs*/, solid::frame::mprpc::ConnectionContext& _rctx, uint64_t _val, solid::ErrorConditionT& _rerr) {
-                    _rt.header_ = std::move(*_rctx.pmessage_header);
-                },
-                0,
-                "call");
-        }
-    }
-
-    template <class S, class T>
-    static void solidSerializeV2(S& _rs, const T& _rt, frame::mprpc::ConnectionContext& _rctx, const char* _name)
-    {
-        _rs.add(_rt, _rctx, _name);
-    }
-
-    template <class S, class T>
-    static void solidDeserializeV2(S& _rs, T& _rt, frame::mprpc::ConnectionContext& _rctx, const char* _name)
-    {
-        _rs.add(
-            [&_rt](S& _rs, frame::mprpc::ConnectionContext& _rctx, const char* _name) {
-                _rt.header_ = std::move(*_rctx.pmessage_header);
-            },
-            _rctx, _name);
-        _rs.add(_rt, _rctx, _name);
     }
 
     RequestId const& senderRequestId() const

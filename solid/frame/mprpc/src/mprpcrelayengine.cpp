@@ -326,7 +326,7 @@ struct EngineCore::Data {
 };
 //-----------------------------------------------------------------------------
 EngineCore::EngineCore(Manager& _rm)
-    : impl_(make_pimpl<Data>(_rm))
+    : impl_(_rm)
 {
     solid_log(logger, Info, this);
 }
@@ -537,7 +537,7 @@ bool EngineCore::doRelayStart(
 
     _rrelay_id = MessageId(msgidx, rmsg.unique_);
 
-    const size_t    rcv_conidx = doRegisterNamedConnection(std::move(rmsg.header_.url_));
+    const size_t    rcv_conidx = doRegisterNamedConnection(std::move(rmsg.header_.relay_.uri_));
     ConnectionStub& rrcvcon    = impl_->con_dq_[rcv_conidx];
     ConnectionStub& rsndcon    = impl_->con_dq_[snd_conidx];
 

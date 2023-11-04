@@ -142,10 +142,7 @@ struct SchedulerBase::Data {
     }
 };
 
-SchedulerBase::SchedulerBase()
-    : pimpl_(make_pimpl<Data>())
-{
-}
+SchedulerBase::SchedulerBase() = default;
 
 SchedulerBase::~SchedulerBase()
 {

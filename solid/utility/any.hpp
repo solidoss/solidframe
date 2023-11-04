@@ -67,7 +67,8 @@ struct BigRTTI {
     template <class T>
     static void destroy(void* const _what) noexcept
     {
-        ::delete static_cast<T*>(_what);
+        //::delete static_cast<T*>(_what);
+        std::destroy_at(std::launder(static_cast<T*>(_what)));
     }
 
     template <class T>
@@ -380,7 +381,7 @@ public:
         return *this;
     }
 
-    ThisT& operator=(ThisT&& _other)
+    ThisT& operator=(ThisT&& _other) noexcept
     {
         reset();
         doMoveFrom(_other);

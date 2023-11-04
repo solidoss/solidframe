@@ -246,4 +246,36 @@ enum struct EndianessE : int {
 #endif
 };
 
+#ifdef __cpp_concepts
+template <class Base, size_t Size = hardware_destructive_interference_size>
+class Padded;
+
+template <class Base, size_t Size>
+    requires((sizeof(Base) % Size) == 0)
+class Padded<Base, Size> : public Base {
+};
+
+template <class Base, size_t Size>
+class Padded : public Base {
+    static constexpr size_t padding_size = (Size - (sizeof(Base) % Size));
+    uint8_t                 padding_[padding_size];
+};
+
+#else
+
+template <class Base, size_t Size = hardware_destructive_interference_size, class Enabled = void>
+class Padded;
+
+template <class Base, size_t Size>
+class Padded<Base, Size, typename std::enable_if_t<(sizeof(Base) % Size) == 0>> : public Base {
+};
+
+template <class Base, size_t Size, class Enable>
+class Padded : public Base {
+    static constexpr size_t padding_size = (Size - (sizeof(Base) % Size));
+    uint8_t                 padding_[padding_size];
+};
+
+#endif
+
 } // namespace solid
