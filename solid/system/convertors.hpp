@@ -52,7 +52,7 @@ constexpr
 #ifdef SOLID_ON_WINDOWS
     return _byteswap_ushort(_v);
 #else
-    return ((((_v) >> 8) & 0xff) | (((_v)&0xff) << 8));
+    return ((((_v) >> 8) & 0xff) | (((_v) & 0xff) << 8));
 #endif
 }
 

@@ -524,7 +524,7 @@ ErrorCodeT SocketDevice::connect(const SocketAddressStub& _rsas)
 #ifdef SOLID_ON_WINDOWS
     int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 #else
-    int rv       = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
+    int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 #endif
     return rv == 0 ? ErrorCodeT() : last_socket_error();
 }
@@ -570,8 +570,8 @@ ErrorCodeT SocketDevice::prepareAccept(const SocketAddressStub& _rsas, size_t _l
     }
     return last_socket_error();
 #else
-    int yes      = 1;
-    int rv       = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&yes), sizeof(yes));
+    int yes = 1;
+    int rv  = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&yes), sizeof(yes));
     if (rv < 0) {
         return last_socket_error();
     }

@@ -269,7 +269,7 @@ struct impl::Reactor::Data {
         }
     }
 #elif defined(SOLID_USE_EPOLL)
-    int          computeWaitDuration(NanoTime const& _rcrt, const bool _can_wait) const
+    int computeWaitDuration(NanoTime const& _rcrt, const bool _can_wait) const
     {
 
         if (!_can_wait) {

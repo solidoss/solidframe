@@ -346,7 +346,6 @@ public:
         using TaskQueueT = TaskList<TaskOne>;
         std::atomic_size_t        use_count_{1};
         std::atomic_uint_fast64_t produce_id_{0};
-        ContextStub*              pnext_ = nullptr;
         SpinLock                  spin_;
         TaskQueueT                task_q_;
         alignas(hardware_destructive_interference_size) std::atomic_uint_fast64_t consume_id_{0};
@@ -1099,14 +1098,16 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
                 rstub.clear();
                 rstub.notifyWhilePop();
 
-                consumeAll(local_context, all_id, _all_fnc, std::forward<Args>(_args)...);
-
                 if (pctx == nullptr) {
+                    consumeAll(local_context, all_id, _all_fnc, std::forward<Args>(_args)...);
+
                     _one_fnc(task, std::forward<Args>(_args)...);
                     ++local_context.one_free_count_;
                     statistic_.runOneFreeCount(local_context.one_free_count_);
                     continue;
                 } else if (context_produce_id == pctx->consume_id_.load(std::memory_order_relaxed)) {
+                    consumeAll(local_context, all_id, _all_fnc, std::forward<Args>(_args)...);
+
                     _one_fnc(task, std::forward<Args>(_args)...);
                     ++local_one_context_count;
                 } else {
@@ -1119,6 +1120,9 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
                         continue;
                     } else {
                         pctx->spin_.unlock();
+
+                        consumeAll(local_context, all_id, _all_fnc, std::forward<Args>(_args)...);
+
                         _one_fnc(task, std::forward<Args>(_args)...);
                         ++local_one_context_count;
                     }
@@ -1136,6 +1140,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
                         break;
                     }
                 }
+
                 consumeAll(local_context, all_id, _all_fnc, std::forward<Args>(_args)...);
 
                 _one_fnc(task_data.task(), std::forward<Args>(_args)...);
@@ -1173,7 +1178,7 @@ bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(std::atomic_uint8_
 {
     auto& rstub = all_.tasks_[_rlocal_context.next_all_id_ % all_.capacity_];
     if (rstub.isFilled(_rlocal_context.next_all_id_)) {
-        // NOTE: first we fetch the commited_all_index than we check if the
+        // NOTE: first we fetch the commited_all_index then we check if the
         //  current stub is reserved (some thread is starting to push something)
         //  - this is to ensure that we are not processing an all task prior to being
         //  used by any one task. This is guranteed because when adding a new one task,
@@ -1188,7 +1193,7 @@ bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(std::atomic_uint8_
             return false; // will wait on lock
         }
 
-        if (_rlocal_context.next_all_id_ > commited_all_index) {
+        if (overflow_safe_less(commited_all_index, _rlocal_context.next_all_id_)) {
             cpu_pause();
             return true;
         }
@@ -1264,13 +1269,13 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushAll(Tsk&& _task)
 
     rstub.task(std::forward<Tsk>(_task));
 
-    const auto shoud_wake_threads = all_.pending_count_.fetch_add(1) == 0;
+    const auto should_wake_threads = all_.pending_count_.fetch_add(1) == 0;
 
     rstub.notifyWhilePushAll(static_cast<uint32_t>(threads_.size()), id);
 
     commitAllId(id);
 
-    if (shoud_wake_threads) {
+    if (should_wake_threads) {
         for (size_t i = 0; i < threads_.size(); ++i) {
             auto& rstub = one_.tasks_[pushOneIndex()];
 
@@ -1281,7 +1286,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushAll(Tsk&& _task)
             rstub.notifyWhilePushAll();
         }
     }
-    statistic_.pushAll(shoud_wake_threads);
+    statistic_.pushAll(should_wake_threads);
 }
 //-----------------------------------------------------------------------------
 template <class TaskOne, class TaskAll, class Stats>
