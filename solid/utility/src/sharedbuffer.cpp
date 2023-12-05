@@ -149,17 +149,20 @@ BufferManager::~BufferManager() {}
 
 /* static */ void BufferManager::localMaxCount(const size_t _cap, const size_t _count)
 {
-    local_data.entry_map_[_cap].max_count_ = _count;
+    const std::size_t new_cap                 = compute_capacity(_cap, sizeof(SharedBuffer::Data));
+    local_data.entry_map_[new_cap].max_count_ = _count;
 }
 
 /* static */ size_t BufferManager::localMaxCount(const size_t _cap)
 {
-    return local_data.entry_map_[_cap].max_count_;
+    const std::size_t new_cap = compute_capacity(_cap, sizeof(SharedBuffer::Data));
+    return local_data.entry_map_[new_cap].max_count_;
 }
 
 /* static */ size_t BufferManager::localCount(const size_t _cap)
 {
-    return local_data.entry_map_[_cap].count_;
+    const std::size_t new_cap = compute_capacity(_cap, sizeof(SharedBuffer::Data));
+    return local_data.entry_map_[new_cap].count_;
 }
 
 /* static */ const BufferManager::Configuration& BufferManager::configuration()
