@@ -56,9 +56,11 @@ jobs:
     - name: Install nasm
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
       id: nasm
-      shell: bash
       run: |
-          choco install nasm
+        if ["$RUNNER_OS" == "Windows" ]; then
+              choco install nasm
+              echo "C:\Program Files\NASM\" >> $GITHUB_PATH        
+        fi
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
