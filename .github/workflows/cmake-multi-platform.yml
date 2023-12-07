@@ -58,7 +58,7 @@ jobs:
       id: perl
       shell: bash
       run: |
-          env
+          ls /c/Strawberry/ && ls /c/Strawberry/perl/ && ls /c/Strawberry/perl/bin && /c/Strawberry/perl/bin/perl --version
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
