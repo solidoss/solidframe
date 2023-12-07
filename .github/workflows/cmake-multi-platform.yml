@@ -56,6 +56,7 @@ jobs:
     - name: Install nasm
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
       id: nasm
+      shell: bash
       run: |
         if ["$RUNNER_OS" == "Windows" ]; then
               choco install nasm
