@@ -59,7 +59,8 @@ jobs:
       shell: bash
       run: |
           if [ "$RUNNER_OS" == "Windows" ]; then
-              choco install nasm && echo "C:\Program Files\NASM\" >> $GITHUB_PATH
+              choco install nasm
+              echo "C:\Program Files\NASM" >> $GITHUB_PATH
           fi
   
     - name: Configure CMake
