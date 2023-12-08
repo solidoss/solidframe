@@ -18,39 +18,49 @@ char* SharedBuffer::Data::release()
     }
     return nullptr;
 }
-
-inline constexpr std::size_t compute_capacity(const std::size_t _cap, const std::size_t _size_of_data)
+namespace {
+template <size_t DataSize>
+inline constexpr std::size_t compute_capacity(const std::size_t _cap)
 {
     constexpr std::size_t allign = 256;
-    const std::size_t     sum    = (_cap + _size_of_data);
+    const std::size_t     sum    = (_cap + DataSize);
+
+    static_assert(allign >= DataSize);
+
     if ((sum % allign) == 0) {
         return sum;
     } else {
         return (sum - (sum % allign)) + allign;
     }
 }
+} // namespace
 
 /* static */ SharedBuffer::Data* SharedBuffer::allocate_data(const std::size_t _cap)
 {
-    const std::size_t new_cap = compute_capacity(_cap, sizeof(Data));
+    const std::size_t new_cap = compute_capacity<sizeof(Data)>(_cap);
     auto              pbuf    = new char[new_cap];
 
     auto pdata       = new (pbuf) Data{pbuf};
-    pdata->capacity_ = (pbuf + new_cap) - pdata->data();
+    pdata->capacity_ = _cap; //(pbuf + new_cap) - pdata->data();
     return pdata;
 }
 
 SharedBuffer::SharedBuffer(const std::size_t _cap, const std::thread::id& _thr_id)
 {
-    const std::size_t new_cap = compute_capacity(_cap, sizeof(Data));
-
-    pdata_ = BufferManager::allocate(new_cap);
+    pdata_ = BufferManager::allocate(_cap);
     if (pdata_ == nullptr) [[unlikely]] {
-        char* pbuf        = new char[new_cap];
-        pdata_            = new (pbuf) Data{pbuf};
-        pdata_->capacity_ = (pbuf + new_cap) - pdata_->data();
+        const std::size_t new_cap = compute_capacity<sizeof(Data)>(_cap);
+        char*             pbuf    = new char[new_cap];
+        pdata_                    = new (pbuf) Data{pbuf};
+        pdata_->capacity_         = _cap; //(pbuf + new_cap) - pdata_->data();
     }
     pdata_->make_thread_id_ = _thr_id;
+}
+
+std::size_t SharedBuffer::actualCapacity() const
+{
+    const std::size_t new_cap = compute_capacity<sizeof(Data)>(pdata_->capacity_);
+    return (pdata_->buffer_ + new_cap) - pdata_->data();
 }
 
 //-----------------------------------------------------------------------------
@@ -124,7 +134,9 @@ BufferManager::~BufferManager() {}
 {
     if (_pdata) {
         if (_pdata->make_thread_id_ == std::this_thread::get_id()) {
-            auto& entry = local_data.entry_map_[_pdata->capacity()];
+            const std::size_t new_cap = compute_capacity<sizeof(SharedBuffer::Data)>(_pdata->capacity_);
+            auto&             entry   = local_data.entry_map_[new_cap];
+
             if (!entry.full()) {
                 entry.push(_pdata);
                 return nullptr;
@@ -137,31 +149,33 @@ BufferManager::~BufferManager() {}
 
 /* static */ SharedBuffer::Data* BufferManager::allocate(const size_t _cap)
 {
-    auto& entry = local_data.entry_map_[_cap];
-    auto* pdata = entry.pop();
+    const std::size_t new_cap = compute_capacity<sizeof(SharedBuffer::Data)>(_cap);
+    auto&             entry   = local_data.entry_map_[new_cap];
+    auto*             pdata   = entry.pop();
     if (pdata) {
         pdata->use_count_.store(1);
-        pdata->size_  = 0;
-        pdata->pnext_ = nullptr;
+        pdata->size_     = 0;
+        pdata->pnext_    = nullptr;
+        pdata->capacity_ = _cap;
     }
     return pdata;
 }
 
 /* static */ void BufferManager::localMaxCount(const size_t _cap, const size_t _count)
 {
-    const std::size_t new_cap                 = compute_capacity(_cap, sizeof(SharedBuffer::Data));
+    const std::size_t new_cap                 = compute_capacity<sizeof(SharedBuffer::Data)>(_cap);
     local_data.entry_map_[new_cap].max_count_ = _count;
 }
 
 /* static */ size_t BufferManager::localMaxCount(const size_t _cap)
 {
-    const std::size_t new_cap = compute_capacity(_cap, sizeof(SharedBuffer::Data));
+    const std::size_t new_cap = compute_capacity<sizeof(SharedBuffer::Data)>(_cap);
     return local_data.entry_map_[new_cap].max_count_;
 }
 
 /* static */ size_t BufferManager::localCount(const size_t _cap)
 {
-    const std::size_t new_cap = compute_capacity(_cap, sizeof(SharedBuffer::Data));
+    const std::size_t new_cap = compute_capacity<sizeof(SharedBuffer::Data)>(_cap);
     return local_data.entry_map_[new_cap].count_;
 }
 

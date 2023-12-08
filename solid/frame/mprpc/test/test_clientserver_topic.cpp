@@ -517,7 +517,7 @@ int test_clientserver_topic(int argc, char* argv[])
         worker_pool.stop();
 
         solid_log(logger, Statistic, "Test duration: " << (milliseconds_since_epoch() - start_msec) << "msecs");
-        solid_log(logger, Statistic, "Workpool statistic: " << worker_pool.statistic());
+        solid_log(logger, Statistic, "ThreadPool statistic: " << worker_pool.statistic());
         solid_log(logger, Statistic, "mprpcserver statistic: " << mprpcserver.statistic());
         solid_log(logger, Statistic, "mprpcclient statistic: " << mprpcclient.statistic());
         solid_log(logger, Statistic, "req_count: " << req_count.load() << " res_count: " << res_count.load());

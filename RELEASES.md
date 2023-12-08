@@ -23,7 +23,7 @@
 
 ## Version 8.1
 
-* (DONE) WorkPool to ThreadPool
+* (DONE) ThreadPool to ThreadPool
 
 ## Version 6.0
 
@@ -31,7 +31,7 @@
 * (DONE) remove boost dependency
 * (DONE) Object -> Actor
 * (DONE) Overal fixes
-* (DONE) Refactored solid::WorkPool<>. solid::CallPool<>
+* (DONE) Refactored solid::ThreadPool<>. solid::CallPool<>
 
 ## Version 5.0
 
@@ -39,7 +39,7 @@
 * (DONE) clang tidy support
 * (DONE) fix compilation on g++ 8.1.1
 * (DONE) system/debug.hpp -> system/log.hpp - redesign debug logging engine. No locking while handling log line parameters.
-* (DONE) utility/workpool.hpp -> improved locking for a better performance on macOS
+* (DONE) utility/ThreadPool.hpp -> improved locking for a better performance on macOS
 * (DONE) mpipc: call connection pool close callback after calling connection close callback for every connection in the pool
 * (DONE) mpipc: improve connection pool with support for events like ConnectionActivated, PoolDisconnect, ConnectionStop
 

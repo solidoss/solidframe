@@ -25,6 +25,7 @@
 #include "solid/system/socketaddress.hpp"
 #include "solid/system/socketdevice.hpp"
 #include "solid/utility/function.hpp"
+#include "solid/utility/sharedbuffer.hpp"
 #include <vector>
 
 namespace solid {
@@ -50,7 +51,7 @@ class Configuration;
 
 typedef void (*OnSecureConnectF)(frame::aio::ReactorContext&);
 typedef void (*OnSecureAcceptF)(frame::aio::ReactorContext&);
-
+#if false
 struct BufferBase {
     virtual ~BufferBase();
 
@@ -102,6 +103,7 @@ using SendBufferPointerT = std::unique_ptr<char[]>;
 using RecvBufferPointerT = std::shared_ptr<BufferBase>;
 
 RecvBufferPointerT make_recv_buffer(const size_t _cp);
+#endif
 
 enum struct RelayDataFlagsE : uint8_t {
     First,
@@ -114,7 +116,7 @@ using RelayDataFlagsT = Flags<RelayDataFlagsE>;
 std::ostream& operator<<(std::ostream& _ros, const RelayDataFlagsT& _flags);
 
 struct RelayData {
-    RecvBufferPointerT    bufptr_;
+    SharedBuffer          buffer_;
     const char*           pdata_     = nullptr;
     size_t                data_size_ = 0;
     RelayData*            pnext_     = nullptr;
@@ -126,7 +128,7 @@ struct RelayData {
 
     RelayData(
         RelayData&& _rrelmsg) noexcept
-        : bufptr_(std::move(_rrelmsg.bufptr_))
+        : buffer_(std::move(_rrelmsg.buffer_))
         , pdata_(_rrelmsg.pdata_)
         , data_size_(_rrelmsg.data_size_)
         , pnext_(nullptr)
@@ -138,7 +140,7 @@ struct RelayData {
 
     RelayData& operator=(RelayData&& _rrelmsg) noexcept
     {
-        bufptr_          = std::move(_rrelmsg.bufptr_);
+        buffer_          = std::move(_rrelmsg.buffer_);
         pdata_           = _rrelmsg.pdata_;
         data_size_       = _rrelmsg.data_size_;
         pnext_           = _rrelmsg.pnext_;
@@ -156,7 +158,7 @@ struct RelayData {
         pdata_     = nullptr;
         data_size_ = 0;
         // connection_id_.clear();
-        bufptr_.reset();
+        buffer_.reset();
         pnext_ = nullptr;
         flags_.reset();
         message_flags_   = 0;
@@ -191,11 +193,11 @@ struct RelayData {
 private:
     friend class Connection;
     RelayData(
-        RecvBufferPointerT& _bufptr,
-        const char*         _pdata,
-        size_t              _data_size,
-        const bool          _is_last)
-        : bufptr_(_bufptr)
+        SharedBuffer& _buffer,
+        const char*   _pdata,
+        size_t        _data_size,
+        const bool    _is_last)
+        : buffer_(_buffer)
         , pdata_(_pdata)
         , data_size_(_data_size)
     {
@@ -214,7 +216,7 @@ class RelayEngine {
 
 protected:
     using PushFunctionT   = solid_function_t(bool(RelayData*&, const MessageId&, MessageId&, bool&));
-    using DoneFunctionT   = solid_function_t(void(RecvBufferPointerT&));
+    using DoneFunctionT   = solid_function_t(void(SharedBuffer&));
     using CancelFunctionT = solid_function_t(void(const MessageHeader&));
 
     RelayEngine() {}
@@ -335,8 +337,8 @@ using ClientSetupSocketDeviceFunctionT          = solid_function_t(bool(SocketDe
 using ResolveCompleteFunctionT                  = solid_function_t(void(AddressVectorT&&));
 using ConnectionStopFunctionT                   = solid_function_t(void(ConnectionContext&));
 using ConnectionStartFunctionT                  = solid_function_t(void(ConnectionContext&));
-using SendAllocateBufferFunctionT               = solid_function_t(SendBufferPointerT(const uint32_t));
-using RecvAllocateBufferFunctionT               = solid_function_t(RecvBufferPointerT(const uint32_t));
+using SendAllocateBufferFunctionT               = solid_function_t(SharedBuffer(const uint32_t));
+using RecvAllocateBufferFunctionT               = solid_function_t(SharedBuffer(const uint32_t));
 using CompressFunctionT                         = solid_function_t(size_t(char*, size_t, ErrorConditionT&));
 using UncompressFunctionT                       = solid_function_t(size_t(char*, const char*, size_t, ErrorConditionT&));
 using ExtractRecipientNameFunctionT             = solid_function_t(const char*(const char*, std::string&, std::string&));
@@ -558,9 +560,9 @@ public:
         return !isServer() && isClient();
     }
 
-    RecvBufferPointerT allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) const;
+    SharedBuffer allocateRecvBuffer() const;
 
-    SendBufferPointerT allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const;
+    SharedBuffer allocateSendBuffer() const;
 
     void check() const;
 

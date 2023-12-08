@@ -1,4 +1,4 @@
-// example_workpool.cpp
+// example_ThreadPool.cpp
 //
 // Copyright (c) 2007, 2008, 2018 Valentin Palade (vipalade @ gmail . com)
 //

@@ -42,11 +42,6 @@ class SharedBuffer {
         {
             return data_;
         }
-
-        std::size_t capacity() const
-        {
-            return capacity_ + (data_ - buffer_);
-        }
     };
 
     static Data sentinel;
@@ -104,6 +99,8 @@ public:
     {
         return pdata_->capacity_;
     }
+
+    std::size_t actualCapacity() const;
 
     auto makerThreadId() const
     {

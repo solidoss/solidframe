@@ -63,7 +63,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
     * _InnerList_ - bidirectional list mapped over a vector/deque
     * _Stack_ - alternative to std::stack
     * _Queue_ - alternative to std:queue
-    * _WorkPool_ - generic thread pool
+    * _ThreadPool_ - generic thread pool
 * [__solid_serialization_v2__](#solid_serialization_v2): binary serialization/marshalling
     * _TypeMap_
     * _binary::Serializer_

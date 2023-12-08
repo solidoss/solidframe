@@ -24,11 +24,6 @@ int test_shared_buffer(int argc, char* argv[])
 
         solid_check(sb2.size() == 100);
 
-        for (size_t i = 8; i <= 1024; i += 8) {
-            SharedBuffer sb = make_shared_buffer(i);
-            cout << i << "\t" << sb.capacity() << endl;
-        }
-
         SharedBuffer sb3 = sb2; // sb3 == sb2
 
         solid_check(!sb2.resurrect());
@@ -86,6 +81,19 @@ int test_shared_buffer(int argc, char* argv[])
             solid_check(psb1 == static_cast<void*>(sb1.data()));
         }
         solid_check(BufferManager::localCount(1000) == 1);
+    }
+
+    for (size_t i = 100; i < 4000; i += 100) {
+        SharedBuffer sb1 = make_shared_buffer(i);
+        SharedBuffer sb2 = BufferManager::make(i);
+        solid_check(sb1.capacity() == i);
+        solid_check(sb2.capacity() == i);
+        cout << i << " " << sb1.capacity() << " " << sb1.actualCapacity() << " " << sb2.capacity() << " " << sb2.actualCapacity() << endl;
+    }
+    {
+        SharedBuffer empty_buf;
+        solid_check(empty_buf.capacity() == 0);
+        cout << "Empty buffer actualCapacity = " << empty_buf.actualCapacity() << endl;
     }
     return 0;
 }
