@@ -11,6 +11,7 @@ if(SOLID_ON_WINDOWS)
         PREFIX ${EXTERNAL_DIR}/openssl
         URL https://www.openssl.org/source/openssl-3.1.2.tar.gz
         DOWNLOAD_NO_PROGRESS OFF
+        DOWNLOAD_EXTRACT_TIMESTAMP OFF
         #URL_MD5 "6f4571e7c5a66ccc3323da6c24be8f05"
         #CONFIGURE_COMMAND ${EXTERNAL_DIR}/openssl/src/build-openssl/config --prefix=${EXTERNAL_DIR} --openssldir=ssl_
         CONFIGURE_COMMAND C:/Strawberry/perl/bin/perl Configure ${OPENSSL_TARGET} --prefix=${EXTERNAL_DIR} no-shared no-unit-test no-tests no-ui-console --libdir=lib
@@ -21,6 +22,7 @@ if(SOLID_ON_WINDOWS)
         LOG_CONFIGURE ON
         LOG_BUILD ON
         LOG_INSTALL ON
+        #LOG_OUTPUT_ON_FAILURE ON
     )
 
     set(OPENSSL_FOUND TRUE)
@@ -36,6 +38,7 @@ else()
         PREFIX ${EXTERNAL_DIR}/openssl
         URL https://www.openssl.org/source/openssl-3.1.2.tar.gz
         DOWNLOAD_NO_PROGRESS ON
+        DOWNLOAD_EXTRACT_TIMESTAMP OFF
         #URL_MD5 "6f4571e7c5a66ccc3323da6c24be8f05"
         CONFIGURE_COMMAND ${EXTERNAL_DIR}/openssl/src/build-openssl/config --prefix=${EXTERNAL_DIR} no-shared no-unit-test no-tests no-ui-console --libdir=lib
         BUILD_COMMAND make
