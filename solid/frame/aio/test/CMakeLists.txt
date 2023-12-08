@@ -44,7 +44,7 @@ if(OPENSSL_FOUND)
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
     )
-    if(SOLID_ON_WINDOWS)
+    if(SOLID_ON_WINDOWS AND OPENSSL_SSL_DLL AND OPENSSL_CRYPTO_DLL)
         add_custom_command(TARGET test_aio POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_SSL_DLL} $<TARGET_FILE_DIR:test_aio>
             COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_CRYPTO_DLL} $<TARGET_FILE_DIR:test_aio>
@@ -114,10 +114,10 @@ if(OPENSSL_FOUND)
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
     )
-    if(SOLID_ON_WINDOWS)
-        add_custom_command(TARGET test_aio POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_SSL_DLL} $<TARGET_FILE_DIR:test_aio>
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_CRYPTO_DLL} $<TARGET_FILE_DIR:test_aio>
+    if(SOLIDSOLID_ON_WINDOWS AND OPENSSL_SSL_DLL AND OPENSSL_CRYPTO_DLL_ON_WINDOWS)
+        add_custom_command(TARGET test_perf POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_SSL_DLL} $<TARGET_FILE_DIR:test_perf>
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_CRYPTO_DLL} $<TARGET_FILE_DIR:test_perf>
         )
     endif()
     

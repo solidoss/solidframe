@@ -90,7 +90,7 @@ if(OPENSSL_FOUND)
 
     add_dependencies(test_mprpc_clientserver build-snappy mprpc_test_copy_certs build-openssl)
 
-    if(SOLID_ON_WINDOWS)
+    if(SOLID_ON_WINDOWS AND OPENSSL_SSL_DLL AND OPENSSL_CRYPTO_DLL)
         add_custom_command(TARGET test_mprpc_clientserver POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_SSL_DLL} $<TARGET_FILE_DIR:test_mprpc_clientserver>
             COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_CRYPTO_DLL} $<TARGET_FILE_DIR:test_mprpc_clientserver>
