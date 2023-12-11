@@ -65,6 +65,10 @@ int test_shared_buffer(int argc, char* argv[])
             for (size_t i = 0; i < 4; ++i) {
                 thr_vec.emplace_back(lambda);
             }
+            
+            if (sb1.resurrect()) {
+                p.set_value(std::move(sb1));
+            }
         }
         solid_check(BufferManager::localCount(1000) == 0);
         {
