@@ -136,7 +136,7 @@ public:
         }
     }
 
-    bool resurrect()
+    bool collapse()
     {
         if (*this) {
             auto buf = pdata_->release();

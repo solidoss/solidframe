@@ -26,10 +26,10 @@ int test_shared_buffer(int argc, char* argv[])
 
         SharedBuffer sb3 = sb2; // sb3 == sb2
 
-        solid_check(!sb2.resurrect());
-        solid_check(!sb.resurrect());
+        solid_check(!sb2.collapse());
+        solid_check(!sb.collapse());
 
-        solid_check(sb3.resurrect());
+        solid_check(sb3.collapse());
         solid_check(sb3);
     }
     {
@@ -52,10 +52,10 @@ int test_shared_buffer(int argc, char* argv[])
 
             auto lambda = [&p, sb1, sb2]() mutable {
                 this_thread::sleep_for(chrono::milliseconds(200));
-                if (sb1.resurrect()) {
+                if (sb1.collapse()) {
                     p.set_value(std::move(sb1));
                 }
-                if (sb2.resurrect()) {
+                if (sb2.collapse()) {
                     sb2.reset();
                     solid_check(!sb2);
                     solid_check(BufferManager::localCount(2000) == 0);
@@ -66,7 +66,7 @@ int test_shared_buffer(int argc, char* argv[])
                 thr_vec.emplace_back(lambda);
             }
             
-            if (sb1.resurrect()) {
+            if (sb1.collapse()) {
                 p.set_value(std::move(sb1));
             }
         }
