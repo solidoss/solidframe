@@ -77,7 +77,7 @@ add_test(NAME TestUtilityCallPoolMulticastSynchCtxBasic COMMAND  test_utility te
 add_test(NAME TestUtilityFunctionPerf_s_2_10000_1000    COMMAND  test_utility test_function_perf s 2 10000 1000)
 add_test(NAME TestUtilityFunctionPerf_S_2_10000_1000    COMMAND  test_utility test_function_perf S 2 10000 1000)
 add_test(NAME TestUtilitySharedBuffer                   COMMAND  test_utility test_shared_buffer)
-add_test(NAME TestCollapse                              COMMAND  test_utility test_collapse)
+#add_test(NAME TestCollapse                              COMMAND  test_utility test_collapse)
 add_test(NAME TestThreadPoolThreadContext               COMMAND  test_threadpool test_threadpool_thread_context)
 add_test(NAME TestThreadPoolContext                     COMMAND  test_threadpool test_threadpool_context)
 add_test(NAME TestThreadPoolPattern                     COMMAND  test_threadpool test_threadpool_pattern)

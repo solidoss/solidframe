@@ -7,9 +7,9 @@ namespace solid {
 
 SharedBuffer::Data SharedBuffer::sentinel;
 
-char* SharedBuffer::Data::release()
+char* SharedBuffer::Data::release(size_t& _previous_use_count)
 {
-    if (use_count_.fetch_sub(1) == 1) {
+    if ((_previous_use_count = use_count_.fetch_sub(1)) == 1) {
         if (make_thread_id_ == std::thread::id{}) {
             return buffer_;
         } else {

@@ -36,7 +36,7 @@ class SharedBuffer {
             return *this;
         }
 
-        char* release();
+        char* release(size_t& _previous_use_count);
 
         char* data()
         {
@@ -127,19 +127,22 @@ public:
         return pdata_->use_count_.load();
     }
 
-    void reset()
+    size_t reset()
     {
+        size_t previous_use_count = 0;
         if (*this) {
-            auto buf = pdata_->release();
+            auto buf = pdata_->release(previous_use_count);
             delete[] buf;
             pdata_ = &sentinel;
         }
+        return previous_use_count;
     }
 
     bool collapse()
     {
         if (*this) {
-            auto buf = pdata_->release();
+            size_t previous_use_count = 0;
+            auto   buf                = pdata_->release(previous_use_count);
             if (buf) {
                 pdata_->acquire();
                 return true;

@@ -65,7 +65,7 @@ int test_shared_buffer(int argc, char* argv[])
             for (size_t i = 0; i < 4; ++i) {
                 thr_vec.emplace_back(lambda);
             }
-            
+
             if (sb1.collapse()) {
                 p.set_value(std::move(sb1));
             }

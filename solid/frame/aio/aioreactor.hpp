@@ -120,13 +120,13 @@ protected:
 #else
     using MutexT = mutex;
 #endif
-    const size_t      wake_capacity_;
-    ReactorStatistic& rstatistic_;
-    size_t            actor_count_{0};
-    size_t            current_exec_size_{0};
-    alignas(hardware_destructive_interference_size) std::atomic_size_t pop_wake_index_{0};
-    alignas(hardware_destructive_interference_size) std::atomic_size_t pending_wake_count_{0};
-    alignas(hardware_destructive_interference_size) std::atomic_size_t push_wake_index_{0};
+    const size_t       wake_capacity_;
+    ReactorStatistic&  rstatistic_;
+    size_t             actor_count_{0};
+    size_t             current_exec_size_{0};
+    size_t             pop_wake_index_{0};
+    std::atomic_size_t pending_wake_count_{0};
+    std::atomic_size_t push_wake_index_{0};
 
 public:
     using StatisticT     = ReactorStatistic;
@@ -531,7 +531,7 @@ private:
         ReactorContext ctx(context(_rcrttime));
 
         while (true) {
-            const size_t index = pop_wake_index_.load(std::memory_order_relaxed) % wake_capacity_;
+            const size_t index = pop_wake_index_ % wake_capacity_;
             auto&        rstub = wake_arr_[index];
             if (rstub.isFilled()) {
                 if (rstub.actor_ptr_) [[unlikely]] {
