@@ -12,6 +12,7 @@
 
 #include "solid/frame/mprpc/mprpcerror.hpp"
 #include "solid/frame/mprpc/mprpcmessage.hpp"
+#include "solid/utility/cast.hpp"
 #include "solid/utility/function.hpp"
 
 #include <memory>
@@ -26,25 +27,25 @@ template <class Req>
 struct message_complete_traits;
 
 template <class Req, class Res>
-struct message_complete_traits<void (*)(ConnectionContext&, std::shared_ptr<Req>&, std::shared_ptr<Res>&, ErrorConditionT const&)> {
+struct message_complete_traits<void (*)(ConnectionContext&, MessagePointerT<Req>&, MessagePointerT<Res>&, ErrorConditionT const&)> {
     typedef Req send_type;
     typedef Res recv_type;
 };
 
 template <class Req, class Res>
-struct message_complete_traits<void(ConnectionContext&, std::shared_ptr<Req>&, std::shared_ptr<Res>&, ErrorConditionT const&)> {
+struct message_complete_traits<void(ConnectionContext&, MessagePointerT<Req>&, MessagePointerT<Res>&, ErrorConditionT const&)> {
     typedef Req send_type;
     typedef Res recv_type;
 };
 
 template <class C, class Req, class Res>
-struct message_complete_traits<void (C::*)(ConnectionContext&, std::shared_ptr<Req>&, std::shared_ptr<Res>&, ErrorConditionT const&)> {
+struct message_complete_traits<void (C::*)(ConnectionContext&, MessagePointerT<Req>&, MessagePointerT<Res>&, ErrorConditionT const&)> {
     typedef Req send_type;
     typedef Res recv_type;
 };
 
 template <class C, class Req, class Res>
-struct message_complete_traits<void (C::*)(ConnectionContext&, std::shared_ptr<Req>&, std::shared_ptr<Res>&, ErrorConditionT const&) const> {
+struct message_complete_traits<void (C::*)(ConnectionContext&, MessagePointerT<Req>&, MessagePointerT<Res>&, ErrorConditionT const&) const> {
     typedef Req send_type;
     typedef Res recv_type;
 };
@@ -73,17 +74,13 @@ struct CompleteHandler {
 
     void operator()(
         ConnectionContext&     _rctx,
-        MessagePointerT&       _rreq_msg_ptr,
-        MessagePointerT&       _rres_msg_ptr,
+        MessagePointerT<>&     _rreq_msg_ptr,
+        MessagePointerT<>&     _rres_msg_ptr,
         ErrorConditionT const& _err)
     {
-        // Req                   *prequest = dynamic_cast<Req*>(_rreq_msg_ptr.get());
-        std::shared_ptr<Req> req_msg_ptr(std::dynamic_pointer_cast<Req>(_rreq_msg_ptr));
-
-        // Res                   *presponse = dynamic_cast<Res*>(_rres_msg_ptr.get());
-        std::shared_ptr<Res> res_msg_ptr(std::dynamic_pointer_cast<Res>(_rres_msg_ptr));
-
-        ErrorConditionT error(_err);
+        MessagePointerT<Req> req_msg_ptr(solid::dynamic_pointer_cast<Req>(_rreq_msg_ptr));
+        MessagePointerT<Res> res_msg_ptr(solid::dynamic_pointer_cast<Res>(_rres_msg_ptr));
+        ErrorConditionT      error(_err);
 
         if (!error && _rreq_msg_ptr && !req_msg_ptr) {
             error = error_service_bad_cast_request;
@@ -102,12 +99,12 @@ public:
     using PointerT = std::unique_ptr<Deserializer>;
 
     virtual ~Deserializer();
-    virtual ptrdiff_t       run(ConnectionContext&, const char* _pdata, size_t _data_len, MessageHeader& _rmsghdr)   = 0;
-    virtual ptrdiff_t       run(ConnectionContext&, const char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr) = 0;
-    virtual ptrdiff_t       run(ConnectionContext&, const char* _pdata, size_t _data_len)                            = 0;
-    virtual ErrorConditionT error() const                                                                            = 0;
-    virtual bool            empty() const                                                                            = 0;
-    virtual void            clear()                                                                                  = 0;
+    virtual ptrdiff_t       run(ConnectionContext&, const char* _pdata, size_t _data_len, MessageHeader& _rmsghdr)     = 0;
+    virtual ptrdiff_t       run(ConnectionContext&, const char* _pdata, size_t _data_len, MessagePointerT<>& _rmsgptr) = 0;
+    virtual ptrdiff_t       run(ConnectionContext&, const char* _pdata, size_t _data_len)                              = 0;
+    virtual ErrorConditionT error() const                                                                              = 0;
+    virtual bool            empty() const                                                                              = 0;
+    virtual void            clear()                                                                                    = 0;
 
     void link(PointerT& _ptr)
     {
@@ -132,12 +129,12 @@ public:
     using PointerT = std::unique_ptr<Serializer>;
 
     virtual ~Serializer();
-    virtual ptrdiff_t       run(ConnectionContext&, char* _pdata, size_t _data_len, MessageHeader& _rmsghdr)                                   = 0;
-    virtual ptrdiff_t       run(ConnectionContext&, char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr, const size_t _msg_type_idx = 0) = 0;
-    virtual ptrdiff_t       run(ConnectionContext&, char* _pdata, size_t _data_len)                                                            = 0;
-    virtual ErrorConditionT error() const                                                                                                      = 0;
-    virtual bool            empty() const                                                                                                      = 0;
-    virtual void            clear()                                                                                                            = 0;
+    virtual ptrdiff_t       run(ConnectionContext&, char* _pdata, size_t _data_len, MessageHeader& _rmsghdr)                                     = 0;
+    virtual ptrdiff_t       run(ConnectionContext&, char* _pdata, size_t _data_len, MessagePointerT<>& _rmsgptr, const size_t _msg_type_idx = 0) = 0;
+    virtual ptrdiff_t       run(ConnectionContext&, char* _pdata, size_t _data_len)                                                              = 0;
+    virtual ErrorConditionT error() const                                                                                                        = 0;
+    virtual bool            empty() const                                                                                                        = 0;
+    virtual void            clear()                                                                                                              = 0;
 
     void link(PointerT& _ptr)
     {
@@ -191,7 +188,7 @@ public:
     virtual size_t typeIndex(const Message* _pmsg) const = 0;
 
     // virtual const TypeStub& operator[](const size_t _idx) const = 0;
-    virtual void complete(const size_t _idx, ConnectionContext&, MessagePointerT&, MessagePointerT&, ErrorConditionT const&) const = 0;
+    virtual void complete(const size_t _idx, ConnectionContext&, MessagePointerT<>&, MessagePointerT<>&, ErrorConditionT const&) const = 0;
 
     virtual Serializer::PointerT   createSerializer(const WriterConfiguration& _rconf) const   = 0;
     virtual Deserializer::PointerT createDeserializer(const ReaderConfiguration& _rconf) const = 0;

@@ -57,10 +57,10 @@ int main(int argc, char* argv[])
 
         {
             auto con_register = [&relay_engine](
-                                    frame::mprpc::ConnectionContext& _rctx,
-                                    std::shared_ptr<Register>&       _rsent_msg_ptr,
-                                    std::shared_ptr<Register>&       _rrecv_msg_ptr,
-                                    ErrorConditionT const&           _rerror) {
+                                    frame::mprpc::ConnectionContext&         _rctx,
+                                    frame::mprpc::MessagePointerT<Register>& _rsent_msg_ptr,
+                                    frame::mprpc::MessagePointerT<Register>& _rrecv_msg_ptr,
+                                    ErrorConditionT const&                   _rerror) {
                 solid_check(!_rerror);
                 if (_rrecv_msg_ptr) {
                     solid_check(!_rsent_msg_ptr);

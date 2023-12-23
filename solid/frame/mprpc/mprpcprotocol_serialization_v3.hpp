@@ -53,7 +53,7 @@ private:
             _pdata, static_cast<unsigned>(_data_len), [&_rmsghdr](SerializerT& _rs, ConnectionContext& _rctx) { _rs.add(_rmsghdr, _rctx, 0, "header"); }, _rctx);
     }
 
-    ptrdiff_t run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr, const size_t /*_msg_type_idx*/) override
+    ptrdiff_t run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessagePointerT<>& _rmsgptr, const size_t /*_msg_type_idx*/) override
     {
         return ser_.run(
             _pdata, static_cast<unsigned>(_data_len), [&_rmsgptr](SerializerT& _rs, ConnectionContext& _rctx) { _rs.add(_rmsgptr, _rctx, 0, "message"); }, _rctx);
@@ -98,7 +98,7 @@ private:
             _pdata, static_cast<unsigned>(_data_len), [&_rmsghdr](DeserializerT& _rd, ConnectionContext& _rctx) mutable { _rd.add(_rmsghdr, _rctx, 0, "header"); }, _rctx);
     }
 
-    ptrdiff_t run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr) override
+    ptrdiff_t run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, MessagePointerT<>& _rmsgptr) override
     {
         return des_.run(
             _pdata, static_cast<unsigned>(_data_len), [&_rmsgptr](DeserializerT& _rd, ConnectionContext& _rctx) { _rd.add(_rmsgptr, _rctx, 0, "message"); }, _rctx);
@@ -142,7 +142,7 @@ class Protocol : public mprpc::Protocol {
 
         TypeData() {}
 
-        void complete(ConnectionContext& _rctx, MessagePointerT& _p1, MessagePointerT& _p2, ErrorConditionT const& _e) const
+        void complete(ConnectionContext& _rctx, MessagePointerT<>& _p1, MessagePointerT<>& _p2, ErrorConditionT const& _e) const
         {
             complete_fnc_(_rctx, _p1, _p2, _e);
         }
@@ -220,7 +220,7 @@ class Protocol : public mprpc::Protocol {
                 using PtrType = std::decay_t<decltype(_rptr)>;
                 using CtxType = std::decay_t<decltype(_rctx)>;
                 if constexpr (solid::is_shared_ptr_v<PtrType>) {
-                    _rptr = std::make_shared<typename PtrType::element_type>();
+                    _rptr = make_message<typename PtrType::element_type>();
                     if constexpr (std::is_same_v<ConnectionContext, CtxType>) {
                         _rptr->header(_rctx);
                     }
@@ -331,7 +331,7 @@ public:
         return type_map_.index(_pmsg);
     }
 
-    void complete(const size_t _idx, ConnectionContext& _rctx, MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr, ErrorConditionT const& _rerr) const override
+    void complete(const size_t _idx, ConnectionContext& _rctx, MessagePointerT<>& _rsent_msg_ptr, MessagePointerT<>& _rrecv_msg_ptr, ErrorConditionT const& _rerr) const override
     {
         type_data_vec_[_idx].complete(_rctx, _rsent_msg_ptr, _rrecv_msg_ptr, _rerr);
     }

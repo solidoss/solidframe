@@ -278,20 +278,4 @@ class Padded : public Base {
 
 #endif
 
-#if false
-template <class SP>
-SP collapse(SP &_rsp, const ssize_t _expected_count = 1)
-{
-    typename SP::weak_type wp{_rsp};
-
-    //here we have a race condition
-    //_rsp.reset();
-    //if(wp.use_count() == _expected_count)
-    if(_rsp.reset_and_use_count() == _expected_count)
-    {
-        return wp.lock();
-    }
-    return SP{};
-}
-#endif
 } // namespace solid

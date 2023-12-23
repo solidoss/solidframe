@@ -153,6 +153,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
+using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
@@ -186,7 +188,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
+    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -233,7 +235,7 @@ void client_complete_message(
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
+    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
     if (_rrecv_msg_ptr) {
@@ -407,12 +409,12 @@ int test_clientserver_idempotent(int argc, char* argv[])
 
         pmprpcclient = &mprpcclient;
 
-        std::vector<std::shared_ptr<Message>> msg_vec{
-            std::make_shared<Message>(0),
-            std::make_shared<Message>(1),
-            std::make_shared<Message>(2),
-            std::make_shared<Message>(3),
-            std::make_shared<Message>(4)};
+        std::vector<MessagePointerT> msg_vec{
+            frame::mprpc::make_message<Message>(0),
+            frame::mprpc::make_message<Message>(1),
+            frame::mprpc::make_message<Message>(2),
+            frame::mprpc::make_message<Message>(3),
+            frame::mprpc::make_message<Message>(4)};
         {
             ++crtwriteidx;
             mprpcclient.sendMessage(

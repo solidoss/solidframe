@@ -311,7 +311,7 @@ const char* MessageReader::doConsumeMessage(
                             if ((_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0u) {
                                 if (rmsgstub.deserializer_ptr_->empty() && rmsgstub.message_ptr_) {
                                     // done parsing the message body
-                                    MessagePointerT msgptr{std::move(rmsgstub.message_ptr_)};
+                                    MessagePointerT<> msgptr{std::move(rmsgstub.message_ptr_)};
                                     cache(rmsgstub.deserializer_ptr_);
                                     solid_log(logger, Verbose, "Clear Message " << _msgidx);
                                     rmsgstub.clear();

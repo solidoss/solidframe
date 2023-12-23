@@ -128,8 +128,8 @@ where con_register is a lambda defined as follows:
 ```C++
             auto con_register = [](
                 frame::mprpc::ConnectionContext& _rctx,
-                std::shared_ptr<Register>&       _rsent_msg_ptr,
-                std::shared_ptr<Register>&       _rrecv_msg_ptr,
+                frame::mprpc::MessagePointerT<Register>&       _rsent_msg_ptr,
+                frame::mprpc::MessagePointerT<Register>&       _rrecv_msg_ptr,
                 ErrorConditionT const&           _rerror) {
                 solid_check(!_rerror);
 
@@ -151,8 +151,8 @@ The "on_message" in protocol initialization code snippet is also a lambda, defin
 ```C++
             auto on_message = [&p](
                 frame::mprpc::ConnectionContext& _rctx,
-                std::shared_ptr<Message>&        _rsent_msg_ptr,
-                std::shared_ptr<Message>&        _rrecv_msg_ptr,
+                frame::mprpc::MessagePointerT<Message>&        _rsent_msg_ptr,
+                frame::mprpc::MessagePointerT<Message>&        _rrecv_msg_ptr,
                 ErrorConditionT const&           _rerror) {
 
                 if (_rrecv_msg_ptr) {
@@ -295,8 +295,8 @@ next follows a new block for configuring the mprpc::Service:
         {
             auto con_register = [&relay_engine](
                 frame::mprpc::ConnectionContext& _rctx,
-                std::shared_ptr<Register>&       _rsent_msg_ptr,
-                std::shared_ptr<Register>&       _rrecv_msg_ptr,
+                frame::mprpc::MessagePointerT<Register>&       _rsent_msg_ptr,
+                frame::mprpc::MessagePointerT<Register>&       _rrecv_msg_ptr,
                 ErrorConditionT const&           _rerror) {
                 solid_check(!_rerror);
                 if (_rrecv_msg_ptr) {

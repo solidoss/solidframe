@@ -27,6 +27,7 @@ set(Headers
     sharedbuffer.hpp
     threadpool.hpp
     cacheable.hpp
+    cast.hpp
 )
 
 set(Inlines

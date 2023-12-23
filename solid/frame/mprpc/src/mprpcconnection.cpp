@@ -1525,7 +1525,7 @@ struct Connection::Receiver : MessageReader::Receiver {
     {
     }
 
-    void receiveMessage(MessagePointerT& _rmsg_ptr, const size_t _msg_type_id) override
+    void receiveMessage(MessagePointerT<>& _rmsg_ptr, const size_t _msg_type_id) override
     {
         // if (rcon_.doCompleteMessage(rctx_, _rmsg_ptr, _msg_type_id)) {
         {
@@ -1858,7 +1858,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
 //-----------------------------------------------------------------------------
 
 struct Connection::SenderResponse : Connection::Sender {
-    MessagePointerT& rresponse_ptr_;
+    MessagePointerT<>& rresponse_ptr_;
 
     bool request_found_;
 
@@ -1868,7 +1868,7 @@ struct Connection::SenderResponse : Connection::Sender {
         WriterConfiguration const&  _rconfig,
         Protocol const&             _rproto,
         ConnectionContext&          _rconctx,
-        MessagePointerT&            _rresponse_ptr)
+        MessagePointerT<>&          _rresponse_ptr)
         : Connection::Sender(_rcon, _rctx, _rconfig, _rproto, _rconctx)
         , rresponse_ptr_(_rresponse_ptr)
         , request_found_(false)
@@ -1898,7 +1898,7 @@ struct Connection::SenderResponse : Connection::Sender {
     }
 };
 
-bool Connection::doCompleteMessage(frame::aio::ReactorContext& _rctx, MessagePointerT& _rresponse_ptr, const size_t _response_type_id)
+bool Connection::doCompleteMessage(frame::aio::ReactorContext& _rctx, MessagePointerT<>& _rresponse_ptr, const size_t _response_type_id)
 {
     ConnectionContext    conctx(service(_rctx), *this);
     const Configuration& rconfig = service(_rctx).configuration();
@@ -1934,7 +1934,7 @@ void Connection::doCompleteMessage(
     const Protocol&      rproto  = rconfig.protocol();
     // const Configuration &rconfig  = service(_rctx).configuration();
 
-    MessagePointerT dummy_recv_msg_ptr;
+    MessagePointerT<> dummy_recv_msg_ptr;
 
     conctx.message_flags = _rmsg_bundle.message_flags;
     conctx.message_id    = _rpool_msg_id;
@@ -2210,7 +2210,7 @@ Any<>& ConnectionContext::any()
     return rconnection.any();
 }
 //-----------------------------------------------------------------------------
-MessagePointerT ConnectionContext::fetchRequest(Message const& _rmsg) const
+MessagePointerT<> ConnectionContext::fetchRequest(Message const& _rmsg) const
 {
     return rconnection.fetchRequest(_rmsg);
 }
@@ -2301,6 +2301,14 @@ Connection& ConnectionProxy::connection(frame::aio::ReactorContext& _rctx) const
     return static_cast<Connection&>(_rctx.actor());
 }
 //-----------------------------------------------------------------------------
+// Message
+//-----------------------------------------------------------------------------
+
+void Message::header(frame::mprpc::ConnectionContext& _rctx)
+{
+    header_ = std::move(*_rctx.pmessage_header);
+}
+
 } // namespace mprpc
 } // namespace frame
 } // namespace solid

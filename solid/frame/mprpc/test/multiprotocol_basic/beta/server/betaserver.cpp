@@ -10,10 +10,10 @@ namespace beta_server {
 
 template <>
 void complete_message<beta_protocol::FirstMessage>(
-    frame::mprpc::ConnectionContext&              _rctx,
-    std::shared_ptr<beta_protocol::FirstMessage>& _rsent_msg_ptr,
-    std::shared_ptr<beta_protocol::FirstMessage>& _rrecv_msg_ptr,
-    ErrorConditionT const&                        _rerror)
+    frame::mprpc::ConnectionContext&                            _rctx,
+    frame::mprpc::MessagePointerT<beta_protocol::FirstMessage>& _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<beta_protocol::FirstMessage>& _rrecv_msg_ptr,
+    ErrorConditionT const&                                      _rerror)
 {
     solid_dbg(generic_logger, Info, "");
     solid_check(!_rerror);
@@ -22,7 +22,7 @@ void complete_message<beta_protocol::FirstMessage>(
 
         ErrorConditionT err = _rctx.service().sendResponse(
             _rctx.recipientId(),
-            std::make_shared<beta_protocol::SecondMessage>(std::move(*_rrecv_msg_ptr)));
+            frame::mprpc::make_message<beta_protocol::SecondMessage>(std::move(*_rrecv_msg_ptr)));
 
         solid_check(!err, "Connection id should not be invalid! " << err.message());
     }
@@ -33,10 +33,10 @@ void complete_message<beta_protocol::FirstMessage>(
 
 template <>
 void complete_message<beta_protocol::SecondMessage>(
-    frame::mprpc::ConnectionContext&               _rctx,
-    std::shared_ptr<beta_protocol::SecondMessage>& _rsent_msg_ptr,
-    std::shared_ptr<beta_protocol::SecondMessage>& _rrecv_msg_ptr,
-    ErrorConditionT const&                         _rerror)
+    frame::mprpc::ConnectionContext&                             _rctx,
+    frame::mprpc::MessagePointerT<beta_protocol::SecondMessage>& _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<beta_protocol::SecondMessage>& _rrecv_msg_ptr,
+    ErrorConditionT const&                                       _rerror)
 {
     solid_dbg(generic_logger, Info, "");
     solid_check(!_rerror);
@@ -53,10 +53,10 @@ void complete_message<beta_protocol::SecondMessage>(
 
 template <>
 void complete_message<beta_protocol::ThirdMessage>(
-    frame::mprpc::ConnectionContext&              _rctx,
-    std::shared_ptr<beta_protocol::ThirdMessage>& _rsent_msg_ptr,
-    std::shared_ptr<beta_protocol::ThirdMessage>& _rrecv_msg_ptr,
-    ErrorConditionT const&                        _rerror)
+    frame::mprpc::ConnectionContext&                            _rctx,
+    frame::mprpc::MessagePointerT<beta_protocol::ThirdMessage>& _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<beta_protocol::ThirdMessage>& _rrecv_msg_ptr,
+    ErrorConditionT const&                                      _rerror)
 {
     solid_dbg(generic_logger, Info, "");
     solid_check(!_rerror);
@@ -65,7 +65,7 @@ void complete_message<beta_protocol::ThirdMessage>(
 
         ErrorConditionT err = _rctx.service().sendResponse(
             _rctx.recipientId(),
-            std::make_shared<beta_protocol::FirstMessage>(std::move(*_rrecv_msg_ptr)));
+            frame::mprpc::make_message<beta_protocol::FirstMessage>(std::move(*_rrecv_msg_ptr)));
 
         solid_check(!err, "Connection id should not be invalid! " << err.message());
     }

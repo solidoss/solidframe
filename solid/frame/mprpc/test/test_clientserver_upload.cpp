@@ -82,11 +82,12 @@ struct Request : frame::mprpc::Message {
         }
     }
 };
+using RequestPointerT = solid::frame::mprpc::MessagePointerT<Request>;
 
 struct Response : frame::mprpc::Message {
-    uint32_t                 error_;
-    std::shared_ptr<Request> req_ptr_;
-    bool                     send_response_;
+    uint32_t        error_;
+    RequestPointerT req_ptr_;
+    bool            send_response_;
 
     Response()
     {
@@ -97,7 +98,7 @@ struct Response : frame::mprpc::Message {
     {
     }
 
-    Response(std::shared_ptr<Request>&& _req_ptr)
+    Response(RequestPointerT&& _req_ptr)
         : frame::mprpc::Message(*_req_ptr)
         , req_ptr_(std::move(_req_ptr))
 
@@ -115,10 +116,12 @@ struct Response : frame::mprpc::Message {
     }
 };
 
+using ResponsePointerT = solid::frame::mprpc::MessagePointerT<Response>;
+
 void on_client_request(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Request>&        _rsent_msg_ptr,
-    std::shared_ptr<Request>&        _rrecv_msg_ptr,
+    RequestPointerT&                 _rsent_msg_ptr,
+    RequestPointerT&                 _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "on message");
@@ -126,8 +129,8 @@ void on_client_request(
 
 void on_client_response(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Response>&       _rsent_msg_ptr,
-    std::shared_ptr<Response>&       _rrecv_msg_ptr,
+    ResponsePointerT&                _rsent_msg_ptr,
+    ResponsePointerT&                _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "on message");
@@ -135,20 +138,20 @@ void on_client_response(
 
 void on_client_receive_first_response(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Request>&        _rsent_msg_ptr,
-    std::shared_ptr<Response>&       _rrecv_msg_ptr,
+    RequestPointerT&                 _rsent_msg_ptr,
+    ResponsePointerT&                _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror);
 
 void on_server_receive_first_request(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Request>&        _rsent_msg_ptr,
-    std::shared_ptr<Request>&        _rrecv_msg_ptr,
+    RequestPointerT&                 _rsent_msg_ptr,
+    RequestPointerT&                 _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror);
 
 void on_server_response(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Response>&       _rsent_msg_ptr,
-    std::shared_ptr<Response>&       _rrecv_msg_ptr,
+    ResponsePointerT&                _rsent_msg_ptr,
+    ResponsePointerT&                _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "on message");
@@ -422,8 +425,8 @@ void check_files(const vector<string>& _file_vec, const char* _path_prefix_clien
 
 void on_client_receive_last_response(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Request>&        _rsent_msg_ptr,
-    std::shared_ptr<Response>&       _rrecv_msg_ptr,
+    RequestPointerT&                 _rsent_msg_ptr,
+    ResponsePointerT&                _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_check(_rrecv_msg_ptr);
@@ -435,8 +438,8 @@ void on_client_receive_last_response(
 }
 void on_client_receive_response(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Request>&        _rsent_msg_ptr,
-    std::shared_ptr<Response>&       _rrecv_msg_ptr,
+    RequestPointerT&                 _rsent_msg_ptr,
+    ResponsePointerT&                _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_check(_rrecv_msg_ptr);
@@ -458,8 +461,8 @@ void on_client_receive_response(
 
 void on_client_receive_first_response(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Request>&        _rsent_msg_ptr,
-    std::shared_ptr<Response>&       _rrecv_msg_ptr,
+    RequestPointerT&                 _rsent_msg_ptr,
+    ResponsePointerT&                _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_check(_rrecv_msg_ptr);
@@ -488,8 +491,8 @@ void on_client_receive_first_response(
 //-----------------------------------------------------------------------------
 void on_server_receive_request(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Response>&       _rsent_msg_ptr,
-    std::shared_ptr<Request>&        _rrecv_msg_ptr,
+    ResponsePointerT&                _rsent_msg_ptr,
+    RequestPointerT&                 _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     // the server will keep receiving new Requests
@@ -521,8 +524,8 @@ void on_server_receive_request(
 
 void on_server_receive_first_request(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Request>&        _rsent_msg_ptr,
-    std::shared_ptr<Request>&        _rrecv_msg_ptr,
+    RequestPointerT&                 _rsent_msg_ptr,
+    RequestPointerT&                 _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     string path = string("server_storage") + '/' + _rrecv_msg_ptr->name_;

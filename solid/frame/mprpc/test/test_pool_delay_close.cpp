@@ -150,6 +150,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
+using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
@@ -175,7 +177,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
+    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
@@ -216,7 +218,7 @@ void client_complete_message(
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
+    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr.get()) {
@@ -354,14 +356,14 @@ int test_pool_delay_close(int argc, char* argv[])
 
         writecount = start_count; //
         {
-            std::vector<frame::mprpc::MessagePointerT> msg_vec;
+            std::vector<MessagePointerT> msg_vec;
 
             for (size_t i = 0; i < start_count; ++i) {
-                msg_vec.push_back(frame::mprpc::MessagePointerT(std::make_shared<Message>(i)));
+                msg_vec.push_back(MessagePointerT(frame::mprpc::make_message<Message>(i)));
             }
 
             {
-                std::vector<frame::mprpc::MessagePointerT>::iterator it = msg_vec.begin();
+                std::vector<MessagePointerT>::iterator it = msg_vec.begin();
 
                 {
                     ++crtwriteidx;
@@ -397,8 +399,8 @@ int test_pool_delay_close(int argc, char* argv[])
                 });
 
             {
-                frame::mprpc::MessagePointerT msgptr(std::make_shared<Message>(0));
-                ErrorConditionT               err = pmprpcclient->sendMessage(
+                MessagePointerT msgptr(frame::mprpc::make_message<Message>(0));
+                ErrorConditionT err = pmprpcclient->sendMessage(
                     recipinet_id, msgptr,
                     {frame::mprpc::MessageFlagsE::AwaitResponse});
                 solid_dbg(generic_logger, Info, "send message error message: " << err.message());

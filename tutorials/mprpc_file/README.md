@@ -304,8 +304,8 @@ namespace ipc_file_client{
 template <class M>
 void complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<M>&              _rsent_msg_ptr,
-    std::shared_ptr<M>&              _rrecv_msg_ptr,
+    frame::mprpc::MessagePointerT<M>&              _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_check(false); //this method should not be called
@@ -360,8 +360,8 @@ while(true){
                         recipient.c_str(), make_shared<ipc_file::ListRequest>(std::move(path)),
                         [](
                             frame::mprpc::ConnectionContext &_rctx,
-                            std::shared_ptr<ipc_file::ListRequest> &_rsent_msg_ptr,
-                            std::shared_ptr<ipc_file::ListResponse> &_rrecv_msg_ptr,
+                            frame::mprpc::MessagePointerT<ipc_file::ListRequest> &_rsent_msg_ptr,
+                            frame::mprpc::MessagePointerT<ipc_file::ListResponse> &_rrecv_msg_ptr,
                             ErrorConditionT const &_rerror
                         ){
                             if(_rerror){
@@ -394,8 +394,8 @@ while(true){
                         recipient.c_str(), make_shared<ipc_file::FileRequest>(std::move(remote_path), std::move(local_path)),
                         [](
                             frame::mprpc::ConnectionContext &_rctx,
-                            std::shared_ptr<ipc_file::FileRequest> &_rsent_msg_ptr,
-                            std::shared_ptr<ipc_file::FileResponse> &_rrecv_msg_ptr,
+                            frame::mprpc::MessagePointerT<ipc_file::FileRequest> &_rsent_msg_ptr,
+                            frame::mprpc::MessagePointerT<ipc_file::FileResponse> &_rrecv_msg_ptr,
                             ErrorConditionT const &_rerror
                         ){
                             if(_rerror){
@@ -501,15 +501,15 @@ namespace ipc_file_server{
 template <class M>
 void complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<M>&              _rsent_msg_ptr,
-    std::shared_ptr<M>&              _rrecv_msg_ptr,
+    frame::mprpc::MessagePointerT<M>&              _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror);
 
 template <>
 void complete_message<ipc_file::ListRequest>(
     frame::mprpc::ConnectionContext&        _rctx,
-    std::shared_ptr<ipc_file::ListRequest>& _rsent_msg_ptr,
-    std::shared_ptr<ipc_file::ListRequest>& _rrecv_msg_ptr,
+    frame::mprpc::MessagePointerT<ipc_file::ListRequest>& _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<ipc_file::ListRequest>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
 {
     solid_check(not _rerror);
@@ -540,8 +540,8 @@ void complete_message<ipc_file::ListRequest>(
 template <>
 void complete_message<ipc_file::ListResponse>(
     frame::mprpc::ConnectionContext&         _rctx,
-    std::shared_ptr<ipc_file::ListResponse>& _rsent_msg_ptr,
-    std::shared_ptr<ipc_file::ListResponse>& _rrecv_msg_ptr,
+    frame::mprpc::MessagePointerT<ipc_file::ListResponse>& _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<ipc_file::ListResponse>& _rrecv_msg_ptr,
     ErrorConditionT const&                   _rerror)
 {
     solid_check(not _rerror);
@@ -552,8 +552,8 @@ void complete_message<ipc_file::ListResponse>(
 template <>
 void complete_message<ipc_file::FileRequest>(
     frame::mprpc::ConnectionContext&        _rctx,
-    std::shared_ptr<ipc_file::FileRequest>& _rsent_msg_ptr,
-    std::shared_ptr<ipc_file::FileRequest>& _rrecv_msg_ptr,
+    frame::mprpc::MessagePointerT<ipc_file::FileRequest>& _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<ipc_file::FileRequest>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
 {
     solid_check(not _rerror);
@@ -574,8 +574,8 @@ void complete_message<ipc_file::FileRequest>(
 template <>
 void complete_message<ipc_file::FileResponse>(
     frame::mprpc::ConnectionContext&         _rctx,
-    std::shared_ptr<ipc_file::FileResponse>& _rsent_msg_ptr,
-    std::shared_ptr<ipc_file::FileResponse>& _rrecv_msg_ptr,
+    frame::mprpc::MessagePointerT<ipc_file::FileResponse>& _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<ipc_file::FileResponse>& _rrecv_msg_ptr,
     ErrorConditionT const&                   _rerror)
 {
     solid_check(not _rerror);

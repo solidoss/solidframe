@@ -112,8 +112,8 @@ namespace {
 template <class M>
 void complete_message(
     frame::mprpc::ConnectionContext& /*_rctx*/,
-    std::shared_ptr<M>& /*_rsent_msg_ptr*/,
-    std::shared_ptr<M>& /*_rrecv_msg_ptr*/,
+    frame::mprpc::MessagePointerT<M>& /*_rsent_msg_ptr*/,
+    frame::mprpc::MessagePointerT<M>& /*_rrecv_msg_ptr*/,
     ErrorConditionT const& /*_rerror*/)
 {
     // catch all messages
@@ -122,6 +122,11 @@ void complete_message(
 
 namespace v1 {
 using namespace versioning::v1;
+
+using RequestPointerT      = solid::frame::mprpc::MessagePointerT<Request>;
+using ResponsePointerT     = solid::frame::mprpc::MessagePointerT<Response>;
+using InitRequestPointerT  = solid::frame::mprpc::MessagePointerT<InitRequest>;
+using InitResponsePointerT = solid::frame::mprpc::MessagePointerT<InitResponse>;
 
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port)
 {
@@ -140,11 +145,11 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
 
     auto connection_start_lambda = [](frame::mprpc::ConnectionContext& _rctx) {
         solid_log(logger, Info, "Connection start");
-        auto req_ptr = std::make_shared<InitRequest>();
+        auto req_ptr = frame::mprpc::make_message<InitRequest>();
         auto lambda  = [](
                           frame::mprpc::ConnectionContext& _rctx,
-                          std::shared_ptr<InitRequest>&    _rsent_msg_ptr,
-                          std::shared_ptr<InitResponse>&   _rrecv_msg_ptr,
+                          InitRequestPointerT&             _rsent_msg_ptr,
+                          InitResponsePointerT&            _rrecv_msg_ptr,
                           ErrorConditionT const&           _rerror) {
             if (_rrecv_msg_ptr) {
                 if (_rrecv_msg_ptr->error_ == 0) {
@@ -165,13 +170,13 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
 }
 void send_request(frame::mprpc::ServiceT& _rsvc)
 {
-    auto req_ptr = std::make_shared<v1::Request>();
+    auto req_ptr = frame::mprpc::make_message<v1::Request>();
     _rsvc.sendRequest(
         "localhost", req_ptr,
         [](
             frame::mprpc::ConnectionContext& _rctx,
-            std::shared_ptr<Request>&        _rreqmsgptr,
-            std::shared_ptr<Response>&       _rresmsgptr,
+            RequestPointerT&                 _rreqmsgptr,
+            ResponsePointerT&                _rresmsgptr,
             ErrorConditionT const&           _rerr) -> void {
             solid_check(_rresmsgptr);
             solid_check(_rresmsgptr->error_ == 10);
@@ -188,6 +193,11 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
 
 namespace v2 {
 using namespace versioning::v2;
+
+using RequestPointerT      = solid::frame::mprpc::MessagePointerT<Request>;
+using ResponsePointerT     = solid::frame::mprpc::MessagePointerT<Response>;
+using InitRequestPointerT  = solid::frame::mprpc::MessagePointerT<InitRequest>;
+using InitResponsePointerT = solid::frame::mprpc::MessagePointerT<InitResponse>;
 
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port)
 {
@@ -206,11 +216,11 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
 
     auto connection_start_lambda = [](frame::mprpc::ConnectionContext& _rctx) {
         solid_log(logger, Info, "Connection start");
-        auto req_ptr = std::make_shared<InitRequest>();
+        auto req_ptr = frame::mprpc::make_message<InitRequest>();
         auto lambda  = [](
                           frame::mprpc::ConnectionContext& _rctx,
-                          std::shared_ptr<InitRequest>&    _rsent_msg_ptr,
-                          std::shared_ptr<InitResponse>&   _rrecv_msg_ptr,
+                          InitRequestPointerT&             _rsent_msg_ptr,
+                          InitResponsePointerT&            _rrecv_msg_ptr,
                           ErrorConditionT const&           _rerror) {
             if (_rrecv_msg_ptr) {
                 if (_rrecv_msg_ptr->error_ == 0) {
@@ -231,14 +241,14 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
 }
 void send_request(frame::mprpc::ServiceT& _rsvc)
 {
-    auto req_ptr    = std::make_shared<Request>();
+    auto req_ptr    = frame::mprpc::make_message<Request>();
     req_ptr->value_ = 11;
     _rsvc.sendRequest(
         "localhost", req_ptr,
         [](
             frame::mprpc::ConnectionContext& _rctx,
-            std::shared_ptr<Request>&        _rreqmsgptr,
-            std::shared_ptr<Response>&       _rresmsgptr,
+            RequestPointerT&                 _rreqmsgptr,
+            ResponsePointerT&                _rresmsgptr,
             ErrorConditionT const&           _rerr) -> void {
             solid_check(_rresmsgptr);
             solid_check(_rresmsgptr->error_ == _rreqmsgptr->value_);
@@ -258,6 +268,12 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
 namespace v3 {
 using namespace versioning::v3;
 
+using RequestPointerT      = solid::frame::mprpc::MessagePointerT<Request>;
+using ResponsePointerT     = solid::frame::mprpc::MessagePointerT<Response>;
+using Response2PointerT    = solid::frame::mprpc::MessagePointerT<Response2>;
+using InitRequestPointerT  = solid::frame::mprpc::MessagePointerT<InitRequest>;
+using InitResponsePointerT = solid::frame::mprpc::MessagePointerT<InitResponse>;
+
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port)
 {
     auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
@@ -274,11 +290,11 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
 
     auto connection_start_lambda = [](frame::mprpc::ConnectionContext& _rctx) {
         solid_log(logger, Info, "Connection start");
-        auto req_ptr = std::make_shared<InitRequest>();
+        auto req_ptr = frame::mprpc::make_message<InitRequest>();
         auto lambda  = [](
                           frame::mprpc::ConnectionContext& _rctx,
-                          std::shared_ptr<InitRequest>&    _rsent_msg_ptr,
-                          std::shared_ptr<InitResponse>&   _rrecv_msg_ptr,
+                          InitRequestPointerT&             _rsent_msg_ptr,
+                          InitResponsePointerT&            _rrecv_msg_ptr,
                           ErrorConditionT const&           _rerror) {
             if (_rrecv_msg_ptr) {
                 if (_rrecv_msg_ptr->error_ == 0) {
@@ -300,14 +316,14 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
 }
 void send_request(frame::mprpc::ServiceT& _rsvc)
 {
-    auto req_ptr     = std::make_shared<Request>();
+    auto req_ptr     = frame::mprpc::make_message<Request>();
     req_ptr->values_ = "test";
     _rsvc.sendRequest(
         "localhost", req_ptr,
         [](
             frame::mprpc::ConnectionContext& _rctx,
-            std::shared_ptr<Request>&        _rreqmsgptr,
-            std::shared_ptr<Response2>&      _rresmsgptr,
+            RequestPointerT&                 _rreqmsgptr,
+            Response2PointerT&               _rresmsgptr,
             ErrorConditionT const&           _rerr) -> void {
             solid_check(_rresmsgptr);
             solid_check(_rresmsgptr->error_ == _rreqmsgptr->values_.size());
@@ -327,6 +343,11 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
 namespace v4 {
 using namespace versioning::v4;
 
+using InitRequestPointerT  = solid::frame::mprpc::MessagePointerT<InitRequest>;
+using InitResponsePointerT = solid::frame::mprpc::MessagePointerT<InitResponse>;
+using Request2PointerT     = solid::frame::mprpc::MessagePointerT<Request2>;
+using Response2PointerT    = solid::frame::mprpc::MessagePointerT<Response2>;
+
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port)
 {
     auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
@@ -344,11 +365,11 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
 
     auto connection_start_lambda = [](frame::mprpc::ConnectionContext& _rctx) {
         solid_log(logger, Info, "Connection start");
-        auto req_ptr = std::make_shared<InitRequest>();
+        auto req_ptr = frame::mprpc::make_message<InitRequest>();
         auto lambda  = [](
                           frame::mprpc::ConnectionContext& _rctx,
-                          std::shared_ptr<InitRequest>&    _rsent_msg_ptr,
-                          std::shared_ptr<InitResponse>&   _rrecv_msg_ptr,
+                          InitRequestPointerT&             _rsent_msg_ptr,
+                          InitResponsePointerT&            _rrecv_msg_ptr,
                           ErrorConditionT const&           _rerror) {
             if (_rrecv_msg_ptr) {
                 if (_rrecv_msg_ptr->error_ == 0) {
@@ -371,13 +392,13 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
 }
 void send_request(frame::mprpc::ServiceT& _rsvc)
 {
-    auto req_ptr = std::make_shared<Request2>();
+    auto req_ptr = frame::mprpc::make_message<Request2>();
     _rsvc.sendRequest(
         "localhost", req_ptr,
         [](
             frame::mprpc::ConnectionContext& _rctx,
-            std::shared_ptr<Request2>&       _rreqmsgptr,
-            std::shared_ptr<Response2>&      _rresmsgptr,
+            Request2PointerT&                _rreqmsgptr,
+            Response2PointerT&               _rresmsgptr,
             ErrorConditionT const&           _rerr) -> void {
             solid_check(!_rresmsgptr);
 
@@ -399,20 +420,20 @@ using namespace versioning::v3;
 template <class M>
 void complete_message(
     frame::mprpc::ConnectionContext& /*_rctx*/,
-    std::shared_ptr<M>& /*_rsent_msg_ptr*/,
-    std::shared_ptr<M>& /*_rrecv_msg_ptr*/,
+    frame::mprpc::MessagePointerT<M>& /*_rsent_msg_ptr*/,
+    frame::mprpc::MessagePointerT<M>& /*_rrecv_msg_ptr*/,
     ErrorConditionT const& /*_rerror*/);
 
 template <>
 void complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<InitRequest>& /*_rsent_msg_ptr*/,
-    std::shared_ptr<InitRequest>& _rrecv_msg_ptr,
+    InitRequestPointerT& /*_rsent_msg_ptr*/,
+    InitRequestPointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
     solid_log(logger, Info, "Init request: peer [" << _rrecv_msg_ptr->version_.version_ << ']');
 
-    auto res_ptr = std::make_shared<InitResponse>(*_rrecv_msg_ptr);
+    auto res_ptr = frame::mprpc::make_message<InitResponse>(*_rrecv_msg_ptr);
 
     _rctx.any() = std::make_tuple(_rrecv_msg_ptr->version_);
 
@@ -436,22 +457,22 @@ void complete_message(
 template <>
 void complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Request>& /*_rsent_msg_ptr*/,
-    std::shared_ptr<Request>& _rrecv_msg_ptr,
+    RequestPointerT& /*_rsent_msg_ptr*/,
+    RequestPointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
 
     if (_rctx.any().get_if<Version>()->version_ == 2) {
         // need to send back Response2
-        auto res_ptr    = std::make_shared<Response2>(*_rrecv_msg_ptr);
+        auto res_ptr    = frame::mprpc::make_message<Response2>(*_rrecv_msg_ptr);
         res_ptr->error_ = _rrecv_msg_ptr->values_.size();
         _rctx.service().sendResponse(_rctx.recipientId(), res_ptr);
     } else if (_rctx.any().get_if<Version>()->request_ == 1) {
-        auto res_ptr    = std::make_shared<Response>(*_rrecv_msg_ptr);
+        auto res_ptr    = frame::mprpc::make_message<Response>(*_rrecv_msg_ptr);
         res_ptr->error_ = 10;
         _rctx.service().sendResponse(_rctx.recipientId(), res_ptr);
     } else if (_rctx.any().get_if<Version>()->request_ == 2) {
-        auto res_ptr    = std::make_shared<Response>(*_rrecv_msg_ptr);
+        auto res_ptr    = frame::mprpc::make_message<Response>(*_rrecv_msg_ptr);
         res_ptr->error_ = _rrecv_msg_ptr->valuei_;
         _rctx.service().sendResponse(_rctx.recipientId(), res_ptr);
     }
@@ -460,8 +481,8 @@ void complete_message(
 template <class M>
 void complete_message(
     frame::mprpc::ConnectionContext& /*_rctx*/,
-    std::shared_ptr<M>& /*_rsent_msg_ptr*/,
-    std::shared_ptr<M>& /*_rrecv_msg_ptr*/,
+    frame::mprpc::MessagePointerT<M>& /*_rsent_msg_ptr*/,
+    frame::mprpc::MessagePointerT<M>& /*_rrecv_msg_ptr*/,
     ErrorConditionT const& /*_rerror*/)
 {
     // catch all

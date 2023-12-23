@@ -132,6 +132,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
+using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+
 struct Logout : frame::mprpc::Message {
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
@@ -178,7 +180,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
+    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -200,7 +202,7 @@ void client_complete_message(
         }
 
         {
-            frame::mprpc::MessagePointerT msgptr(std::make_shared<Logout>());
+            auto msgptr(frame::mprpc::make_message<Logout>());
 
             pmprpcclient->sendMessage(
                 _rctx.recipientId(), msgptr,
@@ -212,8 +214,8 @@ void client_complete_message(
 }
 
 void client_complete_logout(
-    frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Logout>& _rsent_msg_ptr, std::shared_ptr<Logout>& _rrecv_msg_ptr,
+    frame::mprpc::ConnectionContext&       _rctx,
+    frame::mprpc::MessagePointerT<Logout>& _rsent_msg_ptr, frame::mprpc::MessagePointerT<Logout>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_check(!_rerror);
@@ -224,7 +226,7 @@ void client_complete_logout(
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
+    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr.get()) {
@@ -252,8 +254,8 @@ void server_complete_message(
 }
 
 void server_complete_logout(
-    frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Logout>& _rsent_msg_ptr, std::shared_ptr<Logout>& _rrecv_msg_ptr,
+    frame::mprpc::ConnectionContext&       _rctx,
+    frame::mprpc::MessagePointerT<Logout>& _rsent_msg_ptr, frame::mprpc::MessagePointerT<Logout>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr.get()) {
@@ -381,7 +383,7 @@ int test_connection_close(int argc, char* argv[])
         pmprpcclient = &mprpcclient;
 
         {
-            frame::mprpc::MessagePointerT msgptr(std::make_shared<Message>(0));
+            MessagePointerT msgptr(frame::mprpc::make_message<Message>(0));
             mprpcclient.sendMessage(
                 "localhost", msgptr,
                 initarray[0].flags | frame::mprpc::MessageFlagsE::AwaitResponse);

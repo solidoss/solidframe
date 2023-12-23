@@ -139,7 +139,7 @@ public:
 
     void relayId(const UniqueId& _relay_id);
 
-    MessagePointerT fetchRequest(Message const& _rmsg) const;
+    MessagePointerT<> fetchRequest(Message const& _rmsg) const;
 
     ConnectionPoolId const& poolId() const;
     const std::string&      poolName() const;
@@ -260,7 +260,7 @@ private:
     ResponseStateE doCheckResponseState(frame::aio::ReactorContext& _rctx, const MessageHeader& _rmsghdr, MessageId& _rrelay_id, const bool _erase_request);
 
     bool doCompleteMessage(
-        frame::aio::ReactorContext& _rctx, MessagePointerT& _rresponse_ptr, const size_t _response_type_id);
+        frame::aio::ReactorContext& _rctx, MessagePointerT<>& _rresponse_ptr, const size_t _response_type_id);
 
     void doCompleteMessage(
         solid::frame::aio::ReactorContext& _rctx,
@@ -417,7 +417,7 @@ inline Any<>& Connection::any()
     return any_data_;
 }
 
-inline MessagePointerT Connection::fetchRequest(Message const& _rmsg) const
+inline MessagePointerT<> Connection::fetchRequest(Message const& _rmsg) const
 {
     return msg_writer_.fetchRequest(_rmsg.requestId());
 }

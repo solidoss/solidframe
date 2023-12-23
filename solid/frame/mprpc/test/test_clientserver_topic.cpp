@@ -50,7 +50,7 @@ void set_current_thread_affinity()
     }
     static std::atomic<int> crtCore(0);
 
-    const int isolCore = isolcpus[crtCore.fetch_add(1)];
+    const int isolCore = isolcpus[crtCore.fetch_add(1) % isolcpus.size()];
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
     CPU_SET(isolCore, &cpuset);
@@ -152,8 +152,6 @@ struct Request : frame::mprpc::Message {
     }
 };
 
-using CacheableRequestT = EnableCacheable<Request>;
-
 struct Response : frame::mprpc::Message {
     uint64_t         time_point_               = -1;
     mutable uint64_t serialization_time_point_ = 0;
@@ -182,7 +180,12 @@ struct Response : frame::mprpc::Message {
     }
 };
 
-using CacheableResponseT = EnableCacheable<Response>;
+using CacheableRequestT         = EnableCacheable<Request>;
+using CacheableResponseT        = EnableCacheable<Response>;
+using RequestPointerT           = solid::frame::mprpc::MessagePointerT<Request>;
+using CesponsePointerT          = solid::frame::mprpc::MessagePointerT<Response>;
+using CacheableRequestPointerT  = solid::frame::mprpc::MessagePointerT<CacheableRequestT>;
+using CacheableResponsePointerT = solid::frame::mprpc::MessagePointerT<CacheableResponseT>;
 
 template <typename T>
 auto lin_value(T _from, T _to, const size_t _index, const size_t _n)
@@ -231,22 +234,22 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_request(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Request>& _rsent_msg_ptr, std::shared_ptr<CacheableResponseT>& _rrecv_msg_ptr,
+    RequestPointerT& _rsent_msg_ptr, CacheableResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror);
 
 void client_complete_response(
-    frame::mprpc::ConnectionContext&     _rctx,
-    std::shared_ptr<CacheableResponseT>& _rsent_msg_ptr, std::shared_ptr<CacheableResponseT>& _rrecv_msg_ptr,
+    frame::mprpc::ConnectionContext& _rctx,
+    CacheableResponsePointerT& _rsent_msg_ptr, CacheableResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror);
 
 void server_complete_response(
-    frame::mprpc::ConnectionContext&     _rctx,
-    std::shared_ptr<CacheableResponseT>& _rsent_msg_ptr, std::shared_ptr<CacheableResponseT>& _rrecv_msg_ptr,
+    frame::mprpc::ConnectionContext& _rctx,
+    CacheableResponsePointerT& _rsent_msg_ptr, CacheableResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/);
 
 void server_complete_request(
-    frame::mprpc::ConnectionContext&    _rctx,
-    std::shared_ptr<CacheableRequestT>& _rsent_msg_ptr, std::shared_ptr<CacheableRequestT>& _rrecv_msg_ptr,
+    frame::mprpc::ConnectionContext& _rctx,
+    CacheableRequestPointerT& _rsent_msg_ptr, CacheableRequestPointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/);
 
 void multicast_run(CallPoolT& _work_pool);
@@ -343,7 +346,7 @@ int test_clientserver_topic(int argc, char* argv[])
         sch_server.start([]() {
             set_current_thread_affinity();
             for(size_t  i = 0; i < 2000; ++i){
-                auto  reply_ptr = std::make_shared<CacheableResponseT>();
+                auto  reply_ptr = frame::mprpc::make_message<CacheableResponseT>();
                 reply_ptr->cache();
             }
             return true; }, []() {}, 2);
@@ -483,7 +486,7 @@ int test_clientserver_topic(int argc, char* argv[])
         if (false) {
             const uint64_t startms = microseconds_since_epoch();
             for (size_t i = 0; i < message_count; ++i) {
-                mprpcclient.sendMessage(client_id, std::make_shared<Request>(i, microseconds_since_epoch()), {frame::mprpc::MessageFlagsE::AwaitResponse});
+                mprpcclient.sendMessage(client_id, frame::mprpc::make_message<Request>(i, microseconds_since_epoch()), {frame::mprpc::MessageFlagsE::AwaitResponse});
             }
             solid_log(logger, Warning, "========== DONE sending messages ========== " << (microseconds_since_epoch() - startms) << "us");
         } else {
@@ -585,8 +588,8 @@ void multicast_run(CallPoolT& _work_pool)
 #endif
 }
 void client_complete_response(
-    frame::mprpc::ConnectionContext&     _rctx,
-    std::shared_ptr<CacheableResponseT>& _rsent_msg_ptr, std::shared_ptr<CacheableResponseT>& _rrecv_msg_ptr,
+    frame::mprpc::ConnectionContext& _rctx,
+    CacheableResponsePointerT& _rsent_msg_ptr, CacheableResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_check(false); // should not be called
@@ -594,7 +597,7 @@ void client_complete_response(
 
 void client_complete_request(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Request>& _rsent_msg_ptr, std::shared_ptr<CacheableResponseT>& _rrecv_msg_ptr,
+    RequestPointerT& _rsent_msg_ptr, CacheableResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(logger, Info, _rctx.recipientId());
@@ -647,8 +650,8 @@ void client_complete_request(
 }
 
 void server_complete_response(
-    frame::mprpc::ConnectionContext&     _rctx,
-    std::shared_ptr<CacheableResponseT>& _rsent_msg_ptr, std::shared_ptr<CacheableResponseT>& _rrecv_msg_ptr,
+    frame::mprpc::ConnectionContext& _rctx,
+    CacheableResponsePointerT& _rsent_msg_ptr, CacheableResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
     solid_check(_rsent_msg_ptr);
@@ -658,8 +661,8 @@ void server_complete_response(
 }
 
 void server_complete_request(
-    frame::mprpc::ConnectionContext&    _rctx,
-    std::shared_ptr<CacheableRequestT>& _rsent_msg_ptr, std::shared_ptr<CacheableRequestT>& _rrecv_msg_ptr,
+    frame::mprpc::ConnectionContext& _rctx,
+    CacheableRequestPointerT& _rsent_msg_ptr, CacheableRequestPointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
     solid_check(_rrecv_msg_ptr);

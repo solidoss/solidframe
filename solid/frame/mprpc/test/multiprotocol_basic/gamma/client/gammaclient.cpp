@@ -23,10 +23,10 @@ void client_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 template <class M>
 void complete_message(
-    frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<M>&              _rsent_msg_ptr,
-    std::shared_ptr<M>&              _rrecv_msg_ptr,
-    ErrorConditionT const&           _rerror)
+    frame::mprpc::ConnectionContext&  _rctx,
+    frame::mprpc::MessagePointerT<M>& _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<M>& _rrecv_msg_ptr,
+    ErrorConditionT const&            _rerror)
 {
     solid_dbg(generic_logger, Info, "");
     solid_check(!_rerror);
@@ -83,25 +83,25 @@ ErrorConditionT start(
 
         cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(_rctx.rresolver, _rctx.rserver_port.c_str() /*, SocketInfo::Inet4*/);
 
-        mprpcclient_ptr = std::make_shared<frame::mprpc::ServiceT>(_rctx.rm);
+        mprpcclient_ptr = frame::mprpc::make_message<frame::mprpc::ServiceT>(_rctx.rm);
         mprpcclient_ptr->start(std::move(cfg));
 #if 1
         _rctx.rwait_count += 3;
 
         err = mprpcclient_ptr->sendMessage(
-            "localhost", std::make_shared<gamma_protocol::FirstMessage>(100000, make_string(100000)),
+            "localhost", frame::mprpc::make_message<gamma_protocol::FirstMessage>(100000, make_string(100000)),
             {frame::mprpc::MessageFlagsE::AwaitResponse});
         if (err) {
             return err;
         }
         err = mprpcclient_ptr->sendMessage(
-            "localhost", std::make_shared<gamma_protocol::SecondMessage>(200000, make_string(200000)),
+            "localhost", frame::mprpc::make_message<gamma_protocol::SecondMessage>(200000, make_string(200000)),
             {frame::mprpc::MessageFlagsE::AwaitResponse});
         if (err) {
             return err;
         }
         err = mprpcclient_ptr->sendMessage(
-            "localhost", std::make_shared<gamma_protocol::ThirdMessage>(30000, make_string(30000)),
+            "localhost", frame::mprpc::make_message<gamma_protocol::ThirdMessage>(30000, make_string(30000)),
             {frame::mprpc::MessageFlagsE::AwaitResponse});
         if (err) {
             return err;

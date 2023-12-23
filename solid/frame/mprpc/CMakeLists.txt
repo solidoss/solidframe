@@ -16,6 +16,7 @@ set(Headers
     mprpcconfiguration.hpp
     mprpccontext.hpp
     mprpcerror.hpp
+    mprpcid.hpp
     mprpcmessage.hpp
     mprpcprotocol.hpp
     mprpcprotocol_serialization_v3.hpp
