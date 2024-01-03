@@ -269,10 +269,10 @@ void peerb_complete_detect_close(
     if (_rrecv_msg_ptr) {
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " received DetectCloseMessage on peerb");
 
-        _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 1), {frame::mprpc::MessageFlagsE::ResponsePart});
-        _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 2, generate_big_data(1024 * 1000)), {frame::mprpc::MessageFlagsE::ResponsePart});
-        _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 3, generate_big_data(1024 * 100)), {frame::mprpc::MessageFlagsE::ResponsePart});
-        _rctx.service().sendResponse(_rctx.recipientId(), make_shared<DetectCloseMessage>(*_rrecv_msg_ptr, 4, generate_big_data(1024 * 10)), {frame::mprpc::MessageFlagsE::ResponsePart});
+        _rctx.service().sendResponse(_rctx.recipientId(), frame::mprpc::make_message<DetectCloseMessage>(*_rrecv_msg_ptr, 1), {frame::mprpc::MessageFlagsE::ResponsePart});
+        _rctx.service().sendResponse(_rctx.recipientId(), frame::mprpc::make_message<DetectCloseMessage>(*_rrecv_msg_ptr, 2, generate_big_data(1024 * 1000)), {frame::mprpc::MessageFlagsE::ResponsePart});
+        _rctx.service().sendResponse(_rctx.recipientId(), frame::mprpc::make_message<DetectCloseMessage>(*_rrecv_msg_ptr, 3, generate_big_data(1024 * 100)), {frame::mprpc::MessageFlagsE::ResponsePart});
+        _rctx.service().sendResponse(_rctx.recipientId(), frame::mprpc::make_message<DetectCloseMessage>(*_rrecv_msg_ptr, 4, generate_big_data(1024 * 10)), {frame::mprpc::MessageFlagsE::ResponsePart});
         _rrecv_msg_ptr->idx   = 5;
         _rrecv_msg_ptr->data_ = generate_big_data(1024 * 1024 * 100); // 100MB
         _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr), {frame::mprpc::MessageFlagsE::ResponsePart});

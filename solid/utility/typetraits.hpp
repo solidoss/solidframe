@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "solid/utility/intrusiveptr.hpp"
 #include <bitset>
 #include <memory>
 #include <type_traits>
@@ -101,11 +102,22 @@ template <typename T>
 struct is_shared_ptr<std::shared_ptr<T>> : std::true_type {
 };
 
+template <typename T>
+struct is_intrusive_ptr : std::false_type {
+};
+
+template <typename T>
+struct is_intrusive_ptr<solid::IntrusivePtr<T>> : std::true_type {
+};
+
 template <class T>
 inline constexpr bool is_unique_ptr_v = is_unique_ptr<T>::value;
 
 template <class T>
 inline constexpr bool is_shared_ptr_v = is_shared_ptr<T>::value;
+
+template <class T>
+inline constexpr bool is_intrusive_ptr_v = is_intrusive_ptr<T>::value;
 
 template <typename T>
 struct is_bitset : std::false_type {

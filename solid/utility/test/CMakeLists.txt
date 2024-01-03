@@ -21,6 +21,7 @@ set( UtilityTestSuite
     test_function_any_speed_full_stl.cpp
     test_shared_buffer.cpp
     test_collapse.cpp
+    test_intrusiveptr.cpp
 )
 
 set( ThreadPoolTestSuite

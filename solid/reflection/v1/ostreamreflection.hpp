@@ -127,6 +127,17 @@ struct OStreamVisitor {
                 rostream_ << "nullptr" << eol_;
             }
         } break;
+        case tg::IntrusivePtr: {
+            rostream_ << _name << '(' << _index << ") -> ";
+            auto& rptr_node = *_rnode.template as<tg::IntrusivePtr>();
+
+            if (!rptr_node.isNull()) {
+                do_indent_ = false;
+                rptr_node.visit(std::ref(*this), _rmeta.pointer()->map(), _rctx);
+            } else {
+                rostream_ << "nullptr" << eol_;
+            }
+        } break;
         default:
             break;
         }

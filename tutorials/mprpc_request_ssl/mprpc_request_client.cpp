@@ -175,13 +175,13 @@ int main(int argc, char* argv[])
                     };
 
                     auto req_ptr = frame::mprpc::make_message<rpc_request::Request>(
-                        frame::mprpc::make_message<rpc_request::RequestKeyAndList>(
-                            frame::mprpc::make_message<rpc_request::RequestKeyOr>(
-                                frame::mprpc::make_message<rpc_request::RequestKeyUserIdRegex>(line.substr(offset + 1)),
-                                frame::mprpc::make_message<rpc_request::RequestKeyEmailRegex>(line.substr(offset + 1))),
-                            frame::mprpc::make_message<rpc_request::RequestKeyOr>(
-                                frame::mprpc::make_message<rpc_request::RequestKeyYearLess>(2000),
-                                frame::mprpc::make_message<rpc_request::RequestKeyYearLess>(2003))));
+                        make_shared<rpc_request::RequestKeyAndList>(
+                            make_shared<rpc_request::RequestKeyOr>(
+                                make_shared<rpc_request::RequestKeyUserIdRegex>(line.substr(offset + 1)),
+                                make_shared<rpc_request::RequestKeyEmailRegex>(line.substr(offset + 1))),
+                            make_shared<rpc_request::RequestKeyOr>(
+                                make_shared<rpc_request::RequestKeyYearLess>(2000),
+                                make_shared<rpc_request::RequestKeyYearLess>(2003))));
 
                     cout << "Request key: ";
                     if (req_ptr->key)

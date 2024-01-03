@@ -74,15 +74,15 @@ struct Visitable : RequestKey {
 };
 
 struct RequestKeyAnd : Visitable<RequestKeyAnd> {
-    solid::frame::mprpc::MessagePointerT<RequestKey> first;
-    solid::frame::mprpc::MessagePointerT<RequestKey> second;
+    std::shared_ptr<RequestKey> first;
+    std::shared_ptr<RequestKey> second;
 
     RequestKeyAnd() {}
 
     template <class T1, class T2>
     RequestKeyAnd(
-        solid::frame::mprpc::MessagePointerT<T1>&& _p1,
-        solid::frame::mprpc::MessagePointerT<T2>&& _p2)
+        std::shared_ptr<T1>&& _p1,
+        std::shared_ptr<T2>&& _p2)
         : first(std::move(std::static_pointer_cast<RequestKey>(_p1)))
         , second(std::move(std::static_pointer_cast<RequestKey>(_p2)))
     {
@@ -106,15 +106,15 @@ struct RequestKeyAnd : Visitable<RequestKeyAnd> {
 };
 
 struct RequestKeyOr : Visitable<RequestKeyOr> {
-    solid::frame::mprpc::MessagePointerT<RequestKey> first;
-    solid::frame::mprpc::MessagePointerT<RequestKey> second;
+    std::shared_ptr<RequestKey> first;
+    std::shared_ptr<RequestKey> second;
 
     RequestKeyOr() {}
 
     template <class T1, class T2>
     RequestKeyOr(
-        solid::frame::mprpc::MessagePointerT<T1>&& _p1,
-        solid::frame::mprpc::MessagePointerT<T2>&& _p2)
+        std::shared_ptr<T1>&& _p1,
+        std::shared_ptr<T2>&& _p2)
         : first(std::move(std::static_pointer_cast<RequestKey>(_p1)))
         , second(std::move(std::static_pointer_cast<RequestKey>(_p2)))
     {
@@ -138,12 +138,12 @@ struct RequestKeyOr : Visitable<RequestKeyOr> {
 };
 
 struct RequestKeyAndList : Visitable<RequestKeyAndList> {
-    std::vector<solid::frame::mprpc::MessagePointerT<RequestKey>> key_vec;
+    std::vector<std::shared_ptr<RequestKey>> key_vec;
 
     RequestKeyAndList() {}
 
     template <class... Args>
-    RequestKeyAndList(solid::frame::mprpc::MessagePointerT<Args>&&... _args)
+    RequestKeyAndList(std::shared_ptr<Args>&&... _args)
         : key_vec{std::move(_args)...}
     {
     }
@@ -166,12 +166,12 @@ struct RequestKeyAndList : Visitable<RequestKeyAndList> {
 };
 
 struct RequestKeyOrList : Visitable<RequestKeyOrList> {
-    std::vector<solid::frame::mprpc::MessagePointerT<RequestKey>> key_vec;
+    std::vector<std::shared_ptr<RequestKey>> key_vec;
 
     RequestKeyOrList() {}
 
     template <class... Args>
-    RequestKeyOrList(solid::frame::mprpc::MessagePointerT<Args>&&... _args)
+    RequestKeyOrList(std::shared_ptr<Args>&&... _args)
         : key_vec{std::move(_args)...}
     {
     }
@@ -255,11 +255,11 @@ struct RequestKeyYearLess : Visitable<RequestKeyYearLess> {
 };
 
 struct Request : solid::frame::mprpc::Message {
-    solid::frame::mprpc::MessagePointerT<RequestKey> key;
+    std::shared_ptr<RequestKey> key;
 
     Request() {}
 
-    Request(solid::frame::mprpc::MessagePointerT<RequestKey>&& _key)
+    Request(std::shared_ptr<RequestKey>&& _key)
         : key(std::move(_key))
     {
     }

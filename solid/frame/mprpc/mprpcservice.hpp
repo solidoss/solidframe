@@ -612,7 +612,7 @@ ErrorConditionT Service::sendMessage(
     MessagePointerT<T> const& _rmsgptr,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(_recipient_url.data(), recipient_id, msgptr, complete_handler, nullptr, nullptr, _flags);
@@ -625,7 +625,7 @@ ErrorConditionT Service::sendMessage(
     RecipientId&              _rrecipient_id,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(_recipient_url.data(), recipient_id, msgptr, complete_handler, &_rrecipient_id, nullptr, _flags);
@@ -639,7 +639,7 @@ ErrorConditionT Service::sendMessage(
     MessageId&                _rmsg_id,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(_recipient_url.data(), recipient_id, msgptr, complete_handler, &_rrecipient_id, &_rmsg_id, _flags);
@@ -651,7 +651,7 @@ ErrorConditionT Service::sendMessage(
     MessagePointerT<T> const& _rmsgptr,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, nullptr, _flags);
 }
@@ -663,7 +663,7 @@ ErrorConditionT Service::sendMessage(
     MessageId&                _rmsg_id,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsg_id, _flags);
 }
@@ -680,7 +680,7 @@ ErrorConditionT Service::sendRequest(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
@@ -700,7 +700,7 @@ ErrorConditionT Service::sendRequest(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
@@ -721,7 +721,7 @@ ErrorConditionT Service::sendRequest(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
@@ -741,7 +741,7 @@ ErrorConditionT Service::sendRequest(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
 
@@ -760,7 +760,7 @@ ErrorConditionT Service::sendRequest(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
 
@@ -776,7 +776,7 @@ ErrorConditionT Service::sendResponse(
     MessagePointerT<T> const& _rmsgptr,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | MessageFlagsE::Response);
 }
@@ -790,7 +790,7 @@ ErrorConditionT Service::sendResponse(
     MessageId&                _rmsg_id,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsg_id, _flags | MessageFlagsE::Response);
 }
@@ -808,7 +808,7 @@ ErrorConditionT Service::sendMessage(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
@@ -828,7 +828,7 @@ ErrorConditionT Service::sendMessage(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
@@ -849,7 +849,7 @@ ErrorConditionT Service::sendMessage(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
@@ -869,7 +869,7 @@ ErrorConditionT Service::sendMessage(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
 
@@ -888,7 +888,7 @@ ErrorConditionT Service::sendMessage(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
 
@@ -903,7 +903,7 @@ ErrorConditionT Service::sendResponse(
     MessagePointerT<T> const& _rmsgptr,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(_rctx, msgptr, complete_handler, nullptr, nullptr, _flags | MessageFlagsE::Response);
 }
@@ -914,7 +914,7 @@ ErrorConditionT Service::sendMessage(
     MessagePointerT<T> const& _rmsgptr,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(_rctx, msgptr, complete_handler, nullptr, nullptr, _flags);
 }
@@ -930,7 +930,7 @@ ErrorConditionT Service::sendMessage(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
 

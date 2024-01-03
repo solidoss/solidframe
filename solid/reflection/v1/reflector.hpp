@@ -225,6 +225,34 @@ public:
 };
 
 template <class Reflector>
+class GroupNode<Reflector, TypeGroupE::IntrusivePtr> : public BaseNode<Reflector> {
+protected:
+    using ContextT = typename Reflector::ContextT;
+    using BaseT    = BaseNode<Reflector>;
+
+    GroupNode(Reflector& _rreflector, const std::type_info* const _ptype_info)
+        : BaseT(_rreflector, TypeGroupE::IntrusivePtr, _ptype_info)
+    {
+    }
+
+public:
+    bool isNull() const override = 0;
+
+    template <class DispatchFunction>
+    void visit(DispatchFunction _dispatch_function, const TypeMapBase* _ptype_map, ContextT& _rctx)
+    {
+        Reflector new_reflector{this->rreflector_.metadataFactory(), _dispatch_function, this->rreflector_.typeMap()};
+        this->doVisit(new_reflector, _ptype_map, _rctx);
+    }
+    template <class DispatchFunction>
+    void visit(DispatchFunction _dispatch_function, const TypeMapBase* _ptype_map, ContextT& _rctx) const
+    {
+        Reflector new_reflector{this->rreflector_.metadataFactory(), _dispatch_function, this->rreflector_.typeMap()};
+        this->doVisit(new_reflector, _ptype_map, _rctx);
+    }
+};
+
+template <class Reflector>
 class GroupNode<Reflector, TypeGroupE::Bitset> : public BaseNode<Reflector> {
 protected:
     using BaseT = BaseNode<Reflector>;
@@ -397,7 +425,7 @@ private:
 
     void doVisit(Reflector& _rreflector, const TypeMapBase* _ptype_map, ContextT& _rctx) override
     {
-        if constexpr (type_group<ValueT>() == TypeGroupE::SharedPtr || type_group<ValueT>() == TypeGroupE::UniquePtr) {
+        if constexpr (type_group<ValueT>() == TypeGroupE::SharedPtr || type_group<ValueT>() == TypeGroupE::UniquePtr || type_group<ValueT>() == TypeGroupE::IntrusivePtr) {
             solid_check(ref_);
             if constexpr (
                 type_group<typename T::element_type>() == TypeGroupE::Basic || type_group<typename T::element_type>() == TypeGroupE::Container || type_group<typename T::element_type>() == TypeGroupE::Enum || type_group<typename T::element_type>() == TypeGroupE::Bitset) {
@@ -411,7 +439,7 @@ private:
 
     void doVisit(Reflector& _rreflector, const TypeMapBase* _ptype_map, ContextT& _rctx) const override
     {
-        if constexpr (type_group<ValueT>() == TypeGroupE::SharedPtr || type_group<ValueT>() == TypeGroupE::UniquePtr) {
+        if constexpr (type_group<ValueT>() == TypeGroupE::SharedPtr || type_group<ValueT>() == TypeGroupE::UniquePtr || type_group<ValueT>() == TypeGroupE::IntrusivePtr) {
             solid_check(ref_);
             if constexpr (
                 type_group<typename T::element_type>() == TypeGroupE::Basic || type_group<typename T::element_type>() == TypeGroupE::Container || type_group<typename T::element_type>() == TypeGroupE::Enum || type_group<typename T::element_type>() == TypeGroupE::Bitset) {
@@ -425,7 +453,7 @@ private:
 
     void reset(const std::string_view _name, const TypeMapBase* _ptype_map, ContextT& _rctx) override
     {
-        if constexpr (!std::is_const_v<T> && (type_group<ValueT>() == TypeGroupE::SharedPtr || type_group<ValueT>() == TypeGroupE::UniquePtr)) {
+        if constexpr (!std::is_const_v<T> && (type_group<ValueT>() == TypeGroupE::SharedPtr || type_group<ValueT>() == TypeGroupE::UniquePtr || type_group<ValueT>() == TypeGroupE::IntrusivePtr)) {
             solid_check(_ptype_map != nullptr);
 
             _ptype_map->create<Reflector>(_rctx, ref_, 0, _name);

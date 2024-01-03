@@ -497,7 +497,7 @@ int test_clientserver_topic(int argc, char* argv[])
 
             for (size_t i = 0; i < message_count; ++i) {
                 this_thread::sleep_until(start + chrono::microseconds(static_cast<int64_t>(lin_value(0.0, stop, i, message_count))));
-                mprpcclient.sendMessage(client_id, make_shared<Request>(i, microseconds_since_epoch()), {frame::mprpc::MessageFlagsE::AwaitResponse});
+                mprpcclient.sendMessage(client_id, frame::mprpc::make_message<Request>(i, microseconds_since_epoch()), {frame::mprpc::MessageFlagsE::AwaitResponse});
             }
             solid_log(logger, Warning, "========== DONE sending messages ========== " << (microseconds_since_epoch() - startms) << "us");
         }

@@ -219,7 +219,11 @@ class Protocol : public mprpc::Protocol {
             auto create_lambda     = [](auto& _rctx, auto& _rptr) {
                 using PtrType = std::decay_t<decltype(_rptr)>;
                 using CtxType = std::decay_t<decltype(_rctx)>;
+#if defined(SOLID_MPRPC_USE_SHARED_PTR_MESSAGE)
                 if constexpr (solid::is_shared_ptr_v<PtrType>) {
+#else
+                if constexpr (solid::is_intrusive_ptr_v<PtrType>) {
+#endif
                     _rptr = make_message<typename PtrType::element_type>();
                     if constexpr (std::is_same_v<ConnectionContext, CtxType>) {
                         _rptr->header(_rctx);
@@ -247,8 +251,11 @@ class Protocol : public mprpc::Protocol {
             auto create_lambda     = [_create_fnc](auto& _rctx, auto& _rptr) {
                 using PtrType = std::decay_t<decltype(_rptr)>;
                 using CtxType = std::decay_t<decltype(_rctx)>;
+#if defined(SOLID_MPRPC_USE_SHARED_PTR_MESSAGE)
                 if constexpr (solid::is_shared_ptr_v<PtrType>) {
-
+#else
+                if constexpr (solid::is_intrusive_ptr_v<PtrType>) {
+#endif
                     _create_fnc(_rctx, _rptr);
 
                     if constexpr (std::is_same_v<ConnectionContext, CtxType>) {

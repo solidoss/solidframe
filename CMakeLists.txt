@@ -126,6 +126,10 @@ set(SOLID_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 
 set(SYSTEM_BASIC_LIBRARIES "")
 
+
+option(SOLID_FRAME_AIO_REACTOR_USE_SPINLOCK "Use SpinLock on AIO Reactor" ON)
+option(SOLID_MPRPC_USE_SHARED_PTR_MESSAGE "Use std::shared_ptr with mprpc::Message" OFF)
+
 #-----------------------------------------------------------------
 # Per OS configuration
 #-----------------------------------------------------------------

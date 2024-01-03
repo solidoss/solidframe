@@ -31,6 +31,7 @@ enum struct TypeGroupE {
     Enum,
     SharedPtr,
     UniquePtr,
+    IntrusivePtr,
     Tuple,
     IStream,
     OStream,
@@ -41,6 +42,9 @@ constexpr TypeGroupE type_group()
 {
     if constexpr (solid::is_shared_ptr_v<T>) {
         return TypeGroupE::SharedPtr;
+    }
+    if constexpr (solid::is_intrusive_ptr_v<T>) {
+        return TypeGroupE::IntrusivePtr;
     }
     if constexpr (solid::is_unique_ptr_v<T>) {
         return TypeGroupE::UniquePtr;

@@ -134,25 +134,25 @@ ErrorConditionT start(
 
         cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(_rctx.rresolver, _rctx.rserver_port.c_str() /*, SocketInfo::Inet4*/);
 
-        mprpcclient_ptr = frame::mprpc::make_message<frame::mprpc::ServiceT>(_rctx.rm);
+        mprpcclient_ptr = make_shared<frame::mprpc::ServiceT>(_rctx.rm);
         mprpcclient_ptr->start(std::move(cfg));
 #if 1
         _rctx.rwait_count += 3;
 
         err = mprpcclient_ptr->sendMessage(
-            "localhost", frame::mprpc::make_message<alpha_protocol::FirstMessage>(100000, make_string(100000)),
+            "localhost", frame::mprpc::make_message<alpha_protocol::FirstMessage>(100000UL, make_string(100000)),
             {frame::mprpc::MessageFlagsE::AwaitResponse});
         if (err) {
             return err;
         }
         err = mprpcclient_ptr->sendMessage(
-            "localhost", frame::mprpc::make_message<alpha_protocol::SecondMessage>(200000, make_string(200000)),
+            "localhost", frame::mprpc::make_message<alpha_protocol::SecondMessage>(200000UL, make_string(200000)),
             {frame::mprpc::MessageFlagsE::AwaitResponse});
         if (err) {
             return err;
         }
         err = mprpcclient_ptr->sendMessage(
-            "localhost", frame::mprpc::make_message<alpha_protocol::ThirdMessage>(30000, make_string(30000)),
+            "localhost", frame::mprpc::make_message<alpha_protocol::ThirdMessage>(30000UL, make_string(30000)),
             {frame::mprpc::MessageFlagsE::AwaitResponse});
         if (err) {
             return err;

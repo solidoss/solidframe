@@ -46,15 +46,17 @@ protected:
     using ReverseCastFunctionT = std::function<const void*(const void*)>;
 
     struct CastStub {
-        template <class SF, class UF, class RF>
-        CastStub(SF _sf, UF _uf, RF _rf)
+        template <class SF, class UF, class IF, class RF>
+        CastStub(SF _sf, UF _uf, IF _if, RF _rf)
             : shared_fnc_(_sf)
             , unique_fnc_(_uf)
+            , intrusive_fnc_(_if)
             , reverse_fnc_(_rf)
         {
         }
         CastFunctionT        shared_fnc_;
         CastFunctionT        unique_fnc_;
+        CastFunctionT        intrusive_fnc_;
         ReverseCastFunctionT reverse_fnc_;
     };
     using TypeIndexPairT = std::pair<std::type_index, std::type_index>;
@@ -73,6 +75,7 @@ protected:
         ReflectFunctionT reflect_fnc_;
         CreateFunctionT  create_shared_fnc_;
         CreateFunctionT  create_unique_fnc_;
+        CreateFunctionT  create_intrusive_fnc_;
     };
     using ReflectorVectorT = std::vector<ReflectorStub>;
     struct TypeStub {
@@ -194,7 +197,7 @@ public:
     template <class Reflector, class Ptr>
     size_t create(typename Reflector::ContextT& _rctx, Ptr& _rptr, const size_t _category, const std::string_view _name) const
     {
-        static_assert(solid::is_shared_ptr_v<Ptr> || solid::is_unique_ptr_v<Ptr>);
+        static_assert(solid::is_shared_ptr_v<Ptr> || solid::is_unique_ptr_v<Ptr> || solid::is_intrusive_ptr_v<Ptr>);
         const size_t reflector_index = reflectorIndex<Reflector>();
         solid_assert(reflector_index != solid::InvalidIndex());
 
@@ -219,9 +222,12 @@ public:
 
             if constexpr (solid::is_shared_ptr_v<Ptr>) {
                 rtypestub.reflector_vec_[reflector_index].create_shared_fnc_(&_rctx, &_rptr, rcaststub.shared_fnc_);
-            } else { // unique_ptr
+            } else if constexpr (solid::is_unique_ptr_v<Ptr>) { // unique_ptr
                 static_assert(std::is_same_v<Ptr, std::unique_ptr<typename Ptr::element_type>>, "Only unique with default deleter is supported");
                 rtypestub.reflector_vec_[reflector_index].create_unique_fnc_(&_rctx, &_rptr, rcaststub.unique_fnc_);
+            } else {
+                static_assert(solid::is_intrusive_ptr_v<Ptr>);
+                rtypestub.reflector_vec_[reflector_index].create_intrusive_fnc_(&_rctx, &_rptr, rcaststub.intrusive_fnc_);
             }
             return it->second;
         } else {
@@ -314,7 +320,7 @@ public:
     {
         const size_t reflector_index = reflectorIndex<Reflector>();
         solid_assert(reflector_index != solid::InvalidIndex());
-        static_assert(solid::is_shared_ptr_v<Ptr> || solid::is_unique_ptr_v<Ptr>);
+        static_assert(solid::is_shared_ptr_v<Ptr> || solid::is_unique_ptr_v<Ptr> || solid::is_intrusive_ptr_v<Ptr>);
 
         solid_assert(_category < category_vec_.size());
         _rptr.reset();
@@ -338,9 +344,11 @@ public:
 
             if constexpr (solid::is_shared_ptr_v<Ptr>) {
                 rtypestub.reflector_vec_[reflector_index].create_shared_fnc_(&_rctx, &_rptr, rcaststub.shared_fnc_);
-            } else { // unique_ptr
+            } else if constexpr (solid::is_unique_ptr_v<Ptr>) { // unique_ptr
                 static_assert(std::is_same_v<Ptr, std::unique_ptr<typename Ptr::element_type>>, "Only unique with default deleter is supported");
                 rtypestub.reflector_vec_[reflector_index].create_unique_fnc_(&_rctx, &_rptr, rcaststub.unique_fnc_);
+            } else {
+                rtypestub.reflector_vec_[reflector_index].create_intrusive_fnc_(&_rctx, &_rptr, rcaststub.intrusive_fnc_);
             }
 
             rtypestub.reflector_vec_[reflector_index].reflect_fnc_(&_rreflector, _rptr.get(), &_rctx, rcaststub.reverse_fnc_);
@@ -499,6 +507,15 @@ private:
             _cast(_pptr, &ptr);
         };
 
+        type_vec_[_type_index].reflector_vec_[_index].create_intrusive_fnc_ = [_create_f](void* _pctx, void* _pptr, const CastFunctionT& _cast) {
+            if constexpr (std::is_base_of_v<solid::IntrusiveThreadSafeBase, T>) {
+                typename Ref::ContextT& rctx = *reinterpret_cast<typename Ref::ContextT*>(_pctx);
+                solid::IntrusivePtr<T>  ptr;
+                _create_f(rctx, ptr);
+                _cast(_pptr, &ptr);
+            }
+        };
+
         if constexpr (!is_empty_pack<Rem...>::value) {
             doInitTypeReflect<CreateF, T, Rem...>(_create_f, _type_index, _index + 1);
         }
@@ -552,6 +569,13 @@ private:
                 std::unique_ptr<B>& rto   = *reinterpret_cast<std::unique_ptr<B>*>(_pto);
                 std::unique_ptr<T>& rfrom = *reinterpret_cast<std::unique_ptr<T>*>(_pfrom);
                 rto                       = std::move(rfrom);
+            },
+            [](void* _pto, void* _pfrom) {
+                if constexpr (std::is_base_of_v<solid::IntrusiveThreadSafeBase, T> && std::is_base_of_v<solid::IntrusiveThreadSafeBase, B>) {
+                    solid::IntrusivePtr<B>& rto   = *reinterpret_cast<solid::IntrusivePtr<B>*>(_pto);
+                    solid::IntrusivePtr<T>& rfrom = *reinterpret_cast<solid::IntrusivePtr<T>*>(_pfrom);
+                    rto                           = std::move(rfrom);
+                }
             },
             [](const void* _pfrom) {
                 return static_cast<const T*>(reinterpret_cast<const B*>(_pfrom));

@@ -124,7 +124,7 @@ struct FileResponse : solid::frame::mprpc::Message {
 private:
     const std::string* localPath(solid::frame::mprpc::ConnectionContext& _rctx) const
     {
-        auto req_ptr = std::dynamic_pointer_cast<FileRequest>(_rctx.fetchRequest(*this));
+        auto req_ptr = solid::dynamic_pointer_cast<FileRequest>(_rctx.fetchRequest(*this));
         if (req_ptr) {
             return &req_ptr->local_path;
         }

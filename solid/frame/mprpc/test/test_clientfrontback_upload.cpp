@@ -93,9 +93,9 @@ struct Request : frame::mprpc::Message {
 };
 
 struct Response : frame::mprpc::Message {
-    uint32_t                  error_;
-    frame::mprpc::RecipientId recipient_id_;
-    shared_ptr<back::Request> req_ptr_;
+    uint32_t                                     error_;
+    frame::mprpc::RecipientId                    recipient_id_;
+    frame::mprpc::MessagePointerT<back::Request> req_ptr_;
 
     Response()
     {
@@ -163,12 +163,12 @@ void on_client_receive_first_response(
 namespace back {
 
 struct Request : frame::mprpc::Message {
-    string                      name_;
-    mutable istringstream       iss_;
-    ofstream                    ofs_;
-    ostringstream               oss_;
-    frame::mprpc::RecipientId   recipient_id_;
-    shared_ptr<front::Response> res_ptr_;
+    string                                         name_;
+    mutable istringstream                          iss_;
+    ofstream                                       ofs_;
+    ostringstream                                  oss_;
+    frame::mprpc::RecipientId                      recipient_id_;
+    frame::mprpc::MessagePointerT<front::Response> res_ptr_;
 
     Request()
     {
@@ -514,7 +514,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
 
         expect_count = file_vec.size();
         for (const auto& f : file_vec) {
-            auto msg_ptr = make_shared<front::Request>(f);
+            auto msg_ptr = frame::mprpc::make_message<front::Request>(f);
             msg_ptr->ifs_.open(string("client_storage/") + f);
 
             mprpc_front_client.sendRequest("localhost", msg_ptr, front::on_client_receive_first_response);
@@ -721,7 +721,7 @@ void on_server_receive_request(
     solid_log(logger, Verbose, "front: received request for: " << _rsent_msg_ptr->req_ptr_->name_);
 
     if (!_rrecv_msg_ptr->isResponseLast()) {
-        frame::mprpc::MessagePointerT<back::Request> req_ptr = make_shared<back::Request>();
+        frame::mprpc::MessagePointerT<back::Request> req_ptr = frame::mprpc::make_message<back::Request>();
         req_ptr->header(_rsent_msg_ptr->req_ptr_->header());
         req_ptr->iss_.str(_rrecv_msg_ptr->oss_.str());
 
@@ -735,7 +735,7 @@ void on_server_receive_request(
         } else {
             frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::ResponsePart};
             pmprpc_back_client->sendMessage(_rsent_msg_ptr->recipient_id_, req_ptr, flags);
-            _rsent_msg_ptr->req_ptr_->res_ptr_ = make_shared<front::Response>();
+            _rsent_msg_ptr->req_ptr_->res_ptr_ = frame::mprpc::make_message<front::Response>();
             solid_log(logger, Verbose, "front: forward request without wait response");
         }
     } else {
@@ -761,13 +761,13 @@ void on_server_receive_first_request(
 
     solid_log(logger, Verbose, "front: received first request for file: " << _rrecv_msg_ptr->name_);
 
-    auto                        req_ptr = make_shared<back::Request>();
+    auto                        req_ptr = frame::mprpc::make_message<back::Request>();
     frame::mprpc::MessageFlagsT flags;
 
     req_ptr->name_ = std::move(_rrecv_msg_ptr->name_);
     req_ptr->iss_.str(_rrecv_msg_ptr->oss_.str());
     req_ptr->recipient_id_ = _rctx.recipientId();
-    req_ptr->res_ptr_      = make_shared<front::Response>(*_rrecv_msg_ptr);
+    req_ptr->res_ptr_      = frame::mprpc::make_message<front::Response>(*_rrecv_msg_ptr);
 
     pmprpc_back_client->sendRequest("localhost", req_ptr, back::on_client_receive_first_response, flags);
 }
@@ -785,7 +785,7 @@ void on_client_receive_first_response(
     solid_log(logger, Verbose, "back: received response on back client for: " << _rsent_msg_ptr->name_);
     frame::mprpc::MessagePointerT<front::Response> res_ptr = std::move(_rsent_msg_ptr->res_ptr_);
     frame::mprpc::MessageFlagsT                    flags{frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::Response};
-    _rsent_msg_ptr->res_ptr_ = make_shared<front::Response>();
+    _rsent_msg_ptr->res_ptr_ = frame::mprpc::make_message<front::Response>();
     res_ptr->error_          = _rrecv_msg_ptr->error_;
     res_ptr->recipient_id_   = _rctx.recipientId();
     res_ptr->req_ptr_        = std::move(_rsent_msg_ptr);
@@ -833,7 +833,7 @@ void on_server_receive_request(
     if (!_rrecv_msg_ptr->isResponseLast()) {
         if (_rsent_msg_ptr->send_response_) {
             _rsent_msg_ptr->send_response_ = false;
-            auto res_ptr                   = make_shared<Response>(*_rrecv_msg_ptr);
+            auto res_ptr                   = frame::mprpc::make_message<Response>(*_rrecv_msg_ptr);
             res_ptr->error_                = 0;
             auto err                       = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, {frame::mprpc::MessageFlagsE::Response});
             solid_log(logger, Verbose, "back: send response to: " << _rctx.recipientId() << " err: " << err.message());
@@ -842,7 +842,7 @@ void on_server_receive_request(
         }
     } else {
         _rsent_msg_ptr->req_ptr_->ofs_.flush();
-        auto res_ptr    = make_shared<Response>(*_rrecv_msg_ptr);
+        auto res_ptr    = frame::mprpc::make_message<Response>(*_rrecv_msg_ptr);
         res_ptr->error_ = 0;
         auto err        = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, {frame::mprpc::MessageFlagsE::Response});
         solid_log(logger, Verbose, "back: send last response to: " << _rctx.recipientId() << " err: " << err.message());
@@ -861,7 +861,7 @@ void on_server_receive_first_request(
     string s = _rrecv_msg_ptr->oss_.str();
     solid_log(logger, Verbose, "back: receiving file: " << path << " data size: " << s.size() << " ptr: " << _rrecv_msg_ptr.get());
     _rrecv_msg_ptr->ofs_.write(s.data(), s.size());
-    auto res_ptr    = make_shared<Response>(std::move(_rrecv_msg_ptr));
+    auto res_ptr    = frame::mprpc::make_message<Response>(std::move(_rrecv_msg_ptr));
     res_ptr->error_ = 0;
     const frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::Response};
     _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, on_server_receive_request, flags);

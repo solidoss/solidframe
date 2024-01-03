@@ -320,7 +320,7 @@ int test_clientserver_download(int argc, char* argv[])
 
         expect_count = file_vec.size();
         for (const auto& f : file_vec) {
-            auto msg_ptr = make_shared<Request>(f);
+            auto msg_ptr = frame::mprpc::make_message<Request>(f);
             msg_ptr->ofs_.open(string("client_storage/") + f);
 
             mprpc_client.sendRequest("localhost", msg_ptr, on_client_receive_response);
@@ -453,7 +453,7 @@ void on_client_receive_response(
     if (!_rrecv_msg_ptr->isResponseLast()) {
         if (_rsent_msg_ptr->send_request_) {
             _rsent_msg_ptr->send_request_ = false;
-            auto res_ptr                  = make_shared<Request>(*_rrecv_msg_ptr);
+            auto res_ptr                  = frame::mprpc::make_message<Request>(*_rrecv_msg_ptr);
             auto err                      = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, {frame::mprpc::MessageFlagsE::Response});
             solid_log(logger, Verbose, "send response to: " << _rctx.recipientId() << " err: " << err.message());
         } else {
@@ -499,7 +499,7 @@ void on_server_receive_first_request(
 {
     string path = string("server_storage") + '/' + _rrecv_msg_ptr->name_;
 
-    auto res_ptr = make_shared<Response>(*_rrecv_msg_ptr);
+    auto res_ptr = frame::mprpc::make_message<Response>(*_rrecv_msg_ptr);
 
     res_ptr->ifs_.open(path);
 

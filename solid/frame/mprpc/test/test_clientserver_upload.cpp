@@ -310,7 +310,7 @@ int test_clientserver_upload(int argc, char* argv[])
 
         expect_count = file_vec.size();
         for (const auto& f : file_vec) {
-            auto msg_ptr = make_shared<Request>(f);
+            auto msg_ptr = frame::mprpc::make_message<Request>(f);
             msg_ptr->ifs_.open(string("client_storage/") + f);
 
             mprpc_client.sendRequest("localhost", msg_ptr, on_client_receive_first_response);
@@ -506,7 +506,7 @@ void on_server_receive_request(
     if (!_rrecv_msg_ptr->isResponseLast()) {
         if (_rsent_msg_ptr->send_response_) {
             _rsent_msg_ptr->send_response_ = false;
-            auto res_ptr                   = make_shared<Response>(*_rrecv_msg_ptr);
+            auto res_ptr                   = frame::mprpc::make_message<Response>(*_rrecv_msg_ptr);
             res_ptr->error_                = 0;
             auto err                       = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, {frame::mprpc::MessageFlagsE::Response});
             solid_log(logger, Verbose, "send response to: " << _rctx.recipientId() << " err: " << err.message());
@@ -515,7 +515,7 @@ void on_server_receive_request(
         }
     } else {
         _rsent_msg_ptr->req_ptr_->ofs_.flush();
-        auto res_ptr    = make_shared<Response>(*_rrecv_msg_ptr);
+        auto res_ptr    = frame::mprpc::make_message<Response>(*_rrecv_msg_ptr);
         res_ptr->error_ = 0;
         auto err        = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, {frame::mprpc::MessageFlagsE::Response});
         solid_log(logger, Verbose, "send last response to: " << _rctx.recipientId() << " err: " << err.message());
@@ -534,7 +534,7 @@ void on_server_receive_first_request(
     string s = _rrecv_msg_ptr->oss_.str();
     solid_log(logger, Verbose, "receiving file: " << path << " data size: " << s.size() << " ptr: " << _rrecv_msg_ptr.get());
     _rrecv_msg_ptr->ofs_.write(s.data(), s.size());
-    auto res_ptr    = make_shared<Response>(std::move(_rrecv_msg_ptr));
+    auto res_ptr    = frame::mprpc::make_message<Response>(std::move(_rrecv_msg_ptr));
     res_ptr->error_ = 0;
     const frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::Response};
     _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, on_server_receive_request, flags);
