@@ -79,7 +79,7 @@ int test_collapse(int argc, char* argv[])
             std::promise<SharedMessageT> p;
             auto                         f  = p.get_future();
             auto                         sm = make_intrusive<Message>();
-            vector<jthread>              thr_vec;
+            vector<thread>               thr_vec;
             {
                 auto lambda = [&p, ready_future](SharedMessageT _sm) mutable {
                     set_current_thread_affinity();
@@ -100,6 +100,9 @@ int test_collapse(int argc, char* argv[])
                 if (auto tmp_sm = collapse(sm_lock)) {
                     p.set_value(std::move(tmp_sm));
                 }
+            }
+            for(auto &t: thr_vec){
+                t.join();
             }
             {
                 sm = f.get();

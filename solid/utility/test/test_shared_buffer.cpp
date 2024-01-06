@@ -36,7 +36,7 @@ int test_shared_buffer(int argc, char* argv[])
         std::promise<SharedBuffer> p;
         std::future<SharedBuffer>  f = p.get_future();
 
-        vector<jthread> thr_vec;
+        vector<thread>  thr_vec;
         void*           psb1 = nullptr;
         {
 
@@ -69,6 +69,10 @@ int test_shared_buffer(int argc, char* argv[])
             if (sb1.collapse()) {
                 p.set_value(std::move(sb1));
             }
+        }
+
+        for(auto &t: thr_vec){
+            t.join();
         }
         solid_check(BufferManager::localCount(1000) == 0);
         {

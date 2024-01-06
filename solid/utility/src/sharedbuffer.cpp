@@ -114,6 +114,8 @@ thread_local BufferManager::LocalData local_data;
 
 struct BufferManager::Data {
     const Configuration config_;
+
+    Data(const BufferManager::Configuration& _config): config_(_config){}
 };
 
 BufferManager::BufferManager(const BufferManager::Configuration& _config)
