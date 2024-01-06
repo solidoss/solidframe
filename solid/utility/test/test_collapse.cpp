@@ -101,7 +101,7 @@ int test_collapse(int argc, char* argv[])
                     p.set_value(std::move(tmp_sm));
                 }
             }
-            for(auto &t: thr_vec){
+            for (auto& t : thr_vec) {
                 t.join();
             }
             {

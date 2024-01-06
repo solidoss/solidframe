@@ -36,8 +36,8 @@ int test_shared_buffer(int argc, char* argv[])
         std::promise<SharedBuffer> p;
         std::future<SharedBuffer>  f = p.get_future();
 
-        vector<thread>  thr_vec;
-        void*           psb1 = nullptr;
+        vector<thread> thr_vec;
+        void*          psb1 = nullptr;
         {
 
             SharedBuffer sb1 = BufferManager::make(1000);
@@ -71,7 +71,7 @@ int test_shared_buffer(int argc, char* argv[])
             }
         }
 
-        for(auto &t: thr_vec){
+        for (auto& t : thr_vec) {
             t.join();
         }
         solid_check(BufferManager::localCount(1000) == 0);

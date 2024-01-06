@@ -1,5 +1,13 @@
 # SolidFrame Releases
 
+## Version 11.0
+
+* utility: Improve SharedBuffer with local caching
+* mprpc: switch to using SharedBuffer
+* frame: Some improvements to Reactor and aio::Reactor  
+* utility: Introducing IntrusivePtr with support for collapse
+* mprpc: Defaulting to InstrusivePtr for solid::frame::mprpc::Message. Use SOLID_MPRPC_USE_SHARED_PTR_MESSAGE build option to switch to std::shared_ptr.
+
 ## Version 10.0
 
 * (DONE) New Pimpl implementation which avoids the extra memory allocation similarly to solid::Any<>
@@ -23,7 +31,7 @@
 
 ## Version 8.1
 
-* (DONE) ThreadPool to ThreadPool
+* (DONE) WorkPool to ThreadPool
 
 ## Version 6.0
 

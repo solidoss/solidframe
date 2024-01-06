@@ -241,7 +241,7 @@ struct Sender : frame::mprpc::MessageWriter::Sender {
     {
         solid_dbg(generic_logger, Info, "writer complete message");
         frame::mprpc::MessagePointerT<> response_ptr;
-        ErrorConditionT               error;
+        ErrorConditionT                 error;
         rprotocol_.complete(_rmsgbundle.message_type_id, mprpcconctx, _rmsgbundle.message_ptr, response_ptr, error);
         return ErrorConditionT();
     }

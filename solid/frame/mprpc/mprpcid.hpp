@@ -9,7 +9,6 @@ namespace relay {
 class EngineCore;
 }
 
-
 class Service;
 struct ConnectionContext;
 
