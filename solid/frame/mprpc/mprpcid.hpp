@@ -5,11 +5,12 @@
 namespace solid {
 namespace frame {
 namespace mprpc {
-
 namespace relay {
 class EngineCore;
 }
 
+
+class Service;
 struct ConnectionContext;
 
 //! A structure to uniquely indetify an IPC connection pool
