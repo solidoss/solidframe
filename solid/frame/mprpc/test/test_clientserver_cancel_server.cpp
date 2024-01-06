@@ -162,6 +162,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
+using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
@@ -185,7 +187,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 }
 
-void client_receive_message(frame::mprpc::ConnectionContext& _rctx, std::shared_ptr<Message>& _rmsgptr)
+void client_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePointerT& _rmsgptr)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 
@@ -218,7 +220,7 @@ void client_receive_message(frame::mprpc::ConnectionContext& _rctx, std::shared_
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
+    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -235,7 +237,7 @@ void client_complete_message(
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Message>& /*_rsent_msg_ptr*/, std::shared_ptr<Message>& _rrecv_msg_ptr,
+    MessagePointerT& /*_rsent_msg_ptr*/, MessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -261,7 +263,7 @@ void server_complete_message(
             frame::mprpc::MessageId msguid;
 
             ErrorConditionT err = _rctx.service().sendMessage(
-                recipient_id, frame::mprpc::MessagePointerT(std::make_shared<Message>(crtwriteidx)),
+                recipient_id, frame::mprpc::MessagePointerT<>(frame::mprpc::make_message<Message>(crtwriteidx)),
                 msguid);
 
             solid_check(!err, "Connection id should not be invalid! " << err.message());
@@ -412,7 +414,7 @@ int test_clientserver_cancel_server(int argc, char* argv[])
 
         {
             // Step 1.
-            frame::mprpc::MessagePointerT msgptr(std::make_shared<Message>(0));
+            auto msgptr(frame::mprpc::make_message<Message>(0));
             mprpcclient.sendMessage(
                 "localhost", msgptr,
                 initarray[0].flags);

@@ -45,22 +45,22 @@ LoggerT logger("test");
 atomic<size_t> expect_count(0);
 promise<void>  prom;
 
-struct UploadRequest : frame::mprpc::Message {
+struct Request : frame::mprpc::Message {
     string           name_;
     mutable ifstream ifs_;
     ofstream         ofs_;
     ostringstream    oss_;
 
-    UploadRequest()
+    Request()
     {
     }
 
-    UploadRequest(const string& _name)
+    Request(const string& _name)
         : name_(_name)
     {
     }
 
-    ~UploadRequest() override
+    ~Request() override
     {
     }
 
@@ -87,28 +87,30 @@ struct UploadRequest : frame::mprpc::Message {
     }
 };
 
-struct UploadResponse : frame::mprpc::Message {
-    uint32_t                       error_;
-    std::shared_ptr<UploadRequest> req_ptr_;
-    bool                           send_response_;
+using RequestPointerT = solid::frame::mprpc::MessagePointerT<Request>;
 
-    UploadResponse()
+struct Response : frame::mprpc::Message {
+    uint32_t        error_;
+    RequestPointerT req_ptr_;
+    bool            send_response_;
+
+    Response()
     {
     }
 
-    UploadResponse(UploadRequest& _req)
+    Response(Request& _req)
         : frame::mprpc::Message(_req)
     {
     }
 
-    UploadResponse(std::shared_ptr<UploadRequest>&& _req_ptr)
+    Response(RequestPointerT&& _req_ptr)
         : frame::mprpc::Message(*_req_ptr)
         , req_ptr_(std::move(_req_ptr))
         , send_response_(false)
     {
     }
 
-    ~UploadResponse() override
+    ~Response() override
     {
     }
 
@@ -118,10 +120,12 @@ struct UploadResponse : frame::mprpc::Message {
     }
 };
 
+using ResponsePointerT = solid::frame::mprpc::MessagePointerT<Response>;
+
 void on_client_request(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<UploadRequest>&  _rsent_msg_ptr,
-    std::shared_ptr<UploadRequest>&  _rrecv_msg_ptr,
+    RequestPointerT&                 _rsent_msg_ptr,
+    RequestPointerT&                 _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "on message");
@@ -129,8 +133,8 @@ void on_client_request(
 
 void on_client_response(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<UploadResponse>& _rsent_msg_ptr,
-    std::shared_ptr<UploadResponse>& _rrecv_msg_ptr,
+    ResponsePointerT&                _rsent_msg_ptr,
+    ResponsePointerT&                _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "on message");
@@ -138,20 +142,20 @@ void on_client_response(
 
 void on_client_first_response(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<UploadRequest>&  _rsent_msg_ptr,
-    std::shared_ptr<UploadResponse>& _rrecv_msg_ptr,
+    RequestPointerT&                 _rsent_msg_ptr,
+    ResponsePointerT&                _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror);
 
 void on_server_request(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<UploadRequest>&  _rsent_msg_ptr,
-    std::shared_ptr<UploadRequest>&  _rrecv_msg_ptr,
+    RequestPointerT&                 _rsent_msg_ptr,
+    RequestPointerT&                 _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror);
 
 void on_server_response(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<UploadResponse>& _rsent_msg_ptr,
-    std::shared_ptr<UploadResponse>& _rrecv_msg_ptr,
+    ResponsePointerT&                _rsent_msg_ptr,
+    ResponsePointerT&                _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "on message");
@@ -235,8 +239,8 @@ int test_clientserver_upload_single(int argc, char* argv[])
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
-                    _rmap.template registerMessage<UploadRequest>(1, "UploadRequest", on_server_request);
-                    _rmap.template registerMessage<UploadResponse>(2, "UploadResponse", on_server_response);
+                    _rmap.template registerMessage<Request>(1, "Request", on_server_request);
+                    _rmap.template registerMessage<Response>(2, "Response", on_server_response);
                 });
             frame::mprpc::Configuration cfg(sch_server, proto);
 
@@ -278,8 +282,8 @@ int test_clientserver_upload_single(int argc, char* argv[])
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
-                    _rmap.template registerMessage<UploadRequest>(1, "UploadRequest", on_client_request);
-                    _rmap.template registerMessage<UploadResponse>(2, "UploadResponse", on_client_response);
+                    _rmap.template registerMessage<Request>(1, "Request", on_client_request);
+                    _rmap.template registerMessage<Response>(2, "Response", on_client_response);
                 });
             frame::mprpc::Configuration cfg(sch_client, proto);
 
@@ -310,7 +314,7 @@ int test_clientserver_upload_single(int argc, char* argv[])
 
         expect_count = file_vec.size();
         for (const auto& f : file_vec) {
-            auto msg_ptr = make_shared<UploadRequest>(f);
+            auto msg_ptr = frame::mprpc::make_message<Request>(f);
             msg_ptr->ifs_.open(string("client_storage/") + f);
 
             mprpc_client.sendRequest("localhost", msg_ptr, on_client_first_response);
@@ -424,14 +428,14 @@ void check_files(const vector<string>& _file_vec, const char* _path_prefix_clien
 //-----------------------------------------------------------------------------
 void on_client_continue_response(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<UploadRequest>&  _rsent_msg_ptr,
-    std::shared_ptr<UploadResponse>& _rrecv_msg_ptr,
+    RequestPointerT&                 _rsent_msg_ptr,
+    ResponsePointerT&                _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror);
 
 void on_client_continue(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<UploadRequest>&  _rsent_msg_ptr,
-    std::shared_ptr<UploadResponse>& _rrecv_msg_ptr,
+    RequestPointerT&                 _rsent_msg_ptr,
+    ResponsePointerT&                _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
 
@@ -451,8 +455,8 @@ void on_client_continue(
 
 void on_client_continue_response(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<UploadRequest>&  _rsent_msg_ptr,
-    std::shared_ptr<UploadResponse>& _rrecv_msg_ptr,
+    RequestPointerT&                 _rsent_msg_ptr,
+    ResponsePointerT&                _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_check(_rrecv_msg_ptr);
@@ -473,8 +477,8 @@ void on_client_continue_response(
 
 void on_client_first_response(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<UploadRequest>&  _rsent_msg_ptr,
-    std::shared_ptr<UploadResponse>& _rrecv_msg_ptr,
+    RequestPointerT&                 _rsent_msg_ptr,
+    ResponsePointerT&                _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_check(_rrecv_msg_ptr);
@@ -501,12 +505,12 @@ void on_client_first_response(
 //-----------------------------------------------------------------------------
 void on_server_chunk(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<UploadResponse>& _rsent_msg_ptr,
-    std::shared_ptr<UploadRequest>&  _rrecv_msg_ptr,
+    ResponsePointerT&                _rsent_msg_ptr,
+    RequestPointerT&                 _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
-    // the server will keep receiving new UploadRequests
-    // we need to send UploadResponse every other two chunks
+    // the server will keep receiving new Requests
+    // we need to send Response every other two chunks
     solid_check(_rrecv_msg_ptr);
     std::string s = _rrecv_msg_ptr->oss_.str();
     _rsent_msg_ptr->req_ptr_->ofs_.write(s.data(), s.size());
@@ -516,7 +520,7 @@ void on_server_chunk(
     if (!_rrecv_msg_ptr->isResponseLast()) {
         if (_rsent_msg_ptr->send_response_) {
             _rsent_msg_ptr->send_response_ = false;
-            auto res_ptr                   = make_shared<UploadResponse>(*_rrecv_msg_ptr);
+            auto res_ptr                   = frame::mprpc::make_message<Response>(*_rrecv_msg_ptr);
             res_ptr->error_                = 0;
             auto err                       = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, {frame::mprpc::MessageFlagsE::Response});
             solid_log(logger, Verbose, "send response to: " << _rctx.recipientId() << " err: " << err.message());
@@ -533,8 +537,8 @@ void on_server_chunk(
 
 void on_server_request(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<UploadRequest>&  _rsent_msg_ptr,
-    std::shared_ptr<UploadRequest>&  _rrecv_msg_ptr,
+    RequestPointerT&                 _rsent_msg_ptr,
+    RequestPointerT&                 _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     string path = string("server_storage") + '/' + _rrecv_msg_ptr->name_;
@@ -543,7 +547,7 @@ void on_server_request(
     string s = _rrecv_msg_ptr->oss_.str();
     solid_log(logger, Verbose, "receiving file: " << path << " data size: " << s.size() << " ptr: " << _rrecv_msg_ptr.get());
     _rrecv_msg_ptr->ofs_.write(s.data(), s.size());
-    auto res_ptr    = make_shared<UploadResponse>(std::move(_rrecv_msg_ptr));
+    auto res_ptr    = frame::mprpc::make_message<Response>(std::move(_rrecv_msg_ptr));
     res_ptr->error_ = 0;
     _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, on_server_chunk, {frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::Response});
 }

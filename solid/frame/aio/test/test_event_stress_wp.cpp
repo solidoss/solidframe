@@ -1,6 +1,6 @@
 /*
  * This test is companion to test_event_stress.
- * It tries to simulate the message passing from test_event_stress using Workpool instead of
+ * It tries to simulate the message passing from test_event_stress using ThreadPool instead of
  * actors and schedulers.
  */
 
@@ -257,7 +257,7 @@ int test_event_stress_wp(int argc, char* argv[])
                     solid_log(logger, Warning, "sleep - wait for locked threads");
                     this_thread::sleep_for(chrono::seconds(100));
                     solid_log(logger, Warning, "wake - waited for locked threads");
-                    // we must throw here otherwise it will crash because workpool(s) is/are used after destroy
+                    // we must throw here otherwise it will crash because ThreadPool(s) is/are used after destroy
                     solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");
                 }
                 fut.get();

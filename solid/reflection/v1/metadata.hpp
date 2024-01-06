@@ -316,7 +316,7 @@ inline constexpr auto factory = [](const auto& _rt, auto& _rctx, const TypeMapBa
     using value_t         = std::decay_t<decltype(_rt)>;
     if constexpr (std::is_enum_v<value_t>) {
         return Enum{};
-    } else if constexpr (is_shared_ptr_v<value_t> || is_unique_ptr_v<value_t>) {
+    } else if constexpr (is_shared_ptr_v<value_t> || is_unique_ptr_v<value_t> || is_intrusive_ptr_v<value_t>) {
         return Pointer{_ptype_map};
     } else if constexpr (std::is_signed_v<value_t>) {
         return SignedInteger{std::numeric_limits<value_t>::min(), std::numeric_limits<value_t>::max()};

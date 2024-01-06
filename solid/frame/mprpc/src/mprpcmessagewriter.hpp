@@ -121,7 +121,7 @@ public:
 
     void cancel(MessageId const& _rmsguid, Sender& _rsender, const bool _force = false);
 
-    MessagePointerT fetchRequest(MessageId const& _rmsguid) const;
+    MessagePointerT<> fetchRequest(MessageId const& _rmsguid) const;
 
     ResponseStateE checkResponseState(MessageId const& _rmsguid, MessageId& _rrelay_id, const bool _erase_request);
 

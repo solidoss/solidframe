@@ -98,10 +98,12 @@ struct Message : frame::mprpc::Message {
     }
 };
 
+using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+
 void complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    frame::mprpc::MessagePointerT&   _rmessage_ptr,
-    frame::mprpc::MessagePointerT&   _rresponse_ptr,
+    MessagePointerT&                 _rmessage_ptr,
+    MessagePointerT&                 _rresponse_ptr,
     ErrorConditionT const&           _rerr);
 
 struct Context {
@@ -126,8 +128,8 @@ frame::mprpc::ConnectionContext& mprpcconctx(frame::mprpc::TestEntryway::createC
 
 void complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    frame::mprpc::MessagePointerT&   _rmessage_ptr,
-    frame::mprpc::MessagePointerT&   _rresponse_ptr,
+    MessagePointerT&                 _rmessage_ptr,
+    MessagePointerT&                 _rresponse_ptr,
     ErrorConditionT const&           _rerr)
 {
     if (_rerr) {
@@ -155,7 +157,7 @@ void complete_message(
             frame::mprpc::MessageId     pool_msg_id;
 
             msgbundle.message_flags   = initarray[crtwriteidx % initarraysize].flags;
-            msgbundle.message_ptr     = frame::mprpc::MessagePointerT(std::make_shared<Message>(crtwriteidx));
+            msgbundle.message_ptr     = MessagePointerT(frame::mprpc::make_message<Message>(crtwriteidx));
             msgbundle.message_type_id = ctx.mprpcprotocol->typeIndex(msgbundle.message_ptr.get());
 
             bool rv = ctx.mprpcmsgwriter->enqueue(
@@ -189,10 +191,10 @@ struct Receiver : frame::mprpc::MessageReader::Receiver {
         }
     }
 
-    void receiveMessage(frame::mprpc::MessagePointerT& _rresponse_ptr, const size_t _msg_type_id) override
+    void receiveMessage(frame::mprpc::MessagePointerT<>& _rresponse_ptr, const size_t _msg_type_id) override
     {
-        frame::mprpc::MessagePointerT message_ptr;
-        ErrorConditionT               error;
+        frame::mprpc::MessagePointerT<> message_ptr;
+        ErrorConditionT                 error;
         rprotocol_.complete(_msg_type_id, mprpcconctx, message_ptr, _rresponse_ptr, error);
     }
 
@@ -238,8 +240,8 @@ struct Sender : frame::mprpc::MessageWriter::Sender {
     ErrorConditionT completeMessage(frame::mprpc::MessageBundle& _rmsgbundle, frame::mprpc::MessageId const& /*_rmsgid*/) override
     {
         solid_dbg(generic_logger, Info, "writer complete message");
-        frame::mprpc::MessagePointerT response_ptr;
-        ErrorConditionT               error;
+        frame::mprpc::MessagePointerT<> response_ptr;
+        ErrorConditionT                 error;
         rprotocol_.complete(_rmsgbundle.message_type_id, mprpcconctx, _rmsgbundle.message_ptr, response_ptr, error);
         return ErrorConditionT();
     }
@@ -299,7 +301,7 @@ int test_protocol_synchronous(int argc, char* argv[])
         frame::mprpc::MessageId     pool_msg_id;
 
         msgbundle.message_flags   = initarray[crtwriteidx % initarraysize].flags;
-        msgbundle.message_ptr     = frame::mprpc::MessagePointerT(std::make_shared<Message>(crtwriteidx));
+        msgbundle.message_ptr     = MessagePointerT(frame::mprpc::make_message<Message>(crtwriteidx));
         msgbundle.message_type_id = ctx.mprpcprotocol->typeIndex(msgbundle.message_ptr.get());
 
         bool rv = mprpcmsgwriter.enqueue(

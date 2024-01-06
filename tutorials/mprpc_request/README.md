@@ -155,7 +155,7 @@ AioSchedulerT           scheduler;
 
 frame::Manager          manager;
 frame::mprpc::ServiceT  ipcservice(manager);
-CallPool<void()>        cwp{WorkPoolConfiguration(1)};
+CallPool<void()>        cwp{ThreadPoolConfiguration(1)};
 frame::aio::Resolver    resolver(cwp);
 
 ErrorConditionT         err;
@@ -197,8 +197,8 @@ namespace ipc_request_client{
 template <class M>
 void complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<M>&              _rsent_msg_ptr,
-    std::shared_ptr<M>&              _rrecv_msg_ptr,
+    frame::mprpc::MessagePointerT<M>&              _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_check(false); //this method should not be called
@@ -239,8 +239,8 @@ while(true){
 
             auto  lambda = [](
                 frame::mprpc::ConnectionContext &_rctx,
-                std::shared_ptr<ipc_request::Request> &_rsent_msg_ptr,
-                std::shared_ptr<ipc_request::Response> &_rrecv_msg_ptr,
+                frame::mprpc::MessagePointerT<ipc_request::Request> &_rsent_msg_ptr,
+                frame::mprpc::MessagePointerT<ipc_request::Response> &_rrecv_msg_ptr,
                 ErrorConditionT const &_rerror
             ){
                 if(_rerror){
@@ -331,15 +331,15 @@ namespace ipc_request_server{
 template <class M>
 void complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<M>&              _rsent_msg_ptr,
-    std::shared_ptr<M>&              _rrecv_msg_ptr,
+    frame::mprpc::MessagePointerT<M>&              _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror);
 
 template <>
 void complete_message<ipc_request::Request>(
     frame::mprpc::ConnectionContext&       _rctx,
-    std::shared_ptr<ipc_request::Request>& _rsent_msg_ptr,
-    std::shared_ptr<ipc_request::Request>& _rrecv_msg_ptr,
+    frame::mprpc::MessagePointerT<ipc_request::Request>& _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<ipc_request::Request>& _rrecv_msg_ptr,
     ErrorConditionT const&                 _rerror)
 {
     solid_check(not _rerror);
@@ -362,8 +362,8 @@ void complete_message<ipc_request::Request>(
 template <>
 void complete_message<ipc_request::Response>(
     frame::mprpc::ConnectionContext&        _rctx,
-    std::shared_ptr<ipc_request::Response>& _rsent_msg_ptr,
-    std::shared_ptr<ipc_request::Response>& _rrecv_msg_ptr,
+    frame::mprpc::MessagePointerT<ipc_request::Response>& _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<ipc_request::Response>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
 {
     solid_check(not _rerror);

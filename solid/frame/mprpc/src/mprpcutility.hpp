@@ -169,7 +169,7 @@ private:
 struct MessageBundle {
     size_t                   message_type_id;
     MessageFlagsT            message_flags;
-    MessagePointerT          message_ptr;
+    MessagePointerT<>        message_ptr;
     MessageCompleteFunctionT complete_fnc;
     MessageRelayHeader       message_relay_header_;
 
@@ -180,7 +180,7 @@ struct MessageBundle {
     }
 
     MessageBundle(
-        MessagePointerT&&         _rmsgptr,
+        MessagePointerT<>&&       _rmsgptr,
         const size_t              _msg_type_idx,
         const MessageFlagsT&      _flags,
         MessageCompleteFunctionT& _complete_fnc,
@@ -194,7 +194,7 @@ struct MessageBundle {
     }
 
     MessageBundle(
-        MessagePointerT&&         _rmsgptr,
+        MessagePointerT<>&&       _rmsgptr,
         const size_t              _msg_type_idx,
         const MessageFlagsT&      _flags,
         MessageCompleteFunctionT& _complete_fnc)

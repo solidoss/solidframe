@@ -78,10 +78,10 @@ int main(int argc, char* argv[])
 
         {
             auto con_register = [](
-                                    frame::mprpc::ConnectionContext& _rctx,
-                                    std::shared_ptr<Register>&       _rsent_msg_ptr,
-                                    std::shared_ptr<Register>&       _rrecv_msg_ptr,
-                                    ErrorConditionT const&           _rerror) {
+                                    frame::mprpc::ConnectionContext&         _rctx,
+                                    frame::mprpc::MessagePointerT<Register>& _rsent_msg_ptr,
+                                    frame::mprpc::MessagePointerT<Register>& _rrecv_msg_ptr,
+                                    ErrorConditionT const&                   _rerror) {
                 solid_check(!_rerror);
 
                 if (_rrecv_msg_ptr && _rrecv_msg_ptr->name.empty()) {
@@ -93,10 +93,10 @@ int main(int argc, char* argv[])
                 }
             };
             auto on_message = [&p](
-                                  frame::mprpc::ConnectionContext& _rctx,
-                                  std::shared_ptr<Message>&        _rsent_msg_ptr,
-                                  std::shared_ptr<Message>&        _rrecv_msg_ptr,
-                                  ErrorConditionT const&           _rerror) {
+                                  frame::mprpc::ConnectionContext&        _rctx,
+                                  frame::mprpc::MessagePointerT<Message>& _rsent_msg_ptr,
+                                  frame::mprpc::MessagePointerT<Message>& _rrecv_msg_ptr,
+                                  ErrorConditionT const&                  _rerror) {
                 if (_rrecv_msg_ptr) {
                     cout << _rrecv_msg_ptr->name << ": " << _rrecv_msg_ptr->data << endl;
                     if (!_rsent_msg_ptr) {
@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
             auto on_connection_start = [&p](frame::mprpc::ConnectionContext& _rctx) {
                 solid_log(generic_logger, Info, _rctx.recipientId());
 
-                auto            msgptr = std::make_shared<Register>(p.name);
+                auto            msgptr = frame::mprpc::make_message<Register>(p.name);
                 ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mprpc::MessageFlagsE::AwaitResponse});
                 solid_check(!err, "failed send Register");
             };
@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
                 size_t offset = line.find(' ');
                 if (offset != string::npos) {
                     recipient = p.server_addr + '/' + line.substr(0, offset);
-                    rpcservice.sendMessage(recipient.c_str(), make_shared<Message>(p.name, line.substr(offset + 1)), {frame::mprpc::MessageFlagsE::AwaitResponse});
+                    rpcservice.sendMessage(recipient.c_str(), frame::mprpc::make_message<Message>(p.name, line.substr(offset + 1)), {frame::mprpc::MessageFlagsE::AwaitResponse});
                 } else {
                     cout << "No recipient name specified. E.g:" << endl
                          << "alpha Some text to send" << endl;

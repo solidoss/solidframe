@@ -785,7 +785,7 @@ std::ostream& LoggerBase::doLog(std::ostream& _ros, const char* _flag_name, cons
     localtime_s(&loctm, &t_now);
     ploctm = &loctm;
 #else
-    tm                  loctm;
+    tm loctm;
     ploctm = localtime_r(&t_now, &loctm);
 #endif
     int sz = snprintf(

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 #-----------------------------------------------------------------
 # The project
 #-----------------------------------------------------------------
-project (SolidFrame VERSION 10.0)
+project (SolidFrame VERSION 11.0)
 
 message("SolidFrame version: ${PROJECT_VERSION} - ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 #-----------------------------------------------------------------
@@ -125,6 +125,10 @@ set(SOLID_VERSION_MINOR ${PROJECT_VERSION_MINOR})
 set(SOLID_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 
 set(SYSTEM_BASIC_LIBRARIES "")
+
+
+option(SOLID_FRAME_AIO_REACTOR_USE_SPINLOCK "Use SpinLock on AIO Reactor" ON)
+option(SOLID_MPRPC_USE_SHARED_PTR_MESSAGE "Use std::shared_ptr with mprpc::Message" OFF)
 
 #-----------------------------------------------------------------
 # Per OS configuration

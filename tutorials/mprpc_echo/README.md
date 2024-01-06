@@ -125,7 +125,7 @@ AioSchedulerT           scheduler;
 frame::Manager          manager;
 frame::mprpc::ServiceT  ipcservice(manager);
 
-CallPool<void()>        cwp{WorkPoolConfiguration(1)};
+CallPool<void()>        cwp{ThreadPoolConfiguration(1)};
 frame::aio::Resolver    resolver(cwp);
 
 ErrorConditionT         err;
@@ -179,8 +179,8 @@ namespace ipc_echo_client{
 template <class M>
 void complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<M>&              _rsent_msg_ptr,
-    std::shared_ptr<M>&              _rrecv_msg_ptr,
+    frame::mprpc::MessagePointerT<M>&              _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     if (_rerror) {
@@ -325,8 +325,8 @@ namespace ipc_echo_server{
 template <class M>
 void complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<M>&              _rsent_msg_ptr,
-    std::shared_ptr<M>&              _rrecv_msg_ptr,
+    frame::mprpc::MessagePointerT<M>&              _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_check(not _rerror);

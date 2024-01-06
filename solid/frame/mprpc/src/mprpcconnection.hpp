@@ -33,7 +33,6 @@ namespace aio {
 namespace openssl {
 class Context;
 } // namespace openssl
-
 } // namespace aio
 
 namespace mprpc {
@@ -139,7 +138,7 @@ public:
 
     void relayId(const UniqueId& _relay_id);
 
-    MessagePointerT fetchRequest(Message const& _rmsg) const;
+    MessagePointerT<> fetchRequest(Message const& _rmsg) const;
 
     ConnectionPoolId const& poolId() const;
     const std::string&      poolName() const;
@@ -167,23 +166,6 @@ public:
 
         msg_writer_.forEveryMessagesNewerToOlder(fnc);
     }
-#if 0
-    template <class Fnc>
-    void forEveryMessagesNewerToOlder(
-        Fnc const& _f)
-    {
-        auto visit_fnc = [this, &_f](
-            MessageBundle&   _rmsgbundle,
-            MessageId const& _rmsgid,
-            RelayData* /*_prelay_data*/
-        ) {
-            _f(this->poolId(), _rmsgbundle, _rmsgid);
-        };
-        MessageWriter::VisitFunctionT fnc(std::cref(visit_fnc));
-
-        msg_writer_.forEveryMessagesNewerToOlder(fnc);
-    }
-#endif
 
     static void onSendAllRaw(frame::aio::ReactorContext& _rctx, EventBase& _revent);
     static void onRecvSomeRaw(frame::aio::ReactorContext& _rctx, const size_t _sz, EventBase& _revent);
@@ -192,10 +174,6 @@ protected:
     static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
     static void onSend(frame::aio::ReactorContext& _rctx);
     static void onConnect(frame::aio::ReactorContext& _rctx);
-    // static void onTimerInactivity(frame::aio::ReactorContext& _rctx);
-    // static void onTimerKeepalive(frame::aio::ReactorContext& _rctx);
-    // static void onTimerWaitSecured(frame::aio::ReactorContext& _rctx);
-    // static void onTimerWaitActivation(frame::aio::ReactorContext& _rctx);
     static void onTimer(frame::aio::ReactorContext& _rctx);
     static void onSecureConnect(frame::aio::ReactorContext& _rctx);
     static void onSecureAccept(frame::aio::ReactorContext& _rctx);
@@ -240,10 +218,6 @@ private:
 
     void doSend(frame::aio::ReactorContext& _rctx);
 
-    //  SocketDevice const & device()const{
-    //      return sock.device();
-    //  }
-
     void doActivate(
         frame::aio::ReactorContext& _rctx,
         EventBase&                  _revent);
@@ -253,14 +227,11 @@ private:
     void doPrepare(frame::aio::ReactorContext& _rctx);
     void doUnprepare(frame::aio::ReactorContext& _rctx);
     void doResetTimer(frame::aio::ReactorContext& _rctx);
-    // void doResetTimerStart(frame::aio::ReactorContext& _rctx);
-    // void doResetTimerSend(frame::aio::ReactorContext& _rctx);
-    // void doResetTimerRecv(frame::aio::ReactorContext& _rctx);
 
     ResponseStateE doCheckResponseState(frame::aio::ReactorContext& _rctx, const MessageHeader& _rmsghdr, MessageId& _rrelay_id, const bool _erase_request);
 
     bool doCompleteMessage(
-        frame::aio::ReactorContext& _rctx, MessagePointerT& _rresponse_ptr, const size_t _response_type_id);
+        frame::aio::ReactorContext& _rctx, MessagePointerT<>& _rresponse_ptr, const size_t _response_type_id);
 
     void doCompleteMessage(
         solid::frame::aio::ReactorContext& _rctx,
@@ -336,24 +307,15 @@ private:
     void doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint8_t _request_buffer_ack_count, ErrorConditionT& _rerr);
 
 private:
-    bool postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, EventBase& _revent);
-    bool postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp);
-    bool postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp, EventBase& _revent);
-    bool hasValidSocket() const;
-    bool connect(frame::aio::ReactorContext& _rctx, const SocketAddressInet& _raddr);
-    bool recvSome(frame::aio::ReactorContext& _rctx, char* _buf, size_t _bufcp, size_t& _sz);
-    bool hasPendingSend() const;
-    bool sendAll(frame::aio::ReactorContext& _rctx, char* _buf, size_t _bufcp);
-    void prepareSocket(frame::aio::ReactorContext& _rctx);
-
-    uint32_t recvBufferCapacity() const
-    {
-        return recv_buf_cp_kb_ * 1024;
-    }
-    uint32_t sendBufferCapacity() const
-    {
-        return send_buf_cp_kb_ * 1024;
-    }
+    bool            postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, EventBase& _revent);
+    bool            postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp);
+    bool            postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp, EventBase& _revent);
+    bool            hasValidSocket() const;
+    bool            connect(frame::aio::ReactorContext& _rctx, const SocketAddressInet& _raddr);
+    bool            recvSome(frame::aio::ReactorContext& _rctx, char* _buf, size_t _bufcp, size_t& _sz);
+    bool            hasPendingSend() const;
+    bool            sendAll(frame::aio::ReactorContext& _rctx, char* _buf, size_t _bufcp);
+    void            prepareSocket(frame::aio::ReactorContext& _rctx);
     const NanoTime& minTimeout() const;
 
 private:
@@ -374,10 +336,9 @@ private:
     };
 
     using TimerT            = frame::aio::SteadyTimer;
-    using SendBufferVectorT = std::vector<SendBufferPointerT>;
     using FlagsT            = solid::Flags<FlagsE>;
     using RequestIdVectorT  = MessageWriter::RequestIdVectorT;
-    using RecvBufferVectorT = std::vector<RecvBufferPointerT>;
+    using RecvBufferVectorT = std::vector<SharedBuffer>;
 
     struct Receiver;
     friend struct Receiver;
@@ -390,17 +351,14 @@ private:
     const std::string& rpool_name_;
     TimerT             timer_;
     FlagsT             flags_;
-    size_t             recv_buf_off_;
     size_t             cons_buf_off_;
     uint32_t           recv_keepalive_count_;
     uint16_t           recv_buf_count_;
-    RecvBufferPointerT recv_buf_;
+    SharedBuffer       recv_buf_;
     RecvBufferVectorT  recv_buf_vec_;
-    SendBufferPointerT send_buf_;
+    SharedBuffer       send_buf_;
     uint8_t            send_relay_free_count_;
     uint8_t            ackd_buf_count_;
-    uint8_t            recv_buf_cp_kb_; // kilobytes
-    uint8_t            send_buf_cp_kb_; // kilobytes
     MessageIdVectorT   pending_message_vec_;
     MessageReader      msg_reader_;
     MessageWriter      msg_writer_;
@@ -428,7 +386,7 @@ inline Any<>& Connection::any()
     return any_data_;
 }
 
-inline MessagePointerT Connection::fetchRequest(Message const& _rmsg) const
+inline MessagePointerT<> Connection::fetchRequest(Message const& _rmsg) const
 {
     return msg_writer_.fetchRequest(_rmsg.requestId());
 }

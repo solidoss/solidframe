@@ -769,7 +769,7 @@ void EngineCore::doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_
                 solid_log(logger, Verbose, "");
                 // the connection has received the SendCancel event for the message,
                 // we can now safely delete the message
-                solid_assert_log(!rmsg.pfront_->bufptr_, logger);
+                solid_assert_log(!rmsg.pfront_->buffer_, logger);
                 solid_assert_log(pnext == nullptr, logger);
 
                 if (rmsg.sender_con_id_.isValid()) {
@@ -817,7 +817,7 @@ void EngineCore::doPollDone(const UniqueId& _rrelay_con_uid, DoneFunctionT& _don
     RelayData* prd = rcon.pdone_relay_data_top_;
 
     while (prd != nullptr) {
-        _done_fnc(prd->bufptr_);
+        _done_fnc(prd->buffer_);
         RelayData* ptmprd = prd->pnext_;
         prd->clear();
         impl_->eraseRelayData(prd);
@@ -835,7 +835,7 @@ void EngineCore::doPollDone(const UniqueId& _rrelay_con_uid, DoneFunctionT& _don
         solid_assert_log(rmsg.receiver_con_id_.isInvalid(), logger);
 
         while ((prd = rmsg.pop()) != nullptr) {
-            _done_fnc(prd->bufptr_);
+            _done_fnc(prd->buffer_);
             prd->clear();
             impl_->eraseRelayData(prd);
         }
@@ -968,7 +968,7 @@ void EngineCore::doCancel(
             prd = rsndcon.pdone_relay_data_top_;
 
             while (prd != nullptr) {
-                _done_fnc(prd->bufptr_);
+                _done_fnc(prd->buffer_);
                 RelayData* ptmprd = prd->pnext_;
                 prd->clear();
                 impl_->eraseRelayData(prd);
@@ -1071,7 +1071,7 @@ void EngineCore::doCancel(
     }
 
     if (_prelay_data != nullptr) {
-        solid_assert_log(!_prelay_data->bufptr_, logger);
+        solid_assert_log(!_prelay_data->buffer_, logger);
         _prelay_data->clear();
         impl_->eraseRelayData(_prelay_data);
     }

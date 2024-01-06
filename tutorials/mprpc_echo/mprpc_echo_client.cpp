@@ -36,10 +36,10 @@ namespace rpc_echo_client {
 
 template <class M>
 void complete_message(
-    frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<M>&              _rsent_msg_ptr,
-    std::shared_ptr<M>&              _rrecv_msg_ptr,
-    ErrorConditionT const&           _rerror)
+    frame::mprpc::ConnectionContext&  _rctx,
+    frame::mprpc::MessagePointerT<M>& _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<M>& _rrecv_msg_ptr,
+    ErrorConditionT const&            _rerror)
 {
     if (_rerror) {
         cout << "Error sending message to " << _rctx.recipientName() << ". Error: " << _rerror.message() << endl;
@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
                 size_t offset = line.find(' ');
                 if (offset != string::npos) {
                     recipient = line.substr(0, offset);
-                    rpcservice.sendMessage(recipient.c_str(), make_shared<rpc_echo::Message>(line.substr(offset + 1)), {frame::mprpc::MessageFlagsE::AwaitResponse});
+                    rpcservice.sendMessage(recipient.c_str(), frame::mprpc::make_message<rpc_echo::Message>(line.substr(offset + 1)), {frame::mprpc::MessageFlagsE::AwaitResponse});
                 } else {
                     cout << "No recipient specified. E.g:" << endl
                          << "localhost:4444 Some text to send" << endl;

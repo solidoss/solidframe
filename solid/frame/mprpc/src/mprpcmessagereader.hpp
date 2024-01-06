@@ -48,10 +48,10 @@ public:
 
         virtual ~Receiver();
 
-        virtual void           receiveMessage(MessagePointerT&, const size_t /*_msg_type_id*/) = 0;
-        virtual void           receiveKeepAlive()                                              = 0;
-        virtual void           receiveAckCount(uint8_t _count)                                 = 0;
-        virtual void           receiveCancelRequest(const RequestId&)                          = 0;
+        virtual void           receiveMessage(MessagePointerT<>&, const size_t /*_msg_type_id*/) = 0;
+        virtual void           receiveKeepAlive()                                                = 0;
+        virtual void           receiveAckCount(uint8_t _count)                                   = 0;
+        virtual void           receiveCancelRequest(const RequestId&)                            = 0;
         virtual bool           receiveRelayStart(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror);
         virtual bool           receiveRelayBody(const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror);
         virtual bool           receiveRelayResponse(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror);
@@ -112,7 +112,7 @@ private:
             RelayResponse,
         };
 
-        MessagePointerT        message_ptr_;
+        MessagePointerT<>      message_ptr_;
         Deserializer::PointerT deserializer_ptr_;
         MessageHeader          message_header_;
         size_t                 packet_count_;

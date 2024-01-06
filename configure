@@ -76,6 +76,9 @@ print_usage(){
     echo "7) create a debug Ninja build for C++17" 
     echo "./configure -b debug -e ../external -f debug -g Ninja -P \"-DCMAKE_CXX_STANDARD=17\""
     echo
+    echo "8) create release build with using std::shared_ptr for solid::frame::mprpc::Message"
+    echo "./configure -f release_sp -e ../external/ -g Ninja -P \"-DSOLID_MPRPC_USE_SHARED_PTR_MESSAGE=on\""
+    echo
     exit
 }
 

@@ -147,6 +147,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
+using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
@@ -190,7 +192,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 }
 
-void client_receive_message(frame::mprpc::ConnectionContext& _rctx, std::shared_ptr<Message>& _rmsgptr)
+void client_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePointerT& _rmsgptr)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 
@@ -217,7 +219,7 @@ void client_receive_message(frame::mprpc::ConnectionContext& _rctx, std::shared_
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
+    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -232,7 +234,7 @@ void client_complete_message(
     }
 }
 
-void server_receive_message(frame::mprpc::ConnectionContext& _rctx, std::shared_ptr<Message>& _rmsgptr)
+void server_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePointerT& _rmsgptr)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " message id on sender " << _rmsgptr->senderRequestId());
     if (!_rmsgptr->check()) {
@@ -249,7 +251,7 @@ void server_receive_message(frame::mprpc::ConnectionContext& _rctx, std::shared_
     ++crtreadidx;
     solid_dbg(generic_logger, Info, crtreadidx);
     if (crtwriteidx < writecount) {
-        frame::mprpc::MessagePointerT msgptr(std::make_shared<Message>(crtwriteidx));
+        MessagePointerT msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
         ++crtwriteidx;
         pmprpcclient->sendMessage(
             "localhost", msgptr,
@@ -259,7 +261,7 @@ void server_receive_message(frame::mprpc::ConnectionContext& _rctx, std::shared_
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
+    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -386,7 +388,7 @@ int test_keepalive_fail(int argc, char* argv[])
         writecount = 1;
 
         {
-            frame::mprpc::MessagePointerT msgptr(std::make_shared<Message>(crtwriteidx));
+            MessagePointerT msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
             ++crtwriteidx;
             mprpcclient.sendMessage(
                 "localhost", msgptr,

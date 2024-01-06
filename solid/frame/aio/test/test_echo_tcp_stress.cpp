@@ -450,7 +450,7 @@ protected:
 
 int test_echo_tcp_stress(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {"solid::frame::aio.*:EWX", "\\*:VEWX", "solid::workpool:EWXS"});
+    solid::log_start(std::cerr, {"solid::frame::aio.*:EWX", "\\*:VEWX", "solid::ThreadPool:EWXS"});
 
     size_t connection_count = 1;
 

@@ -39,6 +39,7 @@ std::ostream& operator<<(std::ostream& _ros, const RelayDataFlagsT& _flags)
     return _ros;
 }
 
+#if false
 /*virtual*/ BufferBase::~BufferBase()
 {
 }
@@ -66,16 +67,17 @@ RecvBufferPointerT make_recv_buffer(const size_t _cp)
         return std::make_shared<Buffer<0>>(_cp);
     }
 }
+#endif
 
 namespace {
-RecvBufferPointerT default_allocate_recv_buffer(const uint32_t _cp)
+SharedBuffer default_allocate_recv_buffer(const uint32_t _cp)
 {
-    return make_recv_buffer(_cp);
+    return BufferManager::make(_cp);
 }
 
-SendBufferPointerT default_allocate_send_buffer(const uint32_t _cp)
+SharedBuffer default_allocate_send_buffer(const uint32_t _cp)
 {
-    return SendBufferPointerT(new char[_cp]);
+    return make_shared_buffer(_cp);
 }
 
 // void empty_reset_serializer_limits(ConnectionContext &, serialization::binary::Limits&){}
@@ -416,24 +418,14 @@ void Configuration::createListenerDevice(SocketDevice& _rsd) const
 }
 
 //-----------------------------------------------------------------------------
-RecvBufferPointerT Configuration::allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) const
+SharedBuffer Configuration::allocateRecvBuffer() const
 {
-    if (_rbuffer_capacity_kb == 0) {
-        _rbuffer_capacity_kb = connection_recv_buffer_start_capacity_kb;
-    } else if (_rbuffer_capacity_kb > connection_recv_buffer_max_capacity_kb) {
-        _rbuffer_capacity_kb = connection_recv_buffer_max_capacity_kb;
-    }
-    return connection_recv_buffer_allocate_fnc(_rbuffer_capacity_kb * 1024);
+    return connection_recv_buffer_allocate_fnc(connection_recv_buffer_start_capacity_kb * 1024);
 }
 //-----------------------------------------------------------------------------
-SendBufferPointerT Configuration::allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const
+SharedBuffer Configuration::allocateSendBuffer() const
 {
-    if (_rbuffer_capacity_kb == 0) {
-        _rbuffer_capacity_kb = connection_send_buffer_start_capacity_kb;
-    } else if (_rbuffer_capacity_kb > connection_send_buffer_max_capacity_kb) {
-        _rbuffer_capacity_kb = connection_send_buffer_max_capacity_kb;
-    }
-    return connection_send_buffer_allocate_fnc(_rbuffer_capacity_kb * 1024);
+    return connection_send_buffer_allocate_fnc(connection_send_buffer_start_capacity_kb * 1024);
 }
 //-----------------------------------------------------------------------------
 } // namespace mprpc

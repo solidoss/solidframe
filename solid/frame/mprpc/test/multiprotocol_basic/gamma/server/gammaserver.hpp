@@ -10,10 +10,10 @@ namespace gamma_server {
 
 template <class M>
 void complete_message(
-    solid::frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<M>&                     _rsent_msg_ptr,
-    std::shared_ptr<M>&                     _rrecv_msg_ptr,
-    solid::ErrorConditionT const&           _rerror)
+    solid::frame::mprpc::ConnectionContext&  _rctx,
+    solid::frame::mprpc::MessagePointerT<M>& _rsent_msg_ptr,
+    solid::frame::mprpc::MessagePointerT<M>& _rrecv_msg_ptr,
+    solid::ErrorConditionT const&            _rerror)
 {
     solid_dbg(solid::generic_logger, Info, "");
     solid_check(!_rerror);

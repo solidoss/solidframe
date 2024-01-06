@@ -85,7 +85,7 @@ int test_threadpool_thread_context(int argc, char* argv[])
                 };
 
                 pwp = nullptr;
-                solid_log(logger, Verbose, "completed all pushes - wating for workpool to terminate: " << chrono::duration<double>(chrono::steady_clock::now() - start).count());
+                solid_log(logger, Verbose, "completed all pushes - wating for ThreadPool to terminate: " << chrono::duration<double>(chrono::steady_clock::now() - start).count());
             }
             solid_log(logger, Verbose, "after done: " << chrono::duration<double>(chrono::steady_clock::now() - start).count());
             solid_check(v == val, "val = " << val << " v = " << v);
@@ -96,9 +96,9 @@ int test_threadpool_thread_context(int argc, char* argv[])
     auto fut = async(launch::async, lambda);
     if (fut.wait_for(chrono::seconds(wait_seconds)) != future_status::ready) {
         if (pwp != nullptr) {
-            solid_log(logger, Statistic, "Workpool statistic: " << pwp.load()->statistic());
+            solid_log(logger, Statistic, "ThreadPool statistic: " << pwp.load()->statistic());
         }
-        solid_log(logger, Error, "Waited too much. Wait some more for workpool internal checkpoints to fire...");
+        solid_log(logger, Error, "Waited too much. Wait some more for ThreadPool internal checkpoints to fire...");
         this_thread::sleep_for(chrono::seconds(100));
 
         solid_throw(" Test is taking too long - waited " << wait_seconds << " secs");

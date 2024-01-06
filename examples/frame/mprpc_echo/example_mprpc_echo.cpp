@@ -90,7 +90,7 @@ mutex              mtx;
 condition_variable cnd;
 Params             params;
 
-void broadcast_message(frame::mprpc::Service& _rsvc, std::shared_ptr<frame::mprpc::Message>& _rmsgptr);
+void broadcast_message(frame::mprpc::Service& _rsvc, frame::mprpc::MessagePointerT<>& _rmsgptr);
 } // namespace
 
 struct FirstMessage : frame::mprpc::Message {
@@ -191,7 +191,7 @@ int main(int argc, char* argv[])
                         return 1;
                     }
                 } else {
-                    std::shared_ptr<frame::mprpc::Message> msgptr(new FirstMessage(s));
+                    frame::mprpc::MessagePointerT<> msgptr = frame::mprpc::make_message<FirstMessage>(s);
                     broadcast_message(ipcsvc, msgptr);
                 }
             } while (s.size());
@@ -212,10 +212,10 @@ bool restart(
         [&](auto& _rmap) {
             _rmap.template registerMessage<FirstMessage>(1, "FirstMessage",
                 [](
-                    frame::mprpc::ConnectionContext& _rctx,
-                    std::shared_ptr<FirstMessage>&   _rsend_msg,
-                    std::shared_ptr<FirstMessage>&   _rrecv_msg,
-                    ErrorConditionT const&           _rerr) {
+                    frame::mprpc::ConnectionContext&             _rctx,
+                    frame::mprpc::MessagePointerT<FirstMessage>& _rsend_msg,
+                    frame::mprpc::MessagePointerT<FirstMessage>& _rrecv_msg,
+                    ErrorConditionT const&                       _rerr) {
                     if (_rrecv_msg) {
                         solid_log(generic_logger, Info, _rctx.recipientId() << " Message received: is_on_sender: " << _rrecv_msg->isOnSender() << ", is_on_peer: " << _rrecv_msg->isOnPeer() << ", is_back_on_sender: " << _rrecv_msg->isBackOnSender());
                         if (_rrecv_msg->isOnPeer()) {
@@ -341,7 +341,7 @@ std::string loadFile(const char* _path)
 
 namespace {
 
-void broadcast_message(frame::mprpc::Service& _rsvc, std::shared_ptr<frame::mprpc::Message>& _rmsgptr)
+void broadcast_message(frame::mprpc::Service& _rsvc, frame::mprpc::MessagePointerT<frame::mprpc::Message>& _rmsgptr)
 {
 
     solid_log(generic_logger, Verbose, "done stop===============================");

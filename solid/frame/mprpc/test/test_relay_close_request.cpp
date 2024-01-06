@@ -217,6 +217,9 @@ struct Message : frame::mprpc::Message {
     }
 };
 
+using RegisterPointerT = solid::frame::mprpc::MessagePointerT<Register>;
+using MessagePointerT  = solid::frame::mprpc::MessagePointerT<Message>;
+
 //-----------------------------------------------------------------------------
 //      PeerA
 //-----------------------------------------------------------------------------
@@ -236,7 +239,7 @@ void peera_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 
 void peera_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
+    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
@@ -257,7 +260,7 @@ void peerb_connection_start(frame::mprpc::ConnectionContext& _rctx)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 
-    auto            msgptr = std::make_shared<Register>("b");
+    auto            msgptr = frame::mprpc::make_message<Register>("b");
     ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mprpc::MessageFlagsE::AwaitResponse});
     solid_check(!err, "failed send Register");
 }
@@ -269,7 +272,7 @@ void peerb_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 
 void peerb_complete_register(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Register>& _rsent_msg_ptr, std::shared_ptr<Register>& _rrecv_msg_ptr,
+    RegisterPointerT& _rsent_msg_ptr, RegisterPointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -287,7 +290,7 @@ void peerb_complete_register(
 
 void peerb_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
+    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr) {
@@ -408,8 +411,8 @@ int test_relay_close_request(int argc, char* argv[])
             };
             auto con_register = [&relay_engine](
                                     frame::mprpc::ConnectionContext& _rctx,
-                                    std::shared_ptr<Register>&       _rsent_msg_ptr,
-                                    std::shared_ptr<Register>&       _rrecv_msg_ptr,
+                                    RegisterPointerT&                _rsent_msg_ptr,
+                                    RegisterPointerT&                _rrecv_msg_ptr,
                                     ErrorConditionT const&           _rerror) {
                 solid_check(!_rerror);
                 if (_rrecv_msg_ptr) {
@@ -560,7 +563,7 @@ int test_relay_close_request(int argc, char* argv[])
             auto& back_msg_id = msgid_vec.back();
             mtx.unlock();
             mprpcpeera.sendMessage(
-                "localhost/b", std::make_shared<Message>(crtwriteidx++),
+                "localhost/b", frame::mprpc::make_message<Message>(crtwriteidx++),
                 back_msg_id.first,
                 back_msg_id.second,
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);

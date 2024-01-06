@@ -136,6 +136,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
+using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
@@ -152,7 +154,7 @@ void client_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
+    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " " << _rerror.message());
@@ -267,7 +269,7 @@ int test_clientserver_oneshot(int argc, char* argv[])
         frame::mprpc::RecipientId recipient_id;
         frame::mprpc::MessageId   message_id;
         {
-            frame::mprpc::MessagePointerT msgptr(std::make_shared<Message>(0));
+            MessagePointerT msgptr(frame::mprpc::make_message<Message>(0));
 
             err = mprpcclient.sendMessage(
                 "localhost", msgptr,

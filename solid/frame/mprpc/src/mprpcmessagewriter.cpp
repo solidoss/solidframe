@@ -244,13 +244,13 @@ void MessageWriter::cancel(
     }
 }
 //-----------------------------------------------------------------------------
-MessagePointerT MessageWriter::fetchRequest(MessageId const& _rmsguid) const
+MessagePointerT<> MessageWriter::fetchRequest(MessageId const& _rmsguid) const
 {
     if (_rmsguid.isValid() && _rmsguid.index < message_vec_.size() && _rmsguid.unique == message_vec_[_rmsguid.index].unique_) {
         const MessageStub& rmsgstub = message_vec_[_rmsguid.index];
-        return MessagePointerT(rmsgstub.msgbundle_.message_ptr);
+        return MessagePointerT<>(rmsgstub.msgbundle_.message_ptr);
     }
-    return MessagePointerT();
+    return MessagePointerT<>();
 }
 //-----------------------------------------------------------------------------
 ResponseStateE MessageWriter::checkResponseState(MessageId const& _rmsguid, MessageId& _rrelay_id, const bool _erase_request)

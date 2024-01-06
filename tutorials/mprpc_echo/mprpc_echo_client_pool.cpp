@@ -38,10 +38,10 @@ namespace rpc_echo_client {
 
 template <class M>
 void complete_message(
-    frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<M>&              _rsent_msg_ptr,
-    std::shared_ptr<M>&              _rrecv_msg_ptr,
-    ErrorConditionT const&           _rerror)
+    frame::mprpc::ConnectionContext&  _rctx,
+    frame::mprpc::MessagePointerT<M>& _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<M>& _rrecv_msg_ptr,
+    ErrorConditionT const&            _rerror)
 {
     if (_rerror) {
         cout << "Error sending message to " << _rctx.recipientName() << ". Error: " << _rerror.message() << endl;
@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
             if (line == "q" || line == "Q" || line == "quit") {
                 break;
             }
-            rpcservice.sendMessage(recipient_id, make_shared<rpc_echo::Message>(std::move(line)), {frame::mprpc::MessageFlagsE::AwaitResponse});
+            rpcservice.sendMessage(recipient_id, frame::mprpc::make_message<rpc_echo::Message>(std::move(line)), {frame::mprpc::MessageFlagsE::AwaitResponse});
         }
     }
     return 0;

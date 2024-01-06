@@ -13,6 +13,7 @@
 #include "solid/system/exception.hpp"
 #include "solid/system/statistic.hpp"
 
+#include "solid/utility/cast.hpp"
 #include "solid/utility/event.hpp"
 #include "solid/utility/function.hpp"
 
@@ -228,20 +229,20 @@ public:
     template <class T>
     ErrorConditionT sendMessage(
         const std::string_view&   _recipient_url,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         const MessageFlagsT&      _flags = 0);
 
     template <class T>
     ErrorConditionT sendMessage(
         const std::string_view&   _recipient_url,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         RecipientId&              _rrecipient_id,
         const MessageFlagsT&      _flags = 0);
 
     template <class T>
     ErrorConditionT sendMessage(
         const std::string_view&   _recipient_url,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         RecipientId&              _rrecipient_id,
         MessageId&                _rmsg_id,
         const MessageFlagsT&      _flags = 0);
@@ -251,13 +252,13 @@ public:
     template <class T>
     ErrorConditionT sendMessage(
         RecipientId const&        _rrecipient_id,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         const MessageFlagsT&      _flags = 0);
 
     template <class T>
     ErrorConditionT sendMessage(
         RecipientId const&        _rrecipient_id,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         MessageId&                _rmsg_id,
         const MessageFlagsT&      _flags = 0);
 
@@ -266,14 +267,14 @@ public:
     template <class T, class Fnc>
     ErrorConditionT sendRequest(
         const std::string_view&   _recipient_url,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         Fnc                       _complete_fnc,
         const MessageFlagsT&      _flags = 0);
 
     template <class T, class Fnc>
     ErrorConditionT sendRequest(
         const std::string_view&   _recipient_url,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         Fnc                       _complete_fnc,
         RecipientId&              _rrecipient_id,
         const MessageFlagsT&      _flags = 0);
@@ -281,7 +282,7 @@ public:
     template <class T, class Fnc>
     ErrorConditionT sendRequest(
         const std::string_view&   _recipient_url,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         Fnc                       _complete_fnc,
         RecipientId&              _rrecipient_id,
         MessageId&                _rmsguid,
@@ -292,13 +293,13 @@ public:
     template <class T>
     ErrorConditionT sendResponse(
         RecipientId const&        _rrecipient_id,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         const MessageFlagsT&      _flags = 0);
 
     template <class T>
     ErrorConditionT sendResponse(
         RecipientId const&        _rrecipient_id,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         MessageId&                _rmsg_id,
         const MessageFlagsT&      _flags = 0);
 
@@ -307,14 +308,14 @@ public:
     template <class T, class Fnc>
     ErrorConditionT sendRequest(
         RecipientId const&        _rrecipient_id,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         Fnc                       _complete_fnc,
         const MessageFlagsT&      _flags = 0);
 
     template <class T, class Fnc>
     ErrorConditionT sendRequest(
         RecipientId const&        _rrecipient_id,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         Fnc                       _complete_fnc,
         MessageId&                _rmsguid,
         const MessageFlagsT&      _flags = 0);
@@ -323,14 +324,14 @@ public:
     template <class T, class Fnc>
     ErrorConditionT sendMessage(
         const std::string_view&   _recipient_url,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         Fnc                       _complete_fnc,
         const MessageFlagsT&      _flags);
 
     template <class T, class Fnc>
     ErrorConditionT sendMessage(
         const std::string_view&   _recipient_url,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         Fnc                       _complete_fnc,
         RecipientId&              _rrecipient_id,
         const MessageFlagsT&      _flags);
@@ -338,7 +339,7 @@ public:
     template <class T, class Fnc>
     ErrorConditionT sendMessage(
         const std::string_view&   _recipient_url,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         Fnc                       _complete_fnc,
         RecipientId&              _rrecipient_id,
         MessageId&                _rmsguid,
@@ -348,14 +349,14 @@ public:
     template <class T, class Fnc>
     ErrorConditionT sendMessage(
         RecipientId const&        _rrecipient_id,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         Fnc                       _complete_fnc,
         const MessageFlagsT&      _flags);
 
     template <class T, class Fnc>
     ErrorConditionT sendMessage(
         RecipientId const&        _rrecipient_id,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         Fnc                       _complete_fnc,
         MessageId&                _rmsguid,
         const MessageFlagsT&      _flags);
@@ -365,19 +366,19 @@ public:
     template <class T>
     ErrorConditionT sendResponse(
         ConnectionContext&        _rctx,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         const MessageFlagsT&      _flags = 0);
 
     template <class T>
     ErrorConditionT sendMessage(
         ConnectionContext&        _rctx,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         const MessageFlagsT&      _flags = 0);
 
     template <class T, class Fnc>
     ErrorConditionT sendMessage(
         ConnectionContext&        _rctx,
-        std::shared_ptr<T> const& _rmsgptr,
+        MessagePointerT<T> const& _rmsgptr,
         Fnc                       _complete_fnc,
         const MessageFlagsT&      _flags);
 
@@ -570,7 +571,7 @@ private:
     ErrorConditionT doSendMessage(
         const char*               _recipient_url,
         const RecipientId&        _rrecipient_id_in,
-        MessagePointerT&          _rmsgptr,
+        MessagePointerT<>&        _rmsgptr,
         MessageCompleteFunctionT& _rcomplete_fnc,
         RecipientId*              _precipient_id_out,
         MessageId*                _pmsg_id_out,
@@ -578,7 +579,7 @@ private:
 
     ErrorConditionT doSendMessage(
         ConnectionContext&        _rctx,
-        MessagePointerT&          _rmsgptr,
+        MessagePointerT<>&        _rmsgptr,
         MessageCompleteFunctionT& _rcomplete_fnc,
         RecipientId*              _precipient_id_out,
         MessageId*                _pmsg_id_out,
@@ -608,10 +609,10 @@ using ServiceT = frame::ServiceShell<Service>;
 template <class T>
 ErrorConditionT Service::sendMessage(
     const std::string_view&   _recipient_url,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(_recipient_url.data(), recipient_id, msgptr, complete_handler, nullptr, nullptr, _flags);
@@ -620,11 +621,11 @@ ErrorConditionT Service::sendMessage(
 template <class T>
 ErrorConditionT Service::sendMessage(
     const std::string_view&   _recipient_url,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     RecipientId&              _rrecipient_id,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(_recipient_url.data(), recipient_id, msgptr, complete_handler, &_rrecipient_id, nullptr, _flags);
@@ -633,12 +634,12 @@ ErrorConditionT Service::sendMessage(
 template <class T>
 ErrorConditionT Service::sendMessage(
     const std::string_view&   _recipient_url,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     RecipientId&              _rrecipient_id,
     MessageId&                _rmsg_id,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(_recipient_url.data(), recipient_id, msgptr, complete_handler, &_rrecipient_id, &_rmsg_id, _flags);
@@ -647,10 +648,10 @@ ErrorConditionT Service::sendMessage(
 template <class T>
 ErrorConditionT Service::sendMessage(
     RecipientId const&        _rrecipient_id,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, nullptr, _flags);
 }
@@ -658,11 +659,11 @@ ErrorConditionT Service::sendMessage(
 template <class T>
 ErrorConditionT Service::sendMessage(
     RecipientId const&        _rrecipient_id,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     MessageId&                _rmsg_id,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsg_id, _flags);
 }
@@ -671,7 +672,7 @@ ErrorConditionT Service::sendMessage(
 template <class T, class Fnc>
 ErrorConditionT Service::sendRequest(
     const std::string_view&   _recipient_url,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     Fnc                       _complete_fnc,
     const MessageFlagsT&      _flags)
 {
@@ -679,7 +680,7 @@ ErrorConditionT Service::sendRequest(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
@@ -690,7 +691,7 @@ ErrorConditionT Service::sendRequest(
 template <class T, class Fnc>
 ErrorConditionT Service::sendRequest(
     const std::string_view&   _recipient_url,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     Fnc                       _complete_fnc,
     RecipientId&              _rrecipient_id,
     const MessageFlagsT&      _flags)
@@ -699,7 +700,7 @@ ErrorConditionT Service::sendRequest(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
@@ -710,7 +711,7 @@ ErrorConditionT Service::sendRequest(
 template <class T, class Fnc>
 ErrorConditionT Service::sendRequest(
     const std::string_view&   _recipient_url,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     Fnc                       _complete_fnc,
     RecipientId&              _rrecipient_id,
     MessageId&                _rmsguid,
@@ -720,7 +721,7 @@ ErrorConditionT Service::sendRequest(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
@@ -732,7 +733,7 @@ ErrorConditionT Service::sendRequest(
 template <class T, class Fnc>
 ErrorConditionT Service::sendRequest(
     RecipientId const&        _rrecipient_id,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     Fnc                       _complete_fnc,
     const MessageFlagsT&      _flags)
 {
@@ -740,7 +741,7 @@ ErrorConditionT Service::sendRequest(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
 
@@ -750,7 +751,7 @@ ErrorConditionT Service::sendRequest(
 template <class T, class Fnc>
 ErrorConditionT Service::sendRequest(
     RecipientId const&        _rrecipient_id,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     Fnc                       _complete_fnc,
     MessageId&                _rmsguid,
     const MessageFlagsT&      _flags)
@@ -759,7 +760,7 @@ ErrorConditionT Service::sendRequest(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
 
@@ -772,10 +773,10 @@ ErrorConditionT Service::sendRequest(
 template <class T>
 ErrorConditionT Service::sendResponse(
     RecipientId const&        _rrecipient_id,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | MessageFlagsE::Response);
 }
@@ -785,11 +786,11 @@ ErrorConditionT Service::sendResponse(
 template <class T>
 ErrorConditionT Service::sendResponse(
     RecipientId const&        _rrecipient_id,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     MessageId&                _rmsg_id,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsg_id, _flags | MessageFlagsE::Response);
 }
@@ -799,7 +800,7 @@ ErrorConditionT Service::sendResponse(
 template <class T, class Fnc>
 ErrorConditionT Service::sendMessage(
     const std::string_view&   _recipient_url,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     Fnc                       _complete_fnc,
     const MessageFlagsT&      _flags)
 {
@@ -807,7 +808,7 @@ ErrorConditionT Service::sendMessage(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
@@ -818,7 +819,7 @@ ErrorConditionT Service::sendMessage(
 template <class T, class Fnc>
 ErrorConditionT Service::sendMessage(
     const std::string_view&   _recipient_url,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     Fnc                       _complete_fnc,
     RecipientId&              _rrecipient_id,
     const MessageFlagsT&      _flags)
@@ -827,7 +828,7 @@ ErrorConditionT Service::sendMessage(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
@@ -838,7 +839,7 @@ ErrorConditionT Service::sendMessage(
 template <class T, class Fnc>
 ErrorConditionT Service::sendMessage(
     const std::string_view&   _recipient_url,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     Fnc                       _complete_fnc,
     RecipientId&              _rrecipient_id,
     MessageId&                _rmsguid,
@@ -848,7 +849,7 @@ ErrorConditionT Service::sendMessage(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
@@ -860,7 +861,7 @@ ErrorConditionT Service::sendMessage(
 template <class T, class Fnc>
 ErrorConditionT Service::sendMessage(
     RecipientId const&        _rrecipient_id,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     Fnc                       _complete_fnc,
     const MessageFlagsT&      _flags)
 {
@@ -868,7 +869,7 @@ ErrorConditionT Service::sendMessage(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
 
@@ -878,7 +879,7 @@ ErrorConditionT Service::sendMessage(
 template <class T, class Fnc>
 ErrorConditionT Service::sendMessage(
     RecipientId const&        _rrecipient_id,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     Fnc                       _complete_fnc,
     MessageId&                _rmsguid,
     const MessageFlagsT&      _flags)
@@ -887,7 +888,7 @@ ErrorConditionT Service::sendMessage(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
 
@@ -899,10 +900,10 @@ ErrorConditionT Service::sendMessage(
 template <class T>
 ErrorConditionT Service::sendResponse(
     ConnectionContext&        _rctx,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(_rctx, msgptr, complete_handler, nullptr, nullptr, _flags | MessageFlagsE::Response);
 }
@@ -910,10 +911,10 @@ ErrorConditionT Service::sendResponse(
 template <class T>
 ErrorConditionT Service::sendMessage(
     ConnectionContext&        _rctx,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     const MessageFlagsT&      _flags)
 {
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     MessageCompleteFunctionT complete_handler;
     return doSendMessage(_rctx, msgptr, complete_handler, nullptr, nullptr, _flags);
 }
@@ -921,7 +922,7 @@ ErrorConditionT Service::sendMessage(
 template <class T, class Fnc>
 ErrorConditionT Service::sendMessage(
     ConnectionContext&        _rctx,
-    std::shared_ptr<T> const& _rmsgptr,
+    MessagePointerT<T> const& _rmsgptr,
     Fnc                       _complete_fnc,
     const MessageFlagsT&      _flags)
 {
@@ -929,7 +930,7 @@ ErrorConditionT Service::sendMessage(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type>;
 
-    MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+    auto                     msgptr(solid::static_pointer_cast<Message>(_rmsgptr));
     CompleteHandlerT         fnc(std::forward<Fnc>(_complete_fnc));
     MessageCompleteFunctionT complete_handler(std::move(fnc));
 
@@ -941,7 +942,7 @@ ErrorConditionT Service::forceCloseConnectionPool(
     RecipientId const& _rrecipient_id,
     F                  _f)
 {
-    auto fnc = [_f](ConnectionContext& _rctx, MessagePointerT& /*_rmsgptr*/, MessagePointerT&, ErrorConditionT const& /*_err*/) {
+    auto fnc = [_f](ConnectionContext& _rctx, MessagePointerT<>& /*_rmsgptr*/, MessagePointerT<>&, ErrorConditionT const& /*_err*/) {
         _f(_rctx);
     };
 
@@ -954,7 +955,7 @@ ErrorConditionT Service::delayCloseConnectionPool(
     RecipientId const& _rrecipient_id,
     F                  _f)
 {
-    auto fnc = [_f](ConnectionContext& _rctx, MessagePointerT& /*_rmsgptr*/, MessagePointerT&, ErrorConditionT const& /*_err*/) {
+    auto fnc = [_f](ConnectionContext& _rctx, MessagePointerT<>& /*_rmsgptr*/, MessagePointerT<>&, ErrorConditionT const& /*_err*/) {
         _f(_rctx);
     };
 

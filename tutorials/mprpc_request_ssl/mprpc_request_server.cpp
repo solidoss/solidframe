@@ -99,10 +99,10 @@ namespace rpc_request_server {
 
 template <class M>
 void complete_message(
-    frame::mprpc::ConnectionContext& _rctx,
-    std::shared_ptr<M>&              _rsent_msg_ptr,
-    std::shared_ptr<M>&              _rrecv_msg_ptr,
-    ErrorConditionT const&           _rerror);
+    frame::mprpc::ConnectionContext&  _rctx,
+    frame::mprpc::MessagePointerT<M>& _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<M>& _rrecv_msg_ptr,
+    ErrorConditionT const&            _rerror);
 
 using namespace rpc_request;
 
@@ -248,10 +248,10 @@ struct AccountDataKeyVisitor : RequestKeyConstVisitor {
 
 template <>
 void complete_message<rpc_request::Request>(
-    frame::mprpc::ConnectionContext&       _rctx,
-    std::shared_ptr<rpc_request::Request>& _rsent_msg_ptr,
-    std::shared_ptr<rpc_request::Request>& _rrecv_msg_ptr,
-    ErrorConditionT const&                 _rerror)
+    frame::mprpc::ConnectionContext&                     _rctx,
+    frame::mprpc::MessagePointerT<rpc_request::Request>& _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<rpc_request::Request>& _rrecv_msg_ptr,
+    ErrorConditionT const&                               _rerror)
 {
     solid_check(!_rerror);
     solid_check(_rrecv_msg_ptr);
@@ -263,7 +263,7 @@ void complete_message<rpc_request::Request>(
     }
     cout << endl;
 
-    auto msgptr = std::make_shared<rpc_request::Response>(*_rrecv_msg_ptr);
+    auto msgptr = frame::mprpc::make_message<rpc_request::Response>(*_rrecv_msg_ptr);
 
     if (_rrecv_msg_ptr->key) {
         PrepareKeyVisitor prep;
@@ -286,10 +286,10 @@ void complete_message<rpc_request::Request>(
 
 template <>
 void complete_message<rpc_request::Response>(
-    frame::mprpc::ConnectionContext&        _rctx,
-    std::shared_ptr<rpc_request::Response>& _rsent_msg_ptr,
-    std::shared_ptr<rpc_request::Response>& _rrecv_msg_ptr,
-    ErrorConditionT const&                  _rerror)
+    frame::mprpc::ConnectionContext&                      _rctx,
+    frame::mprpc::MessagePointerT<rpc_request::Response>& _rsent_msg_ptr,
+    frame::mprpc::MessagePointerT<rpc_request::Response>& _rrecv_msg_ptr,
+    ErrorConditionT const&                                _rerror)
 {
     solid_check(!_rerror);
     solid_check(!_rrecv_msg_ptr);
