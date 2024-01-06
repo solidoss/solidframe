@@ -33,7 +33,6 @@ namespace aio {
 namespace openssl {
 class Context;
 } // namespace openssl
-
 } // namespace aio
 
 namespace mprpc {
@@ -167,23 +166,6 @@ public:
 
         msg_writer_.forEveryMessagesNewerToOlder(fnc);
     }
-#if 0
-    template <class Fnc>
-    void forEveryMessagesNewerToOlder(
-        Fnc const& _f)
-    {
-        auto visit_fnc = [this, &_f](
-            MessageBundle&   _rmsgbundle,
-            MessageId const& _rmsgid,
-            RelayData* /*_prelay_data*/
-        ) {
-            _f(this->poolId(), _rmsgbundle, _rmsgid);
-        };
-        MessageWriter::VisitFunctionT fnc(std::cref(visit_fnc));
-
-        msg_writer_.forEveryMessagesNewerToOlder(fnc);
-    }
-#endif
 
     static void onSendAllRaw(frame::aio::ReactorContext& _rctx, EventBase& _revent);
     static void onRecvSomeRaw(frame::aio::ReactorContext& _rctx, const size_t _sz, EventBase& _revent);
@@ -192,10 +174,6 @@ protected:
     static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
     static void onSend(frame::aio::ReactorContext& _rctx);
     static void onConnect(frame::aio::ReactorContext& _rctx);
-    // static void onTimerInactivity(frame::aio::ReactorContext& _rctx);
-    // static void onTimerKeepalive(frame::aio::ReactorContext& _rctx);
-    // static void onTimerWaitSecured(frame::aio::ReactorContext& _rctx);
-    // static void onTimerWaitActivation(frame::aio::ReactorContext& _rctx);
     static void onTimer(frame::aio::ReactorContext& _rctx);
     static void onSecureConnect(frame::aio::ReactorContext& _rctx);
     static void onSecureAccept(frame::aio::ReactorContext& _rctx);
@@ -240,10 +218,6 @@ private:
 
     void doSend(frame::aio::ReactorContext& _rctx);
 
-    //  SocketDevice const & device()const{
-    //      return sock.device();
-    //  }
-
     void doActivate(
         frame::aio::ReactorContext& _rctx,
         EventBase&                  _revent);
@@ -253,9 +227,6 @@ private:
     void doPrepare(frame::aio::ReactorContext& _rctx);
     void doUnprepare(frame::aio::ReactorContext& _rctx);
     void doResetTimer(frame::aio::ReactorContext& _rctx);
-    // void doResetTimerStart(frame::aio::ReactorContext& _rctx);
-    // void doResetTimerSend(frame::aio::ReactorContext& _rctx);
-    // void doResetTimerRecv(frame::aio::ReactorContext& _rctx);
 
     ResponseStateE doCheckResponseState(frame::aio::ReactorContext& _rctx, const MessageHeader& _rmsghdr, MessageId& _rrelay_id, const bool _erase_request);
 
@@ -365,7 +336,6 @@ private:
     };
 
     using TimerT            = frame::aio::SteadyTimer;
-    using SendBufferVectorT = std::vector<SharedBuffer>;
     using FlagsT            = solid::Flags<FlagsE>;
     using RequestIdVectorT  = MessageWriter::RequestIdVectorT;
     using RecvBufferVectorT = std::vector<SharedBuffer>;
@@ -381,35 +351,34 @@ private:
     const std::string& rpool_name_;
     TimerT             timer_;
     FlagsT             flags_;
-    // size_t             recv_buf_off_;
-    size_t            cons_buf_off_;
-    uint32_t          recv_keepalive_count_;
-    uint16_t          recv_buf_count_;
-    SharedBuffer      recv_buf_;
-    RecvBufferVectorT recv_buf_vec_;
-    SharedBuffer      send_buf_;
-    uint8_t           send_relay_free_count_;
-    uint8_t           ackd_buf_count_;
-    MessageIdVectorT  pending_message_vec_;
-    MessageReader     msg_reader_;
-    MessageWriter     msg_writer_;
-    RequestIdVectorT  cancel_remote_msg_vec_;
-    ErrorConditionT   error_;
-    ErrorCodeT        sys_error_;
-    bool              poll_pool_more_ = true;
-    bool              send_posted_    = false;
-    Any<>             any_data_;
-    char              socket_emplace_buf_[static_cast<size_t>(ConnectionValues::SocketEmplacementSize)];
-    SocketStubPtrT    sock_ptr_;
-    UniqueId          relay_id_;
-    uint32_t          peer_version_major_ = InvalidIndex();
-    uint32_t          peer_version_minor_ = InvalidIndex();
-    NanoTime          timeout_recv_       = NanoTime::max(); // client and server
-    NanoTime          timeout_send_soft_  = NanoTime::max(); // client and server
-    NanoTime          timeout_send_hard_  = NanoTime::max(); // client and server
-    NanoTime          timeout_secure_     = NanoTime::max(); // server
-    NanoTime          timeout_active_     = NanoTime::max(); // server
-    NanoTime          timeout_keepalive_  = NanoTime::max(); // client
+    size_t             cons_buf_off_;
+    uint32_t           recv_keepalive_count_;
+    uint16_t           recv_buf_count_;
+    SharedBuffer       recv_buf_;
+    RecvBufferVectorT  recv_buf_vec_;
+    SharedBuffer       send_buf_;
+    uint8_t            send_relay_free_count_;
+    uint8_t            ackd_buf_count_;
+    MessageIdVectorT   pending_message_vec_;
+    MessageReader      msg_reader_;
+    MessageWriter      msg_writer_;
+    RequestIdVectorT   cancel_remote_msg_vec_;
+    ErrorConditionT    error_;
+    ErrorCodeT         sys_error_;
+    bool               poll_pool_more_ = true;
+    bool               send_posted_    = false;
+    Any<>              any_data_;
+    char               socket_emplace_buf_[static_cast<size_t>(ConnectionValues::SocketEmplacementSize)];
+    SocketStubPtrT     sock_ptr_;
+    UniqueId           relay_id_;
+    uint32_t           peer_version_major_ = InvalidIndex();
+    uint32_t           peer_version_minor_ = InvalidIndex();
+    NanoTime           timeout_recv_       = NanoTime::max(); // client and server
+    NanoTime           timeout_send_soft_  = NanoTime::max(); // client and server
+    NanoTime           timeout_send_hard_  = NanoTime::max(); // client and server
+    NanoTime           timeout_secure_     = NanoTime::max(); // server
+    NanoTime           timeout_active_     = NanoTime::max(); // server
+    NanoTime           timeout_keepalive_  = NanoTime::max(); // client
 };
 
 inline Any<>& Connection::any()

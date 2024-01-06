@@ -7,8 +7,8 @@
 #include <vector>
 
 #include "solid/system/exception.hpp"
-#include "solid/utility/common.hpp"
-#include "solid/utility/sharedbuffer.hpp"
+#include "solid/system/log.hpp"
+#include "solid/utility/collapse.hpp"
 #include "solid/utility/threadpool.hpp"
 using namespace std;
 using namespace solid;
@@ -35,40 +35,27 @@ void set_current_thread_affinity()
 }
 #endif
 
-struct Message {
-    atomic_uint32_t collapse_id_{0};
-    atomic_uint32_t collapse_count_{0};
-    string          text_;
+struct Message : IntrusiveThreadSafeBase {
+    string text_;
 
-    bool collapse(uint32_t _collapse_id)
+    Message()
     {
-        ++collapse_count_;
-        return collapse_id_.compare_exchange_strong(_collapse_id, _collapse_id + 1);
+        solid_log(generic_logger, Info, "Create Message " << this << " count " << this->useCount());
+    }
+    ~Message()
+    {
+        solid_log(generic_logger, Info, "Destroy Message " << this << " count " << this->useCount());
     }
 };
 
-template <class SP>
-SP collapse(SP& _rsp, const ssize_t _expected_count = 1)
-{
-    typename SP::weak_type wp{_rsp};
-    const auto             collapse_id = _rsp->collapse_id_.load();
-    // here we have a race condition
-    _rsp.reset();
-    // this_thread::yield();
-    if (wp.use_count() == _expected_count) {
-        auto sp = wp.lock();
-        if (sp && sp->collapse(collapse_id)) {
-            return sp;
-        }
-    }
-    return SP{};
-}
 using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
-using SharedMessageT = std::shared_ptr<Message>;
+using SharedMessageT = IntrusivePtr<Message>;
 } // namespace
 
 int test_collapse(int argc, char* argv[])
 {
+    solid::log_start(std::cerr, {".*:VIEWXS"});
+
     char   choice       = 'B'; // B = basic, p = speed shared_ptr, b = speed SharedBuffer
     size_t repeat_count = 100;
     size_t thread_count = 10;
@@ -91,7 +78,7 @@ int test_collapse(int argc, char* argv[])
             std::shared_future<void>     ready_future(ready_promise.get_future());
             std::promise<SharedMessageT> p;
             auto                         f  = p.get_future();
-            auto                         sm = std::make_shared<Message>();
+            auto                         sm = make_intrusive<Message>();
             vector<jthread>              thr_vec;
             {
                 auto lambda = [&p, ready_future](SharedMessageT _sm) mutable {
@@ -103,7 +90,7 @@ int test_collapse(int argc, char* argv[])
                     }
                 };
 
-                auto sm_lock{sm};
+                auto sm_lock{std::move(sm)};
                 for (size_t i = 0; i < thread_count; ++i) {
                     thr_vec.emplace_back(lambda, sm);
                 }
@@ -115,9 +102,9 @@ int test_collapse(int argc, char* argv[])
                 }
             }
             {
-                auto lsm = f.get();
-                cout << "done " << lsm.get() << ' ' << sm.get() << " collapse count = " << sm->collapse_count_.load() << endl;
-                solid_check(lsm.get() == sm.get());
+                sm = f.get();
+                cout << "done " << sm.get() << " use count = " << sm.useCount() << endl;
+                solid_check(sm.useCount() == 1);
             }
         }
     } else if (choice == 'p') {
@@ -126,26 +113,30 @@ int test_collapse(int argc, char* argv[])
                 set_current_thread_affinity();
             },
             [](const size_t) {}};
-        auto       sm         = std::make_shared<Message>();
+        auto       sm         = make_intrusive<Message>();
         const auto start_time = chrono::high_resolution_clock::now();
         for (size_t i = 0; i < repeat_count; ++i) {
             std::promise<SharedMessageT> p;
             auto                         f = p.get_future();
-            auto                         sm_lock{sm};
+            auto                         sm_lock{std::move(sm)};
             wp.pushAll(
                 [&p, sm_lock]() mutable {
                     if (auto tmp_sm = collapse(sm_lock)) {
+                        solid_dbg(generic_logger, Info, "" << this_thread::get_id() << " sm_lock.count = " << sm_lock.useCount());
                         p.set_value(std::move(tmp_sm));
                     }
                 });
+
             if (auto tmp_sm = collapse(sm_lock)) {
+                solid_dbg(generic_logger, Info, "" << this_thread::get_id() << " sm_lock.count = " << sm_lock.useCount());
                 p.set_value(std::move(tmp_sm));
             }
             {
                 if (f.wait_for(chrono::seconds(1)) != future_status::ready) {
                     solid_throw("Waited for too long");
                 }
-                auto lsm = f.get();
+                sm = f.get();
+                solid_check(sm.useCount() == 1);
             }
         }
         const auto stop_time = chrono::high_resolution_clock::now();
@@ -164,18 +155,19 @@ int test_collapse(int argc, char* argv[])
             auto                       sm_lock{std::move(sm)};
             wp.pushAll(
                 [&p, sm_lock]() mutable {
-                    if (sm_lock.collapse()) {
-                        p.set_value(std::move(sm_lock));
+                    if (auto tmp_sm = collapse(sm_lock)) {
+                        p.set_value(std::move(tmp_sm));
                     }
                 });
-            if (sm_lock.collapse()) {
-                p.set_value(std::move(sm_lock));
+            if (auto tmp_sm = collapse(sm_lock)) {
+                p.set_value(std::move(tmp_sm));
             }
             {
                 if (f.wait_for(chrono::seconds(1)) != future_status::ready) {
                     solid_throw("Waited for too long");
                 }
                 sm = f.get();
+                solid_check(sm.useCount() == 1);
             }
         }
         const auto stop_time = chrono::high_resolution_clock::now();

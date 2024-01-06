@@ -28,6 +28,8 @@ set(Headers
     threadpool.hpp
     cacheable.hpp
     cast.hpp
+    intrusiveptr.hpp
+    collapse.hpp
 )
 
 set(Inlines
