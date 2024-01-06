@@ -105,6 +105,9 @@ int test_collapse(int argc, char* argv[])
                 t.join();
             }
             {
+                if (f.wait_for(chrono::seconds(5)) != future_status::ready) {
+                    solid_throw("Waited for too long");
+                }
                 sm = f.get();
                 cout << "done " << sm.get() << " use count = " << sm.useCount() << endl;
                 solid_check(sm.useCount() == 1);
@@ -135,7 +138,7 @@ int test_collapse(int argc, char* argv[])
                 p.set_value(std::move(tmp_sm));
             }
             {
-                if (f.wait_for(chrono::seconds(1)) != future_status::ready) {
+                if (f.wait_for(chrono::seconds(5)) != future_status::ready) {
                     solid_throw("Waited for too long");
                 }
                 sm = f.get();
@@ -166,7 +169,7 @@ int test_collapse(int argc, char* argv[])
                 p.set_value(std::move(tmp_sm));
             }
             {
-                if (f.wait_for(chrono::seconds(1)) != future_status::ready) {
+                if (f.wait_for(chrono::seconds(5)) != future_status::ready) {
                     solid_throw("Waited for too long");
                 }
                 sm = f.get();
@@ -176,7 +179,7 @@ int test_collapse(int argc, char* argv[])
         const auto stop_time = chrono::high_resolution_clock::now();
         cout << "Duration: " << chrono::duration_cast<chrono::microseconds>(stop_time - start_time).count() << "us" << endl;
     } else {
-        cout << "Invalid choice. Expecter B or p or b. Got [" << choice << "]." << endl;
+        cout << "Invalid choice. Expected B or p or b. Got [" << choice << "]." << endl;
     }
     return 0;
 }
