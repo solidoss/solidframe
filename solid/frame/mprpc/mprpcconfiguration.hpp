@@ -191,12 +191,12 @@ struct RelayData {
     }
 
 private:
-    friend class Connection;
+    friend class RelayConnection;
     RelayData(
-        SharedBuffer& _buffer,
-        const char*   _pdata,
-        size_t        _data_size,
-        const bool    _is_last)
+        const SharedBuffer& _buffer,
+        const char*         _pdata,
+        size_t              _data_size,
+        const bool          _is_last)
         : buffer_(_buffer)
         , pdata_(_pdata)
         , data_size_(_data_size)
@@ -225,7 +225,7 @@ protected:
     virtual bool notifyConnection(Manager& _rm, const ActorIdT& _rrelay_uid, const RelayEngineNotification _what);
 
 private:
-    friend class Connection;
+    friend class RelayConnection;
     friend class Configuration;
     friend class Service;
 
@@ -519,6 +519,11 @@ public:
             return _rsch.startActor(std::move(_actor_ptr), _rsvc, std::move(_event), _rerror);
         };
         init();
+    }
+
+    bool isEnabledRelayEngine() const
+    {
+        return relay_enabled /*  && prelayengine != &RelayEngine::instance() */;
     }
 
     Configuration& reset(Configuration&& _ucfg)

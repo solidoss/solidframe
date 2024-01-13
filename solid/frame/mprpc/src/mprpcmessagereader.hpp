@@ -30,15 +30,18 @@ public:
         ReaderConfiguration const& rconfig_;
         Protocol const&            rproto_;
         ConnectionContext&         rconctx_;
+        const bool                 is_relay_enabled_ = false;
 
         Receiver(
             ReaderConfiguration const& _rconfig,
             Protocol const&            _rproto,
-            ConnectionContext&         _rconctx)
+            ConnectionContext&         _rconctx,
+            const bool                 _is_relay_enabled = false)
             : request_buffer_ack_count_(0)
             , rconfig_(_rconfig)
             , rproto_(_rproto)
             , rconctx_(_rconctx)
+            , is_relay_enabled_(_is_relay_enabled)
         {
         }
 
@@ -56,12 +59,16 @@ public:
         virtual bool           receiveRelayBody(const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror);
         virtual bool           receiveRelayResponse(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror);
         virtual ResponseStateE checkResponseState(const MessageHeader& _rmsghdr, MessageId& _rrelay_id, const bool _erase_request = true) const;
-        virtual bool           isRelayDisabled() const;
         virtual void           pushCancelRequest(const RequestId&);
         virtual void           cancelRelayed(const MessageId&);
+
+        bool isRelayEnabled() const
+        {
+            return is_relay_enabled_;
+        }
     };
 
-    MessageReader();
+    MessageReader() = default;
 
     ~MessageReader();
 
@@ -136,9 +143,8 @@ private:
     };
     using MessageVectorT = std::deque<MessageStub>;
 
+    StateE                 state_ = StateE::ReadPacketHead;
     MessageVectorT         message_vec_;
-    uint64_t               current_message_type_id_;
-    StateE                 state_;
     Deserializer::PointerT des_top_;
 };
 

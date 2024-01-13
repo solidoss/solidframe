@@ -513,6 +513,7 @@ private:
 private:
     friend class Listener;
     friend class Connection;
+    friend class ClientConnection;
     friend class openssl::SocketStub;
     friend struct ConnectionContext;
 

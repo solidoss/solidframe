@@ -1096,6 +1096,7 @@ Serializer::PointerT MessageWriter::createSerializer(Sender& _sender)
 }
 /*virtual*/ void MessageWriter::Sender::completeRelayed(RelayData* /*_relay_data*/, MessageId const& /*_rmsgid*/)
 {
+    solid_assert(false);
 }
 /*virtual*/ bool MessageWriter::Sender::cancelMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/)
 {
@@ -1103,6 +1104,7 @@ Serializer::PointerT MessageWriter::createSerializer(Sender& _sender)
 }
 /*virtual*/ void MessageWriter::Sender::cancelRelayed(RelayData* /*_relay_data*/, MessageId const& /*_rmsgid*/)
 {
+    solid_assert(false);
 }
 //-----------------------------------------------------------------------------
 

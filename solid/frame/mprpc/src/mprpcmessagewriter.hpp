@@ -26,6 +26,7 @@ namespace solid {
 namespace frame {
 namespace mprpc {
 
+// TODO: replace this with SharedBuffer
 struct WriteBuffer {
     WriteBuffer(char* _data = nullptr, size_t _size = -1)
         : data_(_data)
@@ -82,11 +83,6 @@ public:
     };
 
     using VisitFunctionT = solid_function_t(void(
-        MessageBundle& /*_rmsgbundle*/,
-        MessageId const& /*_rmsgid*/
-        ));
-
-    using CompleteFunctionT = solid_function_t(ErrorConditionT(
         MessageBundle& /*_rmsgbundle*/,
         MessageId const& /*_rmsgid*/
         ));

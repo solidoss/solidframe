@@ -23,12 +23,6 @@ namespace {
 const LoggerT logger("solid::frame::mprpc::reader");
 }
 //-----------------------------------------------------------------------------
-MessageReader::MessageReader()
-    : current_message_type_id_(InvalidIndex())
-    , state_(StateE::ReadPacketHead)
-{
-}
-//-----------------------------------------------------------------------------
 MessageReader::~MessageReader()
 {
 }
@@ -87,7 +81,7 @@ size_t MessageReader::read(
         if (!_rerror) {
             pbufpos += packet_header.size();
         } else {
-            solid_log(logger, Error, "consume packet: " << _rerror.message());
+            solid_log(logger, Error, "relay_enabled: " << _receiver.isRelayEnabled() << " consume packet error: " << _rerror.message());
             break;
         }
         state_ = StateE::ReadPacketHead;
@@ -255,7 +249,7 @@ const char* MessageReader::doConsumeMessage(
                                 solid_log(logger, Info, "Relayed response");
                                 rmsgstub.state_ = MessageStub::StateE::RelayResponse;
                                 cache(rmsgstub.deserializer_ptr_);
-                            } else if (_receiver.isRelayDisabled() || rmsgstub.message_header_.relay_.empty()) {
+                            } else if (!_receiver.isRelayEnabled() || rmsgstub.message_header_.relay_.empty()) {
                                 solid_log(logger, Info, "Read Body");
                                 rmsgstub.state_ = MessageStub::StateE::ReadBodyStart;
                                 rmsgstub.deserializer_ptr_->clear();
@@ -515,23 +509,22 @@ Deserializer::PointerT MessageReader::createDeserializer(Receiver& _receiver)
 
 /*virtual*/ bool MessageReader::Receiver::receiveRelayStart(MessageHeader& /*_rmsghdr*/, const char* /*_pbeg*/, size_t /*_sz*/, MessageId& /*_rrelay_id*/, const bool /*_is_last*/, ErrorConditionT& /*_rerror*/)
 {
+    solid_assert(false);
     return false;
 }
 /*virtual*/ bool MessageReader::Receiver::receiveRelayBody(const char* /*_pbeg*/, size_t /*_sz*/, const MessageId& /*_rrelay_id*/, const bool /*_is_last*/, ErrorConditionT& /*_rerror*/)
 {
+    solid_assert(false);
     return false;
 }
 /*virtual*/ bool MessageReader::Receiver::receiveRelayResponse(MessageHeader& /*_rmsghdr*/, const char* /*_pbeg*/, size_t /*_sz*/, const MessageId& /*_rrelay_id*/, const bool /*_is_last*/, ErrorConditionT& /*_rerror*/)
 {
+    solid_assert(false);
     return false;
 }
 /*virtual*/ ResponseStateE MessageReader::Receiver::checkResponseState(const MessageHeader& /*_rmsghdr*/, MessageId& /*_rrelay_id*/, const bool /*_erase_request*/) const
 {
     return ResponseStateE::None;
-}
-/*virtual*/ bool MessageReader::Receiver::isRelayDisabled() const
-{
-    return true;
 }
 /*virtual*/ void MessageReader::Receiver::pushCancelRequest(const RequestId&) {}
 /*virtual*/ void MessageReader::Receiver::cancelRelayed(const MessageId&) {}
