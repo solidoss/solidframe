@@ -529,7 +529,7 @@ void Connection::doContinueStopping(
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-struct ConnectionSender : MessageWriter::Sender {
+struct ConnectionSender : MessageWriterSender {
     Connection&                 rcon_;
     frame::aio::ReactorContext& rctx_;
     ErrorConditionT             err_;
@@ -541,7 +541,7 @@ struct ConnectionSender : MessageWriter::Sender {
         Protocol const&             _rproto,
         ConnectionContext&          _rconctx,
         const ErrorConditionT&      _rerr = ErrorConditionT{})
-        : MessageWriter::Sender(_rconfig, _rproto, _rconctx)
+        : MessageWriterSender(_rconfig, _rproto, _rconctx)
         , rcon_(_rcon)
         , rctx_(_rctx)
         , err_(_rerr)
@@ -1284,7 +1284,7 @@ void Connection::doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-struct ConnectionReceiver : MessageReader::Receiver {
+struct ConnectionReceiver : MessageReaderReceiver {
     Connection&                 rcon_;
     frame::aio::ReactorContext& rctx_;
 
@@ -1295,7 +1295,7 @@ struct ConnectionReceiver : MessageReader::Receiver {
         Protocol const&             _rproto,
         ConnectionContext&          _rconctx,
         const bool                  _is_relay_enabled = false)
-        : MessageReader::Receiver(_rconfig, _rproto, _rconctx, _is_relay_enabled)
+        : MessageReaderReceiver(_rconfig, _rproto, _rconctx, _is_relay_enabled)
         , rcon_(_rcon)
         , rctx_(_rctx)
     {

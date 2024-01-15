@@ -21,85 +21,48 @@ namespace mprpc {
 
 struct ReaderConfiguration;
 
-struct PacketHeader;
+class PacketHeader;
+
+struct MessageReaderReceiver {
+    uint8_t                    request_buffer_ack_count_;
+    ReaderConfiguration const& rconfig_;
+    Protocol const&            rproto_;
+    ConnectionContext&         rconctx_;
+    const bool                 is_relay_enabled_ = false;
+
+    MessageReaderReceiver(
+        ReaderConfiguration const& _rconfig,
+        Protocol const&            _rproto,
+        ConnectionContext&         _rconctx,
+        const bool                 _is_relay_enabled = false)
+        : request_buffer_ack_count_(0)
+        , rconfig_(_rconfig)
+        , rproto_(_rproto)
+        , rconctx_(_rconctx)
+        , is_relay_enabled_(_is_relay_enabled)
+    {
+    }
+
+    inline ReaderConfiguration const& configuration() const noexcept { return rconfig_; }
+    inline Protocol const&            protocol() const noexcept { return rproto_; }
+    inline ConnectionContext&         context() const noexcept { return rconctx_; }
+    inline bool                       isRelayEnabled() const noexcept { return is_relay_enabled_; }
+
+    virtual ~MessageReaderReceiver();
+
+    virtual void           receiveMessage(MessagePointerT<>&, const size_t /*_msg_type_id*/) = 0;
+    virtual void           receiveKeepAlive()                                                = 0;
+    virtual void           receiveAckCount(uint8_t _count)                                   = 0;
+    virtual void           receiveCancelRequest(const RequestId&)                            = 0;
+    virtual bool           receiveRelayStart(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror);
+    virtual bool           receiveRelayBody(const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror);
+    virtual bool           receiveRelayResponse(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror);
+    virtual ResponseStateE checkResponseState(const MessageHeader& _rmsghdr, MessageId& _rrelay_id, const bool _erase_request = true) const;
+    virtual void           pushCancelRequest(const RequestId&);
+    virtual void           cancelRelayed(const MessageId&);
+};
 
 class MessageReader {
-public:
-    struct Receiver {
-        uint8_t                    request_buffer_ack_count_;
-        ReaderConfiguration const& rconfig_;
-        Protocol const&            rproto_;
-        ConnectionContext&         rconctx_;
-        const bool                 is_relay_enabled_ = false;
-
-        Receiver(
-            ReaderConfiguration const& _rconfig,
-            Protocol const&            _rproto,
-            ConnectionContext&         _rconctx,
-            const bool                 _is_relay_enabled = false)
-            : request_buffer_ack_count_(0)
-            , rconfig_(_rconfig)
-            , rproto_(_rproto)
-            , rconctx_(_rconctx)
-            , is_relay_enabled_(_is_relay_enabled)
-        {
-        }
-
-        ReaderConfiguration const& configuration() const { return rconfig_; }
-        Protocol const&            protocol() const { return rproto_; }
-        ConnectionContext&         context() const { return rconctx_; }
-
-        virtual ~Receiver();
-
-        virtual void           receiveMessage(MessagePointerT<>&, const size_t /*_msg_type_id*/) = 0;
-        virtual void           receiveKeepAlive()                                                = 0;
-        virtual void           receiveAckCount(uint8_t _count)                                   = 0;
-        virtual void           receiveCancelRequest(const RequestId&)                            = 0;
-        virtual bool           receiveRelayStart(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror);
-        virtual bool           receiveRelayBody(const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror);
-        virtual bool           receiveRelayResponse(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror);
-        virtual ResponseStateE checkResponseState(const MessageHeader& _rmsghdr, MessageId& _rrelay_id, const bool _erase_request = true) const;
-        virtual void           pushCancelRequest(const RequestId&);
-        virtual void           cancelRelayed(const MessageId&);
-
-        bool isRelayEnabled() const
-        {
-            return is_relay_enabled_;
-        }
-    };
-
-    MessageReader() = default;
-
-    ~MessageReader();
-
-    size_t read(
-        const char*      _pbuf,
-        size_t           _bufsz,
-        Receiver&        _receiver,
-        ErrorConditionT& _rerror);
-
-    void prepare(ReaderConfiguration const& _rconfig);
-    void unprepare();
-
-private:
-    void doConsumePacket(
-        const char*         _pbuf,
-        PacketHeader const& _packet_header,
-        Receiver&           _receiver,
-        ErrorConditionT&    _rerror);
-
-    const char* doConsumeMessage(
-        const char*       _pbufpos,
-        const char* const _pbufend,
-        const uint32_t    _msgidx,
-        const uint8_t     _cmd,
-        Receiver&         _receiver,
-        ErrorConditionT&  _rerror);
-
-    void                   cache(Deserializer::PointerT& _des);
-    Deserializer::PointerT createDeserializer(Receiver& _receiver);
-
-private:
     enum struct StateE {
         ReadPacketHead = 1,
         ReadPacketBody,
@@ -122,15 +85,11 @@ private:
         MessagePointerT<>      message_ptr_;
         Deserializer::PointerT deserializer_ptr_;
         MessageHeader          message_header_;
-        size_t                 packet_count_;
+        size_t                 packet_count_ = 0;
         MessageId              relay_id;
-        StateE                 state_;
+        StateE                 state_ = StateE::NotStarted;
 
-        MessageStub()
-            : packet_count_(0)
-            , state_(StateE::NotStarted)
-        {
-        }
+        MessageStub() = default;
 
         void clear()
         {
@@ -146,6 +105,104 @@ private:
     StateE                 state_ = StateE::ReadPacketHead;
     MessageVectorT         message_vec_;
     Deserializer::PointerT des_top_;
+
+public:
+    MessageReader() = default;
+
+    ~MessageReader();
+
+    size_t read(
+        const char*            _pbuf,
+        size_t                 _bufsz,
+        MessageReaderReceiver& _receiver,
+        ErrorConditionT&       _rerror);
+
+    void prepare(ReaderConfiguration const& _rconfig);
+    void unprepare();
+
+private:
+    void doConsumePacket(
+        const char*            _pbuf,
+        PacketHeader const&    _packet_header,
+        MessageReaderReceiver& _receiver,
+        ErrorConditionT&       _rerror);
+
+    void doConsumePacketLoop(
+        const char*            _pbufpos,
+        const char* const      _pbufend,
+        MessageReaderReceiver& _receiver,
+        ErrorConditionT&       _rerror);
+
+    const char* doConsumeMessage(
+        const char*            _pbufpos,
+        const char* const      _pbufend,
+        const uint32_t         _msgidx,
+        const uint8_t          _cmd,
+        MessageReaderReceiver& _receiver,
+        ErrorConditionT&       _rerror);
+
+    bool doConsumeMessageHeader(
+        const char*&           _pbufpos,
+        const char* const      _pbufend,
+        const uint32_t         _msgidx,
+        uint16_t&              _message_size,
+        MessageReaderReceiver& _receiver,
+        ErrorConditionT&       _rerror);
+    bool doConsumeMessageBody(
+        const char*&           _pbufpos,
+        const char* const      _pbufend,
+        const uint32_t         _msgidx,
+        const uint8_t          _cmd,
+        uint16_t&              _message_size,
+        MessageReaderReceiver& _receiver,
+        ErrorConditionT&       _rerror);
+
+    bool doConsumeMessageIgnoreBody(
+        const char*&           _pbufpos,
+        const char* const      _pbufend,
+        const uint32_t         _msgidx,
+        const uint8_t          _cmd,
+        uint16_t&              _message_size,
+        MessageReaderReceiver& _receiver);
+
+    void doConsumeMessageRelayStart(
+        const char*&           _pbufpos,
+        const char* const      _pbufend,
+        const uint32_t         _msgidx,
+        const uint8_t          _cmd,
+        uint16_t&              _message_size,
+        MessageReaderReceiver& _receiver,
+        ErrorConditionT&       _rerror);
+
+    void doConsumeMessageRelayBody(
+        const char*&           _pbufpos,
+        const char* const      _pbufend,
+        const uint32_t         _msgidx,
+        const uint8_t          _cmd,
+        uint16_t&              _message_size,
+        MessageReaderReceiver& _receiver,
+        ErrorConditionT&       _rerror);
+
+    void doConsumeMessageRelayFail(
+        const char*&           _pbufpos,
+        const char* const      _pbufend,
+        const uint32_t         _msgidx,
+        const uint8_t          _cmd,
+        uint16_t&              _message_size,
+        MessageReaderReceiver& _receiver,
+        ErrorConditionT&       _rerror);
+
+    void doConsumeMessageRelayResponse(
+        const char*&           _pbufpos,
+        const char* const      _pbufend,
+        const uint32_t         _msgidx,
+        const uint8_t          _cmd,
+        uint16_t&              _message_size,
+        MessageReaderReceiver& _receiver,
+        ErrorConditionT&       _rerror);
+
+    void                   cache(Deserializer::PointerT& _des);
+    Deserializer::PointerT createDeserializer(MessageReaderReceiver& _receiver);
 };
 
 } // namespace mprpc

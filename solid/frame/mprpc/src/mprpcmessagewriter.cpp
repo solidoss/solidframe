@@ -22,6 +22,12 @@ namespace mprpc {
 namespace {
 const LoggerT logger("solid::frame::mprpc::writer");
 }
+
+struct MessageWriter::PacketOptions {
+    bool force_no_compress = false;
+    bool request_accept    = false;
+};
+
 //-----------------------------------------------------------------------------
 MessageWriter::MessageWriter()
     : current_message_type_id_(InvalidIndex())
@@ -235,9 +241,9 @@ void MessageWriter::doUnprepareMessageStub(const size_t _msgidx)
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::cancel(
-    MessageId const& _rmsguid,
-    Sender&          _rsender,
-    const bool       _force)
+    MessageId const&     _rmsguid,
+    MessageWriterSender& _rsender,
+    const bool           _force)
 {
     if (_rmsguid.isValid() && _rmsguid.index < message_vec_.size() && _rmsguid.unique == message_vec_[_rmsguid.index].unique_) {
         doCancel(_rmsguid.index, _rsender, _force);
@@ -286,7 +292,7 @@ ResponseStateE MessageWriter::checkResponseState(MessageId const& _rmsguid, Mess
     return ResponseStateE::None;
 }
 //-----------------------------------------------------------------------------
-void MessageWriter::cancelOldest(Sender& _rsender)
+void MessageWriter::cancelOldest(MessageWriterSender& _rsender)
 {
     if (!order_inner_list_.empty()) {
         doCancel(order_inner_list_.frontIndex(), _rsender, true);
@@ -294,9 +300,9 @@ void MessageWriter::cancelOldest(Sender& _rsender)
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::doCancel(
-    const size_t _msgidx,
-    Sender&      _rsender,
-    const bool   _force)
+    const size_t         _msgidx,
+    MessageWriterSender& _rsender,
+    const bool           _force)
 {
 
     solid_log(logger, Verbose, this << " " << _msgidx);
@@ -399,12 +405,12 @@ void MessageWriter::doCancel(
 //
 
 ErrorConditionT MessageWriter::write(
-    WriteBuffer&       _rbuffer,
-    const WriteFlagsT& _flags,
-    uint8_t&           _rackd_buf_count,
-    RequestIdVectorT&  _cancel_remote_msg_vec,
-    uint8_t&           _rrelay_free_count,
-    Sender&            _rsender)
+    WriteBuffer&         _rbuffer,
+    const WriteFlagsT&   _flags,
+    uint8_t&             _rackd_buf_count,
+    RequestIdVectorT&    _cancel_remote_msg_vec,
+    uint8_t&             _rrelay_free_count,
+    MessageWriterSender& _rsender)
 {
 
     char*           pbufpos = _rbuffer.data();
@@ -413,11 +419,11 @@ ErrorConditionT MessageWriter::write(
     bool            more    = true;
     ErrorConditionT error;
 
-    while (more && freesz >= (PacketHeader::SizeOfE + _rsender.protocol().minimumFreePacketDataSize())) {
+    while (more && freesz >= (PacketHeader::size_of_header + _rsender.protocol().minimumFreePacketDataSize())) {
 
         PacketHeader  packet_header(PacketHeader::TypeE::Data, 0, 0);
         PacketOptions packet_options;
-        char*         pbufdata = pbufpos + PacketHeader::SizeOfE;
+        char*         pbufdata = pbufpos + PacketHeader::size_of_header;
         size_t        fillsz   = doWritePacketData(pbufdata, pbufend, packet_options, _rackd_buf_count, _cancel_remote_msg_vec, _rrelay_free_count, _rsender, error);
 
         if (fillsz != 0u) {
@@ -473,7 +479,7 @@ ErrorConditionT MessageWriter::write(
 // - be fast
 // - try to fill up the package
 // - be fair with all messages
-bool MessageWriter::doFindEligibleMessage(Sender& _rsender, const bool _can_send_relay, const size_t /*_size*/)
+bool MessageWriter::doFindEligibleMessage(MessageWriterSender& _rsender, const bool _can_send_relay, const size_t /*_size*/)
 {
     solid_log(logger, Verbose, "wq_back_index_ = " << write_queue_back_index_ << " wq_sync_index_ = " << write_queue_sync_index_ << " wq_async_count_ = " << write_queue_async_count_ << " wq_direct_count_ = " << write_queue_direct_count_ << " wq.size = " << write_inner_list_.size() << " _can_send_relay = " << _can_send_relay);
 
@@ -539,14 +545,14 @@ bool MessageWriter::doFindEligibleMessage(Sender& _rsender, const bool _can_send
 // - relayed: copyed onto the output buffer (no serialization)
 
 size_t MessageWriter::doWritePacketData(
-    char*             _pbufbeg,
-    char*             _pbufend,
-    PacketOptions&    _rpacket_options,
-    uint8_t&          _rackd_buf_count,
-    RequestIdVectorT& _cancel_remote_msg_vec,
-    uint8_t           _relay_free_count,
-    Sender&           _rsender,
-    ErrorConditionT&  _rerror)
+    char*                _pbufbeg,
+    char*                _pbufend,
+    PacketOptions&       _rpacket_options,
+    uint8_t&             _rackd_buf_count,
+    RequestIdVectorT&    _cancel_remote_msg_vec,
+    uint8_t              _relay_free_count,
+    MessageWriterSender& _rsender,
+    ErrorConditionT&     _rerror)
 {
     char* pbufpos = _pbufbeg;
 
@@ -649,7 +655,7 @@ char* MessageWriter::doWriteMessageHead(
     char*        _pbufend,
     const size_t _msgidx,
     PacketOptions& /*_rpacket_options*/,
-    Sender&                      _rsender,
+    MessageWriterSender&         _rsender,
     const PacketHeader::CommandE _cmd,
     ErrorConditionT&             _rerror)
 {
@@ -694,12 +700,12 @@ char* MessageWriter::doWriteMessageHead(
 }
 //-----------------------------------------------------------------------------
 char* MessageWriter::doWriteMessageBody(
-    char*            _pbufpos,
-    char*            _pbufend,
-    const size_t     _msgidx,
-    PacketOptions&   _rpacket_options,
-    Sender&          _rsender,
-    ErrorConditionT& _rerror)
+    char*                _pbufpos,
+    char*                _pbufend,
+    const size_t         _msgidx,
+    PacketOptions&       _rpacket_options,
+    MessageWriterSender& _rsender,
+    ErrorConditionT&     _rerror)
 {
     char* pcmdpos = nullptr;
 
@@ -759,7 +765,7 @@ char* MessageWriter::doWriteRelayedHead(
     char*        _pbufend,
     const size_t _msgidx,
     PacketOptions& /*_rpacket_options*/,
-    Sender&                      _rsender,
+    MessageWriterSender&         _rsender,
     const PacketHeader::CommandE _cmd,
     ErrorConditionT&             _rerror)
 {
@@ -806,7 +812,7 @@ char* MessageWriter::doWriteRelayedBody(
     char*        _pbufend,
     const size_t _msgidx,
     PacketOptions& /*_rpacket_options*/,
-    Sender& _rsender,
+    MessageWriterSender& _rsender,
     ErrorConditionT& /*_rerror*/)
 {
     char* pcmdpos = nullptr;
@@ -877,7 +883,7 @@ char* MessageWriter::doWriteMessageCancel(
     char*        _pbufend,
     const size_t _msgidx,
     PacketOptions& /*_rpacket_options*/,
-    Sender& _rsender,
+    MessageWriterSender& _rsender,
     ErrorConditionT& /*_rerror*/)
 {
 
@@ -904,7 +910,7 @@ char* MessageWriter::doWriteRelayedCancel(
     char*        _pbufend,
     const size_t _msgidx,
     PacketOptions& /*_rpacket_options*/,
-    Sender& _rsender,
+    MessageWriterSender& _rsender,
     ErrorConditionT& /*_rerror*/)
 {
     MessageStub& rmsgstub = message_vec_[_msgidx];
@@ -937,7 +943,7 @@ char* MessageWriter::doWriteRelayedCancelRequest(
     char*        _pbufend,
     const size_t _msgidx,
     PacketOptions& /*_rpacket_options*/,
-    Sender& _rsender,
+    MessageWriterSender& _rsender,
     ErrorConditionT& /*_rerror*/)
 {
 
@@ -960,9 +966,9 @@ char* MessageWriter::doWriteRelayedCancelRequest(
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::doTryCompleteMessageAfterSerialization(
-    const size_t     _msgidx,
-    Sender&          _rsender,
-    ErrorConditionT& _rerror)
+    const size_t         _msgidx,
+    MessageWriterSender& _rsender,
+    ErrorConditionT&     _rerror)
 {
 
     MessageStub& rmsgstub(message_vec_[_msgidx]);
@@ -1074,7 +1080,7 @@ void MessageWriter::cache(Serializer::PointerT& _ser)
 
 //-----------------------------------------------------------------------------
 
-Serializer::PointerT MessageWriter::createSerializer(Sender& _sender)
+Serializer::PointerT MessageWriter::createSerializer(MessageWriterSender& _sender)
 {
     if (serializer_stack_top_) {
         Serializer::PointerT ser{std::move(serializer_stack_top_)};
@@ -1087,22 +1093,22 @@ Serializer::PointerT MessageWriter::createSerializer(Sender& _sender)
 
 //-----------------------------------------------------------------------------
 
-/*virtual*/ MessageWriter::Sender::~Sender()
+/*virtual*/ MessageWriterSender::~MessageWriterSender()
 {
 }
-/*virtual*/ ErrorConditionT MessageWriter::Sender::completeMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/)
+/*virtual*/ ErrorConditionT MessageWriterSender::completeMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/)
 {
     return ErrorConditionT{};
 }
-/*virtual*/ void MessageWriter::Sender::completeRelayed(RelayData* /*_relay_data*/, MessageId const& /*_rmsgid*/)
+/*virtual*/ void MessageWriterSender::completeRelayed(RelayData* /*_relay_data*/, MessageId const& /*_rmsgid*/)
 {
     solid_assert(false);
 }
-/*virtual*/ bool MessageWriter::Sender::cancelMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/)
+/*virtual*/ bool MessageWriterSender::cancelMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/)
 {
     return true;
 }
-/*virtual*/ void MessageWriter::Sender::cancelRelayed(RelayData* /*_relay_data*/, MessageId const& /*_rmsgid*/)
+/*virtual*/ void MessageWriterSender::cancelRelayed(RelayData* /*_relay_data*/, MessageId const& /*_rmsgid*/)
 {
     solid_assert(false);
 }
