@@ -1,5 +1,9 @@
 # SolidFrame Releases
 
+## Version 11.1
+* mprpc: Split Connection in ClientConnection, ServerConnection, RelayConnection
+* mprpc: Some cleanup and some small improvements on the MessageReader and MessageWriter
+
 ## Version 11.0
 
 * utility: Improve SharedBuffer with local caching
