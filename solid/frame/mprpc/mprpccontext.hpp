@@ -119,6 +119,7 @@ private:
 
 private:
     friend class Connection;
+    friend class RelayConnection;
     friend class MessageWriter;
     friend class MessageReader;
     friend struct MessageHeader;
@@ -127,6 +128,8 @@ private:
     friend class TestEntryway;
     friend class relay::EngineCore;
     friend class Service;
+    template <class Ctx>
+    friend struct ConnectionSenderResponse;
 
     Service&            rservice;
     Connection&         rconnection;

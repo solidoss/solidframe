@@ -170,7 +170,7 @@ void complete_message(
     }
 }
 template <class ProtocolT>
-struct Receiver : frame::mprpc::MessageReader::Receiver {
+struct Receiver : frame::mprpc::MessageReaderReceiver {
     ProtocolT&                                    rprotocol_;
     frame::mprpc::MessageWriter::RequestIdVectorT reqvec;
     uint8_t                                       ackd_count;
@@ -178,7 +178,7 @@ struct Receiver : frame::mprpc::MessageReader::Receiver {
     Receiver(frame::mprpc::ReaderConfiguration& _rconfig,
         ProtocolT&                              _rprotocol,
         frame::mprpc::ConnectionContext&        _conctx)
-        : frame::mprpc::MessageReader::Receiver(_rconfig, _rprotocol, _conctx)
+        : frame::mprpc::MessageReaderReceiver(_rconfig, _rprotocol, _conctx)
         , rprotocol_(_rprotocol)
         , ackd_count(15)
     {
@@ -225,14 +225,14 @@ struct Receiver : frame::mprpc::MessageReader::Receiver {
 };
 
 template <class ProtocolT>
-struct Sender : frame::mprpc::MessageWriter::Sender {
+struct Sender : frame::mprpc::MessageWriterSender {
     ProtocolT& rprotocol_;
 
     Sender(
         frame::mprpc::WriterConfiguration& _rconfig,
         ProtocolT&                         _rprotocol,
         frame::mprpc::ConnectionContext&   _conctx)
-        : frame::mprpc::MessageWriter::Sender(_rconfig, _rprotocol, _conctx)
+        : frame::mprpc::MessageWriterSender(_rconfig, _rprotocol, _conctx)
         , rprotocol_(_rprotocol)
     {
     }

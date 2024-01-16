@@ -95,16 +95,17 @@ struct Register : frame::mprpc::Message {
         : str(_rstr)
         , err(_err)
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }
     Register(uint32_t _err = -1)
         : err(_err)
     {
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }
 
     ~Register()
     {
-        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << this);
     }
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
@@ -122,17 +123,17 @@ struct Message : frame::mprpc::Message {
         : idx(_idx)
         , serialized(false)
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this << " idx = " << idx);
         init();
     }
     Message()
         : serialized(false)
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }
     ~Message()
     {
-        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << this);
 
         solid_assert(serialized || this->isBackOnSender());
     }
@@ -327,6 +328,7 @@ void peerb_complete_message(
 
 int test_relay_basic(int argc, char* argv[])
 {
+    // solid::log_start(std::cerr, {".*:EWX", "solid::frame::mprpc::connection:VI", "\\*:VIEWX"});
     solid::log_start(std::cerr, {".*:EWX"});
 
     size_t max_per_pool_connection_count = 1;

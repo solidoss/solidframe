@@ -69,7 +69,7 @@ std::string ErrorCategory::message(int _ev) const
         oss << "Compacted integer checks failed";
         break;
     case Error_Unknown_Type_E:
-        oss << "Unknow type. Type not available in typemap";
+        oss << "Unknown type. Type not available in typemap";
         break;
     default:
         oss << "Unknown";

@@ -44,10 +44,13 @@ struct SocketAddressEqual {
     }
 };
 
-struct PacketHeader {
-    enum {
-        SizeOfE = 4,
-    };
+class PacketHeader {
+    uint8_t  type_;
+    uint8_t  flags_;
+    uint16_t size_;
+
+public:
+    static constexpr size_t size_of_header = 4;
 
     enum struct TypeE : uint8_t {
         Data = 1,
@@ -159,11 +162,6 @@ struct PacketHeader {
         _pc = _rproto.loadValue(_pc, size_);
         return _pc;
     }
-
-private:
-    uint8_t  type_;
-    uint8_t  flags_;
-    uint16_t size_;
 };
 
 struct MessageBundle {
