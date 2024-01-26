@@ -11,6 +11,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <type_traits>
 
 #include "solid/system/common.hpp"
@@ -36,47 +37,48 @@ class Connection;
 class ConnectionContext;
 
 struct MessageRelayHeader {
-    std::string uri_;
+    using GroupIdT         = uint32_t;
+    using ReplicaIdT       = uint16_t;
+    GroupIdT   group_id_   = 0;
+    ReplicaIdT replica_id_ = 0;
 
     MessageRelayHeader() = default;
 
-    MessageRelayHeader(const std::string& _uri)
-        : uri_(_uri)
+    MessageRelayHeader(const GroupIdT _group_id, const ReplicaIdT _replica_id = 0)
+        : group_id_(_group_id)
+        , replica_id_(_replica_id)
     {
     }
-    MessageRelayHeader(std::string&& _uri)
-        : uri_(std::move(_uri))
+
+    void clear()
     {
+        group_id_   = 0;
+        replica_id_ = 0;
     }
 
     SOLID_REFLECT_V1(_rs, _rthis, _rctx)
     {
         if constexpr (std::decay_t<decltype(_rs)>::is_const_reflector) {
-            _rs.add(_rctx.pmessage_relay_header_->uri_, _rctx, 1, "uri", [](auto& _rmeta) { _rmeta.maxSize(20); });
+            _rs.add(_rctx.pmessage_relay_header_->group_id_, _rctx, 1, "group_id");
+            _rs.add(_rctx.pmessage_relay_header_->replica_id_, _rctx, 2, "replica_id");
         } else {
-            _rs.add(_rthis.uri_, _rctx, 1, "uri", [](auto& _rmeta) { _rmeta.maxSize(20); });
+            _rs.add(_rthis.group_id_, _rctx, 1, "group_id");
+            _rs.add(_rthis.replica_id_, _rctx, 2, "replica_id");
         }
-    }
-
-    bool empty() const noexcept
-    {
-        return uri_.empty();
-    }
-
-    void clear()
-    {
-        uri_.clear();
     }
 };
 
+using OptionalMessageRelayHeaderT = std::optional<MessageRelayHeader>;
+
 std::ostream& operator<<(std::ostream& _ros, const MessageRelayHeader& _header);
+std::ostream& operator<<(std::ostream& _ros, const OptionalMessageRelayHeaderT& _header);
 
 struct MessageHeader {
     using FlagsT = MessageFlagsValueT;
-    FlagsT             flags_{0};
-    RequestId          sender_request_id_;
-    RequestId          recipient_request_id_;
-    MessageRelayHeader relay_;
+    FlagsT                      flags_{0};
+    RequestId                   sender_request_id_;
+    RequestId                   recipient_request_id_;
+    OptionalMessageRelayHeaderT relay_;
 
     static MessageFlagsT fetch_state_flags(const MessageFlagsT& _flags)
     {
@@ -117,7 +119,7 @@ struct MessageHeader {
         flags_ = 0;
         sender_request_id_.clear();
         recipient_request_id_.clear();
-        relay_.clear();
+        relay_.reset();
     }
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
@@ -130,7 +132,8 @@ struct MessageHeader {
             _rr.add(_rthis.sender_request_id_.index, _rctx, 4, "recipient_request_index");
             _rr.add(_rthis.sender_request_id_.unique, _rctx, 5, "recipient_request_unique");
             if (_rctx.message_flags.has(MessageFlagsE::Relayed)) {
-                _rr.add(_rthis.relay_, _rctx, 6, "relay");
+                solid_assert(_rthis.relay_.has_value());
+                _rr.add(_rthis.relay_.value(), _rctx, 6, "relay");
             }
         } else {
             _rr.add(_rthis.flags_, _rctx, 1, "flags");
@@ -142,7 +145,8 @@ struct MessageHeader {
                 [&_rthis](auto& _rr, auto& _rctx) {
                     const MessageFlagsT flags(_rthis.flags_);
                     if (flags.has(MessageFlagsE::Relayed)) {
-                        _rr.add(_rthis.relay_, _rctx, 6, "relay");
+                        solid_assert(_rthis.relay_.has_value());
+                        _rr.add(_rthis.relay_.value(), _rctx, 6, "relay");
                     }
                 },
                 _rctx);
@@ -337,9 +341,9 @@ struct Message : IntrusiveCacheable {
         return is_response_last(flags());
     }
 
-    const std::string& uri() const
+    const auto& relay() const
     {
-        return header_.relay_.uri_;
+        return header_.relay_.value();
     }
 
     void clearStateFlags()

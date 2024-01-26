@@ -313,7 +313,7 @@ void peerb_complete_message(
         solid_dbg(generic_logger, Info, crtreadidx << " < " << writecount);
         if (crtwriteidx < writecount) {
             err = pmprpcpeera->sendMessage(
-                "localhost/b", frame::mprpc::make_message<Message>(crtwriteidx++),
+                {"localhost", 0}, frame::mprpc::make_message<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
 
             solid_check(!err, "Connection id should not be invalid! " << err.message());
@@ -553,12 +553,12 @@ int test_relay_basic(int argc, char* argv[])
         writecount = initarraysize * 2; // start_count;//
 
         // ensure we have provisioned connections on peerb
-        err = mprpcpeerb.createConnectionPool("localhost");
+        err = mprpcpeerb.createConnectionPool({"localhost"});
         solid_check(!err, "failed create connection from peerb: " << err.message());
 
         for (; crtwriteidx < start_count;) {
             mprpcpeera.sendMessage(
-                "localhost/b", frame::mprpc::make_message<Message>(crtwriteidx++),
+                {"localhost", 0}, frame::mprpc::make_message<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 

@@ -313,7 +313,7 @@ void server_complete_request(
         auto msgptr(frame::mprpc::make_message<Request>(crtwriteidx));
         ++crtwriteidx;
         pmprpcclient->sendRequest(
-            "localhost", msgptr,
+            {"localhost"}, msgptr,
             // on_receive_response
             ResponseHandler()
             /*[](frame::mprpc::ConnectionContext &_rctx, ResponsePointerT &_rmsgptr, ErrorConditionT const &_rerr)->void{
@@ -482,7 +482,7 @@ int test_clientserver_sendrequest(int argc, char* argv[])
             auto msgptr(frame::mprpc::make_message<Request>(crtwriteidx));
             ++crtwriteidx;
             mprpcclient.sendRequest(
-                "localhost", msgptr,
+                {"localhost"}, msgptr,
 
                 // ResponseHandler()
                 [](

@@ -313,7 +313,7 @@ int test_clientserver_upload(int argc, char* argv[])
             auto msg_ptr = frame::mprpc::make_message<Request>(f);
             msg_ptr->ifs_.open(string("client_storage/") + f);
 
-            mprpc_client.sendRequest("localhost", msg_ptr, on_client_receive_first_response);
+            mprpc_client.sendRequest({"localhost"}, msg_ptr, on_client_receive_first_response);
         }
 
         auto fut = prom.get_future();

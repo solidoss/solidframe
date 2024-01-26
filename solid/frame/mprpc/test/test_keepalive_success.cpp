@@ -367,7 +367,7 @@ int test_keepalive_success(int argc, char* argv[])
             MessagePointerT msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
             ++crtwriteidx;
             mprpcclient.sendMessage(
-                "localhost", msgptr,
+                {"localhost"}, msgptr,
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
         solid_dbg(generic_logger, Info, "before sleep");
@@ -379,7 +379,7 @@ int test_keepalive_success(int argc, char* argv[])
             MessagePointerT msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
             ++crtwriteidx;
             mprpcclient.sendMessage(
-                "localhost", msgptr,
+                {"localhost"}, msgptr,
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 

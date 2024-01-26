@@ -323,7 +323,7 @@ int test_clientserver_download(int argc, char* argv[])
             auto msg_ptr = frame::mprpc::make_message<Request>(f);
             msg_ptr->ofs_.open(string("client_storage/") + f);
 
-            mprpc_client.sendRequest("localhost", msg_ptr, on_client_receive_response);
+            mprpc_client.sendRequest({"localhost"}, msg_ptr, on_client_receive_response);
         }
 
         auto fut = prom.get_future();

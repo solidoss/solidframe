@@ -414,7 +414,7 @@ int test_pool_basic(int argc, char* argv[])
         writecount = initarraysize * 10; // start_count;//
 
         err = mprpcclient.createConnectionPool(
-            "localhost", client_id,
+            {"localhost"}, client_id,
             [](frame::mprpc::ConnectionContext& _rctx, EventBase&& _revent, const ErrorConditionT& _rerr) {
                 solid_dbg(generic_logger, Warning, "client pool event: " << _revent << " error: " << _rerr.message());
             },

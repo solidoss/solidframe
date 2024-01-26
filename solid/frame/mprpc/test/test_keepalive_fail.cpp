@@ -254,7 +254,7 @@ void server_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePoint
         MessagePointerT msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
         ++crtwriteidx;
         pmprpcclient->sendMessage(
-            "localhost", msgptr,
+            {"localhost"}, msgptr,
             initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
     }
 }
@@ -391,7 +391,7 @@ int test_keepalive_fail(int argc, char* argv[])
             MessagePointerT msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
             ++crtwriteidx;
             mprpcclient.sendMessage(
-                "localhost", msgptr,
+                {"localhost"}, msgptr,
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 

@@ -359,14 +359,14 @@ int test_clientserver_delayed(int argc, char* argv[])
         {
             MessagePointerT msgptr(frame::mprpc::make_message<Message>(0));
             err = mprpcclient.sendMessage(
-                "localhost", msgptr);
+                {"localhost"}, msgptr);
             ++writecount;
         }
 
         {
             MessagePointerT msgptr(frame::mprpc::make_message<Message>(1));
             err = mprpcclient.sendMessage(
-                "localhost", msgptr, {frame::mprpc::MessageFlagsE::OneShotSend});
+                {"localhost"}, msgptr, {frame::mprpc::MessageFlagsE::OneShotSend});
             //++writecount;
             // this message should not be sent
         }
@@ -374,7 +374,7 @@ int test_clientserver_delayed(int argc, char* argv[])
         {
             MessagePointerT msgptr(frame::mprpc::make_message<Message>(2));
             err = mprpcclient.sendMessage(
-                "localhost", msgptr, {frame::mprpc::MessageFlagsE::AwaitResponse});
+                {"localhost"}, msgptr, {frame::mprpc::MessageFlagsE::AwaitResponse});
             ++writecount;
         }
 

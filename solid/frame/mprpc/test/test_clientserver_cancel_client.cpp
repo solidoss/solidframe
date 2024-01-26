@@ -407,7 +407,7 @@ int test_clientserver_cancel_client(int argc, char* argv[])
                 frame::mprpc::MessageId msguid;
 
                 ErrorConditionT err = mprpcclient.sendMessage(
-                    "localhost", frame::mprpc::MessagePointerT<>(frame::mprpc::make_message<Message>(crtwriteidx)),
+                    {"localhost"}, frame::mprpc::MessagePointerT<>(frame::mprpc::make_message<Message>(crtwriteidx)),
                     recipient_id,
                     msguid);
 

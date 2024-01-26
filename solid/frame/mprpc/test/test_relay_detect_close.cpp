@@ -128,7 +128,7 @@ void peera_complete_message(
     solid_check(_rsent_msg_ptr, "Error: there should be a request message");
     if (_rrecv_msg_ptr) {
         _rrecv_msg_ptr->clearHeader();
-        _rctx.service().sendMessage("localhost/b", std::move(_rrecv_msg_ptr), {frame::mprpc::MessageFlagsE::AwaitResponse});
+        _rctx.service().sendMessage({"localhost", 0}, std::move(_rrecv_msg_ptr), {frame::mprpc::MessageFlagsE::AwaitResponse});
     }
 }
 
@@ -425,13 +425,13 @@ int test_relay_detect_close(int argc, char* argv[])
         }
 
         // ensure we have provisioned connections on peerb
-        err = mprpcpeerb.createConnectionPool("localhost");
+        err = mprpcpeerb.createConnectionPool({"localhost"});
         solid_check(!err, "failed create connection from peerb: " << err.message());
 
-        mprpcpeera.sendMessage("localhost/b", frame::mprpc::make_message<DetectCloseMessage>(), {frame::mprpc::MessageFlagsE::AwaitResponse});
+        mprpcpeera.sendMessage({"localhost", 0}, frame::mprpc::make_message<DetectCloseMessage>(), {frame::mprpc::MessageFlagsE::AwaitResponse});
 
         mprpcpeera.sendMessage(
-            "localhost/b", frame::mprpc::make_message<Message>(),
+            {"localhost", 0}, frame::mprpc::make_message<Message>(),
             {frame::mprpc::MessageFlagsE::AwaitResponse});
 
         unique_lock<mutex> lock(mtx);

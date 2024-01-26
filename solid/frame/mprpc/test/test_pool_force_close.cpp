@@ -337,7 +337,7 @@ int test_pool_force_close(int argc, char* argv[])
                 {
                     ++crtwriteidx;
                     mprpcclient.sendMessage(
-                        "localhost", *it, recipinet_id, 0);
+                        {"localhost"}, *it, recipinet_id, 0);
                 }
 
                 ++it;

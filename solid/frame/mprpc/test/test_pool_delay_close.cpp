@@ -368,7 +368,7 @@ int test_pool_delay_close(int argc, char* argv[])
                 {
                     ++crtwriteidx;
                     mprpcclient.sendMessage(
-                        "localhost", *it, recipinet_id, {frame::mprpc::MessageFlagsE::AwaitResponse});
+                        {"localhost"}, *it, recipinet_id, {frame::mprpc::MessageFlagsE::AwaitResponse});
                 }
 
                 ++it;

@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
                     cout << endl;
 
                     rpcservice.sendRequest(
-                        recipient.c_str(), // frame::mprpc::make_message<rpc_request::Request>(line.substr(offset + 1)),
+                        {recipient}, // frame::mprpc::make_message<rpc_request::Request>(line.substr(offset + 1)),
                         req_ptr, lambda, 0);
                 } else {
                     cout << "No recipient specified. E.g:" << endl

@@ -385,7 +385,7 @@ int test_connection_close(int argc, char* argv[])
         {
             MessagePointerT msgptr(frame::mprpc::make_message<Message>(0));
             mprpcclient.sendMessage(
-                "localhost", msgptr,
+                {"localhost"}, msgptr,
                 initarray[0].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 

@@ -20,6 +20,9 @@ namespace mprpc {
 namespace relay {
 
 class SingleNameEngine : public EngineCore {
+    struct Data;
+    Pimpl<Data, 96> impl_;
+
 public:
     SingleNameEngine(Manager& _rm);
     ~SingleNameEngine();
@@ -29,10 +32,6 @@ private:
     void          unregisterConnectionName(Proxy& _proxy, size_t _conidx) override;
     size_t        registerConnection(Proxy& _proxy, std::string&& _uname) override;
     std::ostream& print(std::ostream& _ros, const ConnectionStubBase& _rcon) const override;
-
-private:
-    struct Data;
-    Pimpl<Data, 96> impl_;
 };
 
 } // namespace relay

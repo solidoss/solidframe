@@ -455,7 +455,7 @@ int test_clientserver_topic(int argc, char* argv[])
         }
 
         err = mprpcclient.createConnectionPool(
-            "127.0.0.1", client_id,
+            {"127.0.0.1"}, client_id,
             [](frame::mprpc::ConnectionContext& _rctx, EventBase&& _revent, const ErrorConditionT& _rerr) {
                 solid_dbg(logger, Info, "client pool event: " << _revent << " error: " << _rerr.message());
                 if (_revent == frame::mprpc::pool_event_connection_activate) {

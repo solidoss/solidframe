@@ -85,8 +85,7 @@ const LoggerT& service_logger()
     return logger;
 }
 //=============================================================================
-// using NameMapT      = std::unordered_map<std::string, ConnectionPoolId>;
-using NameMapT      = std::unordered_map<const char*, ConnectionPoolId, CStringHash, CStringEqual>;
+using NameMapT      = std::unordered_map<std::string_view, ConnectionPoolId>;
 using ActorIdQueueT = Queue<ActorIdT>;
 
 /*extern*/ const Event<> pool_event_connection_start    = make_event(pool_event_category, PoolEvents::ConnectionStart);
@@ -116,12 +115,12 @@ struct MessageStub : inner::Node<to_underlying(MessageInnerLink::Count)> {
     uint          flags_;
 
     MessageStub(
-        MessagePointerT<>&&       _rmsgptr,
-        const size_t              _msg_type_idx,
-        MessageCompleteFunctionT& _rcomplete_fnc,
-        ulong                     _msgflags,
-        std::string&&             _rmsg_url)
-        : message_bundle_(std::move(_rmsgptr), _msg_type_idx, _msgflags, _rcomplete_fnc, std::move(_rmsg_url))
+        MessagePointerT<>&&           _rmsgptr,
+        const size_t                  _msg_type_idx,
+        MessageCompleteFunctionT&     _rcomplete_fnc,
+        ulong                         _msgflags,
+        OptionalMessageRelayHeaderT&& _relay)
+        : message_bundle_(std::move(_rmsgptr), _msg_type_idx, _msgflags, _rcomplete_fnc, std::move(_relay))
         , unique_(0)
         , flags_(0)
     {
@@ -291,11 +290,11 @@ struct ConnectionPoolStub : inner::Node<to_underlying(ConnectionPoolInnerLink::C
     }
 
     MessageId insertMessage(
-        MessagePointerT<>&        _rmsgptr,
-        const size_t              _msg_type_idx,
-        MessageCompleteFunctionT& _rcomplete_fnc,
-        const MessageFlagsT&      _flags,
-        std::string&&             _msg_url)
+        MessagePointerT<>&            _rmsgptr,
+        const size_t                  _msg_type_idx,
+        MessageCompleteFunctionT&     _rcomplete_fnc,
+        const MessageFlagsT&          _flags,
+        OptionalMessageRelayHeaderT&& _relay)
     {
         size_t idx;
 
@@ -308,7 +307,7 @@ struct ConnectionPoolStub : inner::Node<to_underlying(ConnectionPoolInnerLink::C
 
         MessageStub& rmsgstub(message_vec_[idx]);
 
-        rmsgstub.message_bundle_ = MessageBundle(std::move(_rmsgptr), _msg_type_idx, _flags, _rcomplete_fnc, std::move(_msg_url));
+        rmsgstub.message_bundle_ = MessageBundle(std::move(_rmsgptr), _msg_type_idx, _flags, _rcomplete_fnc, std::move(_relay));
 
         // solid_assert_log(rmsgstub.msgbundle.message_ptr.get(), logger);
 
@@ -316,14 +315,14 @@ struct ConnectionPoolStub : inner::Node<to_underlying(ConnectionPoolInnerLink::C
     }
 
     MessageId pushBackMessage(
-        MessagePointerT<>&        _rmsgptr,
-        const size_t              _msg_type_idx,
-        MessageCompleteFunctionT& _rcomplete_fnc,
-        const MessageFlagsT&      _flags,
-        std::string&&             _msg_url,
-        bool&                     _ris_first)
+        MessagePointerT<>&            _rmsgptr,
+        const size_t                  _msg_type_idx,
+        MessageCompleteFunctionT&     _rcomplete_fnc,
+        const MessageFlagsT&          _flags,
+        OptionalMessageRelayHeaderT&& _relay,
+        bool&                         _ris_first)
     {
-        const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, std::move(_msg_url));
+        const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, std::move(_relay));
 
         _ris_first = message_order_inner_list_.empty();
 
@@ -341,13 +340,13 @@ struct ConnectionPoolStub : inner::Node<to_underlying(ConnectionPoolInnerLink::C
     }
 
     MessageId pushFrontMessage(
-        MessagePointerT<>&        _rmsgptr,
-        const size_t              _msg_type_idx,
-        MessageCompleteFunctionT& _rcomplete_fnc,
-        const MessageFlagsT&      _flags,
-        std::string&&             _msg_url)
+        MessagePointerT<>&            _rmsgptr,
+        const size_t                  _msg_type_idx,
+        MessageCompleteFunctionT&     _rcomplete_fnc,
+        const MessageFlagsT&          _flags,
+        OptionalMessageRelayHeaderT&& _relay)
     {
-        const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, std::move(_msg_url));
+        const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, std::move(_relay));
 
         message_order_inner_list_.pushFront(msgid.index);
 
@@ -364,18 +363,18 @@ struct ConnectionPoolStub : inner::Node<to_underlying(ConnectionPoolInnerLink::C
     }
 
     MessageId reinsertFrontMessage(
-        MessageId const&          _rmsgid,
-        MessagePointerT<>&        _rmsgptr,
-        const size_t              _msg_type_idx,
-        MessageCompleteFunctionT& _rcomplete_fnc,
-        const MessageFlagsT&      _flags,
-        std::string&&             _msg_url)
+        MessageId const&              _rmsgid,
+        MessagePointerT<>&            _rmsgptr,
+        const size_t                  _msg_type_idx,
+        MessageCompleteFunctionT&     _rcomplete_fnc,
+        const MessageFlagsT&          _flags,
+        OptionalMessageRelayHeaderT&& _relay)
     {
         MessageStub& rmsgstub(message_vec_[_rmsgid.index]);
 
         solid_assert_log(!rmsgstub.message_bundle_.message_ptr && rmsgstub.unique_ == _rmsgid.unique, logger);
 
-        rmsgstub.message_bundle_ = MessageBundle(std::move(_rmsgptr), _msg_type_idx, _flags, _rcomplete_fnc, std::move(_msg_url));
+        rmsgstub.message_bundle_ = MessageBundle(std::move(_rmsgptr), _msg_type_idx, _flags, _rcomplete_fnc, std::move(_relay));
 
         message_order_inner_list_.pushFront(_rmsgid.index);
 
@@ -662,13 +661,13 @@ struct Service::Data {
     }
 
     ErrorConditionT doSendMessageToConnection(
-        Service&                  _rsvc,
-        const RecipientId&        _rrecipient_id_in,
-        MessagePointerT<>&        _rmsgptr,
-        MessageCompleteFunctionT& _rcomplete_fnc,
-        MessageId*                _pmsg_id_out,
-        MessageFlagsT             _flags,
-        std::string&&             _msg_url);
+        Service&                      _rsvc,
+        const RecipientId&            _rrecipient_id_in,
+        MessagePointerT<>&            _rmsgptr,
+        MessageCompleteFunctionT&     _rcomplete_fnc,
+        MessageId*                    _pmsg_id_out,
+        MessageFlagsT                 _flags,
+        OptionalMessageRelayHeaderT&& _relay);
 
     bool doTryCreateNewConnectionForPool(Service& _rsvc, const size_t _pool_index, ErrorConditionT& _rerror);
 
@@ -745,12 +744,12 @@ struct Service::Data {
 
     ErrorConditionT doSendMessageToPool(
         Service& _rsvc, const ConnectionPoolId& _rpool_id, MessagePointerT<>& _rmsgptr,
-        MessageCompleteFunctionT& _rcomplete_fnc,
-        const size_t              _msg_type_idx,
-        std::string&&             _message_url,
-        RecipientId*              _precipient_id_out,
-        MessageId*                _pmsgid_out,
-        const MessageFlagsT&      _flags);
+        MessageCompleteFunctionT&     _rcomplete_fnc,
+        const size_t                  _msg_type_idx,
+        OptionalMessageRelayHeaderT&& _relay,
+        RecipientId*                  _precipient_id_out,
+        MessageId*                    _pmsgid_out,
+        const MessageFlagsT&          _flags);
 };
 //=============================================================================
 
@@ -916,11 +915,12 @@ struct OnRelsolveF {
 //-----------------------------------------------------------------------------
 
 ErrorConditionT Service::doCreateConnectionPool(
-    const std::string_view& _recipient_url,
-    RecipientId&            _rrecipient_id_out,
-    PoolOnEventFunctionT&   _event_fnc,
-    const size_t            _persistent_connection_count)
+    const RecipientUrl&   _recipient_url,
+    RecipientId&          _rrecipient_id_out,
+    PoolOnEventFunctionT& _event_fnc,
+    const size_t          _persistent_connection_count)
 {
+#if 0
     static constexpr const char* empty_recipient_name = ":";
     std::string                  message_url;
     shared_ptr<Data>             locked_pimpl;
@@ -981,6 +981,8 @@ ErrorConditionT Service::doCreateConnectionPool(
 
     _rrecipient_id_out.pool_id_ = pool_id;
     return error;
+#endif
+    return {};
 }
 
 //-----------------------------------------------------------------------------
@@ -1027,6 +1029,7 @@ ErrorConditionT Service::Data::doLockPool(
     }
 }
 //-----------------------------------------------------------------------------
+#if 0
 ErrorConditionT Service::doSendMessage(
     ConnectionContext&        _rctx,
     MessagePointerT<>&        _rmsgptr,
@@ -1065,11 +1068,10 @@ ErrorConditionT Service::doSendMessage(
 
     return doSendMessage(nullptr, _rctx.recipientId(), _rmsgptr, _rcomplete_fnc, nullptr, nullptr, _flags);
 }
-
+#endif
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::doSendMessage(
-    const char*               _recipient_url,
-    const RecipientId&        _rrecipient_id_in,
+    const RecipientUri&       _rrecipient_uri,
     MessagePointerT<>&        _rmsgptr,
     MessageCompleteFunctionT& _rcomplete_fnc,
     RecipientId*              _precipient_id_out,
@@ -1078,7 +1080,7 @@ ErrorConditionT Service::doSendMessage(
 {
     solid_log(logger, Verbose, this);
     solid_statistic_inc(pimpl_->statistic_.send_message_count_);
-
+#if 0
     std::string      message_url;
     shared_ptr<Data> locked_pimpl;
 
@@ -1179,18 +1181,20 @@ ErrorConditionT Service::doSendMessage(
     solid_assert(pool_lock.owns_lock());
 
     return locked_pimpl->doSendMessageToPool(*this, pool_id, _rmsgptr, _rcomplete_fnc, msg_type_idx, std::move(message_url), _precipient_id_out, _pmsgid_out, _flags);
+#endif
+    return {};
 }
 
 //-----------------------------------------------------------------------------
 
 ErrorConditionT Service::Data::doSendMessageToConnection(
-    Service&                  _rsvc,
-    const RecipientId&        _rrecipient_id_in,
-    MessagePointerT<>&        _rmsgptr,
-    MessageCompleteFunctionT& _rcomplete_fnc,
-    MessageId*                _pmsgid_out,
-    MessageFlagsT             _flags,
-    std::string&&             _msg_url)
+    Service&                      _rsvc,
+    const RecipientId&            _rrecipient_id_in,
+    MessagePointerT<>&            _rmsgptr,
+    MessageCompleteFunctionT&     _rcomplete_fnc,
+    MessageId*                    _pmsgid_out,
+    MessageFlagsT                 _flags,
+    OptionalMessageRelayHeaderT&& _relay)
 {
     solid_log(logger, Verbose, &_rsvc);
     solid_statistic_inc(statistic_.send_message_to_connection_count_);
@@ -1231,7 +1235,7 @@ ErrorConditionT Service::Data::doSendMessageToConnection(
         if (is_server_side_pool) {
             bool should_notify = false;
 
-            const auto msgid = rpool.pushBackMessage(_rmsgptr, msg_type_idx, _rcomplete_fnc, _flags, std::move(_msg_url), should_notify);
+            const auto msgid = rpool.pushBackMessage(_rmsgptr, msg_type_idx, _rcomplete_fnc, _flags, std::move(_relay), should_notify);
 
             if (_pmsgid_out != nullptr) {
                 *_pmsgid_out          = msgid;
@@ -1246,7 +1250,7 @@ ErrorConditionT Service::Data::doSendMessageToConnection(
             }
         } else {
 
-            const auto msgid = rpool.insertMessage(_rmsgptr, msg_type_idx, _rcomplete_fnc, _flags, std::move(_msg_url));
+            const auto msgid = rpool.insertMessage(_rmsgptr, msg_type_idx, _rcomplete_fnc, _flags, std::move(_relay));
 
             if (_pmsgid_out != nullptr) {
                 *_pmsgid_out          = msgid;
@@ -1265,12 +1269,12 @@ ErrorConditionT Service::Data::doSendMessageToConnection(
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::Data::doSendMessageToPool(
     Service& _rsvc, const ConnectionPoolId& _rpool_id, MessagePointerT<>& _rmsgptr,
-    MessageCompleteFunctionT& _rcomplete_fnc,
-    const size_t              _msg_type_idx,
-    std::string&&             _message_url,
-    RecipientId*              _precipient_id_out,
-    MessageId*                _pmsgid_out,
-    const MessageFlagsT&      _flags)
+    MessageCompleteFunctionT&     _rcomplete_fnc,
+    const size_t                  _msg_type_idx,
+    OptionalMessageRelayHeaderT&& _relay,
+    RecipientId*                  _precipient_id_out,
+    MessageId*                    _pmsgid_out,
+    const MessageFlagsT&          _flags)
 {
     solid_log(logger, Verbose, &_rsvc << " " << _rpool_id);
     solid_statistic_inc(statistic_.send_message_to_pool_count_);
@@ -1294,7 +1298,7 @@ ErrorConditionT Service::Data::doSendMessageToPool(
 
     // At this point we can fetch the message from user's pointer
     // because from now on we can call complete on the message
-    const MessageId msgid = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, std::move(_message_url), is_first);
+    const MessageId msgid = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, std::move(_relay), is_first);
     (void)is_first;
 
     if (_pmsgid_out != nullptr) {
@@ -1634,7 +1638,7 @@ ErrorConditionT Service::doDelayCloseConnectionPool(
 
     MessagePointerT<> empty_msg_ptr;
     bool              is_first;
-    const MessageId   msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, 0, std::string{}, is_first);
+    const MessageId   msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, 0, {}, is_first);
     (void)msgid;
 
     // notify all waiting connections about the new message
@@ -1685,7 +1689,7 @@ ErrorConditionT Service::doForceCloseConnectionPool(
 
     MessagePointerT<> empty_msg_ptr;
     bool              is_first;
-    const MessageId   msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, {MessageFlagsE::Synchronous}, std::string{}, is_first);
+    const MessageId   msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, {MessageFlagsE::Synchronous}, {}, is_first);
     (void)msgid;
 
     // no reason to cancel all messages - they'll be handled on connection stop.
@@ -2525,7 +2529,7 @@ void Service::Data::doPushFrontMessageToPool(
                 _rmsgbundle.message_type_id,
                 _rmsgbundle.complete_fnc,
                 _rmsgbundle.message_flags,
-                std::move(_rmsgbundle.message_relay_header_.uri_));
+                std::move(_rmsgbundle.message_relay_header_));
         } else {
             rpool.reinsertFrontMessage(
                 _rmsgid,
@@ -2533,7 +2537,7 @@ void Service::Data::doPushFrontMessageToPool(
                 _rmsgbundle.message_type_id,
                 _rmsgbundle.complete_fnc,
                 _rmsgbundle.message_flags,
-                std::move(_rmsgbundle.message_relay_header_.uri_));
+                std::move(_rmsgbundle.message_relay_header_));
         }
     }
 }
@@ -2770,7 +2774,17 @@ std::ostream& operator<<(std::ostream& _ros, MessageId const& _msg_id)
 //-----------------------------------------------------------------------------
 std::ostream& operator<<(std::ostream& _ros, const MessageRelayHeader& _header)
 {
-    _ros << "uri = " << _header.uri_;
+    _ros << "group_id = " << _header.group_id_ << " replica_id = " << _header.replica_id_;
+    return _ros;
+}
+//-----------------------------------------------------------------------------
+std::ostream& operator<<(std::ostream& _ros, const OptionalMessageRelayHeaderT& _header)
+{
+    if (_header.has_value()) {
+        _ros << _header;
+    } else {
+        _ros << "null";
+    }
     return _ros;
 }
 //=============================================================================

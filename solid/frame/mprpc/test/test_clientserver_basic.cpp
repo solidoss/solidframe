@@ -249,7 +249,7 @@ void server_complete_message(
         solid_dbg(generic_logger, Info, crtreadidx);
         if (crtwriteidx < writecount) {
             err = pmprpcclient->sendMessage(
-                "", frame::mprpc::make_message<Message>(crtwriteidx++),
+                {""}, frame::mprpc::make_message<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
             solid_check(!err, "Connection id should not be invalid! " << err.message());
         }
@@ -424,7 +424,7 @@ int test_clientserver_basic(int argc, char* argv[])
 
         for (; crtwriteidx < start_count;) {
             mprpcclient.sendMessage(
-                "", frame::mprpc::make_message<Message>(crtwriteidx++),
+                {""}, frame::mprpc::make_message<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 

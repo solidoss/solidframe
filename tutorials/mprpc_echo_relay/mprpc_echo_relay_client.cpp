@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
             rpcservice.start(std::move(cfg));
         }
 
-        rpcservice.createConnectionPool(p.server_addr.c_str());
+        rpcservice.createConnectionPool({p.server_addr});
 
         while (true) {
             string line;
@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
                 size_t offset = line.find(' ');
                 if (offset != string::npos) {
                     recipient = p.server_addr + '/' + line.substr(0, offset);
-                    rpcservice.sendMessage(recipient.c_str(), frame::mprpc::make_message<Message>(p.name, line.substr(offset + 1)), {frame::mprpc::MessageFlagsE::AwaitResponse});
+                    rpcservice.sendMessage({recipient}, frame::mprpc::make_message<Message>(p.name, line.substr(offset + 1)), {frame::mprpc::MessageFlagsE::AwaitResponse});
                 } else {
                     cout << "No recipient name specified. E.g:" << endl
                          << "alpha Some text to send" << endl;

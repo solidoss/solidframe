@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
                         iss >> path;
 
                         rpcservice.sendRequest(
-                            recipient.c_str(), frame::mprpc::make_message<rpc_file::ListRequest>(std::move(path)),
+                            {recipient}, frame::mprpc::make_message<rpc_file::ListRequest>(std::move(path)),
                             [](
                                 frame::mprpc::ConnectionContext&                       _rctx,
                                 frame::mprpc::MessagePointerT<rpc_file::ListRequest>&  _rsent_msg_ptr,
@@ -173,7 +173,7 @@ int main(int argc, char* argv[])
                         iss >> remote_path >> local_path;
 
                         rpcservice.sendRequest(
-                            recipient.c_str(), frame::mprpc::make_message<rpc_file::FileRequest>(std::move(remote_path), std::move(local_path)),
+                            {recipient}, frame::mprpc::make_message<rpc_file::FileRequest>(std::move(remote_path), std::move(local_path)),
                             [](
                                 frame::mprpc::ConnectionContext&                       _rctx,
                                 frame::mprpc::MessagePointerT<rpc_file::FileRequest>&  _rsent_msg_ptr,

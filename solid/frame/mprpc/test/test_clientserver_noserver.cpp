@@ -271,7 +271,7 @@ int test_clientserver_noserver(int argc, char* argv[])
             MessagePointerT msgptr(frame::mprpc::make_message<Message>(0));
 
             err = mprpcclient.sendMessage(
-                "localhost", msgptr,
+                {"localhost"}, msgptr,
                 recipient_id, message_id,
                 {frame::mprpc::MessageFlagsE::AwaitResponse});
             solid_check(!err);

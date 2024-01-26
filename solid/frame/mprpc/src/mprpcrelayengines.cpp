@@ -30,7 +30,7 @@ namespace mprpc {
 namespace relay {
 //-----------------------------------------------------------------------------
 namespace {
-using ConnectionMapT = std::unordered_map<const char*, size_t, CStringHash, CStringEqual>;
+using ConnectionMapT = std::unordered_map<std::string_view, size_t>;
 } // namespace
 
 struct SingleNameEngine::Data {

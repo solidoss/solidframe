@@ -185,7 +185,7 @@ void peera_complete_detect_close(
     if (_rrecv_msg_ptr) {
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " peera received DetectCloseMessage " << _rrecv_msg_ptr->idx);
         solid_check(!_rrecv_msg_ptr->isResponseLast());
-        pmprpcpeera->sendMessage("localhost/b", frame::mprpc::make_message<Message>(_rrecv_msg_ptr->idx, generate_big_data(1024 * 10)));
+        pmprpcpeera->sendMessage({"localhost", 0}, frame::mprpc::make_message<Message>(_rrecv_msg_ptr->idx, generate_big_data(1024 * 10)));
     }
 
     if (_rerror == frame::mprpc::error_message_canceled_peer) {
@@ -464,11 +464,11 @@ int test_relay_detect_close_while_response(int argc, char* argv[])
         }
 
         // ensure we have provisioned connections on peerb
-        err = mprpcpeerb.createConnectionPool("localhost");
+        err = mprpcpeerb.createConnectionPool({"localhost"});
         solid_check(!err, "failed create connection from peerb: " << err.message());
 
         pmprpcpeera = &mprpcpeera;
-        mprpcpeera.sendMessage("localhost/b", frame::mprpc::make_message<DetectCloseMessage>(), {frame::mprpc::MessageFlagsE::AwaitResponse});
+        mprpcpeera.sendMessage({"localhost", 0}, frame::mprpc::make_message<DetectCloseMessage>(), {frame::mprpc::MessageFlagsE::AwaitResponse});
 
         unique_lock<mutex> lock(mtx);
 

@@ -286,7 +286,7 @@ void peerb_complete_message(
         solid_dbg(generic_logger, Info, crtreadidx);
         if (crtwriteidx < writecount) {
             err = pmprpcpeera->sendMessage(
-                "localhost/b", frame::mprpc::make_message<Message>(crtwriteidx++),
+                {"localhost", 0}, frame::mprpc::make_message<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
 
             solid_check(!err, "Connection id should not be invalid! " << err.message());
@@ -504,7 +504,7 @@ int test_relay_disabled(int argc, char* argv[])
         if (1) {
             for (; crtwriteidx < writecount;) {
                 mprpcpeera.sendMessage(
-                    "localhost/b", frame::mprpc::make_message<Message>(crtwriteidx++),
+                    {"localhost", 0}, frame::mprpc::make_message<Message>(crtwriteidx++),
                     initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
             }
         }

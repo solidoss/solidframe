@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
 
         frame::mprpc::RecipientId recipient_id;
         rpcservice.createConnectionPool(
-            p.server_addr.c_str(),
+            {p.server_addr},
             recipient_id,
             [](frame::mprpc::ConnectionContext& _rctx, EventBase&& _revt, const ErrorConditionT& _rerr) {
                 solid_log(generic_logger, Verbose, "Connection pool event: " << _revt);

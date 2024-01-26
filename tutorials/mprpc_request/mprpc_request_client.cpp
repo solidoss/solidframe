@@ -148,7 +148,7 @@ int main(int argc, char* argv[])
                     auto req_ptr = frame::mprpc::make_message<rpc_request::Request>(line.substr(offset + 1));
 
                     rpcservice.sendRequest(
-                        recipient.c_str(), req_ptr, lambda, 0);
+                        {recipient}, req_ptr, lambda, 0);
                 } else {
                     cout << "No recipient specified. E.g:" << endl
                          << "localhost:4444 Some text to send" << endl;

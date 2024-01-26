@@ -357,7 +357,7 @@ void peerb_complete_message(
             auto& back_msg_id = msgid_vec.back();
             mtx.unlock();
             err = pmprpcpeera->sendMessage(
-                "localhost/b", frame::mprpc::make_message<Message>(crtwriteidx++),
+                {"localhost", 0}, frame::mprpc::make_message<Message>(crtwriteidx++),
                 back_msg_id.first,
                 back_msg_id.second,
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
@@ -595,7 +595,7 @@ int test_relay_cancel_response(int argc, char* argv[])
         writecount = 2 * initarraysize; // initarraysize * 2; //start_count;//
 
         // ensure we have provisioned connections on peerb
-        err = mprpcpeerb.createConnectionPool("localhost");
+        err = mprpcpeerb.createConnectionPool({"localhost"});
         solid_check(!err, "failed create connection from peerb: " << err.message());
 
         for (; crtwriteidx < start_count;) {
@@ -604,7 +604,7 @@ int test_relay_cancel_response(int argc, char* argv[])
             auto& back_msg_id = msgid_vec.back();
             mtx.unlock();
             mprpcpeera.sendMessage(
-                "localhost/b", frame::mprpc::make_message<Message>(crtwriteidx++),
+                {"localhost", 0}, frame::mprpc::make_message<Message>(crtwriteidx++),
                 back_msg_id.first,
                 back_msg_id.second,
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
