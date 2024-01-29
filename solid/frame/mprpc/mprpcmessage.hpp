@@ -52,7 +52,7 @@ struct MessageRelayHeader {
 
     void clear()
     {
-        group_id_   = 0;
+        group_id_   = InvalidIndex();
         replica_id_ = 0;
     }
 
@@ -75,10 +75,10 @@ std::ostream& operator<<(std::ostream& _ros, const OptionalMessageRelayHeaderT& 
 
 struct MessageHeader {
     using FlagsT = MessageFlagsValueT;
-    FlagsT                      flags_{0};
-    RequestId                   sender_request_id_;
-    RequestId                   recipient_request_id_;
-    OptionalMessageRelayHeaderT relay_;
+    FlagsT             flags_{0};
+    RequestId          sender_request_id_;
+    RequestId          recipient_request_id_;
+    MessageRelayHeader relay_;
 
     static MessageFlagsT fetch_state_flags(const MessageFlagsT& _flags)
     {
@@ -119,7 +119,7 @@ struct MessageHeader {
         flags_ = 0;
         sender_request_id_.clear();
         recipient_request_id_.clear();
-        relay_.reset();
+        relay_.clear();
     }
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
@@ -132,8 +132,7 @@ struct MessageHeader {
             _rr.add(_rthis.sender_request_id_.index, _rctx, 4, "recipient_request_index");
             _rr.add(_rthis.sender_request_id_.unique, _rctx, 5, "recipient_request_unique");
             if (_rctx.message_flags.has(MessageFlagsE::Relayed)) {
-                solid_assert(_rthis.relay_.has_value());
-                _rr.add(_rthis.relay_.value(), _rctx, 6, "relay");
+                _rr.add(_rthis.relay_, _rctx, 6, "relay");
             }
         } else {
             _rr.add(_rthis.flags_, _rctx, 1, "flags");
@@ -145,8 +144,7 @@ struct MessageHeader {
                 [&_rthis](auto& _rr, auto& _rctx) {
                     const MessageFlagsT flags(_rthis.flags_);
                     if (flags.has(MessageFlagsE::Relayed)) {
-                        solid_assert(_rthis.relay_.has_value());
-                        _rr.add(_rthis.relay_.value(), _rctx, 6, "relay");
+                        _rr.add(_rthis.relay_, _rctx, 6, "relay");
                     }
                 },
                 _rctx);
@@ -343,7 +341,7 @@ struct Message : IntrusiveCacheable {
 
     const auto& relay() const
     {
-        return header_.relay_.value();
+        return header_.relay_;
     }
 
     void clearStateFlags()

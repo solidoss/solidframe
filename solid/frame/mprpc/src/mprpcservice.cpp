@@ -127,6 +127,18 @@ struct MessageStub : inner::Node<to_underlying(MessageInnerLink::Count)> {
     }
 
     MessageStub(
+        MessagePointerT<>&&                _rmsgptr,
+        const size_t                       _msg_type_idx,
+        MessageCompleteFunctionT&          _rcomplete_fnc,
+        ulong                              _msgflags,
+        const OptionalMessageRelayHeaderT& _relay)
+        : message_bundle_(std::move(_rmsgptr), _msg_type_idx, _msgflags, _rcomplete_fnc, _relay)
+        , unique_(0)
+        , flags_(0)
+    {
+    }
+
+    MessageStub(
         MessageStub&& _rmsg) noexcept
         : inner::Node<to_underlying(MessageInnerLink::Count)>(std::move(_rmsg))
         , message_bundle_(std::move(_rmsg.message_bundle_))
@@ -290,11 +302,11 @@ struct ConnectionPoolStub : inner::Node<to_underlying(ConnectionPoolInnerLink::C
     }
 
     MessageId insertMessage(
-        MessagePointerT<>&            _rmsgptr,
-        const size_t                  _msg_type_idx,
-        MessageCompleteFunctionT&     _rcomplete_fnc,
-        const MessageFlagsT&          _flags,
-        OptionalMessageRelayHeaderT&& _relay)
+        MessagePointerT<>&                 _rmsgptr,
+        const size_t                       _msg_type_idx,
+        MessageCompleteFunctionT&          _rcomplete_fnc,
+        const MessageFlagsT&               _flags,
+        const OptionalMessageRelayHeaderT& _relay)
     {
         size_t idx;
 
@@ -307,7 +319,7 @@ struct ConnectionPoolStub : inner::Node<to_underlying(ConnectionPoolInnerLink::C
 
         MessageStub& rmsgstub(message_vec_[idx]);
 
-        rmsgstub.message_bundle_ = MessageBundle(std::move(_rmsgptr), _msg_type_idx, _flags, _rcomplete_fnc, std::move(_relay));
+        rmsgstub.message_bundle_ = MessageBundle(std::move(_rmsgptr), _msg_type_idx, _flags, _rcomplete_fnc, _relay);
 
         // solid_assert_log(rmsgstub.msgbundle.message_ptr.get(), logger);
 
@@ -315,14 +327,14 @@ struct ConnectionPoolStub : inner::Node<to_underlying(ConnectionPoolInnerLink::C
     }
 
     MessageId pushBackMessage(
-        MessagePointerT<>&            _rmsgptr,
-        const size_t                  _msg_type_idx,
-        MessageCompleteFunctionT&     _rcomplete_fnc,
-        const MessageFlagsT&          _flags,
-        OptionalMessageRelayHeaderT&& _relay,
-        bool&                         _ris_first)
+        MessagePointerT<>&                 _rmsgptr,
+        const size_t                       _msg_type_idx,
+        MessageCompleteFunctionT&          _rcomplete_fnc,
+        const MessageFlagsT&               _flags,
+        const OptionalMessageRelayHeaderT& _relay,
+        bool&                              _ris_first)
     {
-        const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, std::move(_relay));
+        const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, _relay);
 
         _ris_first = message_order_inner_list_.empty();
 
@@ -340,13 +352,13 @@ struct ConnectionPoolStub : inner::Node<to_underlying(ConnectionPoolInnerLink::C
     }
 
     MessageId pushFrontMessage(
-        MessagePointerT<>&            _rmsgptr,
-        const size_t                  _msg_type_idx,
-        MessageCompleteFunctionT&     _rcomplete_fnc,
-        const MessageFlagsT&          _flags,
-        OptionalMessageRelayHeaderT&& _relay)
+        MessagePointerT<>&                 _rmsgptr,
+        const size_t                       _msg_type_idx,
+        MessageCompleteFunctionT&          _rcomplete_fnc,
+        const MessageFlagsT&               _flags,
+        const OptionalMessageRelayHeaderT& _relay)
     {
-        const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, std::move(_relay));
+        const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, _relay);
 
         message_order_inner_list_.pushFront(msgid.index);
 
@@ -624,8 +636,8 @@ struct Service::Data {
     NameMapT                 name_map_;
     ConnectionPoolDequeT     pool_dq_;
     ConnectionPoolInnerListT pool_free_list_;
-    std::string              tmp_str_;
-    ServiceStatistic         statistic_;
+    // std::string              tmp_str_;
+    ServiceStatistic statistic_;
 
     Data(Service& _rsvc, Configuration&& _config)
         : rmutex_(_rsvc.mutex())
@@ -661,13 +673,13 @@ struct Service::Data {
     }
 
     ErrorConditionT doSendMessageToConnection(
-        Service&                      _rsvc,
-        const RecipientId&            _rrecipient_id_in,
-        MessagePointerT<>&            _rmsgptr,
-        MessageCompleteFunctionT&     _rcomplete_fnc,
-        MessageId*                    _pmsg_id_out,
-        MessageFlagsT                 _flags,
-        OptionalMessageRelayHeaderT&& _relay);
+        Service&                           _rsvc,
+        const RecipientId&                 _rrecipient_id_in,
+        MessagePointerT<>&                 _rmsgptr,
+        MessageCompleteFunctionT&          _rcomplete_fnc,
+        MessageId*                         _pmsg_id_out,
+        MessageFlagsT                      _flags,
+        const OptionalMessageRelayHeaderT& _relay);
 
     bool doTryCreateNewConnectionForPool(Service& _rsvc, const size_t _pool_index, ErrorConditionT& _rerror);
 
@@ -738,18 +750,18 @@ struct Service::Data {
         MessageBundle&          _rmsgbundle,
         MessageId const&        _rmsgid);
     ErrorConditionT doLockPool(
-        Service& _rsvc, const bool _check_uid, const char* _recipient_name,
+        Service& _rsvc, const bool _check_uid, const string_view& _url,
         ConnectionPoolId& _rpool_id, unique_lock<std::mutex>& _rlock);
     bool doTryNotifyPoolWaitingConnection(Service& _rsvc, const size_t _pool_index);
 
     ErrorConditionT doSendMessageToPool(
         Service& _rsvc, const ConnectionPoolId& _rpool_id, MessagePointerT<>& _rmsgptr,
-        MessageCompleteFunctionT&     _rcomplete_fnc,
-        const size_t                  _msg_type_idx,
-        OptionalMessageRelayHeaderT&& _relay,
-        RecipientId*                  _precipient_id_out,
-        MessageId*                    _pmsgid_out,
-        const MessageFlagsT&          _flags);
+        MessageCompleteFunctionT&          _rcomplete_fnc,
+        const size_t                       _msg_type_idx,
+        const OptionalMessageRelayHeaderT& _relay,
+        RecipientId*                       _precipient_id_out,
+        MessageId*                         _pmsgid_out,
+        const MessageFlagsT&               _flags);
 };
 //=============================================================================
 
@@ -915,17 +927,18 @@ struct OnRelsolveF {
 //-----------------------------------------------------------------------------
 
 ErrorConditionT Service::doCreateConnectionPool(
-    const RecipientUrl&   _recipient_url,
+    std::string_view      _url,
     RecipientId&          _rrecipient_id_out,
     PoolOnEventFunctionT& _event_fnc,
     const size_t          _persistent_connection_count)
 {
-#if 0
-    static constexpr const char* empty_recipient_name = ":";
-    std::string                  message_url;
-    shared_ptr<Data>             locked_pimpl;
-    ConnectionPoolId             pool_id;
-    const char*                  recipient_name = empty_recipient_name;
+
+    static constexpr const string_view empty_recipient_name = ":";
+    shared_ptr<Data>                   locked_pimpl;
+    ConnectionPoolId                   pool_id;
+    if (_url.empty()) {
+        _url = empty_recipient_name;
+    }
     {
         unique_lock<std::mutex> lock;
 
@@ -937,23 +950,14 @@ ErrorConditionT Service::doCreateConnectionPool(
             return error_service_stopping;
         }
 
-        recipient_name = configuration().extract_recipient_name_fnc(_recipient_url.data(), message_url, locked_pimpl->tmp_str_);
-
-        if (recipient_name == nullptr) {
-            solid_log(logger, Error, this << " failed extracting recipient name");
-            return error_service_invalid_url;
-        } else if (recipient_name[0] == '\0') {
-            recipient_name = empty_recipient_name;
-        }
-
-        if (pimpl_->name_map_.find(recipient_name) == pimpl_->name_map_.end()) {
+        if (pimpl_->name_map_.find(_url) == pimpl_->name_map_.end()) {
             // pool does not exist
             if (!pimpl_->pool_free_list_.empty()) {
                 const auto          pool_index{locked_pimpl->pool_free_list_.popFront()};
                 ConnectionPoolStub& rpool(pimpl_->pool_dq_[pool_index]);
 
                 pool_id                                      = ConnectionPoolId{pool_index, rpool.unique_};
-                rpool.name_                                  = recipient_name;
+                rpool.name_                                  = _url;
                 locked_pimpl->name_map_[rpool.name_.c_str()] = pool_id;
             } else {
                 return error_service_connection_pool_count;
@@ -964,7 +968,7 @@ ErrorConditionT Service::doCreateConnectionPool(
     }
 
     unique_lock<std::mutex> pool_lock;
-    auto                    error = locked_pimpl->doLockPool(*this, false, recipient_name, pool_id, pool_lock);
+    auto                    error = locked_pimpl->doLockPool(*this, false, _url, pool_id, pool_lock);
     if (!error) {
     } else {
         return error;
@@ -981,13 +985,11 @@ ErrorConditionT Service::doCreateConnectionPool(
 
     _rrecipient_id_out.pool_id_ = pool_id;
     return error;
-#endif
-    return {};
 }
 
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::Data::doLockPool(
-    Service& _rsvc, const bool _check_uid, const char* _recipient_name,
+    Service& _rsvc, const bool _check_uid, const string_view& _url,
     ConnectionPoolId& _rpool_id, unique_lock<std::mutex>& _rlock)
 {
     while (true) {
@@ -1008,7 +1010,7 @@ ErrorConditionT Service::Data::doLockPool(
             {
                 lock_guard<std::mutex> lock{rmutex_};
 
-                NameMapT::const_iterator it = name_map_.find(_recipient_name);
+                NameMapT::const_iterator it = name_map_.find(_url);
 
                 if (it != name_map_.end()) {
                     _rpool_id = it->second;
@@ -1018,7 +1020,7 @@ ErrorConditionT Service::Data::doLockPool(
                         ConnectionPoolStub& rpool(pool_dq_[pool_index]);
 
                         _rpool_id                      = ConnectionPoolId{pool_index, rpool.unique_};
-                        rpool.name_                    = _recipient_name;
+                        rpool.name_                    = _url;
                         name_map_[rpool.name_.c_str()] = _rpool_id;
                     } else {
                         return error_service_connection_pool_count;
@@ -1029,9 +1031,8 @@ ErrorConditionT Service::Data::doLockPool(
     }
 }
 //-----------------------------------------------------------------------------
-#if 0
-ErrorConditionT Service::doSendMessage(
-    ConnectionContext&        _rctx,
+ErrorConditionT Service::doSendMessageUsingConnectionContext(
+    const RecipientUrl&       _recipient_url,
     MessagePointerT<>&        _rmsgptr,
     MessageCompleteFunctionT& _rcomplete_fnc,
     RecipientId*              _precipient_id_out,
@@ -1040,10 +1041,10 @@ ErrorConditionT Service::doSendMessage(
 {
     solid_log(logger, Verbose, this);
     // first we'll try to directly deliver the message to connection's Writer.
+    auto& rctx = *_recipient_url.pctx_;
+    auto& rcon = rctx.connection();
 
-    auto& rcon = _rctx.connection();
-
-    if (!rcon.isFull(_rctx.configuration())) {
+    if (!rcon.isFull(rctx.configuration())) {
 
         _flags |= MessageFlagsE::OneShotSend;
 
@@ -1063,15 +1064,15 @@ ErrorConditionT Service::doSendMessage(
             solid_statistic_inc(pimpl_->statistic_.send_message_context_count_);
             return ErrorConditionT{};
         }
-        return doSendMessage(nullptr, _rctx.recipientId(), msgbundle.message_ptr, msgbundle.complete_fnc, nullptr, nullptr, _flags);
+        return doSendMessage({rctx.recipientId(), _recipient_url.relay_}, msgbundle.message_ptr, msgbundle.complete_fnc, nullptr, nullptr, _flags);
     }
 
-    return doSendMessage(nullptr, _rctx.recipientId(), _rmsgptr, _rcomplete_fnc, nullptr, nullptr, _flags);
+    return doSendMessage({rctx.recipientId(), _recipient_url.relay_}, _rmsgptr, _rcomplete_fnc, nullptr, nullptr, _flags);
 }
-#endif
+
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::doSendMessage(
-    const RecipientUri&       _rrecipient_uri,
+    const RecipientUrl&       _recipient_url,
     MessagePointerT<>&        _rmsgptr,
     MessageCompleteFunctionT& _rcomplete_fnc,
     RecipientId*              _precipient_id_out,
@@ -1080,12 +1081,14 @@ ErrorConditionT Service::doSendMessage(
 {
     solid_log(logger, Verbose, this);
     solid_statistic_inc(pimpl_->statistic_.send_message_count_);
-#if 0
-    std::string      message_url;
     shared_ptr<Data> locked_pimpl;
 
-    if (_rrecipient_id_in.isValidConnection()) {
-        if (_rrecipient_id_in.isValidPool()) {
+    if (_recipient_url.pctx_) {
+        return doSendMessageUsingConnectionContext(_recipient_url, _rmsgptr, _rcomplete_fnc, nullptr, nullptr, _flags);
+    }
+
+    if (_recipient_url.pid_ && _recipient_url.pid_->isValidConnection()) {
+        if (_recipient_url.pid_->isValidPool()) {
             locked_pimpl = acquire();
 
             if (locked_pimpl) {
@@ -1095,22 +1098,26 @@ ErrorConditionT Service::doSendMessage(
             }
             return locked_pimpl->doSendMessageToConnection(
                 *this,
-                _rrecipient_id_in,
+                *_recipient_url.pid_,
                 _rmsgptr,
                 _rcomplete_fnc,
                 _pmsgid_out,
-                _flags,
-                std::move(message_url));
+                _flags, _recipient_url.relay_);
         } else {
             solid_assert_log(false, logger);
             return error_service_unknown_connection;
         }
     }
 
-    static constexpr const char* empty_recipient_name = ":";
-    const char*                  recipient_name       = _recipient_url;
-    ConnectionPoolId             pool_id;
-    bool                         check_uid = false;
+    if (!_recipient_url.pid_ && !_recipient_url.purl_) {
+        solid_log(logger, Error, this << " wrong url");
+        return error_service_invalid_url;
+    }
+
+    static constexpr const string_view empty_url = ":";
+    const string_view                  url       = (_recipient_url.purl_ && !_recipient_url.purl_->empty()) ? *_recipient_url.purl_ : empty_url;
+    ConnectionPoolId                   pool_id;
+    bool                               check_uid = false;
     {
         unique_lock<std::mutex> lock;
 
@@ -1122,18 +1129,9 @@ ErrorConditionT Service::doSendMessage(
             return error_service_stopping;
         }
 
-        if (_recipient_url != nullptr) {
+        if (_recipient_url.purl_) {
 
-            recipient_name = configuration().extract_recipient_name_fnc(_recipient_url, message_url, pimpl_->tmp_str_);
-
-            if (recipient_name == nullptr) {
-                solid_log(logger, Error, this << " failed extracting recipient name");
-                return error_service_invalid_url;
-            } else if (recipient_name[0] == '\0') {
-                recipient_name = empty_recipient_name;
-            }
-
-            NameMapT::const_iterator it = locked_pimpl->name_map_.find(recipient_name);
+            NameMapT::const_iterator it = locked_pimpl->name_map_.find(url);
 
             if (it != locked_pimpl->name_map_.end()) {
                 pool_id = it->second;
@@ -1147,17 +1145,17 @@ ErrorConditionT Service::doSendMessage(
                     ConnectionPoolStub& rpool(pimpl_->pool_dq_[pool_index]);
 
                     pool_id                                      = ConnectionPoolId{pool_index, rpool.unique_};
-                    rpool.name_                                  = recipient_name;
+                    rpool.name_                                  = url;
                     locked_pimpl->name_map_[rpool.name_.c_str()] = pool_id;
                 } else {
                     return error_service_connection_pool_count;
                 }
             }
         } else if (
-            static_cast<size_t>(_rrecipient_id_in.pool_id_.index) < pimpl_->pool_dq_.size()) {
+            static_cast<size_t>(_recipient_url.pid_->pool_id_.index) < pimpl_->pool_dq_.size()) {
             // we cannot check the uid right now because we need a lock on the pool's mutex
             check_uid = true;
-            pool_id   = _rrecipient_id_in.pool_id_;
+            pool_id   = _recipient_url.pid_->pool_id_;
         } else {
             solid_log(logger, Error, this << " recipient does not exist");
             return error_service_unknown_recipient;
@@ -1172,7 +1170,7 @@ ErrorConditionT Service::doSendMessage(
     }
 
     unique_lock<std::mutex> pool_lock;
-    const auto              error = locked_pimpl->doLockPool(*this, check_uid, recipient_name, pool_id, pool_lock);
+    const auto              error = locked_pimpl->doLockPool(*this, check_uid, url, pool_id, pool_lock);
     if (!error) {
     } else {
         return error;
@@ -1180,21 +1178,21 @@ ErrorConditionT Service::doSendMessage(
 
     solid_assert(pool_lock.owns_lock());
 
-    return locked_pimpl->doSendMessageToPool(*this, pool_id, _rmsgptr, _rcomplete_fnc, msg_type_idx, std::move(message_url), _precipient_id_out, _pmsgid_out, _flags);
-#endif
+    return locked_pimpl->doSendMessageToPool(*this, pool_id, _rmsgptr, _rcomplete_fnc, msg_type_idx, _recipient_url.relay_, _precipient_id_out, _pmsgid_out, _flags);
+
     return {};
 }
 
 //-----------------------------------------------------------------------------
 
 ErrorConditionT Service::Data::doSendMessageToConnection(
-    Service&                      _rsvc,
-    const RecipientId&            _rrecipient_id_in,
-    MessagePointerT<>&            _rmsgptr,
-    MessageCompleteFunctionT&     _rcomplete_fnc,
-    MessageId*                    _pmsgid_out,
-    MessageFlagsT                 _flags,
-    OptionalMessageRelayHeaderT&& _relay)
+    Service&                           _rsvc,
+    const RecipientId&                 _rrecipient_id_in,
+    MessagePointerT<>&                 _rmsgptr,
+    MessageCompleteFunctionT&          _rcomplete_fnc,
+    MessageId*                         _pmsgid_out,
+    MessageFlagsT                      _flags,
+    const OptionalMessageRelayHeaderT& _relay)
 {
     solid_log(logger, Verbose, &_rsvc);
     solid_statistic_inc(statistic_.send_message_to_connection_count_);
@@ -1269,12 +1267,12 @@ ErrorConditionT Service::Data::doSendMessageToConnection(
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::Data::doSendMessageToPool(
     Service& _rsvc, const ConnectionPoolId& _rpool_id, MessagePointerT<>& _rmsgptr,
-    MessageCompleteFunctionT&     _rcomplete_fnc,
-    const size_t                  _msg_type_idx,
-    OptionalMessageRelayHeaderT&& _relay,
-    RecipientId*                  _precipient_id_out,
-    MessageId*                    _pmsgid_out,
-    const MessageFlagsT&          _flags)
+    MessageCompleteFunctionT&          _rcomplete_fnc,
+    const size_t                       _msg_type_idx,
+    const OptionalMessageRelayHeaderT& _relay,
+    RecipientId*                       _precipient_id_out,
+    MessageId*                         _pmsgid_out,
+    const MessageFlagsT&               _flags)
 {
     solid_log(logger, Verbose, &_rsvc << " " << _rpool_id);
     solid_statistic_inc(statistic_.send_message_to_pool_count_);
@@ -2781,7 +2779,7 @@ std::ostream& operator<<(std::ostream& _ros, const MessageRelayHeader& _header)
 std::ostream& operator<<(std::ostream& _ros, const OptionalMessageRelayHeaderT& _header)
 {
     if (_header.has_value()) {
-        _ros << _header;
+        _ros << _header.value();
     } else {
         _ros << "null";
     }

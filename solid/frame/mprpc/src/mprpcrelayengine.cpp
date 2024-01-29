@@ -194,8 +194,8 @@ struct ConnectionStub : ConnectionStubBase {
     {
     }
 
-    ConnectionStub(MessageDequeT& _rmsg_dq, std::string&& _uname)
-        : ConnectionStubBase(std::move(_uname))
+    ConnectionStub(MessageDequeT& _rmsg_dq, const uint32_t _group_id, const uint16_t _replica_id)
+        : ConnectionStubBase(_group_id, _replica_id)
         , unique_(0)
         , pdone_relay_data_top_(nullptr)
         , send_msg_list_(_rmsg_dq)
@@ -497,7 +497,7 @@ size_t EngineCore::doRegisterUnnamedConnection(const ActorIdT& _rcon_uid, Unique
 size_t EngineCore::doRegisterNamedConnection(MessageRelayHeader&& _relay)
 {
     Proxy  proxy(*this);
-    size_t conidx = 0; // TODO:relay: registerConnection(proxy, std::move(_uname));
+    size_t conidx = registerConnection(proxy, _relay.group_id_, _relay.replica_id_);
     solid_log(logger, Info, conidx << ' ' << plot(impl_->con_dq_[conidx]));
     return conidx;
 }
@@ -536,7 +536,7 @@ bool EngineCore::doRelayStart(
 
     _rrelay_id = MessageId(msgidx, rmsg.unique_);
 
-    const size_t    rcv_conidx = doRegisterNamedConnection(std::move(rmsg.header_.relay_.value()));
+    const size_t    rcv_conidx = doRegisterNamedConnection(std::move(rmsg.header_.relay_));
     ConnectionStub& rrcvcon    = impl_->con_dq_[rcv_conidx];
     ConnectionStub& rsndcon    = impl_->con_dq_[snd_conidx];
 

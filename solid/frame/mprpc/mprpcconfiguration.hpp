@@ -288,7 +288,6 @@ using SendAllocateBufferFunctionT               = solid_function_t(SharedBuffer(
 using RecvAllocateBufferFunctionT               = solid_function_t(SharedBuffer(const uint32_t));
 using CompressFunctionT                         = solid_function_t(size_t(char*, size_t, ErrorConditionT&));
 using UncompressFunctionT                       = solid_function_t(size_t(char*, const char*, size_t, ErrorConditionT&));
-using ExtractRecipientNameFunctionT             = solid_function_t(const char*(const char*, std::string&, std::string&));
 using ConnectionEnterActiveCompleteFunctionT    = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
 using ConnectionPostCompleteFunctionT           = solid_function_t(void(ConnectionContext&));
 using ConnectionSendTimeoutSoftFunctionT        = solid_function_t(void(ConnectionContext&));
@@ -352,7 +351,6 @@ public:
     uint8_t                            connection_send_buffer_start_capacity_kb = 0;
     uint8_t                            connection_send_buffer_max_capacity_kb   = 64;
     uint16_t                           connection_relay_buffer_count            = 8;
-    ExtractRecipientNameFunctionT      extract_recipient_name_fnc;
     ConnectionStopFunctionT            connection_stop_fnc;
     ConnectionOnEventFunctionT         connection_on_event_fnc;
     ConnectionSendTimeoutSoftFunctionT connection_on_send_timeout_soft_ = [](ConnectionContext&) {};

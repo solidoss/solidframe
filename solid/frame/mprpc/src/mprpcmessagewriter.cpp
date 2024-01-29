@@ -141,7 +141,7 @@ bool MessageWriter::enqueue(
 
     order_inner_list_.pushBack(idx);
     doWriteQueuePushBack(idx, __LINE__);
-    solid_log(logger, Verbose, "is_relayed = " << Message::is_relayed(rmsgstub.msgbundle_.message_ptr->flags()) << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
+    solid_log(logger, Verbose, "is_relayed = " << Message::is_relayed(rmsgstub.msgbundle_.message_ptr->flags()) << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE) << " relay " << rmsgstub.msgbundle_.message_relay_header_ << " " << _rmsgbundle.message_relay_header_);
 
     return true;
 }
@@ -679,6 +679,7 @@ char* MessageWriter::doWriteMessageHead(
         _rsender.context().message_flags.set(MessageFlagsE::Relayed);
         _rsender.context().pmessage_relay_header_ = &rmsgstub.msgbundle_.message_relay_header_.value();
     } else {
+        _rsender.context().message_flags.reset(MessageFlagsE::Relayed);
         _rsender.context().pmessage_relay_header_ = nullptr;
     }
 
@@ -730,6 +731,7 @@ char* MessageWriter::doWriteMessageBody(
         _rsender.context().message_flags.set(MessageFlagsE::Relayed);
         _rsender.context().pmessage_relay_header_ = &rmsgstub.msgbundle_.message_relay_header_.value();
     } else {
+        _rsender.context().message_flags.reset(MessageFlagsE::Relayed);
         _rsender.context().pmessage_relay_header_ = nullptr;
     }
 
@@ -788,7 +790,7 @@ char* MessageWriter::doWriteRelayedHead(
     _rsender.context().request_id.unique = rmsgstub.unique_;
     _rsender.context().message_flags     = rmsgstub.prelay_data_->pmessage_header_->flags_;
     _rsender.context().message_flags.set(MessageFlagsE::Relayed);
-    _rsender.context().pmessage_relay_header_ = &rmsgstub.prelay_data_->pmessage_header_->relay_.value();
+    _rsender.context().pmessage_relay_header_ = &rmsgstub.prelay_data_->pmessage_header_->relay_;
 
     const ptrdiff_t rv = rmsgstub.state_ == MessageStub::StateE::RelayedHeadStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos, *rmsgstub.prelay_data_->pmessage_header_) : rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
     rmsgstub.state_    = MessageStub::StateE::RelayedHeadContinue;

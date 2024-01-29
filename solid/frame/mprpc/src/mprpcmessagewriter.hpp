@@ -386,7 +386,7 @@ inline bool MessageWriter::MessageStub::isStop() const noexcept
 //-----------------------------------------------------------------------------
 inline bool MessageWriter::MessageStub::isRelay() const noexcept
 {
-    return msgbundle_.message_relay_header_.has_value(); //|| Message::is_relayed(msgbundle_.message_flags); // TODO: optimize!!
+    return msgbundle_.message_relay_header_.has_value() || Message::is_relayed(msgbundle_.message_flags); // TODO: optimize!!
 }
 //-----------------------------------------------------------------------------
 inline bool MessageWriter::MessageStub::isRelayed() const noexcept

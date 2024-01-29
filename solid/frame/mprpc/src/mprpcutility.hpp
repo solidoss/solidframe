@@ -188,6 +188,20 @@ struct MessageBundle {
     }
 
     MessageBundle(
+        MessagePointerT<>&&                _rmsgptr,
+        const size_t                       _msg_type_idx,
+        const MessageFlagsT&               _flags,
+        MessageCompleteFunctionT&          _complete_fnc,
+        const OptionalMessageRelayHeaderT& _relay)
+        : message_type_id(_msg_type_idx)
+        , message_flags(_flags)
+        , message_ptr(std::move(_rmsgptr))
+        , message_relay_header_(_relay)
+    {
+        std::swap(complete_fnc, _complete_fnc);
+    }
+
+    MessageBundle(
         MessagePointerT<>&&       _rmsgptr,
         const size_t              _msg_type_idx,
         const MessageFlagsT&      _flags,

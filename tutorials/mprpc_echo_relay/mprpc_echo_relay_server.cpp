@@ -64,9 +64,9 @@ int main(int argc, char* argv[])
                 solid_check(!_rerror);
                 if (_rrecv_msg_ptr) {
                     solid_check(!_rsent_msg_ptr);
-                    solid_log(generic_logger, Info, "recv register request: " << _rrecv_msg_ptr->name);
+                    solid_log(generic_logger, Info, "recv register request: " << _rrecv_msg_ptr->group_id_);
 
-                    relay_engine.registerConnection(_rctx, std::move(_rrecv_msg_ptr->name));
+                    relay_engine.registerConnection(_rctx, _rrecv_msg_ptr->group_id_, _rrecv_msg_ptr->replica_id_);
 
                     ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 

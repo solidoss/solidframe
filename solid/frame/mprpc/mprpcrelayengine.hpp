@@ -20,24 +20,27 @@ namespace mprpc {
 namespace relay {
 
 struct ConnectionStubBase {
-    ActorIdT    id_;
-    std::string name_;
-    size_t      next_ = InvalidIndex();
-    size_t      prev_ = InvalidIndex();
+    ActorIdT id_;
+    uint32_t group_id_   = InvalidIndex();
+    uint16_t replica_id_ = 0;
+    size_t   next_       = InvalidIndex();
+    size_t   prev_       = InvalidIndex();
 
     ConnectionStubBase() = default;
 
-    ConnectionStubBase(std::string&& _uname)
-        : name_(std::move(_uname))
+    ConnectionStubBase(const uint32_t _group_id, const uint16_t _replica_id)
+        : group_id_(_group_id)
+        , replica_id_(_replica_id)
     {
     }
 
     void clear()
     {
         id_.clear();
-        name_.clear();
-        next_ = InvalidIndex();
-        prev_ = InvalidIndex();
+        group_id_   = InvalidIndex();
+        replica_id_ = 0;
+        next_       = InvalidIndex();
+        prev_       = InvalidIndex();
     }
 };
 
@@ -101,8 +104,8 @@ protected:
     }
 
 private:
-    virtual void   unregisterConnectionName(Proxy& _proxy, size_t _conidx) = 0;
-    virtual size_t registerConnection(Proxy& _proxy, std::string&& _uname) = 0;
+    virtual void   unregisterConnectionName(Proxy& _proxy, size_t _conidx)                                 = 0;
+    virtual size_t registerConnection(Proxy& _proxy, const uint32_t _group_id, const uint16_t _replica_id) = 0;
 
 private:
     using ExecuteFunctionT = solid_function_t(void(Proxy&));
