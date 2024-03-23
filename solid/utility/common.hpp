@@ -162,7 +162,7 @@ inline uint64_t bit_revert(const uint64_t _v)
 
 struct InvalidIndex {
     template <typename SizeT>
-    operator SizeT() const
+    constexpr operator SizeT() const
     {
         return (std::numeric_limits<SizeT>::max)();
     }

@@ -72,7 +72,7 @@ void MessageWriter::doWriteQueuePushBack(const size_t _msgidx, const int _line)
     }
     MessageStub& rmsgstub(message_vec_[_msgidx]);
 
-    solid_log(logger, Info, this << " code line = " << _line << " idx = " << _msgidx << " is_relay = " << rmsgstub.isRelay());
+    solid_log(logger, Info, this << " code line = " << _line << " idx = " << _msgidx << " is_relay = " << rmsgstub.isRelay() << " msg = " << rmsgstub.msgbundle_.message_ptr.get());
     if (!rmsgstub.isRelay()) {
         ++write_queue_direct_count_;
     }
@@ -141,7 +141,7 @@ bool MessageWriter::enqueue(
 
     order_inner_list_.pushBack(idx);
     doWriteQueuePushBack(idx, __LINE__);
-    solid_log(logger, Verbose, "is_relayed = " << Message::is_relayed(rmsgstub.msgbundle_.message_ptr->flags()) << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE) << " relay " << rmsgstub.msgbundle_.message_relay_header_ << " " << _rmsgbundle.message_relay_header_);
+    solid_log(logger, Verbose, "messgeptr = " << rmsgstub.msgbundle_.message_ptr.get() << " is_relayed = " << Message::is_relayed(rmsgstub.msgbundle_.message_ptr->flags()) << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE) << " relay " << rmsgstub.msgbundle_.message_relay_header_ << " " << _rmsgbundle.message_relay_header_);
 
     return true;
 }
@@ -676,9 +676,11 @@ char* MessageWriter::doWriteMessageHead(
     _rsender.context().request_id.unique = rmsgstub.unique_;
     _rsender.context().message_flags     = rmsgstub.msgbundle_.message_flags;
     if (rmsgstub.msgbundle_.message_relay_header_.has_value()) {
+        // solid_assert_log(_rsender.context().message_flags.isSet(MessageFlagsE::Relayed), logger, ""<<rmsgstub.msgbundle_.message_ptr.get());
         _rsender.context().message_flags.set(MessageFlagsE::Relayed);
         _rsender.context().pmessage_relay_header_ = &rmsgstub.msgbundle_.message_relay_header_.value();
     } else {
+        // solid_assert_log(!_rsender.context().message_flags.isSet(MessageFlagsE::Relayed), logger, ""<<rmsgstub.msgbundle_.message_ptr.get());
         _rsender.context().message_flags.reset(MessageFlagsE::Relayed);
         _rsender.context().pmessage_relay_header_ = nullptr;
     }
