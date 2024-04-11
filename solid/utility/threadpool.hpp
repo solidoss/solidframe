@@ -349,6 +349,7 @@ NOTE:
 template <class TaskOne, class TaskAll, class Stats>
 class ThreadPool : NonCopyable {
 public:
+    static constexpr size_t spin_count = 10000;
     struct ContextStub {
         using TaskQueueT = TaskList<TaskOne>;
         std::atomic_size_t        use_count_{1};
@@ -442,9 +443,12 @@ private:
                     std::underlying_type_t<LockE> value = to_underlying(LockE::Empty);
 
                     if (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing))) {
-                        throw false;
+                        auto spin = spin_count;
                         do {
-                            std::atomic_wait(&lock_, value);
+                            if(!spin--){
+                                spin = 0;
+                                std::atomic_wait(&lock_, value);
+                            }
                             value = to_underlying(LockE::Empty);
                         } while (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing)));
                         _rstats.pushOneWaitLock();
@@ -533,8 +537,10 @@ private:
                     std::underlying_type_t<LockE> value;
 
                     if (!lock_.compare_exchange_weak(value= to_underlying(LockE::Filled), to_underlying(LockE::Popping))) {
+                        auto spin = spin_count;
                         do {
-                            if (!_try_consume_an_all_fnc(&lock_, _all_fnc, std::forward<Args>(_args)...)) {
+                            if (!_try_consume_an_all_fnc(&lock_, _all_fnc, std::forward<Args>(_args)...) && !spin--) {
+                                spin = 0;
                                 std::atomic_wait(&lock_, value);
                             }
                         } while (!lock_.compare_exchange_weak(value= to_underlying(LockE::Filled), to_underlying(LockE::Popping)));
@@ -589,8 +595,12 @@ private:
                     std::underlying_type_t<LockE> value = to_underlying(LockE::Empty);
 
                     if (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing))) {
+                        auto spin = spin_count;
                         do {
-                            std::atomic_wait(&lock_, value);
+                            if(!spin--){
+                                spin = 0;
+                                std::atomic_wait(&lock_, value);
+                            }
                             value = to_underlying(LockE::Empty);
                         } while (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing)));
                         _rstats.pushAllWaitLock();
