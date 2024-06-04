@@ -3,9 +3,9 @@
 #include <future>
 #include <string>
 #include <vector>
-#ifdef __cpp_lib_ranges
+// #ifdef __cpp_lib_ranges
 #include <ranges>
-#endif
+// #endif
 
 #include "solid/frame/mprpc/mprpcsocketstub_openssl.hpp"
 

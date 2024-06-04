@@ -242,7 +242,7 @@ public:
 namespace tpimpl {
 
 template <class Task>
-class TaskData {
+class alignas(hardware_destructive_interference_size) TaskData {
     std::aligned_storage_t<sizeof(Task), alignof(Task)> data_;
 
 public:
@@ -349,7 +349,7 @@ NOTE:
 template <class TaskOne, class TaskAll, class Stats>
 class ThreadPool : NonCopyable {
 public:
-    static constexpr size_t spin_count = 10000;
+    static constexpr size_t spin_count = 10;
     struct ContextStub {
         using TaskQueueT = TaskList<TaskOne>;
         std::atomic_size_t        use_count_{1};
@@ -380,7 +380,8 @@ public:
     };
 
 private:
-    using AtomicLockT = std::atomic_size_t;
+    using AtomicLockT = std::atomic<uint32_t>;
+
     enum struct LockE : AtomicLockT::value_type {
         Empty = 0,
         Pushing,
@@ -392,20 +393,23 @@ private:
         Stop,
         Wake,
     };
+
+    using AtomicCounterT      = std::atomic<uint8_t>;
+    using AtomicCounterValueT = AtomicCounterT::value_type;
+    template <class IndexT>
+    inline constexpr static auto computeCounter(const IndexT _index, const size_t _capacity) noexcept
+    {
+        return (_index / _capacity) & std::numeric_limits<AtomicCounterValueT>::max();
+    }
+
     struct OneStub {
-#if defined(__cpp_lib_atomic_wait)
-        std::atomic_flag pushing_ = ATOMIC_FLAG_INIT;
-        std::atomic_flag popping_ = ATOMIC_FLAG_INIT;
-#else
-        std::atomic_bool pushing_ = {false};
-        std::atomic_bool popping_ = {false};
-#endif
-        AtomicLockT                        lock_               = {to_underlying(LockE::Empty)};
-        std::uint8_t                       event_              = {to_underlying(EventE::Fill)};
-        ContextStub*                       pcontext_           = nullptr;
-        uint64_t                           all_id_             = 0;
-        uint64_t                           context_produce_id_ = 0;
-        std::unique_ptr<TaskData<TaskOne>> data_ptr_           = std::make_unique<TaskData<TaskOne>>();
+        AtomicCounterT     produce_count_{0};
+        AtomicCounterT     consume_count_{static_cast<AtomicCounterValueT>(-1)};
+        std::uint8_t       event_              = {to_underlying(EventE::Fill)};
+        TaskData<TaskOne>* data_ptr_           = nullptr;
+        ContextStub*       pcontext_           = nullptr;
+        uint64_t           all_id_             = 0;
+        uint64_t           context_produce_id_ = 0;
 
         auto& task() noexcept
         {
@@ -429,38 +433,15 @@ private:
             context_produce_id_ = 0;
         }
 
-        void waitWhilePushOne(Stats& _rstats) noexcept
+        void waitWhilePushOne(Stats& _rstats, const AtomicCounterValueT _count) noexcept
         {
             while (true) {
-#if defined(__cpp_lib_atomic_wait)
-                const bool already_pushing = pushing_.test_and_set(std::memory_order_acquire);
-#else
-                bool       expected        = false;
-                const bool already_pushing = !pushing_.compare_exchange_strong(expected, true, std::memory_order_acquire);
-#endif
-                if (!already_pushing) {
-                    //  wait for lock to be 0.
-                    std::underlying_type_t<LockE> value = to_underlying(LockE::Empty);
-
-                    if (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing))) {
-                        auto spin = spin_count;
-                        do {
-                            if(!spin--){
-                                spin = 0;
-                                std::atomic_wait(&lock_, value);
-                            }
-                            value = to_underlying(LockE::Empty);
-                        } while (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing)));
-                        _rstats.pushOneWaitLock();
-                    }
-                    return;
+                const auto cnt = produce_count_.load();
+                if (cnt == _count) {
+                    break;
                 } else {
-#if defined(__cpp_lib_atomic_wait)
-                    pushing_.wait(true);
-#else
-                    std::atomic_wait(&pushing_, true);
-#endif
-                    _rstats.pushOneWaitPushing();
+                    _rstats.pushOneWaitLock();
+                    std::atomic_wait_explicit(&produce_count_, cnt, std::memory_order_relaxed);
                 }
             }
         }
@@ -469,90 +450,49 @@ private:
         {
             using namespace std::chrono;
             event_ = to_underlying(EventE::Fill);
-            lock_.store(to_underlying(LockE::Filled));
-            std::atomic_notify_one(&lock_);
+            ++consume_count_;
+            std::atomic_notify_one(&consume_count_);
             _rduration = duration_cast<microseconds>(steady_clock::now() - _start).count();
-#if defined(__cpp_lib_atomic_wait)
-            pushing_.clear(std::memory_order_release);
-            pushing_.notify_one();
-#else
-            pushing_.store(false, std::memory_order_release);
-            std::atomic_notify_one(&pushing_);
-#endif
         }
 
-        void waitWhileStop(Stats& _rstats) noexcept
+        void waitWhileStop(Stats& _rstats, const AtomicCounterValueT _count) noexcept
         {
-            waitWhilePushOne(_rstats);
+            waitWhilePushOne(_rstats, _count);
         }
 
-        void waitWhilePushAll(Stats& _rstats) noexcept
+        void waitWhilePushAll(Stats& _rstats, const AtomicCounterValueT _count) noexcept
         {
-            waitWhilePushOne(_rstats);
+            waitWhilePushOne(_rstats, _count);
         }
 
         void notifyWhileStop() noexcept
         {
             event_ = to_underlying(EventE::Stop);
-            lock_.store(to_underlying(LockE::Filled));
-            std::atomic_notify_one(&lock_);
-#if defined(__cpp_lib_atomic_wait)
-            pushing_.clear(std::memory_order_release);
-            pushing_.notify_one();
-#else
-            pushing_.store(false, std::memory_order_release);
-            std::atomic_notify_one(&pushing_);
-#endif
+            ++consume_count_;
+            std::atomic_notify_one(&consume_count_);
         }
 
         void notifyWhilePushAll() noexcept
         {
             event_ = to_underlying(EventE::Wake);
-            lock_.store(to_underlying(LockE::Filled));
-            std::atomic_notify_one(&lock_);
-#if defined(__cpp_lib_atomic_wait)
-            pushing_.clear(std::memory_order_release);
-            pushing_.notify_one();
-#else
-            pushing_.store(false, std::memory_order_release);
-            std::atomic_notify_one(&pushing_);
-#endif
+            ++consume_count_;
+            std::atomic_notify_one(&consume_count_);
         }
 
         template <
             class Fnc,
             class AllFnc,
             typename... Args>
-        EventE waitWhilePop(Stats& _rstats, const Fnc& _try_consume_an_all_fnc, AllFnc& _all_fnc, Args&&... _args) noexcept
+        EventE waitWhilePop(Stats& _rstats, const AtomicCounterValueT _count, const Fnc& _try_consume_an_all_fnc, AllFnc& _all_fnc, Args&&... _args) noexcept
         {
             while (true) {
-#if defined(__cpp_lib_atomic_wait)
-                const bool already_popping = popping_.test_and_set(std::memory_order_acquire);
-#else
-                bool       expected        = false;
-                const bool already_popping = !popping_.compare_exchange_strong(expected, true, std::memory_order_acquire);
-#endif
-                if (!already_popping) {
-                    // wait for lock to be 1 or 2.
-                    std::underlying_type_t<LockE> value;
-
-                    if (!lock_.compare_exchange_weak(value= to_underlying(LockE::Filled), to_underlying(LockE::Popping))) {
-                        auto spin = spin_count;
-                        do {
-                            if (!_try_consume_an_all_fnc(&lock_, _all_fnc, std::forward<Args>(_args)...) && !spin--) {
-                                spin = 0;
-                                std::atomic_wait(&lock_, value);
-                            }
-                        } while (!lock_.compare_exchange_weak(value= to_underlying(LockE::Filled), to_underlying(LockE::Popping)));
-                        _rstats.popOneWaitLock();
-                    }
+                const auto cnt = consume_count_.load();
+                if (cnt == _count) {
                     return static_cast<EventE>(event_);
-                } else {
-#if defined(__cpp_lib_atomic_wait)
-                    popping_.wait(true);
-#else
-                    std::atomic_wait(&popping_, true);
-#endif
+                } else if (!_try_consume_an_all_fnc(&consume_count_, _count, _all_fnc, std::forward<Args>(_args)...)) {
+
+                    std::atomic_wait_explicit(&consume_count_, cnt, std::memory_order_relaxed);
+
                     _rstats.popOneWaitPopping();
                 }
             }
@@ -560,59 +500,42 @@ private:
 
         void notifyWhilePop() noexcept
         {
-            lock_.store(to_underlying(LockE::Empty));
-            std::atomic_notify_one(&lock_);
-#if defined(__cpp_lib_atomic_wait)
-            popping_.clear(std::memory_order_release);
-            popping_.notify_one();
-#else
-            popping_.store(false, std::memory_order_release);
-            std::atomic_notify_one(&popping_);
-#endif
+            ++produce_count_;
+            std::atomic_notify_one(&produce_count_);
         }
     };
 
-    struct AllStub : TaskData<TaskAll> {
-#if defined(__cpp_lib_atomic_wait)
-        std::atomic_flag pushing_ = ATOMIC_FLAG_INIT;
-#else
-        std::atomic_bool pushing_ = {false};
-#endif
-        AtomicLockT          lock_      = {to_underlying(LockE::Empty)};
+    struct AllStub {
+        AtomicCounterT       produce_count_{0};
+        AtomicCounterT       consume_count_{static_cast<AtomicCounterValueT>(-1)};
         std::atomic_uint32_t use_count_ = {0};
         std::atomic_uint64_t id_        = {0};
+        TaskData<TaskAll>*   data_ptr_  = nullptr;
 
-        void waitWhilePushAll(Stats& _rstats) noexcept
+        auto& task() noexcept
+        {
+            return data_ptr_->task();
+        }
+        template <class T>
+        void task(T&& _rt)
+        {
+            data_ptr_->task(std::forward<T>(_rt));
+        }
+
+        void destroy()
+        {
+            data_ptr_->destroy();
+        }
+
+        void waitWhilePushAll(Stats& _rstats, const AtomicCounterValueT _count) noexcept
         {
             while (true) {
-#if defined(__cpp_lib_atomic_wait)
-                const bool already_pushing = pushing_.test_and_set(std::memory_order_acquire);
-#else
-                bool       expected        = false;
-                const bool already_pushing = !pushing_.compare_exchange_strong(expected, true, std::memory_order_acquire);
-#endif
-                if (!already_pushing) {
-                    std::underlying_type_t<LockE> value = to_underlying(LockE::Empty);
-
-                    if (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing))) {
-                        auto spin = spin_count;
-                        do {
-                            if(!spin--){
-                                spin = 0;
-                                std::atomic_wait(&lock_, value);
-                            }
-                            value = to_underlying(LockE::Empty);
-                        } while (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing)));
-                        _rstats.pushAllWaitLock();
-                    }
-                    return;
+                const auto cnt = produce_count_.load();
+                if (cnt == _count) {
+                    break;
                 } else {
-#if defined(__cpp_lib_atomic_wait)
-                    pushing_.wait(true);
-#else
-                    std::atomic_wait(&pushing_, true);
-#endif
-                    _rstats.pushAllWaitPushing();
+                    _rstats.pushOneWaitLock();
+                    std::atomic_wait_explicit(&produce_count_, cnt, std::memory_order_relaxed);
                 }
             }
         }
@@ -621,30 +544,25 @@ private:
         {
             use_count_.store(_thread_count);
             id_.store(_id);
-            lock_.store(to_underlying(LockE::Filled));
-#if defined(__cpp_lib_atomic_wait)
-            pushing_.clear(std::memory_order_release);
-            pushing_.notify_one();
-#else
-            pushing_.store(false, std::memory_order_release);
-            std::atomic_notify_one(&pushing_);
-#endif
+            ++consume_count_;
         }
 
         bool notifyWhilePop() noexcept
         {
             if (use_count_.fetch_sub(1) == 1) {
-                TaskData<TaskAll>::destroy();
-                lock_.store(to_underlying(LockE::Empty));
-                std::atomic_notify_one(&lock_);
+                destroy();
+                ++produce_count_;
+                std::atomic_notify_one(&produce_count_);
                 return true;
             }
             return false;
         }
 
-        bool isFilled(const uint64_t _id) const
+        bool isFilled(const uint64_t _id, const size_t _capacity) const
         {
-            return lock_.load() == to_underlying(LockE::Filled) && id_.load() == _id;
+            const auto                count          = consume_count_.load(std::memory_order_relaxed);
+            const AtomicCounterValueT expected_count = computeCounter(_id, _capacity);
+            return count == expected_count && id_.load() == _id;
         }
     };
     using AllStubT      = AllStub;
@@ -652,30 +570,36 @@ private:
     using ThreadVectorT = std::vector<std::thread>;
 
     /* alignas(hardware_constructive_interference_size) */ struct {
-        size_t                      capacity_{0};
-        std::atomic_size_t          pending_count_{0};
-        std::atomic_uint_fast64_t   push_index_{1};
-        std::atomic_uint_fast64_t   commited_index_{0};
-        std::unique_ptr<AllStubT[]> tasks_;
-    } all_;
-    /* alignas(hardware_constructive_interference_size) */ struct {
-        size_t capacity_{0};
-        //std::unique_ptr<OneStubT[]> tasks_;
-        std::vector<std::unique_ptr<OneStubT>> tasks_;
+        size_t                               capacity_{0};
+        std::unique_ptr<OneStubT[]>          tasks_;
+        std::unique_ptr<TaskData<TaskOne>[]> datas_;
     } one_;
+
+    /* alignas(hardware_constructive_interference_size) */ struct {
+        size_t                               capacity_{0};
+        std::atomic_size_t                   pending_count_{0};
+        std::atomic_uint_fast64_t            push_index_{1};
+        std::atomic_uint_fast64_t            commited_index_{0};
+        std::unique_ptr<AllStubT[]>          tasks_;
+        std::unique_ptr<TaskData<TaskAll>[]> datas_;
+    } all_;
     Stats statistic_;
     alignas(hardware_destructive_interference_size) std::atomic_size_t push_one_index_{0};
     alignas(hardware_destructive_interference_size) std::atomic_size_t pop_one_index_{0};
     ThreadVectorT     threads_;
     std::atomic<bool> running_{false};
 
-    size_t pushOneIndex() noexcept
+    std::tuple<size_t, AtomicCounterValueT> pushOneIndex() noexcept
     {
-        return push_one_index_.fetch_add(1) % one_.capacity_;
+        // return push_one_index_.fetch_add(1) % one_.capacity_;
+        const auto index = push_one_index_.fetch_add(1);
+        return {index % one_.capacity_, computeCounter(index, one_.capacity_)};
     }
-    size_t popOneIndex() noexcept
+    std::tuple<size_t, AtomicCounterValueT> popOneIndex() noexcept
     {
-        return pop_one_index_.fetch_add(1) % one_.capacity_;
+        // return pop_one_index_.fetch_add(1) % one_.capacity_;
+        const auto index = pop_one_index_.fetch_add(1);
+        return {index % one_.capacity_, computeCounter(index, one_.capacity_)};
     }
 
     auto pushAllId() noexcept
@@ -764,7 +688,8 @@ private:
     template <
         class AllFnc,
         typename... Args>
-    bool tryConsumeAnAllTask(AtomicLockT* _plock, LocalContext& _rlocal_context, AllFnc& _all_fnc, Args&&... _args);
+    bool tryConsumeAnAllTask(AtomicCounterT* _pcounter,
+        const AtomicCounterValueT _count, LocalContext& _rlocal_context, AllFnc& _all_fnc, Args&&... _args);
     template <
         class AllFnc,
         typename... Args>
@@ -1056,16 +981,22 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doStart(
     const auto thread_count = _thread_count ? _thread_count : std::thread::hardware_concurrency();
 
     one_.capacity_ = _one_capacity >= thread_count ? _one_capacity : std::max(static_cast<size_t>(1024), thread_count);
-#if 0
     one_.tasks_.reset(new OneStubT[one_.capacity_]);
-#else
-    one_.tasks_.resize(one_.capacity_);
-    for (auto& task : one_.tasks_) {
-        task = std::make_unique<OneStubT>();
+    one_.datas_.reset(new TaskData<TaskOne>[one_.capacity_]);
+
+    for (size_t i = 0; i < one_.capacity_; ++i) {
+        one_.tasks_[i].data_ptr_ = &one_.datas_[i];
     }
-#endif
+
     all_.capacity_ = _all_capacity ? _all_capacity : 1;
     all_.tasks_.reset(new AllStubT[all_.capacity_]);
+    all_.datas_.reset(new TaskData<TaskAll>[all_.capacity_]);
+
+    for (size_t i = 0; i < all_.capacity_; ++i) {
+        all_.tasks_[i].data_ptr_ = &all_.datas_[i];
+    }
+    all_.tasks_[0].produce_count_ = 1; //+
+    all_.tasks_[0].consume_count_ = 0; // first entry is skipped on the first iteration
 
     for (size_t i = 0; i < thread_count; ++i) {
         threads_.emplace_back(
@@ -1090,9 +1021,10 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doStop()
     }
 
     for (size_t i = 0; i < threads_.size(); ++i) {
-        auto& rstub = *one_.tasks_[pushOneIndex()];
+        const auto [index, count] = pushOneIndex();
+        auto& rstub               = one_.tasks_[index];
 
-        rstub.waitWhileStop(statistic_);
+        rstub.waitWhileStop(statistic_, count);
         rstub.notifyWhileStop();
     }
 
@@ -1115,18 +1047,21 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
     LocalContext local_context;
 
     while (true) {
-        const size_t index                   = popOneIndex();
-        auto&        rstub                   = *one_.tasks_[index];
-        uint64_t     local_one_context_count = 0;
-        const auto   event                   = rstub.waitWhilePop(
+        const auto [index, count]        = popOneIndex();
+        auto&    rstub                   = one_.tasks_[index];
+        uint64_t local_one_context_count = 0;
+
+        const auto event = rstub.waitWhilePop(
             statistic_,
+            count,
             [this, &local_context](
-                AtomicLockT* _plock,
-                AllFnc&      _all_fnc,
+                AtomicCounterT*           _pcounter,
+                const AtomicCounterValueT _count,
+                AllFnc&                   _all_fnc,
                 Args&&... _args) {
                 // we need to make sure that, after processing an all_task, no new one_task can have
                 //  the all_id less than the all task that we have just processed.
-                return tryConsumeAnAllTask(_plock, local_context, _all_fnc, std::forward<Args>(_args)...);
+                return tryConsumeAnAllTask(_pcounter, _count, local_context, _all_fnc, std::forward<Args>(_args)...);
             },
             _all_fnc,
             std::forward<Args>(_args)...);
@@ -1204,6 +1139,9 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
 
             statistic_.runOneContextCount(local_one_context_count, local_context.one_context_count_);
         } else if (event == EventE::Wake) {
+            const auto all_id = rstub.all_id_;
+            consumeAll(local_context, all_id, _all_fnc, std::forward<Args>(_args)...);
+
             ++local_context.wake_count_;
             statistic_.runWakeCount(local_context.wake_count_);
             rstub.notifyWhilePop();
@@ -1218,10 +1156,11 @@ template <class TaskOne, class TaskAll, class Stats>
 template <
     class AllFnc,
     typename... Args>
-bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(AtomicLockT* _plock, LocalContext& _rlocal_context, AllFnc& _all_fnc, Args&&... _args)
+bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(AtomicCounterT* _pcounter,
+    const AtomicCounterValueT _count, LocalContext& _rlocal_context, AllFnc& _all_fnc, Args&&... _args)
 {
     auto& rstub = all_.tasks_[_rlocal_context.next_all_id_ % all_.capacity_];
-    if (rstub.isFilled(_rlocal_context.next_all_id_)) {
+    if (rstub.isFilled(_rlocal_context.next_all_id_, all_.capacity_)) {
         // NOTE: first we fetch the commited_all_index then we check if the
         //  current stub is reserved (some thread is starting to push something)
         //  - this is to ensure that we are not processing an all task prior to being
@@ -1230,11 +1169,11 @@ bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(AtomicLockT* _ploc
         //  we're atomicaly marking the one stub as Pushing.
         const auto commited_all_index = all_.commited_index_.load();
 
-        if (_plock && *_plock != to_underlying(LockE::Empty)) {
+        if (_pcounter && _pcounter->load(/* std::memory_order_relaxed */) == _count) {
             // NOTE: this is to ensure that pushOnes and pushAlls from
             //  the same producer are processed in the same order they
             //  were produced.
-            return false; // will wait on lock
+            return true;
         }
 
         if (overflow_safe_less(commited_all_index, _rlocal_context.next_all_id_)) {
@@ -1269,7 +1208,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::consumeAll(LocalContext& _rlocal_conte
 {
     size_t repeat_count = 0;
     while (overflow_safe_less(_rlocal_context.next_all_id_, _all_id) || _rlocal_context.next_all_id_ == _all_id) {
-        tryConsumeAnAllTask(nullptr, _rlocal_context, _all_fnc, std::forward<Args>(_args)...);
+        tryConsumeAnAllTask(nullptr, 0, _rlocal_context, _all_fnc, std::forward<Args>(_args)...);
         ++repeat_count;
     }
     statistic_.consumeAll(repeat_count);
@@ -1280,11 +1219,11 @@ template <class Tsk>
 void ThreadPool<TaskOne, TaskAll, Stats>::doPushOne(Tsk&& _task, ContextStub* _pctx)
 {
     using namespace std::chrono;
-    const auto start = steady_clock::now();
-    const auto index = pushOneIndex();
-    auto&      rstub = *one_.tasks_[index];
+    const auto start          = steady_clock::now();
+    const auto [index, count] = pushOneIndex();
+    auto& rstub               = one_.tasks_[index];
 
-    rstub.waitWhilePushOne(statistic_);
+    rstub.waitWhilePushOne(statistic_, count);
 
     rstub.task(std::forward<Tsk>(_task));
     rstub.pcontext_ = _pctx;
@@ -1311,7 +1250,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushAll(Tsk&& _task)
     const auto id    = pushAllId();
     auto&      rstub = all_.tasks_[id % all_.capacity_];
 
-    rstub.waitWhilePushAll(statistic_);
+    rstub.waitWhilePushAll(statistic_, computeCounter(id, all_.capacity_));
 
     rstub.task(std::forward<Tsk>(_task));
 
@@ -1323,9 +1262,10 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushAll(Tsk&& _task)
 
     if (should_wake_threads) {
         for (size_t i = 0; i < threads_.size(); ++i) {
-            auto& rstub = *one_.tasks_[pushOneIndex()];
+            const auto [index, count] = pushOneIndex(); // TODO:
+            auto& rstub               = one_.tasks_[index];
 
-            rstub.waitWhilePushAll(statistic_);
+            rstub.waitWhilePushAll(statistic_, count);
 
             rstub.all_id_ = id;
 

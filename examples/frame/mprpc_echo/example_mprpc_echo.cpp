@@ -211,7 +211,7 @@ bool restart(
         reflection::v1::metadata::factory,
         [&](auto& _rmap) {
             _rmap.template registerMessage<FirstMessage>(1, "FirstMessage",
-                [](
+                           [](
                     frame::mprpc::ConnectionContext&             _rctx,
                     frame::mprpc::MessagePointerT<FirstMessage>& _rsend_msg,
                     frame::mprpc::MessagePointerT<FirstMessage>& _rrecv_msg,
