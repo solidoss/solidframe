@@ -12,6 +12,9 @@
 
 #include "solid/system/common.hpp"
 #include <limits>
+#ifdef __cpp_lib_bitops
+#include <bit>
+#endif
 
 namespace solid {
 
@@ -72,10 +75,22 @@ inline constexpr size_t fast_padded_size(const size_t _sz, const size_t _bitpad)
     return _sz + pad;
 }
 
+#ifdef __cpp_lib_bitops
+
+template <typename T>
+size_t bit_count(const T _v)
+{
+    return static_cast<size_t>(std::popcount(_v));
+}
+
+#else
+
 size_t bit_count(const uint8_t _v);
 size_t bit_count(const uint16_t _v);
 size_t bit_count(const uint32_t _v);
 size_t bit_count(const uint64_t _v);
+
+#endif
 
 inline size_t leading_zero_count(uint64_t x)
 {

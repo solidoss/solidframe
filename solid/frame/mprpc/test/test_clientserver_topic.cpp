@@ -333,7 +333,7 @@ int test_clientserver_topic(int argc, char* argv[])
         frame::aio::Resolver   resolver([&resolve_pool](std::function<void()>&& _fnc) { resolve_pool.pushOne(std::move(_fnc)); });
 
         worker_pool.start(
-            thread_count, 10000, 100,
+            {thread_count, 10000, 100},
             [](const size_t) {
                 set_current_thread_affinity();
                 local_thread_pool_context_ptr = std::make_unique<ThreadPoolLocalContext>();
@@ -341,7 +341,7 @@ int test_clientserver_topic(int argc, char* argv[])
             [](const size_t) {});
 
         resolve_pool.start(
-            1, 100, 0, [](const size_t) {}, [](const size_t) {});
+            {1, 100, 0}, [](const size_t) {}, [](const size_t) {});
         sch_client.start([]() {set_current_thread_affinity();return true; }, []() {}, 1);
         sch_server.start([]() {
             set_current_thread_affinity();

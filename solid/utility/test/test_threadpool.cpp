@@ -91,7 +91,7 @@ int test_threadpool(int argc, char* argv[])
     // 1000 10 0 0 1 0 0
     auto lambda = [&]() {
         ThreadPoolT wp{
-            consumer_count, queue_size, 0, [](size_t, Context&&) {}, [](size_t, Context&&) {},
+            {consumer_count, queue_size, 0}, [](size_t, Context&&) {}, [](size_t, Context&&) {},
 
             [job_sleep_msecs](size_t _v, Context&& _rctx) {
                 // solid_check(_rs == "this is a string", "failed string check");

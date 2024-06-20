@@ -59,7 +59,7 @@ int test_threadpool_multicast_synchronization_context_basic(int argc, char* argv
         record_dq.resize(count);
 
         ThreadPoolT wp{
-            2, 10000, 1000, [](const size_t) {}, [](const size_t) {},
+            {2, 10000, 1000}, [](const size_t) {}, [](const size_t) {},
             [&record_dq](const Record& _r) {
                 solid_check(record_dq[_r.value_].multicast_value_ == static_cast<uint32_t>(-1));
                 record_dq[_r.value_].multicast_value_ = thread_local_value;

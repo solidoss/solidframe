@@ -44,7 +44,7 @@ int test_threadpool_context(int argc, char* argv[])
             Context ctx{"test", 1, cnt + 1};
             {
                 CallPoolT wp{
-                    2, 10000, 100, [](const size_t, Context&) {}, [](const size_t, Context& _rctx) {},
+                    {2, 10000, 100}, [](const size_t, Context&) {}, [](const size_t, Context& _rctx) {},
                     std::ref(ctx)};
 
                 solid_log(generic_logger, Verbose, "wp started");

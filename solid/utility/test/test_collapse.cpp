@@ -114,7 +114,7 @@ int test_collapse(int argc, char* argv[])
             }
         }
     } else if (choice == 'p') {
-        CallPoolT  wp{thread_count, 10000, 100,
+        CallPoolT  wp{{thread_count, 10000, 100},
             [](const size_t) {
                 set_current_thread_affinity();
             },
@@ -148,7 +148,7 @@ int test_collapse(int argc, char* argv[])
         const auto stop_time = chrono::high_resolution_clock::now();
         cout << "Duration: " << chrono::duration_cast<chrono::microseconds>(stop_time - start_time).count() << "us" << endl;
     } else if (choice == 'b') {
-        CallPoolT  wp{thread_count, 10000, 100,
+        CallPoolT  wp{{thread_count, 10000, 100},
             [](const size_t) {
                 set_current_thread_affinity();
             },

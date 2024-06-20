@@ -59,7 +59,7 @@ int test_threadpool_pattern(int argc, char* argv[])
 
     auto lambda = [&]() {
         ThreadPoolT wp{
-            consumer_cnt, 10000, 0, [](const size_t) {}, [](const size_t) {},
+            {consumer_cnt, 10000, 0}, [](const size_t) {}, [](const size_t) {},
             [&sum, &consummer_pattern, loop = consummer_pattern[0].first, idx = 0](const size_t _v) mutable {
                 sum += _v;
                 --loop;

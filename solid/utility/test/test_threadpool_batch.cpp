@@ -75,13 +75,17 @@ void busy_for(const Dur& _dur)
 using AtomicCounterT      = std::atomic<uint8_t>;
 using AtomicCounterValueT = AtomicCounterT::value_type;
 atomic_size_t push_one_index{0};
-size_t        capacity = 1024;
+size_t        capacity = 8 * 1024;
 
+template <class IndexT>
+inline constexpr static auto computeCounter(const IndexT _index, const size_t _capacity) noexcept
+{
+    return (_index / _capacity) & std::numeric_limits<AtomicCounterValueT>::max();
+}
 std::tuple<size_t, AtomicCounterValueT> pushOneIndex() noexcept
 {
-    // return push_one_index_.fetch_add(1) % one_.capacity_;
     const auto index = push_one_index.fetch_add(1);
-    return {index % capacity, (index / capacity) & std::numeric_limits<AtomicCounterValueT>::max()};
+    return {index % capacity, computeCounter(index, capacity)};
 }
 
 } // namespace
@@ -92,23 +96,27 @@ int test_threadpool_batch(int argc, char* argv[])
     int    wait_seconds = 500;
     size_t entry_count  = 300;
     size_t repeat_count = 1000000;
+    solid_log(logger, Verbose, "capacity " << capacity << " reminder " << (std::numeric_limits<atomic_size_t::value_type>::max() % capacity));
     {
         vector<AtomicCounterValueT> cnt_vec(capacity, 0);
+
         for (size_t i = 0; i < (capacity * std::numeric_limits<AtomicCounterValueT>::max() + capacity); ++i) {
             const auto [index, counter] = pushOneIndex();
-            solid_check(cnt_vec[index] == counter, "" << (int)cnt_vec[index] << " != " << (int)counter << " index = " << index << " i = " << i);
+            solid_check(cnt_vec[index] == counter, "" << (int)cnt_vec[index] << " == " << (int)counter << " index = " << index << " i = " << i);
             ++cnt_vec[index];
         }
 
-        push_one_index = std::numeric_limits<atomic_size_t::value_type>::max() - capacity + 1;
+        push_one_index = std::numeric_limits<atomic_size_t::value_type>::max() - (10 * capacity) + 1;
 
-        for (auto& rv : cnt_vec) {
-            rv = 238;
+        for (size_t i = 0; i < capacity; ++i) {
+            const auto [index, counter] = pushOneIndex();
+            cnt_vec[index]              = counter;
+            ++cnt_vec[index];
         }
 
         for (size_t i = 0; i < (capacity * std::numeric_limits<AtomicCounterValueT>::max() + capacity); ++i) {
             const auto [index, counter] = pushOneIndex();
-            solid_check(cnt_vec[index] == counter, "" << (int)cnt_vec[index] << " != " << (int)counter << " index = " << index << " i = " << i);
+            solid_check(cnt_vec[index] == counter, "" << (int)cnt_vec[index] << " == " << (int)counter << " index = " << index << " i = " << i << " one_index = " << push_one_index);
             ++cnt_vec[index];
         }
     }
@@ -119,8 +127,9 @@ int test_threadpool_batch(int argc, char* argv[])
         {
             solid_log(logger, Verbose, "start");
             CallPoolT wp{
-                thread_count, 12000, 100, [](const size_t, Context&) {}, [](const size_t, Context& _rctx) {},
+                {thread_count, 12000, 100}, [](const size_t, Context&) {}, [](const size_t, Context& _rctx) {},
                 std::ref(ctx)};
+            solid_log(logger, Verbose, "TP capacity: one " << wp.capacityOne() << " all " << wp.capacityAll());
             solid_log(logger, Verbose, "create contexts");
             vector<Entry> entries;
             for (size_t i = 0; i < entry_count; ++i) {

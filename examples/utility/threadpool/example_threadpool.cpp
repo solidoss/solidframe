@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
     solid::log_start(std::cerr, {".*:VIEW"});
 
     ThreadPool<int, size_t> wp{
-        1, 100, 0, [](const size_t) {}, [](const size_t) {},
+        {1, 100, 0}, [](const size_t) {}, [](const size_t) {},
         [](int _v) {
             solid_log(generic_logger, Info, "v = " << _v);
             std::this_thread::sleep_for(std::chrono::milliseconds(_v * 10));

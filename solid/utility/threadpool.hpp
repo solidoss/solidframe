@@ -10,6 +10,7 @@
 
 #pragma once
 #include <atomic>
+#include <bit>
 #include <deque>
 #include <functional>
 #include <thread>
@@ -166,6 +167,50 @@ struct EmptyThreadPoolStatistic : solid::Statistic {
 
     std::ostream& print(std::ostream& _ros) const override { return _ros; }
     void          clear() {}
+};
+
+struct ThreadPoolConfiguration {
+    static constexpr size_t default_one_capacity = 8 * 1024;
+    static constexpr size_t default_all_capacity = 1024;
+
+    size_t thread_count_ = 1;
+    size_t one_capacity_ = default_one_capacity;
+    size_t all_capacity_ = default_all_capacity;
+    size_t spin_count_   = 1;
+
+    ThreadPoolConfiguration(
+        const size_t _thread_count = 1,
+        const size_t _one_capacity = 10 * 1024,
+        const size_t _all_capacity = 1024,
+        const size_t _spin_count   = 1)
+        : thread_count_(_thread_count)
+        , one_capacity_(_one_capacity)
+        , all_capacity_(_all_capacity)
+        , spin_count_(_spin_count)
+    {
+    }
+
+    auto& threadCount(const size_t _value)
+    {
+        thread_count_ = _value;
+        return *this;
+    }
+    auto& oneCapacity(const size_t _value)
+    {
+        one_capacity_ = _value;
+        return *this;
+    }
+    auto& allCapacity(const size_t _value)
+    {
+        all_capacity_ = _value;
+        return *this;
+    }
+
+    auto& spinCount(const size_t _value)
+    {
+        spin_count_ = _value;
+        return *this;
+    }
 };
 
 template <class TaskOne, class TaskAll, class Stats = ThreadPoolStatistic>
@@ -380,14 +425,6 @@ public:
     };
 
 private:
-    using AtomicLockT = std::atomic<uint32_t>;
-
-    enum struct LockE : AtomicLockT::value_type {
-        Empty = 0,
-        Pushing,
-        Filled,
-        Popping
-    };
     enum struct EventE : uint8_t {
         Fill,
         Stop,
@@ -433,15 +470,17 @@ private:
             context_produce_id_ = 0;
         }
 
-        void waitWhilePushOne(Stats& _rstats, const AtomicCounterValueT _count) noexcept
+        void waitWhilePushOne(Stats& _rstats, const AtomicCounterValueT _count, const size_t _spin_count) noexcept
         {
+            auto spin = _spin_count;
             while (true) {
                 const auto cnt = produce_count_.load();
                 if (cnt == _count) {
                     break;
-                } else {
+                } else if (_spin_count && !spin--) {
                     _rstats.pushOneWaitLock();
                     std::atomic_wait_explicit(&produce_count_, cnt, std::memory_order_relaxed);
+                    spin = _spin_count;
                 }
             }
         }
@@ -455,14 +494,14 @@ private:
             _rduration = duration_cast<microseconds>(steady_clock::now() - _start).count();
         }
 
-        void waitWhileStop(Stats& _rstats, const AtomicCounterValueT _count) noexcept
+        void waitWhileStop(Stats& _rstats, const AtomicCounterValueT _count, const size_t _spin_count) noexcept
         {
-            waitWhilePushOne(_rstats, _count);
+            waitWhilePushOne(_rstats, _count, _spin_count);
         }
 
-        void waitWhilePushAll(Stats& _rstats, const AtomicCounterValueT _count) noexcept
+        void waitWhilePushAll(Stats& _rstats, const AtomicCounterValueT _count, const size_t _spin_count) noexcept
         {
-            waitWhilePushOne(_rstats, _count);
+            waitWhilePushOne(_rstats, _count, _spin_count);
         }
 
         void notifyWhileStop() noexcept
@@ -483,17 +522,19 @@ private:
             class Fnc,
             class AllFnc,
             typename... Args>
-        EventE waitWhilePop(Stats& _rstats, const AtomicCounterValueT _count, const Fnc& _try_consume_an_all_fnc, AllFnc& _all_fnc, Args&&... _args) noexcept
+        EventE waitWhilePop(Stats& _rstats, const AtomicCounterValueT _count, const size_t _spin_count, const Fnc& _try_consume_an_all_fnc, AllFnc& _all_fnc, Args&&... _args) noexcept
         {
+            auto spin = _spin_count;
             while (true) {
                 const auto cnt = consume_count_.load();
                 if (cnt == _count) {
                     return static_cast<EventE>(event_);
-                } else if (!_try_consume_an_all_fnc(&consume_count_, _count, _all_fnc, std::forward<Args>(_args)...)) {
+                } else if (!_try_consume_an_all_fnc(&consume_count_, _count, _all_fnc, std::forward<Args>(_args)...) && _spin_count && !spin--) {
 
                     std::atomic_wait_explicit(&consume_count_, cnt, std::memory_order_relaxed);
 
                     _rstats.popOneWaitPopping();
+                    spin = _spin_count;
                 }
             }
         }
@@ -527,15 +568,17 @@ private:
             data_ptr_->destroy();
         }
 
-        void waitWhilePushAll(Stats& _rstats, const AtomicCounterValueT _count) noexcept
+        void waitWhilePushAll(Stats& _rstats, const AtomicCounterValueT _count, const size_t _spin_count) noexcept
         {
+            auto spin = _spin_count;
             while (true) {
                 const auto cnt = produce_count_.load();
                 if (cnt == _count) {
                     break;
-                } else {
+                } else if (_spin_count && !spin--) {
                     _rstats.pushOneWaitLock();
                     std::atomic_wait_explicit(&produce_count_, cnt, std::memory_order_relaxed);
+                    spin = _spin_count;
                 }
             }
         }
@@ -569,6 +612,7 @@ private:
     using OneStubT      = OneStub;
     using ThreadVectorT = std::vector<std::thread>;
 
+    size_t spin_count_ = 1;
     /* alignas(hardware_constructive_interference_size) */ struct {
         size_t                               capacity_{0};
         std::unique_ptr<OneStubT[]>          tasks_;
@@ -583,21 +627,23 @@ private:
         std::unique_ptr<AllStubT[]>          tasks_;
         std::unique_ptr<TaskData<TaskAll>[]> datas_;
     } all_;
+
     Stats statistic_;
-    alignas(hardware_destructive_interference_size) std::atomic_size_t push_one_index_{0};
-    alignas(hardware_destructive_interference_size) std::atomic_size_t pop_one_index_{0};
+    using AtomicIndexT      = std::atomic_size_t;
+    using AtomicIndexValueT = std::atomic_size_t::value_type;
+
+    alignas(hardware_destructive_interference_size) AtomicIndexT push_one_index_{0};
+    alignas(hardware_destructive_interference_size) AtomicIndexT pop_one_index_{0};
     ThreadVectorT     threads_;
     std::atomic<bool> running_{false};
 
-    std::tuple<size_t, AtomicCounterValueT> pushOneIndex() noexcept
+    std::tuple<AtomicIndexValueT, AtomicCounterValueT> pushOneIndex() noexcept
     {
-        // return push_one_index_.fetch_add(1) % one_.capacity_;
         const auto index = push_one_index_.fetch_add(1);
         return {index % one_.capacity_, computeCounter(index, one_.capacity_)};
     }
-    std::tuple<size_t, AtomicCounterValueT> popOneIndex() noexcept
+    std::tuple<AtomicIndexValueT, AtomicCounterValueT> popOneIndex() noexcept
     {
-        // return pop_one_index_.fetch_add(1) % one_.capacity_;
         const auto index = pop_one_index_.fetch_add(1);
         return {index % one_.capacity_, computeCounter(index, one_.capacity_)};
     }
@@ -626,13 +672,11 @@ public:
         class AllFnc,
         typename... Args>
     void doStart(
-        const size_t _thread_count,
-        const size_t _one_capacity,
-        const size_t _all_capacity,
-        StartFnc     _start_fnc,
-        StopFnc      _stop_fnc,
-        OneFnc       _one_fnc,
-        AllFnc       _all_fnc,
+        const ThreadPoolConfiguration& _config,
+        StartFnc                       _start_fnc,
+        StopFnc                        _stop_fnc,
+        OneFnc                         _one_fnc,
+        AllFnc                         _all_fnc,
         Args&&... _args);
 
     void doStop();
@@ -710,6 +754,7 @@ class ThreadPool {
 
 public:
     using SynchronizationContextT = SynchronizationContext<ThisT, typename ImplT::ContextStub>;
+    using ConfigurationT          = ThreadPoolConfiguration;
 
     ThreadPool() = default;
 
@@ -720,19 +765,15 @@ public:
         class AllFnc,
         typename... Args>
     ThreadPool(
-        const size_t _thread_count,
-        const size_t _one_capacity,
-        const size_t _all_capacity,
-        StartFnc     _start_fnc,
-        StopFnc      _stop_fnc,
-        OneFnc       _one_fnc,
-        AllFnc       _all_fnc,
+        const ThreadPoolConfiguration& _config,
+        StartFnc                       _start_fnc,
+        StopFnc                        _stop_fnc,
+        OneFnc                         _one_fnc,
+        AllFnc                         _all_fnc,
         Args&&... _args)
     {
         impl_.doStart(
-            _thread_count,
-            _one_capacity,
-            _all_capacity,
+            _config,
             _start_fnc,
             _stop_fnc,
             _one_fnc,
@@ -747,19 +788,15 @@ public:
         class AllFnc,
         typename... Args>
     void start(
-        const size_t _thread_count,
-        const size_t _one_capacity,
-        const size_t _all_capacity,
-        StartFnc     _start_fnc,
-        StopFnc      _stop_fnc,
-        OneFnc       _one_fnc,
-        AllFnc       _all_fnc,
+        const ThreadPoolConfiguration& _config,
+        StartFnc                       _start_fnc,
+        StopFnc                        _stop_fnc,
+        OneFnc                         _one_fnc,
+        AllFnc                         _all_fnc,
         Args&&... _args)
     {
         impl_.doStart(
-            _thread_count,
-            _one_capacity,
-            _all_capacity,
+            _config,
             _start_fnc,
             _stop_fnc,
             _one_fnc,
@@ -833,6 +870,7 @@ class ThreadPool<Function<void(ArgTypes...), OneFunctionDataSize>, Function<void
 
 public:
     using SynchronizationContextT = SynchronizationContext<ThisT, typename ImplT::ContextStub>;
+    using ConfigurationT          = ThreadPoolConfiguration;
 
     template <class T>
     static constexpr bool is_small_one_type()
@@ -851,17 +889,13 @@ public:
     template <class StartFnc,
         class StopFnc, typename... Args>
     ThreadPool(
-        const size_t _thread_count,
-        const size_t _one_capacity,
-        const size_t _all_capacity,
-        StartFnc     _start_fnc,
-        StopFnc      _stop_fnc,
+        const ThreadPoolConfiguration& _config,
+        StartFnc                       _start_fnc,
+        StopFnc                        _stop_fnc,
         Args&&... _args)
     {
         impl_.doStart(
-            _thread_count,
-            _one_capacity,
-            _all_capacity,
+            _config,
             _start_fnc,
             _stop_fnc,
             [](OneFunctionT& _rfnc, Args&&... _args) {
@@ -876,16 +910,12 @@ public:
 
     template <class StartFnc,
         class StopFnc, typename... Args>
-    void start(const size_t _thread_count,
-        const size_t        _one_capacity,
-        const size_t        _all_capacity,
-        StartFnc            _start_fnc,
-        StopFnc             _stop_fnc, Args... _args)
+    void start(const ThreadPoolConfiguration& _config,
+        StartFnc                              _start_fnc,
+        StopFnc                               _stop_fnc, Args... _args)
     {
         impl_.doStart(
-            _thread_count,
-            _one_capacity,
-            _all_capacity,
+            _config,
             _start_fnc,
             _stop_fnc,
             [](OneFunctionT& _rfnc, Args&&... _args) {
@@ -953,20 +983,22 @@ private:
 namespace tpimpl {
 //-----------------------------------------------------------------------------
 template <class TaskOne, class TaskAll, class Stats>
-template <class StartFnc,
+template <
+    class StartFnc,
     class StopFnc,
     class OneFnc,
-    class AllFnc, typename... Args>
+    class AllFnc,
+    typename... Args>
 void ThreadPool<TaskOne, TaskAll, Stats>::doStart(
-    const size_t _thread_count,
-    const size_t _one_capacity,
-    const size_t _all_capacity,
-    StartFnc     _start_fnc,
-    StopFnc      _stop_fnc,
-    OneFnc       _one_fnc,
-    AllFnc       _all_fnc,
+    const ThreadPoolConfiguration& _config,
+    StartFnc                       _start_fnc,
+    StopFnc                        _stop_fnc,
+    OneFnc                         _one_fnc,
+    AllFnc                         _all_fnc,
     Args&&... _args)
 {
+    static_assert(
+        (std::numeric_limits<AtomicIndexValueT>::max() % std::bit_ceil(ThreadPoolConfiguration::default_one_capacity)) == (std::bit_ceil(ThreadPoolConfiguration::default_one_capacity) - 1) && (std::numeric_limits<AtomicIndexValueT>::max() % std::bit_ceil(ThreadPoolConfiguration::default_all_capacity)) == (std::bit_ceil(ThreadPoolConfiguration::default_all_capacity) - 1));
     bool expect = false;
 
     if (!running_.compare_exchange_strong(expect, true)) {
@@ -976,11 +1008,11 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doStart(
     solid_dbg(generic_logger, Error, "sizeof(OneStub) = " << sizeof(OneStubT) << " sizeof(AllStub) = " << sizeof(AllStubT));
 
     threads_.clear();
-    threads_.reserve(_thread_count);
 
-    const auto thread_count = _thread_count ? _thread_count : std::thread::hardware_concurrency();
+    const auto thread_count = _config.thread_count_ ? _config.thread_count_ : std::thread::hardware_concurrency();
+    threads_.reserve(thread_count);
 
-    one_.capacity_ = _one_capacity >= thread_count ? _one_capacity : std::max(static_cast<size_t>(1024), thread_count);
+    one_.capacity_ = std::bit_ceil(std::max(_config.one_capacity_, thread_count));
     one_.tasks_.reset(new OneStubT[one_.capacity_]);
     one_.datas_.reset(new TaskData<TaskOne>[one_.capacity_]);
 
@@ -988,15 +1020,20 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doStart(
         one_.tasks_[i].data_ptr_ = &one_.datas_[i];
     }
 
-    all_.capacity_ = _all_capacity ? _all_capacity : 1;
+    all_.capacity_ = std::bit_ceil(_config.all_capacity_ ? _config.all_capacity_ : 1);
     all_.tasks_.reset(new AllStubT[all_.capacity_]);
     all_.datas_.reset(new TaskData<TaskAll>[all_.capacity_]);
+
+    solid_check(
+        (std::numeric_limits<AtomicIndexValueT>::max() % one_.capacity_) == (one_.capacity_ - 1) && (std::numeric_limits<AtomicIndexValueT>::max() % all_.capacity_) == (all_.capacity_ - 1));
 
     for (size_t i = 0; i < all_.capacity_; ++i) {
         all_.tasks_[i].data_ptr_ = &all_.datas_[i];
     }
     all_.tasks_[0].produce_count_ = 1; //+
     all_.tasks_[0].consume_count_ = 0; // first entry is skipped on the first iteration
+
+    spin_count_ = _config.spin_count_;
 
     for (size_t i = 0; i < thread_count; ++i) {
         threads_.emplace_back(
@@ -1024,7 +1061,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doStop()
         const auto [index, count] = pushOneIndex();
         auto& rstub               = one_.tasks_[index];
 
-        rstub.waitWhileStop(statistic_, count);
+        rstub.waitWhileStop(statistic_, count, spin_count_);
         rstub.notifyWhileStop();
     }
 
@@ -1054,6 +1091,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
         const auto event = rstub.waitWhilePop(
             statistic_,
             count,
+            spin_count_,
             [this, &local_context](
                 AtomicCounterT*           _pcounter,
                 const AtomicCounterValueT _count,
@@ -1223,7 +1261,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushOne(Tsk&& _task, ContextStub* _p
     const auto [index, count] = pushOneIndex();
     auto& rstub               = one_.tasks_[index];
 
-    rstub.waitWhilePushOne(statistic_, count);
+    rstub.waitWhilePushOne(statistic_, count, spin_count_);
 
     rstub.task(std::forward<Tsk>(_task));
     rstub.pcontext_ = _pctx;
@@ -1250,7 +1288,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushAll(Tsk&& _task)
     const auto id    = pushAllId();
     auto&      rstub = all_.tasks_[id % all_.capacity_];
 
-    rstub.waitWhilePushAll(statistic_, computeCounter(id, all_.capacity_));
+    rstub.waitWhilePushAll(statistic_, computeCounter(id, all_.capacity_), spin_count_);
 
     rstub.task(std::forward<Tsk>(_task));
 
@@ -1265,7 +1303,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushAll(Tsk&& _task)
             const auto [index, count] = pushOneIndex(); // TODO:
             auto& rstub               = one_.tasks_[index];
 
-            rstub.waitWhilePushAll(statistic_, count);
+            rstub.waitWhilePushAll(statistic_, count, spin_count_);
 
             rstub.all_id_ = id;
 
