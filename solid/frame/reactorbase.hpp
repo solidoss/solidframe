@@ -46,7 +46,10 @@ struct ReactorStatisticBase : solid::Statistic {
 
 namespace impl {
 
+#if 0
 struct WakeStubBase {
+    using AtomicCounterT      = std::atomic<uint8_t>;
+    using AtomicCounterValueT = AtomicCounterT::value_type;
     enum struct LockE : uint8_t {
         Empty = 0,
         Pushing,
@@ -115,6 +118,60 @@ struct WakeStubBase {
         return lock_.load() == to_underlying(LockE::Filled);
     }
 };
+
+#else
+using AtomicIndexT        = std::atomic_size_t;
+using AtomicIndexValueT   = std::atomic_size_t::value_type;
+using AtomicCounterT      = std::atomic<uint8_t>;
+using AtomicCounterValueT = AtomicCounterT::value_type;
+
+template <class IndexT>
+inline constexpr static auto computeCounter(const IndexT _index, const size_t _capacity) noexcept
+{
+    return (_index / _capacity) & std::numeric_limits<AtomicCounterValueT>::max();
+}
+
+struct WakeStubBase {
+    AtomicCounterT produce_count_{0};
+    AtomicCounterT consume_count_{static_cast<AtomicCounterValueT>(-1)};
+
+    template <typename Statistic>
+    void waitWhilePush(Statistic& _rstats, const AtomicCounterValueT _count, const size_t _spin_count = 1) noexcept
+    {
+        auto spin = _spin_count;
+        while (true) {
+            const auto cnt = produce_count_.load();
+            if (cnt == _count) {
+                break;
+            } else if (_spin_count && !spin--) {
+                _rstats.pushWhileWaitLock();
+                std::atomic_wait_explicit(&produce_count_, cnt, std::memory_order_relaxed);
+                spin = _spin_count;
+            }
+        }
+    }
+
+    void notifyWhilePush() noexcept
+    {
+        ++consume_count_;
+        std::atomic_notify_one(&consume_count_);
+    }
+
+    void notifyWhilePop() noexcept
+    {
+        ++produce_count_;
+        std::atomic_notify_one(&produce_count_);
+    }
+
+    bool isFilled(const uint64_t _id, const size_t _capacity) const
+    {
+        const auto                count          = consume_count_.load(std::memory_order_relaxed);
+        const AtomicCounterValueT expected_count = computeCounter(_id, _capacity);
+        return count == expected_count;
+    }
+};
+
+#endif
 
 } // namespace impl
 
