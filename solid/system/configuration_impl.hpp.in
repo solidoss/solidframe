@@ -1,6 +1,7 @@
 #pragma once
 
 #cmakedefine SOLID_USE_PTHREAD
+#cmakedefine SOLID_USE_PTHREAD_SPINLOCK
 #cmakedefine SOLID_USE_EVENTFD
 #cmakedefine SOLID_USE_EPOLL
 #cmakedefine SOLID_USE_KQUEUE

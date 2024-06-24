@@ -45,5 +45,9 @@ file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/epoll2.cpp" source_code)
 
 CHECK_CXX_SOURCE_RUNS("${source_code}" SOLID_USE_EPOLL2)
 
+file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/pthread_spinlock.cpp" source_code)
+
+CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_USE_PTHREAD_SPINLOCK)
+
 #TODO:
 #set(SOLID_FRAME_AIO_REACTOR_USE_SPINLOCK TRUE)
