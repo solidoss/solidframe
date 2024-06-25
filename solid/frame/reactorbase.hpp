@@ -45,81 +45,6 @@ struct ReactorStatisticBase : solid::Statistic {
 };
 
 namespace impl {
-
-#if 0
-struct WakeStubBase {
-    using AtomicCounterT      = std::atomic<uint8_t>;
-    using AtomicCounterValueT = AtomicCounterT::value_type;
-    enum struct LockE : uint8_t {
-        Empty = 0,
-        Pushing,
-        Filled,
-    };
-#if defined(__cpp_lib_atomic_wait)
-    std::atomic_flag pushing_ = ATOMIC_FLAG_INIT;
-#else
-    std::atomic_bool pushing_ = {false};
-#endif
-    std::atomic_uint8_t lock_ = {to_underlying(LockE::Empty)};
-
-    template <typename Statistic>
-    void waitWhilePush(Statistic& _rstats) noexcept
-    {
-        while (true) {
-#if defined(__cpp_lib_atomic_wait)
-            const bool already_pushing = pushing_.test_and_set(std::memory_order_acquire);
-#else
-            bool       expected        = false;
-            const bool already_pushing = !pushing_.compare_exchange_strong(expected, true, std::memory_order_acquire);
-#endif
-            if (!already_pushing) {
-                //  wait for lock to be 0.
-                uint8_t value = to_underlying(LockE::Empty);
-
-                if (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing))) {
-                    do {
-                        std::atomic_wait(&lock_, value);
-                        value = to_underlying(LockE::Empty);
-                    } while (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing)));
-                    _rstats.pushWhileWaitLock();
-                }
-                return;
-            } else {
-#if defined(__cpp_lib_atomic_wait)
-                pushing_.wait(true);
-#else
-                std::atomic_wait(&pushing_, true);
-#endif
-                _rstats.pushWhileWaitPushing();
-            }
-        }
-    }
-
-    void notifyWhilePush() noexcept
-    {
-        lock_.store(to_underlying(LockE::Filled));
-#if defined(__cpp_lib_atomic_wait)
-        pushing_.clear(std::memory_order_release);
-        pushing_.notify_one();
-#else
-        pushing_.store(false, std::memory_order_release);
-        std::atomic_notify_one(&pushing_);
-#endif
-    }
-
-    void notifyWhilePop() noexcept
-    {
-        lock_.store(to_underlying(LockE::Empty));
-        std::atomic_notify_one(&lock_);
-    }
-
-    bool isFilled() const noexcept
-    {
-        return lock_.load() == to_underlying(LockE::Filled);
-    }
-};
-
-#else
 using AtomicIndexT        = std::atomic_size_t;
 using AtomicIndexValueT   = std::atomic_size_t::value_type;
 using AtomicCounterT      = std::atomic<uint8_t>;
@@ -154,13 +79,13 @@ struct WakeStubBase {
     void notifyWhilePush() noexcept
     {
         ++consume_count_;
-        std::atomic_notify_one(&consume_count_);
+        std::atomic_notify_all(&consume_count_);
     }
 
     void notifyWhilePop() noexcept
     {
         ++produce_count_;
-        std::atomic_notify_one(&produce_count_);
+        std::atomic_notify_all(&produce_count_);
     }
 
     bool isFilled(const uint64_t _id, const size_t _capacity) const
@@ -170,8 +95,6 @@ struct WakeStubBase {
         return count == expected_count;
     }
 };
-
-#endif
 
 } // namespace impl
 

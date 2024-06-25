@@ -38,7 +38,10 @@ using CallPoolT = ThreadPool<Function<void(Context&), one_task_size>, Function<v
 struct Entry {
     CallPoolT::SynchronizationContextT ctx_;
 
-    Entry(CallPoolT::SynchronizationContextT &&_ctx):ctx_(std::move(_ctx)){}
+    Entry(CallPoolT::SynchronizationContextT&& _ctx)
+        : ctx_(std::move(_ctx))
+    {
+    }
 };
 
 constexpr size_t thread_count = 10;

@@ -490,7 +490,7 @@ private:
             using namespace std::chrono;
             event_ = to_underlying(EventE::Fill);
             ++consume_count_;
-            std::atomic_notify_one(&consume_count_);
+            std::atomic_notify_all(&consume_count_);
             _rduration = duration_cast<microseconds>(steady_clock::now() - _start).count();
         }
 
@@ -508,14 +508,14 @@ private:
         {
             event_ = to_underlying(EventE::Stop);
             ++consume_count_;
-            std::atomic_notify_one(&consume_count_);
+            std::atomic_notify_all(&consume_count_);
         }
 
         void notifyWhilePushAll() noexcept
         {
             event_ = to_underlying(EventE::Wake);
             ++consume_count_;
-            std::atomic_notify_one(&consume_count_);
+            std::atomic_notify_all(&consume_count_);
         }
 
         template <
@@ -542,7 +542,7 @@ private:
         void notifyWhilePop() noexcept
         {
             ++produce_count_;
-            std::atomic_notify_one(&produce_count_);
+            std::atomic_notify_all(&produce_count_);
         }
     };
 
@@ -595,7 +595,7 @@ private:
             if (use_count_.fetch_sub(1) == 1) {
                 destroy();
                 ++produce_count_;
-                std::atomic_notify_one(&produce_count_);
+                std::atomic_notify_all(&produce_count_);
                 return true;
             }
             return false;
