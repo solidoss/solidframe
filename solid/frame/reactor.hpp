@@ -120,9 +120,10 @@ protected:
     Reactor(SchedulerBase& _rsched, StatisticT& _rstatistic, const size_t _schedidx, const size_t _wake_capacity);
     ~Reactor();
 
-    size_t pushWakeIndex() noexcept
+    std::tuple<AtomicIndexValueT, AtomicCounterValueT> pushWakeIndex() noexcept
     {
-        return push_wake_index_.fetch_add(1) % wake_capacity_;
+        const auto index = push_wake_index_.fetch_add(1);
+        return {index % wake_capacity_, computeCounter(index, wake_capacity_)};
     }
 
     template <typename Function>
@@ -339,7 +340,7 @@ public:
 
     Reactor(SchedulerBase& _rsched, StatisticT& _rstatistic, const size_t _sched_idx, const size_t _wake_capacity)
         : impl::Reactor(_rsched, _rstatistic, _sched_idx, _wake_capacity)
-        , wake_arr_(new WakeStubT[_wake_capacity])
+        , wake_arr_(new WakeStubT[wake_capacity_])
     {
     }
 
@@ -379,10 +380,10 @@ public:
             mutex().lock();
             const UniqueId uid = this->popUid(*_ract);
             mutex().unlock();
-            const auto index = pushWakeIndex();
-            auto&      rstub = wake_arr_[index];
+            const auto [index, count] = pushWakeIndex();
+            auto& rstub               = wake_arr_[index];
 
-            rstub.waitWhilePush(rstatistic_);
+            rstub.waitWhilePush(rstatistic_, count);
 
             rstub.reset(uid, std::move(_revent), std::move(_ract), &_rsvc);
 
@@ -407,10 +408,10 @@ private:
     {
         bool notify = false;
         {
-            const auto index = pushWakeIndex();
-            auto&      rstub = wake_arr_[index];
+            const auto [index, count] = pushWakeIndex();
+            auto& rstub               = wake_arr_[index];
 
-            rstub.waitWhilePush(rstatistic_);
+            rstub.waitWhilePush(rstatistic_, count);
 
             rstub.reset(_ractuid, _revent);
 
@@ -432,10 +433,10 @@ private:
     {
         bool notify = false;
         {
-            const auto index = pushWakeIndex();
-            auto&      rstub = wake_arr_[index];
+            const auto [index, count] = pushWakeIndex();
+            auto& rstub               = wake_arr_[index];
 
-            rstub.waitWhilePush(rstatistic_);
+            rstub.waitWhilePush(rstatistic_, count);
 
             rstub.reset(_ractuid, std::move(_revent));
 
@@ -492,7 +493,7 @@ private:
         while (true) {
             const size_t index = pop_wake_index_ % wake_capacity_;
             auto&        rstub = wake_arr_[index];
-            if (rstub.isFilled()) {
+            if (rstub.isFilled(pop_wake_index_, wake_capacity_)) {
                 if (rstub.actor_ptr_) [[unlikely]] {
                     ++actor_count_;
                     rstatistic_.actorCount(actor_count_);

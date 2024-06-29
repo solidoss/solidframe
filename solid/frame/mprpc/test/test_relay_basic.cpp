@@ -284,7 +284,7 @@ void peerb_complete_message(
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr) {
-        solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
+        solid_dbg(generic_logger, Info, _rctx.recipientId() << ' ' << _rrecv_msg_ptr.get() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size() << " isRelay = " << _rrecv_msg_ptr->isRelayed());
 
         if (!_rrecv_msg_ptr->check()) {
             solid_assert(false);
@@ -388,7 +388,7 @@ int test_relay_basic(int argc, char* argv[])
         frame::mprpc::ServiceT                mprpcpeera(m);
         frame::mprpc::ServiceT                mprpcpeerb(m);
         ErrorConditionT                       err;
-        CallPoolT                             cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        CallPoolT                             cwp{{1, 100, 0}, [](const size_t) {}, [](const size_t) {}};
         frame::aio::Resolver                  resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
         sch_peera.start(1);

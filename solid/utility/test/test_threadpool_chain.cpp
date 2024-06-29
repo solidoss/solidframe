@@ -47,13 +47,13 @@ int test_threadpool_chain(int argc, char* argv[])
         for (int i = 0; i < loop_cnt; ++i) {
             {
                 ThreadPoolT wp_b{
-                    thread_count, 10000, 1000, [](const size_t) {}, [](const size_t) {},
+                    {thread_count, 10000, 1000}, [](const size_t) {}, [](const size_t) {},
                     [&val](const size_t _v) {
                         val += _v;
                     },
                     [](const size_t) {}};
                 ThreadPoolT wp_f{
-                    thread_count, 10000, 1000, [](const size_t) {}, [](const size_t) {},
+                    {thread_count, 10000, 1000}, [](const size_t) {}, [](const size_t) {},
                     [&wp_b](const size_t _v) {
                         wp_b.pushOne(_v);
                     },

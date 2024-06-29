@@ -233,8 +233,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             break;
         }
         --repeatcnt;
-    } while (repeatcnt && sock.accept(
-                 _rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { return onAccept(_rctx, _rsd); }, _rsd));
+    } while (repeatcnt && sock.accept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { return onAccept(_rctx, _rsd); }, _rsd));
 
     if (!repeatcnt) {
         sock.postAccept(
@@ -328,8 +327,7 @@ void Talker::onRecv(frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, si
         }
         --repeatcnt;
     } while (
-        repeatcnt && sock.recvFrom(
-            _rctx, buf, BufferCapacity, [this](frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz) { onRecv(_rctx, _raddr, _sz); }, _raddr, _sz));
+        repeatcnt && sock.recvFrom(_rctx, buf, BufferCapacity, [this](frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz) { onRecv(_rctx, _raddr, _sz); }, _raddr, _sz));
 
     if (repeatcnt == 0) {
         sock.postRecvFrom(

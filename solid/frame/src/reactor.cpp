@@ -7,6 +7,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
+#include <bit>
 #include <cerrno>
 #include <condition_variable>
 #include <cstring>
@@ -154,7 +155,7 @@ Reactor::Reactor(
     SchedulerBase& _rsched, StatisticT& _rstatistic,
     const size_t _idx, const size_t _wake_capacity)
     : ReactorBase(_rsched, _idx)
-    , wake_capacity_(_wake_capacity)
+    , wake_capacity_(std::bit_ceil(_wake_capacity))
     , rstatistic_(_rstatistic)
 {
     solid_log(frame_logger, Verbose, "");

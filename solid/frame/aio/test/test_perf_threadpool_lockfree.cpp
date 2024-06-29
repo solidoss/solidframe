@@ -48,7 +48,7 @@ int test_perf_threadpool_lockfree(int argc, char* argv[])
     (void)context_count;
     auto lambda = [&]() {
         ThreadPoolT wp{
-            thread_count, 10000, 0, [](const size_t) {}, [](const size_t) {},
+            {thread_count, 10000, 0}, [](const size_t) {}, [](const size_t) {},
             [&](EventBase& _event) {
                 if (_event == generic_event<GenericEventE::Wake>) {
                     ++received_events;

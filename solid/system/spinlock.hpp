@@ -10,6 +10,12 @@
 #pragma once
 
 #include "solid/system/common.hpp"
+
+#ifdef SOLID_USE_PTHREAD_SPINLOCK
+
+#include <pthread.h>
+
+#else
 #include <atomic>
 #include <mutex>
 
@@ -23,6 +29,7 @@
 #elif defined(__i386__) || defined(__x86_64__)
 #if defined(__clang__)
 #include <emmintrin.h>
+#endif
 #endif
 #endif
 
@@ -45,8 +52,34 @@ inline void cpu_pause()
 #endif
 }
 
+#if defined(SOLID_USE_PTHREAD_SPINLOCK)
+class SpinLock : NonCopyable {
+    pthread_spinlock_t spin_;
+
+public:
+    SpinLock()
+    {
+        solid_check(pthread_spin_init(&spin_, PTHREAD_PROCESS_PRIVATE) == 0);
+    }
+    void lock() noexcept
+    {
+        pthread_spin_lock(&spin_);
+    }
+
+    bool try_lock() noexcept
+    {
+        return pthread_spin_trylock(&spin_) == 0;
+    }
+
+    void unlock() noexcept
+    {
+        pthread_spin_unlock(&spin_);
+    }
+};
+#else
+
 #if defined(__cpp_lib_atomic_flag_test)
-class SpinLock {
+class SpinLock : NonCopyable {
     std::atomic_flag atomic_flag = ATOMIC_FLAG_INIT;
 
 public:
@@ -58,8 +91,6 @@ public:
             }
             while (atomic_flag.test(std::memory_order_relaxed)) {
                 cpu_pause();
-                //_mm_pause();
-                // std::this_thread::yield();
             }
         }
     }
@@ -78,7 +109,7 @@ public:
 };
 #else
 // https://rigtorp.se/spinlock/
-class SpinLock {
+class SpinLock : NonCopyable {
     std::atomic<bool> lock_ = {0};
 
 public:
@@ -110,6 +141,7 @@ public:
         lock_.store(false, std::memory_order_release);
     }
 };
+#endif
 #endif
 
 using SpinGuardT = std::lock_guard<SpinLock>;

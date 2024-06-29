@@ -46,7 +46,7 @@ int test_threadpool_multicast_sleep(int argc, char* argv[])
             record_dq.resize(cnt, -1);
             {
                 ThreadPoolT wp{
-                    2, 10000, 1000, [](const size_t) {}, [](const size_t) {},
+                    {2, 10000, 1000}, [](const size_t) {}, [](const size_t) {},
                     [&val, &record_dq](const size_t _v) {
                         val += _v;
                         solid_check(record_dq[_v] == static_cast<uint32_t>(-1));

@@ -54,7 +54,7 @@ using SharedMessageT = IntrusivePtr<Message>;
 
 int test_collapse(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:VIEWXS"});
+    solid::log_start(std::cerr, {".*:EWXS"});
 
     char   choice       = 'B'; // B = basic, p = speed shared_ptr, b = speed SharedBuffer
     size_t repeat_count = 100;
@@ -114,7 +114,7 @@ int test_collapse(int argc, char* argv[])
             }
         }
     } else if (choice == 'p') {
-        CallPoolT  wp{thread_count, 10000, 100,
+        CallPoolT  wp{{thread_count, 10000, 100},
             [](const size_t) {
                 set_current_thread_affinity();
             },
@@ -138,7 +138,7 @@ int test_collapse(int argc, char* argv[])
                 p.set_value(std::move(tmp_sm));
             }
             {
-                if (f.wait_for(chrono::seconds(5)) != future_status::ready) {
+                if (f.wait_for(chrono::seconds(5000)) != future_status::ready) {
                     solid_throw("Waited for too long");
                 }
                 sm = f.get();
@@ -148,7 +148,7 @@ int test_collapse(int argc, char* argv[])
         const auto stop_time = chrono::high_resolution_clock::now();
         cout << "Duration: " << chrono::duration_cast<chrono::microseconds>(stop_time - start_time).count() << "us" << endl;
     } else if (choice == 'b') {
-        CallPoolT  wp{thread_count, 10000, 100,
+        CallPoolT  wp{{thread_count, 10000, 100},
             [](const size_t) {
                 set_current_thread_affinity();
             },

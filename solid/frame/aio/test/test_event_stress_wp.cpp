@@ -224,11 +224,11 @@ int test_event_stress_wp(int argc, char* argv[])
             gctx.stopping_ = false;
 
             account_cp.start(
-                thread_count, account_count, 0, [](const size_t, AccountContext&) {}, [](const size_t, AccountContext&) {}, std::ref(acc_ctx));
+                {thread_count, account_count, 0}, [](const size_t, AccountContext&) {}, [](const size_t, AccountContext&) {}, std::ref(acc_ctx));
             connection_cp.start(
-                thread_count, account_count * account_connection_count, 0, [](const size_t, ConnectionContext&) {}, [](const size_t, ConnectionContext&) {}, std::ref(conn_ctx));
+                {thread_count, account_count * account_connection_count, 0}, [](const size_t, ConnectionContext&) {}, [](const size_t, ConnectionContext&) {}, std::ref(conn_ctx));
             device_cp.start(
-                thread_count, account_count * account_connection_count, 0, [](const size_t, DeviceContext&) {}, [](const size_t, DeviceContext&) {}, std::ref(dev_ctx));
+                {thread_count, account_count * account_connection_count, 0}, [](const size_t, DeviceContext&) {}, [](const size_t, DeviceContext&) {}, std::ref(dev_ctx));
 
             conn_ctx.conn_cnt_  = (account_connection_count * account_count);
             auto produce_lambda = [&]() {
