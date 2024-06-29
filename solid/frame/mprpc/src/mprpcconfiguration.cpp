@@ -110,26 +110,6 @@ SocketStubPtrT default_create_server_socket(Configuration const& _rcfg, frame::a
     return plain::create_server_socket(_rcfg, _rproxy, std::move(_usd), _emplace_buf);
 }
 
-const char* default_extract_recipient_name(const char* _purl, std::string& _msgurl, std::string& _tmpstr)
-{
-    solid_assert_log(_purl != nullptr, service_logger());
-
-    const char* const p = strchr(_purl, '/');
-
-    if (p == nullptr) {
-        return _purl;
-    }
-    _msgurl = (p + 1);
-    _tmpstr.assign(_purl, p - _purl);
-    return _tmpstr.c_str();
-}
-
-// const char* default_fast_extract_recipient_name(const char* _purl, std::string& _msgurl, std::string& _tmpstr)
-// {
-//
-//     return _purl;
-// }
-
 bool default_setup_socket_device(SocketDevice& _rsd)
 {
     _rsd.enableNoDelay();
@@ -258,8 +238,6 @@ void Configuration::init()
 
     server.socket_device_setup_fnc = &default_setup_socket_device;
     client.socket_device_setup_fnc = &default_setup_socket_device;
-
-    extract_recipient_name_fnc = &default_extract_recipient_name;
 
     pool_max_active_connection_count  = 1;
     pool_max_pending_connection_count = 1;

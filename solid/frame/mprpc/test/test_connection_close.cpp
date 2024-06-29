@@ -319,7 +319,7 @@ int test_connection_close(int argc, char* argv[])
 
         frame::Manager m;
 
-        CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        CallPoolT              cwp{{1, 100, 0}, [](const size_t) {}, [](const size_t) {}};
         frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
         frame::mprpc::ServiceT mprpcserver(m);
         frame::mprpc::ServiceT mprpcclient(m);
@@ -385,7 +385,7 @@ int test_connection_close(int argc, char* argv[])
         {
             MessagePointerT msgptr(frame::mprpc::make_message<Message>(0));
             mprpcclient.sendMessage(
-                "localhost", msgptr,
+                {"localhost"}, msgptr,
                 initarray[0].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 

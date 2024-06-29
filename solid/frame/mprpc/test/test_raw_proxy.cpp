@@ -358,7 +358,7 @@ int test_raw_proxy(int argc, char* argv[])
         frame::mprpc::ServiceT mprpcserver(m);
         frame::mprpc::ServiceT mprpcclient(m);
         ErrorConditionT        err;
-        CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        CallPoolT              cwp{{1, 100, 0}, [](const size_t) {}, [](const size_t) {}};
         frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
         sch_client.start(1);
@@ -427,7 +427,7 @@ int test_raw_proxy(int argc, char* argv[])
             MessagePointerT msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
             ++crtwriteidx;
             mprpcclient.sendMessage(
-                "localhost", msgptr,
+                {"localhost"}, msgptr,
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 

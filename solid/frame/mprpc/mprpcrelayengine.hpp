@@ -20,30 +20,28 @@ namespace mprpc {
 namespace relay {
 
 struct ConnectionStubBase {
-    ConnectionStubBase()
-        : next_(InvalidIndex())
-        , prev_(InvalidIndex())
-    {
-    }
-    ConnectionStubBase(std::string&& _uname)
-        : name_(std::move(_uname))
-        , next_(InvalidIndex())
-        , prev_(InvalidIndex())
+    ActorIdT id_;
+    uint32_t group_id_   = InvalidIndex();
+    uint16_t replica_id_ = 0;
+    size_t   next_       = InvalidIndex();
+    size_t   prev_       = InvalidIndex();
+
+    ConnectionStubBase() = default;
+
+    ConnectionStubBase(const uint32_t _group_id, const uint16_t _replica_id)
+        : group_id_(_group_id)
+        , replica_id_(_replica_id)
     {
     }
 
     void clear()
     {
         id_.clear();
-        name_.clear();
-        next_ = InvalidIndex();
-        prev_ = InvalidIndex();
+        group_id_   = InvalidIndex();
+        replica_id_ = 0;
+        next_       = InvalidIndex();
+        prev_       = InvalidIndex();
     }
-
-    ActorIdT    id_;
-    std::string name_;
-    size_t      next_;
-    size_t      prev_;
 };
 
 class EngineCore;
@@ -61,6 +59,9 @@ struct ConnectionPrintStub {
 std::ostream& operator<<(std::ostream& _ros, const ConnectionPrintStub& _rps);
 
 class EngineCore : public RelayEngine {
+    struct Data;
+    Pimpl<Data, 480> impl_;
+
 public:
     struct Proxy {
         size_t              createConnection();
@@ -93,7 +94,6 @@ protected:
     template <class F>
     void execute(F& _rf)
     {
-
         ExecuteFunctionT f(std::ref(_rf));
         doExecute(f);
     }
@@ -104,8 +104,8 @@ protected:
     }
 
 private:
-    virtual void   unregisterConnectionName(Proxy& _proxy, size_t _conidx) = 0;
-    virtual size_t registerConnection(Proxy& _proxy, std::string&& _uname) = 0;
+    virtual void   unregisterConnectionName(Proxy& _proxy, size_t _conidx)                                 = 0;
+    virtual size_t registerConnection(Proxy& _proxy, const uint32_t _group_id, const uint16_t _replica_id) = 0;
 
 private:
     using ExecuteFunctionT = solid_function_t(void(Proxy&));
@@ -152,14 +152,10 @@ private:
     void doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_push_fnc, bool& _rmore) final;
     void doPollDone(const UniqueId& _rrelay_con_uid, DoneFunctionT& _done_fnc, CancelFunctionT& _cancel_fnc) final;
 
-    size_t doRegisterNamedConnection(std::string&& _uname);
+    size_t doRegisterNamedConnection(MessageRelayHeader&& _relay);
     size_t doRegisterUnnamedConnection(const ActorIdT& _rcon_uid, UniqueId& _rrelay_con_uid);
 
     void doRegisterConnectionId(const ConnectionContext& _rconctx, const size_t _idx);
-
-private:
-    struct Data;
-    Pimpl<Data, 480> impl_;
 };
 
 } // namespace relay

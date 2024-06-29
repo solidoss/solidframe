@@ -30,8 +30,7 @@
 
 #define g3_MAP_PAIR_STRINGIFY(x) \
     {                            \
-        x, #x                    \
-    }
+        x, #x}
 
 namespace {
 thread_local size_t g_thread_local_recursive_crash_check = 0;

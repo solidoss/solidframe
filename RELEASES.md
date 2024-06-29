@@ -1,5 +1,11 @@
 # SolidFrame Releases
 
+## Version 12.0
+* utility: support pthread_spin_lock when available
+* utility: ThreadPool improvements and fixes
+* frame: Reactor and aio::Reactor using the same new technique from ThreadPool for event passing
+* mprpc: preparing the stage for relay multicast support
+
 ## Version 11.1
 * mprpc: Split Connection in ClientConnection, ServerConnection, RelayConnection
 * mprpc: Some cleanup and some small improvements on the MessageReader and MessageWriter

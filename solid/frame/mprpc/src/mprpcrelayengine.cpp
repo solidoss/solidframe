@@ -194,8 +194,8 @@ struct ConnectionStub : ConnectionStubBase {
     {
     }
 
-    ConnectionStub(MessageDequeT& _rmsg_dq, std::string&& _uname)
-        : ConnectionStubBase(std::move(_uname))
+    ConnectionStub(MessageDequeT& _rmsg_dq, const uint32_t _group_id, const uint16_t _replica_id)
+        : ConnectionStubBase(_group_id, _replica_id)
         , unique_(0)
         , pdone_relay_data_top_(nullptr)
         , send_msg_list_(_rmsg_dq)
@@ -218,7 +218,7 @@ using RelayDataDequeT  = std::deque<RelayData>;
 using RelayDataStackT  = std::stack<RelayData*>;
 using SizeTStackT      = std::stack<size_t>;
 using ConnectionDequeT = std::deque<ConnectionStub>;
-using ConnectionMapT   = std::unordered_map<const char*, size_t, CStringHash, CStringEqual>;
+using ConnectionMapT   = std::unordered_map<string_view, size_t>;
 } // namespace
 
 std::ostream& operator<<(std::ostream& _ros, const ConnectionPrintStub& _rps)
@@ -231,7 +231,7 @@ struct EngineCore::Data {
     mutex            mtx_;
     MessageDequeT    msg_dq_;
     RelayDataDequeT  reldata_dq_;
-    RelayData*       prelay_data_cache_top_;
+    RelayData*       prelay_data_cache_top_ = nullptr;
     SendInnerListT   msg_cache_inner_list_;
     ConnectionDequeT con_dq_;
     ConnectionMapT   con_umap_;
@@ -239,7 +239,6 @@ struct EngineCore::Data {
 
     Data(Manager& _rm)
         : rm_(_rm)
-        , prelay_data_cache_top_(nullptr)
         , msg_cache_inner_list_(msg_dq_)
     {
     }
@@ -495,10 +494,10 @@ size_t EngineCore::doRegisterUnnamedConnection(const ActorIdT& _rcon_uid, Unique
     return conidx;
 }
 //-----------------------------------------------------------------------------
-size_t EngineCore::doRegisterNamedConnection(std::string&& _uname)
+size_t EngineCore::doRegisterNamedConnection(MessageRelayHeader&& _relay)
 {
     Proxy  proxy(*this);
-    size_t conidx = registerConnection(proxy, std::move(_uname));
+    size_t conidx = registerConnection(proxy, _relay.group_id_, _relay.replica_id_);
     solid_log(logger, Info, conidx << ' ' << plot(impl_->con_dq_[conidx]));
     return conidx;
 }
@@ -537,7 +536,7 @@ bool EngineCore::doRelayStart(
 
     _rrelay_id = MessageId(msgidx, rmsg.unique_);
 
-    const size_t    rcv_conidx = doRegisterNamedConnection(std::move(rmsg.header_.relay_.uri_));
+    const size_t    rcv_conidx = doRegisterNamedConnection(std::move(rmsg.header_.relay_));
     ConnectionStub& rrcvcon    = impl_->con_dq_[rcv_conidx];
     ConnectionStub& rsndcon    = impl_->con_dq_[snd_conidx];
 
@@ -557,7 +556,7 @@ bool EngineCore::doRelayStart(
 
     rmsg.push(impl_->createRelayData(std::move(_rrelmsg)));
 
-    bool should_notify_connection = (rrcvcon.recv_msg_list_.empty() || !rrcvcon.recv_msg_list_.back().hasData());
+    const bool should_notify_connection = (rrcvcon.recv_msg_list_.empty() || !rrcvcon.recv_msg_list_.back().hasData());
 
     rrcvcon.recv_msg_list_.pushBack(msgidx);
 
@@ -584,7 +583,7 @@ bool EngineCore::doRelay(
     if (_rrelay_id.index < impl_->msg_dq_.size() && impl_->msg_dq_[_rrelay_id.index].unique_ == _rrelay_id.unique) {
         const size_t msgidx                        = _rrelay_id.index;
         MessageStub& rmsg                          = impl_->msg_dq_[msgidx];
-        bool         is_msg_relay_data_queue_empty = (rmsg.pfront_ == nullptr);
+        const bool   is_msg_relay_data_queue_empty = (rmsg.pfront_ == nullptr);
         size_t       data_size                     = _rrelmsg.data_size_;
         auto         flags                         = rmsg.last_message_flags_;
 

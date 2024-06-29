@@ -242,7 +242,7 @@ bool MessageReader::doConsumeMessageHeader(
                             solid_log(logger, Info, "Relayed response");
                             rmsgstub.state_ = MessageStub::StateE::RelayResponse;
                             cache(rmsgstub.deserializer_ptr_);
-                        } else if (!_receiver.isRelayEnabled() || rmsgstub.message_header_.relay_.empty()) {
+                        } else if (!_receiver.isRelayEnabled() || !Message::is_relayed(rmsgstub.message_header_.flags_)) {
                             solid_log(logger, Info, "Read Body");
                             rmsgstub.state_ = MessageStub::StateE::ReadBodyStart;
                             rmsgstub.deserializer_ptr_->clear();

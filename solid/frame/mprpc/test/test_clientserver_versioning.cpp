@@ -77,7 +77,7 @@ int test_clientserver_versioning(int argc, char* argv[])
 
     AioSchedulerT          scheduler;
     frame::Manager         manager;
-    CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+    CallPoolT              cwp{{1, 100, 0}, [](const size_t) {}, [](const size_t) {}};
     frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
     frame::mprpc::ServiceT service(manager);
     frame::mprpc::ServiceT service_v1(manager);
@@ -172,7 +172,7 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
 {
     auto req_ptr = frame::mprpc::make_message<v1::Request>();
     _rsvc.sendRequest(
-        "localhost", req_ptr,
+        {"localhost"}, req_ptr,
         [](
             frame::mprpc::ConnectionContext& _rctx,
             RequestPointerT&                 _rreqmsgptr,
@@ -244,7 +244,7 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
     auto req_ptr    = frame::mprpc::make_message<Request>();
     req_ptr->value_ = 11;
     _rsvc.sendRequest(
-        "localhost", req_ptr,
+        {"localhost"}, req_ptr,
         [](
             frame::mprpc::ConnectionContext& _rctx,
             RequestPointerT&                 _rreqmsgptr,
@@ -319,7 +319,7 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
     auto req_ptr     = frame::mprpc::make_message<Request>();
     req_ptr->values_ = "test";
     _rsvc.sendRequest(
-        "localhost", req_ptr,
+        {"localhost"}, req_ptr,
         [](
             frame::mprpc::ConnectionContext& _rctx,
             RequestPointerT&                 _rreqmsgptr,
@@ -394,7 +394,7 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
 {
     auto req_ptr = frame::mprpc::make_message<Request2>();
     _rsvc.sendRequest(
-        "localhost", req_ptr,
+        {"localhost"}, req_ptr,
         [](
             frame::mprpc::ConnectionContext& _rctx,
             Request2PointerT&                _rreqmsgptr,

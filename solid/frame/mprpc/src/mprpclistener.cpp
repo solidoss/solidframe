@@ -71,8 +71,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
         }
         --repeatcnt;
     } while (
-        repeatcnt != 0u && sock.accept(
-            _rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }, _rsd));
+        repeatcnt != 0u && sock.accept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }, _rsd));
 
     if (repeatcnt == 0u) {
         sock.postAccept(

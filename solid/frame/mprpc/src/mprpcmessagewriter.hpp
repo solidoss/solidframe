@@ -344,10 +344,10 @@ inline MessageWriter::MessageStub::MessageStub(
     : inner::Node<InnerLinkCount>(std::move(_rmsgstub))
     , msgbundle_(std::move(_rmsgstub.msgbundle_))
     , unique_(_rmsgstub.unique_)
+    , state_(_rmsgstub.state_)
     , packet_count_(_rmsgstub.packet_count_)
     , serializer_ptr_(std::move(_rmsgstub.serializer_ptr_))
     , pool_msg_id_(_rmsgstub.pool_msg_id_)
-    , state_(_rmsgstub.state_)
 {
 }
 //-----------------------------------------------------------------------------
@@ -386,7 +386,7 @@ inline bool MessageWriter::MessageStub::isStop() const noexcept
 //-----------------------------------------------------------------------------
 inline bool MessageWriter::MessageStub::isRelay() const noexcept
 {
-    return !msgbundle_.message_relay_header_.empty() || Message::is_relayed(msgbundle_.message_flags); // TODO: optimize!!
+    return msgbundle_.message_relay_header_.has_value() || Message::is_relayed(msgbundle_.message_flags); // TODO: optimize!!
 }
 //-----------------------------------------------------------------------------
 inline bool MessageWriter::MessageStub::isRelayed() const noexcept

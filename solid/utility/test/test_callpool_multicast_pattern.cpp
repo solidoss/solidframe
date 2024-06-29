@@ -48,7 +48,7 @@ int test_callpool_multicast_pattern(int argc, char* argv[])
     auto lambda = [&]() {
         for (int i = 0; i < loop_cnt; ++i) {
             {
-                CallPoolT cp{2, 100000, 100000, [](const size_t, Context&) {}, [](const size_t, Context& _rctx) {}, std::ref(context)};
+                CallPoolT cp{{2, 100000, 100000}, [](const size_t, Context&) {}, [](const size_t, Context& _rctx) {}, std::ref(context)};
                 pwp = &cp;
 
                 for (size_t j = 0; j < cnt; ++j) {

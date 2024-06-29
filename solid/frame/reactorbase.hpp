@@ -45,74 +45,54 @@ struct ReactorStatisticBase : solid::Statistic {
 };
 
 namespace impl {
+using AtomicIndexT        = std::atomic_size_t;
+using AtomicIndexValueT   = std::atomic_size_t::value_type;
+using AtomicCounterT      = std::atomic<uint8_t>;
+using AtomicCounterValueT = AtomicCounterT::value_type;
+
+template <class IndexT>
+inline constexpr static auto computeCounter(const IndexT _index, const size_t _capacity) noexcept
+{
+    return (_index / _capacity) & std::numeric_limits<AtomicCounterValueT>::max();
+}
 
 struct WakeStubBase {
-    enum struct LockE : uint8_t {
-        Empty = 0,
-        Pushing,
-        Filled,
-    };
-#if defined(__cpp_lib_atomic_wait)
-    std::atomic_flag pushing_ = ATOMIC_FLAG_INIT;
-#else
-    std::atomic_bool pushing_ = {false};
-#endif
-    std::atomic_uint8_t lock_ = {to_underlying(LockE::Empty)};
+    AtomicCounterT produce_count_{0};
+    AtomicCounterT consume_count_{static_cast<AtomicCounterValueT>(-1)};
 
     template <typename Statistic>
-    void waitWhilePush(Statistic& _rstats) noexcept
+    void waitWhilePush(Statistic& _rstats, const AtomicCounterValueT _count, const size_t _spin_count = 1) noexcept
     {
+        auto spin = _spin_count;
         while (true) {
-#if defined(__cpp_lib_atomic_wait)
-            const bool already_pushing = pushing_.test_and_set(std::memory_order_acquire);
-#else
-            bool       expected        = false;
-            const bool already_pushing = !pushing_.compare_exchange_strong(expected, true, std::memory_order_acquire);
-#endif
-            if (!already_pushing) {
-                //  wait for lock to be 0.
-                uint8_t value = to_underlying(LockE::Empty);
-
-                if (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing))) {
-                    do {
-                        std::atomic_wait(&lock_, value);
-                        value = to_underlying(LockE::Empty);
-                    } while (!lock_.compare_exchange_weak(value, to_underlying(LockE::Pushing)));
-                    _rstats.pushWhileWaitLock();
-                }
-                return;
-            } else {
-#if defined(__cpp_lib_atomic_wait)
-                pushing_.wait(true);
-#else
-                std::atomic_wait(&pushing_, true);
-#endif
-                _rstats.pushWhileWaitPushing();
+            const auto cnt = produce_count_.load();
+            if (cnt == _count) {
+                break;
+            } else if (_spin_count && !spin--) {
+                _rstats.pushWhileWaitLock();
+                std::atomic_wait_explicit(&produce_count_, cnt, std::memory_order_relaxed);
+                spin = _spin_count;
             }
         }
     }
 
     void notifyWhilePush() noexcept
     {
-        lock_.store(to_underlying(LockE::Filled));
-#if defined(__cpp_lib_atomic_wait)
-        pushing_.clear(std::memory_order_release);
-        pushing_.notify_one();
-#else
-        pushing_.store(false, std::memory_order_release);
-        std::atomic_notify_one(&pushing_);
-#endif
+        ++consume_count_;
+        std::atomic_notify_all(&consume_count_);
     }
 
     void notifyWhilePop() noexcept
     {
-        lock_.store(to_underlying(LockE::Empty));
-        std::atomic_notify_one(&lock_);
+        ++produce_count_;
+        std::atomic_notify_all(&produce_count_);
     }
 
-    bool isFilled() const noexcept
+    bool isFilled(const uint64_t _id, const size_t _capacity) const
     {
-        return lock_.load() == to_underlying(LockE::Filled);
+        const auto                count          = consume_count_.load(std::memory_order_relaxed);
+        const AtomicCounterValueT expected_count = computeCounter(_id, _capacity);
+        return count == expected_count;
     }
 };
 

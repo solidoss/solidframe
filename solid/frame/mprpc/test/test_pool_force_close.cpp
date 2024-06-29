@@ -257,7 +257,7 @@ int test_pool_force_close(int argc, char* argv[])
         frame::mprpc::ServiceT mprpcserver(m);
         frame::mprpc::ServiceT mprpcclient(m);
         ErrorConditionT        err;
-        CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        CallPoolT              cwp{{1, 100, 0}, [](const size_t) {}, [](const size_t) {}};
         frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
         sch_client.start(1);
@@ -337,7 +337,7 @@ int test_pool_force_close(int argc, char* argv[])
                 {
                     ++crtwriteidx;
                     mprpcclient.sendMessage(
-                        "localhost", *it, recipinet_id, 0);
+                        {"localhost"}, *it, recipinet_id, 0);
                 }
 
                 ++it;

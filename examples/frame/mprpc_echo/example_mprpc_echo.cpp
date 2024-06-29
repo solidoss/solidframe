@@ -173,7 +173,7 @@ int main(int argc, char* argv[])
         frame::Manager         m;
         frame::mprpc::ServiceT ipcsvc(m);
         ErrorConditionT        err;
-        CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        CallPoolT              cwp{{1, 100, 0}, [](const size_t) {}, [](const size_t) {}};
         frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
         if (!restart(ipcsvc, resolver, sch)) {
@@ -211,7 +211,7 @@ bool restart(
         reflection::v1::metadata::factory,
         [&](auto& _rmap) {
             _rmap.template registerMessage<FirstMessage>(1, "FirstMessage",
-                [](
+                           [](
                     frame::mprpc::ConnectionContext&             _rctx,
                     frame::mprpc::MessagePointerT<FirstMessage>& _rsend_msg,
                     frame::mprpc::MessagePointerT<FirstMessage>& _rrecv_msg,
@@ -347,7 +347,7 @@ void broadcast_message(frame::mprpc::Service& _rsvc, frame::mprpc::MessagePointe
     solid_log(generic_logger, Verbose, "done stop===============================");
 
     for (Params::StringVectorT::const_iterator it(params.connectstringvec.begin()); it != params.connectstringvec.end(); ++it) {
-        _rsvc.sendMessage(it->c_str(), _rmsgptr, {frame::mprpc::MessageFlagsE::AwaitResponse});
+        _rsvc.sendMessage({*it}, _rmsgptr, {frame::mprpc::MessageFlagsE::AwaitResponse});
     }
 }
 

@@ -174,7 +174,7 @@ int main(int argc, char* argv[])
         frame::ServiceT service(manager);
         frame::ActorIdT actuid;
 
-        CallPoolT            cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        CallPoolT            cwp{{1, 100, 0}, [](const size_t) {}, [](const size_t) {}};
         frame::aio::Resolver resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
         ErrorConditionT      err;
 

@@ -324,7 +324,7 @@ int test_clientserver_idempotent(int argc, char* argv[])
         frame::mprpc::ServiceT mprpcserver(m);
         frame::mprpc::ServiceT mprpcclient(m);
         ErrorConditionT        err;
-        CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        CallPoolT              cwp{{1, 100, 0}, [](const size_t) {}, [](const size_t) {}};
         frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
         sch_client.start(1);
@@ -389,7 +389,7 @@ int test_clientserver_idempotent(int argc, char* argv[])
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 
-            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, server_port.c_str(), "localhost", SocketInfo::Inet4);
+            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, server_port.c_str(), {"localhost"}, SocketInfo::Inet4);
 
             if (secure) {
                 solid_dbg(generic_logger, Info, "Configure SSL client ------------------------------------");
@@ -418,35 +418,35 @@ int test_clientserver_idempotent(int argc, char* argv[])
         {
             ++crtwriteidx;
             mprpcclient.sendMessage(
-                "localhost", msg_vec[0],
+                {"localhost"}, msg_vec[0],
                 {frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::OneShotSend});
         }
 
         {
             ++crtwriteidx;
             mprpcclient.sendMessage(
-                "localhost", msg_vec[1],
+                {"localhost"}, msg_vec[1],
                 {frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::Idempotent});
         }
 
         {
             ++crtwriteidx;
             mprpcclient.sendMessage(
-                "localhost", msg_vec[2],
+                {"localhost"}, msg_vec[2],
                 {frame::mprpc::MessageFlagsE::OneShotSend});
         }
 
         {
             ++crtwriteidx;
             mprpcclient.sendMessage(
-                "localhost", msg_vec[3],
+                {"localhost"}, msg_vec[3],
                 {frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::Idempotent, frame::mprpc::MessageFlagsE::Synchronous});
         }
 
         {
             ++crtwriteidx;
             mprpcclient.sendMessage(
-                "localhost", msg_vec[4],
+                {"localhost"}, msg_vec[4],
                 {frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::Synchronous});
         }
 

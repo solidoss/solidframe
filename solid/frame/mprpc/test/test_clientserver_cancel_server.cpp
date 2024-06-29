@@ -263,7 +263,7 @@ void server_complete_message(
             frame::mprpc::MessageId msguid;
 
             ErrorConditionT err = _rctx.service().sendMessage(
-                recipient_id, frame::mprpc::MessagePointerT<>(frame::mprpc::make_message<Message>(crtwriteidx)),
+                {recipient_id}, frame::mprpc::MessagePointerT<>(frame::mprpc::make_message<Message>(crtwriteidx)),
                 msguid);
 
             solid_check(!err, "Connection id should not be invalid! " << err.message());
@@ -321,7 +321,7 @@ int test_clientserver_cancel_server(int argc, char* argv[])
         frame::mprpc::ServiceT mprpcserver(m);
         frame::mprpc::ServiceT mprpcclient(m);
         ErrorConditionT        err;
-        CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        CallPoolT              cwp{{1, 100, 0}, [](const size_t) {}, [](const size_t) {}};
         frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
         sch_client.start(1);
@@ -416,7 +416,7 @@ int test_clientserver_cancel_server(int argc, char* argv[])
             // Step 1.
             auto msgptr(frame::mprpc::make_message<Message>(0));
             mprpcclient.sendMessage(
-                "localhost", msgptr,
+                {"localhost"}, msgptr,
                 initarray[0].flags);
         }
 

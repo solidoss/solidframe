@@ -227,7 +227,7 @@ int test_clientserver_upload_single(int argc, char* argv[])
         frame::mprpc::ServiceT mprpc_client(m);
         frame::mprpc::ServiceT mprpc_server(m);
         ErrorConditionT        err;
-        CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        CallPoolT              cwp{{1, 100, 0}, [](const size_t) {}, [](const size_t) {}};
         frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
         sch_client.start(1);
@@ -317,7 +317,7 @@ int test_clientserver_upload_single(int argc, char* argv[])
             auto msg_ptr = frame::mprpc::make_message<Request>(f);
             msg_ptr->ifs_.open(string("client_storage/") + f);
 
-            mprpc_client.sendRequest("localhost", msg_ptr, on_client_first_response);
+            mprpc_client.sendRequest({"localhost"}, msg_ptr, on_client_first_response);
         }
 
         auto fut = prom.get_future();

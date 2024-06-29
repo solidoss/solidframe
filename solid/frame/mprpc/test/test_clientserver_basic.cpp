@@ -249,7 +249,7 @@ void server_complete_message(
         solid_dbg(generic_logger, Info, crtreadidx);
         if (crtwriteidx < writecount) {
             err = pmprpcclient->sendMessage(
-                "", frame::mprpc::make_message<Message>(crtwriteidx++),
+                {""}, frame::mprpc::make_message<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
             solid_check(!err, "Connection id should not be invalid! " << err.message());
         }
@@ -326,7 +326,7 @@ int test_clientserver_basic(int argc, char* argv[])
         frame::mprpc::ServiceT mprpcserver(m);
         frame::mprpc::ServiceT mprpcclient(m);
         ErrorConditionT        err;
-        CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        CallPoolT              cwp{{1, 100, 0}, [](const size_t) {}, [](const size_t) {}};
         frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
         sch_client.start(1);
@@ -424,7 +424,7 @@ int test_clientserver_basic(int argc, char* argv[])
 
         for (; crtwriteidx < start_count;) {
             mprpcclient.sendMessage(
-                "", frame::mprpc::make_message<Message>(crtwriteidx++),
+                {""}, frame::mprpc::make_message<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 

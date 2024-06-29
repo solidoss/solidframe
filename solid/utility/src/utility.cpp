@@ -200,6 +200,10 @@ std::ostream& ThreadPoolStatistic::print(std::ostream& _ros) const
     _ros << " pop_one_wait_popping_count = " << pop_one_wait_popping_count_.load(std::memory_order_relaxed);
     _ros << " push_all_wait_lock_count = " << push_all_wait_lock_count_.load(std::memory_order_relaxed);
     _ros << " push_all_wait_pushing_count = " << push_all_wait_pushing_count_.load(std::memory_order_relaxed);
+    _ros << " push_one_latency_max_us = " << push_one_latency_max_us_.load(std::memory_order_relaxed);
+    _ros << " push_one_latency_min_us = " << push_one_latency_min_us_.load(std::memory_order_relaxed);
+    const auto sum_ones = push_one_count_[0].load(std::memory_order_relaxed) + push_one_count_[1].load(std::memory_order_relaxed);
+    _ros << " push_one_latency_avg_us = " << sum_ones ? push_one_latency_sum_us_.load(std::memory_order_relaxed) / sum_ones : 0;
     return _ros;
 }
 void ThreadPoolStatistic::clear() {}

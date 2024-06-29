@@ -70,7 +70,7 @@ int test_threadpool_thread_context(int argc, char* argv[])
             auto start = chrono::steady_clock::now();
             {
                 CallPoolT wp{
-                    2, 1000, 0, [](const size_t, Context&&) {}, [](const size_t, Context&&) {},
+                    {2, 1000, 0}, [](const size_t, Context&&) {}, [](const size_t, Context&&) {},
                     Context("simple text", 0UL)};
 
                 solid_log(logger, Verbose, "wp started");

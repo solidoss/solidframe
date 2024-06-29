@@ -11,6 +11,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <type_traits>
 
 #include "solid/system/common.hpp"
@@ -36,40 +37,41 @@ class Connection;
 class ConnectionContext;
 
 struct MessageRelayHeader {
-    std::string uri_;
+    using GroupIdT         = uint32_t;
+    using ReplicaIdT       = uint16_t;
+    GroupIdT   group_id_   = 0;
+    ReplicaIdT replica_id_ = 0;
 
     MessageRelayHeader() = default;
 
-    MessageRelayHeader(const std::string& _uri)
-        : uri_(_uri)
+    MessageRelayHeader(const GroupIdT _group_id, const ReplicaIdT _replica_id = 0)
+        : group_id_(_group_id)
+        , replica_id_(_replica_id)
     {
     }
-    MessageRelayHeader(std::string&& _uri)
-        : uri_(std::move(_uri))
+
+    void clear()
     {
+        group_id_   = InvalidIndex();
+        replica_id_ = 0;
     }
 
     SOLID_REFLECT_V1(_rs, _rthis, _rctx)
     {
         if constexpr (std::decay_t<decltype(_rs)>::is_const_reflector) {
-            _rs.add(_rctx.pmessage_relay_header_->uri_, _rctx, 1, "uri", [](auto& _rmeta) { _rmeta.maxSize(20); });
+            _rs.add(_rctx.pmessage_relay_header_->group_id_, _rctx, 1, "group_id");
+            _rs.add(_rctx.pmessage_relay_header_->replica_id_, _rctx, 2, "replica_id");
         } else {
-            _rs.add(_rthis.uri_, _rctx, 1, "uri", [](auto& _rmeta) { _rmeta.maxSize(20); });
+            _rs.add(_rthis.group_id_, _rctx, 1, "group_id");
+            _rs.add(_rthis.replica_id_, _rctx, 2, "replica_id");
         }
-    }
-
-    bool empty() const noexcept
-    {
-        return uri_.empty();
-    }
-
-    void clear()
-    {
-        uri_.clear();
     }
 };
 
+using OptionalMessageRelayHeaderT = std::optional<MessageRelayHeader>;
+
 std::ostream& operator<<(std::ostream& _ros, const MessageRelayHeader& _header);
+std::ostream& operator<<(std::ostream& _ros, const OptionalMessageRelayHeaderT& _header);
 
 struct MessageHeader {
     using FlagsT = MessageFlagsValueT;
@@ -337,9 +339,9 @@ struct Message : IntrusiveCacheable {
         return is_response_last(flags());
     }
 
-    const std::string& uri() const
+    const auto& relay() const
     {
-        return header_.relay_.uri_;
+        return header_.relay_;
     }
 
     void clearStateFlags()

@@ -346,7 +346,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
         frame::mprpc::ServiceT mprpc_back_client(m);
         frame::mprpc::ServiceT mprpc_back_server(m);
         ErrorConditionT        err;
-        CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        CallPoolT              cwp{{1, 100, 0}, [](const size_t) {}, [](const size_t) {}};
         frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
         sch_client.start(1);
@@ -517,7 +517,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
             auto msg_ptr = frame::mprpc::make_message<front::Request>(f);
             msg_ptr->ifs_.open(string("client_storage/") + f);
 
-            mprpc_front_client.sendRequest("localhost", msg_ptr, front::on_client_receive_first_response);
+            mprpc_front_client.sendRequest({"localhost"}, msg_ptr, front::on_client_receive_first_response);
         }
 
         auto fut = prom.get_future();
@@ -769,7 +769,7 @@ void on_server_receive_first_request(
     req_ptr->recipient_id_ = _rctx.recipientId();
     req_ptr->res_ptr_      = frame::mprpc::make_message<front::Response>(*_rrecv_msg_ptr);
 
-    pmprpc_back_client->sendRequest("localhost", req_ptr, back::on_client_receive_first_response, flags);
+    pmprpc_back_client->sendRequest({"localhost"}, req_ptr, back::on_client_receive_first_response, flags);
 }
 
 } // namespace front

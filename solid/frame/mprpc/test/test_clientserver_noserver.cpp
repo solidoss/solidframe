@@ -220,7 +220,7 @@ int test_clientserver_noserver(int argc, char* argv[])
         frame::Manager         m;
         frame::mprpc::ServiceT mprpcclient(m);
         ErrorConditionT        err;
-        CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        CallPoolT              cwp{{1, 100, 0}, [](const size_t) {}, [](const size_t) {}};
         frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
         sch_client.start(1);
@@ -271,7 +271,7 @@ int test_clientserver_noserver(int argc, char* argv[])
             MessagePointerT msgptr(frame::mprpc::make_message<Message>(0));
 
             err = mprpcclient.sendMessage(
-                "localhost", msgptr,
+                {"localhost"}, msgptr,
                 recipient_id, message_id,
                 {frame::mprpc::MessageFlagsE::AwaitResponse});
             solid_check(!err);

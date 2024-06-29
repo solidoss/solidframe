@@ -51,59 +51,6 @@ class Configuration;
 
 typedef void (*OnSecureConnectF)(frame::aio::ReactorContext&);
 typedef void (*OnSecureAcceptF)(frame::aio::ReactorContext&);
-#if false
-struct BufferBase {
-    virtual ~BufferBase();
-
-    char*  data() const { return data_; }
-    size_t capacity() const { return capacity_; }
-
-protected:
-    BufferBase(char* _data = nullptr, size_t _cap = 0)
-        : data_(_data)
-        , capacity_(_cap)
-    {
-    }
-    void reset(char* _data = nullptr, size_t _cap = 0)
-    {
-        data_     = _data;
-        capacity_ = _cap;
-    }
-
-protected:
-    char*  data_;
-    size_t capacity_;
-};
-
-template <size_t Cp>
-struct Buffer;
-
-template <>
-struct Buffer<0> : BufferBase {
-    Buffer(const size_t _cp)
-        : BufferBase(new char[_cp], _cp)
-    {
-    }
-    ~Buffer()
-    {
-        delete[] data_;
-    }
-};
-
-template <size_t Cp>
-struct Buffer : BufferBase {
-    char d_[Cp];
-    Buffer()
-    {
-        reset(d_, Cp);
-    }
-};
-
-using SendBufferPointerT = std::unique_ptr<char[]>;
-using RecvBufferPointerT = std::shared_ptr<BufferBase>;
-
-RecvBufferPointerT make_recv_buffer(const size_t _cp);
-#endif
 
 enum struct RelayDataFlagsE : uint8_t {
     First,
@@ -124,7 +71,7 @@ struct RelayData {
     MessageHeader::FlagsT message_flags_   = 0;
     MessageHeader*        pmessage_header_ = nullptr;
 
-    RelayData() {}
+    RelayData() = default;
 
     RelayData(
         RelayData&& _rrelmsg) noexcept
@@ -341,7 +288,6 @@ using SendAllocateBufferFunctionT               = solid_function_t(SharedBuffer(
 using RecvAllocateBufferFunctionT               = solid_function_t(SharedBuffer(const uint32_t));
 using CompressFunctionT                         = solid_function_t(size_t(char*, size_t, ErrorConditionT&));
 using UncompressFunctionT                       = solid_function_t(size_t(char*, const char*, size_t, ErrorConditionT&));
-using ExtractRecipientNameFunctionT             = solid_function_t(const char*(const char*, std::string&, std::string&));
 using ConnectionEnterActiveCompleteFunctionT    = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
 using ConnectionPostCompleteFunctionT           = solid_function_t(void(ConnectionContext&));
 using ConnectionSendTimeoutSoftFunctionT        = solid_function_t(void(ConnectionContext&));
@@ -405,7 +351,6 @@ public:
     uint8_t                            connection_send_buffer_start_capacity_kb = 0;
     uint8_t                            connection_send_buffer_max_capacity_kb   = 64;
     uint16_t                           connection_relay_buffer_count            = 8;
-    ExtractRecipientNameFunctionT      extract_recipient_name_fnc;
     ConnectionStopFunctionT            connection_stop_fnc;
     ConnectionOnEventFunctionT         connection_on_event_fnc;
     ConnectionSendTimeoutSoftFunctionT connection_on_send_timeout_soft_ = [](ConnectionContext&) {};

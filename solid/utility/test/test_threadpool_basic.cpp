@@ -41,7 +41,7 @@ int test_threadpool_basic(int argc, char* argv[])
         for (int i = 0; i < loop_cnt; ++i) {
             {
                 ThreadPoolT wp{
-                    2, 10000, 0, [](const size_t) {}, [](const size_t) {},
+                    {2, 10000, 0}, [](const size_t) {}, [](const size_t) {},
                     [&val](const size_t _v) {
                         val += _v;
                     },

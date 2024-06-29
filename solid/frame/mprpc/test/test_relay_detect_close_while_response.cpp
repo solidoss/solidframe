@@ -78,28 +78,31 @@ string generate_big_data(const size_t _size)
 }
 
 struct Register : frame::mprpc::Message {
-    std::string str;
-    uint32_t    err;
+    uint32_t err_        = 0;
+    uint32_t group_id_   = 0;
+    uint16_t replica_id_ = 0;
 
-    Register(const std::string& _rstr, uint32_t _err = 0)
-        : str(_rstr)
-        , err(_err)
+    Register(const uint32_t _group_id, uint32_t _err = 0)
+        : group_id_(_group_id)
+        , err_(_err)
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }
-    Register(uint32_t _err = -1)
-        : err(_err)
+    Register()
+        : err_(-1)
     {
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }
 
     ~Register()
     {
-        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << this);
     }
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
-        _rr.add(_rthis.err, _rctx, 0, "err").add(_rthis.str, _rctx, 1, "str");
+        _rr.add(_rthis.err_, _rctx, 0, "err").add(_rthis.group_id_, _rctx, 1, "group_id");
+        _rr.add(_rthis.replica_id_, _rctx, 2, "replica_id");
     }
 };
 
@@ -185,7 +188,7 @@ void peera_complete_detect_close(
     if (_rrecv_msg_ptr) {
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " peera received DetectCloseMessage " << _rrecv_msg_ptr->idx);
         solid_check(!_rrecv_msg_ptr->isResponseLast());
-        pmprpcpeera->sendMessage("localhost/b", frame::mprpc::make_message<Message>(_rrecv_msg_ptr->idx, generate_big_data(1024 * 10)));
+        pmprpcpeera->sendMessage({"localhost", 0}, frame::mprpc::make_message<Message>(_rrecv_msg_ptr->idx, generate_big_data(1024 * 10)));
     }
 
     if (_rerror == frame::mprpc::error_message_canceled_peer) {
@@ -200,7 +203,7 @@ void peerb_connection_start(frame::mprpc::ConnectionContext& _rctx)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 
-    auto            msgptr = frame::mprpc::make_message<Register>("b");
+    auto            msgptr = frame::mprpc::make_message<Register>(0);
     ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mprpc::MessageFlagsE::AwaitResponse});
     solid_check(!err, "failed send Register");
 }
@@ -218,7 +221,7 @@ void peerb_complete_register(
     solid_dbg(generic_logger, Info, _rctx.recipientId());
     solid_check(!_rerror);
 
-    if (_rrecv_msg_ptr && _rrecv_msg_ptr->err == 0) {
+    if (_rrecv_msg_ptr && _rrecv_msg_ptr->err_ == 0) {
         auto lambda = [](frame::mprpc::ConnectionContext&, ErrorConditionT const& _rerror) {
             solid_dbg(generic_logger, Info, "peerb --- enter active error: " << _rerror.message());
         };
@@ -303,7 +306,7 @@ int test_relay_detect_close_while_response(int argc, char* argv[])
         frame::mprpc::ServiceT                mprpcpeera(m);
         frame::mprpc::ServiceT                mprpcpeerb(m);
         ErrorConditionT                       err;
-        CallPoolT                             cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        CallPoolT                             cwp{{1, 100, 0}, [](const size_t) {}, [](const size_t) {}};
         frame::aio::Resolver                  resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
 
         sch_peera.start(1);
@@ -326,11 +329,9 @@ int test_relay_detect_close_while_response(int argc, char* argv[])
                 solid_check(!_rerror);
                 if (_rrecv_msg_ptr) {
                     solid_check(!_rsent_msg_ptr);
-                    solid_dbg(generic_logger, Info, "recv register request: " << _rrecv_msg_ptr->str);
+                    solid_dbg(generic_logger, Info, "recv register request: " << _rrecv_msg_ptr->group_id_ << ", " << _rrecv_msg_ptr->replica_id_);
 
-                    relay_engine.registerConnection(_rctx, std::move(_rrecv_msg_ptr->str));
-
-                    _rrecv_msg_ptr->str.clear();
+                    relay_engine.registerConnection(_rctx, _rrecv_msg_ptr->group_id_, _rrecv_msg_ptr->replica_id_);
                     ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
                     solid_check(!err, "Failed sending register response: " << err.message());
@@ -468,7 +469,7 @@ int test_relay_detect_close_while_response(int argc, char* argv[])
         solid_check(!err, "failed create connection from peerb: " << err.message());
 
         pmprpcpeera = &mprpcpeera;
-        mprpcpeera.sendMessage("localhost/b", frame::mprpc::make_message<DetectCloseMessage>(), {frame::mprpc::MessageFlagsE::AwaitResponse});
+        mprpcpeera.sendMessage({"localhost", 0}, frame::mprpc::make_message<DetectCloseMessage>(), {frame::mprpc::MessageFlagsE::AwaitResponse});
 
         unique_lock<mutex> lock(mtx);
 

@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
         AioSchedulerT          scheduler;
         frame::Manager         manager;
         frame::mprpc::ServiceT rpcservice(manager);
-        CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        CallPoolT              cwp{{1, 100, 0}, [](const size_t) {}, [](const size_t) {}};
         frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
         ErrorConditionT        err;
 
@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
 
         frame::mprpc::RecipientId recipient_id;
         rpcservice.createConnectionPool(
-            p.server_addr.c_str(),
+            {p.server_addr},
             recipient_id,
             [](frame::mprpc::ConnectionContext& _rctx, EventBase&& _revt, const ErrorConditionT& _rerr) {
                 solid_log(generic_logger, Verbose, "Connection pool event: " << _revt);

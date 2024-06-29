@@ -108,7 +108,7 @@ int main(int argc, char* argv[])
     using ThreadPoolT = ThreadPool<FileDevice*, size_t>;
     Context     context;
     ThreadPoolT wp{
-        1, 100, 0, [](const size_t, Context&) {}, [](const size_t, Context&) {},
+        {1, 100, 0}, [](const size_t, Context&) {}, [](const size_t, Context&) {},
         [](FileDevice* _pfile, Context& _rctx) {
             int64_t sz = _pfile->size();
             int     toread;

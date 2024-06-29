@@ -165,28 +165,38 @@ public:
 };
 
 struct MessageBundle {
-    size_t                   message_type_id;
-    MessageFlagsT            message_flags;
-    MessagePointerT<>        message_ptr;
-    MessageCompleteFunctionT complete_fnc;
-    MessageRelayHeader       message_relay_header_;
+    size_t                      message_type_id = InvalidIndex();
+    MessageFlagsT               message_flags   = 0;
+    MessagePointerT<>           message_ptr;
+    MessageCompleteFunctionT    complete_fnc;
+    OptionalMessageRelayHeaderT message_relay_header_;
 
-    MessageBundle()
-        : message_type_id(InvalidIndex())
-        , message_flags(0)
-    {
-    }
+    MessageBundle() = default;
 
     MessageBundle(
-        MessagePointerT<>&&       _rmsgptr,
-        const size_t              _msg_type_idx,
-        const MessageFlagsT&      _flags,
-        MessageCompleteFunctionT& _complete_fnc,
-        std::string&&             _rmessage_uri)
+        MessagePointerT<>&&           _rmsgptr,
+        const size_t                  _msg_type_idx,
+        const MessageFlagsT&          _flags,
+        MessageCompleteFunctionT&     _complete_fnc,
+        OptionalMessageRelayHeaderT&& _relay)
         : message_type_id(_msg_type_idx)
         , message_flags(_flags)
         , message_ptr(std::move(_rmsgptr))
-        , message_relay_header_(std::move(_rmessage_uri))
+        , message_relay_header_(std::move(_relay))
+    {
+        std::swap(complete_fnc, _complete_fnc);
+    }
+
+    MessageBundle(
+        MessagePointerT<>&&                _rmsgptr,
+        const size_t                       _msg_type_idx,
+        const MessageFlagsT&               _flags,
+        MessageCompleteFunctionT&          _complete_fnc,
+        const OptionalMessageRelayHeaderT& _relay)
+        : message_type_id(_msg_type_idx)
+        , message_flags(_flags)
+        , message_ptr(std::move(_rmsgptr))
+        , message_relay_header_(_relay)
     {
         std::swap(complete_fnc, _complete_fnc);
     }
@@ -229,7 +239,7 @@ struct MessageBundle {
         message_type_id = InvalidIndex();
         message_flags.reset();
         message_ptr.reset();
-        message_relay_header_.clear();
+        message_relay_header_.reset();
         solid_function_clear(complete_fnc);
     }
 };

@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
         AioSchedulerT          scheduler;
         frame::Manager         manager;
         frame::mprpc::ServiceT rpcservice(manager);
-        CallPoolT              cwp{1, 100, 0, [](const size_t) {}, [](const size_t) {}};
+        CallPoolT              cwp{{1, 100, 0}, [](const size_t) {}, [](const size_t) {}};
         frame::aio::Resolver   resolver([&cwp](std::function<void()>&& _fnc) { cwp.pushOne(std::move(_fnc)); });
         ErrorConditionT        err;
 
@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
                 size_t offset = line.find(' ');
                 if (offset != string::npos) {
                     recipient = line.substr(0, offset);
-                    rpcservice.sendMessage(recipient.c_str(), frame::mprpc::make_message<rpc_echo::Message>(line.substr(offset + 1)), {frame::mprpc::MessageFlagsE::AwaitResponse});
+                    rpcservice.sendMessage({recipient}, frame::mprpc::make_message<rpc_echo::Message>(line.substr(offset + 1)), {frame::mprpc::MessageFlagsE::AwaitResponse});
                 } else {
                     cout << "No recipient specified. E.g:" << endl
                          << "localhost:4444 Some text to send" << endl;

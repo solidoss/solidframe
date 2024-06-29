@@ -134,19 +134,19 @@ ErrorConditionT start(
         _rctx.rwait_count += 3;
 
         err = mprpcclient_ptr->sendMessage(
-            "localhost", frame::mprpc::make_message<beta_protocol::FirstMessage>(100000UL, make_string(100000)),
+            {"localhost"}, frame::mprpc::make_message<beta_protocol::FirstMessage>(100000UL, make_string(100000)),
             {frame::mprpc::MessageFlagsE::AwaitResponse});
         if (err) {
             return err;
         }
         err = mprpcclient_ptr->sendMessage(
-            "localhost", frame::mprpc::make_message<beta_protocol::SecondMessage>(200000UL, make_string(200000)),
+            {"localhost"}, frame::mprpc::make_message<beta_protocol::SecondMessage>(200000UL, make_string(200000)),
             {frame::mprpc::MessageFlagsE::AwaitResponse});
         if (err) {
             return err;
         }
         err = mprpcclient_ptr->sendMessage(
-            "localhost", frame::mprpc::make_message<beta_protocol::ThirdMessage>(30000UL, make_string(30000)),
+            {"localhost"}, frame::mprpc::make_message<beta_protocol::ThirdMessage>(30000UL, make_string(30000)),
             {frame::mprpc::MessageFlagsE::AwaitResponse});
         if (err) {
             return err;
