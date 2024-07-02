@@ -531,7 +531,8 @@ private:
                     return static_cast<EventE>(event_);
                 } else if (!_try_consume_an_all_fnc(&consume_count_, _count, _all_fnc, std::forward<Args>(_args)...) && _spin_count && !spin--) {
 
-                    std::atomic_wait_explicit(&consume_count_, cnt, std::memory_order_relaxed);
+                    // std::atomic_wait_explicit(&consume_count_, cnt, std::memory_order_relaxed);
+                    std::atomic_wait(&consume_count_, cnt);
 
                     _rstats.popOneWaitPopping();
                     spin = _spin_count;
@@ -577,7 +578,8 @@ private:
                     break;
                 } else if (_spin_count && !spin--) {
                     _rstats.pushOneWaitLock();
-                    std::atomic_wait_explicit(&produce_count_, cnt, std::memory_order_relaxed);
+                    // std::atomic_wait_explicit(&produce_count_, cnt, std::memory_order_relaxed);
+                    std::atomic_wait(&produce_count_, cnt);
                     spin = _spin_count;
                 }
             }
@@ -603,7 +605,7 @@ private:
 
         bool isFilled(const uint64_t _id, const size_t _capacity) const
         {
-            const auto                count          = consume_count_.load(std::memory_order_relaxed);
+            const auto                count          = consume_count_.load();
             const AtomicCounterValueT expected_count = computeCounter(_id, _capacity);
             return count == expected_count && id_.load() == _id;
         }

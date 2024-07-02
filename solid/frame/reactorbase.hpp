@@ -70,7 +70,8 @@ struct WakeStubBase {
                 break;
             } else if (_spin_count && !spin--) {
                 _rstats.pushWhileWaitLock();
-                std::atomic_wait_explicit(&produce_count_, cnt, std::memory_order_relaxed);
+                // std::atomic_wait_explicit(&produce_count_, cnt, std::memory_order_relaxed);
+                std::atomic_wait(&produce_count_, cnt);
                 spin = _spin_count;
             }
         }
@@ -90,7 +91,7 @@ struct WakeStubBase {
 
     bool isFilled(const uint64_t _id, const size_t _capacity) const
     {
-        const auto                count          = consume_count_.load(std::memory_order_relaxed);
+        const auto                count          = consume_count_.load();
         const AtomicCounterValueT expected_count = computeCounter(_id, _capacity);
         return count == expected_count;
     }
