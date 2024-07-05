@@ -884,7 +884,7 @@ ServiceStatusE Manager::status(const Service& _rservice)
     pimpl_->service_store_.aquire(
         service_index,
         [&status](const size_t _index, ServiceStub& _rss) {
-            status = _rss.status_.load(std::memory_order_relaxed);
+            status = _rss.status_.load(/* std::memory_order_relaxed */);
         });
 
     return status;

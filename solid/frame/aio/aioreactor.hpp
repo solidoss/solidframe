@@ -526,7 +526,7 @@ private:
     {
         solid_log(logger, Verbose, "");
 
-        if (pending_wake_count_.load(std::memory_order_relaxed) && !emptyFreeUids()) {
+        if (pending_wake_count_.load(/* std::memory_order_relaxed */) && !emptyFreeUids()) {
             std::lock_guard<MutexT> lock(mutex());
             pushFreeUids();
         }

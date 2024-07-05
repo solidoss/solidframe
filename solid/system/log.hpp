@@ -201,6 +201,16 @@ ErrorConditionT log_start(
     const std::vector<std::string>& _rmodule_mask_vec,
     bool                            _buffered = true);
 
+#ifndef SOLID_LOG_BUFFER_SIZE
+
+constexpr size_t log_buffer_size = 2 * 1024;
+
+#else
+
+constexpr size_t log_buffer_size = (SOLID_LOG_BUFFER_SIZE);
+
+#endif
+
 } // namespace solid
 
 #ifndef SOLID_FUNCTION_NAME
@@ -211,15 +221,11 @@ ErrorConditionT log_start(
 #endif
 #endif
 
-#ifndef SOLID_LOG_BUFFER_SIZE
-#define SOLID_LOG_BUFFER_SIZE 2 * 1024
-#endif
-
 #ifdef SOLID_HAS_DEBUG
 
 #define solid_dbg(Lgr, Flg, Txt)                                                                                                                                      \
     if (Lgr.shouldLog(std::remove_reference<decltype(Lgr)>::type::FlagT::Flg)) {                                                                                      \
-        solid::impl::LogLineStream<SOLID_LOG_BUFFER_SIZE> os;                                                                                                         \
+        solid::impl::LogLineStream<solid::log_buffer_size> os;                                                                                                        \
         Lgr.log(os, std::remove_reference<decltype(Lgr)>::type::FlagT::Flg, __FILE__, static_cast<const char*>((SOLID_FUNCTION_NAME)), __LINE__) << Txt << std::endl; \
         Lgr.done(os);                                                                                                                                                 \
     }
@@ -232,14 +238,14 @@ ErrorConditionT log_start(
 
 #define solid_log(Lgr, Flg, Txt)                                                                                                                                      \
     if (Lgr.shouldLog(std::remove_reference<decltype(Lgr)>::type::FlagT::Flg)) {                                                                                      \
-        solid::impl::LogLineStream<SOLID_LOG_BUFFER_SIZE> os;                                                                                                         \
+        solid::impl::LogLineStream<solid::log_buffer_size> os;                                                                                                        \
         Lgr.log(os, std::remove_reference<decltype(Lgr)>::type::FlagT::Flg, __FILE__, static_cast<const char*>((SOLID_FUNCTION_NAME)), __LINE__) << Txt << std::endl; \
         Lgr.done(os);                                                                                                                                                 \
     }
 
 #define solid_log_raw(Txt)                                       \
     if (solid::generic_logger.shouldLog(solid::LogFlags::Raw)) { \
-        solid::impl::LogLineStream<SOLID_LOG_BUFFER_SIZE> os;    \
+        solid::impl::LogLineStream<solid::log_buffer_size> os;   \
         os << Txt;                                               \
     Lgr.done(os)
 
