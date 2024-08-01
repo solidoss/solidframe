@@ -71,6 +71,11 @@ if(OPENSSL_FOUND)
         test_clientserver_timeout_secure.cpp
         test_clientserver_topic.cpp
     )
+
+    if(SOLID_ON_WINDOWS)
+        set_source_files_properties(test_clientserver_versioning.cpp PROPERTIES COMPILE_OPTIONS "/bigobj")
+    endif()
+
     #
     create_test_sourcelist( mprpcClientServerTests test_mprpc_clientserver.cpp ${mprpcClientServerTestSuite})
 

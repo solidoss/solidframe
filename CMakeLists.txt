@@ -72,8 +72,13 @@ if(NOT CMAKE_BUILD_TYPE)
     message(STATUS "Setting build type to 'release' as none was specified.")
     set(CMAKE_BUILD_TYPE "release" CACHE STRING "Choose the type of build." FORCE)
     # Set the possible values of build type for cmake-gui
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
-        "release" "debug" "maintain" "custom")
+    if(CMAKE_SYSTEM MATCHES "Windows*")
+        set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+            "release" "debug" "maintain" "custom")
+    else()
+        set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+        "release" "debug" "maintain" "custom" "coverage")
+    endif()
 endif()
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
@@ -108,6 +113,21 @@ if(CMAKE_BUILD_TYPE STREQUAL "debug")
     set(CONFIGURATION_TYPE "debug")
 endif()
 
+
+if((NOT CMAKE_SYSTEM MATCHES "Windows*") AND CMAKE_BUILD_TYPE STREQUAL "coverage")
+    #set(CMAKE_VERBOSE_MAKEFILE ON)
+    set(SOLID_HAS_DEBUG TRUE)
+    set(SOLID_HAS_NO_INLINES TRUE)
+    set(SOLID_HAS_STATISTICS TRUE)
+    set(SOLID_HAS_ASSERT TRUE)
+    #force a single configuration type on Windows builds
+    set(CMAKE_CONFIGURATION_TYPES "debug")
+    set(CONFIGURATION_TYPE "debug")
+    add_compile_options("SHELL: -coverage -fprofile-arcs -ftest-coverage")
+    add_link_options("SHELL: -fprofile-arcs -ftest-coverage")
+elseif(CMAKE_SYSTEM MATCHES "Windows*" AND CMAKE_BUILD_TYPE STREQUAL "coverage")
+    message(FATAL_ERROR "\r\n === Coverage not yet supported for Windows systems ===\r\n")
+endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "custom")
     #force a single configuration type on Windows builds
@@ -190,7 +210,10 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
     set(SOLID_ON_POSIX TRUE)
     
     
-
+    if(CMAKE_BUILD_TYPE STREQUAL "coverage")
+        add_link_options("SHELL: -lgcov")
+    endif()
+    
     if(CMAKE_CXX_COMPILER MATCHES "clang")
         add_compile_options(
             "$<$<CONFIG:MAINTAIN>:SHELL: ${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized -Wdelete-non-virtual-dtor -Wnon-virtual-dtor>"
@@ -252,8 +275,7 @@ if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
 endif()
 
 if(NOT ON_FOUND)
-    message("\r\n === Unsupported system - please contact project owner ===\r\n")
-    return()
+    message(FATAL_ERROR "\r\n === Unsupported system - please contact project owner ===\r\n")
 endif(NOT ON_FOUND)
 
 #-----------------------------------------------------------------
