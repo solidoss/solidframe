@@ -862,9 +862,8 @@ void Connection::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent)
     solid_dbg(generic_logger, Info, "event = " << _revent);
     if (_revent == generic_event<GenericEventE::Start>) {
         // we must resolve the address then connect
-        solid_dbg(generic_logger, Info, "async_resolve = "
-                << "127.0.0.1"
-                << " " << srv_port_str);
+        solid_dbg(generic_logger, Info, "async_resolve = " << "127.0.0.1"
+                                                           << " " << srv_port_str);
         async_resolver().requestResolve(
             ResolvFunc(_rctx.service().manager(), _rctx.service().manager().id(*this)), "127.0.0.1",
             use_relay ? rly_port_str.c_str() : srv_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
@@ -1042,9 +1041,8 @@ struct ResolvFunc {
     solid_dbg(generic_logger, Error, this << " " << _revent);
     if (generic_event<GenericEventE::Start> == _revent) {
         // we must resolve the address then connect
-        solid_dbg(generic_logger, Info, "async_resolve = "
-                << "127.0.0.1"
-                << " " << srv_port_str);
+        solid_dbg(generic_logger, Info, "async_resolve = " << "127.0.0.1"
+                                                           << " " << srv_port_str);
         async_resolver().requestResolve(
             ResolvFunc(_rctx.manager(), _rctx.manager().id(*this)), "127.0.0.1",
             srv_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);

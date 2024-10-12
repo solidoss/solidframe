@@ -129,9 +129,8 @@ private:
         solid_dbg(generic_logger, Info, "event = " << _revent);
         if (_revent == generic_event<GenericEventE::Start>) {
             // we must resolve the address then connect
-            solid_dbg(generic_logger, Info, "async_resolve = "
-                    << "127.0.0.1"
-                    << " " << server_port);
+            solid_dbg(generic_logger, Info, "async_resolve = " << "127.0.0.1"
+                                                               << " " << server_port);
             async_resolver().requestResolve(
                 [&rm = _rctx.service().manager(), actor_id = _rctx.service().manager().id(*this), this](ResolveData& _rrd, ErrorCodeT const& /*_rerr*/) {
                     solid_dbg(generic_logger, Info, this << " send resolv_message");
