@@ -265,11 +265,12 @@ size_t TimeStore::doPop(const time_store_impl::IntervalE _iv, const NanoTime& _n
             solid_assert(rnode.internal_index_ == i);
 
             rval = rinterval.values_.back();
-            rinterval.values_.pop_back();
 
             proxy_nodes_[rval.proxy_index_].internal_index_ = i;
             rnode.clear();
             proxy_free_list_.pushBack(proxy_index);
+
+            rinterval.values_.pop_back();
 
             _fnc(value, expiry, proxy_index);
             ++count;

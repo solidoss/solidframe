@@ -97,7 +97,9 @@ struct SmallRTTI {
     {
         static_cast<T*>(_what)->~T();
     }
-
+    static void dummy_destroy(void* const _what) noexcept
+    {
+    }
     DestroyFncT* pdestroy_fnc_;
     CopyFncT*    pcopy_fnc_;
     MoveFncT*    pmove_fnc_;
@@ -135,6 +137,30 @@ inline constexpr BigRTTI big_rtti = {
 template <class T>
 inline constexpr SmallRTTI small_rtti = {
     &SmallRTTI::destroy<T>, &do_copy<T>, &do_move<T>, &do_get_if<T>, std::is_copy_constructible_v<T>, std::is_move_constructible_v<T>, is_specialization_v<T, std::tuple>};
+
+inline RepresentationE do_dummy_copy(
+    const void* _pfrom,
+    void* _pto_small, const size_t _small_cap, const SmallRTTI*& _rpsmall_rtti,
+    void*& _rpto_big, const BigRTTI*& _rpbig_rtti)
+{
+    return RepresentationE::None;
+}
+
+inline RepresentationE do_dummy_move(
+    void* _pfrom,
+    void* _pto_small, const size_t _small_cap, const SmallRTTI*& _rpsmall_rtti,
+    void*& _rpto_big, const BigRTTI*& _rpbig_rtti)
+{
+    return RepresentationE::None;
+}
+
+inline const void* do_dummy_get_if(const std::type_index& _type_index, const void* _pdata)
+{
+    return nullptr;
+}
+
+inline constexpr SmallRTTI dummy_small_rtti = {
+    &SmallRTTI::dummy_destroy, &do_dummy_copy, &do_dummy_move, &do_dummy_get_if, false, false, false};
 
 template <class T>
 RepresentationE do_copy(

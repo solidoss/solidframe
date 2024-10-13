@@ -33,15 +33,15 @@ typedef frame::Scheduler<frame::aio::Reactor<Event<32>>> AioSchedulerT;
 //------------------------------------------------------------------
 
 struct Params {
-    int            listener_port;
-    int            talker_port;
-    int            connect_port;
+    int            listener_port = -1;
+    int            talker_port   = -1;
+    int            connect_port  = -1;
     vector<string> dbg_modules;
     string         dbg_addr;
     string         dbg_port;
-    bool           dbg_console;
-    bool           dbg_buffered;
-    bool           log;
+    bool           dbg_console  = true;
+    bool           dbg_buffered = true;
+    bool           log          = true;
 };
 
 namespace {

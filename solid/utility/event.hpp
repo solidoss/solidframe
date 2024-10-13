@@ -172,6 +172,7 @@ protected:
         : pcategory_(&_rcategory)
         , id_(_id)
     {
+        rtti_.psmall_ = &any_impl::dummy_small_rtti;
     }
 
     EventBase(const EventBase& _other)

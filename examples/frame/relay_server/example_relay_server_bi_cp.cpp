@@ -40,16 +40,16 @@ using BufferPairT   = pair<const char*, size_t>;
 namespace {
 
 struct Params {
-    int    listener_port;
+    int    listener_port = -1;
     string connect_addr_str;
     string connect_port_str;
 
     vector<string> dbg_modules;
     string         dbg_addr;
     string         dbg_port;
-    bool           dbg_console;
-    bool           dbg_buffered;
-    bool           log;
+    bool           dbg_console  = true;
+    bool           dbg_buffered = true;
+    bool           log          = true;
 };
 
 Params params;
