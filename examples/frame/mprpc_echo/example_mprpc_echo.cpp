@@ -99,15 +99,15 @@ struct FirstMessage : frame::mprpc::Message {
     FirstMessage(std::string const& _str)
         : str(_str)
     {
-        solid_log(generic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_log(generic_logger, Info, "CREATE ---------------- " << this);
     }
     FirstMessage()
     {
-        solid_log(generic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_log(generic_logger, Info, "CREATE ---------------- " << this);
     }
     ~FirstMessage()
     {
-        solid_log(generic_logger, Info, "DELETE ---------------- " << (void*)this);
+        solid_log(generic_logger, Info, "DELETE ---------------- " << this);
     }
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)

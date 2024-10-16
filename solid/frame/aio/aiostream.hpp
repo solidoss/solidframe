@@ -326,7 +326,7 @@ public:
     ~Stream()
     {
         // MUST call here and not in the ~CompletionHandler
-        this->deactivate();
+        this->deactivate(false);
     }
 
     bool hasPendingRecv() const

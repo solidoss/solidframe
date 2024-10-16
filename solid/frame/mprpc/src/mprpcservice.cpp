@@ -859,7 +859,7 @@ void Service::doFinalizeStart(ServiceStartStatus& _status, Configuration&& _ucfg
         _lock.unlock(); // temporary unlock the mutex so we can create the listener Actor
 
         ErrorConditionT error;
-        ActorIdT        conuid = _ucfg.actor_create_fnc(make_shared<Listener>(_usd), *this, make_event(GenericEventE::Start), error);
+        ActorIdT        conuid = configuration().actor_create_fnc(make_shared<Listener>(_usd), *this, make_event(GenericEventE::Start), error);
         (void)conuid;
 
         _lock.lock();
@@ -1179,8 +1179,6 @@ ErrorConditionT Service::doSendMessage(
     solid_assert(pool_lock.owns_lock());
 
     return locked_pimpl->doSendMessageToPool(*this, pool_id, _rmsgptr, _rcomplete_fnc, msg_type_idx, _recipient_url.relay_, _precipient_id_out, _pmsgid_out, _flags);
-
-    return {};
 }
 
 //-----------------------------------------------------------------------------
@@ -1219,7 +1217,7 @@ ErrorConditionT Service::Data::doSendMessageToConnection(
         return error_service_unknown_connection;
     }
     {
-        unique_lock<std::mutex> pool_lock(poolMutex(pool_index));
+        unique_lock<std::mutex> pool_lock{poolMutex(pool_index)};
         ConnectionPoolStub&     rpool = pool_dq_[pool_index];
 
         const bool is_server_side_pool = rpool.isServerSide(); // unnamed pool has a single connection
@@ -2049,7 +2047,6 @@ bool Service::Data::Data::doNonMainConnectionStopping(
         --rpool.active_connection_count_;
     } else {
         solid_assert_log(!_rcon.isServer(), logger);
-        solid_assert_log(rpool.pending_connection_count_ >= 0, logger);
         --rpool.pending_connection_count_;
     }
 
@@ -2237,7 +2234,6 @@ bool Service::Data::doMainConnectionStoppingPrepareCleanOneShot(
         if (_rcon.isActiveState()) {
             --rpool.active_connection_count_;
         } else {
-            solid_assert_log(rpool.pending_connection_count_ >= 0, logger);
             --rpool.pending_connection_count_;
         }
 
@@ -2305,7 +2301,6 @@ bool Service::Data::doMainConnectionRestarting(
     if (_rcon.isActiveState()) {
         --rpool.active_connection_count_;
     } else {
-        solid_assert_log(rpool.pending_connection_count_ >= 0, logger);
         --rpool.pending_connection_count_;
     }
 

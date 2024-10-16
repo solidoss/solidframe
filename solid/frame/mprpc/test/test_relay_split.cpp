@@ -126,14 +126,14 @@ struct Message : frame::mprpc::Message {
         , serialized(false)
         , response_count(0)
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this << " idx = " << idx);
         init();
     }
     Message()
         : serialized(false)
         , response_count(0)
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }
 
     Message(
@@ -148,7 +148,7 @@ struct Message : frame::mprpc::Message {
 
     ~Message()
     {
-        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << this);
 
         solid_assert(serialized || this->isBackOnSender());
     }

@@ -171,6 +171,7 @@ protected:
         const uintptr_t          _id)
         : pcategory_(&_rcategory)
         , id_(_id)
+
     {
         rtti_.psmall_ = &any_impl::dummy_small_rtti;
     }
@@ -179,6 +180,7 @@ protected:
         : pcategory_(_other.pcategory_)
         , id_(_other.id_)
     {
+        rtti_.psmall_ = _other.rtti_.psmall_;
     }
 
     ~EventBase()

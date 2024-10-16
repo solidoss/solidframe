@@ -188,8 +188,8 @@ struct SocketAddressStub {
     const sockaddr* sockAddr() const;
 
 private:
-    const sockaddr* addr;
-    socklen_t       sz;
+    const sockaddr* addr = nullptr;
+    socklen_t       sz   = 0;
 };
 //==================================================================
 //! Holds a generic socket address
@@ -492,7 +492,7 @@ private:
     operator sockaddr*();
     sockaddr* sockAddr();
     AddrUnion d;
-    socklen_t sz;
+    socklen_t sz = 0;
 };
 #endif
 //==================================================================

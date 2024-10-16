@@ -1053,7 +1053,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doStart(
                     doRun(i, one_fnc, all_fnc, _args...);
                     stop_fnc(i, _args...);
                 },
-                std::forward<Args>(_args)...});
+                _args...});
     }
 }
 //-----------------------------------------------------------------------------

@@ -64,7 +64,7 @@ struct FileRequest : solid::frame::mprpc::Message {
 
 struct FileResponse : solid::frame::mprpc::Message {
     std::string           remote_path;
-    mutable int64_t       remote_file_size;
+    mutable int64_t       remote_file_size = 0;
     mutable std::ifstream ifs;
     std::ofstream         ofs;
 

@@ -8,7 +8,7 @@
 namespace gamma_protocol {
 
 struct FirstMessage : solid::frame::mprpc::Message {
-    uint32_t    v;
+    uint32_t    v = -1;
     std::string str;
 
     FirstMessage() {}
@@ -25,7 +25,7 @@ struct FirstMessage : solid::frame::mprpc::Message {
 };
 
 struct SecondMessage : solid::frame::mprpc::Message {
-    uint64_t    v;
+    uint64_t    v = -1;
     std::string str;
 
     SecondMessage() {}
@@ -42,7 +42,7 @@ struct SecondMessage : solid::frame::mprpc::Message {
 };
 
 struct ThirdMessage : solid::frame::mprpc::Message {
-    uint16_t    v;
+    uint16_t    v = -1;
     std::string str;
 
     ThirdMessage() {}

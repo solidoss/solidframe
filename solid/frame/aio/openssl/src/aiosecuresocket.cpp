@@ -524,7 +524,7 @@ ReactorEventE Socket::filterReactorEvents(
         // solid_log(logger, Info, "EventRecvSend "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
         if (want_read_on_send && (want_read_on_recv || want_write_on_recv)) {
             return ReactorEventE::SendRecv;
-        } else if ((want_write_on_send || want_write_on_send) && (want_write_on_recv || want_read_on_recv)) {
+        } else if ((want_write_on_send || want_read_on_send) && (want_write_on_recv || want_read_on_recv)) {
             return _evt;
         } else if (want_write_on_send || want_read_on_send) {
             return ReactorEventE::Send;

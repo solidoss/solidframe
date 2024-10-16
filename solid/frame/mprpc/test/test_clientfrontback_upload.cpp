@@ -211,7 +211,7 @@ using RequestPointerT = solid::frame::mprpc::MessagePointerT<Request>;
 struct Response : frame::mprpc::Message {
     uint32_t        error_;
     RequestPointerT req_ptr_;
-    bool            send_response_;
+    bool            send_response_ = false;
 
     Response()
     {

@@ -97,11 +97,7 @@ class Connection : public frame::aio::Actor {
     virtual bool recvSome(frame::aio::ReactorContext& _rctx, size_t& _rsz) = 0;
 
 protected:
-    Connection()
-        : recvcnt(0)
-        , sendcnt(0)
-    {
-    }
+    Connection() = default;
     ~Connection() override
     {
         solid_dbg(generic_logger, Error, this << " server " << recvcnt << " " << sendcnt);
@@ -114,9 +110,9 @@ protected:
     enum { BufferCapacity = 1024 * 2 };
 
     char     buf[BufferCapacity];
-    uint64_t recvcnt;
-    uint64_t sendcnt;
-    size_t   sendcrt;
+    uint64_t recvcnt = 0;
+    uint64_t sendcnt = 0;
+    size_t   sendcrt = 0;
 };
 
 class PlainConnection final : public Connection {
@@ -415,6 +411,7 @@ public:
         , sock2(this->proxy())
         , recvcnt(0)
         , sendcnt(0)
+        , sendcrt(0)
         , crtid(-1)
     {
     }

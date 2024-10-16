@@ -55,7 +55,7 @@ struct Response;
 struct Request : frame::mprpc::Message {
     string   name_;
     ofstream ofs_;
-    bool     send_request_;
+    bool     send_request_ = false;
 
     Request()
     {

@@ -71,7 +71,7 @@ void CompletionHandler::unregister()
     }
 }
 
-void CompletionHandler::deactivate()
+void CompletionHandler::deactivate(const bool _check)
 {
     impl::Reactor* preactor = nullptr;
     if (isActive() && (preactor = impl::Reactor::safeSpecific()) != nullptr) {
@@ -79,8 +79,8 @@ void CompletionHandler::deactivate()
         preactor->unregisterCompletionHandler(*this);
         idxreactor = InvalidIndex();
     }
-    if (isActive()) {
-        solid_throw_log(generic_logger, "FATAL: CompletionHandler deleted/deactivated outside actor's reactor!");
+    if (_check) {
+        solid_check_log(!isActive(), generic_logger, "FATAL: CompletionHandler deleted/deactivated outside actor's reactor!");
     }
 }
 

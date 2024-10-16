@@ -202,7 +202,7 @@ inline SocketAddressStub::operator const sockaddr*() const
 }
 inline void SocketAddressStub::clear()
 {
-    addr = NULL;
+    addr = nullptr;
     sz   = 0;
 }
 inline SocketInfo::Family SocketAddressStub::family() const

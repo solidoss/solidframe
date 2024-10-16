@@ -83,6 +83,7 @@ class Test {
         b   = _b;
         a.a = 540554784UL;
         a.b = 2321664020290347053ULL;
+        a.c = 1234567890123456789ULL;
         serialization::binary::store(blob32, static_cast<uint32_t>(a.a));
         {
             uint32_t v;
@@ -119,6 +120,7 @@ class Test {
             A a;
             a.a = static_cast<int32_t>(i);
             a.b = 10 - i;
+            a.c = 10 + i;
             a.s = to_string(a.a) + ' ' + to_string(a.b);
             blb += a.s;
             s.insert(a.s);

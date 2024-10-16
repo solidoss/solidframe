@@ -81,17 +81,17 @@ struct Message : frame::mprpc::Message {
         : idx(_idx)
         , serialized(false)
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this << " idx = " << idx);
         init();
     }
     Message()
         : serialized(false)
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }
     ~Message() override
     {
-        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this << " idx = " << idx << " str.size = " << str.size());
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << this << " idx = " << idx << " str.size = " << str.size());
         //      if(!serialized && !this->isBackOnSender() && idx != 0){
         //          solid_throw("Message not serialized.");
         //      }

@@ -675,7 +675,7 @@ void server_complete_request(
     reply_ptr->receive_time_point_ = microseconds_since_epoch();
     reply_ptr->header(_rrecv_msg_ptr->header());
 
-    cacheable_cache(std::move(_rrecv_msg_ptr));
+    // cacheable_cache(std::move(_rrecv_msg_ptr));
 
     auto lambda = [topic_ptr, _rrecv_msg_ptr = std::move(_rrecv_msg_ptr),
                       &service = _rctx.service(), recipient_id = _rctx.recipientId(), reply_ptr = std::move(reply_ptr)]() {

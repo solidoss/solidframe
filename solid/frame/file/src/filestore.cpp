@@ -136,7 +136,7 @@ struct Utf8ConfigurationImpl {
         }
         std::string globalprefix;
         std::string localprefix;
-        size_t      globalsize;
+        size_t      globalsize = 0;
     };
 
     Utf8ConfigurationImpl() {}
@@ -233,8 +233,8 @@ struct Utf8Controller::Data {
 
     Utf8ConfigurationImpl filecfg; // NOTE: it is accessed without lock in openFile
     TempConfigurationImpl tempcfg;
-    size_t                minglobalprefixsz;
-    size_t                maxglobalprefixsz;
+    size_t                minglobalprefixsz = InvalidIndex();
+    size_t                maxglobalprefixsz = 0;
     SizePairVectorT       hashvec;
     std::string           tmp;
     PathDequeT            pathdq;

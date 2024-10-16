@@ -58,7 +58,7 @@ public:
         return pprev != nullptr;
     }
     bool activate(Actor const& _ract);
-    void deactivate();
+    void deactivate(const bool _check = true);
     void unregister();
 
 protected:

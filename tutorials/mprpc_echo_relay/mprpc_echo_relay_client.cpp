@@ -33,7 +33,7 @@ struct Parameters {
 };
 
 struct Message : solid::frame::mprpc::Message {
-    uint32_t    group_id_;
+    uint32_t    group_id_ = -1;
     std::string data;
 
     Message() {}
