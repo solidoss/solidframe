@@ -50,7 +50,7 @@ frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr)
 }
 
 struct Activate : frame::mprpc::Message {
-    uint32_t     idx;
+    uint32_t     idx = -1;
     std::string  str;
     mutable bool serialized;
 

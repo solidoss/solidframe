@@ -47,7 +47,7 @@ class EventBase {
         const any_impl::SmallRTTI* psmall_;
         const any_impl::BigRTTI*   pbig_;
     } rtti_;
-    void* pdata_;
+    void* pdata_ = nullptr;
 
 public:
     std::ostream& print(std::ostream& _ros) const;

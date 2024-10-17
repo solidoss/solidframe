@@ -795,7 +795,7 @@ private:
 template <class MetadataVariant, class MetadataFactory, class Context, typename TypeId>
 class Serializer : public SerializerBase {
     const MetadataFactory& rmetadata_factory_;
-    TypeId                 type_id_;
+    TypeId                 type_id_ = InvalidIndex{};
 
 public:
     using ContextT = Context;

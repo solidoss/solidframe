@@ -2170,7 +2170,7 @@ bool Service::Data::doMainConnectionStoppingCleanAll(
 
     if (!rpool.message_order_inner_list_.empty()) {
         const size_t msgidx = rpool.message_order_inner_list_.frontIndex();
-        {
+        if (_pmsg_bundle) {
             MessageStub& rmsgstub = rpool.message_order_inner_list_.front();
             *_pmsg_bundle         = std::move(rmsgstub.message_bundle_);
             _rmsg_id              = MessageId(msgidx, rmsgstub.unique_);
@@ -2182,7 +2182,6 @@ bool Service::Data::doMainConnectionStoppingCleanAll(
         if (_rcon.isActiveState()) {
             --rpool.active_connection_count_;
         } else {
-            solid_assert_log(rpool.pending_connection_count_ >= 0, logger);
             --rpool.pending_connection_count_;
         }
 
@@ -2743,7 +2742,7 @@ void InternetResolverF::operator()(const std::string& _name, ResolveCompleteFunc
 
     fnc.cbk = std::move(_cbk);
 
-    rresolver_.requestResolve(fnc, hst_name, svc_name, 0, this->family_, SocketInfo::Stream);
+    rresolver_.requestResolve(std::move(fnc), hst_name, svc_name, 0, this->family_, SocketInfo::Stream);
 }
 //=============================================================================
 

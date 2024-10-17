@@ -97,6 +97,8 @@ int test_perf_timestore(int argc, char* argv[])
     }
 
     cout << "max duration: " << max_duration << endl;
-    cout << "avg duration: " << total_duration / count << endl;
+    if (count) {
+        cout << "avg duration: " << total_duration / count << endl;
+    }
     return 0;
 }

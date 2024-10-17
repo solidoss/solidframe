@@ -71,7 +71,7 @@ public:
     ~SteadyTimer()
     {
         // MUST call here and not in the ~CompletionHandler
-        this->deactivate();
+        this->deactivate(false);
     }
 
     const NanoTime& expiry() const

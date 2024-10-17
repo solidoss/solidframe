@@ -986,10 +986,11 @@ void Manager::doStartService(Service& _rservice, const OnLockedStartFunctionT& _
     }
 }
 
-void Manager::stopService(Service& _rservice, const bool _wait)
+void Manager::stopService(Service& _rservice, const bool _wait, const bool _check)
 {
-    solid_check_log(_rservice.registered(), frame_logger, "Service not registered");
-
+    if (_check) {
+        solid_check_log(_rservice.registered(), frame_logger, "Service not registered");
+    }
     doStopService(_rservice.index(), _wait);
 }
 

@@ -81,7 +81,7 @@ public:
     template <class F>
     bool forEach(F& _rf);
 
-    void stop(const bool _wait = true);
+    void stop(const bool _wait = true, const bool _check = true);
 
     Manager& manager();
 
@@ -147,7 +147,7 @@ inline Service::Service(
 
 inline Service::~Service()
 {
-    stop(true);
+    stop(true, false);
     rm_.unregisterService(*this);
 }
 
@@ -211,9 +211,9 @@ inline void Service::doStartWithoutAny(F&& _on_locked_start)
         *this, [&_on_locked_start](std::unique_lock<ServiceMutexT>& _lock) { _on_locked_start(_lock); });
 }
 
-inline void Service::stop(const bool _wait)
+inline void Service::stop(const bool _wait, const bool _check)
 {
-    rm_.stopService(*this, _wait);
+    rm_.stopService(*this, _wait, _check);
 }
 
 inline Service::ActorMutexT& Service::mutex(const ActorBase& _ract) const
@@ -272,7 +272,7 @@ public:
 
     ~ServiceShell()
     {
-        Service::stop(true);
+        Service::stop(true, false);
     }
 
     template <typename... Args>

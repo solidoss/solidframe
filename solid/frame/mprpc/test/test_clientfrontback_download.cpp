@@ -80,7 +80,7 @@ struct Request : frame::mprpc::Message {
 };
 
 struct Response : frame::mprpc::Message {
-    uint32_t                                     error_;
+    uint32_t                                     error_ = -1;
     ostringstream                                oss_;
     mutable istringstream                        iss_;
     frame::mprpc::MessagePointerT<back::Request> req_ptr_;
@@ -181,7 +181,7 @@ struct Request : frame::mprpc::Message {
     string                                         name_;
     frame::mprpc::MessagePointerT<front::Response> res_ptr_;
     frame::mprpc::RecipientId                      recipient_id_;
-    bool                                           await_response_;
+    bool                                           await_response_ = false;
 
     Request()
     {
@@ -200,7 +200,7 @@ struct Request : frame::mprpc::Message {
 };
 
 struct Response : frame::mprpc::Message {
-    uint32_t         error_;
+    uint32_t         error_ = -1;
     ostringstream    oss_;
     mutable ifstream ifs_;
 

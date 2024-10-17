@@ -141,6 +141,7 @@ using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
+    lock_guard<mutex> lock(mtx);
     if (!running) {
         ++connection_count;
     }

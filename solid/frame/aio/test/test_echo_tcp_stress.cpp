@@ -600,9 +600,14 @@ int test_echo_tcp_stress(int argc, char* argv[])
                     // actptr.reset(new client::PlainConnection(i));
                     actptr = make_shared<client::PlainConnection>(i);
                 }
-                ++concnt;
+                {
+                    lock_guard<mutex> lock(mtx);
+                    ++concnt;
+                }
                 actuid = clt_sch.startActor(std::move(actptr), clt_svc, make_event(GenericEventE::Start), err);
+
                 if (actuid.isInvalid()) {
+                    lock_guard<mutex> lock(mtx);
                     --concnt;
                 }
                 solid_log(generic_logger, Info, "Started Connection Actor: " << actuid.index << ',' << actuid.unique);
@@ -718,7 +723,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
-    unsigned    repeatcnt = 1;
+    unsigned    repeatcnt = 2;
     Connection& rthis     = static_cast<Connection&>(_rctx.actor());
     solid_dbg(generic_logger, Info, &rthis << " " << _sz);
     do {
