@@ -2128,10 +2128,12 @@ bool Service::Data::doMainConnectionStoppingCleanOneShot(
         }
 
         if (rmsgstub.message_bundle_.message_ptr && Message::is_one_shot(rmsgstub.message_bundle_.message_flags)) {
+            solid_assert_log(_pmsg_bundle, logger, "_pmsg_bundle must not be null");
             *_pmsg_bundle = std::move(rmsgstub.message_bundle_);
             _rmsg_id      = MessageId(crtmsgidx, rmsgstub.unique_);
             rpool.clearPopAndCacheMessage(crtmsgidx);
         } else if (!rmsgstub.message_bundle_.message_ptr && rpool.message_order_inner_list_.size() == 1) {
+            solid_assert_log(_pmsg_bundle, logger, "_pmsg_bundle must not be null");
             *_pmsg_bundle = std::move(rmsgstub.message_bundle_);
             _rmsg_id      = MessageId(crtmsgidx, rmsgstub.unique_);
             rpool.clearPopAndCacheMessage(crtmsgidx);

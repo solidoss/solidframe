@@ -53,7 +53,7 @@ class Test {
     static constexpr size_t BlobCapacity = 40 * 1024;
 
     string                   p;
-    bool                     b;
+    bool                     b = false;
     vector<A>                v;
     deque<A>                 d;
     map<string, A>           m;
@@ -67,12 +67,12 @@ class Test {
     array<A, 10>             a1;
     array<A, 20>             a2;
     array<uint8_t, 10>       a3;
-    uint16_t                 a2_sz;
-    uint32_t                 blob_sz;
+    uint16_t                 a2_sz   = 0;
+    uint32_t                 blob_sz = 0;
     char                     blob[BlobCapacity];
-    uint32_t                 blob32_sz;
+    uint32_t                 blob32_sz = 0;
     char                     blob32[sizeof(uint32_t)];
-    uint32_t                 blob64_sz;
+    uint32_t                 blob64_sz = 0;
     char                     blob64[sizeof(uint64_t)];
 
     std::ostringstream oss;

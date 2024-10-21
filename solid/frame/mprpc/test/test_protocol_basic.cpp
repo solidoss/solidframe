@@ -59,7 +59,7 @@ size_t real_size(size_t _sz)
 }
 
 struct Message : frame::mprpc::Message {
-    uint32_t    idx;
+    uint32_t    idx = -1;
     std::string str;
 
     Message(uint32_t _idx)

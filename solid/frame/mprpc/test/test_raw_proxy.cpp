@@ -159,6 +159,7 @@ using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
+    lock_guard<mutex> lock(mtx);
     if (!running) {
         ++connection_count;
     }
@@ -445,7 +446,7 @@ int test_raw_proxy(int argc, char* argv[])
     }
 
     // exiting
-
+    lock_guard<mutex> lock(mtx);
     std::cout << "Transfered size = " << (transfered_size * 2) / 1024 << "KB" << endl;
     std::cout << "Transfered count = " << transfered_count << endl;
     std::cout << "Connection count = " << connection_count << endl;

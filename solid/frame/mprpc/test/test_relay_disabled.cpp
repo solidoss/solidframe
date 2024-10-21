@@ -529,7 +529,7 @@ int test_relay_disabled(int argc, char* argv[])
     }
 
     // exiting
-
+    lock_guard<mutex> lock(mtx);
     std::cout << "Transfered size = " << (transfered_size * 2) / 1024 << "KB" << endl;
     std::cout << "Transfered count = " << transfered_count << endl;
     std::cout << "Connection count = " << connection_count << endl;
