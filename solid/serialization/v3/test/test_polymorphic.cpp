@@ -77,7 +77,7 @@ struct OrVecKey : Key {
 };
 
 struct IntKey : Key {
-    int v;
+    int v = -1;
 
     IntKey() {}
     IntKey(int _v)

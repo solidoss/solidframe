@@ -90,10 +90,11 @@ int test_threadpool(int argc, char* argv[])
     }
     // 1000 10 0 0 1 0 0
     auto lambda = [&]() {
+        Context     ctx(gdq, gmtx);
         ThreadPoolT wp{
-            {consumer_count, queue_size, 0}, [](size_t, Context&&) {}, [](size_t, Context&&) {},
+            {consumer_count, queue_size, 0}, [](size_t, Context&) {}, [](size_t, Context&) {},
 
-            [job_sleep_msecs](size_t _v, Context&& _rctx) {
+            [job_sleep_msecs](size_t _v, Context& _rctx) {
                 // solid_check(_rs == "this is a string", "failed string check");
                 val += _v;
                 if (job_sleep_msecs != 0) {
@@ -103,8 +104,8 @@ int test_threadpool(int argc, char* argv[])
                 _rctx.ldq_.emplace_back(_v);
 #endif
             },
-            [](size_t, Context&&) {},
-            Context(gdq, gmtx)};
+            [](size_t, const Context&) {},
+            ref(ctx)};
 
         pwp = &wp;
 

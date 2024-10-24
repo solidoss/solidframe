@@ -84,9 +84,10 @@ struct DirectResoveInfo {
 struct ResolveData {
     typedef ResolveIterator const_iterator;
 
-    ResolveData();
+    ResolveData() = default;
     ResolveData(addrinfo* _pai);
     ResolveData(const ResolveData& _rai);
+    ResolveData(ResolveData&& _rai);
 
     ~ResolveData();
     //! Get an iterator to he first resolved ip address
@@ -96,6 +97,7 @@ struct ResolveData {
     bool         empty() const;
     void         clear();
     ResolveData& operator=(const ResolveData& _rrd);
+    ResolveData& operator=(ResolveData&& _rrd);
 
 private:
     static void                       delete_addrinfo(void* _pv);
@@ -188,8 +190,8 @@ struct SocketAddressStub {
     const sockaddr* sockAddr() const;
 
 private:
-    const sockaddr* addr;
-    socklen_t       sz;
+    const sockaddr* addr = nullptr;
+    socklen_t       sz   = 0;
 };
 //==================================================================
 //! Holds a generic socket address
@@ -492,7 +494,7 @@ private:
     operator sockaddr*();
     sockaddr* sockAddr();
     AddrUnion d;
-    socklen_t sz;
+    socklen_t sz = 0;
 };
 #endif
 //==================================================================

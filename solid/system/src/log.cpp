@@ -502,7 +502,7 @@ struct FileRecorder : LogRecorder {
             filePath(from_path, 0, path_, name_);
             filePath(to_path, lastpos, path_, name_);
             Directory::renameFile(from_path.c_str(), to_path.c_str());
-            fname = from_path;
+            fname = std::move(from_path);
         }
 
         if (!fd.create(fname.c_str(), FileDevice::WriteOnlyE)) {

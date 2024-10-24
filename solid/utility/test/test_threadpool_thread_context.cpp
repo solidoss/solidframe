@@ -36,7 +36,7 @@ struct Context {
     }
 };
 
-using CallPoolT = ThreadPool<Function<void(Context&&)>, Function<void(Context&&)>>;
+using CallPoolT = ThreadPool<Function<void(Context&)>, Function<void(Context&)>>;
 
 } // namespace
 
@@ -69,15 +69,16 @@ int test_threadpool_thread_context(int argc, char* argv[])
         for (int i = 0; i < loop_cnt; ++i) {
             auto start = chrono::steady_clock::now();
             {
+                Context   ctx("simple text", 0UL);
                 CallPoolT wp{
-                    {2, 1000, 0}, [](const size_t, Context&&) {}, [](const size_t, Context&&) {},
-                    Context("simple text", 0UL)};
+                    {2, 1000, 0}, [](const size_t, Context&) {}, [](const size_t, Context&) {},
+                    std::ref(ctx)};
 
                 solid_log(logger, Verbose, "wp started");
                 pwp   = &wp;
                 start = chrono::steady_clock::now();
                 for (size_t i = 0; i < cnt; ++i) {
-                    auto l = [i, &val](Context&& _rctx) {
+                    auto l = [i, &val](Context& _rctx) {
                         ++_rctx.count_;
                         val += i;
                     };

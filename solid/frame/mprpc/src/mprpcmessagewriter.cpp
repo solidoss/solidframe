@@ -141,7 +141,7 @@ bool MessageWriter::enqueue(
 
     order_inner_list_.pushBack(idx);
     doWriteQueuePushBack(idx, __LINE__);
-    solid_log(logger, Verbose, "messgeptr = " << rmsgstub.msgbundle_.message_ptr.get() << " is_relayed = " << Message::is_relayed(rmsgstub.msgbundle_.message_ptr->flags()) << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE) << " relay " << rmsgstub.msgbundle_.message_relay_header_ << " " << _rmsgbundle.message_relay_header_);
+    solid_log(logger, Verbose, "messgeptr = " << rmsgstub.msgbundle_.message_ptr.get() << " is_relayed = " << Message::is_relayed(rmsgstub.msgbundle_.message_ptr->flags()) << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE) << " relay " << rmsgstub.msgbundle_.message_relay_header_ << " " << rmsgstub.msgbundle_.message_relay_header_);
 
     return true;
 }

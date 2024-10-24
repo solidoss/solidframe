@@ -146,7 +146,9 @@ size_t getMemorySize()
 
 #elif defined(_SC_PHYS_PAGES) && defined(_SC_PAGESIZE)
     /* FreeBSD, Linux, OpenBSD, and Solaris. -------------------- */
-    return static_cast<size_t>(sysconf(_SC_PHYS_PAGES)) * static_cast<size_t>(sysconf(_SC_PAGESIZE));
+    const auto pc = sysconf(_SC_PHYS_PAGES);
+    const auto ps = sysconf(_SC_PAGESIZE);
+    return static_cast<size_t>(pc > 0 ? pc : 0) * static_cast<size_t>(ps > 0 ? ps : 0);
 
 #elif defined(_SC_PHYS_PAGES) && defined(_SC_PAGE_SIZE)
     /* Legacy. -------------------------------------------------- */

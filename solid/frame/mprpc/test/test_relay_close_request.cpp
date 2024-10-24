@@ -131,7 +131,7 @@ struct Message : frame::mprpc::Message {
         : idx(_idx)
         , serialized(false)
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this << " idx = " << idx);
         init();
         ++created_count;
     }
@@ -139,11 +139,11 @@ struct Message : frame::mprpc::Message {
         : serialized(false)
     {
         ++created_count;
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }
     ~Message()
     {
-        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << this << " idx = " << idx);
 
         ++deleted_count;
         try_stop();
@@ -160,6 +160,7 @@ struct Message : frame::mprpc::Message {
         if constexpr (!Reflector::is_const_reflector) {
             _rr.add([&_rthis](Reflector& _rr, frame::mprpc::ConnectionContext& _rctx) {
                 if (_rthis.cancelable()) {
+                    lock_guard<mutex> lock(mtx);
                     solid_dbg(generic_logger, Error, "Close connection: " << _rthis.idx << " " << msgid_vec[_rthis.idx].first);
                     // we're on the peerb,
                     // we now cancel the message on peer a

@@ -82,6 +82,7 @@ protected:
         , pend_(nullptr)
         , size_(0)
         , pinode_(nullptr)
+        , isize_(0)
     {
     }
 

@@ -49,16 +49,16 @@ struct Statistics {
 
 namespace {
 struct Params {
-    uint32_t connection_count;
-    uint32_t repeat_count;
+    uint32_t connection_count = 1;
+    uint32_t repeat_count     = 1;
     string   connect_addr_str;
     string   connect_port_str;
 
     vector<string> dbg_modules;
     string         dbg_addr;
     string         dbg_port;
-    bool           dbg_console;
-    bool           dbg_buffered;
+    bool           dbg_console  = true;
+    bool           dbg_buffered = true;
 };
 
 mutex              mtx;

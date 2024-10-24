@@ -859,7 +859,7 @@ void Service::doFinalizeStart(ServiceStartStatus& _status, Configuration&& _ucfg
         _lock.unlock(); // temporary unlock the mutex so we can create the listener Actor
 
         ErrorConditionT error;
-        ActorIdT        conuid = _ucfg.actor_create_fnc(make_shared<Listener>(_usd), *this, make_event(GenericEventE::Start), error);
+        ActorIdT        conuid = configuration().actor_create_fnc(make_shared<Listener>(_usd), *this, make_event(GenericEventE::Start), error);
         (void)conuid;
 
         _lock.lock();
@@ -1179,8 +1179,6 @@ ErrorConditionT Service::doSendMessage(
     solid_assert(pool_lock.owns_lock());
 
     return locked_pimpl->doSendMessageToPool(*this, pool_id, _rmsgptr, _rcomplete_fnc, msg_type_idx, _recipient_url.relay_, _precipient_id_out, _pmsgid_out, _flags);
-
-    return {};
 }
 
 //-----------------------------------------------------------------------------
@@ -1219,7 +1217,7 @@ ErrorConditionT Service::Data::doSendMessageToConnection(
         return error_service_unknown_connection;
     }
     {
-        unique_lock<std::mutex> pool_lock(poolMutex(pool_index));
+        unique_lock<std::mutex> pool_lock{poolMutex(pool_index)};
         ConnectionPoolStub&     rpool = pool_dq_[pool_index];
 
         const bool is_server_side_pool = rpool.isServerSide(); // unnamed pool has a single connection
@@ -2049,7 +2047,6 @@ bool Service::Data::Data::doNonMainConnectionStopping(
         --rpool.active_connection_count_;
     } else {
         solid_assert_log(!_rcon.isServer(), logger);
-        solid_assert_log(rpool.pending_connection_count_ >= 0, logger);
         --rpool.pending_connection_count_;
     }
 
@@ -2131,10 +2128,12 @@ bool Service::Data::doMainConnectionStoppingCleanOneShot(
         }
 
         if (rmsgstub.message_bundle_.message_ptr && Message::is_one_shot(rmsgstub.message_bundle_.message_flags)) {
+            solid_assert_log(_pmsg_bundle, logger, "_pmsg_bundle must not be null");
             *_pmsg_bundle = std::move(rmsgstub.message_bundle_);
             _rmsg_id      = MessageId(crtmsgidx, rmsgstub.unique_);
             rpool.clearPopAndCacheMessage(crtmsgidx);
         } else if (!rmsgstub.message_bundle_.message_ptr && rpool.message_order_inner_list_.size() == 1) {
+            solid_assert_log(_pmsg_bundle, logger, "_pmsg_bundle must not be null");
             *_pmsg_bundle = std::move(rmsgstub.message_bundle_);
             _rmsg_id      = MessageId(crtmsgidx, rmsgstub.unique_);
             rpool.clearPopAndCacheMessage(crtmsgidx);
@@ -2173,7 +2172,7 @@ bool Service::Data::doMainConnectionStoppingCleanAll(
 
     if (!rpool.message_order_inner_list_.empty()) {
         const size_t msgidx = rpool.message_order_inner_list_.frontIndex();
-        {
+        if (_pmsg_bundle) {
             MessageStub& rmsgstub = rpool.message_order_inner_list_.front();
             *_pmsg_bundle         = std::move(rmsgstub.message_bundle_);
             _rmsg_id              = MessageId(msgidx, rmsgstub.unique_);
@@ -2185,7 +2184,6 @@ bool Service::Data::doMainConnectionStoppingCleanAll(
         if (_rcon.isActiveState()) {
             --rpool.active_connection_count_;
         } else {
-            solid_assert_log(rpool.pending_connection_count_ >= 0, logger);
             --rpool.pending_connection_count_;
         }
 
@@ -2237,7 +2235,6 @@ bool Service::Data::doMainConnectionStoppingPrepareCleanOneShot(
         if (_rcon.isActiveState()) {
             --rpool.active_connection_count_;
         } else {
-            solid_assert_log(rpool.pending_connection_count_ >= 0, logger);
             --rpool.pending_connection_count_;
         }
 
@@ -2305,7 +2302,6 @@ bool Service::Data::doMainConnectionRestarting(
     if (_rcon.isActiveState()) {
         --rpool.active_connection_count_;
     } else {
-        solid_assert_log(rpool.pending_connection_count_ >= 0, logger);
         --rpool.pending_connection_count_;
     }
 
@@ -2748,7 +2744,7 @@ void InternetResolverF::operator()(const std::string& _name, ResolveCompleteFunc
 
     fnc.cbk = std::move(_cbk);
 
-    rresolver_.requestResolve(fnc, hst_name, svc_name, 0, this->family_, SocketInfo::Stream);
+    rresolver_.requestResolve(std::move(fnc), hst_name, svc_name, 0, this->family_, SocketInfo::Stream);
 }
 //=============================================================================
 

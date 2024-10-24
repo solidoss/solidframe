@@ -45,7 +45,7 @@ inline TrimString trim_str(const char* _pcstr, size_t _strlen, size_t _beglen, s
 }
 
 std::ostream& operator<<(std::ostream& _ros, TrimString const&);
-
+#if 1
 template <size_t Sz>
 struct Format;
 
@@ -86,5 +86,7 @@ std::ostream& operator<<(std::ostream& _ros, Format<Sz> const& _rfmt)
     }
     return _ros;
 }
+
+#endif
 
 } // namespace solid

@@ -64,15 +64,16 @@ inline ResolveIterator::ResolveIterator(addrinfo* _pa)
 //-----------------------------------------------------------------------
 //          ResolveData
 //-----------------------------------------------------------------------
-inline ResolveData::ResolveData()
-{
-}
 inline ResolveData::ResolveData(addrinfo* _pai)
     : aiptr(_pai, &delete_addrinfo)
 {
 }
 inline ResolveData::ResolveData(const ResolveData& _rai)
     : aiptr(_rai.aiptr)
+{
+}
+inline ResolveData::ResolveData(ResolveData&& _rai)
+    : aiptr(std::move(_rai.aiptr))
 {
 }
 inline ResolveData::~ResolveData()
@@ -102,6 +103,11 @@ inline void ResolveData::clear()
 inline ResolveData& ResolveData::operator=(const ResolveData& _rrd)
 {
     aiptr = _rrd.aiptr;
+    return *this;
+}
+inline ResolveData& ResolveData::operator=(ResolveData&& _rrd)
+{
+    aiptr = std::move(_rrd.aiptr);
     return *this;
 }
 
@@ -202,7 +208,7 @@ inline SocketAddressStub::operator const sockaddr*() const
 }
 inline void SocketAddressStub::clear()
 {
-    addr = NULL;
+    addr = nullptr;
     sz   = 0;
 }
 inline SocketInfo::Family SocketAddressStub::family() const

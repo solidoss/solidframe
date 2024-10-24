@@ -59,22 +59,22 @@ size_t real_size(size_t _sz)
 }
 
 struct Message : frame::mprpc::Message {
-    uint32_t    idx;
+    uint32_t    idx = -1;
     std::string str;
 
     Message(uint32_t _idx)
         : idx(_idx)
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this << " idx = " << idx);
         init();
     }
     Message()
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }
     ~Message()
     {
-        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << this);
     }
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)

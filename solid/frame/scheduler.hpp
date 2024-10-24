@@ -163,20 +163,22 @@ public:
         ActorPointerT&& _ractptr, Service& _rsvc,
         EventBase&& _revt, ErrorConditionT& _rerr)
     {
+        auto&             ractor = *_ractptr;
         ScheduleCommand   cmd(std::move(_ractptr), _rsvc, std::move(_revt));
         ScheduleFunctionT fct([&cmd](ReactorBase& _rreactor) { return cmd(_rreactor); });
 
-        return doStartActor(*_ractptr, _rsvc, fct, _rerr);
+        return doStartActor(ractor, _rsvc, fct, _rerr);
     }
 
     ActorIdT startActor(
         ActorPointerT&& _ractptr, Service& _rsvc, const size_t _worker_index,
         EventBase&& _revt, ErrorConditionT& _rerr)
     {
+        auto&             ractor = *_ractptr;
         ScheduleCommand   cmd(std::move(_ractptr), _rsvc, std::move(_revt));
         ScheduleFunctionT fct([&cmd](ReactorBase& _rreactor) { return cmd(_rreactor); });
 
-        return doStartActor(*_ractptr, _rsvc, _worker_index, fct, _rerr);
+        return doStartActor(ractor, _rsvc, _worker_index, fct, _rerr);
     }
 };
 

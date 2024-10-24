@@ -168,7 +168,7 @@ private:
     template <typename F>
     size_t forEachServiceActor(const Service& _rservice, F _f);
 
-    void stopService(Service& _rservice, bool _wait);
+    void stopService(Service& _rservice, const bool _wait, const bool _check = true);
 
     template <typename OnLockedStartF>
     void startService(Service& _rservice, OnLockedStartF&& _on_locked_fnc);

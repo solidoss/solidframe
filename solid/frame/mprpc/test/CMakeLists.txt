@@ -152,7 +152,52 @@ if(OPENSSL_FOUND)
     add_test(NAME TestClientServerTimeoutSecureP        COMMAND  test_mprpc_clientserver test_clientserver_timeout_secure 10 p)
     add_test(NAME TestClientServerTimeoutSecureA        COMMAND  test_mprpc_clientserver test_clientserver_timeout_secure 10 a)
 
-
+    set_tests_properties(
+        TestClientServerBasic_1        
+        TestClientServerBasic_2        
+        TestClientServerBasic_4        
+        TestClientServerBasic_8        
+        TestClientServerBasic_8_C      
+        TestClientServerBasic_1S       
+        TestClientServerBasic_2S       
+        TestClientServerBasic_4S       
+        TestClientServerBasic_8S       
+        TestClientServerBasic_8SC      
+        TestClientServerBasic_1C       
+        TestClientServerBasic_2C       
+        TestClientServerBasic_4C       
+        TestClientServerBasic_8C       
+        TestClientServerBasic_8CC      
+        TestClientServerBasic_1B       
+        TestClientServerBasic_2B       
+        TestClientServerBasic_4B       
+        TestClientServerBasic_8B       
+        TestClientServerBasic_8BC      
+        TestClientServerVersioning     
+        TestClientServerTopic          
+        TestClientServerSendRequest    
+        TestClientServerSendRequestS   
+        TestClientServerCancelServer   
+        TestClientServerCancelServerS  
+        TestClientServerCancelClient   
+        TestClientServerCancelClientS  
+        TestClientServerNoServer       
+        TestClientServerNoServerS      
+        TestClientServerOneShot        
+        TestClientServerOneShotS       
+        TestClientServerDelayed        
+        TestClientServerDelayedS       
+        TestClientServerIdempontent    
+        TestClientServerIdempontentS   
+        TestClientServerSplit1         
+        TestClientServerUpload         
+        TestClientServerUploadSingle   
+        TestClientServerDownload       
+        TestClientServerTimeoutSecureS 
+        TestClientServerTimeoutSecureP 
+        TestClientServerTimeoutSecureA    
+        PROPERTIES LABELS "mprpc clientserver"
+    )
     #==============================================================================
 
     set( mprpcKeepAliveTestSuite
@@ -180,7 +225,13 @@ if(OPENSSL_FOUND)
     add_test(NAME TestKeepAliveFail1        COMMAND  test_mprpc_keepalive test_keepalive_fail "0")
     add_test(NAME TestKeepAliveFail2        COMMAND  test_mprpc_keepalive test_keepalive_fail "1")
     add_test(NAME TestKeepAliveSuccess1     COMMAND  test_mprpc_keepalive test_keepalive_success "0")
-
+    
+    set_tests_properties(
+        TestKeepAliveFail1   
+        TestKeepAliveFail2   
+        TestKeepAliveSuccess1    
+        PROPERTIES LABELS "mprpc keepalive"
+    )
 
     #==============================================================================
 
@@ -206,6 +257,11 @@ if(OPENSSL_FOUND)
     )
 
     add_test(NAME TestConnectionClose       COMMAND  test_mprpc_connection test_connection_close)
+
+    set_tests_properties(
+        TestConnectionClose   
+        PROPERTIES LABELS "mprpc connection"
+    )
 
     #==============================================================================
 
@@ -243,6 +299,17 @@ if(OPENSSL_FOUND)
     add_test(NAME TestPoolDelayClose2       COMMAND  test_mprpc_pool test_pool_delay_close 2)
     add_test(NAME TestPoolDelayClose4       COMMAND  test_mprpc_pool test_pool_delay_close 4)
 
+    set_tests_properties(
+        TestPoolBasic1     
+        TestPoolForceClose1
+        TestPoolForceClose2
+        TestPoolForceClose4
+        TestPoolDelayClose1
+        TestPoolDelayClose2
+        TestPoolDelayClose4
+        PROPERTIES LABELS "mprpc pool"
+    )
+
     #==============================================================================
 
     add_subdirectory(multiprotocol_basic)
@@ -276,6 +343,11 @@ if(OPENSSL_FOUND)
 
     add_test(NAME TestMultiProtocolBasic        COMMAND  test_mprpc_multiprotocol test_multiprotocol_basic)
 
+    set_tests_properties(
+        TestMultiProtocolBasic
+        PROPERTIES LABELS "mprpc multiprotocol"
+    )
+
     #==============================================================================
 
     set( mprpcRawTestSuite
@@ -302,6 +374,11 @@ if(OPENSSL_FOUND)
 
     add_test(NAME TestRawBasic      COMMAND  test_mprpc_raw test_raw_basic)
     #add_test(NAME TestRawProxy     COMMAND  test_mprpc_raw test_raw_proxy)
+
+    set_tests_properties(
+        TestRawBasic
+        PROPERTIES LABELS "mprpc raw"
+    )
 
     #==============================================================================
 
@@ -344,7 +421,18 @@ if(OPENSSL_FOUND)
     add_test(NAME TestRelayDetectClose                  COMMAND  test_mprpc_relay test_relay_detect_close)
     add_test(NAME TestRelayDetectCloseWhileResponse     COMMAND  test_mprpc_relay test_relay_detect_close_while_response)
     
-
+    set_tests_properties(
+        TestRelayDisabled1               
+        TestRelayBasic1                  
+        TestRelayCancelRequest1          
+        TestRelayCancelResponse1         
+        TestRelayCloseRequest1           
+        TestRelayCloseResponse1          
+        TestRelaySplit1                  
+        TestRelayDetectClose             
+        TestRelayDetectCloseWhileResponse
+        PROPERTIES LABELS "mprpc relay"
+    )
     #==============================================================================
 
     set( mprpcRelayEngineTestSuite
@@ -368,6 +456,11 @@ if(OPENSSL_FOUND)
     )
 
     add_test(NAME TestRelayEngineBasic     COMMAND  test_mprpc_relay_engine test_relay_engine_basic)
+
+    set_tests_properties(
+        TestRelayEngineBasic
+        PROPERTIES LABELS "mprpc relayengine"
+    )
     
     #==============================================================================
 
@@ -395,6 +488,12 @@ if(OPENSSL_FOUND)
 
     add_test(NAME TestClientFrontBackUpload        COMMAND  test_mprpc_clientfrontback test_clientfrontback_upload)
     add_test(NAME TestClientFrontBackDownload      COMMAND  test_mprpc_clientfrontback test_clientfrontback_download)
+
+    set_tests_properties(
+        TestClientFrontBackUpload
+        TestClientFrontBackDownload
+        PROPERTIES LABELS "mprpc clientfrontback"
+    )
     #==============================================================================
     
 endif(OPENSSL_FOUND)

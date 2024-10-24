@@ -16,7 +16,7 @@ class SharedBuffer {
         Data*                    pnext_    = nullptr;
         std::size_t              size_     = 0;
         std::size_t              capacity_ = 0;
-        char*                    buffer_;
+        char*                    buffer_   = nullptr;
         char                     data_[8];
 
         Data()

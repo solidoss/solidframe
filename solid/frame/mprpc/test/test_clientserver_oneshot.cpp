@@ -75,17 +75,17 @@ struct Message : frame::mprpc::Message {
         : idx(_idx)
         , serialized(false)
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this << " idx = " << idx);
         init();
     }
     Message()
         : serialized(false)
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }
     ~Message() override
     {
-        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << this);
         solid_assert(!serialized);
     }
 
@@ -141,6 +141,7 @@ using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
+    lock_guard<mutex> lock(mtx);
     if (!running) {
         ++connection_count;
     }
@@ -298,7 +299,7 @@ int test_clientserver_oneshot(int argc, char* argv[])
     }
 
     // exiting
-
+    lock_guard<mutex> lock(mtx);
     std::cout << "Transfered size = " << (transfered_size * 2) / 1024 << "KB" << endl;
     std::cout << "Transfered count = " << transfered_count << endl;
     std::cout << "Connection count = " << connection_count << endl;

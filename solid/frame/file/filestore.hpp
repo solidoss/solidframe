@@ -272,9 +272,9 @@ private:
 };
 
 struct Utf8PathStub {
-    size_t      storeidx;
+    size_t      storeidx = InvalidIndex{};
     std::string path;
-    size_t      idx;
+    size_t      idx = InvalidIndex{};
 };
 
 struct Utf8OpenCommandBase {

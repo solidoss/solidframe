@@ -93,7 +93,7 @@ struct Request : frame::mprpc::Message {
 };
 
 struct Response : frame::mprpc::Message {
-    uint32_t                                     error_;
+    uint32_t                                     error_ = -1;
     frame::mprpc::RecipientId                    recipient_id_;
     frame::mprpc::MessagePointerT<back::Request> req_ptr_;
 
@@ -209,9 +209,9 @@ struct Request : frame::mprpc::Message {
 using RequestPointerT = solid::frame::mprpc::MessagePointerT<Request>;
 
 struct Response : frame::mprpc::Message {
-    uint32_t        error_;
+    uint32_t        error_ = -1;
     RequestPointerT req_ptr_;
-    bool            send_response_;
+    bool            send_response_ = false;
 
     Response()
     {

@@ -53,7 +53,7 @@ class Test {
     static constexpr size_t BlobCapacity = 40 * 1024;
 
     string                   p;
-    bool                     b;
+    bool                     b = false;
     vector<A>                v;
     deque<A>                 d;
     map<string, A>           m;
@@ -67,12 +67,12 @@ class Test {
     array<A, 10>             a1;
     array<A, 20>             a2;
     array<uint8_t, 10>       a3;
-    uint16_t                 a2_sz;
-    uint32_t                 blob_sz;
+    uint16_t                 a2_sz   = 0;
+    uint32_t                 blob_sz = 0;
     char                     blob[BlobCapacity];
-    uint32_t                 blob32_sz;
+    uint32_t                 blob32_sz = 0;
     char                     blob32[sizeof(uint32_t)];
-    uint32_t                 blob64_sz;
+    uint32_t                 blob64_sz = 0;
     char                     blob64[sizeof(uint64_t)];
 
     std::ostringstream oss;
@@ -83,6 +83,7 @@ class Test {
         b   = _b;
         a.a = 540554784UL;
         a.b = 2321664020290347053ULL;
+        a.c = 1234567890123456789ULL;
         serialization::binary::store(blob32, static_cast<uint32_t>(a.a));
         {
             uint32_t v;
@@ -119,6 +120,7 @@ class Test {
             A a;
             a.a = static_cast<int32_t>(i);
             a.b = 10 - i;
+            a.c = 10 + i;
             a.s = to_string(a.a) + ' ' + to_string(a.b);
             blb += a.s;
             s.insert(a.s);

@@ -50,7 +50,7 @@ frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr)
 }
 
 struct Activate : frame::mprpc::Message {
-    uint32_t     idx;
+    uint32_t     idx = -1;
     std::string  str;
     mutable bool serialized;
 
@@ -58,17 +58,17 @@ struct Activate : frame::mprpc::Message {
         : idx(_idx)
         , serialized(false)
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this << " idx = " << idx);
     }
 
     Activate()
         : serialized(false)
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }
     ~Activate() override
     {
-        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << this);
 
         solid_assert(serialized || this->isBackOnSender());
     }
@@ -129,9 +129,8 @@ private:
         solid_dbg(generic_logger, Info, "event = " << _revent);
         if (_revent == generic_event<GenericEventE::Start>) {
             // we must resolve the address then connect
-            solid_dbg(generic_logger, Info, "async_resolve = "
-                    << "127.0.0.1"
-                    << " " << server_port);
+            solid_dbg(generic_logger, Info, "async_resolve = " << "127.0.0.1"
+                                                               << " " << server_port);
             async_resolver().requestResolve(
                 [&rm = _rctx.service().manager(), actor_id = _rctx.service().manager().id(*this), this](ResolveData& _rrd, ErrorCodeT const& /*_rerr*/) {
                     solid_dbg(generic_logger, Info, this << " send resolv_message");

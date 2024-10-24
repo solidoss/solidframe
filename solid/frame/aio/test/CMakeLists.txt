@@ -89,7 +89,62 @@ if(OPENSSL_FOUND)
     add_test(NAME TestAioEchoTcpStress4rs           COMMAND  test_aio test_echo_tcp_stress 4 r s)
     add_test(NAME TestAioEchoTcpStress8rs           COMMAND  test_aio test_echo_tcp_stress 8 r s)
     add_test(NAME TestAioEchoTcpStress16rs          COMMAND  test_aio test_echo_tcp_stress 16 r s)
+
+    set_tests_properties(
+        TestAioEventStress100_100    
+        TestEventStressWP00_100_100  
+        TestAioEventStress100_1000   
+        TestEventStressWP00_100_1000 
+        TestAioEventStress20_10000   
+        TestEventStressWP02_20_10000 
+        TestEventStressWP04_20_10000 
+        TestEventStressWP08_20_10000 
+        TestEventStressWP10_20_10000
+        TestAioEchoTcpStress1        
+        TestAioEchoTcpStress2        
+        TestAioEchoTcpStress4        
+        TestAioEchoTcpStress8        
+        TestAioEchoTcpStress16       
+        TestAioEchoTcpStress1r       
+        TestAioEchoTcpStress2r       
+        TestAioEchoTcpStress4r       
+        TestAioEchoTcpStress8r       
+        TestAioEchoTcpStress16r      
+        TestAioEchoTcpStress1s       
+        TestAioEchoTcpStress2s       
+        TestAioEchoTcpStress4s       
+        TestAioEchoTcpStress8s       
+        TestAioEchoTcpStress16s      
+        TestAioEchoTcpStress1rs      
+        TestAioEchoTcpStress2rs      
+        TestAioEchoTcpStress4rs      
+        TestAioEchoTcpStress8rs      
+        TestAioEchoTcpStress16rs     
+        PROPERTIES LABELS "aio stress"
+    )
     
+    set_tests_properties(
+        TestAioEventStress100_100    
+        TestEventStressWP00_100_100  
+        TestAioEventStress100_1000   
+        TestEventStressWP00_100_1000 
+        TestAioEventStress20_10000   
+        TestEventStressWP02_20_10000 
+        TestEventStressWP04_20_10000 
+        TestEventStressWP08_20_10000 
+        TestEventStressWP10_20_10000   
+        PROPERTIES LABELS "aio stress event"
+    )
+
+    set_tests_properties(
+        TestEventStressWP00_100_100  
+        TestEventStressWP00_100_1000 
+        TestEventStressWP02_20_10000 
+        TestEventStressWP04_20_10000 
+        TestEventStressWP08_20_10000 
+        TestEventStressWP10_20_10000   
+        PROPERTIES LABELS "aio stress event threadpool"
+    )
 
     #==============================================================================
 
@@ -121,10 +176,27 @@ if(OPENSSL_FOUND)
         )
     endif()
     
-    add_test(NAME TestPerfActorAio              COMMAND  test_perf test_perf_actor_aio)
-    add_test(NAME TestPerfTimeStore             COMMAND  test_perf test_perf_timestore)
-    add_test(NAME TestPerfActorFrame            COMMAND  test_perf test_perf_actor_frame)
+    add_test(NAME TestPerfActorAio                COMMAND  test_perf test_perf_actor_aio)
+    add_test(NAME TestPerfTimeStore               COMMAND  test_perf test_perf_timestore)
+    add_test(NAME TestPerfActorFrame              COMMAND  test_perf test_perf_actor_frame)
     add_test(NAME TestPerfThreadPoolLockFree      COMMAND  test_perf test_perf_threadpool_lockfree)
     add_test(NAME TestPerfThreadPoolSynchCtx      COMMAND  test_perf test_perf_threadpool_synch_context)
+
+    set_tests_properties(
+        TestPerfActorAio            
+        TestPerfTimeStore           
+        TestPerfActorFrame          
+        TestPerfThreadPoolLockFree  
+        TestPerfThreadPoolSynchCtx    
+        PROPERTIES LABELS "aio perf"
+    )
+
+    set_tests_properties(      
+        TestPerfThreadPoolLockFree  
+        TestPerfThreadPoolSynchCtx    
+        PROPERTIES LABELS "aio perf threadpool"
+    )
+
+
 endif(OPENSSL_FOUND)
 

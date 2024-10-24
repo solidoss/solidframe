@@ -47,13 +47,13 @@ struct Params {
     vector<string>                         dbg_modules;
     string                                 dbg_addr;
     string                                 dbg_port;
-    bool                                   dbg_console;
-    bool                                   dbg_buffered;
+    bool                                   dbg_console  = true;
+    bool                                   dbg_buffered = true;
 
     std::string   baseport;
-    bool          log;
+    bool          log = true;
     StringVectorT connectstringvec;
-    bool          secure;
+    bool          secure = true;
 
     bool prepare(frame::mprpc::Configuration& _rcfg, string& _err);
 };
@@ -99,15 +99,15 @@ struct FirstMessage : frame::mprpc::Message {
     FirstMessage(std::string const& _str)
         : str(_str)
     {
-        solid_log(generic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_log(generic_logger, Info, "CREATE ---------------- " << this);
     }
     FirstMessage()
     {
-        solid_log(generic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_log(generic_logger, Info, "CREATE ---------------- " << this);
     }
     ~FirstMessage()
     {
-        solid_log(generic_logger, Info, "DELETE ---------------- " << (void*)this);
+        solid_log(generic_logger, Info, "DELETE ---------------- " << this);
     }
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)

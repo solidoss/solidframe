@@ -126,9 +126,7 @@ ssize_t MemoryFile::read(char* _pb, size_t _bl, int64_t _off)
             ++buffidx;
         }
     }
-    if (_bl != 0 && rd == 0) {
-        return -1;
-    }
+
     return rd;
 }
 

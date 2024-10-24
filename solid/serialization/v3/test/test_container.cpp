@@ -42,7 +42,7 @@ struct Test {
     KeyValueVectorT kv_vec;
     MapT            kv_map;
     MapBoolT        kb_map;
-    uint32_t        v32;
+    uint32_t        v32 = -1;
     deque<bool>     bool_deq;
     bitset<5>       bs5;
     bitset<10>      bs10;

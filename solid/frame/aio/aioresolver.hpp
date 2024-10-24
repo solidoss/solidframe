@@ -88,7 +88,7 @@ struct DirectResolveCbk : DirectResolve {
         int         _type,
         int         _proto)
         : DirectResolve(_host, _srvc, _flags, _family, _type, _proto)
-        , cbk(_cbk)
+        , cbk(std::move(_cbk))
     {
     }
 
@@ -144,7 +144,7 @@ public:
         int         _type   = -1,
         int         _proto  = -1)
     {
-        push_fnc_(DirectResolveCbk<Cbk>(_cbk, _host, _srvc, _flags, _family, _type, _proto));
+        push_fnc_(DirectResolveCbk<Cbk>(std::move(_cbk), _host, _srvc, _flags, _family, _type, _proto));
     }
 
     template <class Cbk>

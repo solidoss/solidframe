@@ -445,7 +445,7 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
                 solid_log(logger, Info, this << ' ' << this->id() << " wait for " << wait_duration.count());
                 timer_.waitFor(_rctx,
                     wait_duration,
-                    [event](frame::aio::ReactorContext& _rctx) {
+                    [event = std::move(event)](frame::aio::ReactorContext& _rctx) {
                         Connection& rthis = static_cast<Connection&>(_rctx.actor());
                         rthis.doContinueStopping(_rctx, event);
                     });

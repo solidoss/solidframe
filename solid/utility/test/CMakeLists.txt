@@ -71,18 +71,44 @@ add_test(NAME TestUtilityFunction                       COMMAND  test_utility te
 add_test(NAME TestUtilityTemplateFunction               COMMAND  test_utility test_template_function)
 add_test(NAME TestUtilityFunctionAnySpeedFullSolid      COMMAND  test_utility test_function_any_speed_full_solid)
 add_test(NAME TestUtilityFunctionAnySpeedFullStl        COMMAND  test_utility test_function_any_speed_full_stl)
-add_test(NAME TestUtilityThreadpoolMulticastBasic       COMMAND  test_utility test_threadpool_multicast_basic)
-add_test(NAME TestUtilityThreadpoolMulticastSleep       COMMAND  test_utility test_threadpool_multicast_sleep)
-add_test(NAME TestUtilityCallPoolMulticastBasic         COMMAND  test_utility test_callpool_multicast_basic)
-add_test(NAME TestUtilityCallPoolMulticastPattern       COMMAND  test_utility test_callpool_multicast_pattern)
-add_test(NAME TestUtilityCallPoolMulticastSynchCtxBasic COMMAND  test_utility test_threadpool_multicast_synchronization_context_basic)
-add_test(NAME TestUtilityFunctionPerf_s_2_10000_1000    COMMAND  test_utility test_function_perf s 2 10000 1000)
-add_test(NAME TestUtilityFunctionPerf_S_2_10000_1000    COMMAND  test_utility test_function_perf S 2 10000 1000)
 add_test(NAME TestUtilitySharedBuffer                   COMMAND  test_utility test_shared_buffer)
 add_test(NAME TestCollapse_B                            COMMAND  test_utility test_collapse B)
 add_test(NAME TestCollapse_p                            COMMAND  test_utility test_collapse p 10 4)
 add_test(NAME TestCollapse_b                            COMMAND  test_utility test_collapse b 10 4)
 add_test(NAME TestIntrusivePtr                          COMMAND  test_utility test_intrusiveptr)
+add_test(NAME TestUtilityFunctionPerf_s_2_10000_1000    COMMAND  test_utility test_function_perf s 2 10000 1000)
+add_test(NAME TestUtilityFunctionPerf_S_2_10000_1000    COMMAND  test_utility test_function_perf S 2 10000 1000)
+
+set_tests_properties(
+    TestUtilityIoFormat
+    TestUtilityInvalidIndex
+    TestUtilityInnerList
+    TestUtilityAny
+    TestUtilityAnyTuple
+    TestUtilityQueue
+    TestUtilityEvent
+    TestUtilityMemoryFile
+    TestUtilityMemoryFile2M
+    TestUtilityMemoryFile3M
+    TestUtilityMemoryFile5M
+    TestUtilityFunction
+    TestUtilityTemplateFunction
+    TestUtilityFunctionAnySpeedFullSolid
+    TestUtilityFunctionAnySpeedFullStl
+    TestUtilitySharedBuffer
+    TestCollapse_B
+    TestCollapse_p
+    TestCollapse_b
+    TestIntrusivePtr
+    TestUtilityFunctionPerf_s_2_10000_1000
+    TestUtilityFunctionPerf_S_2_10000_1000
+    PROPERTIES LABELS "utility basic"
+)
+add_test(NAME TestUtilityThreadpoolMulticastBasic       COMMAND  test_utility test_threadpool_multicast_basic)
+add_test(NAME TestUtilityThreadpoolMulticastSleep       COMMAND  test_utility test_threadpool_multicast_sleep)
+add_test(NAME TestUtilityCallPoolMulticastBasic         COMMAND  test_utility test_callpool_multicast_basic)
+add_test(NAME TestUtilityCallPoolMulticastPattern       COMMAND  test_utility test_callpool_multicast_pattern)
+add_test(NAME TestUtilityCallPoolMulticastSynchCtxBasic COMMAND  test_utility test_threadpool_multicast_synchronization_context_basic)
 add_test(NAME TestThreadPoolThreadContext               COMMAND  test_threadpool test_threadpool_thread_context)
 add_test(NAME TestThreadPoolContext                     COMMAND  test_threadpool test_threadpool_context)
 add_test(NAME TestThreadPoolPattern                     COMMAND  test_threadpool test_threadpool_pattern)
@@ -105,5 +131,35 @@ add_test(NAME TestThreadPool_1_4                        COMMAND  test_threadpool
 add_test(NAME TestThreadPool_2_4                        COMMAND  test_threadpool test_threadpool 10 10 0 4 4 100 0)
 add_test(NAME TestThreadPool_3_4                        COMMAND  test_threadpool test_threadpool 10 10 0 4 4 0 100)
 add_test(NAME TestThreadPool_4_4                        COMMAND  test_threadpool test_threadpool 1  10 0 4 4 100 100)
+
+set_tests_properties(
+    TestUtilityThreadpoolMulticastBasic TestUtilityThreadpoolMulticastSleep
+    TestUtilityCallPoolMulticastBasic
+    TestUtilityCallPoolMulticastPattern
+    TestUtilityCallPoolMulticastSynchCtxBasic
+    TestThreadPoolThreadContext
+    TestThreadPoolContext
+    TestThreadPoolPattern
+    TestThreadPoolBasic
+    TestThreadPoolChain2
+    TestThreadPoolChain4
+    TestThreadPoolChain8
+    TestThreadPoolChain10 
+    TestThreadPool    
+    TestThreadPool_0  
+    TestThreadPool_1  
+    TestThreadPool_2  
+    TestThreadPool_3  
+    TestThreadPool_4  
+    TestThreadPool_1_2
+    TestThreadPool_2_2
+    TestThreadPool_3_2
+    TestThreadPool_4_2
+    TestThreadPool_1_4
+    TestThreadPool_2_4
+    TestThreadPool_3_4
+    TestThreadPool_4_4
+    PROPERTIES LABELS "utility threadpool"
+)
 
 #==============================================================================

@@ -47,7 +47,7 @@ class EventBase {
         const any_impl::SmallRTTI* psmall_;
         const any_impl::BigRTTI*   pbig_;
     } rtti_;
-    void* pdata_;
+    void* pdata_ = nullptr;
 
 public:
     std::ostream& print(std::ostream& _ros) const;
@@ -171,13 +171,16 @@ protected:
         const uintptr_t          _id)
         : pcategory_(&_rcategory)
         , id_(_id)
+
     {
+        rtti_.psmall_ = &any_impl::dummy_small_rtti;
     }
 
     EventBase(const EventBase& _other)
         : pcategory_(_other.pcategory_)
         , id_(_other.id_)
     {
+        rtti_.psmall_ = _other.rtti_.psmall_;
     }
 
     ~EventBase()

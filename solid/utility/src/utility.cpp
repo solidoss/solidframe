@@ -129,9 +129,7 @@ uint64_t make_number(std::string _str)
         }
         _str.pop_back();
     }
-    std::istringstream iss{_str};
-    uint64_t           n;
-    iss >> n;
+    const uint64_t n = std::stoull(_str);
     return n * mul;
 }
 

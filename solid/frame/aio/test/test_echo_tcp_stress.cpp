@@ -97,11 +97,7 @@ class Connection : public frame::aio::Actor {
     virtual bool recvSome(frame::aio::ReactorContext& _rctx, size_t& _rsz) = 0;
 
 protected:
-    Connection()
-        : recvcnt(0)
-        , sendcnt(0)
-    {
-    }
+    Connection() = default;
     ~Connection() override
     {
         solid_dbg(generic_logger, Error, this << " server " << recvcnt << " " << sendcnt);
@@ -114,9 +110,9 @@ protected:
     enum { BufferCapacity = 1024 * 2 };
 
     char     buf[BufferCapacity];
-    uint64_t recvcnt;
-    uint64_t sendcnt;
-    size_t   sendcrt;
+    uint64_t recvcnt = 0;
+    uint64_t sendcnt = 0;
+    size_t   sendcrt = 0;
 };
 
 class PlainConnection final : public Connection {
@@ -415,6 +411,7 @@ public:
         , sock2(this->proxy())
         , recvcnt(0)
         , sendcnt(0)
+        , sendcrt(0)
         , crtid(-1)
     {
     }
@@ -603,9 +600,14 @@ int test_echo_tcp_stress(int argc, char* argv[])
                     // actptr.reset(new client::PlainConnection(i));
                     actptr = make_shared<client::PlainConnection>(i);
                 }
-                ++concnt;
+                {
+                    lock_guard<mutex> lock(mtx);
+                    ++concnt;
+                }
                 actuid = clt_sch.startActor(std::move(actptr), clt_svc, make_event(GenericEventE::Start), err);
+
                 if (actuid.isInvalid()) {
+                    lock_guard<mutex> lock(mtx);
                     --concnt;
                 }
                 solid_log(generic_logger, Info, "Started Connection Actor: " << actuid.index << ',' << actuid.unique);
@@ -721,7 +723,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
-    unsigned    repeatcnt = 1;
+    unsigned    repeatcnt = 2;
     Connection& rthis     = static_cast<Connection&>(_rctx.actor());
     solid_dbg(generic_logger, Info, &rthis << " " << _sz);
     do {
@@ -862,9 +864,8 @@ void Connection::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent)
     solid_dbg(generic_logger, Info, "event = " << _revent);
     if (_revent == generic_event<GenericEventE::Start>) {
         // we must resolve the address then connect
-        solid_dbg(generic_logger, Info, "async_resolve = "
-                << "127.0.0.1"
-                << " " << srv_port_str);
+        solid_dbg(generic_logger, Info, "async_resolve = " << "127.0.0.1"
+                                                           << " " << srv_port_str);
         async_resolver().requestResolve(
             ResolvFunc(_rctx.service().manager(), _rctx.service().manager().id(*this)), "127.0.0.1",
             use_relay ? rly_port_str.c_str() : srv_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
@@ -1042,9 +1043,8 @@ struct ResolvFunc {
     solid_dbg(generic_logger, Error, this << " " << _revent);
     if (generic_event<GenericEventE::Start> == _revent) {
         // we must resolve the address then connect
-        solid_dbg(generic_logger, Info, "async_resolve = "
-                << "127.0.0.1"
-                << " " << srv_port_str);
+        solid_dbg(generic_logger, Info, "async_resolve = " << "127.0.0.1"
+                                                           << " " << srv_port_str);
         async_resolver().requestResolve(
             ResolvFunc(_rctx.manager(), _rctx.manager().id(*this)), "127.0.0.1",
             srv_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);

@@ -43,7 +43,7 @@ public:
     ~Listener()
     {
         // MUST call here and not in the ~CompletionHandler
-        this->deactivate();
+        this->deactivate(false);
     }
 
     SocketDevice reset(ReactorContext& _rctx, SocketDevice&& _rnewdev = std::move(dummy_socket_device()));

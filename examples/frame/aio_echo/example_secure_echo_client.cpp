@@ -45,9 +45,9 @@ struct Params {
     vector<string> dbg_modules;
     string         dbg_addr;
     string         dbg_port;
-    bool           dbg_console;
-    bool           dbg_buffered;
-    bool           log;
+    bool           dbg_console  = true;
+    bool           dbg_buffered = true;
+    bool           log          = true;
 };
 
 using ConnectStT = std::pair<std::string&, std::string&>;

@@ -961,7 +961,7 @@ private:
 
 template <class MetadataVariant, class MetadataFactory, class Context, typename TypeId>
 class Deserializer : public DeserializerBase {
-    TypeId                 type_id_;
+    TypeId                 type_id_ = InvalidIndex{};
     const MetadataFactory& rmetadata_factory_;
 
 public:

@@ -14,6 +14,7 @@
 #include <deque>
 #include <functional>
 #include <thread>
+#include <type_traits>
 
 #if !defined(__cpp_lib_atomic_wait)
 #include "solid/utility/atomic_wait"
@@ -286,6 +287,12 @@ public:
 
 namespace tpimpl {
 
+template <typename T>
+typename std::decay<T>::type decay_copy(T&& v)
+{
+    return std::forward<T>(v);
+}
+
 template <class Task>
 class alignas(hardware_destructive_interference_size) TaskData {
     std::aligned_storage_t<sizeof(Task), alignof(Task)> data_;
@@ -529,7 +536,7 @@ private:
                 const auto cnt = consume_count_.load();
                 if (cnt == _count) {
                     return static_cast<EventE>(event_);
-                } else if (!_try_consume_an_all_fnc(&consume_count_, _count, _all_fnc, std::forward<Args>(_args)...) && _spin_count && !spin--) {
+                } else if (!_try_consume_an_all_fnc(&consume_count_, _count, _all_fnc, _args...) && _spin_count && !spin--) {
 
                     // std::atomic_wait_explicit(&consume_count_, cnt, std::memory_order_relaxed);
                     std::atomic_wait(&consume_count_, cnt);
@@ -900,12 +907,12 @@ public:
             _config,
             _start_fnc,
             _stop_fnc,
-            [](OneFunctionT& _rfnc, Args&&... _args) {
-                _rfnc(std::forward<ArgTypes>(_args)...);
+            []<typename... ArgsB>(OneFunctionT& _rfnc, ArgsB&&... _argsb) {
+                _rfnc(_argsb...);
                 _rfnc.reset();
             },
-            [](AllFunctionT& _rfnc, Args&&... _args) {
-                _rfnc(std::forward<ArgTypes>(_args)...);
+            []<typename... ArgsB>(AllFunctionT& _rfnc, ArgsB&&... _argsb) {
+                _rfnc(_argsb...);
             },
             std::forward<Args>(_args)...);
     }
@@ -914,18 +921,19 @@ public:
         class StopFnc, typename... Args>
     void start(const ThreadPoolConfiguration& _config,
         StartFnc                              _start_fnc,
-        StopFnc                               _stop_fnc, Args... _args)
+        StopFnc                               _stop_fnc,
+        Args... _args)
     {
         impl_.doStart(
             _config,
             _start_fnc,
             _stop_fnc,
-            [](OneFunctionT& _rfnc, Args&&... _args) {
-                _rfnc(std::forward<ArgTypes>(_args)...);
+            []<typename... ArgsB>(OneFunctionT& _rfnc, ArgsB&&... _argsb) {
+                _rfnc(_argsb...);
                 _rfnc.reset();
             },
-            [](AllFunctionT& _rfnc, Args&&... _args) {
-                _rfnc(std::forward<ArgTypes>(_args)...);
+            []<typename... ArgsB>(AllFunctionT& _rfnc, ArgsB&&... _argsb) {
+                _rfnc(_argsb...);
             },
             std::forward<Args>(_args)...);
     }
@@ -1040,12 +1048,12 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doStart(
     for (size_t i = 0; i < thread_count; ++i) {
         threads_.emplace_back(
             std::thread{
-                [this, i, start_fnc = std::move(_start_fnc), stop_fnc = std::move(_stop_fnc), one_fnc = std::move(_one_fnc), all_fnc = std::move(_all_fnc)](Args&&... _args) mutable {
-                    start_fnc(i, std::forward<Args>(_args)...);
-                    doRun(i, one_fnc, all_fnc, std::forward<Args>(_args)...);
-                    stop_fnc(i, std::forward<Args>(_args)...);
+                [this, i, start_fnc = _start_fnc, stop_fnc = _stop_fnc, one_fnc = _one_fnc, all_fnc = _all_fnc](Args&&... _args) mutable {
+                    start_fnc(i, _args...);
+                    doRun(i, one_fnc, all_fnc, _args...);
+                    stop_fnc(i, _args...);
                 },
-                std::forward<Args>(_args)...});
+                _args...});
     }
 }
 //-----------------------------------------------------------------------------
@@ -1101,10 +1109,10 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
                 Args&&... _args) {
                 // we need to make sure that, after processing an all_task, no new one_task can have
                 //  the all_id less than the all task that we have just processed.
-                return tryConsumeAnAllTask(_pcounter, _count, local_context, _all_fnc, std::forward<Args>(_args)...);
+                return tryConsumeAnAllTask(_pcounter, _count, local_context, _all_fnc, _args...);
             },
             _all_fnc,
-            std::forward<Args>(_args)...);
+            _args...);
 
         if (event == EventE::Fill) {
             auto  context_produce_id = rstub.context_produce_id_;
@@ -1118,16 +1126,16 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
                 rstub.notifyWhilePop();
 
                 if (pctx == nullptr) {
-                    consumeAll(local_context, all_id, _all_fnc, std::forward<Args>(_args)...);
+                    consumeAll(local_context, all_id, _all_fnc, _args...);
 
-                    _one_fnc(task, std::forward<Args>(_args)...);
+                    _one_fnc(task, _args...);
                     ++local_context.one_free_count_;
                     statistic_.runOneFreeCount(local_context.one_free_count_);
                     continue;
                 } else if (context_produce_id == pctx->consume_id_.load(std::memory_order_relaxed)) {
-                    consumeAll(local_context, all_id, _all_fnc, std::forward<Args>(_args)...);
+                    consumeAll(local_context, all_id, _all_fnc, _args...);
 
-                    _one_fnc(task, std::forward<Args>(_args)...);
+                    _one_fnc(task, _args...);
                     ++local_one_context_count;
                 } else {
                     pctx->spin_.lock();
@@ -1140,9 +1148,9 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
                     } else {
                         pctx->spin_.unlock();
 
-                        consumeAll(local_context, all_id, _all_fnc, std::forward<Args>(_args)...);
+                        consumeAll(local_context, all_id, _all_fnc, _args...);
 
-                        _one_fnc(task, std::forward<Args>(_args)...);
+                        _one_fnc(task, _args...);
                         ++local_one_context_count;
                     }
                 }
@@ -1160,9 +1168,9 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
                     }
                 }
 
-                consumeAll(local_context, all_id, _all_fnc, std::forward<Args>(_args)...);
+                consumeAll(local_context, all_id, _all_fnc, _args...);
 
-                _one_fnc(task_data.task(), std::forward<Args>(_args)...);
+                _one_fnc(task_data.task(), _args...);
 
                 task_data.destroy();
 
@@ -1180,7 +1188,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
             statistic_.runOneContextCount(local_one_context_count, local_context.one_context_count_);
         } else if (event == EventE::Wake) {
             const auto all_id = rstub.all_id_;
-            consumeAll(local_context, all_id, _all_fnc, std::forward<Args>(_args)...);
+            consumeAll(local_context, all_id, _all_fnc, _args...);
 
             ++local_context.wake_count_;
             statistic_.runWakeCount(local_context.wake_count_);
@@ -1228,7 +1236,7 @@ bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(AtomicCounterT* _p
             should_retry = all_.pending_count_.fetch_sub(1) != 1;
         }
 
-        _all_fnc(task, std::forward<Args>(_args)...);
+        _all_fnc(task, _args...);
 
         ++_rlocal_context.next_all_id_;
         ++_rlocal_context.all_count_;
@@ -1248,7 +1256,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::consumeAll(LocalContext& _rlocal_conte
 {
     size_t repeat_count = 0;
     while (overflow_safe_less(_rlocal_context.next_all_id_, _all_id) || _rlocal_context.next_all_id_ == _all_id) {
-        tryConsumeAnAllTask(nullptr, 0, _rlocal_context, _all_fnc, std::forward<Args>(_args)...);
+        tryConsumeAnAllTask(nullptr, 0, _rlocal_context, _all_fnc, _args...);
         ++repeat_count;
     }
     statistic_.consumeAll(repeat_count);

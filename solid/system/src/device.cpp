@@ -647,13 +647,16 @@ ErrorCodeT SocketDevice::makeBlocking()
     }
     return ErrorCodeT();
 #else
-    int flg = fcntl(descriptor(), F_GETFL);
-    if (flg == -1) {
+    int rv = fcntl(descriptor(), F_GETFL);
+    if (rv < 0) {
         return last_socket_error();
     }
-    flg &= ~O_NONBLOCK;
-    /*int rv = */ fcntl(descriptor(), F_SETFL, flg);
-    return last_socket_error();
+    rv &= ~O_NONBLOCK;
+    rv = fcntl(descriptor(), F_SETFL, rv);
+    if (rv < 0) {
+        return last_socket_error();
+    }
+    return ErrorCodeT();
 #endif
 }
 

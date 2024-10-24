@@ -81,22 +81,22 @@ size_t real_size(size_t _sz)
 }
 
 struct Request : frame::mprpc::Message {
-    uint32_t    idx;
+    uint32_t    idx = -1;
     std::string str;
 
     Request(uint32_t _idx)
         : idx(_idx)
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this << " idx = " << idx);
         init();
     }
     Request()
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }
     ~Request() override
     {
-        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << this);
     }
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
@@ -140,7 +140,7 @@ struct Request : frame::mprpc::Message {
 };
 
 struct Response : frame::mprpc::Message {
-    uint32_t    idx;
+    uint32_t    idx = -1;
     std::string str;
 
     Response(const Request& _rreq)
@@ -148,17 +148,17 @@ struct Response : frame::mprpc::Message {
         , idx(_rreq.idx)
         , str(_rreq.str)
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }
 
     Response()
     {
-        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }
 
     ~Response() override
     {
-        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << this);
     }
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
