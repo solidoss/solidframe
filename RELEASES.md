@@ -1,5 +1,8 @@
 # SolidFrame Releases
 
+## Version 12.1
+* Coverity fixes
+
 ## Version 12.0
 * utility: support pthread_spin_lock when available
 * utility: ThreadPool improvements and fixes
