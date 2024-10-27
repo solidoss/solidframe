@@ -12,6 +12,12 @@ All rights reserved.
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
+## Releases
+ * [Releases](RELEASES.md)
+
+## Journal
+ * [Journal](JOURNAL.md)
+
 ## Resources
  * [Tutorials](tutorials/README.md)
  * [Release Notes](RELEASES.md)
@@ -20,7 +26,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
  * [Wiki](https://github.com/vipalade/solidframe/wiki) - __TODO__
 
 ## Prerequisites
-* C++14 enabled compiler
+* C++20 enabled compiler
 * [CMake](https://cmake.org/): for build system
 * [CxxOpts](https://github.com/jarro2783/cxxopts): needed by SolidFrame examples.
 * [OpenSSL](https://www.openssl.org/)/[BoringSSL](https://boringssl.googlesource.com/boringssl/): needed by solid_frame_aio_openssl library.
@@ -30,7 +36,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 * **Linux** - _gcc_, _llvm_
 * **FreeBSD** - _llvm_
 * **Darwin/macOS** - _llvm_ - (starting with XCode 8 which has support for thread_local)
-* **iOS** - _llvm_ + [CocoaPods](https://cocoapods.org/) - example: [Bubbles](https://github.com/vipalade/bubbles)) 
+* **iOS** - _llvm_ + [CocoaPods](https://cocoapods.org/) - example: [Bubbles](https://github.com/vipalade/bubbles) 
 * **Android** - _llvm/gcc_ - (starting with Android Studio 2.2 - example: [Bubbles](https://github.com/vipalade/bubbles))
 * **Windows** - MSVC - tested on Windows 10 with Visual Studio 2017
 
