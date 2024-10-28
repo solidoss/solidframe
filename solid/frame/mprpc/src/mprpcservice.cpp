@@ -1087,8 +1087,8 @@ ErrorConditionT Service::doSendMessage(
         return doSendMessageUsingConnectionContext(_recipient_url, _rmsgptr, _rcomplete_fnc, nullptr, nullptr, _flags);
     }
 
-    if (_recipient_url.pid_ && _recipient_url.pid_->isValidConnection()) {
-        if (_recipient_url.pid_->isValidPool()) {
+    if (_recipient_url.hasRecipientId() && _recipient_url.recipientId()->isValidConnection()) {
+        if (_recipient_url.recipientId()->isValidPool()) {
             locked_pimpl = acquire();
 
             if (locked_pimpl) {
@@ -1098,7 +1098,7 @@ ErrorConditionT Service::doSendMessage(
             }
             return locked_pimpl->doSendMessageToConnection(
                 *this,
-                *_recipient_url.pid_,
+                *_recipient_url.recipientId(),
                 _rmsgptr,
                 _rcomplete_fnc,
                 _pmsgid_out,
@@ -1109,13 +1109,13 @@ ErrorConditionT Service::doSendMessage(
         }
     }
 
-    if (!_recipient_url.pid_ && !_recipient_url.purl_) {
+    if (!_recipient_url.hasRecipientId() && !_recipient_url.hasURL()) {
         solid_log(logger, Error, this << " wrong url");
         return error_service_invalid_url;
     }
 
     static constexpr const string_view empty_url = ":";
-    const string_view                  url       = (_recipient_url.purl_ && !_recipient_url.purl_->empty()) ? *_recipient_url.purl_ : empty_url;
+    const string_view                  url       = _recipient_url.hasURLNonEmpty() ? _recipient_url.url() : empty_url;
     ConnectionPoolId                   pool_id;
     bool                               check_uid = false;
     {
@@ -1129,7 +1129,7 @@ ErrorConditionT Service::doSendMessage(
             return error_service_stopping;
         }
 
-        if (_recipient_url.purl_) {
+        if (_recipient_url.hasURL()) {
 
             NameMapT::const_iterator it = locked_pimpl->name_map_.find(url);
 
@@ -1152,10 +1152,10 @@ ErrorConditionT Service::doSendMessage(
                 }
             }
         } else if (
-            static_cast<size_t>(_recipient_url.pid_->pool_id_.index) < pimpl_->pool_dq_.size()) {
+            static_cast<size_t>(_recipient_url.recipientId()->pool_id_.index) < pimpl_->pool_dq_.size()) {
             // we cannot check the uid right now because we need a lock on the pool's mutex
             check_uid = true;
-            pool_id   = _recipient_url.pid_->pool_id_;
+            pool_id   = _recipient_url.recipientId()->pool_id_;
         } else {
             solid_log(logger, Error, this << " recipient does not exist");
             return error_service_unknown_recipient;
@@ -2412,13 +2412,12 @@ bool Service::Data::doTryCreateNewConnectionForPool(Service& _rsvc, const size_t
     if (
         rpool.active_connection_count_ < config_.pool_max_active_connection_count && rpool.pending_connection_count_ == 0 && is_new_connection_needed && _rsvc.status() == ServiceStatusE::Running) {
 
-        solid_log(logger, Info, this << " try create new connection in pool " << rpool.active_connection_count_ << " pending connections " << rpool.pending_connection_count_);
+        solid_log(logger, Info, this << " try create new connection in pool [" << rpool.name_ << "] with active connections " << rpool.active_connection_count_ << " pending connections " << rpool.pending_connection_count_);
 
         auto     actptr(new_connection(config_, ConnectionPoolId(_pool_index, rpool.unique_), rpool.name_));
         ActorIdT conuid = config_.actor_create_fnc(std::move(actptr), _rsvc, make_event(GenericEventE::Start), _rerror);
 
         if (!_rerror) {
-
             solid_log(logger, Info, this << " Success starting Connection Pool actor: " << conuid);
 
             ++rpool.pending_connection_count_;

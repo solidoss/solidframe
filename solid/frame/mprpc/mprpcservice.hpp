@@ -170,24 +170,65 @@ struct ServiceStatistic : solid::Statistic {
 
 class RecipientUrl final {
     friend class Service;
-    using ImplOptionalRelayT      = std::optional<MessageRelayHeader>;
-    const RecipientId*      pid_  = nullptr;
-    ConnectionContext*      pctx_ = nullptr;
-    const std::string_view* purl_ = nullptr;
-    ImplOptionalRelayT      relay_;
+    using ImplOptionalRelayT = std::optional<MessageRelayHeader>;
+    using ImplURLDataT       = std::optional<std::variant<RecipientId, std::string_view>>;
+    const ImplURLDataT       url_var_opt_;
+    ConnectionContext* const pctx_ = nullptr;
+    const ImplOptionalRelayT relay_;
+
+    bool hasRecipientId() const
+    {
+        return url_var_opt_.has_value() && std::get_if<RecipientId>(&url_var_opt_.value());
+    }
+    const RecipientId* recipientId() const
+    {
+        return url_var_opt_.has_value() ? std::get_if<RecipientId>(&url_var_opt_.value()) : nullptr;
+    }
+    bool hasURL() const
+    {
+        return url_var_opt_.has_value() && std::get_if<std::string_view>(&url_var_opt_.value());
+        return false;
+    }
+
+    bool hasURLNonEmpty() const
+    {
+        if (url_var_opt_.has_value()) {
+            if (auto* psv = std::get_if<std::string_view>(&url_var_opt_.value())) {
+                return !psv->empty();
+            }
+        }
+        return false;
+    }
+
+    std::string_view url() const
+    {
+        if (url_var_opt_.has_value()) {
+            if (auto* psv = std::get_if<std::string_view>(&url_var_opt_.value())) {
+                return *psv;
+            }
+        }
+        return {};
+    }
 
 public:
     using RelayT         = MessageRelayHeader;
     using OptionalRelayT = ImplOptionalRelayT;
+
+    RecipientUrl(const RecipientUrl&) = delete;
+    RecipientUrl(RecipientUrl&&)      = delete;
+
+    RecipientUrl& operator=(const RecipientUrl&) = delete;
+    RecipientUrl& operator=(RecipientUrl&&)      = delete;
+
     RecipientUrl(
         RecipientId const& _id)
-        : pid_(&_id)
+        : url_var_opt_(_id)
     {
     }
 
     RecipientUrl(
         const std::string_view& _url)
-        : purl_(&_url)
+        : url_var_opt_(_url)
     {
     }
 
@@ -199,14 +240,14 @@ public:
 
     RecipientUrl(
         RecipientId const& _id, const RelayT& _relay)
-        : pid_(&_id)
+        : url_var_opt_(_id)
         , relay_(_relay)
     {
     }
 
     RecipientUrl(
         const std::string_view& _url, const RelayT& _relay)
-        : purl_(&_url)
+        : url_var_opt_(_url)
         , relay_(_relay)
     {
     }
@@ -220,7 +261,7 @@ public:
 
 private:
     RecipientUrl(RecipientId const& _id, const OptionalRelayT& _relay)
-        : pid_(&_id)
+        : url_var_opt_(_id)
         , relay_(_relay)
     {
     }
