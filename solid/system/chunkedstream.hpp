@@ -116,7 +116,7 @@ protected:
     }
 
     // do not call this on base destructor
-    void clear()
+    void clean()
     {
         BufNodeT* pbn = first();
         if (pbn != nullptr) {
@@ -137,10 +137,12 @@ private:
     void allocate()
     {
         if (plast_ != nullptr) {
-            plast_->pnext_ = std::make_unique<BufNodeT>();
-            plast_         = plast_->pnext_.get();
-            pcrt_          = plast_->buf_;
-            pend_          = plast_->end();
+            if (!plast_->pnext_) {
+                plast_->pnext_ = std::make_unique<BufNodeT>();
+            }
+            plast_ = plast_->pnext_.get();
+            pcrt_  = plast_->buf_;
+            pend_  = plast_->end();
         } else {
             plast_ = allocateFirst();
             pcrt_  = plast_->buf_;
@@ -249,14 +251,16 @@ public:
     std::ostream& writeTo(std::ostream& _ros) const
     {
         const BufNodeT* pbn = first();
-        do {
-            if (pbn == plast_) {
-                _ros.write(pbn->buf_, pcrt_ - pbn->begin());
-            } else {
-                _ros.write(pbn->buf_, BufNodeT::buffer_capacity);
+        size_t          ssz = size_;
+        while (ssz) {
+            size_t sz = BufNodeT::buffer_capacity;
+            if (sz > ssz) {
+                sz = ssz;
             }
+            ssz -= sz;
+            _ros.write(pbn->buf_, sz);
             pbn = pbn->pnext_.get();
-        } while (pbn);
+        }
         return _ros;
     }
 
@@ -265,22 +269,31 @@ public:
         return size_;
     }
 
+    void clear()
+    {
+        plast_ = nullptr;
+        pcrt_  = nullptr;
+        pend_  = nullptr;
+        size_  = 0;
+    }
+
     template <class F>
     void visit(F _f) const
     {
         const BufNodeT* pbn = first();
-        do {
-            size_t sz;
-            if (pbn == plast_) {
-                sz = pcrt_ - pbn->begin();
-            } else {
-                sz = BufNodeT::buffer_capacity;
+        size_t          ssz = size_;
+        while (ssz) {
+            size_t sz = BufNodeT::buffer_capacity;
+
+            if (sz > ssz) {
+                sz = ssz;
             }
+            ssz -= sz;
 
             _f(pbn->buf_, sz);
 
             pbn = pbn->pnext_.get();
-        } while (pbn != nullptr);
+        }
     }
 };
 
@@ -293,7 +306,9 @@ class ChunkedBuffer<NodeSize, 0> : public ChunkedBufferBase<NodeSize> {
 
     BufNodeT* allocateFirst() override
     {
-        first_ = std::make_unique<BufNodeT>();
+        if (!first_) {
+            first_ = std::make_unique<BufNodeT>();
+        }
         return first_.get();
     }
     BufNodeT* first() override
@@ -318,7 +333,7 @@ public:
 
     ~ChunkedBuffer()
     {
-        BaseT::clear();
+        BaseT::clean();
     }
 };
 
@@ -372,6 +387,11 @@ public:
     size_t size() const
     {
         return buf_.size();
+    }
+
+    void clear()
+    {
+        buf_.clear();
     }
 
     template <class F>

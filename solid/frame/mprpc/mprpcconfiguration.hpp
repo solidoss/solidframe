@@ -369,7 +369,7 @@ public:
         uint32_t                           connection_inactivity_keepalive_count = 20; // server error if receives more than inactivity_keepalive_count keep alive messages during inactivity_timeout interval
         ConnectionStartFunctionT           connection_start_fnc;
         ConnectionSecureHandshakeFunctionT connection_on_secure_handshake_fnc;
-        std::chrono::milliseconds          connection_timeout_active = std::chrono::seconds(20);
+        std::chrono::milliseconds          connection_timeout_active = std::chrono::seconds(300);
         std::chrono::milliseconds          connection_timeout_secure = std::chrono::seconds(10);
         ServerSetupSocketDeviceFunctionT   socket_device_setup_fnc;
         std::string                        listener_address_str;

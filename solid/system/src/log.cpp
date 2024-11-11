@@ -898,4 +898,10 @@ ErrorConditionT log_start(
     return Engine::the().configure(std::make_shared<SocketRecorder>(std::move(sd), _buffered), _rmodule_mask_vec);
 }
 
+solid::impl::LogLineStream<solid::log_buffer_size>& impl::local_line_stream()
+{
+    static thread_local solid::impl::LogLineStream<solid::log_buffer_size> os;
+    return os;
+}
+
 } // namespace solid

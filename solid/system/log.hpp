@@ -17,6 +17,7 @@
 #include <cstring>
 #include <memory>
 #include <ostream>
+#include <sstream>
 #include <string>
 
 namespace solid {
@@ -91,6 +92,19 @@ public:
     size_t size() const override
     {
         return BaseStream::size();
+    }
+};
+
+class LogLineStringStream : public std::ostringstream, public LogLineBase {
+public:
+    std::ostream& writeTo(std::ostream& _ros) const override
+    {
+        const auto view = this->view();
+        return _ros.write(view.data(), view.size());
+    }
+    size_t size() const override
+    {
+        return this->std::ostringstream::view().size();
     }
 };
 
@@ -211,6 +225,12 @@ constexpr size_t log_buffer_size = (SOLID_LOG_BUFFER_SIZE);
 
 #endif
 
+namespace impl {
+
+solid::impl::LogLineStream<solid::log_buffer_size>& local_line_stream();
+
+} // namespace impl
+
 } // namespace solid
 
 #ifndef SOLID_FUNCTION_NAME
@@ -222,12 +242,15 @@ constexpr size_t log_buffer_size = (SOLID_LOG_BUFFER_SIZE);
 #endif
 
 #ifdef SOLID_HAS_DEBUG
-
+// solid::impl::LogLineStringStream os;
+// solid::impl::LogLineStream<solid::log_buffer_size> os;
+// auto& os = solid::local_line_stream();
 #define solid_dbg(Lgr, Flg, Txt)                                                                                                                                      \
     if (Lgr.shouldLog(std::remove_reference<decltype(Lgr)>::type::FlagT::Flg)) {                                                                                      \
-        solid::impl::LogLineStream<solid::log_buffer_size> os;                                                                                                        \
+        auto& os = solid::impl::local_line_stream();                                                                                                                  \
         Lgr.log(os, std::remove_reference<decltype(Lgr)>::type::FlagT::Flg, __FILE__, static_cast<const char*>((SOLID_FUNCTION_NAME)), __LINE__) << Txt << std::endl; \
         Lgr.done(os);                                                                                                                                                 \
+        os.clear();                                                                                                                                                   \
     }
 
 #else
@@ -238,16 +261,19 @@ constexpr size_t log_buffer_size = (SOLID_LOG_BUFFER_SIZE);
 
 #define solid_log(Lgr, Flg, Txt)                                                                                                                                      \
     if (Lgr.shouldLog(std::remove_reference<decltype(Lgr)>::type::FlagT::Flg)) {                                                                                      \
-        solid::impl::LogLineStream<solid::log_buffer_size> os;                                                                                                        \
+        auto& os = solid::impl::local_line_stream();                                                                                                                  \
         Lgr.log(os, std::remove_reference<decltype(Lgr)>::type::FlagT::Flg, __FILE__, static_cast<const char*>((SOLID_FUNCTION_NAME)), __LINE__) << Txt << std::endl; \
         Lgr.done(os);                                                                                                                                                 \
+        os.clear();                                                                                                                                                   \
     }
 
 #define solid_log_raw(Txt)                                       \
     if (solid::generic_logger.shouldLog(solid::LogFlags::Raw)) { \
-        solid::impl::LogLineStream<solid::log_buffer_size> os;   \
+        auto& os = solid::impl::local_line_stream();             \
         os << Txt;                                               \
-    Lgr.done(os)
+        Lgr.done(os);                                            \
+        os.clear();                                              \
+    }
 
 #ifdef SOLID_HAS_STATISTICS
 
