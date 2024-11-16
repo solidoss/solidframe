@@ -347,36 +347,37 @@ private:
     template <class Ctx>
     friend struct ConnectionSenderResponse;
 
-    ConnectionPoolId   pool_id_;
-    const std::string& rpool_name_;
-    TimerT             timer_;
-    FlagsT             flags_                = 0;
-    size_t             cons_buf_off_         = 0;
-    uint32_t           recv_keepalive_count_ = 0;
-    uint16_t           recv_buf_count_       = 0;
-    uint8_t            send_relay_free_count_;
-    uint8_t            ackd_buf_count_ = 0;
-    SharedBuffer       recv_buf_;
-    RecvBufferVectorT  recv_buf_vec_;
-    SharedBuffer       send_buf_;
-    MessageIdVectorT   pending_message_vec_;
-    MessageReader      msg_reader_;
-    MessageWriter      msg_writer_;
-    RequestIdVectorT   cancel_remote_msg_vec_;
-    ErrorConditionT    error_;
-    ErrorCodeT         sys_error_;
-    bool               poll_pool_more_ = true;
-    bool               send_posted_    = false;
-    Any<>              any_data_;
-    char               socket_emplace_buf_[static_cast<size_t>(ConnectionValues::SocketEmplacementSize)];
-    SocketStubPtrT     sock_ptr_;
-    NanoTime           timeout_recv_      = NanoTime::max(); // client and server
-    NanoTime           timeout_send_soft_ = NanoTime::max(); // client and server
-    NanoTime           timeout_send_hard_ = NanoTime::max(); // client and server
-    NanoTime           timeout_secure_    = NanoTime::max(); // server
-    NanoTime           timeout_active_    = NanoTime::max(); // server
-    NanoTime           timeout_keepalive_ = NanoTime::max(); // client
-    UniqueId           relay_id_;
+    ConnectionPoolId                      pool_id_;
+    const std::string&                    rpool_name_;
+    TimerT                                timer_;
+    FlagsT                                flags_                   = 0;
+    size_t                                cons_buf_off_            = 0;
+    uint32_t                              recv_keepalive_count_    = 0;
+    std::chrono::steady_clock::time_point recv_keepalive_boundary_ = std::chrono::steady_clock::time_point::min();
+    uint16_t                              recv_buf_count_          = 0;
+    uint8_t                               send_relay_free_count_;
+    uint8_t                               ackd_buf_count_ = 0;
+    SharedBuffer                          recv_buf_;
+    RecvBufferVectorT                     recv_buf_vec_;
+    SharedBuffer                          send_buf_;
+    MessageIdVectorT                      pending_message_vec_;
+    MessageReader                         msg_reader_;
+    MessageWriter                         msg_writer_;
+    RequestIdVectorT                      cancel_remote_msg_vec_;
+    ErrorConditionT                       error_;
+    ErrorCodeT                            sys_error_;
+    bool                                  poll_pool_more_ = true;
+    bool                                  send_posted_    = false;
+    Any<>                                 any_data_;
+    char                                  socket_emplace_buf_[static_cast<size_t>(ConnectionValues::SocketEmplacementSize)];
+    SocketStubPtrT                        sock_ptr_;
+    NanoTime                              timeout_recv_      = NanoTime::max(); // client and server
+    NanoTime                              timeout_send_soft_ = NanoTime::max(); // client and server
+    NanoTime                              timeout_send_hard_ = NanoTime::max(); // client and server
+    NanoTime                              timeout_secure_    = NanoTime::max(); // server
+    NanoTime                              timeout_active_    = NanoTime::max(); // server
+    NanoTime                              timeout_keepalive_ = NanoTime::max(); // client
+    UniqueId                              relay_id_;
 };
 
 //-----------------------------------------------------------------------------

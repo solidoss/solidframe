@@ -364,9 +364,10 @@ public:
         using ConnectionSecureHandshakeFunctionT = solid_function_t(void(ConnectionContext&));
 
         ConnectionCreateSocketFunctionT    connection_create_socket_fnc;
-        ConnectionState                    connection_start_state                = ConnectionState::Passive;
-        bool                               connection_start_secure               = true;
-        uint32_t                           connection_inactivity_keepalive_count = 20; // server error if receives more than inactivity_keepalive_count keep alive messages during inactivity_timeout interval
+        ConnectionState                    connection_start_state                   = ConnectionState::Passive;
+        bool                               connection_start_secure                  = true;
+        uint32_t                           connection_inactivity_keepalive_count    = 20; // server error if receives more than inactivity_keepalive_count keep alive messages during inactivity_timeout interval
+        std::chrono::milliseconds          connection_inactivity_keepalive_interval = std::chrono::seconds(60); // we can have at most 20 KA messages in 1 minute
         ConnectionStartFunctionT           connection_start_fnc;
         ConnectionSecureHandshakeFunctionT connection_on_secure_handshake_fnc;
         std::chrono::milliseconds          connection_timeout_active = std::chrono::seconds(300);
@@ -405,7 +406,7 @@ public:
         using ConnectionSecureHandshakeFunctionT = solid_function_t(void(ConnectionContext&));
 
         std::chrono::milliseconds          connection_timeout_reconnect = std::chrono::seconds(10);
-        std::chrono::milliseconds          connection_timeout_keepalive = std::chrono::seconds(60);
+        std::chrono::milliseconds          connection_timeout_keepalive = std::chrono::seconds(5);
         uint32_t                           connection_reconnect_steps   = 10;
         ConnectionCreateSocketFunctionT    connection_create_socket_fnc;
         ConnectionState                    connection_start_state  = ConnectionState::Passive;

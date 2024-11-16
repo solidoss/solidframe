@@ -299,11 +299,15 @@ bool Connection::tryPushMessage(
 //-----------------------------------------------------------------------------
 void Connection::doPrepare(frame::aio::ReactorContext& _rctx)
 {
+    Configuration const& config = service(_rctx).configuration();
+
     recv_buf_       = service(_rctx).configuration().allocateRecvBuffer();
     send_buf_       = service(_rctx).configuration().allocateSendBuffer();
     recv_buf_count_ = 1;
     msg_reader_.prepare(service(_rctx).configuration().reader);
     msg_writer_.prepare(service(_rctx).configuration().writer);
+    const auto crt_time      = _rctx.steadyTime();
+    recv_keepalive_boundary_ = crt_time + config.server.connection_inactivity_keepalive_interval;
 }
 //-----------------------------------------------------------------------------
 void Connection::doUnprepare(frame::aio::ReactorContext& /*_rctx*/)
@@ -1713,14 +1717,24 @@ void Connection::doCompleteKeepalive(frame::aio::ReactorContext& _rctx)
             solid_log(logger, Info, this << " post send");
             this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, EventBase const& /*_revent*/) { this->doSend<Ctx>(_rctx); });
         } else {
-            solid_log(logger, Info, this << " post stop because of too many keep alive messages");
+            const auto crt_time   = _rctx.steadyTime();
             recv_keepalive_count_ = 0; // prevent other posting
-            this->post(
-                _rctx,
-                [this](frame::aio::ReactorContext& _rctx, EventBase const& /*_revent*/) {
-                    this->doStop<Ctx>(_rctx, error_connection_too_many_keepalive_packets_received);
-                });
-            return;
+            if (crt_time >= recv_keepalive_boundary_) {
+                recv_keepalive_boundary_ = crt_time + config.server.connection_inactivity_keepalive_interval;
+
+                flags_.set(FlagsE::Keepalive);
+                solid_log(logger, Info, this << " post send");
+                this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, EventBase const& /*_revent*/) { this->doSend<Ctx>(_rctx); });
+            } else {
+
+                solid_log(logger, Info, this << " post stop because of too many keep alive messages");
+                this->post(
+                    _rctx,
+                    [this](frame::aio::ReactorContext& _rctx, EventBase const& /*_revent*/) {
+                        this->doStop<Ctx>(_rctx, error_connection_too_many_keepalive_packets_received);
+                    });
+                return;
+            }
         }
     }
 }

@@ -47,7 +47,7 @@ inline void cpu_pause()
 #endif
 #elif defined(__arm__)
     __asm__ volatile("yield" ::
-                         : "memory");
+            : "memory");
 #else
 #endif
 }
