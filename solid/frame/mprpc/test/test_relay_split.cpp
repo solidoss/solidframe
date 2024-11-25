@@ -92,8 +92,8 @@ struct Register : frame::mprpc::Message {
     uint16_t replica_id_ = 0;
 
     Register(const uint32_t _group_id, uint32_t _err = 0)
-        : group_id_(_group_id)
-        , err_(_err)
+        : err_(_err)
+        , group_id_(_group_id)
     {
         solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }

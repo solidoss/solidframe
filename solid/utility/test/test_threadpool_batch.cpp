@@ -100,7 +100,7 @@ int test_threadpool_batch(int argc, char* argv[])
     solid::log_start(std::cerr, {".*:EWXS", "test:VIEWS"});
     int    wait_seconds = 500;
     size_t entry_count  = 300;
-    size_t repeat_count = 1000000;
+    // size_t repeat_count = 1000000;
     solid_log(logger, Verbose, "capacity " << capacity << " reminder " << (std::numeric_limits<atomic_size_t::value_type>::max() % capacity));
     {
         vector<AtomicCounterValueT> cnt_vec(capacity, 0);

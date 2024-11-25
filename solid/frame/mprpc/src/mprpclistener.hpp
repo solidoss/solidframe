@@ -49,8 +49,8 @@ private:
     typedef frame::aio::Listener    ListenerSocketT;
     typedef frame::aio::SteadyTimer TimerT;
 
-    ListenerSocketT sock;
-    TimerT          timer;
+    ListenerSocketT sock_;
+    TimerT          timer_;
 };
 
 } // namespace mprpc

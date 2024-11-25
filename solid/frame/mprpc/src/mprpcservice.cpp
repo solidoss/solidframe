@@ -2604,8 +2604,6 @@ void Service::acceptIncomingConnection(SocketDevice& _rsd)
 {
     solid_log(logger, Verbose, this);
 
-    configuration().server.socket_device_setup_fnc(_rsd);
-
     size_t pool_index;
     {
         lock_guard<std::mutex> lock(pimpl_->rmutex_);
@@ -2617,6 +2615,8 @@ void Service::acceptIncomingConnection(SocketDevice& _rsd)
             return;
         }
     }
+
+    configuration().server.socket_device_setup_fnc(_rsd);
 
     {
         lock_guard<std::mutex> pool_lock(pimpl_->poolMutex(pool_index));

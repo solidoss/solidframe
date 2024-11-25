@@ -49,7 +49,7 @@ size_t MessageReader::read(
     while (pbufpos != pbufend) {
         if (state_ == StateE::ReadPacketHead) {
             // try read the header
-            if ((pbufend - pbufpos) >= PacketHeader::size_of_header) {
+            if ((pbufend - pbufpos) >= static_cast<ptrdiff_t>(PacketHeader::size_of_header)) {
                 state_ = StateE::ReadPacketBody;
             } else {
                 break;

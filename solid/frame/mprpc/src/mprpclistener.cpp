@@ -22,8 +22,8 @@ const LoggerT logger("solid::frame::mprpc::listener");
 
 Listener::Listener(
     SocketDevice& _rsd)
-    : sock(this->proxy(), std::move(_rsd))
-    , timer(this->proxy())
+    : sock_(this->proxy(), std::move(_rsd))
+    , timer_(this->proxy())
 {
     solid_log(logger, Info, this);
 }
@@ -42,7 +42,7 @@ inline Service& Listener::service(frame::aio::ReactorContext& _rctx)
     solid_log(logger, Info, "event = " << _uevent);
     if (
         _uevent == generic_event<GenericEventE::Start> || _uevent == generic_event<GenericEventE::Timer>) {
-        sock.postAccept(
+        sock_.postAccept(
             _rctx,
             [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); });
     } else if (_uevent == generic_event<GenericEventE::Kill>) {
@@ -64,17 +64,17 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             postStop(_rctx);
         } else {
             solid_log(logger, Info, "listen error" << _rctx.error().message());
-            timer.waitFor(
+            timer_.waitFor(
                 _rctx, std::chrono::seconds(10),
                 [this](frame::aio::ReactorContext& _rctx) { onEvent(_rctx, make_event(GenericEventE::Timer)); });
             break;
         }
         --repeatcnt;
     } while (
-        repeatcnt != 0u && sock.accept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }, _rsd));
+        repeatcnt != 0u && sock_.accept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }, _rsd));
 
     if (repeatcnt == 0u) {
-        sock.postAccept(
+        sock_.postAccept(
             _rctx,
             [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); // fully asynchronous call
     }

@@ -31,12 +31,16 @@ class Listener : public CompletionHandler {
     static void on_posted_accept(ReactorContext& _rctx, EventBase&&);
     static void on_dummy(ReactorContext&, SocketDevice&);
 
+    typedef solid_function_t(void(ReactorContext&, SocketDevice&)) FunctionT;
+    FunctionT  f_;
+    SocketBase s_;
+
 public:
     Listener(
         ActorProxy const& _ract,
         SocketDevice&&    _rsd)
         : CompletionHandler(_ract, Listener::on_init_completion)
-        , s(std::move(_rsd))
+        , s_(std::move(_rsd))
     {
     }
 
@@ -55,8 +59,8 @@ public:
     template <typename F>
     bool postAccept(ReactorContext& _rctx, F&& _f)
     {
-        if (solid_function_empty(f)) {
-            f = std::forward<F>(_f);
+        if (solid_function_empty(f_)) {
+            f_ = std::forward<F>(_f);
             doPostAccept(_rctx);
             return false;
         } else {
@@ -70,13 +74,13 @@ public:
     template <typename F>
     bool accept(ReactorContext& _rctx, F&& _f, SocketDevice& _rsd)
     {
-        if (solid_function_empty(f)) {
+        if (solid_function_empty(f_)) {
             contextBind(_rctx);
 
             if (this->doTryAccept(_rctx, _rsd)) {
                 return true;
             }
-            f = std::forward<F>(_f);
+            f_ = std::forward<F>(_f);
             return false;
         } else {
             error(_rctx, error_already);
@@ -89,11 +93,6 @@ private:
     bool doTryAccept(ReactorContext& _rctx, SocketDevice& _rsd);
     void doAccept(ReactorContext& _rctx, solid::SocketDevice& _rsd);
     void doClear(ReactorContext& _rctx);
-
-private:
-    typedef solid_function_t(void(ReactorContext&, SocketDevice&)) FunctionT;
-    FunctionT  f;
-    SocketBase s;
 };
 
 } // namespace aio
