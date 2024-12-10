@@ -672,16 +672,16 @@ char* MessageWriter::doWriteMessageHead(
     MessageStub& rmsgstub             = message_vec_[_msgidx];
     rmsgstub.msgbundle_.message_flags = Message::update_state_flags(Message::clear_state_flags(rmsgstub.msgbundle_.message_flags) | Message::state_flags(rmsgstub.msgbundle_.message_ptr->flags()));
 
-    _rsender.context().request_id.index  = static_cast<uint32_t>(_msgidx + 1);
-    _rsender.context().request_id.unique = rmsgstub.unique_;
-    _rsender.context().message_flags     = rmsgstub.msgbundle_.message_flags;
+    _rsender.context().request_id_.index  = static_cast<uint32_t>(_msgidx + 1);
+    _rsender.context().request_id_.unique = rmsgstub.unique_;
+    _rsender.context().message_flags_     = rmsgstub.msgbundle_.message_flags;
     if (rmsgstub.msgbundle_.message_relay_header_.has_value()) {
         // solid_assert_log(_rsender.context().message_flags.isSet(MessageFlagsE::Relayed), logger, ""<<rmsgstub.msgbundle_.message_ptr.get());
-        _rsender.context().message_flags.set(MessageFlagsE::Relayed);
+        _rsender.context().message_flags_.set(MessageFlagsE::Relayed);
         _rsender.context().pmessage_relay_header_ = &rmsgstub.msgbundle_.message_relay_header_.value();
     } else {
         // solid_assert_log(!_rsender.context().message_flags.isSet(MessageFlagsE::Relayed), logger, ""<<rmsgstub.msgbundle_.message_ptr.get());
-        _rsender.context().message_flags.reset(MessageFlagsE::Relayed);
+        _rsender.context().message_flags_.reset(MessageFlagsE::Relayed);
         _rsender.context().pmessage_relay_header_ = nullptr;
     }
 
@@ -726,14 +726,14 @@ char* MessageWriter::doWriteMessageBody(
 
     MessageStub& rmsgstub = message_vec_[_msgidx];
 
-    _rsender.context().request_id.index  = static_cast<uint32_t>(_msgidx + 1);
-    _rsender.context().request_id.unique = rmsgstub.unique_;
-    _rsender.context().message_flags     = rmsgstub.msgbundle_.message_flags;
+    _rsender.context().request_id_.index  = static_cast<uint32_t>(_msgidx + 1);
+    _rsender.context().request_id_.unique = rmsgstub.unique_;
+    _rsender.context().message_flags_     = rmsgstub.msgbundle_.message_flags;
     if (rmsgstub.msgbundle_.message_relay_header_.has_value()) {
-        _rsender.context().message_flags.set(MessageFlagsE::Relayed);
+        _rsender.context().message_flags_.set(MessageFlagsE::Relayed);
         _rsender.context().pmessage_relay_header_ = &rmsgstub.msgbundle_.message_relay_header_.value();
     } else {
-        _rsender.context().message_flags.reset(MessageFlagsE::Relayed);
+        _rsender.context().message_flags_.reset(MessageFlagsE::Relayed);
         _rsender.context().pmessage_relay_header_ = nullptr;
     }
 
@@ -788,10 +788,10 @@ char* MessageWriter::doWriteRelayedHead(
 
     MessageStub& rmsgstub = message_vec_[_msgidx];
 
-    _rsender.context().request_id.index  = static_cast<uint32_t>(_msgidx + 1);
-    _rsender.context().request_id.unique = rmsgstub.unique_;
-    _rsender.context().message_flags     = rmsgstub.prelay_data_->pmessage_header_->flags_;
-    _rsender.context().message_flags.set(MessageFlagsE::Relayed);
+    _rsender.context().request_id_.index  = static_cast<uint32_t>(_msgidx + 1);
+    _rsender.context().request_id_.unique = rmsgstub.unique_;
+    _rsender.context().message_flags_     = rmsgstub.prelay_data_->pmessage_header_->flags_;
+    _rsender.context().message_flags_.set(MessageFlagsE::Relayed);
     _rsender.context().pmessage_relay_header_ = &rmsgstub.prelay_data_->pmessage_header_->relay_;
 
     const ptrdiff_t rv = rmsgstub.state_ == MessageStub::StateE::RelayedHeadStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos, *rmsgstub.prelay_data_->pmessage_header_) : rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
@@ -982,7 +982,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
     MessageStub& rmsgstub(message_vec_[_msgidx]);
     RequestId    requid(static_cast<uint32_t>(_msgidx), rmsgstub.unique_);
 
-    solid_log(logger, Info, this << " done serializing message " << requid << ". Message id sent to client " << _rsender.context().request_id);
+    solid_log(logger, Info, this << " done serializing message " << requid << ". Message id sent to client " << _rsender.context().request_id_);
 
     cache(rmsgstub.serializer_ptr_);
 

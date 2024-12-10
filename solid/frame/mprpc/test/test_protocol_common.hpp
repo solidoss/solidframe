@@ -15,9 +15,10 @@ class TestEntryway {
 public:
     static ConnectionContext& createContext()
     {
-        Connection&              rcon = *createConnection();
-        Service&                 rsvc = *createService();
-        static ConnectionContext conctx(rsvc, rcon);
+        Connection&                 rcon = *createConnection();
+        Service&                    rsvc = *createService();
+        frame::aio::ReactorContext& rctx = *createReactorContex();
+        static ConnectionContext    conctx(rctx, rsvc, rcon);
         return conctx;
     }
     static Connection* createConnection()
@@ -25,6 +26,10 @@ public:
         return nullptr;
     }
     static Service* createService()
+    {
+        return nullptr;
+    }
+    static frame::aio::ReactorContext* createReactorContex()
     {
         return nullptr;
     }

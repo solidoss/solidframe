@@ -80,6 +80,8 @@ public:
         frame::aio::ReactorContext& _rctx)
         = 0;
 
+    virtual void cancelRecv(frame::aio::ReactorContext& _rctx) = 0;
+
     virtual bool secureAccept(
         frame::aio::ReactorContext& _rctx, ConnectionContext& _rconctx, OnSecureAcceptF _pf, ErrorConditionT& _rerror);
     virtual bool secureConnect(

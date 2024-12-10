@@ -233,6 +233,11 @@ private:
         return sock;
     }
 
+    void cancelRecv(frame::aio::ReactorContext& _rctx) override
+    {
+        sock.cancelRecv(_rctx);
+    }
+
 private:
     StreamSocketT sock;
 };

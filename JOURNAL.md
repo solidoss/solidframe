@@ -1,4 +1,9 @@
 
+## 20241210
+ * aio: stream fix not call doTrySend or doTryRecv after disconnect
+ * mprpc: do not reset timer on onSend with error if connection already stopping
+ * mprpc: add support for ConnectionContext::stop() for stopping the connection
+
 ## 20241116
  * mprpc::Connection fix too many keep alive messages
 

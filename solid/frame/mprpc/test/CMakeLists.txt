@@ -70,6 +70,7 @@ if(OPENSSL_FOUND)
         test_clientserver_download.cpp
         test_clientserver_timeout_secure.cpp
         test_clientserver_topic.cpp
+        test_clientserver_stop.cpp
     )
 
     if(SOLID_ON_WINDOWS)
