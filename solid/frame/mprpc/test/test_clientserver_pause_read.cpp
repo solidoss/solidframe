@@ -421,8 +421,6 @@ int test_clientserver_pause_read(int argc, char* argv[])
 
         pmprpcclient = &mprpcclient;
 
-        const size_t start_count = 10;
-
         while (true) {
             auto       msg_ptr = frame::mprpc::make_message<Message>(crtwriteidx);
             const auto err     = mprpcclient.sendMessage(

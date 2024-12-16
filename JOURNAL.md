@@ -1,3 +1,5 @@
+## 20241214
+ * mprpc: add support for ConnectionContext::pauseRead and Connection::Context::resumeRead
 
 ## 20241210
  * aio: stream fix not call doTrySend or doTryRecv after disconnect

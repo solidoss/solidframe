@@ -206,8 +206,9 @@ int test_clientserver_upload(int argc, char* argv[])
         increment_size = make_number(argv[3]);
     }
 
-    system("rm -rf client_storage");
-    system("rm -rf server_storage");
+    auto rv = system("rm -rf client_storage");
+    rv      = system("rm -rf server_storage");
+    (void)rv;
 
     Directory::create("client_storage");
     Directory::create("server_storage");
