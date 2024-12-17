@@ -193,6 +193,7 @@ private:
     {
         SecureConnection& rthis = static_cast<SecureConnection&>(_rctx.actor());
         solid_dbg(generic_logger, Info, &rthis << " " << _preverified);
+        (void)rthis;
         return _preverified;
     }
 
@@ -365,6 +366,7 @@ private:
     {
         SecureConnection& rthis = static_cast<SecureConnection&>(_rctx.actor());
         solid_dbg(generic_logger, Info, &rthis << " " << _preverified);
+        (void)rthis;
         return _preverified;
     }
 

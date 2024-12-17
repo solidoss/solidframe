@@ -251,6 +251,10 @@ void peera_complete_message(
 
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
 
+        (void)is_response;
+        (void)is_response_part;
+        (void)is_response_last;
+        
         transfered_size += _rrecv_msg_ptr->str.size();
         ++transfered_count;
 

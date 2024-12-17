@@ -228,6 +228,9 @@ void client_complete_message(
         const auto cnt = _rsent_msg_ptr->response_count;
 
         solid_dbg(generic_logger, Info, "response_cout = " << cnt << "/" << _rsent_msg_ptr->splitCount() << " is_rsp = " << is_response << " is_rsp_part = " << is_response_part << " is_rsp_last = " << is_response_last);
+        (void)is_response;
+        (void)is_response_part;
+        (void)is_response_last;
 
         transfered_size += _rrecv_msg_ptr->str.size();
         ++transfered_count;

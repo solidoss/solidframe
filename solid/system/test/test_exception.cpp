@@ -83,6 +83,7 @@ int test_exception(int argc, char* argv[])
     }
 
     solid_assert_log(is_ok, solid::generic_logger);
+    (void)is_ok;
 
     return 0;
 }

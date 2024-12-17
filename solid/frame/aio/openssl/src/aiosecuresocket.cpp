@@ -446,8 +446,9 @@ Socket::Socket(
     pssl = SSL_new(_rctx.pctx);
     ::SSL_set_mode(pssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
     if (device()) {
-        int rv = SSL_set_fd(pssl, device().descriptor());
+        const int rv = SSL_set_fd(pssl, device().descriptor());
         solid_assert_log(rv != 0, logger);
+        (void)rv;
     }
 }
 

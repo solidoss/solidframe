@@ -173,11 +173,12 @@ void complete_message(
             msgbundle.message_ptr     = frame::mprpc::make_message<Message>(crtwriteidx);
             msgbundle.message_type_id = ctx.mprpcprotocol->typeIndex(msgbundle.message_ptr.get());
 
-            bool rv = ctx.mprpcmsgwriter->enqueue(
+            const bool rv = ctx.mprpcmsgwriter->enqueue(
                 *ctx.mprpcwriterconfig, msgbundle, pool_msg_id, writer_msg_id);
 
             solid_dbg(generic_logger, Info, "enqueue rv = " << rv << " writer_msg_id = " << writer_msg_id);
             solid_dbg(generic_logger, Info, frame::mprpc::MessageWriterPrintPairT(*ctx.mprpcmsgwriter, frame::mprpc::MessageWriter::PrintInnerListsE));
+            (void)rv;
             ++crtwriteidx;
         }
     }
@@ -318,10 +319,11 @@ int test_protocol_basic(int argc, char* argv[])
         msgbundle.message_ptr     = MessagePointerT(frame::mprpc::make_message<Message>(crtwriteidx));
         msgbundle.message_type_id = ctx.mprpcprotocol->typeIndex(msgbundle.message_ptr.get());
 
-        bool rv = mprpcmsgwriter.enqueue(
+        const bool rv = mprpcmsgwriter.enqueue(
             mprpcwriterconfig, msgbundle, pool_msg_id, writer_msg_id);
         solid_dbg(generic_logger, Info, "enqueue rv = " << rv << " writer_msg_id = " << writer_msg_id);
         solid_dbg(generic_logger, Info, frame::mprpc::MessageWriterPrintPairT(mprpcmsgwriter, frame::mprpc::MessageWriter::PrintInnerListsE));
+        (void)rv;
     }
 
     {
