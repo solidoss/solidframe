@@ -49,5 +49,9 @@ file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/pthread_spinlock.cpp" source
 
 CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_USE_PTHREAD_SPINLOCK)
 
+file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/stringstream_view.cpp" source_code)
+
+CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_USE_STRINGSTREAM_VIEW)
+
 #TODO:
 #set(SOLID_FRAME_AIO_REACTOR_USE_SPINLOCK TRUE)

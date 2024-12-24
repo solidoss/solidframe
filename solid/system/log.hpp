@@ -95,6 +95,7 @@ public:
     }
 };
 
+#ifdef SOLID_USE_STRINGSTREAM_VIEW
 class LogLineStringStream : public std::ostringstream, public LogLineBase {
 public:
     std::ostream& writeTo(std::ostream& _ros) const override
@@ -102,11 +103,13 @@ public:
         const auto view = this->view();
         return _ros.write(view.data(), view.size());
     }
+
     size_t size() const override
     {
-        return this->std::ostringstream::view().size();
+        this->std::ostringstream::view().size();
     }
 };
+#endif
 
 } // namespace impl
 
