@@ -35,9 +35,9 @@ enum UserStatus {
 };
 
 // const EnumMap figure_enum_map = {{Zero, "zero"}, {One, "one"}};
-const reflection::EnumMap figure_enum_map{TypeToType<FigureE>(), {{Zero, "Zero"}, {One, "One"}, {Two, "Two"}, {Three, "Three"}, {Four, "Four"}, {Five, "Five"}, {Six, "Six"}, {Seven, "Seven"}, {Eight, "Eight"}, {Nine, "Nine"}}};
+const reflection::EnumMap figure_enum_map{std::type_identity<FigureE>(), {{Zero, "Zero"}, {One, "One"}, {Two, "Two"}, {Three, "Three"}, {Four, "Four"}, {Five, "Five"}, {Six, "Six"}, {Seven, "Seven"}, {Eight, "Eight"}, {Nine, "Nine"}}};
 
-const reflection::EnumMap user_status_map = {TypeToType<UserStatus>(), {{StatusMarriedE, "Married"}, {StatusSingleE, "Single"}, {StatusRelationE, "Relation"}}};
+const reflection::EnumMap user_status_map = {std::type_identity<UserStatus>(), {{StatusMarriedE, "Married"}, {StatusSingleE, "Single"}, {StatusRelationE, "Relation"}}};
 
 struct Fruit {
     virtual ~Fruit() {}

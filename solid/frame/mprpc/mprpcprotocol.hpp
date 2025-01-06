@@ -21,7 +21,7 @@ namespace solid {
 namespace frame {
 namespace mprpc {
 
-struct ConnectionContext;
+class ConnectionContext;
 
 template <class Req>
 struct message_complete_traits;

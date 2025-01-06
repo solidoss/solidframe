@@ -135,10 +135,10 @@ private:
 template <class Reg>
 inline void configure_protocol(Reg _rreg)
 {
-    _rreg(1, "ListRequest", solid::TypeToType<ListRequest>());
-    _rreg(2, "ListResponse", solid::TypeToType<ListResponse>());
-    _rreg(3, "FileRequest", solid::TypeToType<FileRequest>());
-    _rreg(4, "FileResponse", solid::TypeToType<FileResponse>());
+    _rreg(1, "ListRequest", std::type_identity<ListRequest>());
+    _rreg(2, "ListResponse", std::type_identity<ListResponse>());
+    _rreg(3, "FileRequest", std::type_identity<FileRequest>());
+    _rreg(4, "FileResponse", std::type_identity<FileResponse>());
 }
 
 } // namespace rpc_file

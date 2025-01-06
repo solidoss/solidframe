@@ -128,8 +128,8 @@ inline void protocol_setup(R _r, ProtocolT& _rproto)
 {
     _rproto.null(ProtocolT::TypeIdT(0));
 
-    _r(_rproto, solid::TypeToType<Request>(), 1);
-    _r(_rproto, solid::TypeToType<Response>(), 2);
+    _r(_rproto, std::type_identity<Request>(), 1);
+    _r(_rproto, std::type_identity<Response>(), 2);
 }
 
 }//namespace ipc_request
@@ -206,7 +206,7 @@ void complete_message(
 
 struct MessageSetup {
     template <class T>
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<T> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
@@ -373,7 +373,7 @@ void complete_message<ipc_request::Response>(
 
 struct MessageSetup {
     template <class T>
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<T> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }

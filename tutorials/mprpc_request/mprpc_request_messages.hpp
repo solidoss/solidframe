@@ -71,8 +71,8 @@ struct Response : solid::frame::mprpc::Message {
 template <class Reg>
 inline void configure_protocol(Reg _rreg)
 {
-    _rreg(1, "Request", solid::TypeToType<Request>());
-    _rreg(2, "Response", solid::TypeToType<Response>());
+    _rreg(1, "Request", std::type_identity<Request>());
+    _rreg(2, "Response", std::type_identity<Response>());
 }
 
 } // namespace rpc_request

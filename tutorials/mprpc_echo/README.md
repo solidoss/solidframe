@@ -67,7 +67,7 @@ inline void protocol_setup(R _r, ProtocolT& _rproto)
 {
     _rproto.null(static_cast<ProtocolT::TypeIdT>(0));
 
-    _r(_rproto, solid::TypeToType<Message>(), 1);
+    _r(_rproto, std::type_identity<Message>(), 1);
 }
 
 }//namespace ipc_echo
@@ -96,7 +96,7 @@ inline void protocol_setup(Stub _s, ProtocolT& _rproto)
 {
     _rproto.null(static_cast<ProtocolT::TypeIdT>(0));
 
-    _s(_rproto, solid::TypeToType<Message>(), 1);
+    _s(_rproto, std::type_identity<Message>(), 1);
 }
 ```
 
@@ -194,7 +194,7 @@ void complete_message(
 }
 
 struct MessageSetup {
-    void operator()(ipc_echo::ProtocolT& _rprotocol, TypeToType<ipc_echo::Message> _t2t, const ipc_echo::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_echo::ProtocolT& _rprotocol, std::type_identity<ipc_echo::Message> _t2t, const ipc_echo::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerMessage<ipc_echo::Message>(complete_message<ipc_echo::Message>, _rtid);
     }
@@ -342,7 +342,7 @@ void complete_message(
 }
 
 struct MessageSetup {
-    void operator()(ipc_echo::ProtocolT& _rprotocol, TypeToType<ipc_echo::Message> _t2t, const ipc_echo::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_echo::ProtocolT& _rprotocol, std::type_identity<ipc_echo::Message> _t2t, const ipc_echo::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerMessage<ipc_echo::Message>(complete_message<ipc_echo::Message>, _rtid);
     }

@@ -243,10 +243,10 @@ inline void protocol_setup(R _r, ProtocolT& _rproto)
 {
     _rproto.null(static_cast<ProtocolT::TypeIdT>(0));
 
-    _r(_rproto, solid::TypeToType<ListRequest>(), 1);
-    _r(_rproto, solid::TypeToType<ListResponse>(), 2);
-    _r(_rproto, solid::TypeToType<FileRequest>(), 3);
-    _r(_rproto, solid::TypeToType<FileResponse>(), 4);
+    _r(_rproto, std::type_identity<ListRequest>(), 1);
+    _r(_rproto, std::type_identity<ListResponse>(), 2);
+    _r(_rproto, std::type_identity<FileRequest>(), 3);
+    _r(_rproto, std::type_identity<FileResponse>(), 4);
 }
 
 ```
@@ -313,7 +313,7 @@ void complete_message(
 
 struct MessageSetup {
     template <class T>
-    void operator()(ipc_file::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_file::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_file::ProtocolT& _rprotocol, std::type_identity<T> _t2t, const ipc_file::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
@@ -585,7 +585,7 @@ void complete_message<ipc_file::FileResponse>(
 
 struct MessageSetup {
     template <class T>
-    void operator()(ipc_file::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_file::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_file::ProtocolT& _rprotocol, std::type_identity<T> _t2t, const ipc_file::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }

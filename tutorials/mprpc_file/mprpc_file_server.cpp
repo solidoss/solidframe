@@ -157,9 +157,8 @@ int main(int argc, char* argv[])
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
-                    auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
-                        using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
-                        _rmap.template registerMessage<TypeT>(_id, _name, rpc_file_server::complete_message<TypeT>);
+                    auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const& _rtype) {
+                        _rmap.template registerMessage<T>(_id, _name, rpc_file_server::complete_message<T>);
                     };
                     rpc_file::configure_protocol(lambda);
                 });

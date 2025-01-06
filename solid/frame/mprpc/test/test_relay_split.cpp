@@ -254,7 +254,7 @@ void peera_complete_message(
         (void)is_response;
         (void)is_response_part;
         (void)is_response_last;
-        
+
         transfered_size += _rrecv_msg_ptr->str.size();
         ++transfered_count;
 

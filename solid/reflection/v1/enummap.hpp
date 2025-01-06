@@ -33,7 +33,7 @@ public:
     using InitListT = std::initializer_list<std::pair<T, const char*>>;
 
     template <class T>
-    EnumMap(TypeToType<T> _t, InitListT<T> _init_list)
+    EnumMap(std::type_identity<T> _t, InitListT<T> _init_list)
     {
         static_assert(std::is_enum_v<T>, "T must be an enum");
 

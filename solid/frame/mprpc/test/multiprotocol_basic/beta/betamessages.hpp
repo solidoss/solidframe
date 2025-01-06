@@ -75,9 +75,9 @@ struct SecondMessage : solid::frame::mprpc::Message {
 template <class Reg>
 inline void configure_protocol(Reg _rreg)
 {
-    _rreg({1, 1}, "FirstMessage", solid::TypeToType<FirstMessage>());
-    _rreg({1, 2}, "SecondMessage", solid::TypeToType<SecondMessage>());
-    _rreg({1, 3}, "ThirdMessage", solid::TypeToType<ThirdMessage>());
+    _rreg({1, 1}, "FirstMessage", std::type_identity<FirstMessage>());
+    _rreg({1, 2}, "SecondMessage", std::type_identity<SecondMessage>());
+    _rreg({1, 3}, "ThirdMessage", std::type_identity<ThirdMessage>());
 }
 
 } // namespace beta_protocol

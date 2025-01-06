@@ -291,15 +291,15 @@ inline void protocol_setup(R _r, ProtocolT& _rproto)
 {
     _rproto.null(ProtocolT::TypeIdT(0));
 
-    _r(_rproto, solid::TypeToType<Request>(), 1);
-    _r(_rproto, solid::TypeToType<Response>(), 2);
-    _r(_rproto, solid::TypeToType<RequestKeyAnd>(), 3);
-    _r(_rproto, solid::TypeToType<RequestKeyOr>(), 4);
-    _r(_rproto, solid::TypeToType<RequestKeyAndList>(), 5);
-    _r(_rproto, solid::TypeToType<RequestKeyOrList>(), 6);
-    _r(_rproto, solid::TypeToType<RequestKeyUserIdRegex>(), 7);
-    _r(_rproto, solid::TypeToType<RequestKeyEmailRegex>(), 8);
-    _r(_rproto, solid::TypeToType<RequestKeyYearLess>(), 9);
+    _r(_rproto, std::type_identity<Request>(), 1);
+    _r(_rproto, std::type_identity<Response>(), 2);
+    _r(_rproto, std::type_identity<RequestKeyAnd>(), 3);
+    _r(_rproto, std::type_identity<RequestKeyOr>(), 4);
+    _r(_rproto, std::type_identity<RequestKeyAndList>(), 5);
+    _r(_rproto, std::type_identity<RequestKeyOrList>(), 6);
+    _r(_rproto, std::type_identity<RequestKeyUserIdRegex>(), 7);
+    _r(_rproto, std::type_identity<RequestKeyEmailRegex>(), 8);
+    _r(_rproto, std::type_identity<RequestKeyYearLess>(), 9);
 }
 ```
 
@@ -324,43 +324,43 @@ void complete_message(
 
 struct MessageSetup {
 
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyAnd> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<RequestKeyAnd> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerType<RequestKeyAnd>(_rtid);
     }
 
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyOr> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<RequestKeyOr> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerType<RequestKeyOr>(_rtid);
     }
 
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyAndList> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<RequestKeyAndList> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerType<RequestKeyAndList>(_rtid);
     }
 
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyOrList> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<RequestKeyOrList> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerType<RequestKeyOrList>(_rtid);
     }
 
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyUserIdRegex> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<RequestKeyUserIdRegex> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerType<RequestKeyUserIdRegex>(_rtid);
     }
 
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyEmailRegex> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<RequestKeyEmailRegex> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerType<RequestKeyEmailRegex>(_rtid);
     }
 
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyYearLess> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<RequestKeyYearLess> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerType<RequestKeyYearLess>(_rtid);
     }
 
     template <class T>
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<T> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
@@ -457,50 +457,50 @@ but now, ipc_request_server::MessageSetup is a little more complex:
 ```C++
 struct MessageSetup {
 
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyAnd> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<RequestKeyAnd> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerType<RequestKeyAnd>(_rtid);
         _rprotocol.registerCast<RequestKeyAnd, RequestKey>();
     }
 
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyOr> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<RequestKeyOr> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerType<RequestKeyOr>(_rtid);
         _rprotocol.registerCast<RequestKeyOr, RequestKey>();
     }
 
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyAndList> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<RequestKeyAndList> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerType<RequestKeyAndList>(_rtid);
         _rprotocol.registerCast<RequestKeyAndList, RequestKey>();
     }
 
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyOrList> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<RequestKeyOrList> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerType<RequestKeyOrList>(_rtid);
         _rprotocol.registerCast<RequestKeyOrList, RequestKey>();
     }
 
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyUserIdRegex> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<RequestKeyUserIdRegex> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerType<RequestKeyUserIdRegex>(_rtid);
         _rprotocol.registerCast<RequestKeyUserIdRegex, RequestKey>();
     }
 
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyEmailRegex> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<RequestKeyEmailRegex> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerType<RequestKeyEmailRegex>(_rtid);
         _rprotocol.registerCast<RequestKeyEmailRegex, RequestKey>();
     }
 
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyYearLess> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<RequestKeyYearLess> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerType<RequestKeyYearLess>(_rtid);
         _rprotocol.registerCast<RequestKeyYearLess, RequestKey>();
     }
 
     template <class T>
-    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_request::ProtocolT& _rprotocol, std::type_identity<T> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }

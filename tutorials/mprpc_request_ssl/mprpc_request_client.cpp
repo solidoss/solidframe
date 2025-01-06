@@ -104,8 +104,8 @@ int main(int argc, char* argv[])
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
-                    auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
-                        using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
+                    auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const& _rtype) {
+                        using TypeT = T;
 
                         if constexpr (std::is_base_of_v<rpc_request::RequestKey, TypeT>) {
                             _rmap.template registerType<TypeT, rpc_request::RequestKey>(_id, _name);

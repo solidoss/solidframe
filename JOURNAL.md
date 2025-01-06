@@ -1,5 +1,6 @@
 ## 20250106
  * use std::variant in example_threadpool
+ * TypeToType -> std::type_identity
 
 ## 20241214
  * mprpc: add support for ConnectionContext::pauseRead and Connection::Context::resumeRead

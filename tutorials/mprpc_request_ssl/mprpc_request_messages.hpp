@@ -316,15 +316,15 @@ struct Response : solid::frame::mprpc::Message {
 template <class Reg>
 inline void configure_protocol(Reg _rreg)
 {
-    _rreg(1, "Request", solid::TypeToType<Request>());
-    _rreg(2, "Response", solid::TypeToType<Response>());
-    _rreg(3, "RequestKeyAnd", solid::TypeToType<RequestKeyAnd>());
-    _rreg(4, "RequestKeyOr", solid::TypeToType<RequestKeyOr>());
-    _rreg(5, "RequestKeyAndList", solid::TypeToType<RequestKeyAndList>());
-    _rreg(6, "RequestKeyOrList", solid::TypeToType<RequestKeyOrList>());
-    _rreg(7, "RequestKeyUserIdRegex", solid::TypeToType<RequestKeyUserIdRegex>());
-    _rreg(8, "RequestKeyEmailRegex", solid::TypeToType<RequestKeyEmailRegex>());
-    _rreg(9, "RequestKeyYearLess", solid::TypeToType<RequestKeyYearLess>());
+    _rreg(1, "Request", std::type_identity<Request>());
+    _rreg(2, "Response", std::type_identity<Response>());
+    _rreg(3, "RequestKeyAnd", std::type_identity<RequestKeyAnd>());
+    _rreg(4, "RequestKeyOr", std::type_identity<RequestKeyOr>());
+    _rreg(5, "RequestKeyAndList", std::type_identity<RequestKeyAndList>());
+    _rreg(6, "RequestKeyOrList", std::type_identity<RequestKeyOrList>());
+    _rreg(7, "RequestKeyUserIdRegex", std::type_identity<RequestKeyUserIdRegex>());
+    _rreg(8, "RequestKeyEmailRegex", std::type_identity<RequestKeyEmailRegex>());
+    _rreg(9, "RequestKeyYearLess", std::type_identity<RequestKeyYearLess>());
 }
 
 } // namespace rpc_request
