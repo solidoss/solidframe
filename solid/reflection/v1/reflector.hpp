@@ -69,7 +69,6 @@ protected:
     virtual void          doVisit(Reflector& /*_rreflector*/, const TypeMapBase*, ContextT& /*_rctx*/)            = 0;
     virtual void          doVisit(Reflector& /*_rreflector*/, const TypeMapBase*, ContextT& /*_rctx*/) const      = 0;
     virtual std::ostream& print(std::ostream& _ros) const                                                         = 0;
-    virtual std::ostream& print(std::ostream& _ros, const EnumMap* /*_penum_map*/) const                          = 0;
     virtual void          reset(const std::string_view _name, const TypeMapBase* _ptype_map, ContextT& /*_rctx*/) = 0;
     virtual std::ostream& ostream()                                                                               = 0;
     virtual std::istream& istream() const                                                                         = 0;
@@ -162,7 +161,7 @@ protected:
     }
 
 public:
-    std::ostream& print(std::ostream& _ros, const EnumMap* /*_penum_map*/) const override = 0;
+    std::ostream& print(std::ostream& _ros) const override = 0;
 };
 
 template <class Reflector>
@@ -392,7 +391,7 @@ private:
             }
         } else if constexpr (type_group<ValueT>() == TypeGroupE::Container) {
             size_t i = 0;
-            for (auto& item : ref_) {
+            for (typename ValueT::const_reference item : ref_) {
                 _rreflector.add(item, _rctx, i, "");
                 ++i;
             }
@@ -412,7 +411,7 @@ private:
             }
         } else if constexpr (type_group<ValueT>() == TypeGroupE::Container) {
             size_t i = 0;
-            for (auto& item : ref_) {
+            for (typename ValueT::const_reference item : ref_) {
                 _rreflector.add(item, _rctx, i, "");
                 ++i;
             }
@@ -464,26 +463,17 @@ private:
     {
         if constexpr (type_group<ValueT>() == TypeGroupE::Basic || type_group<ValueT>() == TypeGroupE::Bitset) {
             _ros << ref_;
-        }
-        return _ros;
-    }
-
-    std::ostream& print(std::ostream& _ros, const EnumMap* _penum_map) const override
-    {
-        if constexpr (type_group<ValueT>() == TypeGroupE::Enum) {
-            if (_penum_map) {
-                const char* name = _penum_map->get(ref_);
-                if (name != nullptr) {
-                    _ros << name;
-                } else {
-                    _ros << to_underlying(ref_);
-                }
+        } else if constexpr (type_group<ValueT>() == TypeGroupE::Enum) {
+            const auto name = enum_map_v<ValueT>.get(ref_);
+            if (!name.empty()) {
+                _ros << name;
             } else {
                 _ros << to_underlying(ref_);
             }
         }
         return _ros;
     }
+
     bool isNull() const override
     {
         if constexpr (type_group<ValueT>() == TypeGroupE::SharedPtr || type_group<ValueT>() == TypeGroupE::UniquePtr) {

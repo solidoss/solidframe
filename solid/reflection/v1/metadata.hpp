@@ -25,25 +25,6 @@ struct Generic {
 };
 
 struct Enum {
-    const EnumMap* pmap_ = nullptr;
-
-    Enum() {}
-
-    Enum(const EnumMap& _rmap)
-        : pmap_(&_rmap)
-    {
-    }
-
-    auto& map(const EnumMap& _rmap)
-    {
-        pmap_ = &_rmap;
-        return *this;
-    }
-
-    const EnumMap* map() const
-    {
-        return pmap_;
-    }
 };
 
 struct Pointer {

@@ -33,12 +33,12 @@ enum UserStatus {
     StatusSingleE,
     StatusRelationE,
 };
+} // namespace
 
-// const EnumMap figure_enum_map = {{Zero, "zero"}, {One, "one"}};
-const reflection::EnumMap figure_enum_map{std::type_identity<FigureE>(), {{Zero, "Zero"}, {One, "One"}, {Two, "Two"}, {Three, "Three"}, {Four, "Four"}, {Five, "Five"}, {Six, "Six"}, {Seven, "Seven"}, {Eight, "Eight"}, {Nine, "Nine"}}};
+enummap_instance(FigureE){{{Zero, "Zero"}, {One, "One"}, {Two, "Two"}, {Three, "Three"}, {Four, "Four"}, {Five, "Five"}, {Six, "Six"}, {Seven, "Seven"}, {Eight, "Eight"}, {Nine, "Nine"}}};
+enummap_instance(UserStatus){{{StatusMarriedE, "Married"}, {StatusSingleE, "Single"}, {StatusRelationE, "Relation"}}};
 
-const reflection::EnumMap user_status_map = {std::type_identity<UserStatus>(), {{StatusMarriedE, "Married"}, {StatusSingleE, "Single"}, {StatusRelationE, "Relation"}}};
-
+namespace {
 struct Fruit {
     virtual ~Fruit() {}
     virtual void print(ostream& _ros) = 0;
@@ -186,7 +186,7 @@ struct Test {
         {
             _rr.add([&_rthis](Reflector& _rr, Context& _rctx) {
                 _rr(_rctx, 1, _rthis.id_, "id", _rthis.name_, "name", _rthis.ip_vec_, "ip_vec");
-                _rr.add(_rthis.figure_, _rctx, 4, "figure", [](auto& _rmeta) { _rmeta.map(figure_enum_map); });
+                _rr.add(_rthis.figure_, _rctx, 4, "figure");
                 _rr.add(reflection::compacted{_rthis.comp_id_}, _rctx, 5, "comp_id");
             },
                 _rctx);
@@ -215,19 +215,19 @@ public:
         _rr.add(_rthis.user_vec_, _rctx, 1, "user_vec");
         _rr.add(_rthis.services_, _rctx, 2, "services");
         _rr.add(_rthis.vegetable_ptr_, _rctx, 4, "vegetable");
-        _rr.add(_rthis.fruit_ptr_, _rctx, 5, "fruit", [](auto& _rmeta) { _rmeta.map(*pfruits_map); });
+        _rr.add(_rthis.fruit_ptr_, _rctx, 5, "fruit");
         _rr.add(_rthis.guid_ptr_, _rctx, 6, "guid");
         _rr.add(_rthis.veg_tuple_, _rctx, 7, "veg_tuple");
         if constexpr (!ReflectorT::is_const_reflector) {
             auto progress_lambda = [](Context& _rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                 // NOTE: here you can use context.any()for actual implementation
             };
-            _rr.add(_rthis.ofs_, _rctx, 8, "stream", [&progress_lambda](auto _rmeta) { _rmeta.progressFunction(progress_lambda); });
+            _rr.add(_rthis.ofs_, _rctx, 8, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda); });
         } else {
             auto progress_lambda = [](Context& _rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                 // NOTE: here you can use context.any()for actual implementation
             };
-            _rr.add(_rthis.ifs_, _rctx, 8, "stream", [&progress_lambda](auto _rmeta) { _rmeta.progressFunction(progress_lambda); });
+            _rr.add(_rthis.ifs_, _rctx, 8, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda); });
         }
     }
 };
@@ -273,7 +273,7 @@ struct OStreamVisitor {
         case tg::Enum: {
             auto& renum_node = *_rnode.template as<tg::Enum>();
             rostream_ << _name << '(' << _index << ") = ";
-            renum_node.print(rostream_, _rmeta.enumeration()->map());
+            renum_node.print(rostream_);
             rostream_ << endl;
         } break;
         case tg::Structure:

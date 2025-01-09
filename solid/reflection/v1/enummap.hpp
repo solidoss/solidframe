@@ -11,61 +11,67 @@
 #pragma once
 
 #include <initializer_list>
+#include <optional>
 #include <string_view>
 #include <type_traits>
 #include <unordered_map>
 
+#include "solid/system/exception.hpp"
 #include "solid/utility/common.hpp"
 
 namespace solid {
 namespace reflection {
 namespace v1 {
 
+template <typename T>
 class EnumMap : NonCopyable {
-    using DirectMapT  = std::unordered_map<int64_t, std::string_view>;
-    using ReverseMapT = std::unordered_map<std::string_view, int64_t>;
+    static_assert(std::is_enum_v<T>, "T must be an enum");
+
+    using DirectMapT  = std::unordered_map<T, std::string>;
+    using ReverseMapT = std::unordered_map<std::string_view, T>;
 
     DirectMapT  direct_map_;
     ReverseMapT reverse_map_;
 
 public:
-    template <class T>
-    using InitListT = std::initializer_list<std::pair<T, const char*>>;
+    using EnumT     = T;
+    using InitListT = std::initializer_list<std::pair<EnumT, std::string_view>>;
 
-    template <class T>
-    EnumMap(std::type_identity<T> _t, InitListT<T> _init_list)
+    EnumMap(InitListT _init_list)
     {
-        static_assert(std::is_enum_v<T>, "T must be an enum");
-
         for (const auto& item : _init_list) {
-            direct_map_.emplace(static_cast<int64_t>(to_underlying(item.first)), item.second);
-            reverse_map_.emplace(item.second, static_cast<int64_t>(to_underlying(item.first)));
+            const auto p = direct_map_.emplace(item.first, item.second);
+            solid_check(p.second, "Enum with the same value already exists");
+            reverse_map_.emplace(p.first->second, item.first);
         }
     }
-    template <class T>
-    const char* get(const T _key) const
+    std::string_view get(const EnumT _key) const
     {
-        static_assert(std::is_enum_v<T>, "T must be an enum");
-        const auto it = direct_map_.find(static_cast<int64_t>(to_underlying(_key)));
+        const auto it = direct_map_.find(_key);
         if (it != direct_map_.end()) {
-            return it->second.data();
+            return it->second;
         } else {
-            return nullptr;
+            return {};
         }
     }
 
-    template <class T>
-    T get(std::string_view _name) const
+    std::optional<EnumT> get(std::string_view _name) const
     {
-        static_assert(std::is_enum_v<T>, "T must be an enum");
         const auto it = reverse_map_.find(_name);
         if (it != reverse_map_.end()) {
             return it->second;
         } else {
-            return nullptr;
+            return {};
         }
     }
 };
+
+template <typename T>
+extern EnumMap<T> enum_map_v;
+
+#define enummap_instance(V) \
+    template <>             \
+    reflection::EnumMap<V> solid::reflection::v1::enum_map_v<V>
 
 } // namespace v1
 } // namespace reflection

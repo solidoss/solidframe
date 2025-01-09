@@ -65,7 +65,7 @@ struct OStreamVisitor {
         case tg::Enum: {
             auto& renum_node = *_rnode.template as<tg::Enum>();
             rostream_ << _name << '(' << _index << ") = ";
-            renum_node.print(rostream_, _rmeta.enumeration()->map());
+            renum_node.print(rostream_);
             rostream_ << eol_;
         } break;
         case tg::Structure:

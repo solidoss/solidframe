@@ -34,12 +34,15 @@ enum UserStatus {
     StatusSingleE,
     StatusRelationE,
 };
+} // namespace
 
-// const EnumMap figure_enum_map = {{Zero, "zero"}, {One, "one"}};
-const reflection::EnumMap figure_enum_map{std::type_identity<FigureE>(), {{Zero, "Zero"}, {One, "One"}, {Two, "Two"}, {Three, "Three"}, {Four, "Four"}, {Five, "Five"}, {Six, "Six"}, {Seven, "Seven"}, {Eight, "Eight"}, {Nine, "Nine"}}};
+// template <>
+// reflection::EnumMap<FigureE> solid::reflection::v1::enum_map_v<FigureE>
+enummap_instance(FigureE){{{Zero, "Zero"}, {One, "One"}, {Two, "Two"}, {Three, "Three"}, {Four, "Four"}, {Five, "Five"}, {Six, "Six"}, {Seven, "Seven"}, {Eight, "Eight"}, {Nine, "Nine"}}};
 
-const reflection::EnumMap user_status_map = {std::type_identity<UserStatus>(), {{StatusMarriedE, "Married"}, {StatusSingleE, "Single"}, {StatusRelationE, "Relation"}}};
+enummap_instance(UserStatus){{{StatusMarriedE, "Married"}, {StatusSingleE, "Single"}, {StatusRelationE, "Relation"}}};
 
+namespace {
 struct Fruit {
     virtual ~Fruit() {}
     virtual void print(ostream& _ros) = 0;
@@ -188,7 +191,7 @@ struct Test {
                 _rr.add(_rthis.id_, _rctx, 1, "id");
                 _rr.add(_rthis.name_, _rctx, 2, "name");
                 _rr.add(_rthis.ip_vec_, _rctx, 3, "ip_vec");
-                _rr.add(_rthis.figure_, _rctx, 4, "figure", [](auto& _rmeta) { _rmeta.map(figure_enum_map); });
+                _rr.add(_rthis.figure_, _rctx, 4, "figure");
             },
                 _rctx);
         }
@@ -223,12 +226,12 @@ public:
             auto progress_lambda = [](Context& _rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                 // NOTE: here you can use context.any()for actual implementation
             };
-            _rr.add(_rthis.ofs_, _rctx, 8, "stream", [&progress_lambda](auto _rmeta) { _rmeta.progressFunction(progress_lambda); });
+            _rr.add(_rthis.ofs_, _rctx, 8, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda); });
         } else {
             auto progress_lambda = [](Context& _rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
                 // NOTE: here you can use context.any()for actual implementation
             };
-            _rr.add(_rthis.ifs_, _rctx, 8, "stream", [&progress_lambda](auto _rmeta) { _rmeta.progressFunction(progress_lambda); });
+            _rr.add(_rthis.ifs_, _rctx, 8, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda); });
         }
     }
 };
