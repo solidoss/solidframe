@@ -26,6 +26,7 @@ enum struct TypeGroupE {
     Basic,
     Structure,
     Container,
+    VectorBool,
     Array,
     Bitset,
     Enum,
@@ -57,6 +58,8 @@ constexpr TypeGroupE type_group()
         return TypeGroupE::Enum;
     if constexpr (is_bitset_v<T>)
         return TypeGroupE::Bitset;
+    else if constexpr (is_std_vector_bool_v<T>)
+        return TypeGroupE::VectorBool;
     else if constexpr (solid::is_container_v<T>)
         return TypeGroupE::Container;
     else if constexpr (std::is_array<T>::value || solid::is_std_array_v<T>)

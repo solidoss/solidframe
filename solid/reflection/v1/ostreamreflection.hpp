@@ -84,6 +84,14 @@ struct OStreamVisitor {
             indent();
             rostream_ << "]" << eol_;
             break;
+        case tg::VectorBool:
+            rostream_ << _name << '(' << _index << ") = [" << eol_;
+            ++indent_count_;
+            _rnode.template as<tg::VectorBool>()->for_each(std::ref(*this), _rctx);
+            --indent_count_;
+            indent();
+            rostream_ << "]" << eol_;
+            break;
         case tg::Array:
             rostream_ << _name << '(' << _index << ") = [" << eol_;
             ++indent_count_;

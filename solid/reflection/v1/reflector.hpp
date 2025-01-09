@@ -123,6 +123,33 @@ public:
 };
 
 template <class Reflector>
+class GroupNode<Reflector, TypeGroupE::VectorBool> : public BaseNode<Reflector> {
+protected:
+    using ContextT = typename Reflector::ContextT;
+    using BaseT    = BaseNode<Reflector>;
+
+    GroupNode(Reflector& _rreflector, const std::type_info* const _ptype_info)
+        : BaseT(_rreflector, TypeGroupE::VectorBool, _ptype_info)
+    {
+    }
+
+public:
+    template <class DispatchFunction>
+    void for_each(DispatchFunction _dispatch_function, ContextT& _rctx)
+    {
+        Reflector new_reflector{this->rreflector_.metadataFactory(), _dispatch_function};
+        this->doForEach(new_reflector, _rctx);
+    }
+
+    template <class DispatchFunction>
+    void for_each(DispatchFunction _dispatch_function, ContextT& _rctx) const
+    {
+        Reflector new_reflector{this->rreflector_.metadataFactory(), _dispatch_function};
+        this->doForEach(new_reflector, _rctx);
+    }
+};
+
+template <class Reflector>
 class GroupNode<Reflector, TypeGroupE::Array> : public BaseNode<Reflector> {
 protected:
     using ContextT = typename Reflector::ContextT;
@@ -391,8 +418,15 @@ private:
             }
         } else if constexpr (type_group<ValueT>() == TypeGroupE::Container) {
             size_t i = 0;
-            for (typename ValueT::const_reference item : ref_) {
+            for (auto& item : ref_) {
                 _rreflector.add(item, _rctx, i, "");
+                ++i;
+            }
+        } else if constexpr (type_group<ValueT>() == TypeGroupE::VectorBool) {
+            size_t i = 0;
+            for (auto item : ref_) {
+                const bool b = item;
+                _rreflector.add(b, _rctx, i, "");
                 ++i;
             }
         } else if constexpr (type_group<ValueT>() == TypeGroupE::Structure) {
@@ -411,8 +445,15 @@ private:
             }
         } else if constexpr (type_group<ValueT>() == TypeGroupE::Container) {
             size_t i = 0;
-            for (typename ValueT::const_reference item : ref_) {
+            for (auto& item : ref_) {
                 _rreflector.add(item, _rctx, i, "");
+                ++i;
+            }
+        } else if constexpr (type_group<ValueT>() == TypeGroupE::VectorBool) {
+            size_t i = 0;
+            for (auto item : ref_) {
+                const bool b = item;
+                _rreflector.add(b, _rctx, i, "");
                 ++i;
             }
         } else if constexpr (type_group<ValueT>() == TypeGroupE::Structure) {
@@ -427,7 +468,7 @@ private:
         if constexpr (type_group<ValueT>() == TypeGroupE::SharedPtr || type_group<ValueT>() == TypeGroupE::UniquePtr || type_group<ValueT>() == TypeGroupE::IntrusivePtr) {
             solid_check(ref_);
             if constexpr (
-                type_group<typename T::element_type>() == TypeGroupE::Basic || type_group<typename T::element_type>() == TypeGroupE::Container || type_group<typename T::element_type>() == TypeGroupE::Enum || type_group<typename T::element_type>() == TypeGroupE::Bitset) {
+                type_group<typename T::element_type>() == TypeGroupE::Basic || type_group<typename T::element_type>() == TypeGroupE::Container || type_group<typename T::element_type>() == TypeGroupE::Enum || type_group<typename T::element_type>() == TypeGroupE::Bitset || type_group<typename T::element_type>() == TypeGroupE::VectorBool) {
                 _rreflector.add(*ref_, _rctx, 0, "");
             } else {
                 solid_check(_ptype_map != nullptr);
@@ -441,7 +482,7 @@ private:
         if constexpr (type_group<ValueT>() == TypeGroupE::SharedPtr || type_group<ValueT>() == TypeGroupE::UniquePtr || type_group<ValueT>() == TypeGroupE::IntrusivePtr) {
             solid_check(ref_);
             if constexpr (
-                type_group<typename T::element_type>() == TypeGroupE::Basic || type_group<typename T::element_type>() == TypeGroupE::Container || type_group<typename T::element_type>() == TypeGroupE::Enum || type_group<typename T::element_type>() == TypeGroupE::Bitset) {
+                type_group<typename T::element_type>() == TypeGroupE::Basic || type_group<typename T::element_type>() == TypeGroupE::Container || type_group<typename T::element_type>() == TypeGroupE::Enum || type_group<typename T::element_type>() == TypeGroupE::Bitset || type_group<typename T::element_type>() == TypeGroupE::VectorBool) {
                 _rreflector.add(*ref_, _rctx, 0, "");
             } else {
                 solid_check(_ptype_map != nullptr);
