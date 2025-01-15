@@ -342,7 +342,7 @@ public:
 
     void push(Task&& _task, const uint64_t _all_id, const uint64_t _id)
     {
-        size_t index = -1;
+        size_t index = InvalidIndex{};
         if (!free_tasks_.empty()) {
             index = free_tasks_.backIndex();
             free_tasks_.popBack();
@@ -448,7 +448,7 @@ private:
 
     struct OneStub {
         AtomicCounterT     produce_count_{0};
-        AtomicCounterT     consume_count_{static_cast<AtomicCounterValueT>(-1)};
+        AtomicCounterT     consume_count_{std::numeric_limits<AtomicCounterValueT>::max()};
         std::uint8_t       event_              = {to_underlying(EventE::Fill)};
         TaskData<TaskOne>* data_ptr_           = nullptr;
         ContextStub*       pcontext_           = nullptr;
@@ -556,7 +556,7 @@ private:
 
     struct AllStub {
         AtomicCounterT       produce_count_{0};
-        AtomicCounterT       consume_count_{static_cast<AtomicCounterValueT>(-1)};
+        AtomicCounterT       consume_count_{std::numeric_limits<AtomicCounterValueT>::max()};
         std::atomic_uint32_t use_count_ = {0};
         std::atomic_uint64_t id_        = {0};
         TaskData<TaskAll>*   data_ptr_  = nullptr;
