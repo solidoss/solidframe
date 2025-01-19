@@ -27,7 +27,7 @@ const LoggerT logger("solid::frame::aio");
     // rthis.completionCallback(on_dummy_completion);
     rthis.completionCallback(&on_completion);
     // rthis.contextBind(_rctx);
-    rthis.s.initAccept(_rctx);
+    rthis.s_.initAccept(_rctx);
 }
 
 /*static*/ void Listener::on_completion(CompletionHandler& _rch, ReactorContext& _rctx)
@@ -36,11 +36,11 @@ const LoggerT logger("solid::frame::aio");
 
     switch (rthis.reactorEvent(_rctx)) {
     case ReactorEventE::Recv:
-        if (!solid_function_empty(rthis.f)) {
+        if (!solid_function_empty(rthis.f_)) {
             SocketDevice sd;
             FunctionT    tmpf;
-            std::swap(tmpf, rthis.f);
-            solid_assert_log(solid_function_empty(rthis.f), logger);
+            std::swap(tmpf, rthis.f_);
+            solid_assert_log(solid_function_empty(rthis.f_), logger);
             rthis.doAccept(_rctx, sd);
 
             tmpf(_rctx, sd);
@@ -48,10 +48,10 @@ const LoggerT logger("solid::frame::aio");
         break;
     case ReactorEventE::Error:
     case ReactorEventE::Hangup:
-        if (!solid_function_empty(rthis.f)) {
+        if (!solid_function_empty(rthis.f_)) {
             SocketDevice sd;
             FunctionT    tmpf;
-            std::swap(tmpf, rthis.f);
+            std::swap(tmpf, rthis.f_);
 
             rthis.error(_rctx, error_listener_hangup);
 
@@ -72,9 +72,9 @@ const LoggerT logger("solid::frame::aio");
     Listener&    rthis = *pthis;
     SocketDevice sd;
 
-    if (!solid_function_empty(rthis.f) && rthis.doTryAccept(_rctx, sd)) {
+    if (!solid_function_empty(rthis.f_) && rthis.doTryAccept(_rctx, sd)) {
         FunctionT tmpf;
-        std::swap(tmpf, rthis.f);
+        std::swap(tmpf, rthis.f_);
         tmpf(_rctx, sd);
     }
 }
@@ -85,14 +85,14 @@ const LoggerT logger("solid::frame::aio");
 
 SocketDevice Listener::reset(ReactorContext& _rctx, SocketDevice&& _rnewdev)
 {
-    if (s.device()) {
-        remDevice(_rctx, s.device());
+    if (s_.device()) {
+        remDevice(_rctx, s_.device());
     }
 
     contextBind(_rctx);
 
-    SocketDevice tmpsd = s.resetAccept(_rctx, std::move(_rnewdev));
-    if (s.device()) {
+    SocketDevice tmpsd = s_.resetAccept(_rctx, std::move(_rnewdev));
+    if (s_.device()) {
         completionCallback(&on_completion);
     }
     return tmpsd;
@@ -106,7 +106,7 @@ void Listener::doPostAccept(ReactorContext& _rctx)
 bool Listener::doTryAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 {
     bool       can_retry;
-    ErrorCodeT err = s.accept(_rctx, _rsd, can_retry);
+    ErrorCodeT err = s_.accept(_rctx, _rsd, can_retry);
 
     if (!err) {
     } else if (can_retry) {
@@ -121,7 +121,7 @@ bool Listener::doTryAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 void Listener::doAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 {
     bool       can_retry;
-    ErrorCodeT err = s.accept(_rctx, _rsd, can_retry);
+    ErrorCodeT err = s_.accept(_rctx, _rsd, can_retry);
 
     if (!err) {
     } else if (can_retry) {
@@ -134,9 +134,9 @@ void Listener::doAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 
 void Listener::doClear(ReactorContext& _rctx)
 {
-    solid_function_clear(f);
-    remDevice(_rctx, s.device());
-    f = &on_dummy;
+    solid_function_clear(f_);
+    remDevice(_rctx, s_.device());
+    f_ = &on_dummy;
 }
 
 } // namespace aio

@@ -291,10 +291,10 @@ size_t                                          max_per_pool_connection_count = 
 std::atomic<size_t>                             client_connection_count{0};
 std::promise<void>                              client_connection_promise;
 std::promise<void>                              promise;
-std::atomic_bool                                running              = true;
-bool                                            cache_local_messages = false;
+std::atomic_bool                                running = true;
 thread_local unique_ptr<ThreadPoolLocalContext> local_thread_pool_context_ptr;
 chrono::microseconds                            test_duration{chrono::seconds(1)};
+// bool                                            cache_local_messages = false;
 
 #ifdef TRACE_DURATION
 DurationDqT duration_dq;

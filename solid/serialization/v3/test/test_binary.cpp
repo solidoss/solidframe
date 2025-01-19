@@ -52,28 +52,28 @@ struct Context {
 class Test {
     static constexpr size_t BlobCapacity = 40 * 1024;
 
-    string                   p;
-    bool                     b = false;
-    vector<A>                v;
-    deque<A>                 d;
-    map<string, A>           m;
-    set<string>              s;
-    unordered_map<string, A> um;
-    unordered_set<string>    us;
-    A                        a;
-    vector<bool>             vb;
-    bitset<20>               bs;
-    vector<char>             vc;
-    array<A, 10>             a1;
-    array<A, 20>             a2;
-    array<uint8_t, 10>       a3;
-    uint16_t                 a2_sz   = 0;
-    uint32_t                 blob_sz = 0;
-    char                     blob[BlobCapacity];
-    uint32_t                 blob32_sz = 0;
-    char                     blob32[sizeof(uint32_t)];
-    uint32_t                 blob64_sz = 0;
-    char                     blob64[sizeof(uint64_t)];
+    string             p;
+    bool               b = false;
+    vector<A>          v;
+    deque<A>           d;
+    map<string, A>     m;
+    set<string>        s;
+    map<string, A>     um;
+    set<string>        us;
+    A                  a;
+    vector<bool>       vb;
+    bitset<20>         bs;
+    vector<char>       vc;
+    array<A, 10>       a1;
+    array<A, 20>       a2;
+    array<uint8_t, 10> a3;
+    uint16_t           a2_sz   = 0;
+    uint32_t           blob_sz = 0;
+    char               blob[BlobCapacity];
+    uint32_t           blob32_sz = 0;
+    char               blob32[sizeof(uint32_t)];
+    uint32_t           blob64_sz = 0;
+    char               blob64[sizeof(uint64_t)];
 
     std::ostringstream oss;
 
@@ -280,8 +280,7 @@ public:
 
 int test_binary(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EWX"});
-    // solid::log_start(argv[0], {".*:VIEW"}, true, 2, 1024 * 1024);
+    solid::log_start(std::cerr, {".*:EWX", "\\*:VIEWX"});
 
     std::string input_file_path;
     std::string output_file_path;
@@ -345,9 +344,10 @@ int test_binary(int argc, char* argv[])
         std::shared_ptr<Test>       sp1;
         std::unique_ptr<Test>       up1;
         ContextT                    ctx;
-        ostringstream               oss;
+        ostringstream               ossbin;
+        string                      txt;
 
-        if (choice != 'l') {
+        if (choice == 's' || choice == 'v') {
             SerializerT ser{reflection::metadata::factory, key_type_map};
             ofstream    ofs;
 
@@ -355,7 +355,7 @@ int test_binary(int argc, char* argv[])
                 ofs.open(archive_path, ios_base::out | ios_base::binary);
             }
 
-            ostream& ros = ofs.is_open() ? static_cast<ostream&>(std::ref(ofs)) : static_cast<ostream&>(std::ref(oss));
+            ostream& ros = ofs.is_open() ? static_cast<ostream&>(std::ref(ofs)) : static_cast<ostream&>(std::ref(ossbin));
 
             ser.run(
                 ros,
@@ -365,11 +365,16 @@ int test_binary(int argc, char* argv[])
                 ctx);
 
             solid_check(!ser.error(), "check failed: " << ser.error().message());
+            ostringstream osstxt;
+            osstxt << reflection::oreflect<reflection::metadata::Variant<ContextT>>(reflection::metadata::factory, t, ctx, &key_type_map, "", " ");
+            solid_log(generic_logger, Info, "t refected: [" << reflection::oreflect<reflection::metadata::Variant<ContextT>>(reflection::metadata::factory, t, ctx, &key_type_map, "", " ") << "]");
+            txt = osstxt.str();
+            solid_check(!txt.empty());
         }
 
-        if (choice != 's') {
+        if (choice == 'l' || choice == 'v') {
 
-            solid_dbg(generic_logger, Info, "oss.str.size = " << oss.str().size());
+            solid_dbg(generic_logger, Info, "oss.str.size = " << ossbin.str().size());
 
             ifstream ifs;
 
@@ -378,10 +383,9 @@ int test_binary(int argc, char* argv[])
                 solid_assert(ifs.is_open());
             }
 
-            istringstream iss(oss.str());
+            istringstream iss(ossbin.str());
             DeserializerT des{reflection::metadata::factory, key_type_map};
-
-            istream& ris = ifs.is_open() ? static_cast<istream&>(std::ref(ifs)) : static_cast<istream&>(std::ref(iss));
+            istream&      ris = ifs.is_open() ? static_cast<istream&>(std::ref(ifs)) : static_cast<istream&>(std::ref(iss));
 
             Test                  t_c;
             std::shared_ptr<Test> tp_c;
@@ -393,7 +397,7 @@ int test_binary(int argc, char* argv[])
 
             des.run(
                 ris,
-                [&t_c, &tp_c, &tup_c, &sp1_c, &up1_c](decltype(des)& des, ContextT& ctx) {
+                [&t_c, &tp_c, &tup_c, &sp1_c, &up1_c](auto& des, ContextT& ctx) {
                     des.add(t_c, ctx, 1, "t").add(tp_c, ctx, 2, "tp_c").add(tup_c, ctx, 3, "tup_c").add(sp1_c, ctx, 4, "sp1").add(up1_c, ctx, 5, "up1");
                 },
                 ctx);
@@ -405,6 +409,21 @@ int test_binary(int argc, char* argv[])
             solid_check(*tup == *tup_c, "check failed");
             solid_check(!sp1_c, "check failed");
             solid_check(!up1_c, "check failed");
+
+            if (!txt.empty()) {
+                ostringstream osstxt;
+                osstxt << reflection::oreflect<reflection::metadata::Variant<ContextT>>(reflection::metadata::factory, t_c, ctx, &key_type_map, "", " ");
+                solid_log(generic_logger, Info, "t_c refected: [" << reflection::oreflect<reflection::metadata::Variant<ContextT>>(reflection::metadata::factory, t_c, ctx, &key_type_map, "", " ") << "]");
+                string ctxt = osstxt.str();
+                solid_check(!ctxt.empty());
+                solid_check(ctxt.size() == txt.size());
+#if 0
+            for (size_t i = 0; i < txt.size(); ++i) {
+                solid_check(txt[i] == ctxt[i], "failed for index " << i << " out of " << txt.size());
+            }
+#endif
+                solid_check(txt == ctxt);
+            }
         }
     }
     return 0;

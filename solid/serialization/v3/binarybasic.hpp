@@ -22,7 +22,7 @@ namespace v3 {
 namespace binary {
 
 namespace impl {
-inline char* store(char* _pd, const uint8_t _val, TypeToType<uint8_t> _ff)
+inline char* store(char* _pd, const uint8_t _val, std::type_identity<uint8_t> _ff)
 {
     uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
     *pd         = _val;
@@ -34,7 +34,7 @@ union Convert16 {
     uint8_t  bytes_[sizeof(uint16_t)];
 };
 
-inline char* store(char* _pd, const uint16_t _val, TypeToType<uint16_t> _ff)
+inline char* store(char* _pd, const uint16_t _val, std::type_identity<uint16_t> _ff)
 {
     uint8_t*  pd = reinterpret_cast<uint8_t*>(_pd);
     Convert16 c;
@@ -54,7 +54,7 @@ union Convert32 {
     uint8_t  bytes_[sizeof(uint32_t)];
 };
 
-inline char* store(char* _pd, const uint32_t _val, TypeToType<uint32_t> _ff)
+inline char* store(char* _pd, const uint32_t _val, std::type_identity<uint32_t> _ff)
 {
     uint8_t*  pd = reinterpret_cast<uint8_t*>(_pd);
     Convert32 c;
@@ -78,7 +78,7 @@ union Convert64 {
     uint8_t  bytes_[sizeof(uint64_t)];
 };
 
-inline char* store(char* _pd, const uint64_t _val, TypeToType<uint64_t> _ff)
+inline char* store(char* _pd, const uint64_t _val, std::type_identity<uint64_t> _ff)
 {
     uint8_t*  pd = reinterpret_cast<uint8_t*>(_pd);
     Convert64 c;
@@ -121,7 +121,7 @@ union BytesConvertor {
 template <typename T>
 inline char* store(char* _pd, const T _v)
 {
-    return impl::store(_pd, _v, TypeToType<T>());
+    return impl::store(_pd, _v, std::type_identity<T>());
 }
 
 inline const char* load(const char* _ps, uint8_t& _val)

@@ -125,13 +125,13 @@ struct MessageHeader {
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
     {
         if constexpr (std::decay_t<decltype(_rr)>::is_const_reflector) {
-            const MessageFlagsValueT tmp = _rctx.message_flags.toUnderlyingType();
+            const MessageFlagsValueT tmp = _rctx.message_flags_.toUnderlyingType();
             _rr.add(tmp, _rctx, 1, "flags");
-            _rr.add(_rctx.request_id.index, _rctx, 2, "sender_request_index");
-            _rr.add(_rctx.request_id.unique, _rctx, 3, "sender_request_unique");
+            _rr.add(_rctx.request_id_.index, _rctx, 2, "sender_request_index");
+            _rr.add(_rctx.request_id_.unique, _rctx, 3, "sender_request_unique");
             _rr.add(_rthis.sender_request_id_.index, _rctx, 4, "recipient_request_index");
             _rr.add(_rthis.sender_request_id_.unique, _rctx, 5, "recipient_request_unique");
-            if (_rctx.message_flags.has(MessageFlagsE::Relayed)) {
+            if (_rctx.message_flags_.has(MessageFlagsE::Relayed)) {
                 _rr.add(_rthis.relay_, _rctx, 6, "relay");
             }
         } else {

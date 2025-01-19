@@ -108,10 +108,10 @@ struct Response : solid::frame::mprpc::Message {
 template <class Reg>
 inline void configure_protocol(Reg _rreg)
 {
-    _rreg(1, "InitRequest", solid::TypeToType<InitRequest>());
-    _rreg(2, "InitResponse", solid::TypeToType<InitResponse>());
-    _rreg(4, "Request", solid::TypeToType<Request>());
-    _rreg(5, "Response", solid::TypeToType<Response>());
+    _rreg(1, "InitRequest", std::type_identity<InitRequest>{});
+    _rreg(2, "InitResponse", std::type_identity<InitResponse>{});
+    _rreg(4, "Request", std::type_identity<Request>{});
+    _rreg(5, "Response", std::type_identity<Response>{});
 }
 
 } // namespace v1

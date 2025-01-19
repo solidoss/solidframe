@@ -1,3 +1,8 @@
+#include <condition_variable>
+#include <iostream>
+#include <mutex>
+#include <thread>
+
 #include "solid/frame/mprpc/mprpcsocketstub_openssl.hpp"
 
 #include "solid/frame/mprpc/mprpccompression_snappy.hpp"
@@ -15,30 +20,26 @@
 #include "solid/frame/aio/aioresolver.hpp"
 #include "solid/frame/aio/aiotimer.hpp"
 
-#include <condition_variable>
-#include <mutex>
-#include <thread>
-
 #include "solid/utility/threadpool.hpp"
 
 #include "solid/system/exception.hpp"
-#include "solid/system/log.hpp"
 
-#include <iostream>
+#include "solid/system/log.hpp"
 
 using namespace std;
 using namespace solid;
 
-namespace {
-
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
-using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
+
+namespace {
 
 struct InitStub {
     size_t                      size;
     frame::mprpc::MessageFlagsT flags;
 };
+
+using CallPoolT = ThreadPool<Function<void()>, Function<void()>>;
 
 InitStub initarray[] = {
     {100000, 0},
@@ -64,63 +65,47 @@ std::atomic<size_t> crtwriteidx(0);
 std::atomic<size_t> crtreadidx(0);
 std::atomic<size_t> crtbackidx(0);
 std::atomic<size_t> crtackidx(0);
-std::atomic<size_t> writecount(0);
 
-size_t                 connection_count(0);
-bool                   running = true;
-mutex                  mtx;
-condition_variable     cnd;
-frame::mprpc::Service* pmprpcclient = nullptr;
-std::atomic<uint64_t>  transfered_size(0);
-std::atomic<size_t>    transfered_count(0);
+size_t                    connection_count(0);
+bool                      running = true;
+mutex                     mtx;
+condition_variable        cnd;
+frame::mprpc::Service*    pmprpcclient = nullptr;
+std::atomic<uint64_t>     transfered_size(0);
+std::atomic<size_t>       transfered_count(0);
+bool                      use_context_on_response = false;
+frame::mprpc::RecipientId server_connection_id;
+bool                      server_connection_paused = false;
 
-size_t real_size(size_t _sz)
+size_t
+real_size(size_t _sz)
 {
     // offset + (align - (offset mod align)) mod align
     return _sz + ((sizeof(uint64_t) - (_sz % sizeof(uint64_t))) % sizeof(uint64_t));
 }
 
 struct Message : frame::mprpc::Message {
-    uint32_t       idx;
-    std::string    str;
-    mutable bool   serialized;
-    mutable size_t response_count; // not serialized
+    uint32_t     idx;
+    std::string  str;
+    mutable bool serialized;
 
     Message(uint32_t _idx)
         : idx(_idx)
         , serialized(false)
-        , response_count(0)
     {
         solid_dbg(generic_logger, Info, "CREATE ---------------- " << this << " idx = " << idx);
         init();
     }
     Message()
         : serialized(false)
-        , response_count(0)
     {
         solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }
-
-    Message(
-        const Message& _rmsg)
-        : frame::mprpc::Message(_rmsg)
-        , idx(_rmsg.idx)
-        , str(_rmsg.str)
-        , serialized(false)
-        , response_count(0)
-    {
-    }
-
     ~Message() override
     {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << this);
 
         solid_assert(serialized || this->isBackOnSender());
-    }
-
-    size_t splitCount() const
-    {
-        return (idx % 4) + 1; // at least one response should be received
     }
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
@@ -208,7 +193,7 @@ void client_complete_message(
     MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
-    solid_dbg(generic_logger, Info, _rctx.recipientId());
+    solid_dbg(generic_logger, Info, _rctx.recipientId() << " " << crtbackidx << " " << crtwriteidx);
 
     if (_rsent_msg_ptr) {
         if (!_rerror) {
@@ -216,32 +201,21 @@ void client_complete_message(
         }
     }
     if (_rrecv_msg_ptr) {
-        const bool is_response      = _rrecv_msg_ptr->isResponse();
-        const bool is_response_part = _rrecv_msg_ptr->isResponsePart();
-        const bool is_response_last = _rrecv_msg_ptr->isResponseLast();
+        if (!_rrecv_msg_ptr->check()) {
+            solid_throw("Message check failed.");
+        }
 
-        solid_check(_rsent_msg_ptr, "Request not found");
-        solid_check(_rrecv_msg_ptr->isBackOnSender(), "Message not back on sender!.");
-        solid_check(is_response_last || _rrecv_msg_ptr->check(), "Message check failed.");
-
-        ++_rsent_msg_ptr->response_count;
-        const auto cnt = _rsent_msg_ptr->response_count;
-
-        solid_dbg(generic_logger, Info, "response_cout = " << cnt << "/" << _rsent_msg_ptr->splitCount() << " is_rsp = " << is_response << " is_rsp_part = " << is_response_part << " is_rsp_last = " << is_response_last);
-        (void)is_response;
-        (void)is_response_part;
-        (void)is_response_last;
-
+        // cout<< _rmsgptr->str.size()<<'\n';
         transfered_size += _rrecv_msg_ptr->str.size();
         ++transfered_count;
 
-        if (is_response_last) {
-            solid_check(cnt == _rsent_msg_ptr->splitCount(), cnt << " != " << _rsent_msg_ptr->splitCount());
-            ++crtbackidx;
+        if (!_rrecv_msg_ptr->isBackOnSender()) {
+            solid_throw("Message not back on sender!.");
         }
-        solid_dbg(generic_logger, Info, crtbackidx << "/" << writecount);
 
-        if (crtbackidx == writecount) {
+        ++crtbackidx;
+
+        if (crtbackidx == crtwriteidx) {
             lock_guard<mutex> lock(mtx);
             running = false;
             cnd.notify_one();
@@ -255,40 +229,32 @@ void server_complete_message(
     ErrorConditionT const& /*_rerror*/)
 {
     if (_rrecv_msg_ptr) {
-        solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId());
+        solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " " << crtreadidx << " " << crtwriteidx);
 
-        solid_check(_rrecv_msg_ptr->check(), "Message check failed.");
-        solid_check(_rrecv_msg_ptr->isOnPeer(), "Message not on peer!.");
-        solid_check(_rctx.recipientId().isValidConnection(), "Connection id should not be invalid!");
+        if (!_rrecv_msg_ptr->check()) {
+            solid_throw("Message check failed.");
+        }
+
+        if (!_rrecv_msg_ptr->isOnPeer()) {
+            solid_throw("Message not on peer!.");
+        }
 
         // send message back
 
-        ErrorConditionT err;
+        solid_check(_rctx.recipientId().isValidConnection(), "Connection id should not be invalid!");
 
-        for (size_t i = 1; i < _rrecv_msg_ptr->splitCount(); ++i) {
-            err = _rctx.service().sendResponse(
-                _rctx.recipientId(), frame::mprpc::make_message<Message>(*_rrecv_msg_ptr),
-                {frame::mprpc::MessageFlagsE::ResponsePart});
-
-            solid_check(!err, "Connection id should not be invalid: " << err.message());
-        }
-        if (_rrecv_msg_ptr->splitCount() != 1) {
-            // in case of multiple responses, the last one act as a sentinel
-            //  - it must always arive last
-            _rrecv_msg_ptr->str.clear();
-        }
-        err = _rctx.service().sendResponse(_rctx.recipientId(), _rrecv_msg_ptr,
-            {frame::mprpc::MessageFlagsE::ResponseLast});
+        const auto err = _rctx.service().sendResponse(_rctx, _rrecv_msg_ptr);
 
         solid_check(!err, "Connection id should not be invalid: " << err.message());
 
         ++crtreadidx;
-        solid_dbg(generic_logger, Info, crtreadidx);
-        if (crtwriteidx < writecount) {
-            err = pmprpcclient->sendMessage(
-                {"localhost"}, frame::mprpc::make_message<Message>(crtwriteidx++),
-                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
-            solid_check(!err, "Connection id should not be invalid! " << err.message());
+
+        if (crtreadidx == 2) {
+            _rctx.pauseRead();
+            lock_guard<mutex> lock(mtx);
+            server_connection_paused = true;
+            server_connection_id     = _rctx.recipientId();
+            cnd.notify_one();
         }
     }
     if (_rsent_msg_ptr) {
@@ -298,10 +264,11 @@ void server_complete_message(
 
 } // namespace
 
-int test_clientserver_split(int argc, char* argv[])
+int test_clientserver_pause_read(int argc, char* argv[])
 {
 
-    solid::log_start(std::cerr, {".*:EWX", "\\*:VIEWX"});
+    solid::log_start(std::cerr, {".*:EWXS"});
+    // solid::log_start(std::cerr, {"solid::frame::mprpc.*:EWX", "\\*:VIEWX"});
 
     size_t max_per_pool_connection_count = 1;
 
@@ -328,6 +295,12 @@ int test_clientserver_split(int argc, char* argv[])
         if (*argv[2] == 'b' || *argv[2] == 'B') {
             secure   = true;
             compress = true;
+        }
+    }
+
+    if (argc > 3) {
+        if (*argv[3] == 'c' || *argv[3] == 'C') {
+            use_context_on_response = true;
         }
     }
 
@@ -422,9 +395,9 @@ int test_clientserver_split(int argc, char* argv[])
             cfg.connection_stop_fnc         = &client_connection_stop;
             cfg.client.connection_start_fnc = &client_connection_start;
 
-            cfg.pool_max_active_connection_count = max_per_pool_connection_count;
+            cfg.pool_max_active_connection_count = 1; // NOTE: currently the test only works with one connection per pool
 
-            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/);
+            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF{resolver, server_port};
 
             if (secure) {
                 solid_dbg(generic_logger, Info, "Configure SSL client ------------------------------------");
@@ -448,22 +421,53 @@ int test_clientserver_split(int argc, char* argv[])
 
         pmprpcclient = &mprpcclient;
 
-        const size_t start_count = 1;
-
-        writecount = initarraysize; // start_count; //
-
-        for (; crtwriteidx < start_count;) {
-            mprpcclient.sendMessage(
-                {"localhost"}, frame::mprpc::make_message<Message>(crtwriteidx++), {frame::mprpc::MessageFlagsE::AwaitResponse});
+        while (true) {
+            auto       msg_ptr = frame::mprpc::make_message<Message>(crtwriteidx);
+            const auto err     = mprpcclient.sendMessage(
+                {""}, msg_ptr,
+                initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
+            if (!err) {
+                ++crtwriteidx;
+                solid_check(crtwriteidx < 100000);
+            } else {
+                msg_ptr->serialized = true; // prevent crash
+                break;
+            }
         }
 
+        cout << "Sent " << crtwriteidx << " messages" << endl;
+
+        this_thread::sleep_for(chrono::seconds(5));
+
+        cout << "Current read idx after sleep: " << crtreadidx << endl;
+
+        solid_check(crtwriteidx > crtreadidx);
+
         unique_lock<mutex> lock(mtx);
+
+        // make sure server connection was paused
+        if (!cnd.wait_for(lock, std::chrono::seconds(10), []() { return server_connection_paused; })) {
+            solid_throw("Server connection still not paused.");
+        }
+
+        mprpcserver.connectionPost(server_connection_id, [](frame::mprpc::ConnectionContext& _rctx) {
+            _rctx.resumeRead();
+            cout << "Server connection " << _rctx.recipientId() << " resumed." << endl;
+        });
 
         if (!cnd.wait_for(lock, std::chrono::seconds(220), []() { return !running; })) {
             solid_throw("Process is taking too long.");
         }
 
-        // m.stop();
+        if (crtwriteidx != crtackidx) {
+            solid_throw("Not all messages were completed: crtwriteidx = " << crtwriteidx << " crtackidx = " << crtackidx);
+        }
+
+        mprpcclient.stop();
+        mprpcserver.stop();
+
+        solid_log(generic_logger, Statistic, "mprpcserver statistic: " << mprpcserver.statistic());
+        solid_log(generic_logger, Statistic, "mprpcclient statistic: " << mprpcclient.statistic());
     }
 
     // exiting

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 #-----------------------------------------------------------------
 # The project
 #-----------------------------------------------------------------
-project (SolidFrame VERSION 12.1)
+project (SolidFrame VERSION 12.2)
 
 message("SolidFrame version: ${PROJECT_VERSION} - ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 #-----------------------------------------------------------------
@@ -58,9 +58,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #-----------------------------------------------------------------
 
 set(EXTERNAL_DIR "" CACHE PATH "External dependencies directory")
+set(FORTIFY "ON" CACHE BOOL "Fortify C++")
 
 message("Install directory: \"${CMAKE_INSTALL_PREFIX}\"")
 message("External directory: \"${EXTERNAL_DIR}\"")
+message("Fortify: \"${FORTIFY}\"")
 
 list(APPEND CMAKE_PREFIX_PATH ${EXTERNAL_PATH})
 
@@ -277,6 +279,37 @@ endif()
 if(NOT ON_FOUND)
     message(FATAL_ERROR "\r\n === Unsupported system - please contact project owner ===\r\n")
 endif(NOT ON_FOUND)
+
+
+if(FORTIFY AND (SOLID_ON_LINUX OR SOLID_ON_FREEBSD OR SOLID_ON_DARWIN))
+    message("Fortifying C++")
+    include(CheckCXXSymbolExists)
+    if(cxx_std_20 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+    set(header version)
+    else()
+    set(header ciso646)
+    endif()
+
+    check_cxx_symbol_exists(_LIBCPP_VERSION ${header} LIBCPP)
+    if(LIBCPP)
+    # Logic for libc++
+    endif()
+
+    check_cxx_symbol_exists(__GLIBCXX__ ${header} GLIBCXX)
+    if(GLIBCXX)
+    # Logic for libstdc++
+
+    add_compile_options(
+        #-fpie -Wl,-pie
+        #-fpic -shared
+        "$<$<CONFIG:MAINTAIN>:SHELL: -D_FORTIFY_SOURCE=2 -D_GLIBCXX_ASSERTIONS -pipe -fasynchronous-unwind-tables -fexceptions -fstack-clash-protection -fcf-protection -Wl,-z,relro>"
+        "$<$<CONFIG:DEBUG>:SHELL: -Wall -O2 -D_FORTIFY_SOURCE=2 -D_GLIBCXX_ASSERTIONS -pipe -fasynchronous-unwind-tables -fexceptions -fstack-clash-protection -fcf-protection -Wl,-z,relro>"
+        "$<$<CONFIG:RELEASE>:SHELL: -Wall -D_FORTIFY_SOURCE=2 -D_GLIBCXX_ASSERTIONS -pipe -fasynchronous-unwind-tables -fexceptions -fstack-clash-protection -fcf-protection -Wl,-z,relro>"
+        "$<$<CONFIG:CUSTOM>:>"
+    )
+    
+    endif()
+endif()
 
 #-----------------------------------------------------------------
 # Find external libraries

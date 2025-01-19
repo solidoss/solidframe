@@ -191,6 +191,7 @@ protected:
         Raw,
         InPoolWaitQueue,
         Connected, // once set - the flag should not be reset. Is used by pool for restarting
+        PauseRecv,
         LastFlag,
     };
 
@@ -254,6 +255,11 @@ protected:
 
     template <class Ctx>
     bool connect(frame::aio::ReactorContext& _rctx, const SocketAddressInet& _raddr);
+
+    template <class Ctx>
+    void doPauseRead(frame::aio::ReactorContext& _rctx);
+    template <class Ctx>
+    void doResumeRead(frame::aio::ReactorContext& _rctx);
 
 private:
     bool postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, EventBase& _revent);
@@ -334,8 +340,13 @@ private:
     template <class Ctx>
     void doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, const RequestId& _reqid);
 
+    virtual void stop(frame::aio::ReactorContext& _rctx, const ErrorConditionT& _rerr) = 0;
+    virtual void pauseRead(frame::aio::ReactorContext& _rctx)                          = 0;
+    virtual void resumeRead(frame::aio::ReactorContext& _rctx)                         = 0;
+
 private:
-    using TimerT            = frame::aio::SteadyTimer;
+    using TimerT
+        = frame::aio::SteadyTimer;
     using FlagsT            = solid::Flags<FlagsE>;
     using RequestIdVectorT  = MessageWriter::RequestIdVectorT;
     using RecvBufferVectorT = std::vector<SharedBuffer>;
@@ -398,6 +409,10 @@ private:
     void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _uevent) override;
 
     void doHandleEventResolve(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+
+    void stop(frame::aio::ReactorContext& _rctx, const ErrorConditionT& _rerr) override;
+    void pauseRead(frame::aio::ReactorContext& _rctx) override;
+    void resumeRead(frame::aio::ReactorContext& _rctx) override;
 };
 
 //-----------------------------------------------------------------------------
@@ -417,6 +432,10 @@ public:
 
 private:
     void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _uevent) override;
+
+    void stop(frame::aio::ReactorContext& _rctx, const ErrorConditionT& _rerr) override;
+    void pauseRead(frame::aio::ReactorContext& _rctx) override;
+    void resumeRead(frame::aio::ReactorContext& _rctx) override;
 };
 
 //-----------------------------------------------------------------------------
@@ -481,6 +500,10 @@ private:
 
     void doHandleEventRelayNew(frame::aio::ReactorContext& _rctx, EventBase& _revent);
     void doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, EventBase& _revent);
+
+    void stop(frame::aio::ReactorContext& _rctx, const ErrorConditionT& _rerr) override;
+    void pauseRead(frame::aio::ReactorContext& _rctx) override;
+    void resumeRead(frame::aio::ReactorContext& _rctx) override;
 };
 
 //-----------------------------------------------------------------------------

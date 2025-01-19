@@ -185,7 +185,7 @@ public:
     }
 
     template <typename T, size_t Sz>
-    inline void addBinaryCArray(T (&_ra)[Sz], const uint64_t _limit, const char* _name)
+    inline void addCBinaryArray(T (&_ra)[Sz], const uint64_t _limit, const char* _name)
     {
         solid_log(logger, Info, _name);
         addBasicCompacted(data_.u64_, _name);
@@ -1150,7 +1150,7 @@ private:
             }
         } else if constexpr (std::is_array_v<T>) {
             static_assert(std::is_arithmetic_v<element_type_t<T>>, "C style arrays of other than arithmetic type, not supported");
-            addBinaryCArray(_rt, _meta.max_size_, _name);
+            addCBinaryArray(_rt, _meta.max_size_, _name);
         } else if constexpr (is_container_v<T>) {
             addContainer(*this, _rt, _meta.max_size_, _rctx, _name);
         } else {

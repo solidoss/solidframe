@@ -164,6 +164,17 @@ template <class T>
 inline constexpr bool is_std_vector_v = is_std_vector<T>::value;
 
 template <typename T>
+struct is_std_vector_bool : std::false_type {
+};
+
+template <class A>
+struct is_std_vector_bool<std::vector<bool, A>> : std::true_type {
+};
+
+template <class T>
+inline constexpr bool is_std_vector_bool_v = is_std_vector_bool<T>::value;
+
+template <typename T>
 using element_type_t = std::remove_reference_t<decltype(*std::begin(std::declval<T&>()))>;
 
 } // namespace solid

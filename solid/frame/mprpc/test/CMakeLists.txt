@@ -70,6 +70,8 @@ if(OPENSSL_FOUND)
         test_clientserver_download.cpp
         test_clientserver_timeout_secure.cpp
         test_clientserver_topic.cpp
+        test_clientserver_stop.cpp
+        test_clientserver_pause_read.cpp
     )
 
     if(SOLID_ON_WINDOWS)
@@ -151,6 +153,8 @@ if(OPENSSL_FOUND)
     add_test(NAME TestClientServerTimeoutSecureS        COMMAND  test_mprpc_clientserver test_clientserver_timeout_secure 10 s)
     add_test(NAME TestClientServerTimeoutSecureP        COMMAND  test_mprpc_clientserver test_clientserver_timeout_secure 10 p)
     add_test(NAME TestClientServerTimeoutSecureA        COMMAND  test_mprpc_clientserver test_clientserver_timeout_secure 10 a)
+    add_test(NAME TestClientServerStop                  COMMAND  test_mprpc_clientserver test_clientserver_stop)
+    add_test(NAME TestClientServerPauseRead             COMMAND  test_mprpc_clientserver test_clientserver_pause_read)
 
     set_tests_properties(
         TestClientServerBasic_1        
@@ -195,7 +199,9 @@ if(OPENSSL_FOUND)
         TestClientServerDownload       
         TestClientServerTimeoutSecureS 
         TestClientServerTimeoutSecureP 
-        TestClientServerTimeoutSecureA    
+        TestClientServerTimeoutSecureA
+        TestClientServerStop
+        TestClientServerPauseRead
         PROPERTIES LABELS "mprpc clientserver"
     )
     #==============================================================================

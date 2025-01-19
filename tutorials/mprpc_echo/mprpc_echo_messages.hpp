@@ -26,7 +26,7 @@ struct Message : solid::frame::mprpc::Message {
 template <class Reg>
 inline void configure_protocol(Reg _rreg)
 {
-    _rreg(1, "Message", solid::TypeToType<Message>());
+    _rreg(1, "Message", std::type_identity<Message>());
 }
 
 } // namespace rpc_echo

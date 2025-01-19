@@ -215,12 +215,12 @@ public:
     static auto load_sp()
     {
         auto& ls = local_stack_sp<What>();
-        if (ls.empty()) {
-            return std::shared_ptr<What>{};
-        } else {
+        if (!ls.empty()) {
             auto ret = std::move(ls.top());
             ls.pop();
             return ret;
+        } else {
+            return std::shared_ptr<What>{};
         }
     }
 
@@ -228,12 +228,12 @@ public:
     static auto load_ip()
     {
         auto& ls = local_stack_ip<What>();
-        if (ls.empty()) {
-            return IntrusivePtr<What>{};
-        } else {
-            auto ret(std::move(ls.top()));
+        if (!ls.empty()) {
+            auto ret = std::move(ls.top());
             ls.pop();
             return ret;
+        } else {
+            return IntrusivePtr<What>{};
         }
     }
 };

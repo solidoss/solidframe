@@ -31,9 +31,8 @@ void complete_message(
 template <class Reg>
 void register_messages(Reg& _rmap)
 {
-    auto lambda = [&](const TypeIdT _id, const std::string_view _name, auto const& _rtype) {
-        using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
-        _rmap.template registerMessage<TypeT>(_id, _name, complete_message<TypeT>);
+    auto lambda = [&]<typename T>(const TypeIdT _id, const std::string_view _name, std::type_identity<T> const& _rtype) {
+        _rmap.template registerMessage<T>(_id, _name, complete_message<T>);
     };
     gamma_protocol::configure_protocol(lambda);
 }

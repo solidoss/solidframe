@@ -1,5 +1,14 @@
 # SolidFrame Releases
 
+## Version 12.2
+ * improvements and fixes on reflection
+ * use std::variant in example_threadpool
+ * TypeToType -> std::type_identity
+ * mprpc: add support for ConnectionContext::pauseRead and Connection::Context::resumeRead
+ * aio: stream fix not call doTrySend or doTryRecv after disconnect
+ * mprpc: do not reset timer on onSend with error if connection already stopping
+ * mprpc: add support for ConnectionContext::stop() for stopping the connection
+
 ## Version 12.1
 * Coverity fixes
 

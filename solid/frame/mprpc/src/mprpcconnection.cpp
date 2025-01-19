@@ -321,7 +321,7 @@ template <class Ctx>
 void Connection::doStart(frame::aio::ReactorContext& _rctx, const bool _is_incoming)
 {
 
-    ConnectionContext    conctx(service(_rctx), *this);
+    ConnectionContext    conctx(_rctx, service(_rctx), *this);
     Configuration const& config = service(_rctx).configuration();
 
     doPrepare(_rctx);
@@ -413,7 +413,7 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
 
         flags_.set(FlagsE::Stopping);
 
-        ConnectionContext         conctx(service(_rctx), *this);
+        ConnectionContext         conctx(_rctx, service(_rctx), *this);
         ErrorConditionT           tmp_error(error());
         ActorIdT                  actuid(uid(_rctx));
         std::chrono::milliseconds wait_duration = std::chrono::milliseconds(0);
@@ -488,7 +488,7 @@ void Connection::doContinueStopping(
     MessageBundle             msg_bundle;
     MessageId                 pool_msg_id;
     EventT                    event(_revent);
-    ConnectionContext         conctx(service(_rctx), *this);
+    ConnectionContext         conctx(_rctx, service(_rctx), *this);
     const bool                can_stop = service(_rctx).connectionStopping(conctx, actuid, wait_duration, pool_msg_id, &msg_bundle, event, tmp_error);
 
     solid_log(logger, Info, this << ' ' << this->id() << ' ' << can_stop);
@@ -580,7 +580,7 @@ void Connection::doCompleteAllMessages(
     if (has_any_message) {
         solid_log(logger, Info, this);
         // complete msg_writer messages
-        ConnectionContext     conctx(service(_rctx), *this);
+        ConnectionContext     conctx(_rctx, service(_rctx), *this);
         Configuration const&  rconfig = service(_rctx).configuration();
         typename Ctx::SenderT sender(*this, _rctx, rconfig.writer, rconfig.protocol(), conctx, error_message_connection);
 
@@ -631,7 +631,7 @@ void Connection::onStopped(
 {
 
     ActorIdT          actuid(uid(_rctx));
-    ConnectionContext conctx(service(_rctx), *this);
+    ConnectionContext conctx(_rctx, service(_rctx), *this);
 
     service(_rctx).connectionStop(conctx);
 
@@ -645,7 +645,7 @@ void Connection::onStopped(
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventGeneric(frame::aio::ReactorContext& _rctx, EventBase& _revent)
 {
-    ConnectionContext conctx(service(_rctx), *this);
+    ConnectionContext conctx(_rctx, service(_rctx), *this);
     configuration(_rctx).connection_on_event_fnc(conctx, _revent);
 }
 //-----------------------------------------------------------------------------
@@ -746,7 +746,7 @@ void Connection::doHandleEventCancelConnMessage(frame::aio::ReactorContext& _rct
     solid_assert_log(pmsgid, logger);
 
     if (pmsgid != nullptr) {
-        ConnectionContext     conctx(service(_rctx), *this);
+        ConnectionContext     conctx(_rctx, service(_rctx), *this);
         Configuration const&  rconfig = service(_rctx).configuration();
         typename Ctx::SenderT sender(*this, _rctx, rconfig.writer, rconfig.protocol(), conctx, error_message_canceled);
         msg_writer_.cancel(*pmsgid, sender);
@@ -789,7 +789,7 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Eve
 
     solid_log(logger, Info, this);
 
-    ConnectionContext    conctx(service(_rctx), *this);
+    ConnectionContext    conctx(_rctx, service(_rctx), *this);
     Configuration const& rconfig = service(_rctx).configuration();
     EnterActive*         pdata   = _revent.cast<EnterActive>();
 
@@ -853,7 +853,7 @@ void Connection::doHandleEventEnterPassive(frame::aio::ReactorContext& _rctx, Ev
 {
     Configuration const& config = service(_rctx).configuration();
     EnterPassive*        pdata  = _revent.cast<EnterPassive>();
-    ConnectionContext    conctx(service(_rctx), *this);
+    ConnectionContext    conctx(_rctx, service(_rctx), *this);
     if (!isStopping()) {
         if (this->isRawState()) {
             flags_.reset(FlagsE::Raw);
@@ -893,7 +893,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
 {
     solid_log(logger, Verbose, this << "");
     Configuration const& config = service(_rctx).configuration();
-    ConnectionContext    conctx(service(_rctx), *this);
+    ConnectionContext    conctx(_rctx, service(_rctx), *this);
     if (!isStopping()) {
         if ((isServer() && config.server.hasSecureConfiguration()) || ((!isServer()) && config.client.hasSecureConfiguration())) {
             ErrorConditionT error;
@@ -932,7 +932,7 @@ template <class Ctx>
 /*static*/ void Connection::onSecureConnect(frame::aio::ReactorContext& _rctx)
 {
     Connection&          rthis = static_cast<Connection&>(_rctx.actor());
-    ConnectionContext    conctx(rthis.service(_rctx), rthis);
+    ConnectionContext    conctx(_rctx, rthis.service(_rctx), rthis);
     Configuration const& config = rthis.service(_rctx).configuration();
 
     if (_rctx.error()) {
@@ -985,7 +985,7 @@ template <class Ctx>
 /*static*/ void Connection::onSecureAccept(frame::aio::ReactorContext& _rctx)
 {
     Connection&          rthis = static_cast<Connection&>(_rctx.actor());
-    ConnectionContext    conctx(rthis.service(_rctx), rthis);
+    ConnectionContext    conctx(_rctx, rthis.service(_rctx), rthis);
     Configuration const& config = rthis.service(_rctx).configuration();
 
     if (_rctx.error()) {
@@ -1039,7 +1039,7 @@ template <class Ctx>
 void Connection::doHandleEventSendRaw(frame::aio::ReactorContext& _rctx, EventBase& _revent)
 {
     SendRaw*          pdata = _revent.cast<SendRaw>();
-    ConnectionContext conctx(service(_rctx), *this);
+    ConnectionContext conctx(_rctx, service(_rctx), *this);
 
     solid_assert_log(pdata, logger);
 
@@ -1072,7 +1072,7 @@ void Connection::doHandleEventSendRaw(frame::aio::ReactorContext& _rctx, EventBa
 void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, EventBase& _revent)
 {
     RecvRaw*          pdata = _revent.cast<RecvRaw>();
-    ConnectionContext conctx(service(_rctx), *this);
+    ConnectionContext conctx(_rctx, service(_rctx), *this);
     size_t            used_size = 0;
 
     solid_assert_log(pdata, logger);
@@ -1111,7 +1111,7 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, EventBa
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventPost(frame::aio::ReactorContext& _rctx, EventBase& _revent)
 {
-    ConnectionContext                conctx(service(_rctx), *this);
+    ConnectionContext                conctx(_rctx, service(_rctx), *this);
     ConnectionPostCompleteFunctionT* pdata = _revent.cast<ConnectionPostCompleteFunctionT>();
     solid_check(pdata != nullptr);
     (*pdata)(conctx);
@@ -1167,7 +1167,7 @@ template <class Ctx>
 
     if (crt_time >= rthis.timeout_send_soft_) {
         solid_log(logger, Info, &rthis << " " << rthis.flags_.toString() << " send soft timeout = " << rthis.timeout_send_soft_ << " crt_time = " << crt_time);
-        ConnectionContext conctx(rthis.service(_rctx), rthis);
+        ConnectionContext conctx(_rctx, rthis.service(_rctx), rthis);
         rthis.timeout_send_soft_ = NanoTime::max();
         rconfig.connection_on_send_timeout_soft_(conctx);
     }
@@ -1190,7 +1190,7 @@ template <class Ctx>
 
     Connection&       rthis = static_cast<Connection&>(_rctx.actor());
     SendRaw*          pdata = _revent.cast<SendRaw>();
-    ConnectionContext conctx(rthis.service(_rctx), rthis);
+    ConnectionContext conctx(_rctx, rthis.service(_rctx), rthis);
 
     solid_assert_log(pdata, logger);
 
@@ -1226,7 +1226,7 @@ template <class Ctx>
 
     Connection&       rthis = static_cast<Connection&>(_rctx.actor());
     RecvRaw*          pdata = _revent.cast<RecvRaw>();
-    ConnectionContext conctx(rthis.service(_rctx), rthis);
+    ConnectionContext conctx(_rctx, rthis.service(_rctx), rthis);
 
     solid_assert_log(pdata, logger);
 
@@ -1359,7 +1359,7 @@ template <class Ctx>
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
     Connection&             rthis = static_cast<Connection&>(_rctx.actor());
-    ConnectionContext       conctx(rthis.service(_rctx), rthis);
+    ConnectionContext       conctx(_rctx, rthis.service(_rctx), rthis);
     const Configuration&    rconfig   = rthis.service(_rctx).configuration();
     unsigned                repeatcnt = 4;
     char*                   pbuf      = nullptr;
@@ -1409,7 +1409,7 @@ template <class Ctx>
 
         bufsz = recvbufcp - rthis.recv_buf_.size();
         // solid_log(logger, Info, &rthis<<" buffer size "<<bufsz);
-    } while (repeatcnt != 0u && rthis.recvSome<Ctx>(_rctx, pbuf, bufsz, _sz));
+    } while (repeatcnt != 0u && !rthis.flags_.isSet(FlagsE::PauseRecv) && rthis.recvSome<Ctx>(_rctx, pbuf, bufsz, _sz));
 
     if (rconfig.hasConnectionTimeoutRecv()) {
         rthis.timeout_recv_ = _rctx.nanoTime() + rconfig.connection_timeout_recv;
@@ -1417,8 +1417,8 @@ template <class Ctx>
         rthis.doResetTimer<Ctx>(_rctx);
     }
 
-    if (repeatcnt == 0) {
-        bool rv = rthis.postRecvSome<Ctx>(_rctx, pbuf, bufsz); // fully asynchronous call
+    if (repeatcnt == 0 && !rthis.flags_.isSet(FlagsE::PauseRecv)) {
+        const bool rv = rthis.postRecvSome<Ctx>(_rctx, pbuf, bufsz); // fully asynchronous call
         solid_assert_log(!rv, logger);
         (void)rv;
     }
@@ -1437,7 +1437,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     }
     ErrorConditionT      error;
     const Configuration& rconfig = service(_rctx).configuration();
-    ConnectionContext    conctx(service(_rctx), *this);
+    ConnectionContext    conctx(_rctx, service(_rctx), *this);
     // we do a pollPoolForUpdates here because we want to be able to
     // receive a force pool close, even though we are waiting for send.
 
@@ -1571,7 +1571,7 @@ template <class Ctx>
         }
         rthis.doResetTimer<Ctx>(_rctx);
         rthis.doSend<Ctx>(_rctx);
-    } else {
+    } else if (!rthis.isStopping()) {
         solid_log(logger, Error, &rthis << ' ' << rthis.id() << " sending [" << _rctx.error().message() << "][" << _rctx.systemError().message() << ']');
 
         rthis.timeout_send_soft_ = rthis.timeout_send_hard_ = NanoTime::max();
@@ -1635,15 +1635,15 @@ void Connection::updateContextOnCompleteMessage(
     ConnectionContext& _rconctx, MessageBundle& _rmsg_bundle,
     MessageId const& _rpool_msg_id, const Message& _rmsg) const
 {
-    _rconctx.message_flags = _rmsg_bundle.message_flags;
-    _rconctx.request_id    = _rmsg.requestId();
-    _rconctx.message_id    = _rpool_msg_id;
+    _rconctx.message_flags_ = _rmsg_bundle.message_flags;
+    _rconctx.request_id_    = _rmsg.requestId();
+    _rconctx.message_id_    = _rpool_msg_id;
 }
 
 template <class Ctx>
 bool Connection::doCompleteMessage(frame::aio::ReactorContext& _rctx, MessagePointerT<>& _rresponse_ptr, const size_t _response_type_id)
 {
-    ConnectionContext    conctx(service(_rctx), *this);
+    ConnectionContext    conctx(_rctx, service(_rctx), *this);
     const Configuration& rconfig = service(_rctx).configuration();
     const Protocol&      rproto  = rconfig.protocol();
     ErrorConditionT      error;
@@ -1672,13 +1672,13 @@ void Connection::doCompleteMessage(
     ErrorConditionT const&             _rerror)
 {
 
-    ConnectionContext    conctx(service(_rctx), *this);
+    ConnectionContext    conctx(_rctx, service(_rctx), *this);
     const Configuration& rconfig = service(_rctx).configuration();
     const Protocol&      rproto  = rconfig.protocol();
     MessagePointerT<>    dummy_recv_msg_ptr;
 
-    conctx.message_flags = _rmsg_bundle.message_flags;
-    conctx.message_id    = _rpool_msg_id;
+    conctx.message_flags_ = _rmsg_bundle.message_flags;
+    conctx.message_id_    = _rpool_msg_id;
 
     if (!solid_function_empty(_rmsg_bundle.complete_fnc)) {
         solid_log(logger, Info, this);
@@ -1766,7 +1766,7 @@ void Connection::doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, cons
     MessageId             msgid(_reqid);
     MessageBundle         msg_bundle;
     MessageId             pool_msg_id;
-    ConnectionContext     conctx(service(_rctx), *this);
+    ConnectionContext     conctx(_rctx, service(_rctx), *this);
     Configuration const&  rconfig = service(_rctx).configuration();
     typename Ctx::SenderT sender(*this, _rctx, rconfig.writer, rconfig.protocol(), conctx, error_message_canceled_peer);
 
@@ -1831,6 +1831,7 @@ bool Connection::recvSome(frame::aio::ReactorContext& _rctx, char* _buf, size_t 
 template <class Ctx>
 bool Connection::sendAll(frame::aio::ReactorContext& _rctx, char* _buf, size_t _bufcp)
 {
+    solid_check(!isStopping());
     return sock_ptr_->sendAll(_rctx, Connection::onSend<Ctx>, _buf, _bufcp);
 }
 //-----------------------------------------------------------------------------
@@ -1838,6 +1839,32 @@ void Connection::prepareSocket(frame::aio::ReactorContext& _rctx)
 {
     sock_ptr_->prepareSocket(_rctx);
 }
+//-----------------------------------------------------------------------------
+template <class Ctx>
+void Connection::doPauseRead(frame::aio::ReactorContext& _rctx)
+{
+    if (!flags_.isSet(FlagsE::PauseRecv)) {
+        flags_.set(FlagsE::PauseRecv);
+        sock_ptr_->cancelRecv(_rctx);
+    }
+}
+//-----------------------------------------------------------------------------
+template <class Ctx>
+void Connection::doResumeRead(frame::aio::ReactorContext& _rctx)
+{
+    if (flags_.isSet(FlagsE::PauseRecv)) {
+        flags_.reset(FlagsE::PauseRecv);
+
+        const auto pbuf  = recv_buf_.data() + recv_buf_.size();
+        const auto bufsz = recv_buf_.capacity() - recv_buf_.size();
+
+        const bool rv = postRecvSome<Ctx>(_rctx, pbuf, bufsz); // fully asynchronous call
+
+        solid_assert_log(!rv, logger);
+        (void)rv;
+    }
+}
+//-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 //  ClientConnection
@@ -1963,6 +1990,21 @@ void ClientConnection::doHandleEventResolve(
     }
 }
 //-----------------------------------------------------------------------------
+void ClientConnection::stop(frame::aio::ReactorContext& _rctx, const ErrorConditionT& _rerr)
+{
+    doStop<ClientContext>(_rctx, _rerr);
+}
+//-----------------------------------------------------------------------------
+void ClientConnection::pauseRead(frame::aio::ReactorContext& _rctx)
+{
+    doPauseRead<ClientContext>(_rctx);
+}
+//-----------------------------------------------------------------------------
+void ClientConnection::resumeRead(frame::aio::ReactorContext& _rctx)
+{
+    doResumeRead<ClientContext>(_rctx);
+}
+//-----------------------------------------------------------------------------
 //  ServerConnection
 //-----------------------------------------------------------------------------
 struct ServerContext {
@@ -2049,7 +2091,21 @@ void ServerConnection::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _u
     solid_log(logger, Verbose, this << ' ' << this->id() << " " << _uevent);
     event_handler.handle(_uevent, *this, _rctx);
 }
-
+//-----------------------------------------------------------------------------
+void ServerConnection::stop(frame::aio::ReactorContext& _rctx, const ErrorConditionT& _rerr)
+{
+    doStop<ServerContext>(_rctx, _rerr);
+}
+//-----------------------------------------------------------------------------
+void ServerConnection::pauseRead(frame::aio::ReactorContext& _rctx)
+{
+    doPauseRead<ServerContext>(_rctx);
+}
+//-----------------------------------------------------------------------------
+void ServerConnection::resumeRead(frame::aio::ReactorContext& _rctx)
+{
+    doResumeRead<ServerContext>(_rctx);
+}
 //-----------------------------------------------------------------------------
 //  RelayConnection
 //-----------------------------------------------------------------------------
@@ -2274,7 +2330,7 @@ bool RelayConnection::doReceiveRelayStart(
     ErrorConditionT&            _rerror)
 {
     Configuration const& config = configuration(_rctx);
-    ConnectionContext    conctx{service(_rctx), *this};
+    ConnectionContext    conctx{_rctx, service(_rctx), *this};
     RelayData            relmsg{recvBuffer(), _pbeg, _sz /*, this->uid(_rctx)*/, _is_last};
 
     return config.relayEngine().relayStart(uid(_rctx), relayId(), _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
@@ -2289,7 +2345,7 @@ bool RelayConnection::doReceiveRelayBody(
     ErrorConditionT&            _rerror)
 {
     Configuration const& config = configuration(_rctx);
-    ConnectionContext    conctx{service(_rctx), *this};
+    ConnectionContext    conctx{_rctx, service(_rctx), *this};
     RelayData            relmsg{recvBuffer(), _pbeg, _sz /*, this->uid(_rctx)*/, _is_last};
 
     return config.relayEngine().relay(relayId(), std::move(relmsg), _rrelay_id, _rerror);
@@ -2305,7 +2361,7 @@ bool RelayConnection::doReceiveRelayResponse(
     ErrorConditionT&            _rerror)
 {
     Configuration const& config = configuration(_rctx);
-    ConnectionContext    conctx{service(_rctx), *this};
+    ConnectionContext    conctx{_rctx, service(_rctx), *this};
     RelayData            relmsg{recvBuffer(), _pbeg, _sz /*, this->uid(_rctx)*/, _is_last};
 
     return config.relayEngine().relayResponse(relayId(), _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
@@ -2357,73 +2413,102 @@ void RelayConnection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, 
         }
     }
 }
-
+//-----------------------------------------------------------------------------
+void RelayConnection::stop(frame::aio::ReactorContext& _rctx, const ErrorConditionT& _rerr)
+{
+    doStop<RelayContext>(_rctx, _rerr);
+}
+//-----------------------------------------------------------------------------
+void RelayConnection::pauseRead(frame::aio::ReactorContext& _rctx)
+{
+    doPauseRead<RelayContext>(_rctx);
+}
+//-----------------------------------------------------------------------------
+void RelayConnection::resumeRead(frame::aio::ReactorContext& _rctx)
+{
+    doResumeRead<RelayContext>(_rctx);
+}
 //-----------------------------------------------------------------------------
 //  ConnectionContext
 //-----------------------------------------------------------------------------
 Any<>& ConnectionContext::any()
 {
-    return rconnection.any();
+    return rconnection_.any();
 }
 //-----------------------------------------------------------------------------
 MessagePointerT<> ConnectionContext::fetchRequest(Message const& _rmsg) const
 {
-    return rconnection.fetchRequest(_rmsg);
+    return rconnection_.fetchRequest(_rmsg);
 }
 //-----------------------------------------------------------------------------
 RecipientId ConnectionContext::recipientId() const
 {
-    return RecipientId(rconnection.poolId(), rservice.manager().id(rconnection));
+    return RecipientId(rconnection_.poolId(), rservice_.manager().id(rconnection_));
 }
 //-----------------------------------------------------------------------------
 ActorIdT ConnectionContext::connectionId() const
 {
-    return rservice.manager().id(rconnection);
+    return rservice_.manager().id(rconnection_);
 }
 //-----------------------------------------------------------------------------
 const UniqueId& ConnectionContext::relayId() const
 {
-    return rconnection.relayId();
+    return rconnection_.relayId();
 }
 //-----------------------------------------------------------------------------
 void ConnectionContext::relayId(const UniqueId& _relay_id) const
 {
-    rconnection.relayId(_relay_id);
+    rconnection_.relayId(_relay_id);
 }
 //-----------------------------------------------------------------------------
 const std::string& ConnectionContext::recipientName() const
 {
-    return rconnection.poolName();
+    return rconnection_.poolName();
 }
 //-----------------------------------------------------------------------------
 SocketDevice const& ConnectionContext::device() const
 {
-    return rconnection.device();
+    return rconnection_.device();
 }
 //-----------------------------------------------------------------------------
 bool ConnectionContext::isConnectionActive() const
 {
-    return rconnection.isActiveState();
+    return rconnection_.isActiveState();
 }
 //-----------------------------------------------------------------------------
 bool ConnectionContext::isConnectionServer() const
 {
-    return rconnection.isServer();
+    return rconnection_.isServer();
 }
 //-----------------------------------------------------------------------------
 const ErrorConditionT& ConnectionContext::error() const
 {
-    return rconnection.error();
+    return rconnection_.error();
 }
 //-----------------------------------------------------------------------------
 const ErrorCodeT& ConnectionContext::systemError() const
 {
-    return rconnection.systemError();
+    return rconnection_.systemError();
 }
 //-----------------------------------------------------------------------------
 Configuration const& ConnectionContext::configuration() const
 {
-    return rservice.configuration();
+    return rservice_.configuration();
+}
+//-----------------------------------------------------------------------------
+void ConnectionContext::stop(const ErrorConditionT& _err)
+{
+    rconnection_.stop(reactorContext(), _err);
+}
+//-----------------------------------------------------------------------------
+void ConnectionContext::pauseRead()
+{
+    rconnection_.pauseRead(reactorContext());
+}
+//-----------------------------------------------------------------------------
+void ConnectionContext::resumeRead()
+{
+    rconnection_.resumeRead(reactorContext());
 }
 //-----------------------------------------------------------------------------
 // SocketStub
@@ -2462,7 +2547,7 @@ Connection& ConnectionProxy::connection(frame::aio::ReactorContext& _rctx) const
 
 void Message::header(frame::mprpc::ConnectionContext& _rctx)
 {
-    header_ = std::move(*_rctx.pmessage_header);
+    header_ = std::move(*_rctx.pmessage_header_);
 }
 
 } // namespace mprpc

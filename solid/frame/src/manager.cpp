@@ -840,8 +840,7 @@ ActorIdT Manager::id(const ActorBase& _ractor) const
         // std::lock_guard<std::mutex> actor_lock{pimpl_->actorMutex(actor_index)};
         const ActorStub& ras = rchunk[actor_index % pimpl_->actor_chunk_size_];
 
-        const ActorBase* pactor = ras.pactor_;
-        solid_assert_log(pactor == &_ractor, frame_logger);
+        solid_assert_log(ras.pactor_ == &_ractor, frame_logger);
         retval = ActorIdT(actor_index, ras.unique_);
     }
     return retval;

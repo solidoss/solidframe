@@ -92,8 +92,8 @@ struct Register : frame::mprpc::Message {
     uint16_t replica_id_ = 0;
 
     Register(const uint32_t _group_id, uint32_t _err = 0)
-        : group_id_(_group_id)
-        , err_(_err)
+        : err_(_err)
+        , group_id_(_group_id)
     {
         solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }
@@ -250,6 +250,10 @@ void peera_complete_message(
         solid_dbg(generic_logger, Info, "response_cout = " << cnt << "/" << _rsent_msg_ptr->splitCount() << " is_rsp = " << is_response << " is_rsp_part = " << is_response_part << " is_rsp_last = " << is_response_last);
 
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
+
+        (void)is_response;
+        (void)is_response_part;
+        (void)is_response_last;
 
         transfered_size += _rrecv_msg_ptr->str.size();
         ++transfered_count;

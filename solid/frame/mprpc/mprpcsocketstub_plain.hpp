@@ -53,8 +53,8 @@ private:
         frame::aio::ReactorContext& _rctx, OnSendAllRawF _pf, const char* _pbuf, size_t _bufcp, EventBase& _revent) override final
     {
         struct Closure {
-            OnSendAllRawF pf;
-            EventT        event;
+            const OnSendAllRawF pf;
+            EventT              event;
 
             Closure(OnSendAllRawF _pf, EventBase const& _revent)
                 : pf(_pf)
@@ -84,8 +84,8 @@ private:
         frame::aio::ReactorContext& _rctx, OnRecvSomeRawF _pf, char* _pbuf, size_t _bufcp, EventBase& _revent) override final
     {
         struct Closure {
-            OnRecvSomeRawF pf;
-            EventT         event;
+            const OnRecvSomeRawF pf;
+            EventT               event;
 
             Closure(OnRecvSomeRawF _pf, EventBase const& _revent)
                 : pf(_pf)
@@ -136,6 +136,11 @@ private:
     void prepareSocket(
         frame::aio::ReactorContext& _rctx) override final
     {
+    }
+
+    void cancelRecv(frame::aio::ReactorContext& _rctx) override
+    {
+        sock.cancelRecv(_rctx);
     }
 
 private:

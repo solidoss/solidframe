@@ -49,7 +49,7 @@ size_t MessageReader::read(
     while (pbufpos != pbufend) {
         if (state_ == StateE::ReadPacketHead) {
             // try read the header
-            if ((pbufend - pbufpos) >= PacketHeader::size_of_header) {
+            if ((pbufend - pbufpos) >= static_cast<ptrdiff_t>(PacketHeader::size_of_header)) {
                 state_ = StateE::ReadPacketBody;
             } else {
                 break;
@@ -216,7 +216,7 @@ bool MessageReader::doConsumeMessageHeader(
         _pbufpos = _receiver.protocol().loadValue(_pbufpos, _message_size);
         solid_log(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << _message_size);
         if (_message_size <= static_cast<size_t>(_pbufend - _pbufpos)) {
-            _receiver.context().pmessage_header = &rmsgstub.message_header_;
+            _receiver.context().pmessage_header_ = &rmsgstub.message_header_;
 
             const ptrdiff_t rv = rmsgstub.state_ == MessageStub::StateE::ReadHeadStart ? rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, _message_size, rmsgstub.message_header_) : rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, _message_size);
 
@@ -290,7 +290,7 @@ bool MessageReader::doConsumeMessageBody(
 
             if (_message_size <= static_cast<size_t>(_pbufend - _pbufpos)) {
 
-                _receiver.context().pmessage_header = &rmsgstub.message_header_;
+                _receiver.context().pmessage_header_ = &rmsgstub.message_header_;
 
                 const ptrdiff_t rv = rmsgstub.state_ == MessageStub::StateE::ReadBodyStart ? rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, _message_size, rmsgstub.message_ptr_) : rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, _message_size);
 

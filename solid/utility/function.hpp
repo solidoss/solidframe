@@ -165,7 +165,7 @@ RepresentationE do_copy(
         _rpbig_rtti = &big_rtti<T, R, ArgTypes...>;
         return RepresentationE::Big;
     } else {
-        solid_throw("Any: contained value not copyable");
+        solid_throw("Function: contained value not copyable");
         return RepresentationE::None;
     }
 }

@@ -133,9 +133,8 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
     auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
         reflection::v1::metadata::factory,
         [&](auto& _rmap) {
-            auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
-                using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
-                _rmap.template registerMessage<TypeT>(_id, _name, complete_message<TypeT>);
+            auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, const type_identity<T>& _rtype) {
+                _rmap.template registerMessage<T>(_id, _name, complete_message<T>);
             };
             configure_protocol(lambda);
         });
@@ -204,9 +203,8 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
     auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
         reflection::v1::metadata::factory,
         [&](auto& _rmap) {
-            auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
-                using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
-                _rmap.template registerMessage<TypeT>(_id, _name, complete_message<TypeT>);
+            auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const& _rtype) {
+                _rmap.template registerMessage<T>(_id, _name, complete_message<T>);
             };
             configure_protocol(lambda);
         });
@@ -279,9 +277,8 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
     auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
         reflection::v1::metadata::factory,
         [&](auto& _rmap) {
-            auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
-                using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
-                _rmap.template registerMessage<TypeT>(_id, _name, complete_message<TypeT>);
+            auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const& _rtype) {
+                _rmap.template registerMessage<T>(_id, _name, complete_message<T>);
             };
             configure_protocol(lambda);
         });
@@ -353,9 +350,8 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
     auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
         reflection::v1::metadata::factory,
         [&](auto& _rmap) {
-            auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
-                using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
-                _rmap.template registerMessage<TypeT>(_id, _name, complete_message<TypeT>);
+            auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const& _rtype) {
+                _rmap.template registerMessage<T>(_id, _name, complete_message<T>);
             };
             configure_protocol(lambda);
         });
@@ -493,9 +489,8 @@ string configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch)
     auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
         reflection::v1::metadata::factory,
         [&](auto& _rmap) {
-            auto lambda = [&](const uint8_t _id, const std::string_view _name, auto const& _rtype) {
-                using TypeT = typename std::decay_t<decltype(_rtype)>::TypeT;
-                _rmap.template registerMessage<TypeT>(_id, _name, complete_message<TypeT>);
+            auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const& _rtype) {
+                _rmap.template registerMessage<T>(_id, _name, complete_message<T>);
             };
             configure_protocol(lambda);
         });

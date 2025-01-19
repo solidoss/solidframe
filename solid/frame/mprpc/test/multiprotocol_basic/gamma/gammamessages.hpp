@@ -61,8 +61,8 @@ struct ThirdMessage : solid::frame::mprpc::Message {
 template <class Reg>
 inline void configure_protocol(Reg _rreg)
 {
-    _rreg({2, 1}, "FirstMessage", solid::TypeToType<FirstMessage>());
-    _rreg({2, 2}, "SecondMessage", solid::TypeToType<SecondMessage>());
-    _rreg({2, 3}, "ThirdMessage", solid::TypeToType<ThirdMessage>());
+    _rreg({2, 1}, "FirstMessage", std::type_identity<FirstMessage>());
+    _rreg({2, 2}, "SecondMessage", std::type_identity<SecondMessage>());
+    _rreg({2, 3}, "ThirdMessage", std::type_identity<ThirdMessage>());
 }
 } // namespace gamma_protocol

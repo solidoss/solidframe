@@ -60,19 +60,29 @@ private:
     Connection& connection(frame::aio::ReactorContext& _rctx) const;
 };
 
-struct ConnectionContext : NonCopyable {
+class ConnectionContext : NonCopyable {
+    frame::aio::ReactorContext& rreactor_context_;
+    Service&                    rservice_;
+    Connection&                 rconnection_;
+    MessageHeader*              pmessage_header_{nullptr};
+    MessageFlagsT               message_flags_{0};
+    RequestId                   request_id_;
+    MessageId                   message_id_;
+    MessageRelayHeader*         pmessage_relay_header_{nullptr}; // we cannot make it const - serializer constraint
+public:
     ConnectionContext(
         frame::aio::ReactorContext& _rctx,
         const ConnectionProxy&      _rccs)
-        : rservice(_rccs.service(_rctx))
-        , rconnection(_rccs.connection(_rctx))
-        , message_flags(0)
+        : rreactor_context_(_rctx)
+        , rservice_(_rccs.service(_rctx))
+        , rconnection_(_rccs.connection(_rctx))
+        , message_flags_(0)
     {
     }
 
     Service& service() const
     {
-        return rservice;
+        return rservice_;
     }
 
     Configuration const& configuration() const;
@@ -92,12 +102,12 @@ struct ConnectionContext : NonCopyable {
 
     const MessageFlagsT& messageFlags() const
     {
-        return message_flags;
+        return message_flags_;
     }
 
     MessageId const& localMessageId() const
     {
-        return message_id;
+        return message_id_;
     }
 
     MessagePointerT<> fetchRequest(Message const& _rmsg) const;
@@ -108,11 +118,16 @@ struct ConnectionContext : NonCopyable {
     const ErrorConditionT& error() const;
     const ErrorCodeT&      systemError() const;
 
+    void stop(const ErrorConditionT& _err);
+
+    void pauseRead();
+    void resumeRead();
+
 private:
     // not used for now
     RequestId const& requestId() const
     {
-        return request_id;
+        return request_id_;
     }
 
     void relayId(const UniqueId& _relay_id) const;
@@ -131,27 +146,26 @@ private:
     template <class Ctx>
     friend struct ConnectionSenderResponse;
 
-    Service&            rservice;
-    Connection&         rconnection;
-    MessageHeader*      pmessage_header{nullptr};
-    MessageFlagsT       message_flags{0};
-    RequestId           request_id;
-    MessageId           message_id;
-    MessageRelayHeader* pmessage_relay_header_{nullptr}; // we cannot make it const - serializer constraint
-
     ConnectionContext(
-        Service& _rsrv, Connection& _rcon)
-        : rservice(_rsrv)
-        , rconnection(_rcon)
+        frame::aio::ReactorContext& _rctx,
+        Service&                    _rsvc,
+        Connection&                 _rcon)
+        : rreactor_context_(_rctx)
+        , rservice_(_rsvc)
+        , rconnection_(_rcon)
     {
     }
 
-    ConnectionContext(ConnectionContext const&);
-    ConnectionContext& operator=(ConnectionContext const&);
+    ConnectionContext(ConnectionContext const&)            = delete;
+    ConnectionContext& operator=(ConnectionContext const&) = delete;
 
     Connection& connection()
     {
-        return rconnection;
+        return rconnection_;
+    }
+    auto& reactorContext()
+    {
+        return rreactor_context_;
     }
 };
 

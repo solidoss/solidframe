@@ -101,6 +101,7 @@ INSTALL_PREFIX=
 EXTRA_COMPILE_OPTIONS=
 EXTRA_LINK_OPTIONS=
 ARCHITECTURE=
+FORTIFY="OFF"
 
 #echo "$@"
 pass_arg_count=0
@@ -174,6 +175,9 @@ do
     --test-site)
         shift
         TEST_SITE="$1"
+        ;;
+    --fortify)
+        FORTIFY="ON"
         ;;
     *)
         HELP="yes"
@@ -256,7 +260,7 @@ for param in "$@"; do
 done
 echo
 
-echo -ne "./configure -f $FOLDER_NAME -F \"$FOLDER_PATH\" -b \"$BUILD_TYPE\" -g \"$GENERATOR\" -e \"$EXTERNAL_DIR\" \"$@\" \"$SRC_PATH\"\r\n" > configure.txt
+echo -ne "./configure -f $FOLDER_NAME -F \"$FOLDER_PATH\" -b \"$BUILD_TYPE\" -g \"$GENERATOR\" -e \"$EXTERNAL_DIR\" \"$@\" \"$SRC_PATH\" \"$FORTIFY\" \r\n" > configure.txt
 
 if [ "$GENERATOR" = "" ]; then
     echo "Using cmake's default generator"
@@ -272,7 +276,7 @@ else
     echo "Using architecture $ARCHITECTURE - ${ARC[@]}"
 fi
 
-exec cmake "${GEN[@]}" "${ARC[@]}" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DEXTERNAL_DIR:PATH="$EXTERNAL_DIR" -DEXTRA_COMPILE_OPTIONS:STRING="$EXTRA_COMPILE_OPTIONS" -DEXTRA_LINK_OPTIONS:STRING="$EXTRA_LINK_OPTIONS" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
+exec cmake "${GEN[@]}" "${ARC[@]}" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DEXTERNAL_DIR:PATH="$EXTERNAL_DIR" -DEXTRA_COMPILE_OPTIONS:STRING="$EXTRA_COMPILE_OPTIONS" -DEXTRA_LINK_OPTIONS:STRING="$EXTRA_LINK_OPTIONS" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" -DFORTIFY:BOOL=$FORTIFY "$@" "$SRC_PATH"
 
 echo "Done!"
 

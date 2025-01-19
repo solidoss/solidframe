@@ -69,7 +69,6 @@ protected:
     virtual void          doVisit(Reflector& /*_rreflector*/, const TypeMapBase*, ContextT& /*_rctx*/)            = 0;
     virtual void          doVisit(Reflector& /*_rreflector*/, const TypeMapBase*, ContextT& /*_rctx*/) const      = 0;
     virtual std::ostream& print(std::ostream& _ros) const                                                         = 0;
-    virtual std::ostream& print(std::ostream& _ros, const EnumMap* /*_penum_map*/) const                          = 0;
     virtual void          reset(const std::string_view _name, const TypeMapBase* _ptype_map, ContextT& /*_rctx*/) = 0;
     virtual std::ostream& ostream()                                                                               = 0;
     virtual std::istream& istream() const                                                                         = 0;
@@ -104,6 +103,33 @@ protected:
 
     GroupNode(Reflector& _rreflector, const std::type_info* const _ptype_info)
         : BaseT(_rreflector, TypeGroupE::Container, _ptype_info)
+    {
+    }
+
+public:
+    template <class DispatchFunction>
+    void for_each(DispatchFunction _dispatch_function, ContextT& _rctx)
+    {
+        Reflector new_reflector{this->rreflector_.metadataFactory(), _dispatch_function};
+        this->doForEach(new_reflector, _rctx);
+    }
+
+    template <class DispatchFunction>
+    void for_each(DispatchFunction _dispatch_function, ContextT& _rctx) const
+    {
+        Reflector new_reflector{this->rreflector_.metadataFactory(), _dispatch_function};
+        this->doForEach(new_reflector, _rctx);
+    }
+};
+
+template <class Reflector>
+class GroupNode<Reflector, TypeGroupE::VectorBool> : public BaseNode<Reflector> {
+protected:
+    using ContextT = typename Reflector::ContextT;
+    using BaseT    = BaseNode<Reflector>;
+
+    GroupNode(Reflector& _rreflector, const std::type_info* const _ptype_info)
+        : BaseT(_rreflector, TypeGroupE::VectorBool, _ptype_info)
     {
     }
 
@@ -162,7 +188,7 @@ protected:
     }
 
 public:
-    std::ostream& print(std::ostream& _ros, const EnumMap* /*_penum_map*/) const override = 0;
+    std::ostream& print(std::ostream& _ros) const override = 0;
 };
 
 template <class Reflector>
@@ -396,6 +422,13 @@ private:
                 _rreflector.add(item, _rctx, i, "");
                 ++i;
             }
+        } else if constexpr (type_group<ValueT>() == TypeGroupE::VectorBool) {
+            size_t i = 0;
+            for (auto item : ref_) {
+                const bool b = item;
+                _rreflector.add(b, _rctx, i, "");
+                ++i;
+            }
         } else if constexpr (type_group<ValueT>() == TypeGroupE::Structure) {
             solidReflectV1(_rreflector, ref_, _rctx);
         } else if constexpr (type_group<ValueT>() == TypeGroupE::Tuple) {
@@ -416,6 +449,13 @@ private:
                 _rreflector.add(item, _rctx, i, "");
                 ++i;
             }
+        } else if constexpr (type_group<ValueT>() == TypeGroupE::VectorBool) {
+            size_t i = 0;
+            for (auto item : ref_) {
+                const bool b = item;
+                _rreflector.add(b, _rctx, i, "");
+                ++i;
+            }
         } else if constexpr (type_group<ValueT>() == TypeGroupE::Structure) {
             solidReflectV1(_rreflector, ref_, _rctx);
         } else if constexpr (type_group<ValueT>() == TypeGroupE::Tuple) {
@@ -428,7 +468,7 @@ private:
         if constexpr (type_group<ValueT>() == TypeGroupE::SharedPtr || type_group<ValueT>() == TypeGroupE::UniquePtr || type_group<ValueT>() == TypeGroupE::IntrusivePtr) {
             solid_check(ref_);
             if constexpr (
-                type_group<typename T::element_type>() == TypeGroupE::Basic || type_group<typename T::element_type>() == TypeGroupE::Container || type_group<typename T::element_type>() == TypeGroupE::Enum || type_group<typename T::element_type>() == TypeGroupE::Bitset) {
+                type_group<typename T::element_type>() == TypeGroupE::Basic || type_group<typename T::element_type>() == TypeGroupE::Container || type_group<typename T::element_type>() == TypeGroupE::Enum || type_group<typename T::element_type>() == TypeGroupE::Bitset || type_group<typename T::element_type>() == TypeGroupE::VectorBool) {
                 _rreflector.add(*ref_, _rctx, 0, "");
             } else {
                 solid_check(_ptype_map != nullptr);
@@ -442,7 +482,7 @@ private:
         if constexpr (type_group<ValueT>() == TypeGroupE::SharedPtr || type_group<ValueT>() == TypeGroupE::UniquePtr || type_group<ValueT>() == TypeGroupE::IntrusivePtr) {
             solid_check(ref_);
             if constexpr (
-                type_group<typename T::element_type>() == TypeGroupE::Basic || type_group<typename T::element_type>() == TypeGroupE::Container || type_group<typename T::element_type>() == TypeGroupE::Enum || type_group<typename T::element_type>() == TypeGroupE::Bitset) {
+                type_group<typename T::element_type>() == TypeGroupE::Basic || type_group<typename T::element_type>() == TypeGroupE::Container || type_group<typename T::element_type>() == TypeGroupE::Enum || type_group<typename T::element_type>() == TypeGroupE::Bitset || type_group<typename T::element_type>() == TypeGroupE::VectorBool) {
                 _rreflector.add(*ref_, _rctx, 0, "");
             } else {
                 solid_check(_ptype_map != nullptr);
@@ -464,26 +504,17 @@ private:
     {
         if constexpr (type_group<ValueT>() == TypeGroupE::Basic || type_group<ValueT>() == TypeGroupE::Bitset) {
             _ros << ref_;
-        }
-        return _ros;
-    }
-
-    std::ostream& print(std::ostream& _ros, const EnumMap* _penum_map) const override
-    {
-        if constexpr (type_group<ValueT>() == TypeGroupE::Enum) {
-            if (_penum_map) {
-                const char* name = _penum_map->get(ref_);
-                if (name != nullptr) {
-                    _ros << name;
-                } else {
-                    _ros << to_underlying(ref_);
-                }
+        } else if constexpr (type_group<ValueT>() == TypeGroupE::Enum) {
+            const auto name = enum_map_v<ValueT>.get(ref_);
+            if (!name.empty()) {
+                _ros << name;
             } else {
                 _ros << to_underlying(ref_);
             }
         }
         return _ros;
     }
+
     bool isNull() const override
     {
         if constexpr (type_group<ValueT>() == TypeGroupE::SharedPtr || type_group<ValueT>() == TypeGroupE::UniquePtr) {
