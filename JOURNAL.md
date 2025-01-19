@@ -1,3 +1,6 @@
+## 20250119
+ * release 12.2
+
 ## 20250109
  * improvements and fixes on reflection
 
