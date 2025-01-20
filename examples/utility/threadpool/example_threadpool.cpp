@@ -131,4 +131,7 @@ int main(int argc, char* argv[])
             assert(false);
         }
     }
+
+    tp.stop();
+    solid_log(logger, Statistic, "ThreadPool statistic: " << tp.statistic());
 }

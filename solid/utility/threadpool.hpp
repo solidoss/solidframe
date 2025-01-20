@@ -157,7 +157,7 @@ struct EmptyThreadPoolStatistic : solid::Statistic {
     void tryConsumeAnAllTaskFilled(const bool _should_retry, const uint64_t _count) {}
     void tryConsumeAnAllTaskNotFilled(const bool _should_retry) {}
     void consumeAll(const uint64_t _count) {}
-    void pushOne(const bool _with_context) {}
+    void pushOne(const bool _with_context, const uint64_t _duration_us) {}
     void pushAll(const bool _should_wake) {}
     void pushOneWaitLock() {}
     void pushOneWaitPushing() {}
@@ -641,8 +641,8 @@ private:
     using AtomicIndexT      = std::atomic_size_t;
     using AtomicIndexValueT = std::atomic_size_t::value_type;
 
-    alignas(hardware_destructive_interference_size) AtomicIndexT push_one_index_{0};
-    alignas(hardware_destructive_interference_size) AtomicIndexT pop_one_index_{0};
+    alignas(hardware_destructive_interference_size * 2) AtomicIndexT push_one_index_{0};
+    alignas(hardware_destructive_interference_size * 2) AtomicIndexT pop_one_index_{0};
     ThreadVectorT     threads_;
     std::atomic<bool> running_{false};
 
