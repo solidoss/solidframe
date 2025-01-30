@@ -76,6 +76,8 @@ class Test {
     char               blob64[sizeof(uint64_t)];
 
     std::ostringstream oss;
+    std::istringstream iss;
+    string*            pstr = nullptr;
 
     void populate(bool _b)
     {
@@ -209,7 +211,9 @@ public:
         return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d && s1 == s2 && m == _rt.m && s == _rt.s && um == _rt.um && us == _rt.us && vb == _rt.vb && bs == _rt.bs && vc == _rt.vc;
     }
 
-    SOLID_REFLECT_V1(_rs, _rthis, _rctx)
+    // SOLID_REFLECT_V1(_rs, _rthis, _rctx)
+    template <typename Self, class Reflector, class Context>
+    void solidReflectV1(this Self& _rthis, Reflector& _rs, Context& _rctx)
     {
         _rs.add(_rthis.p, _rctx, 1, "p", [](auto& _rmeta) { _rmeta.maxSize(100); });
         _rs
@@ -271,6 +275,8 @@ public:
             _rctx);
 
         _rs.add(_rthis.a3, _rctx, 16, "a3");
+        //_rs.add(_rthis.iss, _rctx, 17, "iss");
+        //_rs.add(_rthis.pstr, _rctx, 18, "pstr");
 
         //_rs.add(blob, blob_sz, BlobCapacity, _rctx, "blob");
         //_rs.add(blob32, blob32_sz, sizeof(uint32_t), _rctx, "blob32");
