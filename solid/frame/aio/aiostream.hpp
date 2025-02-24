@@ -103,7 +103,7 @@ class Stream : public CompletionHandler {
 
         void operator()(ThisT& _rthis, ReactorContext& _rctx)
         {
-            if (_rctx.systemError() || _rthis.doTryRecv(_rctx)) {
+            if (_rctx.error() || _rthis.doTryRecv(_rctx)) {
                 const size_t recv_sz = _rthis.recv_buf_sz;
                 F            tmp{std::forward<F>(f)};
                 _rthis.doClearRecv(_rctx);
@@ -123,7 +123,7 @@ class Stream : public CompletionHandler {
 
         void operator()(ThisT& _rthis, ReactorContext& _rctx)
         {
-            while (_rctx.systemError() || _rthis.doTrySend(_rctx)) {
+            while (_rctx.error() || _rthis.doTrySend(_rctx)) {
                 if (_rthis.send_buf_sz == _rthis.send_buf_cp) {
                     F tmp{std::forward<F>(f)};
                     _rthis.doClearSend(_rctx);
