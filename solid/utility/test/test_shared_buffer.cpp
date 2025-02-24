@@ -15,49 +15,66 @@ int test_shared_buffer(int argc, char* argv[])
 
         cout << sb.capacity() << endl;
         cout << sb.size() << endl;
+        string_view pangram = "the quick brown fox jumps over the lazy dog";
+        strncpy(sb.data(), pangram.data(), sb.capacity());
 
-        sb.resize(100);
+        sb.resize(pangram.size());
 
-        solid_check(sb.size() == 100);
+        sb.data()[0] = 'T';
 
-        SharedBuffer sb2 = sb;
+        solid_check(sb.size() == pangram.size());
 
-        solid_check(sb2.size() == 100);
+        // SharedBuffer sbx{sb};//will not compile
 
-        SharedBuffer sb3 = sb2; // sb3 == sb2
+        SharedBuffer sbx{std::move(sb)};
 
-        solid_check(!sb2.collapse());
-        solid_check(!sb.collapse());
+        solid_check(sbx.size() == pangram.size());
+        solid_check(!sb);
 
-        solid_check(sb3.collapse());
-        solid_check(sb3);
+        ConstSharedBuffer csb = move(sbx);
+
+        solid_check(csb.size() == pangram.size());
+
+        // csb.data()[0] = 't';//will not compile
+
+        ConstSharedBuffer csb2 = csb; // sb3 == sb2
+
+        solid_check(csb.size() == pangram.size());
+        auto sbc = csb.collapse();
+        solid_check(!sbc);
+        sbc = csb2.collapse();
+        solid_check(sbc);
+        solid_check(!csb2);
+        solid_check(sbc.size() == pangram.size());
+        cout << "Data: " << sbc.data() << endl;
     }
     {
         std::promise<SharedBuffer> p;
         std::future<SharedBuffer>  f = p.get_future();
 
         vector<thread> thr_vec;
-        void*          psb1 = nullptr;
+        const void*    psb1 = nullptr;
         {
 
-            SharedBuffer sb1 = BufferManager::make(1000);
-            SharedBuffer sb2 = BufferManager::make(2000);
+            ConstSharedBuffer csb1 = BufferManager::make(1000);
+            ConstSharedBuffer csb2 = BufferManager::make(2000);
 
-            cout << static_cast<void*>(sb1.data()) << endl;
-            cout << static_cast<void*>(sb2.data()) << endl;
+            cout << static_cast<const void*>(csb1.data()) << endl;
+            cout << static_cast<const void*>(csb2.data()) << endl;
 
-            psb1 = sb1.data();
+            psb1 = csb1.data();
 
             solid_check(psb1);
 
-            auto lambda = [&p, sb1, sb2]() mutable {
+            auto lambda = [&p, csb1, csb2]() mutable {
                 this_thread::sleep_for(chrono::milliseconds(200));
-                if (sb1.collapse()) {
-                    p.set_value(std::move(sb1));
+                auto sbc = csb1.collapse();
+                if (sbc) {
+                    p.set_value(std::move(sbc));
                 }
-                if (sb2.collapse()) {
-                    sb2.reset();
-                    solid_check(!sb2);
+                sbc = csb2.collapse();
+                if (sbc) {
+                    solid_check(!csb2);
                     solid_check(BufferManager::localCount(2000) == 0);
                 }
             };
@@ -65,9 +82,9 @@ int test_shared_buffer(int argc, char* argv[])
             for (size_t i = 0; i < 4; ++i) {
                 thr_vec.emplace_back(lambda);
             }
-
-            if (sb1.collapse()) {
-                p.set_value(std::move(sb1));
+            auto sbc = csb1.collapse();
+            if (sbc) {
+                p.set_value(std::move(sbc));
             }
         }
 
@@ -102,6 +119,13 @@ int test_shared_buffer(int argc, char* argv[])
         SharedBuffer empty_buf;
         solid_check(empty_buf.capacity() == 0);
         cout << "Empty buffer actualCapacity = " << empty_buf.actualCapacity() << endl;
+        solid_check(empty_buf.actualCapacity() == 0);
+    }
+    {
+        SharedBuffer zero_buf = make_shared_buffer(0);
+        solid_check(zero_buf.capacity() == 0);
+        cout << "Zero buffer actualCapacity = " << zero_buf.actualCapacity() << endl;
+        solid_check(zero_buf.actualCapacity() != 0 && zero_buf.actualCapacity() < 0xffffffff);
     }
     return 0;
 }

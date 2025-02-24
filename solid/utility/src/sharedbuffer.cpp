@@ -5,19 +5,8 @@
 
 namespace solid {
 
-SharedBuffer::Data SharedBuffer::sentinel;
+// SharedBuffer::Data SharedBuffer::sentinel;
 
-char* SharedBuffer::Data::release(size_t& _previous_use_count)
-{
-    if ((_previous_use_count = use_count_.fetch_sub(1)) == 1) {
-        if (make_thread_id_ == std::thread::id{}) {
-            return buffer_;
-        } else {
-            return BufferManager::release(this);
-        }
-    }
-    return nullptr;
-}
 namespace {
 template <size_t DataSize>
 inline constexpr std::size_t compute_capacity(const std::size_t _cap)
@@ -35,7 +24,20 @@ inline constexpr std::size_t compute_capacity(const std::size_t _cap)
 }
 } // namespace
 
-/* static */ SharedBuffer::Data* SharedBuffer::allocate_data(const std::size_t _cap)
+namespace detail {
+char* SharedBufferBase::Data::release(size_t& _previous_use_count)
+{
+    if ((_previous_use_count = use_count_.fetch_sub(1)) == 1) {
+        if (make_thread_id_ == std::thread::id{}) {
+            return buffer_;
+        } else {
+            return BufferManager::release(this);
+        }
+    }
+    return nullptr;
+}
+
+/* static */ SharedBufferBase::Data* SharedBufferBase::allocate_data(const std::size_t _cap)
 {
     const std::size_t new_cap = compute_capacity<sizeof(Data)>(_cap);
     auto              pbuf    = new char[new_cap];
@@ -45,7 +47,7 @@ inline constexpr std::size_t compute_capacity(const std::size_t _cap)
     return pdata;
 }
 
-SharedBuffer::SharedBuffer(const std::size_t _cap, const std::thread::id& _thr_id)
+SharedBufferBase::SharedBufferBase(const std::size_t _cap, const std::thread::id& _thr_id)
 {
     pdata_ = BufferManager::allocate(_cap);
     if (pdata_ == nullptr) [[unlikely]] {
@@ -57,11 +59,17 @@ SharedBuffer::SharedBuffer(const std::size_t _cap, const std::thread::id& _thr_i
     pdata_->make_thread_id_ = _thr_id;
 }
 
-std::size_t SharedBuffer::actualCapacity() const
+std::size_t SharedBufferBase::actualCapacity() const
 {
-    const std::size_t new_cap = compute_capacity<sizeof(Data)>(pdata_->capacity_);
-    return (pdata_->buffer_ + new_cap) - pdata_->data();
+    if (*this) {
+        const std::size_t new_cap = compute_capacity<sizeof(Data)>(pdata_->capacity_);
+        return (pdata_->buffer_ + new_cap) - pdata_->data();
+    } else {
+        return 0;
+    }
 }
+
+} // namespace detail
 
 //-----------------------------------------------------------------------------
 
@@ -139,7 +147,7 @@ BufferManager::~BufferManager() {}
 {
     if (_pdata) {
         if (_pdata->make_thread_id_ == std::this_thread::get_id()) {
-            const std::size_t new_cap = compute_capacity<sizeof(SharedBuffer::Data)>(_pdata->capacity_);
+            const std::size_t new_cap = compute_capacity<sizeof(detail::SharedBufferBase::Data)>(_pdata->capacity_);
             auto&             entry   = local_data.entry_map_[new_cap];
 
             if (!entry.full()) {

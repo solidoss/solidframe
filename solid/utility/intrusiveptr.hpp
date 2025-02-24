@@ -65,7 +65,9 @@ class IntrusivePtr : public Policy {
 
 public:
     using element_type = T;
-    IntrusivePtr()     = default;
+    using ThisT        = IntrusivePtr<T, Policy>;
+
+    IntrusivePtr() = default;
 
     IntrusivePtr(const IntrusivePtr& _other)
         : ptr_(_other.ptr_)
@@ -181,16 +183,16 @@ public:
         return 0;
     }
 
-    bool collapse()
+    ThisT collapse()
     {
         if (ptr_) {
             if (Policy::release(*ptr_)) {
                 Policy::acquire(*ptr_);
-                return true;
+                return ThisT{std::move(*this)};
             }
             ptr_ = nullptr;
         }
-        return false;
+        return {};
     }
 
 private:
@@ -234,6 +236,7 @@ auto make_policy_intrusive(const P& _policy, Args&&... _args)
     return IntrusivePtr<T, P>(_policy, new T(std::forward<Args>(_args)...));
 }
 } // namespace impl
+
 template <class T, class... Args>
 auto make_intrusive(Args&&... _args)
 {

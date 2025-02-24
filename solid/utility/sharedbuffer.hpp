@@ -9,7 +9,14 @@
 
 namespace solid {
 
-class SharedBuffer {
+class BufferManager;
+
+namespace detail {
+
+class SharedBufferBase {
+    friend class BufferManager;
+
+protected:
     struct Data {
         std::atomic<std::size_t> use_count_;
         std::thread::id          make_thread_id_;
@@ -44,50 +51,68 @@ class SharedBuffer {
         }
     };
 
-    static Data sentinel;
+    static inline Data sentinel{};
+    static Data*       allocate_data(const std::size_t _cap);
 
     Data* pdata_;
 
-    friend SharedBuffer make_shared_buffer(const std::size_t);
-    friend class BufferManager;
+protected:
+    SharedBufferBase()
+        : pdata_(&sentinel)
+    {
+    }
 
-    static Data* allocate_data(const std::size_t _cap);
-
-    SharedBuffer(const std::size_t _cap)
+    SharedBufferBase(const std::size_t _cap)
         : pdata_(allocate_data(_cap))
     {
     }
 
-    SharedBuffer(const std::size_t _cap, const std::thread::id& _thr_id);
+    SharedBufferBase(const std::size_t _cap, const std::thread::id& _thr_id);
+
+    SharedBufferBase(const SharedBufferBase& _other)
+        : pdata_(_other ? &_other.pdata_->acquire() : _other.pdata_)
+    {
+    }
+
+    SharedBufferBase(SharedBufferBase&& _other)
+        : pdata_(_other.pdata_)
+    {
+        _other.pdata_ = &sentinel;
+    }
+
+    char* data() const
+    {
+        return pdata_->data();
+    }
+
+    void doCopy(const SharedBufferBase& _other)
+    {
+        if (pdata_ != _other.pdata_) {
+            reset();
+
+            if (_other) {
+                pdata_ = &_other.pdata_->acquire();
+            }
+        }
+    }
+
+    void doMove(SharedBufferBase&& _other)
+    {
+        if (pdata_ != _other.pdata_) {
+            reset();
+            pdata_        = _other.pdata_;
+            _other.pdata_ = &sentinel;
+        }
+    }
 
 public:
     explicit operator bool() const noexcept
     {
         return pdata_ != &sentinel;
     }
-
-    SharedBuffer()
-        : pdata_(&sentinel)
-    {
-    }
-    SharedBuffer(const SharedBuffer& _other)
-        : pdata_(_other ? &_other.pdata_->acquire() : _other.pdata_)
-    {
-    }
-    SharedBuffer(SharedBuffer&& _other)
-        : pdata_(_other.pdata_)
-    {
-        _other.pdata_ = &sentinel;
-    }
-
-    ~SharedBuffer()
+    ~SharedBufferBase()
     {
         reset();
-    }
-
-    char* data() const
-    {
-        return pdata_->data();
     }
 
     std::size_t size() const
@@ -105,16 +130,6 @@ public:
     auto makerThreadId() const
     {
         return pdata_->make_thread_id_;
-    }
-
-    void append(const std::size_t _size)
-    {
-        pdata_->size_ += _size;
-    }
-
-    void resize(const std::size_t _size = 0)
-    {
-        pdata_->size_ = _size;
     }
 
     bool empty() const
@@ -137,41 +152,68 @@ public:
         }
         return previous_use_count;
     }
+};
 
-    bool collapse()
+} // namespace detail
+
+class ConstSharedBuffer;
+
+//-----------------------------------------------------------------------------
+// Mutable - SharedBuffer
+//-----------------------------------------------------------------------------
+class SharedBuffer : public detail::SharedBufferBase {
+
+    friend class BufferManager;
+    friend SharedBuffer make_shared_buffer(const std::size_t);
+    friend class ConstSharedBuffer;
+
+    SharedBuffer(const std::size_t _cap)
+        : SharedBufferBase(_cap)
     {
-        if (*this) {
-            size_t previous_use_count = 0;
-            auto   buf                = pdata_->release(previous_use_count);
-            if (buf) {
-                pdata_->acquire();
-                return true;
-            } else {
-                pdata_ = &sentinel;
-            }
-        }
-        return false;
     }
 
-    SharedBuffer& operator=(const SharedBuffer& _other)
+    SharedBuffer(const std::size_t _cap, const std::thread::id& _thr_id)
+        : SharedBufferBase(_cap, _thr_id)
     {
-        if (pdata_ != _other.pdata_) {
-            reset();
-
-            if (_other) {
-                pdata_ = &_other.pdata_->acquire();
-            }
-        }
-        return *this;
     }
+
+    SharedBuffer(ConstSharedBuffer&& _other);
+
+public:
+    SharedBuffer() = default;
+
+    SharedBuffer(const SharedBuffer& _other) = delete;
+
+    SharedBuffer(SharedBuffer&& _other)
+        : SharedBufferBase(std::move(_other))
+    {
+    }
+
+    ~SharedBuffer()
+    {
+        reset();
+    }
+
+    char* data()
+    {
+        return detail::SharedBufferBase::data();
+    }
+
+    void append(const std::size_t _size)
+    {
+        pdata_->size_ += _size;
+    }
+
+    void resize(const std::size_t _size = 0)
+    {
+        pdata_->size_ = _size;
+    }
+
+    SharedBuffer& operator=(const SharedBuffer& _other) = delete;
 
     SharedBuffer& operator=(SharedBuffer&& _other)
     {
-        if (pdata_ != _other.pdata_) {
-            reset();
-            pdata_        = _other.pdata_;
-            _other.pdata_ = &sentinel;
-        }
+        doMove(std::move(_other));
         return *this;
     }
 };
@@ -181,12 +223,97 @@ inline SharedBuffer make_shared_buffer(const std::size_t _cap)
     return SharedBuffer(_cap);
 }
 
+//-----------------------------------------------------------------------------
+// ConstSharedBuffer
+//-----------------------------------------------------------------------------
+
+class ConstSharedBuffer : public detail::SharedBufferBase {
+public:
+    ConstSharedBuffer() = default;
+
+    ConstSharedBuffer(const ConstSharedBuffer& _other)
+        : SharedBufferBase(std::move(_other))
+    {
+    }
+
+    ConstSharedBuffer(ConstSharedBuffer&& _other)
+        : SharedBufferBase(std::move(_other))
+    {
+    }
+
+    ConstSharedBuffer(SharedBuffer&& _other)
+        : SharedBufferBase(std::move(_other))
+    {
+    }
+
+    ~ConstSharedBuffer()
+    {
+        reset();
+    }
+
+    const char* data() const
+    {
+        return detail::SharedBufferBase::data();
+    }
+
+    SharedBuffer collapse()
+    {
+        if (*this) {
+            size_t previous_use_count = 0;
+            auto   buf                = pdata_->release(previous_use_count);
+            if (buf) {
+                pdata_->acquire();
+                return SharedBuffer(std::move(*this));
+            } else {
+                pdata_ = &sentinel;
+            }
+        }
+        return {};
+    }
+
+    SharedBuffer mutate()
+    {
+        if (useCount() == 1) {
+            return SharedBuffer(std::move(*this));
+        } else {
+            return {};
+        }
+    }
+
+    ConstSharedBuffer& operator=(const ConstSharedBuffer& _other)
+    {
+        doCopy(_other);
+        return *this;
+    }
+
+    ConstSharedBuffer& operator=(ConstSharedBuffer&& _other)
+    {
+        doMove(std::move(_other));
+        return *this;
+    }
+
+    ConstSharedBuffer& operator=(SharedBuffer&& _other)
+    {
+        doMove(std::move(_other));
+        return *this;
+    }
+};
+
+inline SharedBuffer::SharedBuffer(ConstSharedBuffer&& _other)
+    : SharedBufferBase(std::move(_other))
+{
+}
+
+//-----------------------------------------------------------------------------
+// BufferManager
+//-----------------------------------------------------------------------------
+
 class BufferManager : NonCopyable {
-    friend class SharedBuffer;
+    friend class detail::SharedBufferBase;
     struct Data;
-    PimplT<Data>               pimpl_;
-    static char*               release(SharedBuffer::Data* _pdata);
-    static SharedBuffer::Data* allocate(const size_t _cap);
+    PimplT<Data>                           pimpl_;
+    static char*                           release(detail::SharedBufferBase::Data* _pdata);
+    static detail::SharedBufferBase::Data* allocate(const size_t _cap);
 
 public:
     struct LocalData;

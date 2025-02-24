@@ -148,17 +148,17 @@ int test_collapse(int argc, char* argv[])
         const auto stop_time = chrono::high_resolution_clock::now();
         cout << "Duration: " << chrono::duration_cast<chrono::microseconds>(stop_time - start_time).count() << "us" << endl;
     } else if (choice == 'b') {
-        CallPoolT  wp{{thread_count, 10000, 100},
+        CallPoolT         wp{{thread_count, 10000, 100},
             [](const size_t) {
                 set_current_thread_affinity();
             },
             [](const size_t) {}};
-        auto       sm         = make_shared_buffer(100);
-        const auto start_time = chrono::high_resolution_clock::now();
+        ConstSharedBuffer sm         = make_shared_buffer(100);
+        const auto        start_time = chrono::high_resolution_clock::now();
         for (size_t i = 0; i < repeat_count; ++i) {
-            std::promise<SharedBuffer> p;
-            auto                       f = p.get_future();
-            auto                       sm_lock{std::move(sm)};
+            std::promise<ConstSharedBuffer> p;
+            auto                            f = p.get_future();
+            auto                            sm_lock{std::move(sm)};
             wp.pushAll(
                 [&p, sm_lock]() mutable {
                     if (auto tmp_sm = collapse(sm_lock)) {
