@@ -175,7 +175,7 @@ private:
     void doCache() override
     {
         if constexpr (std::is_base_of_v<IntrusiveCacheable, What>) {
-            Cache::store(IntrusivePtr<What>(static_cast<What*>(this)));
+            Cache::store(IntrusivePtr<What>(static_cast<What*>(this), true));
         } else {
             static_assert(std::is_base_of_v<SharedCacheable, What>, "Type must be derived from SharedCacheable");
             Cache::store(std::static_pointer_cast<What>(this->shared_from_this()));

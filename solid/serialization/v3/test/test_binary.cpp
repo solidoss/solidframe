@@ -210,10 +210,12 @@ public:
 #endif
         return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d && s1 == s2 && m == _rt.m && s == _rt.s && um == _rt.um && us == _rt.us && vb == _rt.vb && bs == _rt.bs && vc == _rt.vc;
     }
-
-    // SOLID_REFLECT_V1(_rs, _rthis, _rctx)
+#ifndef __cpp_explicit_this_parameter
+    SOLID_REFLECT_V1(_rs, _rthis, _rctx)
+#else
     template <typename Self, class Reflector, class Context>
     void solidReflectV1(this Self& _rthis, Reflector& _rs, Context& _rctx)
+#endif
     {
         _rs.add(_rthis.p, _rctx, 1, "p", [](auto& _rmeta) { _rmeta.maxSize(100); });
         _rs

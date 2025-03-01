@@ -15,6 +15,24 @@ int test_shared_buffer(int argc, char* argv[])
 
         cout << sb.capacity() << endl;
         cout << sb.size() << endl;
+
+        sb.resize(100);
+
+        solid_check(sb.size() == 100);
+
+        SharedBuffer sb2 = sb;
+
+        solid_check(sb2.size() == 100);
+
+        SharedBuffer sb3 = sb2; // sb3 == sb2
+
+        solid_check(sb3);
+    }
+    {
+        MutableSharedBuffer sb = make_shared_buffer(1000);
+
+        cout << sb.capacity() << endl;
+        cout << sb.size() << endl;
         string_view pangram = "the quick brown fox jumps over the lazy dog";
         strncpy(sb.data(), pangram.data(), sb.capacity());
 
@@ -24,9 +42,9 @@ int test_shared_buffer(int argc, char* argv[])
 
         solid_check(sb.size() == pangram.size());
 
-        // SharedBuffer sbx{sb};//will not compile
+        // MutableSharedBuffer sbxx{sb};//will not compile
 
-        SharedBuffer sbx{std::move(sb)};
+        MutableSharedBuffer sbx{std::move(sb)};
 
         solid_check(sbx.size() == pangram.size());
         solid_check(!sb);
@@ -49,8 +67,8 @@ int test_shared_buffer(int argc, char* argv[])
         cout << "Data: " << sbc.data() << endl;
     }
     {
-        std::promise<SharedBuffer> p;
-        std::future<SharedBuffer>  f = p.get_future();
+        std::promise<MutableSharedBuffer> p;
+        std::future<MutableSharedBuffer>  f = p.get_future();
 
         vector<thread> thr_vec;
         const void*    psb1 = nullptr;

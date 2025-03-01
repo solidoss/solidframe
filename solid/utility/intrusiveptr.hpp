@@ -14,6 +14,364 @@
 
 namespace solid {
 
+#if true
+
+struct IntrusiveThreadSafePolicy;
+
+class IntrusiveThreadSafeBase {
+    friend struct IntrusiveThreadSafePolicy;
+    mutable std::atomic_size_t use_count_{0};
+};
+
+struct IntrusiveThreadSafePolicy {
+
+    static void acquire(const IntrusiveThreadSafeBase& _r) noexcept
+    {
+        ++_r.use_count_;
+    }
+    static bool release(const IntrusiveThreadSafeBase& _r) noexcept
+    {
+        return _r.use_count_.fetch_sub(1) == 1;
+    }
+
+    template <class T>
+    static void destroy(const T& _r)
+    {
+        static_assert(!std::is_same_v<T, IntrusiveThreadSafeBase>, "cannot destroy object from non virtual base class IntrusiveThreadSafeBase");
+        delete &_r;
+    }
+
+    static auto use_count(const IntrusiveThreadSafeBase& _r) noexcept
+    {
+        return _r.use_count_.load(std::memory_order_relaxed);
+    }
+
+    template <class T, class... Args>
+    static T* create(Args&&... _args)
+    {
+        return new T(std::forward<Args>(_args)...);
+    }
+};
+
+template <typename T>
+struct intrusive_policy_dispatch;
+
+template <typename T>
+concept DefaultIntrusiveC = std::is_base_of_v<IntrusiveThreadSafeBase, T>;
+
+template <DefaultIntrusiveC T>
+struct intrusive_policy_dispatch<T> {
+    using type = IntrusiveThreadSafePolicy;
+};
+
+template <typename T>
+using intrusive_policy_dispatch_t = typename intrusive_policy_dispatch<T>::type;
+
+namespace impl {
+template <class T, class PolicyT = intrusive_policy_dispatch_t<T>>
+bool intrusive_ptr_release(const T& _r)
+{
+    return PolicyT::release(_r);
+}
+
+template <class T, class PolicyT = intrusive_policy_dispatch_t<T>>
+void intrusive_ptr_destroy(const T& _r)
+{
+    return PolicyT::destroy(_r);
+}
+
+template <class T, class PolicyT = intrusive_policy_dispatch_t<T>>
+void intrusive_ptr_acquire(const T& _r)
+{
+    PolicyT::acquire(_r);
+}
+
+template <class T, class PolicyT = intrusive_policy_dispatch_t<T>>
+size_t intrusive_ptr_use_count(const T& _r)
+{
+    return PolicyT::use_count(_r);
+}
+
+template <class T, class... Args, class PolicyT = intrusive_policy_dispatch_t<T>>
+T* intrusive_ptr_create(Args&&... _args)
+{
+    return PolicyT::template create<T>(std::forward<Args>(_args)...);
+}
+
+template <class T>
+class IntrusivePtrBase {
+    using ThisT = IntrusivePtrBase<T>;
+    template <class TT>
+    friend class IntrusivePtrBase;
+
+protected:
+    T* ptr_ = nullptr;
+
+protected:
+    IntrusivePtrBase() = default;
+
+    IntrusivePtrBase(const IntrusivePtrBase& _other)
+        : ptr_(_other.ptr_)
+    {
+        if (ptr_) {
+            intrusive_ptr_acquire(*ptr_);
+        }
+    }
+
+    IntrusivePtrBase(IntrusivePtrBase&& _other)
+        : ptr_(_other.detach())
+    {
+    }
+
+    template <class TT>
+    IntrusivePtrBase(const IntrusivePtrBase<TT>& _other)
+        : ptr_(static_cast<T*>(_other.ptr_))
+    {
+        if (ptr_) {
+            intrusive_ptr_acquire(*ptr_);
+        }
+    }
+
+    template <class TT>
+    IntrusivePtrBase(IntrusivePtrBase<TT>&& _other)
+        : ptr_(static_cast<TT*>(_other.detach()))
+    {
+    }
+
+    ~IntrusivePtrBase()
+    {
+        if (ptr_ && intrusive_ptr_release(*ptr_)) {
+            intrusive_ptr_destroy(*ptr_);
+        }
+    }
+
+    void doCopy(const IntrusivePtrBase& _other) noexcept
+    {
+        IntrusivePtrBase{_other}.swap(*this);
+    }
+    void doMove(IntrusivePtrBase&& _other) noexcept
+    {
+        IntrusivePtrBase{std::move(_other)}.swap(*this);
+    }
+
+    template <class TT>
+    void doCopy(const IntrusivePtrBase<TT>& _other) noexcept
+    {
+        IntrusivePtrBase{_other}.swap(*this);
+    }
+
+    template <class TT>
+    void doMove(IntrusivePtrBase<TT>&& _other) noexcept
+    {
+        IntrusivePtrBase{std::move(_other)}.swap(*this);
+    }
+
+    IntrusivePtrBase(T* _ptr)
+        : ptr_(_ptr)
+    {
+        if (_ptr) {
+            intrusive_ptr_acquire(*_ptr);
+        }
+    }
+
+    IntrusivePtrBase(T* _ptr, const bool _do_acquire)
+        : ptr_(_ptr)
+    {
+        if (_ptr && _do_acquire) {
+            intrusive_ptr_acquire(*_ptr);
+        }
+    }
+
+    T* detach() noexcept
+    {
+        T* ret = ptr_;
+        ptr_   = nullptr;
+        return ret;
+    }
+
+    void swap(IntrusivePtrBase& _other) noexcept
+    {
+        T* tmp      = ptr_;
+        ptr_        = _other.ptr_;
+        _other.ptr_ = tmp;
+    }
+
+public:
+    using element_type = T;
+
+    explicit operator bool() const noexcept
+    {
+        return ptr_ != nullptr;
+    }
+
+    void reset()
+    {
+        if (ptr_) {
+            if (intrusive_ptr_release(*ptr_)) {
+                intrusive_ptr_destroy(*ptr_);
+            }
+            ptr_ = nullptr;
+        }
+    }
+
+    size_t useCount() const noexcept
+    {
+        if (ptr_ != nullptr) [[likely]] {
+            return intrusive_ptr_use_count(*ptr_);
+        }
+        return 0;
+    }
+#if 0
+    ThisT collapse()
+    {
+        if (ptr_) {
+            if (intrusive_ptr_release(*ptr_)) {
+                intrusive_ptr_acquire(*ptr_);
+                return ThisT{std::move(*this)};
+            }
+            ptr_ = nullptr;
+        }
+        return {};
+    }
+
+#endif
+};
+
+} // namespace impl
+
+template <class T>
+class IntrusivePtr : public impl::IntrusivePtrBase<T> {
+    using BaseT = impl::IntrusivePtrBase<T>;
+    using ThisT = IntrusivePtr<T>;
+    template <class TT>
+    friend class IntrusivePtr;
+
+public:
+    IntrusivePtr() = default;
+
+    IntrusivePtr(T* _ptr, const bool _do_acquire)
+        : BaseT(_ptr, _do_acquire)
+    {
+    }
+
+    IntrusivePtr(const IntrusivePtr& _other)
+        : BaseT(_other)
+    {
+    }
+
+    IntrusivePtr(IntrusivePtr&& _other)
+        : BaseT(std::move(_other))
+    {
+    }
+
+    template <class TT>
+    IntrusivePtr(const IntrusivePtr<TT>& _other)
+        : BaseT(_other)
+    {
+    }
+
+    template <class TT>
+    IntrusivePtr(IntrusivePtr<TT>&& _other)
+        : BaseT(std::move(_other))
+    {
+    }
+
+    ~IntrusivePtr() = default;
+
+    IntrusivePtr& operator=(const IntrusivePtr& _other) noexcept
+    {
+        BaseT::doCopy(_other);
+        return *this;
+    }
+
+    IntrusivePtr& operator=(IntrusivePtr&& _other) noexcept
+    {
+        BaseT::doMove(std::move(_other));
+        return *this;
+    }
+
+    template <class TT>
+    IntrusivePtr& operator=(const IntrusivePtr<TT>& _other) noexcept
+    {
+        BaseT::doCopy(_other);
+        return *this;
+    }
+
+    template <class TT>
+    IntrusivePtr& operator=(IntrusivePtr<TT>&& _other) noexcept
+    {
+        BaseT::doMove(std::move(_other));
+        return *this;
+    }
+
+    T* get() const noexcept
+    {
+        return BaseT::ptr_;
+    }
+
+    T& operator*() const noexcept
+    {
+        return *BaseT::ptr_;
+    }
+
+    T* operator->() const noexcept
+    {
+        return BaseT::ptr_;
+    }
+
+private:
+    template <class TT, class... Args>
+    friend IntrusivePtr<TT> make_intrusive(Args&&... _args);
+    template <class T1, class T2>
+    friend IntrusivePtr<T1> static_pointer_cast(const IntrusivePtr<T2>& _rp) noexcept;
+    template <class T1, class T2>
+    friend IntrusivePtr<T1> dynamic_pointer_cast(const IntrusivePtr<T2>& _rp) noexcept;
+    template <class T1, class T2>
+    friend IntrusivePtr<T1> static_pointer_cast(IntrusivePtr<T2>&& _rp) noexcept;
+    template <class T1, class T2>
+    friend IntrusivePtr<T1> dynamic_pointer_cast(IntrusivePtr<T2>&& _rp) noexcept;
+
+    IntrusivePtr(T* _ptr)
+        : BaseT(_ptr)
+    {
+    }
+};
+
+template <class TT, class... Args>
+inline IntrusivePtr<TT> make_intrusive(Args&&... _args)
+{
+    // return IntrusivePtr<TT>(new TT(std::forward<Args>(_args)...));
+    return IntrusivePtr<TT>(impl::intrusive_ptr_create<TT>(std::forward<Args>(_args)...));
+}
+template <class T1, class T2>
+inline IntrusivePtr<T1> static_pointer_cast(const IntrusivePtr<T2>& _rp) noexcept
+{
+    return IntrusivePtr<T1>(static_cast<T1*>(_rp.get()));
+}
+template <class T1, class T2>
+inline IntrusivePtr<T1> dynamic_pointer_cast(const IntrusivePtr<T2>& _rp) noexcept
+{
+    return IntrusivePtr<T1>(dynamic_cast<T1*>(_rp.get()));
+}
+
+template <class T1, class T2>
+inline IntrusivePtr<T1> static_pointer_cast(IntrusivePtr<T2>&& _rp) noexcept
+{
+    return IntrusivePtr<T1>(static_cast<T1*>(_rp.detach()));
+}
+
+template <class T1, class T2>
+inline IntrusivePtr<T1> dynamic_pointer_cast(IntrusivePtr<T2>&& _rp) noexcept
+{
+    auto* pt = dynamic_cast<T1*>(_rp.get());
+    if (pt) {
+        _rp.detach();
+        return IntrusivePtr<T1>(pt);
+    }
+    return IntrusivePtr<T1>();
+}
+
+#else
 class IntrusiveThreadSafePolicy;
 
 class IntrusiveThreadSafeBase {
@@ -37,11 +395,6 @@ private:
     }
 };
 
-namespace impl {
-template <class T, class P, class... Args>
-auto make_policy_intrusive(const P& _policy, Args&&... _args);
-}
-
 class IntrusiveThreadSafePolicy {
 protected:
     void acquire(const IntrusiveThreadSafeBase& _rt) const noexcept
@@ -59,17 +412,22 @@ protected:
     }
 };
 
+namespace impl {
+template <class T, class P, class... Args>
+auto make_policy_intrusive(const P& _policy, Args&&... _args);
+
 template <class T, class Policy = IntrusiveThreadSafePolicy>
-class IntrusivePtr : public Policy {
+class IntrusivePtrBase : public Policy {
+protected:
     T* ptr_ = nullptr;
 
-public:
+protected:
     using element_type = T;
-    using ThisT        = IntrusivePtr<T, Policy>;
+    using ThisT        = IntrusivePtrBase<T, Policy>;
 
-    IntrusivePtr() = default;
+    IntrusivePtrBase() = default;
 
-    IntrusivePtr(const IntrusivePtr& _other)
+    IntrusivePtrBase(const IntrusivePtrBase& _other)
         : ptr_(_other.ptr_)
     {
         if (ptr_) {
@@ -77,13 +435,13 @@ public:
         }
     }
 
-    IntrusivePtr(IntrusivePtr&& _other)
+    IntrusivePtrBase(IntrusivePtrBase&& _other)
         : ptr_(_other.detach())
     {
     }
 
     template <class What>
-    IntrusivePtr(const IntrusivePtr<What, Policy>& _other)
+    IntrusivePtrBase(const IntrusivePtrBase<What, Policy>& _other)
         : ptr_(_other.get())
     {
         if (ptr_) {
@@ -92,24 +450,24 @@ public:
     }
 
     template <class What>
-    IntrusivePtr(IntrusivePtr<What, Policy>&& _other)
+    IntrusivePtrBase(IntrusivePtrBase<What, Policy>&& _other)
         : ptr_(_other.detach())
     {
     }
 
     template <class U, class P>
-    friend class IntrusivePtr;
+    friend class IntrusivePtrBase;
 
-    ~IntrusivePtr()
+    ~IntrusivePtrBase()
     {
         if (ptr_ && Policy::release(*ptr_)) {
             delete ptr_;
         }
     }
 
-    IntrusivePtr& operator=(const IntrusivePtr& _other) noexcept
+    IntrusivePtrBase& operator=(const IntrusivePtrBase& _other) noexcept
     {
-        IntrusivePtr{_other}.swap(*this);
+        IntrusivePtrBase{_other}.swap(*this);
         return *this;
     }
     IntrusivePtr& operator=(IntrusivePtr&& _other) noexcept
@@ -229,6 +587,142 @@ private:
     }
 };
 
+} // namespace impl
+
+template <class T, class Policy = IntrusiveThreadSafePolicy>
+class IntrusivePtr : public impl::IntrusivePtrBase<T, Policy> {
+public:
+    using element_type = T;
+    using BaseT        = impl::IntrusivePtrBase<T, Policy>;
+    using ThisT        = IntrusivePtr<T, Policy>;
+
+    IntrusivePtr() = default;
+
+    IntrusivePtr(const IntrusivePtr& _other)
+        : BaseT(_other)
+    {
+    }
+
+    IntrusivePtr(IntrusivePtr&& _other)
+        : BaseT(std::move(_other))
+    {
+    }
+
+    template <class What>
+    IntrusivePtr(const IntrusivePtr<What, Policy>& _other)
+        : BaseT(_other)
+    {
+    }
+
+    template <class What>
+    IntrusivePtr(IntrusivePtr<What, Policy>&& _other)
+        : BaseT(std::move(_other))
+    {
+    }
+
+    template <class U, class P>
+    friend class IntrusivePtr;
+
+    ~IntrusivePtr()
+    {
+    }
+
+    IntrusivePtr& operator=(const IntrusivePtr& _other) noexcept
+    {
+        IntrusivePtr{_other}.swap(*this);
+        return *this;
+    }
+
+    IntrusivePtr& operator=(IntrusivePtr&& _other) noexcept
+    {
+        IntrusivePtr{std::move(_other)}.swap(*this);
+        return *this;
+    }
+
+    template <class What>
+    IntrusivePtr& operator=(const IntrusivePtr<What, Policy>& _other) noexcept
+    {
+        IntrusivePtr{_other}.swap(*this);
+        return *this;
+    }
+    template <class What>
+    IntrusivePtr& operator=(IntrusivePtr<What, Policy>&& _other) noexcept
+    {
+        IntrusivePtr{std::move(_other)}.swap(*this);
+        return *this;
+    }
+
+    void reset()
+    {
+        if (ptr_) {
+            if (Policy::release(*ptr_)) {
+                delete ptr_;
+            }
+            ptr_ = nullptr;
+        }
+    }
+
+    void swap(IntrusivePtr& _other) noexcept
+    {
+        T* tmp      = ptr_;
+        ptr_        = _other.ptr_;
+        _other.ptr_ = tmp;
+    }
+
+    size_t useCount() const noexcept
+    {
+        if (ptr_ != nullptr) [[likely]] {
+            return Policy::useCount(*ptr_);
+        }
+        return 0;
+    }
+
+    ThisT collapse()
+    {
+        if (ptr_) {
+            if (Policy::release(*ptr_)) {
+                Policy::acquire(*ptr_);
+                return ThisT{std::move(*this)};
+            }
+            ptr_ = nullptr;
+        }
+        return {};
+    }
+
+private:
+    template <class TT, class... Args>
+    friend auto make_intrusive(Args&&... _args);
+    template <class TT, class PP, class... Args>
+    friend auto impl::make_policy_intrusive(const PP&, Args&&... _args);
+    template <class T1, class T2, class P>
+    friend IntrusivePtr<T1, P> static_pointer_cast(const IntrusivePtr<T2, P>& _rp) noexcept;
+    template <class T1, class T2, class P>
+    friend IntrusivePtr<T1, P> dynamic_pointer_cast(const IntrusivePtr<T2, P>& _rp) noexcept;
+    template <class T1, class T2, class P>
+    friend IntrusivePtr<T1, P> static_pointer_cast(IntrusivePtr<T2, P>&& _rp) noexcept;
+    template <class T1, class T2, class P>
+    friend IntrusivePtr<T1, P> dynamic_pointer_cast(IntrusivePtr<T2, P>&& _rp) noexcept;
+    template <class What, class Cache>
+    friend class EnableCacheable;
+
+    IntrusivePtr(T* _ptr)
+        : ptr_(_ptr)
+    {
+        if (_ptr) {
+            Policy::acquire(*_ptr);
+        }
+    }
+
+    IntrusivePtr(const Policy& _policy, T* _ptr)
+        : Policy(_policy)
+        , ptr_(_ptr)
+    {
+        if (_ptr) {
+            Policy::acquire(*_ptr);
+        }
+    }
+};
+
 namespace impl {
 template <class T, class P, class... Args>
 auto make_policy_intrusive(const P& _policy, Args&&... _args)
@@ -275,5 +769,5 @@ IntrusivePtr<T1, P> dynamic_pointer_cast(IntrusivePtr<T2, P>&& _rp) noexcept
     }
     return IntrusivePtr<T1, P>();
 }
-
+#endif
 } // namespace solid

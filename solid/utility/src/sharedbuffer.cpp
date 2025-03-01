@@ -24,7 +24,7 @@ inline constexpr std::size_t compute_capacity(const std::size_t _cap)
 }
 } // namespace
 
-namespace detail {
+namespace impl {
 char* SharedBufferBase::Data::release(size_t& _previous_use_count)
 {
     if ((_previous_use_count = use_count_.fetch_sub(1)) == 1) {
@@ -69,7 +69,7 @@ std::size_t SharedBufferBase::actualCapacity() const
     }
 }
 
-} // namespace detail
+} // namespace impl
 
 //-----------------------------------------------------------------------------
 
@@ -147,7 +147,7 @@ BufferManager::~BufferManager() {}
 {
     if (_pdata) {
         if (_pdata->make_thread_id_ == std::this_thread::get_id()) {
-            const std::size_t new_cap = compute_capacity<sizeof(detail::SharedBufferBase::Data)>(_pdata->capacity_);
+            const std::size_t new_cap = compute_capacity<sizeof(impl::SharedBufferBase::Data)>(_pdata->capacity_);
             auto&             entry   = local_data.entry_map_[new_cap];
 
             if (!entry.full()) {

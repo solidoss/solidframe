@@ -11,7 +11,7 @@ namespace solid {
 
 class BufferManager;
 
-namespace detail {
+namespace impl {
 
 class SharedBufferBase {
     friend class BufferManager;
@@ -154,18 +154,17 @@ public:
     }
 };
 
-} // namespace detail
+} // namespace impl
 
-class ConstSharedBuffer;
+class MutableSharedBuffer;
 
 //-----------------------------------------------------------------------------
-// Mutable - SharedBuffer
+// SharedBuffer
 //-----------------------------------------------------------------------------
-class SharedBuffer : public detail::SharedBufferBase {
 
+class SharedBuffer : public impl::SharedBufferBase {
     friend class BufferManager;
     friend SharedBuffer make_shared_buffer(const std::size_t);
-    friend class ConstSharedBuffer;
 
     SharedBuffer(const std::size_t _cap)
         : SharedBufferBase(_cap)
@@ -177,26 +176,29 @@ class SharedBuffer : public detail::SharedBufferBase {
     {
     }
 
-    SharedBuffer(ConstSharedBuffer&& _other);
-
 public:
     SharedBuffer() = default;
 
-    SharedBuffer(const SharedBuffer& _other) = delete;
+    SharedBuffer(const SharedBuffer& _other)
+        : SharedBufferBase(_other)
+    {
+    }
 
     SharedBuffer(SharedBuffer&& _other)
         : SharedBufferBase(std::move(_other))
     {
     }
 
+    SharedBuffer(MutableSharedBuffer&& _other);
+
     ~SharedBuffer()
     {
         reset();
     }
 
-    char* data()
+    char* data() const
     {
-        return detail::SharedBufferBase::data();
+        return pdata_->data();
     }
 
     void append(const std::size_t _size)
@@ -209,13 +211,19 @@ public:
         pdata_->size_ = _size;
     }
 
-    SharedBuffer& operator=(const SharedBuffer& _other) = delete;
+    SharedBuffer& operator=(const SharedBuffer& _other)
+    {
+        doCopy(_other);
+        return *this;
+    }
 
     SharedBuffer& operator=(SharedBuffer&& _other)
     {
         doMove(std::move(_other));
         return *this;
     }
+
+    SharedBuffer& operator=(MutableSharedBuffer&& _other);
 };
 
 inline SharedBuffer make_shared_buffer(const std::size_t _cap)
@@ -223,16 +231,86 @@ inline SharedBuffer make_shared_buffer(const std::size_t _cap)
     return SharedBuffer(_cap);
 }
 
+class ConstSharedBuffer;
+
+//-----------------------------------------------------------------------------
+// MutableSharedBuffer
+//-----------------------------------------------------------------------------
+
+class MutableSharedBuffer : public impl::SharedBufferBase {
+    friend class ConstSharedBuffer;
+
+    MutableSharedBuffer(const std::size_t _cap)
+        : SharedBufferBase(_cap)
+    {
+    }
+
+    MutableSharedBuffer(const std::size_t _cap, const std::thread::id& _thr_id)
+        : SharedBufferBase(_cap, _thr_id)
+    {
+    }
+
+    MutableSharedBuffer(ConstSharedBuffer&& _other);
+
+public:
+    MutableSharedBuffer() = default;
+
+    MutableSharedBuffer(const MutableSharedBuffer& _other) = delete;
+
+    MutableSharedBuffer(MutableSharedBuffer&& _other)
+        : SharedBufferBase(std::move(_other))
+    {
+    }
+
+    MutableSharedBuffer(SharedBuffer&& _other)
+        : SharedBufferBase(std::move(_other))
+    {
+    }
+
+    ~MutableSharedBuffer()
+    {
+        reset();
+    }
+
+    char* data()
+    {
+        return impl::SharedBufferBase::data();
+    }
+
+    void append(const std::size_t _size)
+    {
+        pdata_->size_ += _size;
+    }
+
+    void resize(const std::size_t _size = 0)
+    {
+        pdata_->size_ = _size;
+    }
+
+    MutableSharedBuffer& operator=(const MutableSharedBuffer& _other) = delete;
+
+    MutableSharedBuffer& operator=(MutableSharedBuffer&& _other)
+    {
+        doMove(std::move(_other));
+        return *this;
+    }
+    MutableSharedBuffer& operator=(SharedBuffer&& _other)
+    {
+        doMove(std::move(_other));
+        return *this;
+    }
+};
+
 //-----------------------------------------------------------------------------
 // ConstSharedBuffer
 //-----------------------------------------------------------------------------
 
-class ConstSharedBuffer : public detail::SharedBufferBase {
+class ConstSharedBuffer : public impl::SharedBufferBase {
 public:
     ConstSharedBuffer() = default;
 
     ConstSharedBuffer(const ConstSharedBuffer& _other)
-        : SharedBufferBase(std::move(_other))
+        : SharedBufferBase(_other)
     {
     }
 
@@ -246,6 +324,11 @@ public:
     {
     }
 
+    ConstSharedBuffer(MutableSharedBuffer&& _other)
+        : SharedBufferBase(std::move(_other))
+    {
+    }
+
     ~ConstSharedBuffer()
     {
         reset();
@@ -253,17 +336,17 @@ public:
 
     const char* data() const
     {
-        return detail::SharedBufferBase::data();
+        return impl::SharedBufferBase::data();
     }
 
-    SharedBuffer collapse()
+    MutableSharedBuffer collapse()
     {
         if (*this) {
             size_t previous_use_count = 0;
             auto   buf                = pdata_->release(previous_use_count);
             if (buf) {
                 pdata_->acquire();
-                return SharedBuffer(std::move(*this));
+                return MutableSharedBuffer(std::move(*this));
             } else {
                 pdata_ = &sentinel;
             }
@@ -271,10 +354,10 @@ public:
         return {};
     }
 
-    SharedBuffer mutate()
+    MutableSharedBuffer mutate()
     {
         if (useCount() == 1) {
-            return SharedBuffer(std::move(*this));
+            return MutableSharedBuffer(std::move(*this));
         } else {
             return {};
         }
@@ -297,9 +380,26 @@ public:
         doMove(std::move(_other));
         return *this;
     }
+
+    ConstSharedBuffer& operator=(MutableSharedBuffer&& _other)
+    {
+        doMove(std::move(_other));
+        return *this;
+    }
 };
 
-inline SharedBuffer::SharedBuffer(ConstSharedBuffer&& _other)
+inline MutableSharedBuffer::MutableSharedBuffer(ConstSharedBuffer&& _other)
+    : SharedBufferBase(std::move(_other))
+{
+}
+
+inline SharedBuffer& SharedBuffer::operator=(MutableSharedBuffer&& _other)
+{
+    doMove(std::move(_other));
+    return *this;
+}
+
+inline SharedBuffer::SharedBuffer(MutableSharedBuffer&& _other)
     : SharedBufferBase(std::move(_other))
 {
 }
@@ -309,11 +409,11 @@ inline SharedBuffer::SharedBuffer(ConstSharedBuffer&& _other)
 //-----------------------------------------------------------------------------
 
 class BufferManager : NonCopyable {
-    friend class detail::SharedBufferBase;
+    friend class impl::SharedBufferBase;
     struct Data;
-    PimplT<Data>                           pimpl_;
-    static char*                           release(detail::SharedBufferBase::Data* _pdata);
-    static detail::SharedBufferBase::Data* allocate(const size_t _cap);
+    PimplT<Data>                         pimpl_;
+    static char*                         release(impl::SharedBufferBase::Data* _pdata);
+    static impl::SharedBufferBase::Data* allocate(const size_t _cap);
 
 public:
     struct LocalData;
