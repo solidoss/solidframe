@@ -239,6 +239,8 @@ class ConstSharedBuffer;
 
 class MutableSharedBuffer : public impl::SharedBufferBase {
     friend class ConstSharedBuffer;
+    friend class BufferManager;
+    friend MutableSharedBuffer make_mutable_buffer(const std::size_t);
 
     MutableSharedBuffer(const std::size_t _cap)
         : SharedBufferBase(_cap)
@@ -252,17 +254,17 @@ class MutableSharedBuffer : public impl::SharedBufferBase {
 
     MutableSharedBuffer(ConstSharedBuffer&& _other);
 
+    MutableSharedBuffer(SharedBuffer&& _other)
+        : SharedBufferBase(std::move(_other))
+    {
+    }
+
 public:
     MutableSharedBuffer() = default;
 
     MutableSharedBuffer(const MutableSharedBuffer& _other) = delete;
 
     MutableSharedBuffer(MutableSharedBuffer&& _other)
-        : SharedBufferBase(std::move(_other))
-    {
-    }
-
-    MutableSharedBuffer(SharedBuffer&& _other)
         : SharedBufferBase(std::move(_other))
     {
     }
@@ -301,6 +303,11 @@ public:
     }
 };
 
+inline MutableSharedBuffer make_mutable_buffer(const std::size_t _cap)
+{
+    return MutableSharedBuffer(make_shared_buffer(_cap));
+}
+
 //-----------------------------------------------------------------------------
 // ConstSharedBuffer
 //-----------------------------------------------------------------------------
@@ -315,11 +322,6 @@ public:
     }
 
     ConstSharedBuffer(ConstSharedBuffer&& _other)
-        : SharedBufferBase(std::move(_other))
-    {
-    }
-
-    ConstSharedBuffer(SharedBuffer&& _other)
         : SharedBufferBase(std::move(_other))
     {
     }
@@ -427,6 +429,11 @@ public:
     inline static SharedBuffer make(const size_t _cap)
     {
         return SharedBuffer{_cap, std::this_thread::get_id()};
+    }
+
+    inline static MutableSharedBuffer makeMutable(const size_t _cap)
+    {
+        return MutableSharedBuffer{make(_cap)};
     }
 
     static void   localMaxCount(const size_t _cap, const size_t _count);

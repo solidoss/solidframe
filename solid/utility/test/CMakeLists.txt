@@ -1,6 +1,7 @@
 #==============================================================================
 set( UtilityTestSuite
     test_intrusiveptr.cpp
+    test_collapse.cpp
     test_invalid_index.cpp
     test_innerlist.cpp
     test_any.cpp
@@ -21,7 +22,6 @@ set( UtilityTestSuite
     test_function_any_speed_full_solid.cpp
     test_function_any_speed_full_stl.cpp
     test_shared_buffer.cpp
-    #test_collapse.cpp
 )
 
 set( ThreadPoolTestSuite

@@ -29,7 +29,7 @@ int test_shared_buffer(int argc, char* argv[])
         solid_check(sb3);
     }
     {
-        MutableSharedBuffer sb = make_shared_buffer(1000);
+        MutableSharedBuffer sb = make_mutable_buffer(1000);
 
         cout << sb.capacity() << endl;
         cout << sb.size() << endl;
@@ -74,8 +74,8 @@ int test_shared_buffer(int argc, char* argv[])
         const void*    psb1 = nullptr;
         {
 
-            ConstSharedBuffer csb1 = BufferManager::make(1000);
-            ConstSharedBuffer csb2 = BufferManager::make(2000);
+            ConstSharedBuffer csb1 = BufferManager::makeMutable(1000);
+            ConstSharedBuffer csb2 = BufferManager::makeMutable(2000);
 
             cout << static_cast<const void*>(csb1.data()) << endl;
             cout << static_cast<const void*>(csb2.data()) << endl;
@@ -90,6 +90,7 @@ int test_shared_buffer(int argc, char* argv[])
                 if (sbc) {
                     p.set_value(std::move(sbc));
                 }
+                solid_check(!sbc);
                 sbc = csb2.collapse();
                 if (sbc) {
                     solid_check(!csb2);
