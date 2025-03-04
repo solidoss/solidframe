@@ -14,7 +14,7 @@
 
 namespace solid {
 namespace serialization {
-namespace v3 {
+inline namespace v3 {
 
 const LoggerT logger{"solid::serialization"};
 

@@ -49,7 +49,7 @@ int test_shared_buffer(int argc, char* argv[])
         solid_check(sbx.size() == pangram.size());
         solid_check(!sb);
 
-        ConstSharedBuffer csb = move(sbx);
+        ConstSharedBuffer csb = std::move(sbx);
 
         solid_check(csb.size() == pangram.size());
 

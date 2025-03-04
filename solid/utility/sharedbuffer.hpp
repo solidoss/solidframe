@@ -13,48 +13,50 @@ class BufferManager;
 
 namespace impl {
 
-class SharedBufferBase {
+struct SharedBufferData {
     friend class BufferManager;
 
+    std::atomic<std::size_t> use_count_;
+    std::thread::id          make_thread_id_;
+    SharedBufferData*        pnext_    = nullptr;
+    std::size_t              size_     = 0;
+    std::size_t              capacity_ = 0;
+    char*                    buffer_   = nullptr;
+    char                     data_[8];
+
+    SharedBufferData()
+        : use_count_(1)
+    {
+    }
+
+    SharedBufferData(char* _buffer)
+        : use_count_(1)
+        , buffer_(_buffer)
+    {
+    }
+
+    SharedBufferData& acquire()
+    {
+        use_count_.fetch_add(1);
+        return *this;
+    }
+
+    char* release(size_t& _previous_use_count);
+
+    char* data()
+    {
+        return data_;
+    }
+};
+
+class SharedBufferBase {
 protected:
-    struct Data {
-        std::atomic<std::size_t> use_count_;
-        std::thread::id          make_thread_id_;
-        Data*                    pnext_    = nullptr;
-        std::size_t              size_     = 0;
-        std::size_t              capacity_ = 0;
-        char*                    buffer_   = nullptr;
-        char                     data_[8];
+    friend class BufferManager;
 
-        Data()
-            : use_count_(1)
-        {
-        }
+    static inline SharedBufferData sentinel{};
+    static SharedBufferData*       allocate_data(const std::size_t _cap);
 
-        Data(char* _buffer)
-            : use_count_(1)
-            , buffer_(_buffer)
-        {
-        }
-
-        Data& acquire()
-        {
-            use_count_.fetch_add(1);
-            return *this;
-        }
-
-        char* release(size_t& _previous_use_count);
-
-        char* data()
-        {
-            return data_;
-        }
-    };
-
-    static inline Data sentinel{};
-    static Data*       allocate_data(const std::size_t _cap);
-
-    Data* pdata_;
+    SharedBufferData* pdata_;
 
 protected:
     SharedBufferBase()
@@ -411,11 +413,15 @@ inline SharedBuffer::SharedBuffer(MutableSharedBuffer&& _other)
 //-----------------------------------------------------------------------------
 
 class BufferManager : NonCopyable {
+    friend class impl::SharedBufferData;
     friend class impl::SharedBufferBase;
     struct Data;
-    PimplT<Data>                         pimpl_;
-    static char*                         release(impl::SharedBufferBase::Data* _pdata);
-    static impl::SharedBufferBase::Data* allocate(const size_t _cap);
+    PimplT<Data> pimpl_;
+
+    using DataT = impl::SharedBufferData;
+
+    static char*  release(DataT* _pdata);
+    static DataT* allocate(const size_t _cap);
 
 public:
     struct LocalData;
