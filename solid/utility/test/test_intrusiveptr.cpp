@@ -131,5 +131,14 @@ int test_intrusiveptr(int argc, char* argvp[])
         // auto base_ptr = static_pointer_cast<IntrusiveThreadSafeBase>(ptr);//must not compile
     }
 
+    {
+        MutableIntrusivePtr<Test> p1 = make_mutable_intrusive<Test>("ceva", 10);
+
+        ConstIntrusivePtr<Test> p2 = std::move(p1);
+
+        solid_check(p2);
+        solid_check(!p1);
+    }
+
     return 0;
 }

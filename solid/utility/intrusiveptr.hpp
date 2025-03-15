@@ -457,7 +457,7 @@ public:
     }
 
     ConstIntrusivePtr(MutableIntrusivePtr<T>&& _other)
-        : BaseT(_other)
+        : BaseT(std::move(_other))
     {
     }
 
