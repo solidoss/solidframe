@@ -125,8 +125,8 @@ if((NOT CMAKE_SYSTEM MATCHES "Windows*") AND CMAKE_BUILD_TYPE STREQUAL "coverage
     #force a single configuration type on Windows builds
     set(CMAKE_CONFIGURATION_TYPES "debug")
     set(CONFIGURATION_TYPE "debug")
-    add_compile_options("SHELL: -coverage -fprofile-arcs -ftest-coverage")
-    add_link_options("SHELL: -fprofile-arcs -ftest-coverage")
+    add_compile_options("SHELL: --coverage")
+    add_link_options("SHELL: --coverage")
 elseif(CMAKE_SYSTEM MATCHES "Windows*" AND CMAKE_BUILD_TYPE STREQUAL "coverage")
     message(FATAL_ERROR "\r\n === Coverage not yet supported for Windows systems ===\r\n")
 endif()
@@ -382,9 +382,9 @@ if(NOT ON_CROSS)
     find_program( MEMORYCHECK_COMMAND valgrind )
     set( MEMORYCHECK_COMMAND_OPTIONS "--trace-children=yes --leak-check=full" )
     set( MEMORYCHECK_SUPPRESSIONS_FILE "${PROJECT_SOURCE_DIR}/cmake/valgrind_suppress.txt" )
-    
+
     set(SOLID_TEST_ALL TRUE CACHE BOOL "Enable/Disable all tests")
-    
+
     enable_testing()
     include(CTest)
 else()
