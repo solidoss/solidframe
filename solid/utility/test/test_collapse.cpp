@@ -5,6 +5,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <chrono>
 
 #include "solid/system/exception.hpp"
 #include "solid/system/log.hpp"
