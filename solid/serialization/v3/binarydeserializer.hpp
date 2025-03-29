@@ -23,7 +23,7 @@
 
 namespace solid {
 namespace serialization {
-namespace v3 {
+inline namespace v3 {
 namespace binary {
 
 class DeserializerBase : public Base {
@@ -1088,15 +1088,13 @@ private:
         }
     }
 
-    template <class Meta, class T>
+    template <class Meta, class T /*, typename = std::enable_if_t<!std::is_base_of_v<std::istream, T>>*/>
+#if 1
+        requires(
+            !std::is_base_of_v<std::istream, T> && !std::is_floating_point_v<T> || (std::is_pointer_v<T> && (is_shared_ptr_v<T> || is_unique_ptr_v<T> || is_intrusive_ptr_v<T>)))
+#endif
     void addDispatch(const Meta& _meta, T& _rt, ContextT& _rctx, const size_t _id, const char* const _name)
     {
-        static_assert(!std::is_base_of_v<std::istream, T>, "Cannot use std::istream with Deserializer");
-        if constexpr (!is_shared_ptr_v<T> && !is_unique_ptr_v<T> && !is_intrusive_ptr_v<T>) {
-            static_assert(!std::is_pointer_v<T>, "Naked pointer are not supported - use std::shared_ptr or std::unique_ptr");
-        }
-        static_assert(!std::is_floating_point_v<T>, "Floating point values not supported");
-
         if constexpr (std::is_base_of_v<std::ostream, T>) {
             addStream(const_cast<T&>(_rt), _meta.max_size_, _meta.progress_function_, _rctx, _id, _name);
         } else if constexpr (std::is_integral_v<T>) {

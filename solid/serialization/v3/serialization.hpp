@@ -14,10 +14,3 @@
 #include "solid/serialization/v3/binarybasic.hpp"
 #include "solid/serialization/v3/binarydeserializer.hpp"
 #include "solid/serialization/v3/binaryserializer.hpp"
-namespace solid {
-namespace serialization {
-
-using namespace v3;
-
-} // namespace serialization
-} // namespace solid

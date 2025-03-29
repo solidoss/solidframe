@@ -9,6 +9,7 @@ set( SerializationV3TestSuite
 create_test_sourcelist( SerializationV3Tests test_serialization.cpp ${SerializationV3TestSuite})
 
 add_executable(test_serialization_v3 ${SerializationV3Tests})
+#target_compile_options(test_serialization_v3 PUBLIC "SHELL: -fconcepts-diagnostics-depth=2")
 
 target_link_libraries(test_serialization_v3
     solid_serialization_v3

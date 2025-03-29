@@ -29,7 +29,7 @@
 
 namespace solid {
 namespace serialization {
-namespace v3 {
+inline namespace v3 {
 namespace binary {
 
 class SerializerBase : public Base {
@@ -912,14 +912,10 @@ private:
     }
 
     template <class Meta, class T>
+        requires(
+            !std::is_base_of_v<std::ostream, T> && !std::is_floating_point_v<T> || (std::is_pointer_v<T> && (is_shared_ptr_v<T> || is_unique_ptr_v<T> || is_intrusive_ptr_v<T>)))
     void addDispatch(const Meta& _meta, const T& _rt, ContextT& _rctx, const size_t _id, const char* const _name)
     {
-        static_assert(!std::is_base_of_v<std::ostream, T>, "Cannot use std::ostream with Serializer");
-        if constexpr (!is_shared_ptr_v<T> && !is_unique_ptr_v<T> && !is_intrusive_ptr_v<T>) {
-            static_assert(!std::is_pointer_v<T>, "Naked pointer are not supported - use std::shared_ptr or std::unique_ptr");
-        }
-
-        static_assert(!std::is_floating_point_v<T>, "Floating point values not supported");
 
         if constexpr (std::is_base_of_v<std::istream, T>) {
             solid_assert(_meta.progress_function_);

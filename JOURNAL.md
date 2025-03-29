@@ -1,4 +1,11 @@
 ## 20250119
+ * release 12.3
+ * Experimental Mutable/ConstSharedBuffer
+ * Experimental Mutable/ConstIntrusivePtr
+ * Fixed FreeBSD 14.2 build
+ * Fixed aioreactor for FreeBSD
+
+## 20250119
  * release 12.2
 
 ## 20250109

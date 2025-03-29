@@ -567,10 +567,10 @@ inline ReactorEventE systemEventsToReactorEvents(const uint32_t _events)
 
 inline constexpr ReactorEventE systemEventsToReactorEvents(const unsigned short _flags, const short _filter)
 {
-    ReactorEventE retval = ReactorEventE::None;
-    if (_flags & (EV_EOF | EV_ERROR)) {
+    if (_flags & (EV_ERROR)) {
         return ReactorEventE::Hangup;
     }
+
     if (_filter == EVFILT_READ) {
         return ReactorEventE::Recv;
     } else if (_filter == EVFILT_WRITE) {
@@ -579,7 +579,7 @@ inline constexpr ReactorEventE systemEventsToReactorEvents(const unsigned short 
         return ReactorEventE::Recv;
     }
 
-    return retval;
+    return ReactorEventE::None;
 }
 #elif defined(SOLID_USE_WSAPOLL)
 inline ReactorEventE systemEventsToReactorEvents(const uint32_t _events, decltype(WSAPOLLFD::events)& _revs)

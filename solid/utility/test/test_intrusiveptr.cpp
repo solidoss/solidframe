@@ -7,11 +7,11 @@ using namespace solid;
 using namespace std;
 
 namespace {
-
-struct Test : IntrusiveThreadSafeBase {
+class Test : public IntrusiveThreadSafeBase {
     string s_;
     int    i_ = 0;
 
+public:
     Test(const string_view _s, const int _i)
         : s_(_s)
         , i_(_i)
@@ -39,34 +39,55 @@ struct TestWithCounter {
     {
     }
 
+    virtual ~TestWithCounter() {}
+
 private:
     friend class TestIntrusivePolicy;
     mutable atomic<size_t> use_count_{0};
 };
 
-class TestIntrusivePolicy {
-protected:
-    void acquire(const TestWithCounter& _p) noexcept
+template <typename T>
+concept TestIntrusiveC = std::is_base_of_v<TestWithCounter, T>;
+
+struct TestIntrusivePolicy {
+    static void acquire(const TestWithCounter& _p) noexcept
     {
         ++_p.use_count_;
     }
-    bool release(const TestWithCounter& _p) noexcept
+    static bool release(const TestWithCounter& _p) noexcept
     {
         return _p.use_count_.fetch_sub(1) == 1;
     }
-    size_t useCount(const TestWithCounter& _p) const noexcept
+    static size_t useCount(const TestWithCounter& _p) noexcept
     {
         return _p.use_count_.load(std::memory_order_relaxed);
+    }
+
+    template <class T>
+    static void destroy(const T& _r)
+    {
+        delete &_r;
+    }
+
+    template <class T, class... Args>
+    static T* create(Args&&... _args)
+    {
+        return new T(std::forward<Args>(_args)...);
     }
 };
 
 } // namespace
 
+template <TestIntrusiveC T>
+struct solid::intrusive_policy_dispatch<T> {
+    using type = TestIntrusivePolicy;
+};
+
 int test_intrusiveptr(int argc, char* argvp[])
 {
     Test t{"ceva", 10};
     auto test_ptr = make_intrusive<Test>("ceva", 10);
-    auto twc_ptr  = make_intrusive<TestWithCounter>(TestIntrusivePolicy{}, "ceva2", 11);
+    auto twc_ptr  = make_intrusive<TestWithCounter>("ceva2", 11);
 
     cout << "sizeof(test_ptr): " << sizeof(test_ptr) << endl;
     cout << "sizeof(twc_ptr): " << sizeof(twc_ptr) << endl;
@@ -106,6 +127,18 @@ int test_intrusiveptr(int argc, char* argvp[])
         IntrusivePtr<Test> ptr{static_pointer_cast<Test>(first_ptr)};
 
         solid_check(ptr && ptr.useCount() == 2);
+
+        // auto base_ptr = static_pointer_cast<IntrusiveThreadSafeBase>(ptr);//must not compile
     }
+
+    {
+        MutableIntrusivePtr<Test> p1 = make_mutable_intrusive<Test>("ceva", 10);
+
+        ConstIntrusivePtr<Test> p2 = std::move(p1);
+
+        solid_check(p2);
+        solid_check(!p1);
+    }
+
     return 0;
 }

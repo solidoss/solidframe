@@ -43,20 +43,19 @@ constexpr TypeGroupE type_group()
 {
     if constexpr (solid::is_shared_ptr_v<T>) {
         return TypeGroupE::SharedPtr;
-    }
-    if constexpr (solid::is_intrusive_ptr_v<T>) {
+    } else if constexpr (solid::is_intrusive_ptr_v<T>) {
         return TypeGroupE::IntrusivePtr;
-    }
-    if constexpr (solid::is_unique_ptr_v<T>) {
+    } else if constexpr (solid::is_unique_ptr_v<T>) {
         return TypeGroupE::UniquePtr;
     } else {
         static_assert(!std::is_pointer_v<T>, "Naked pointer are not supported - use std::shared_ptr or std::unique_ptr");
     }
+
     if constexpr (std::is_same_v<T, std::string>)
         return TypeGroupE::Basic;
-    if constexpr (std::is_enum_v<T>)
+    else if constexpr (std::is_enum_v<T>)
         return TypeGroupE::Enum;
-    if constexpr (is_bitset_v<T>)
+    else if constexpr (is_bitset_v<T>)
         return TypeGroupE::Bitset;
     else if constexpr (is_std_vector_bool_v<T>)
         return TypeGroupE::VectorBool;

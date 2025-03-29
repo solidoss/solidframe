@@ -1,12 +1,7 @@
-if(APPLE OR WIN32)
-else()
-    set(STDFS_LIB stdc++fs)
-endif()
-    
 include(CheckCXXSymbolExists)
-CHECK_CXX_SYMBOL_EXISTS(std::filesystem::path::preferred_separator filesystem cxx17fs)
+CHECK_CXX_SYMBOL_EXISTS(std::filesystem::path::preferred_separator filesystem cxx_fs)
 
-if(cxx17fs)
+if(cxx_fs)
     add_executable (tutorial_mprpc_file_server mprpc_file_server.cpp mprpc_file_messages.hpp)
     
     target_link_libraries (tutorial_mprpc_file_server
@@ -17,7 +12,6 @@ if(cxx17fs)
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
-        ${STDFS_LIB}
     )
 
     add_executable (tutorial_mprpc_file_client mprpc_file_client.cpp mprpc_file_messages.hpp)
@@ -32,5 +26,5 @@ if(cxx17fs)
         ${SYSTEM_BASIC_LIBRARIES}
     )
 else()
-    message("C++17 filesystem not found - mprpc_file tutorial not available")
+    message("C++ filesystem not found - mprpc_file tutorial not available")
 endif()

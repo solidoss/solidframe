@@ -11,6 +11,10 @@
 
 #include "solid/system/common.hpp"
 
+#if (defined(__i386__) || defined(__x86_64__)) && defined(__clang__)
+#include <emmintrin.h>
+#endif
+
 #ifdef SOLID_USE_PTHREAD_SPINLOCK
 
 #include <pthread.h>
@@ -26,10 +30,6 @@
 
 #define _WINSOCKAPI_
 #include <windows.h>
-#elif defined(__i386__) || defined(__x86_64__)
-#if defined(__clang__)
-#include <emmintrin.h>
-#endif
 #endif
 #endif
 

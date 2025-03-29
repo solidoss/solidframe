@@ -16,7 +16,7 @@ namespace solid {
 
 #ifdef __cpp_concepts
 template <typename What>
-concept Collapsable = std::is_same_v<What, SharedBuffer> || is_intrusive_ptr_v<What>;
+concept Collapsable = std::is_same_v<What, ConstSharedBuffer> || is_const_intrusive_ptr_v<What>;
 
 template <Collapsable Ptr>
 #else
@@ -24,10 +24,7 @@ template <class Ptr>
 #endif
 inline auto collapse(Ptr& _rptr)
 {
-    if (_rptr.collapse()) {
-        return Ptr(std::move(_rptr));
-    }
-    return Ptr();
+    return _rptr.collapse();
 }
 
 } // namespace solid

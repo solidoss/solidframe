@@ -14,7 +14,7 @@
 
 namespace solid {
 namespace serialization {
-namespace v3 {
+inline namespace v3 {
 
 extern const ErrorConditionT error_limit_container;
 extern const ErrorConditionT error_limit_string;

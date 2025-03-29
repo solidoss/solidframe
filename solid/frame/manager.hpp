@@ -101,14 +101,6 @@ public:
     template <class F>
     bool visit(ActorIdT const& _ruid, F _f);
 
-#if false // TODO:vapa:delete
-    template <class T, class F>
-    bool visitDynamicCast(ActorIdT const& _ruid, F _f);
-
-    template <class T, class F>
-    bool visitExplicitCast(ActorIdT const& _ruid, F _f);
-#endif
-
     ActorIdT id(const ActorBase& _ractor) const;
 
     Service& service(const ActorBase& _ractor) const;
@@ -189,37 +181,6 @@ inline bool Manager::visit(ActorIdT const& _ruid, F _f)
 {
     return doVisit(_ruid, ActorVisitFunctionT{_f});
 }
-#if false
-template <class T, class F>
-inline bool Manager::visitDynamicCast(ActorIdT const& _ruid, F _f)
-{
-    auto lambda = [&_f](VisitContext& _rctx) {
-        T* pt = dynamic_cast<T*>(&_rctx.actor());
-        if (pt) {
-            return _f(_rctx, *pt);
-        }
-        return false;
-    };
-    ActorVisitFunctionT fct(std::ref(lambda));
-    return doVisit(_ruid, fct);
-}
-
-template <class T, class F>
-inline bool Manager::visitExplicitCast(ActorIdT const& _ruid, F _f)
-{
-    auto lambda = [&_f](VisitContext& _rctx) {
-        const std::type_info& req_type = typeid(T);
-        const std::type_info& val_type = doGetTypeId(*(&_rctx.actor()));
-
-        if (std::type_index(req_type) == std::type_index(val_type)) {
-            return _f(_rctx, static_cast<T&>(_rctx.actor()));
-        }
-        return false;
-    };
-
-    return doVisit(_ruid, ActorVisitFunctionT{lambda});
-}
-#endif
 
 template <typename F>
 inline size_t Manager::forEachServiceActor(const Service& _rservice, F _f)

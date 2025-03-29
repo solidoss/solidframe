@@ -49,7 +49,7 @@ struct Message : IntrusiveThreadSafeBase {
 };
 
 using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
-using SharedMessageT = IntrusivePtr<Message>;
+using SharedMessageT = ConstIntrusivePtr<Message>;
 } // namespace
 
 int test_collapse(int argc, char* argv[])
@@ -78,7 +78,7 @@ int test_collapse(int argc, char* argv[])
             std::shared_future<void>     ready_future(ready_promise.get_future());
             std::promise<SharedMessageT> p;
             auto                         f  = p.get_future();
-            auto                         sm = make_intrusive<Message>();
+            SharedMessageT               sm = make_mutable_intrusive<Message>();
             vector<thread>               thr_vec;
             {
                 auto lambda = [&p, ready_future](SharedMessageT _sm) mutable {
@@ -114,17 +114,20 @@ int test_collapse(int argc, char* argv[])
             }
         }
     } else if (choice == 'p') {
-        CallPoolT  wp{{thread_count, 10000, 100},
+        CallPoolT      wp{{thread_count, 10000, 100},
             [](const size_t) {
                 set_current_thread_affinity();
             },
             [](const size_t) {}};
-        auto       sm         = make_intrusive<Message>();
-        const auto start_time = chrono::high_resolution_clock::now();
+        SharedMessageT sm         = make_mutable_intrusive<Message>();
+        const auto     start_time = chrono::high_resolution_clock::now();
         for (size_t i = 0; i < repeat_count; ++i) {
             std::promise<SharedMessageT> p;
             auto                         f = p.get_future();
-            auto                         sm_lock{std::move(sm)};
+            SharedMessageT               sm_lock{std::move(sm)};
+
+            solid_check(sm_lock);
+
             wp.pushAll(
                 [&p, sm_lock]() mutable {
                     if (auto tmp_sm = collapse(sm_lock)) {
@@ -138,7 +141,7 @@ int test_collapse(int argc, char* argv[])
                 p.set_value(std::move(tmp_sm));
             }
             {
-                if (f.wait_for(chrono::seconds(5000)) != future_status::ready) {
+                if (f.wait_for(chrono::seconds(5)) != future_status::ready) {
                     solid_throw("Waited for too long");
                 }
                 sm = f.get();
@@ -148,17 +151,18 @@ int test_collapse(int argc, char* argv[])
         const auto stop_time = chrono::high_resolution_clock::now();
         cout << "Duration: " << chrono::duration_cast<chrono::microseconds>(stop_time - start_time).count() << "us" << endl;
     } else if (choice == 'b') {
-        CallPoolT  wp{{thread_count, 10000, 100},
+        CallPoolT         wp{{thread_count, 10000, 100},
             [](const size_t) {
                 set_current_thread_affinity();
             },
             [](const size_t) {}};
-        auto       sm         = make_shared_buffer(100);
-        const auto start_time = chrono::high_resolution_clock::now();
+        ConstSharedBuffer sm         = make_mutable_buffer(100);
+        const auto        start_time = chrono::high_resolution_clock::now();
         for (size_t i = 0; i < repeat_count; ++i) {
-            std::promise<SharedBuffer> p;
-            auto                       f = p.get_future();
-            auto                       sm_lock{std::move(sm)};
+            std::promise<ConstSharedBuffer> p;
+            auto                            f = p.get_future();
+            auto                            sm_lock{std::move(sm)};
+            solid_check(sm_lock);
             wp.pushAll(
                 [&p, sm_lock]() mutable {
                     if (auto tmp_sm = collapse(sm_lock)) {

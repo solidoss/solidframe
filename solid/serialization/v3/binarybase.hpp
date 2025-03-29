@@ -22,7 +22,7 @@
 
 namespace solid {
 namespace serialization {
-namespace v3 {
+inline namespace v3 {
 
 extern const LoggerT logger;
 
