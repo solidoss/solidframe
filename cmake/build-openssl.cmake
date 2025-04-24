@@ -9,7 +9,7 @@ if(SOLID_ON_WINDOWS)
         build-openssl
         EXCLUDE_FROM_ALL 1
         PREFIX ${EXTERNAL_DIR}/openssl
-        URL https://www.openssl.org/source/openssl-3.1.2.tar.gz
+        URL https://github.com/openssl/openssl/releases/download/openssl-3.5.0/openssl-3.5.0.tar.gz
         DOWNLOAD_NO_PROGRESS OFF
         DOWNLOAD_EXTRACT_TIMESTAMP OFF
         #URL_MD5 "6f4571e7c5a66ccc3323da6c24be8f05"
@@ -36,7 +36,7 @@ else()
         build-openssl
         EXCLUDE_FROM_ALL 1
         PREFIX ${EXTERNAL_DIR}/openssl
-        URL https://www.openssl.org/source/openssl-3.1.2.tar.gz
+        URL https://github.com/openssl/openssl/releases/download/openssl-3.5.0/openssl-3.5.0.tar.gz
         DOWNLOAD_NO_PROGRESS ON
         DOWNLOAD_EXTRACT_TIMESTAMP OFF
         #URL_MD5 "6f4571e7c5a66ccc3323da6c24be8f05"
