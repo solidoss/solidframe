@@ -20,6 +20,7 @@ modernize-*,\
 -modernize-use-noexcept,\
 -modernize-use-transparent-functors,\
 -modernize-use-using,\
+-modernize-use-trailing-return-type,\
 performance-*,\
 -performance-inefficient-string-concatenation,\
 readability-*,\

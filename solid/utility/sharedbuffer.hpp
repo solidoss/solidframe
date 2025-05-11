@@ -82,7 +82,7 @@ protected:
         _other.pdata_ = &sentinel;
     }
 
-    char* data() const
+    [[nodiscard]] char* data() const
     {
         return pdata_->data();
     }
@@ -117,29 +117,29 @@ public:
         reset();
     }
 
-    std::size_t size() const
+    [[nodiscard]] std::size_t size() const
     {
         return pdata_->size_;
     }
 
-    std::size_t capacity() const
+    [[nodiscard]] std::size_t capacity() const
     {
         return pdata_->capacity_;
     }
 
-    std::size_t actualCapacity() const;
+    [[nodiscard]] std::size_t actualCapacity() const;
 
-    auto makerThreadId() const
+    [[nodiscard]] auto makerThreadId() const
     {
         return pdata_->make_thread_id_;
     }
 
-    bool empty() const
+    [[nodiscard]] bool empty() const
     {
         return pdata_->size_ == 0;
     }
 
-    std::size_t useCount() const
+    [[nodiscard]] std::size_t useCount() const
     {
         return pdata_->use_count_.load();
     }
@@ -148,7 +148,7 @@ public:
     {
         size_t previous_use_count = 0;
         if (*this) {
-            auto buf = pdata_->release(previous_use_count);
+            auto* buf = pdata_->release(previous_use_count);
             delete[] buf;
             pdata_ = &sentinel;
         }
@@ -198,7 +198,7 @@ public:
         reset();
     }
 
-    char* data() const
+    [[nodiscard]] char* data() const
     {
         return pdata_->data();
     }
@@ -219,7 +219,7 @@ public:
         return *this;
     }
 
-    SharedBuffer& operator=(SharedBuffer&& _other)
+    SharedBuffer& operator=(SharedBuffer&& _other) noexcept
     {
         doMove(std::move(_other));
         return *this;
@@ -233,11 +233,12 @@ inline SharedBuffer make_shared_buffer(const std::size_t _cap)
     return SharedBuffer(_cap);
 }
 
-class ConstSharedBuffer;
-
 //-----------------------------------------------------------------------------
 // MutableSharedBuffer
 //-----------------------------------------------------------------------------
+
+class ConstSharedBuffer;
+class SharedBufferView;
 
 class MutableSharedBuffer : public impl::SharedBufferBase {
     friend class ConstSharedBuffer;
@@ -303,6 +304,8 @@ public:
         doMove(std::move(_other));
         return *this;
     }
+
+    SharedBufferView view(size_t _offset, size_t _size);
 };
 
 inline MutableSharedBuffer make_mutable_buffer(const std::size_t _cap)
@@ -338,7 +341,7 @@ public:
         reset();
     }
 
-    const char* data() const
+    [[nodiscard]] const char* data() const
     {
         return impl::SharedBufferBase::data();
     }
@@ -347,7 +350,7 @@ public:
     {
         if (*this) {
             size_t previous_use_count = 0;
-            auto   buf                = pdata_->release(previous_use_count);
+            auto*  buf                = pdata_->release(previous_use_count);
             if (buf) {
                 pdata_->acquire();
                 return MutableSharedBuffer(std::move(*this));
@@ -409,6 +412,35 @@ inline SharedBuffer::SharedBuffer(MutableSharedBuffer&& _other)
 }
 
 //-----------------------------------------------------------------------------
+// SharedBufferView
+//-----------------------------------------------------------------------------
+
+class SharedBufferView : private impl::SharedBufferBase {
+    friend class MutableSharedBuffer;
+    const char* data_{nullptr};
+    size_t      size_{0};
+
+    SharedBufferView(
+        MutableSharedBuffer const& _other, size_t const _offset, size_t const _size)
+        : impl::SharedBufferBase(_other)
+        , data_(impl::SharedBufferBase::data() + _offset)
+        , size_(_size)
+    {
+    }
+
+public:
+    [[nodiscard]] char const* data() const
+    {
+        return data_;
+    }
+
+    [[nodiscard]] size_t size() const
+    {
+        return size_;
+    }
+};
+
+//-----------------------------------------------------------------------------
 // BufferManager
 //-----------------------------------------------------------------------------
 
@@ -442,9 +474,9 @@ public:
         return MutableSharedBuffer{make(_cap)};
     }
 
-    static void   localMaxCount(const size_t _cap, const size_t _count);
-    static size_t localMaxCount(const size_t _cap);
-    static size_t localCount(const size_t _cap);
+    static void   localMaxCount(size_t _cap, size_t _count);
+    static size_t localMaxCount(size_t _cap);
+    static size_t localCount(size_t _cap);
 
     static const Configuration& configuration();
 
