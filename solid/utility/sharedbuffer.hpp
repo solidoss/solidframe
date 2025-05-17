@@ -234,31 +234,72 @@ inline SharedBuffer make_shared_buffer(const std::size_t _cap)
 }
 
 //-----------------------------------------------------------------------------
+// SharedBufferView
+//-----------------------------------------------------------------------------
+
+class SharedBufferView : protected impl::SharedBufferBase {
+    friend class MutableSharedBuffer;
+    const char* data_{nullptr};
+    size_t      size_{0};
+
+    SharedBufferView(
+        MutableSharedBuffer const& _other, size_t const _offset, size_t const _size)
+        : impl::SharedBufferBase(_other)
+        , data_(impl::SharedBufferBase::data() + _offset)
+        , size_(_size)
+    {
+    }
+
+protected:
+    SharedBufferView(size_t const _cap)
+        : SharedBufferBase(_cap)
+    {
+    }
+
+    SharedBufferView(const std::size_t _cap, const std::thread::id& _thr_id)
+        : SharedBufferBase(_cap, _thr_id)
+    {
+    }
+
+    SharedBufferView(impl::SharedBufferBase && other): impl::SharedBufferBase(std::move(other)){}
+
+public:
+    [[nodiscard]] char const* data() const
+    {
+        return data_;
+    }
+
+    [[nodiscard]] size_t size() const
+    {
+        return size_;
+    }
+};
+
+//-----------------------------------------------------------------------------
 // MutableSharedBuffer
 //-----------------------------------------------------------------------------
 
 class ConstSharedBuffer;
-class SharedBufferView;
 
-class MutableSharedBuffer : public impl::SharedBufferBase {
+class MutableSharedBuffer : public SharedBufferView {
     friend class ConstSharedBuffer;
     friend class BufferManager;
     friend MutableSharedBuffer make_mutable_buffer(const std::size_t);
 
     MutableSharedBuffer(const std::size_t _cap)
-        : SharedBufferBase(_cap)
+        : SharedBufferView(_cap)
     {
     }
 
     MutableSharedBuffer(const std::size_t _cap, const std::thread::id& _thr_id)
-        : SharedBufferBase(_cap, _thr_id)
+        : SharedBufferView(_cap, _thr_id)
     {
     }
 
     MutableSharedBuffer(ConstSharedBuffer&& _other);
 
     MutableSharedBuffer(SharedBuffer&& _other)
-        : SharedBufferBase(std::move(_other))
+        : SharedBufferView(std::move(_other))
     {
     }
 
@@ -268,7 +309,7 @@ public:
     MutableSharedBuffer(const MutableSharedBuffer& _other) = delete;
 
     MutableSharedBuffer(MutableSharedBuffer&& _other)
-        : SharedBufferBase(std::move(_other))
+        : SharedBufferView(std::move(_other))
     {
     }
 
@@ -410,35 +451,6 @@ inline SharedBuffer::SharedBuffer(MutableSharedBuffer&& _other)
     : SharedBufferBase(std::move(_other))
 {
 }
-
-//-----------------------------------------------------------------------------
-// SharedBufferView
-//-----------------------------------------------------------------------------
-
-class SharedBufferView : private impl::SharedBufferBase {
-    friend class MutableSharedBuffer;
-    const char* data_{nullptr};
-    size_t      size_{0};
-
-    SharedBufferView(
-        MutableSharedBuffer const& _other, size_t const _offset, size_t const _size)
-        : impl::SharedBufferBase(_other)
-        , data_(impl::SharedBufferBase::data() + _offset)
-        , size_(_size)
-    {
-    }
-
-public:
-    [[nodiscard]] char const* data() const
-    {
-        return data_;
-    }
-
-    [[nodiscard]] size_t size() const
-    {
-        return size_;
-    }
-};
 
 //-----------------------------------------------------------------------------
 // BufferManager
