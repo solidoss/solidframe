@@ -71,6 +71,19 @@ std::size_t SharedBufferBase::actualCapacity() const
 
 } // namespace impl
 
+void RingSharedBuffer::optimize()
+{
+    solid_check(canOptimize());
+    if (consume_offset_ == size()) [[likely]] {
+        consume_offset_ = 0U;
+        pdata_->size_   = 0U;
+    } else {
+        memmove(impl::SharedBufferBase::data(), cdata(), csize());
+        pdata_->size_   = csize();
+        consume_offset_ = 0U;
+    }
+}
+
 //-----------------------------------------------------------------------------
 
 struct BufferManager::LocalData {

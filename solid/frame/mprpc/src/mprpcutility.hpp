@@ -10,15 +10,15 @@
 
 #pragma once
 
+#include "solid/frame/mprpc/mprpcprotocol.hpp"
 #include "solid/system/cassert.hpp"
 #include "solid/system/log.hpp"
 #include "solid/system/socketaddress.hpp"
 
 #include "solid/frame/mprpc/mprpcservice.hpp"
+#include <limits>
 
-namespace solid {
-namespace frame {
-namespace mprpc {
+namespace solid::frame::mprpc {
 
 enum struct ResponseStateE {
     Wait,
@@ -50,7 +50,8 @@ class PacketHeader {
     uint16_t size_;
 
 public:
-    static constexpr size_t size_of_header = 4;
+    static constexpr size_t   header_size = 4;
+    static constexpr uint16_t max_size    = Protocol::max_packet_size - header_size;
 
     enum struct TypeE : uint8_t {
         Data = 1,
@@ -71,7 +72,6 @@ public:
     };
 
     enum struct FlagE : uint8_t {
-        Size64KB   = 1, // DO NOT CHANGE!!
         Compressed = 2,
         AckRequest = 4,
     };
@@ -81,6 +81,7 @@ public:
         const uint8_t  _flags = 0,
         const uint16_t _size  = 0)
     {
+        static_assert(Protocol::packet_header_size == header_size);
         reset(_type, _flags, _size);
     }
 
@@ -94,18 +95,17 @@ public:
         size(_size);
     }
 
-    uint32_t size() const
+    [[nodiscard]] uint16_t size() const
     {
-        uint32_t sz = (flags_ & static_cast<uint32_t>(FlagE::Size64KB));
-        return (sz << 16) | size_;
+        return size_;
     }
 
-    uint8_t type() const
+    [[nodiscard]] uint8_t type() const
     {
         return type_;
     }
 
-    uint8_t flags() const
+    [[nodiscard]] uint8_t flags() const
     {
         return flags_;
     }
@@ -119,22 +119,21 @@ public:
         flags_ = _flags /*& (0xff - Size64KBFlagE)*/;
     }
 
-    void size(uint32_t _sz)
+    void size(uint16_t const _sz)
     {
-        size_ = _sz & 0xffff;
-        flags_ |= ((_sz & (1 << 16)) >> 16);
+        size_ = _sz;
     }
 
-    bool isTypeKeepAlive() const
+    [[nodiscard]] bool isTypeKeepAlive() const
     {
         return type_ == static_cast<uint8_t>(TypeE::KeepAlive);
     }
 
-    bool isCompressed() const
+    [[nodiscard]] bool isCompressed() const
     {
-        return flags_ & static_cast<uint8_t>(FlagE::Compressed);
+        return (flags_ & static_cast<uint8_t>(FlagE::Compressed)) != 0U;
     }
-    bool isOk() const
+    [[nodiscard]] bool isOk() const
     {
         switch (static_cast<TypeE>(type_)) {
         case TypeE::Data:
@@ -144,7 +143,7 @@ public:
             return false;
         }
 
-        return size() <= Protocol::MaxPacketDataSize;
+        return size() <= max_size;
     }
 
     char* store(char* _pc, const Protocol& _rproto) const
@@ -244,6 +243,4 @@ struct MessageBundle {
     }
 };
 
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc

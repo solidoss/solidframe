@@ -328,7 +328,7 @@ if(NOT NO_EXTERNAL)
     include_directories(${CMAKE_BINARY_DIR}/external/include)
 
     if(EXTERNAL_DIR STREQUAL "" OR NOT EXISTS ${EXTERNAL_DIR})
-        set(EXTERNAL_DIR "${CMAKE_CURRENT_BINARY_DIR}/external")
+        set(EXTERNAL_DIR "${CMAKE_BINARY_DIR}/external")
 
         include(cmake/build-openssl.cmake)
     else()

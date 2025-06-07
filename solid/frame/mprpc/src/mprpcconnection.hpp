@@ -15,7 +15,6 @@
 #include "solid/system/flags.hpp"
 #include "solid/utility/any.hpp"
 #include "solid/utility/event.hpp"
-#include "solid/utility/queue.hpp"
 
 #include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiotimer.hpp"
@@ -26,14 +25,11 @@
 #include "mprpcmessagereader.hpp"
 #include "mprpcmessagewriter.hpp"
 
-namespace solid {
-namespace frame {
-namespace aio {
+namespace solid::frame {
 
-namespace openssl {
+namespace aio::openssl {
 class Context;
-} // namespace openssl
-} // namespace aio
+} // namespace aio::openssl
 
 namespace mprpc {
 
@@ -42,12 +38,12 @@ class Service;
 struct ResolveMessage {
     AddressVectorT addrvec;
 
-    bool empty() const
+    [[nodiscard]] bool empty() const
     {
         return addrvec.empty();
     }
 
-    SocketAddressInet const& currentAddress() const
+    [[nodiscard]] SocketAddressInet const& currentAddress() const
     {
         return addrvec.back();
     }
@@ -61,7 +57,7 @@ struct ResolveMessage {
 
     ResolveMessage(const ResolveMessage&) = delete;
 
-    ResolveMessage(ResolveMessage&& _urm)
+    ResolveMessage(ResolveMessage&& _urm) noexcept
         : addrvec(std::move(_urm.addrvec))
     {
     }
@@ -200,9 +196,9 @@ protected:
     void setFlag(const FlagsE _flag);
     void resetFlag(const FlagsE _flag);
 
-    const SharedBuffer& recvBuffer() const;
+    SharedBufferView recvBufferView(const char*, size_t) const;
 
-    void returnRecvBuffer(SharedBuffer&& _buf);
+    bool returnRecvBuffer(SharedBufferView&& _buf);
 
     void ackBufferCountAdd(uint8_t _val);
 
@@ -269,7 +265,7 @@ private:
     template <class Ctx>
     bool recvSome(frame::aio::ReactorContext& _rctx, char* _buf, size_t _bufcp, size_t& _sz);
     template <class Ctx>
-    bool sendAll(frame::aio::ReactorContext& _rctx, char* _buf, size_t _bufcp);
+    bool sendAll(frame::aio::ReactorContext& _rctx, char const* _buf, size_t _bufcp);
     void prepareSocket(frame::aio::ReactorContext& _rctx);
 
     const NanoTime& minTimeout() const;
@@ -349,7 +345,7 @@ private:
         = frame::aio::SteadyTimer;
     using FlagsT            = solid::Flags<FlagsE>;
     using RequestIdVectorT  = MessageWriter::RequestIdVectorT;
-    using RecvBufferVectorT = std::vector<SharedBuffer>;
+    using RecvBufferVectorT = std::vector<MutableSharedBuffer>;
 
     template <class Ctx>
     friend struct ConnectionReceiver;
@@ -358,19 +354,19 @@ private:
     template <class Ctx>
     friend struct ConnectionSenderResponse;
 
-    ConnectionPoolId                      pool_id_;
-    const std::string&                    rpool_name_;
-    TimerT                                timer_;
-    FlagsT                                flags_                   = 0;
-    size_t                                cons_buf_off_            = 0;
+    ConnectionPoolId   pool_id_;
+    const std::string& rpool_name_;
+    TimerT             timer_;
+    FlagsT             flags_ = 0;
+    // size_t                                cons_buf_off_            = 0;//TODO:delete
     uint32_t                              recv_keepalive_count_    = 0;
     std::chrono::steady_clock::time_point recv_keepalive_boundary_ = std::chrono::steady_clock::time_point::min();
     uint16_t                              recv_buf_count_          = 0;
     uint8_t                               send_relay_free_count_;
     uint8_t                               ackd_buf_count_ = 0;
-    SharedBuffer                          recv_buf_;
+    RingSharedBuffer                      recv_buf_;
     RecvBufferVectorT                     recv_buf_vec_;
-    SharedBuffer                          send_buf_;
+    MutableSharedBuffer                   send_buf_;
     MessageIdVectorT                      pending_message_vec_;
     MessageReader                         msg_reader_;
     MessageWriter                         msg_writer_;
@@ -666,14 +662,18 @@ inline void Connection::resetFlag(const FlagsE _flag)
     flags_.reset(_flag);
 }
 //-----------------------------------------------------------------------------
-inline const SharedBuffer& Connection::recvBuffer() const
+inline SharedBufferView Connection::recvBufferView(const char* _pbuf, size_t const _size) const
 {
-    return recv_buf_;
+    return recv_buf_.view(_pbuf - recv_buf_.data(), _size);
 }
 //-----------------------------------------------------------------------------
-inline void Connection::returnRecvBuffer(SharedBuffer&& _buf)
+inline bool Connection::returnRecvBuffer(SharedBufferView&& _buf)
 {
-    recv_buf_vec_.emplace_back(std::move(_buf));
+    if (auto buf = _buf.collapse()) {
+        recv_buf_vec_.emplace_back(std::move(buf));
+        return true;
+    }
+    return false;
 }
 //-----------------------------------------------------------------------------
 inline void Connection::ackBufferCountAdd(uint8_t _val)
@@ -712,5 +712,4 @@ inline ErrorConditionT Connection::pollServicePoolForUpdates(frame::aio::Reactor
 }
 //-----------------------------------------------------------------------------
 } // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame

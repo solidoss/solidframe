@@ -265,7 +265,7 @@ int test_clientserver_basic(int argc, char* argv[])
 {
 
     solid::log_start(std::cerr, {".*:EWXS"});
-    // solid::log_start(std::cerr, {"solid::frame::mprpc.*:EWX", "\\*:VIEWX"});
+    // solid::log_start(std::cerr, {"solid::frame::mprpc.*:VIEWX", "\\*:VIEWX"});
 
     size_t max_per_pool_connection_count = 1;
 

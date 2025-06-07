@@ -13,6 +13,7 @@
 #include "solid/frame/mprpc/mprpccontext.hpp"
 #include "solid/frame/mprpc/mprpcerror.hpp"
 #include "solid/frame/mprpc/mprpcmessage.hpp"
+#include "solid/frame/mprpc/mprpcprotocol.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/system/log.hpp"
 
@@ -49,7 +50,7 @@ size_t MessageReader::read(
     while (pbufpos != pbufend) {
         if (state_ == StateE::ReadPacketHead) {
             // try read the header
-            if ((pbufend - pbufpos) >= static_cast<ptrdiff_t>(PacketHeader::size_of_header)) {
+            if ((pbufend - pbufpos) >= static_cast<ptrdiff_t>(PacketHeader::header_size)) {
                 state_ = StateE::ReadPacketBody;
             } else {
                 break;
@@ -187,7 +188,7 @@ void MessageReader::doConsumePacket(
     if (!_packet_header.isCompressed()) [[likely]] {
         doConsumePacketLoop(pbufpos, pbufend, _receiver, _rerror);
     } else {
-        char         tmpbuf[Protocol::MaxPacketDataSize]; // decompress = TODO: try not to use so much stack
+        char         tmpbuf[Protocol::max_packet_size]; // decompress = TODO: try not to use so much stack
         const size_t uncompressed_size = _receiver.configuration().decompress_fnc(tmpbuf, pbufpos, pbufend - pbufpos, _rerror);
 
         if (!_rerror) {
@@ -397,7 +398,7 @@ void MessageReader::doConsumeMessageRelayStart(
 
         const bool is_message_end = (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0;
         solid_log(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << _message_size << " is_message_end = " << is_message_end);
-        // TODO:
+
         if (_receiver.receiveRelayStart(rmsgstub.message_header_, _pbufpos, _message_size, rmsgstub.relay_id, is_message_end, _rerror)) {
             rmsgstub.state_ = MessageStub::StateE::RelayBody;
         } else {

@@ -2,9 +2,11 @@
 
 #include <atomic>
 #include <cstdint>
+#include <limits>
 #include <thread>
 
 #include "solid/system/common.hpp"
+#include "solid/system/exception.hpp"
 #include "solid/system/pimpl.hpp"
 
 namespace solid {
@@ -54,11 +56,10 @@ protected:
     friend class BufferManager;
 
     static inline SharedBufferData sentinel{};
-    static SharedBufferData*       allocate_data(const std::size_t _cap);
+    static SharedBufferData*       allocate_data(std::size_t _cap);
 
     SharedBufferData* pdata_;
 
-protected:
     SharedBufferBase()
         : pdata_(&sentinel)
     {
@@ -69,14 +70,14 @@ protected:
     {
     }
 
-    SharedBufferBase(const std::size_t _cap, const std::thread::id& _thr_id);
+    SharedBufferBase(std::size_t _cap, const std::thread::id& _thr_id);
 
     SharedBufferBase(const SharedBufferBase& _other)
         : pdata_(_other ? &_other.pdata_->acquire() : _other.pdata_)
     {
     }
 
-    SharedBufferBase(SharedBufferBase&& _other)
+    SharedBufferBase(SharedBufferBase&& _other) noexcept
         : pdata_(_other.pdata_)
     {
         _other.pdata_ = &sentinel;
@@ -108,6 +109,8 @@ protected:
     }
 
 public:
+    static constexpr size_t npos = std::numeric_limits<size_t>::max();
+
     explicit operator bool() const noexcept
     {
         return pdata_ != &sentinel;
@@ -166,7 +169,7 @@ class MutableSharedBuffer;
 
 class SharedBuffer : public impl::SharedBufferBase {
     friend class BufferManager;
-    friend SharedBuffer make_shared_buffer(const std::size_t);
+    friend SharedBuffer make_shared_buffer(std::size_t);
 
     SharedBuffer(const std::size_t _cap)
         : SharedBufferBase(_cap)
@@ -186,7 +189,7 @@ public:
     {
     }
 
-    SharedBuffer(SharedBuffer&& _other)
+    SharedBuffer(SharedBuffer&& _other) noexcept
         : SharedBufferBase(std::move(_other))
     {
     }
@@ -243,35 +246,90 @@ class SharedBufferView : protected impl::SharedBufferBase {
     size_t      size_{0};
 
     SharedBufferView(
-        MutableSharedBuffer const& _other, size_t const _offset, size_t const _size)
-        : impl::SharedBufferBase(_other)
-        , data_(impl::SharedBufferBase::data() + _offset)
-        , size_(_size)
-    {
-    }
+        MutableSharedBuffer const& _other, size_t _offset, size_t _size);
 
 protected:
     SharedBufferView(size_t const _cap)
         : SharedBufferBase(_cap)
+        , data_(impl::SharedBufferBase::data())
     {
     }
 
     SharedBufferView(const std::size_t _cap, const std::thread::id& _thr_id)
         : SharedBufferBase(_cap, _thr_id)
+        , data_(impl::SharedBufferBase::data())
     {
     }
 
-    SharedBufferView(impl::SharedBufferBase && other): impl::SharedBufferBase(std::move(other)){}
+    SharedBufferView(impl::SharedBufferBase&& _other)
+        : impl::SharedBufferBase(std::move(_other))
+        , data_(impl::SharedBufferBase::data())
+    {
+    }
 
 public:
-    [[nodiscard]] char const* data() const
+    SharedBufferView() = default;
+
+    SharedBufferView(SharedBufferView&& _other) noexcept
+        : impl::SharedBufferBase(std::move(_other))
+        , data_(_other.data_)
+        , size_(_other.size_)
+    {
+        _other.data_ = nullptr;
+        _other.size_ = 0U;
+    }
+
+    SharedBufferView(SharedBufferView const& _other)
+        : impl::SharedBufferBase(_other)
+        , data_(_other.data_)
+        , size_(_other.size_)
+    {
+    }
+
+    explicit operator bool() const noexcept
+    {
+        return impl::SharedBufferBase::operator bool();
+    }
+
+    [[nodiscard]] size_t useCount() const
+    {
+        return impl::SharedBufferBase::useCount();
+    }
+
+    [[nodiscard]] char const* cdata() const
     {
         return data_;
     }
 
-    [[nodiscard]] size_t size() const
+    [[nodiscard]] size_t csize() const
     {
         return size_;
+    }
+
+    [[nodiscard]] bool cempty() const
+    {
+        return size_ == 0U;
+    }
+
+    MutableSharedBuffer collapse();
+
+    void reset()
+    {
+        impl::SharedBufferBase::reset();
+        data_ = nullptr;
+        size_ = 0U;
+    }
+
+    SharedBufferView& operator=(SharedBufferView&& _other) noexcept
+    {
+        if (this != &_other) {
+            doMove(std::move(_other));
+            data_        = _other.data_;
+            size_        = _other.size_;
+            _other.data_ = nullptr;
+            _other.size_ = 0;
+        }
+        return *this;
     }
 };
 
@@ -281,25 +339,33 @@ public:
 
 class ConstSharedBuffer;
 
-class MutableSharedBuffer : public SharedBufferView {
+class MutableSharedBuffer : protected impl::SharedBufferBase {
     friend class ConstSharedBuffer;
+    friend class SharedBuffer;
     friend class BufferManager;
-    friend MutableSharedBuffer make_mutable_buffer(const std::size_t);
+    friend class SharedBufferView;
+
+    friend MutableSharedBuffer make_mutable_buffer(std::size_t);
 
     MutableSharedBuffer(const std::size_t _cap)
-        : SharedBufferView(_cap)
+        : impl::SharedBufferBase(_cap)
     {
     }
 
     MutableSharedBuffer(const std::size_t _cap, const std::thread::id& _thr_id)
-        : SharedBufferView(_cap, _thr_id)
+        : impl::SharedBufferBase(_cap, _thr_id)
     {
     }
 
     MutableSharedBuffer(ConstSharedBuffer&& _other);
 
     MutableSharedBuffer(SharedBuffer&& _other)
-        : SharedBufferView(std::move(_other))
+        : impl::SharedBufferBase(std::move(_other))
+    {
+    }
+
+    MutableSharedBuffer(SharedBufferView&& _other)
+        : impl::SharedBufferBase(std::move(_other))
     {
     }
 
@@ -308,8 +374,8 @@ public:
 
     MutableSharedBuffer(const MutableSharedBuffer& _other) = delete;
 
-    MutableSharedBuffer(MutableSharedBuffer&& _other)
-        : SharedBufferView(std::move(_other))
+    MutableSharedBuffer(MutableSharedBuffer&& _other) noexcept
+        : impl::SharedBufferBase(std::move(_other))
     {
     }
 
@@ -318,41 +384,123 @@ public:
         reset();
     }
 
-    char* data()
+    explicit operator bool() const noexcept
     {
-        return impl::SharedBufferBase::data();
+        return impl::SharedBufferBase::operator bool();
+    }
+
+    [[nodiscard]] size_t useCount() const
+    {
+        return impl::SharedBufferBase::useCount();
+    }
+
+    char* mdata()
+    {
+        return impl::SharedBufferBase::data() + size();
+    }
+
+    [[nodiscard]] size_t msize() const
+    {
+        return capacity() - size();
     }
 
     void append(const std::size_t _size)
     {
+        solid_check(_size <= msize());
         pdata_->size_ += _size;
     }
 
-    void resize(const std::size_t _size = 0)
+    [[nodiscard]] size_t capacity() const
     {
-        pdata_->size_ = _size;
+        return impl::SharedBufferBase::capacity();
     }
 
     MutableSharedBuffer& operator=(const MutableSharedBuffer& _other) = delete;
 
-    MutableSharedBuffer& operator=(MutableSharedBuffer&& _other)
+    MutableSharedBuffer& operator=(MutableSharedBuffer&& _other) noexcept
     {
-        doMove(std::move(_other));
+        if (this != &_other) {
+            doMove(std::move(_other));
+        }
         return *this;
     }
+
     MutableSharedBuffer& operator=(SharedBuffer&& _other)
     {
         doMove(std::move(_other));
         return *this;
     }
 
-    SharedBufferView view(size_t _offset, size_t _size);
+    [[nodiscard]] SharedBufferView view(size_t const _offset = 0, size_t _size = impl::SharedBufferBase::npos) const
+    {
+        if (_size == impl::SharedBufferBase::npos) {
+            _size = size();
+        }
+        solid_check((_offset + _size) <= size());
+        return {*this, _offset, _size};
+    }
 };
 
 inline MutableSharedBuffer make_mutable_buffer(const std::size_t _cap)
 {
     return MutableSharedBuffer(make_shared_buffer(_cap));
 }
+
+//-----------------------------------------------------------------------------
+// RingSharedBuffer
+//-----------------------------------------------------------------------------
+
+class RingSharedBuffer : public MutableSharedBuffer {
+    size_t consume_offset_ = 0;
+
+public:
+    [[nodiscard]] char const* data() const
+    {
+        return impl::SharedBufferBase::data();
+    }
+
+    [[nodiscard]] char const* cdata() const
+    {
+        return data() + consume_offset_;
+    }
+    [[nodiscard]] size_t csize() const
+    {
+        return size() - consume_offset_;
+    }
+
+    void consume(size_t const _size)
+    {
+        solid_check(_size <= csize());
+        consume_offset_ += _size;
+    }
+
+    [[nodiscard]] bool cempty() const
+    {
+        return csize() == 0U;
+    }
+
+    [[nodiscard]] bool canOptimize() const
+    {
+        return useCount() == 1U;
+    }
+
+    RingSharedBuffer& operator=(MutableSharedBuffer&& _other) noexcept
+    {
+        if (this != &_other) {
+            doMove(std::move(_other));
+            consume_offset_ = 0U;
+        }
+        return *this;
+    }
+
+    void optimize();
+
+    void reset()
+    {
+        impl::SharedBufferBase::reset();
+        consume_offset_ = 0U;
+    }
+};
 
 //-----------------------------------------------------------------------------
 // ConstSharedBuffer
@@ -367,7 +515,7 @@ public:
     {
     }
 
-    ConstSharedBuffer(ConstSharedBuffer&& _other)
+    ConstSharedBuffer(ConstSharedBuffer&& _other) noexcept
         : SharedBufferBase(std::move(_other))
     {
     }
@@ -394,6 +542,7 @@ public:
             auto*  buf                = pdata_->release(previous_use_count);
             if (buf) {
                 pdata_->acquire();
+                pdata_->size_ = 0;
                 return MutableSharedBuffer(std::move(*this));
             } else {
                 pdata_ = &sentinel;
@@ -436,8 +585,33 @@ public:
     }
 };
 
+inline SharedBufferView::SharedBufferView(
+    MutableSharedBuffer const& _other, size_t const _offset, size_t const _size)
+    : impl::SharedBufferBase(_other)
+    , data_(impl::SharedBufferBase::data() + _offset)
+    , size_(_size)
+{
+}
+
+inline MutableSharedBuffer SharedBufferView::collapse()
+{
+    if (*this) {
+        size_t previous_use_count = 0;
+        auto*  buf                = pdata_->release(previous_use_count);
+        if (buf) {
+            pdata_->acquire();
+            pdata_->size_ = 0;
+            this->size_   = 0;
+            return MutableSharedBuffer(std::move(*this));
+        } else {
+            pdata_ = &sentinel;
+        }
+    }
+    return {};
+}
+
 inline MutableSharedBuffer::MutableSharedBuffer(ConstSharedBuffer&& _other)
-    : SharedBufferBase(std::move(_other))
+    : impl::SharedBufferBase(std::move(_other))
 {
 }
 
@@ -465,7 +639,7 @@ class BufferManager : NonCopyable {
     using DataT = impl::SharedBufferData;
 
     static char*  release(DataT* _pdata);
-    static DataT* allocate(const size_t _cap);
+    static DataT* allocate(size_t _cap);
 
 public:
     struct LocalData;
@@ -476,12 +650,12 @@ public:
 
     static BufferManager& instance(const Configuration* _pconfig = nullptr);
 
-    inline static SharedBuffer make(const size_t _cap)
+    static SharedBuffer make(const size_t _cap)
     {
         return SharedBuffer{_cap, std::this_thread::get_id()};
     }
 
-    inline static MutableSharedBuffer makeMutable(const size_t _cap)
+    static MutableSharedBuffer makeMutable(const size_t _cap)
     {
         return MutableSharedBuffer{make(_cap)};
     }

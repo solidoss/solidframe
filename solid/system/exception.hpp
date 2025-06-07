@@ -90,6 +90,7 @@ public:
     (solid_likely(a) ? static_cast<void>(0) : solid_throw_error(c));
 
 // adapted from https://github.com/Microsoft/GSL/blob/master/include/gsl/gsl_assert
+#if 0
 #if defined(__clang__) || defined(__GNUC__)
 #define solid_likely(x) __builtin_expect(!!(x), 1)
 #define solid_unlikely(x) __builtin_expect(!!(x), 0)
@@ -97,38 +98,32 @@ public:
 #define solid_likely(x) (!!(x))
 #define solid_unlikely(x) (!(x))
 #endif
+#else
+#define solid_likely(x) (!!(x))
+#define solid_unlikely(x) (!(x))
+#endif
 
-#define solid_check1(a) \
-    (solid_likely(a) ? static_cast<void>(0) : solid_throw("(" #a ") check failed"));
+#define solid_check1(a)                       \
+    if (!(a)) [[unlikely]] {                  \
+        solid_throw("(" #a ") check failed"); \
+    }
 
-#define solid_check2(a, msg) \
-    (solid_likely(a) ? static_cast<void>(0) : solid_throw("(" #a ") check failed: " << msg));
+#define solid_check2(a, msg)                           \
+    if (!(a)) [[unlikely]] {                           \
+        solid_throw("(" #a ") check failed: " << msg); \
+    }
 
 #define solid_check_log2(a, l)                       \
-    if (solid_likely(a)) {                           \
-    } else {                                         \
+    if (!(a)) [[unlikely]] {                         \
         solid_throw_log(l, "(" #a ") check failed"); \
     }
 
 #define solid_check_log3(a, l, msg)                           \
-    if (solid_likely(a)) {                                    \
-    } else {                                                  \
+    if (!(a)) [[unlikely]] {                                  \
         solid_throw_log(l, "(" #a ") check failed: " << msg); \
     }
 
 // adapted from: https://stackoverflow.com/questions/9183993/msvc-variadic-macro-expansion/9338429#9338429
-#if 1
 #define solid_check(...) SOLID_CALL_OVERLOAD(solid_check, __VA_ARGS__)
 #define solid_check_log(...) SOLID_CALL_OVERLOAD(solid_check_log, __VA_ARGS__)
-#else
-#define GET_3RD_ARG(arg1, arg2, arg3, ...) arg3
-
-#define solid_check_MACRO_CHOOSER(...)     \
-    GET_3RD_ARG(__VA_ARGS__, solid_check2, \
-        solid_check1)
-
-#define solid_check(...) \
-    solid_check_MACRO_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
-#endif
-
 } // namespace solid

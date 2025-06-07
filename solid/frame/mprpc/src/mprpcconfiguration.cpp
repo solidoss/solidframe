@@ -40,14 +40,14 @@ std::ostream& operator<<(std::ostream& _ros, const RelayDataFlagsT& _flags)
 }
 
 namespace {
-SharedBuffer default_allocate_recv_buffer(const uint32_t _cp)
+MutableSharedBuffer default_allocate_recv_buffer(const uint32_t _cp)
 {
-    return BufferManager::make(_cp);
+    return BufferManager::makeMutable(_cp);
 }
 
-SharedBuffer default_allocate_send_buffer(const uint32_t _cp)
+MutableSharedBuffer default_allocate_send_buffer(const uint32_t _cp)
 {
-    return make_shared_buffer(_cp);
+    return make_mutable_buffer(_cp);
 }
 
 // void empty_reset_serializer_limits(ConnectionContext &, serialization::binary::Limits&){}
@@ -188,11 +188,6 @@ bool RelayEngine::notifyConnection(Manager& _rm, const ActorIdT& _rrelay_uid, co
 //-----------------------------------------------------------------------------
 void Configuration::init()
 {
-    connection_recv_buffer_start_capacity_kb = 16;
-    connection_send_buffer_start_capacity_kb = 16;
-
-    connection_recv_buffer_max_capacity_kb = connection_send_buffer_max_capacity_kb = 64;
-
     connection_recv_buffer_allocate_fnc = &default_allocate_recv_buffer;
     connection_send_buffer_allocate_fnc = &default_allocate_send_buffer;
 
@@ -300,22 +295,6 @@ void Configuration::prepare()
         pool_max_pending_connection_count = 1;
     }
 
-    if (connection_recv_buffer_max_capacity_kb > 64) {
-        connection_recv_buffer_max_capacity_kb = 64;
-    }
-
-    if (connection_send_buffer_max_capacity_kb > 64) {
-        connection_send_buffer_max_capacity_kb = 64;
-    }
-
-    if (connection_recv_buffer_start_capacity_kb > connection_recv_buffer_max_capacity_kb) {
-        connection_recv_buffer_start_capacity_kb = connection_recv_buffer_max_capacity_kb;
-    }
-
-    if (connection_send_buffer_start_capacity_kb > connection_send_buffer_max_capacity_kb) {
-        connection_send_buffer_start_capacity_kb = connection_send_buffer_max_capacity_kb;
-    }
-
     if (!server.hasSecureConfiguration()) {
         server.connection_start_secure = false;
     }
@@ -365,15 +344,18 @@ void Configuration::createListenerDevice(SocketDevice& _rsd) const
     }
 }
 
+constexpr size_t send_buffer_capacity = Protocol::max_packet_size;
+constexpr size_t recv_buffer_capacity = send_buffer_capacity * 2;
+
 //-----------------------------------------------------------------------------
-SharedBuffer Configuration::allocateRecvBuffer() const
+MutableSharedBuffer Configuration::allocateRecvBuffer() const
 {
-    return connection_recv_buffer_allocate_fnc(connection_recv_buffer_start_capacity_kb * 1024);
+    return connection_recv_buffer_allocate_fnc(recv_buffer_capacity);
 }
 //-----------------------------------------------------------------------------
-SharedBuffer Configuration::allocateSendBuffer() const
+MutableSharedBuffer Configuration::allocateSendBuffer() const
 {
-    return connection_send_buffer_allocate_fnc(connection_send_buffer_start_capacity_kb * 1024);
+    return connection_send_buffer_allocate_fnc(send_buffer_capacity);
 }
 //-----------------------------------------------------------------------------
 } // namespace mprpc

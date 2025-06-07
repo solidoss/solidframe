@@ -172,7 +172,7 @@ private:
     }
 
     bool sendAll(
-        frame::aio::ReactorContext& _rctx, OnSendF _pf, char* _buf, size_t _bufcp) override final
+        frame::aio::ReactorContext& _rctx, OnSendF _pf, char const* _buf, size_t _bufcp) override final
     {
         return sock.sendAll(_rctx, _buf, _bufcp, _pf);
     }

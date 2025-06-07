@@ -152,6 +152,7 @@ int test_collapse(int argc, char* argv[])
         const auto stop_time = chrono::high_resolution_clock::now();
         cout << "Duration: " << chrono::duration_cast<chrono::microseconds>(stop_time - start_time).count() << "us" << endl;
     } else if (choice == 'b') {
+#if false // TODO:
         CallPoolT         wp{{thread_count, 10000, 100},
             [](const size_t) {
                 set_current_thread_affinity();
@@ -183,6 +184,7 @@ int test_collapse(int argc, char* argv[])
         }
         const auto stop_time = chrono::high_resolution_clock::now();
         cout << "Duration: " << chrono::duration_cast<chrono::microseconds>(stop_time - start_time).count() << "us" << endl;
+#endif
     } else {
         cout << "Invalid choice. Expected B or p or b. Got [" << choice << "]." << endl;
     }

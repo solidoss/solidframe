@@ -17,9 +17,7 @@
 
 #include <memory>
 
-namespace solid {
-namespace frame {
-namespace mprpc {
+namespace solid::frame::mprpc {
 
 class ConnectionContext;
 
@@ -162,7 +160,8 @@ class Protocol : NonCopyable {
     uint32_t version_minor_ = 0;
 
 public:
-    static constexpr size_t MaxPacketDataSize = 1024 * 64;
+    static constexpr size_t packet_header_size = 4;
+    static constexpr size_t max_packet_size    = std::numeric_limits<uint16_t>::max() - (std::numeric_limits<uint16_t>::max() % packet_header_size);
 
     using PointerT = std::shared_ptr<Protocol>;
 
@@ -190,10 +189,10 @@ public:
     // virtual const TypeStub& operator[](const size_t _idx) const = 0;
     virtual void complete(const size_t _idx, ConnectionContext&, MessagePointerT<>&, MessagePointerT<>&, ErrorConditionT const&) const = 0;
 
-    virtual Serializer::PointerT   createSerializer(const WriterConfiguration& _rconf) const   = 0;
-    virtual Deserializer::PointerT createDeserializer(const ReaderConfiguration& _rconf) const = 0;
+    [[nodiscard]] virtual Serializer::PointerT   createSerializer(const WriterConfiguration& _rconf) const   = 0;
+    [[nodiscard]] virtual Deserializer::PointerT createDeserializer(const ReaderConfiguration& _rconf) const = 0;
 
-    virtual size_t minimumFreePacketDataSize() const = 0;
+    [[nodiscard]] virtual size_t minimumFreePacketDataSize() const = 0;
 
     void version(const uint32_t _major, const uint32_t _minor)
     {
@@ -212,6 +211,4 @@ public:
     }
 };
 
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc

@@ -419,11 +419,11 @@ ErrorConditionT MessageWriter::write(
     bool            more    = true;
     ErrorConditionT error;
 
-    while (more && freesz >= (PacketHeader::size_of_header + _rsender.protocol().minimumFreePacketDataSize())) {
+    while (more && freesz >= (PacketHeader::header_size + _rsender.protocol().minimumFreePacketDataSize())) {
 
         PacketHeader  packet_header(PacketHeader::TypeE::Data, 0, 0);
         PacketOptions packet_options;
-        char*         pbufdata = pbufpos + PacketHeader::size_of_header;
+        char*         pbufdata = pbufpos + PacketHeader::header_size;
         size_t        fillsz   = doWritePacketData(pbufdata, pbufend, packet_options, _rackd_buf_count, _cancel_remote_msg_vec, _rrelay_free_count, _rsender, error);
 
         if (fillsz != 0u) {
@@ -452,7 +452,7 @@ ErrorConditionT MessageWriter::write(
                 more = false; // do not allow multiple packets per relay buffer
             }
 
-            solid_assert_log(static_cast<size_t>(fillsz) < static_cast<size_t>(0xffffUL), logger);
+            solid_assert_log(static_cast<size_t>(fillsz) <= static_cast<size_t>(PacketHeader::max_size), logger);
 
             packet_header.size(static_cast<uint32_t>(fillsz));
 

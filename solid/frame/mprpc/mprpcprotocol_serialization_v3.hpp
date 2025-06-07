@@ -361,7 +361,7 @@ public:
     {
     }
 
-    size_t minimumFreePacketDataSize() const override
+    [[nodiscard]] size_t minimumFreePacketDataSize() const override
     {
         return 16;
     }
