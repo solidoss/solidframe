@@ -37,6 +37,15 @@ char* SharedBufferData::release(size_t& _previous_use_count)
     return nullptr;
 }
 
+char* SharedBufferData::collapse(size_t& _previous_use_count)
+{
+    _previous_use_count = use_count_.fetch_sub(1);
+    if (_previous_use_count == 1) {
+        return buffer_;
+    }
+    return nullptr;
+}
+
 /* static */ SharedBufferData* SharedBufferBase::allocate_data(const std::size_t _cap)
 {
     const std::size_t new_cap = compute_capacity<sizeof(SharedBufferData)>(_cap);

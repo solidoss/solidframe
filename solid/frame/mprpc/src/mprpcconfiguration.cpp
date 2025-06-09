@@ -47,7 +47,7 @@ MutableSharedBuffer default_allocate_recv_buffer(const uint32_t _cp)
 
 MutableSharedBuffer default_allocate_send_buffer(const uint32_t _cp)
 {
-    return make_mutable_buffer(_cp);
+    return BufferManager::makeMutable(_cp);
 }
 
 // void empty_reset_serializer_limits(ConnectionContext &, serialization::binary::Limits&){}

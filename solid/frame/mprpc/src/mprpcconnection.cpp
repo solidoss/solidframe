@@ -15,8 +15,11 @@
 #include "solid/frame/mprpc/mprpcservice.hpp"
 #include "solid/utility/event.hpp"
 #include <algorithm>
+#include <cassert>
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
+#include <ratio>
 
 namespace solid::frame::mprpc {
 namespace {
@@ -238,25 +241,12 @@ inline void Connection::doOptimizeRecvBuffer()
 {
     if (recv_buf_.cempty()) [[likely]] {
         recv_buf_.optimize();
-    } else if ((recv_buf_.csize() + recv_buf_.msize()) < PacketHeader::max_size) {
+    } else if ((recv_buf_.csize() + recv_buf_.msize()) < Protocol::max_packet_size) {
         // not enough space in the recv_buf for a packet.
-        solid_log(logger, Warning, this << " optimizing - " << recv_buf_.csize() << " " << recv_buf_.msize());
+        // solid_log(logger, Warning, this << " optimizing - " << recv_buf_.csize() << " " << recv_buf_.msize());
         recv_buf_.optimize();
     }
     assert(recv_buf_.msize());
-#if 0 // TODO: remove
-    const size_t remaining_size = recv_buf_.size() - cons_buf_off_;
-    if (remaining_size <= cons_buf_off_) {
-        memcpy(recv_buf_.data(), recv_buf_.data() + cons_buf_off_, remaining_size);
-        cons_buf_off_ = 0;
-        recv_buf_.resize(remaining_size);
-    }
-#endif
-}
-//-----------------------------------------------------------------------------
-inline void Connection::doOptimizeRecvBufferForced()
-{
-    recv_buf_.optimize();
 }
 //-----------------------------------------------------------------------------
 Connection::Connection(
@@ -1094,19 +1084,11 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, EventBa
 
             consume_size = std::min(consume_size, recv_buf_.csize());
 
-            // cons_buf_off_ += used_size;//TODO: remove
             recv_buf_.consume(consume_size);
+
             if (recv_buf_.cempty()) {
                 recv_buf_.optimize();
             }
-#if 0 // TODO:
-            if (cons_buf_off_ == recv_buf_.size()) {
-                cons_buf_off_ = 0;
-                recv_buf_.resize(0);
-            } else {
-                solid_assert_log(cons_buf_off_ < recv_buf_.size(), logger);
-            }
-#endif
         }
     } else if (pdata != nullptr) {
 
@@ -1263,6 +1245,8 @@ void Connection::doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint
         } else {
             recv_buf_.reset();
             _rerr = error_connection_too_many_recv_buffers;
+            solid_log(logger, Warning, this << " used all recv buffers");
+            assert(false);
             return;
         }
         memcpy(new_buf.mdata(), recv_buf_.cdata(), recv_buf_.csize());
@@ -1281,43 +1265,6 @@ void Connection::doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint
             ackd_buf_count_ += _request_buffer_ack_count;
         }
     }
-#if 0 // TODO: remove
-    if (_request_buffer_ack_count == 0) {
-
-    } else if (recv_buf_.useCount() > 1) {
-        solid_log(logger, Verbose, this << " buffer used for relay - try replace it. vec_size = " << recv_buf_vec_.size() << " count = " << recv_buf_count_);
-        SharedBuffer new_buf;
-        if (!recv_buf_vec_.empty()) {
-            new_buf = std::move(recv_buf_vec_.back());
-            recv_buf_vec_.pop_back();
-        } else if (recv_buf_count_ < service(_rctx).configuration().connection_relay_buffer_count) {
-            new_buf = service(_rctx).configuration().allocateRecvBuffer();
-        } else {
-            recv_buf_.reset();
-            _rerr         = error_connection_too_many_recv_buffers;
-            cons_buf_off_ = 0;
-            return;
-        }
-        const size_t cnssz = recv_buf_.size() - cons_buf_off_;
-
-        memcpy(new_buf.data(), recv_buf_.data() + cons_buf_off_, cnssz);
-        cons_buf_off_ = 0;
-        new_buf.resize(cnssz);
-        recv_buf_ = std::move(new_buf);
-    } else {
-        // tried to relay received messages/message parts - but all failed
-        // so we need to ack the buffer
-        solid_assert_log(recv_buf_.useCount(), logger);
-        solid_log(logger, Info, this << " send accept for " << (int)_request_buffer_ack_count << " buffers");
-
-        if (ackd_buf_count_ == 0) {
-            ackd_buf_count_ += _request_buffer_ack_count;
-            this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, EventBase const& /*_revent*/) { this->doSend<Ctx>(_rctx); });
-        } else {
-            ackd_buf_count_ += _request_buffer_ack_count;
-        }
-    }
-#endif
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
@@ -1391,15 +1338,11 @@ struct ConnectionReceiver : MessageReaderReceiver {
 template <class Ctx>
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
-    Connection&          rthis = static_cast<Connection&>(_rctx.actor());
-    ConnectionContext    conctx(_rctx, rthis.service(_rctx), rthis);
-    const Configuration& rconfig   = rthis.service(_rctx).configuration();
-    unsigned             repeatcnt = 4;
-    // TODO: remove
-    // char*                   pbuf      = nullptr;
-    // size_t                  bufsz     = 0;
-    // const uint32_t          recvbufcp = rthis.recv_buf_.capacity();
-    auto&                   rrecvbuf = rthis.recv_buf_;
+    Connection&             rthis = static_cast<Connection&>(_rctx.actor());
+    ConnectionContext       conctx(_rctx, rthis.service(_rctx), rthis);
+    const Configuration&    rconfig   = rthis.service(_rctx).configuration();
+    unsigned                repeatcnt = 4;
+    auto&                   rrecvbuf  = rthis.recv_buf_;
     typename Ctx::ReceiverT rcvr(rthis, _rctx, rconfig.reader, rconfig.protocol(), conctx);
     ErrorConditionT         error;
 
@@ -1409,14 +1352,11 @@ template <class Ctx>
 
         if (!_rctx.error()) {
             rrecvbuf.append(_sz);
-            // TODO: remove
-            // pbuf  = rthis.recv_buf_.data() + rthis.cons_buf_off_;
-            // bufsz = rthis.recv_buf_.size() - rthis.cons_buf_off_;//rrecvbuf.csize()
 
             rcvr.request_buffer_ack_count_ = 0;
 
             auto const consumed_size = rthis.msg_reader_.read(rrecvbuf.cdata(), rrecvbuf.csize(), rcvr, error);
-            // rthis.cons_buf_off_ += consumed_size;//TODO:remove
+
             rrecvbuf.consume(consumed_size);
 
             solid_log(logger, Verbose, &rthis << " consumed size " << consumed_size << " remaining " << rrecvbuf.csize());
@@ -1428,13 +1368,6 @@ template <class Ctx>
                 rthis.doStop<Ctx>(_rctx, error);
                 return;
             }
-
-            // if (rthis.cons_buf_off_ < bufsz) {//TODO: remove
-#if 0 // TODO
-            if () {
-                rthis.doOptimizeRecvBufferForced();
-            }
-#endif
         } else {
             solid_log(logger, Info, &rthis << ' ' << rthis.id() << " receiving " << _rctx.error().message());
             rthis.flags_.set(FlagsE::StopPeer);
@@ -1443,12 +1376,14 @@ template <class Ctx>
         }
 
         --repeatcnt;
+        auto t_start = std::chrono::high_resolution_clock::now();
         rthis.doOptimizeRecvBuffer();
-        assert(rrecvbuf.msize());
-        // TODO: remove
-        // pbuf = rthis.recv_buf_.data() + rthis.recv_buf_.size();
-        // bufsz = recvbufcp - rthis.recv_buf_.size();
-        //  solid_log(logger, Info, &rthis<<" buffer size "<<bufsz);
+        const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - t_start);
+        rthis.service(_rctx)
+            .wstatistic()
+            .optimizeDuration(duration);
+        solid_check(rrecvbuf.msize());
+
     } while (repeatcnt != 0U && !rthis.flags_.isSet(FlagsE::PauseRecv) && rthis.recvSome<Ctx>(_rctx, rrecvbuf.mdata(), rrecvbuf.msize(), _sz));
 
     if (rconfig.hasConnectionTimeoutRecv()) {
@@ -1895,10 +1830,6 @@ void Connection::doResumeRead(frame::aio::ReactorContext& _rctx)
 {
     if (flags_.isSet(FlagsE::PauseRecv)) {
         flags_.reset(FlagsE::PauseRecv);
-
-        // TODO: remove
-        // const auto pbuf  = recv_buf_.data() + recv_buf_.size();
-        // const auto bufsz = recv_buf_.capacity() - recv_buf_.size();
 
         const bool rv = postRecvSome<Ctx>(_rctx, recv_buf_.mdata(), recv_buf_.msize()); // fully asynchronous call
 
@@ -2373,6 +2304,7 @@ bool RelayConnection::doReceiveRelayStart(
     Configuration const& config = configuration(_rctx);
     ConnectionContext    conctx{_rctx, service(_rctx), *this};
     RelayData            relmsg{recvBufferView(_pbeg, _sz), _is_last};
+    assert(relmsg.buffer_.cdata() == _pbeg and relmsg.buffer_.csize() == _sz);
 
     return config.relayEngine().relayStart(uid(_rctx), relayId(), _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
 }
@@ -2388,6 +2320,7 @@ bool RelayConnection::doReceiveRelayBody(
     Configuration const& config = configuration(_rctx);
     ConnectionContext    conctx{_rctx, service(_rctx), *this};
     RelayData            relmsg{recvBufferView(_pbeg, _sz), _is_last};
+    assert(relmsg.buffer_.cdata() == _pbeg and relmsg.buffer_.csize() == _sz);
 
     return config.relayEngine().relay(relayId(), std::move(relmsg), _rrelay_id, _rerror);
 }
@@ -2404,6 +2337,7 @@ bool RelayConnection::doReceiveRelayResponse(
     Configuration const& config = configuration(_rctx);
     ConnectionContext    conctx{_rctx, service(_rctx), *this};
     RelayData            relmsg{recvBufferView(_pbeg, _sz), _is_last};
+    assert(relmsg.buffer_.cdata() == _pbeg and relmsg.buffer_.csize() == _sz);
 
     return config.relayEngine().relayResponse(relayId(), _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
 }
@@ -2430,6 +2364,9 @@ void RelayConnection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, 
         size_t               ack_buf_cnt = 0;
 
         const auto done_lambda = [this, &ack_buf_cnt](SharedBufferView& _rbuf) {
+            if (_rbuf.useCount() == 1) {
+                solid_log(logger, Info, this << " returnRecvBuffer " << _rbuf.useCount());
+            }
             if (returnRecvBuffer(std::move(_rbuf))) {
                 ++ack_buf_cnt;
             }

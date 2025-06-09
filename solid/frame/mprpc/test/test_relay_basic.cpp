@@ -573,6 +573,9 @@ int test_relay_basic(int argc, char* argv[])
             solid_throw("Not all messages were completed");
         }
 
+        cout << " mprpcrelay statistics: " << mprpcrelay.statistic() << endl;
+        cout << " mprpcpeera statistics: " << mprpcpeera.statistic() << endl;
+        cout << " mprpcpeerb statistics: " << mprpcpeerb.statistic() << endl;
         // m.stop();
     }
 

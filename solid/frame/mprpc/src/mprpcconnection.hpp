@@ -312,7 +312,6 @@ private:
         EventBase&                  _revent);
 
     void doOptimizeRecvBuffer();
-    void doOptimizeRecvBufferForced();
     void doPrepare(frame::aio::ReactorContext& _rctx);
     void doUnprepare(frame::aio::ReactorContext& _rctx);
     template <class Ctx>
@@ -354,11 +353,10 @@ private:
     template <class Ctx>
     friend struct ConnectionSenderResponse;
 
-    ConnectionPoolId   pool_id_;
-    const std::string& rpool_name_;
-    TimerT             timer_;
-    FlagsT             flags_ = 0;
-    // size_t                                cons_buf_off_            = 0;//TODO:delete
+    ConnectionPoolId                      pool_id_;
+    const std::string&                    rpool_name_;
+    TimerT                                timer_;
+    FlagsT                                flags_                   = 0;
     uint32_t                              recv_keepalive_count_    = 0;
     std::chrono::steady_clock::time_point recv_keepalive_boundary_ = std::chrono::steady_clock::time_point::min();
     uint16_t                              recv_buf_count_          = 0;

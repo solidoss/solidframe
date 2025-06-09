@@ -9,6 +9,8 @@
 //
 
 #pragma once
+#include <atomic>
+#include <chrono>
 #include <optional>
 
 #include "solid/system/exception.hpp"
@@ -98,6 +100,7 @@ struct ServiceStatistic : solid::Statistic {
     std::atomic<uint64_t> connection_send_posted_;
     std::atomic<uint64_t> max_fetch_size_;
     std::atomic<uint64_t> min_fetch_size_;
+    std::atomic_uint64_t  max_optimize_duration_us_{0};
 
     void fetchCount(const uint64_t _count, const bool _more)
     {
@@ -164,6 +167,11 @@ struct ServiceStatistic : solid::Statistic {
 #endif
     }
 
+    void optimizeDuration(std::chrono::microseconds _us)
+    {
+        solid_statistic_max(max_optimize_duration_us_, static_cast<uint64_t>(_us.count()));
+    }
+
     ServiceStatistic();
     std::ostream& print(std::ostream& _ros) const override;
 };
@@ -190,7 +198,7 @@ class RecipientUrl final {
         return false;
     }
 
-    bool hasURLNonEmpty() const
+    [[nodiscard]] bool hasURLNonEmpty() const
     {
         if (url_var_opt_.has_value()) {
             if (auto* psv = std::get_if<std::string_view>(&url_var_opt_.value())) {
@@ -200,7 +208,7 @@ class RecipientUrl final {
         return false;
     }
 
-    std::string_view url() const
+    [[nodiscard]] std::string_view url() const
     {
         if (url_var_opt_.has_value()) {
             if (auto* psv = std::get_if<std::string_view>(&url_var_opt_.value())) {

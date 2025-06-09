@@ -113,8 +113,6 @@ private:
 
         } lambda(_pf, _revent);
 
-        // TODO: find solution for costly event copy
-
         return sock.postSendAll(_rctx, _pbuf, _bufcp, lambda);
     }
 
@@ -143,8 +141,6 @@ private:
             }
 
         } lambda(_pf, _revent);
-
-        // TODO: find solution for costly event copy
 
         return sock.postRecvSome(_rctx, _pbuf, _bufcp, lambda);
     }

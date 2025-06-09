@@ -44,6 +44,7 @@ struct SharedBufferData {
     }
 
     char* release(size_t& _previous_use_count);
+    char* collapse(size_t& _previous_use_count);
 
     char* data()
     {
@@ -539,7 +540,7 @@ public:
     {
         if (*this) {
             size_t previous_use_count = 0;
-            auto*  buf                = pdata_->release(previous_use_count);
+            auto*  buf                = pdata_->collapse(previous_use_count);
             if (buf) {
                 pdata_->acquire();
                 pdata_->size_ = 0;
@@ -597,7 +598,7 @@ inline MutableSharedBuffer SharedBufferView::collapse()
 {
     if (*this) {
         size_t previous_use_count = 0;
-        auto*  buf                = pdata_->release(previous_use_count);
+        auto*  buf                = pdata_->collapse(previous_use_count);
         if (buf) {
             pdata_->acquire();
             pdata_->size_ = 0;

@@ -17,6 +17,8 @@
 #include "solid/system/exception.hpp"
 #include "solid/system/log.hpp"
 
+#include <cassert>
+
 namespace solid {
 namespace frame {
 namespace mprpc {
@@ -61,6 +63,7 @@ size_t MessageReader::read(
             // try read the data
             const char* tmpbufpos = packet_header.load(pbufpos, _receiver.protocol());
             if (!packet_header.isOk()) {
+                assert(false);
                 _rerror = error_reader_invalid_packet_header;
                 solid_log(logger, Error, _rerror.message());
                 break;

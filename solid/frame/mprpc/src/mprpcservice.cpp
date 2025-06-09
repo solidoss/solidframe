@@ -46,9 +46,7 @@
 
 using namespace std;
 
-namespace solid {
-namespace frame {
-namespace mprpc {
+namespace solid::frame::mprpc {
 namespace {
 
 const LoggerT logger("solid::frame::mprpc::service");
@@ -636,8 +634,7 @@ struct Service::Data {
     NameMapT                 name_map_;
     ConnectionPoolDequeT     pool_dq_;
     ConnectionPoolInnerListT pool_free_list_;
-    // std::string              tmp_str_;
-    ServiceStatistic statistic_;
+    ServiceStatistic         statistic_;
 
     Data(Service& _rsvc, Configuration&& _config)
         : rmutex_(_rsvc.mutex())
@@ -2196,7 +2193,7 @@ bool Service::Data::doMainConnectionStoppingCleanAll(
             solid_log(logger, Verbose, this << " pool " << pool_index << " set closing");
         }
 
-        return true; // TODO: maybe we should return false
+        return true;
     }
     return false;
 }
@@ -2844,9 +2841,8 @@ std::ostream& ServiceStatistic::print(std::ostream& _ros) const
     _ros << " 70:" << poll_pool_fetch_count_70_ << " 80:" << poll_pool_fetch_count_80_ << ']';
     _ros << " max_fetch = " << max_fetch_size_;
     _ros << " min_fetch = " << min_fetch_size_;
+    _ros << " max_optimize_duration_us_ = " << max_optimize_duration_us_;
     return _ros;
 }
 //=============================================================================
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc

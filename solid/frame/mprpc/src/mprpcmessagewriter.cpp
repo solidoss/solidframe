@@ -16,9 +16,7 @@
 #include "solid/system/cassert.hpp"
 #include "solid/system/log.hpp"
 
-namespace solid {
-namespace frame {
-namespace mprpc {
+namespace solid::frame::mprpc {
 namespace {
 const LoggerT logger("solid::frame::mprpc::writer");
 }
@@ -192,8 +190,7 @@ bool MessageWriter::enqueue(
 
     MessageStub& rmsgstub(message_vec_[msgidx]);
 
-    if (_rprelay_data->pdata_ != nullptr) {
-
+    if (_rprelay_data->buffer_) {
         solid_log(logger, Verbose, this << " " << msgidx << " relay_data.flags " << _rprelay_data->flags_ << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
 
         if (_rprelay_data->isMessageBegin()) {
@@ -202,8 +199,8 @@ bool MessageWriter::enqueue(
         }
 
         rmsgstub.prelay_data_ = _rprelay_data;
-        rmsgstub.prelay_pos_  = rmsgstub.prelay_data_->pdata_;
-        rmsgstub.relay_size_  = rmsgstub.prelay_data_->data_size_;
+        rmsgstub.prelay_pos_  = rmsgstub.prelay_data_->buffer_.cdata();
+        rmsgstub.relay_size_  = rmsgstub.prelay_data_->buffer_.csize();
         rmsgstub.pool_msg_id_ = _rengine_msg_id;
         _rprelay_data         = nullptr;
 
@@ -452,9 +449,9 @@ ErrorConditionT MessageWriter::write(
                 more = false; // do not allow multiple packets per relay buffer
             }
 
-            solid_assert_log(static_cast<size_t>(fillsz) <= static_cast<size_t>(PacketHeader::max_size), logger);
+            solid_assert_log(fillsz <= static_cast<size_t>(PacketHeader::max_size), logger);
 
-            packet_header.size(static_cast<uint32_t>(fillsz));
+            packet_header.size(static_cast<uint16_t>(fillsz));
 
             pbufpos = packet_header.store(pbufpos, _rsender.protocol());
             pbufpos = pbufdata + fillsz;
@@ -1128,6 +1125,4 @@ std::ostream& operator<<(std::ostream& _ros, std::pair<MessageWriter const&, Mes
     return _ros;
 }
 //-----------------------------------------------------------------------------
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc

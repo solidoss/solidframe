@@ -64,9 +64,7 @@ std::ostream& operator<<(std::ostream& _ros, const RelayDataFlagsT& _flags);
 
 struct RelayData {
     SharedBufferView      buffer_;
-    const char*           pdata_     = nullptr;
-    size_t                data_size_ = 0;
-    RelayData*            pnext_     = nullptr;
+    RelayData*            pnext_ = nullptr;
     RelayDataFlagsT       flags_;
     MessageHeader::FlagsT message_flags_   = 0;
     MessageHeader*        pmessage_header_ = nullptr;
@@ -133,9 +131,9 @@ struct RelayData {
 private:
     friend class RelayConnection;
     RelayData(
-        const SharedBufferView& _buffer,
-        const bool              _is_last)
-        : buffer_(_buffer)
+        SharedBufferView&& _buffer,
+        const bool         _is_last)
+        : buffer_(std::move(_buffer))
     {
         if (_is_last) {
             flags_.set(RelayDataFlagsE::Last);

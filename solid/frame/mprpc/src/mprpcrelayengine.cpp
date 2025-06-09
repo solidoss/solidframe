@@ -21,10 +21,7 @@
 
 using namespace std;
 
-namespace solid {
-namespace frame {
-namespace mprpc {
-namespace relay {
+namespace solid::frame::mprpc::relay {
 //-----------------------------------------------------------------------------
 namespace {
 const LoggerT logger("solid::frame::mprpc::relay");
@@ -124,7 +121,7 @@ struct MessageStub : inner::Node<InnerLinkCount> {
             pback_->pnext_   = nullptr;
         }
         pback_->pmessage_header_ = &header_;
-        solid_log(logger, Verbose, "pushed relay_data " << pback_ << " size = " << pback_->data_size_ << " is_begin = " << pback_->isMessageBegin() << " is_end = " << pback_->isMessageEnd() << " is_last = " << pback_->isMessageLast());
+        solid_log(logger, Verbose, "pushed relay_data " << pback_ << " size = " << pback_->buffer_.csize() << " is_begin = " << pback_->isMessageBegin() << " is_end = " << pback_->isMessageEnd() << " is_last = " << pback_->isMessageLast());
     }
 
     RelayData* pop()
@@ -550,7 +547,7 @@ bool EngineCore::doRelayStart(
     _rrelmsg.flags_.set(RelayDataFlagsE::First);
     _rrelmsg.message_flags_ = rmsg.header_.flags_;
 
-    solid_log(logger, Info, _rrelay_con_uid << " msgid = " << _rrelay_id << " size = " << _rrelmsg.data_size_ << " receiver_conidx " << rmsg.receiver_con_id_.index << " sender_conidx " << rmsg.sender_con_id_.index << " flags = " << _rrelmsg.flags_);
+    solid_log(logger, Info, _rrelay_con_uid << " msgid = " << _rrelay_id << " size = " << _rrelmsg.buffer_.csize() << " receiver_conidx " << rmsg.receiver_con_id_.index << " sender_conidx " << rmsg.sender_con_id_.index << " flags = " << _rrelmsg.flags_);
 
     solid_assert_log(rmsg.pfront_ == nullptr, logger);
 
@@ -584,7 +581,7 @@ bool EngineCore::doRelay(
         const size_t msgidx                        = _rrelay_id.index;
         MessageStub& rmsg                          = impl_->msg_dq_[msgidx];
         const bool   is_msg_relay_data_queue_empty = (rmsg.pfront_ == nullptr);
-        size_t       data_size                     = _rrelmsg.data_size_;
+        size_t       data_size                     = _rrelmsg.buffer_.csize();
         auto         flags                         = rmsg.last_message_flags_;
 
         _rrelmsg.message_flags_ = rmsg.last_message_flags_;
@@ -695,7 +692,7 @@ bool EngineCore::doRelayResponse(
             }
         } else if (rmsg.state_ == MessageStateE::Relay || rmsg.state_ == MessageStateE::WaitResponsePart) {
             const bool is_msg_relay_data_queue_empty = (rmsg.pfront_ == nullptr);
-            size_t     data_size                     = _rrelmsg.data_size_;
+            size_t     data_size                     = _rrelmsg.buffer_.csize();
 
             rmsg.state_ = MessageStateE::Relay;
 
@@ -1129,7 +1126,4 @@ void EngineCore::Proxy::registerConnectionId(const ConnectionContext& _rconctx, 
     re_.doRegisterConnectionId(_rconctx, _idx);
 }
 //-----------------------------------------------------------------------------
-} // namespace relay
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc::relay
