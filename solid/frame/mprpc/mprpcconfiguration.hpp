@@ -39,9 +39,8 @@ struct ActorProxy;
 
 namespace mprpc {
 
-enum struct ConnectionValues : size_t {
-    SocketEmplacementSize = 128
-};
+constexpr size_t socket_emplace_size  = 512;
+constexpr size_t socket_emplace_align = 16;
 
 class Service;
 class Connection;

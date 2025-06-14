@@ -28,10 +28,7 @@
 
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
-namespace solid {
-namespace frame {
-namespace mprpc {
-namespace openssl {
+namespace solid::frame::mprpc::openssl {
 
 using ContextT      = frame::aio::openssl::Context;
 using StreamSocketT = frame::aio::Stream<frame::aio::openssl::Socket>;
@@ -240,8 +237,11 @@ private:
 
 inline SocketStubPtrT create_client_socket(mprpc::Configuration const& _rcfg, frame::aio::ActorProxy const& _rproxy, char* _emplace_buf)
 {
-
-    if (sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)) {
+#ifdef SOLID_HAS_ASSERT
+    static_assert(sizeof(SocketStub) <= socket_emplace_size);
+    static_assert(alignof(SocketStub) == socket_emplace_align);
+#endif
+    if constexpr (sizeof(SocketStub) > socket_emplace_size and alignof(SocketStub) > socket_emplace_align) {
         return SocketStubPtrT(new SocketStub(_rproxy, const_cast<ClientConfiguration*>(_rcfg.client.secure_any.cast<ClientConfiguration>())->context), SocketStub::delete_deleter);
     } else {
         return SocketStubPtrT(new (_emplace_buf) SocketStub(_rproxy, const_cast<ClientConfiguration*>(_rcfg.client.secure_any.cast<ClientConfiguration>())->context), SocketStub::emplace_deleter);
@@ -250,8 +250,12 @@ inline SocketStubPtrT create_client_socket(mprpc::Configuration const& _rcfg, fr
 
 inline SocketStubPtrT create_server_socket(mprpc::Configuration const& _rcfg, frame::aio::ActorProxy const& _rproxy, SocketDevice&& _usd, char* _emplace_buf)
 {
+#ifdef SOLID_HAS_ASSERT
+    static_assert(sizeof(SocketStub) <= socket_emplace_size);
+    static_assert(alignof(SocketStub) == socket_emplace_align);
+#endif
 
-    if (sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)) {
+    if constexpr (sizeof(SocketStub) > socket_emplace_size and alignof(SocketStub) > socket_emplace_align) {
         return SocketStubPtrT(new SocketStub(_rproxy, std::move(_usd), const_cast<ServerConfiguration*>(_rcfg.server.secure_any.cast<ServerConfiguration>())->context), SocketStub::delete_deleter);
     } else {
         return SocketStubPtrT(new (_emplace_buf) SocketStub(_rproxy, std::move(_usd), const_cast<ServerConfiguration*>(_rcfg.server.secure_any.cast<ServerConfiguration>())->context), SocketStub::emplace_deleter);
@@ -358,7 +362,4 @@ inline void setup_server(
     rsecure_cfg.connection_verify_fnc         = std::move(_verify_fnc);
 }
 
-} // namespace openssl
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc::openssl

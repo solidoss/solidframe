@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <thread>
 
@@ -656,7 +657,7 @@ public:
         return SharedBuffer{_cap, std::this_thread::get_id()};
     }
 
-    static MutableSharedBuffer makeMutable(const size_t _cap)
+    static MutableSharedBuffer make_mutable(const size_t _cap)
     {
         return MutableSharedBuffer{make(_cap)};
     }

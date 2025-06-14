@@ -374,15 +374,15 @@ private:
     bool                                  poll_pool_more_ = true;
     bool                                  send_posted_    = false;
     Any<>                                 any_data_;
-    char                                  socket_emplace_buf_[static_cast<size_t>(ConnectionValues::SocketEmplacementSize)] = {};
-    SocketStubPtrT                        sock_ptr_;
-    NanoTime                              timeout_recv_      = NanoTime::max(); // client and server
-    NanoTime                              timeout_send_soft_ = NanoTime::max(); // client and server
-    NanoTime                              timeout_send_hard_ = NanoTime::max(); // client and server
-    NanoTime                              timeout_secure_    = NanoTime::max(); // server
-    NanoTime                              timeout_active_    = NanoTime::max(); // server
-    NanoTime                              timeout_keepalive_ = NanoTime::max(); // client
-    UniqueId                              relay_id_;
+    alignas(socket_emplace_align) char socket_emplace_buf_[socket_emplace_size] = {};
+    SocketStubPtrT sock_ptr_;
+    NanoTime       timeout_recv_      = NanoTime::max(); // client and server
+    NanoTime       timeout_send_soft_ = NanoTime::max(); // client and server
+    NanoTime       timeout_send_hard_ = NanoTime::max(); // client and server
+    NanoTime       timeout_secure_    = NanoTime::max(); // server
+    NanoTime       timeout_active_    = NanoTime::max(); // server
+    NanoTime       timeout_keepalive_ = NanoTime::max(); // client
+    UniqueId       relay_id_;
 };
 
 //-----------------------------------------------------------------------------

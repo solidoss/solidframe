@@ -42,12 +42,12 @@ std::ostream& operator<<(std::ostream& _ros, const RelayDataFlagsT& _flags)
 namespace {
 MutableSharedBuffer default_allocate_recv_buffer(const uint32_t _cp)
 {
-    return BufferManager::makeMutable(_cp);
+    return BufferManager::make_mutable(_cp);
 }
 
 MutableSharedBuffer default_allocate_send_buffer(const uint32_t _cp)
 {
-    return BufferManager::makeMutable(_cp);
+    return BufferManager::make_mutable(_cp);
 }
 
 // void empty_reset_serializer_limits(ConnectionContext &, serialization::binary::Limits&){}
@@ -345,7 +345,7 @@ void Configuration::createListenerDevice(SocketDevice& _rsd) const
 }
 
 constexpr size_t send_buffer_capacity = Protocol::max_packet_size;
-constexpr size_t recv_buffer_capacity = send_buffer_capacity * 2;
+constexpr size_t recv_buffer_capacity = send_buffer_capacity * 2 + 64;
 
 //-----------------------------------------------------------------------------
 MutableSharedBuffer Configuration::allocateRecvBuffer() const
