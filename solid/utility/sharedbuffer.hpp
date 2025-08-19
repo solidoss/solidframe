@@ -9,6 +9,7 @@
 #include "solid/system/common.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/system/pimpl.hpp"
+#include "solid/utility/common.hpp"
 
 namespace solid {
 
@@ -20,12 +21,12 @@ struct SharedBufferData {
     friend class BufferManager;
 
     std::atomic<std::size_t> use_count_;
-    std::thread::id          make_thread_id_;
-    SharedBufferData*        pnext_    = nullptr;
-    std::size_t              size_     = 0;
-    std::size_t              capacity_ = 0;
-    char*                    buffer_   = nullptr;
-    char                     data_[8];
+    std::uint64_t            make_thread_id_ = InvalidIndex{};
+    // SharedBufferData*        pnext_          = nullptr;//TODO:remove
+    std::size_t size_     = 0;
+    std::size_t capacity_ = 0;
+    char*       buffer_   = nullptr;
+    char        data_[8];
 
     SharedBufferData()
         : use_count_(1)
@@ -51,6 +52,15 @@ struct SharedBufferData {
     {
         return data_;
     }
+
+    void reset(size_t const _cap, uint64_t const _own_id)
+    {
+        use_count_.store(1);
+        size_ = 0;
+        // pnext_          = nullptr;//TODO:remove
+        capacity_       = _cap;
+        make_thread_id_ = _own_id;
+    }
 };
 
 class SharedBufferBase {
@@ -72,7 +82,7 @@ protected:
     {
     }
 
-    SharedBufferBase(std::size_t _cap, const std::thread::id& _thr_id);
+    SharedBufferBase(std::size_t _cap, bool);
 
     SharedBufferBase(const SharedBufferBase& _other)
         : pdata_(_other ? &_other.pdata_->acquire() : _other.pdata_)
@@ -170,7 +180,7 @@ class MutableSharedBuffer;
 //-----------------------------------------------------------------------------
 
 class SharedBuffer : public impl::SharedBufferBase {
-    friend class BufferManager;
+    friend class BufferPool;
     friend SharedBuffer make_shared_buffer(std::size_t);
 
     SharedBuffer(const std::size_t _cap)
@@ -178,8 +188,8 @@ class SharedBuffer : public impl::SharedBufferBase {
     {
     }
 
-    SharedBuffer(const std::size_t _cap, const std::thread::id& _thr_id)
-        : SharedBufferBase(_cap, _thr_id)
+    SharedBuffer(const std::size_t _cap, bool)
+        : SharedBufferBase(_cap, true)
     {
     }
 
@@ -257,8 +267,8 @@ protected:
     {
     }
 
-    SharedBufferView(const std::size_t _cap, const std::thread::id& _thr_id)
-        : SharedBufferBase(_cap, _thr_id)
+    SharedBufferView(const std::size_t _cap, bool)
+        : SharedBufferBase(_cap, true)
         , data_(impl::SharedBufferBase::data())
     {
     }
@@ -344,7 +354,7 @@ class ConstSharedBuffer;
 class MutableSharedBuffer : protected impl::SharedBufferBase {
     friend class ConstSharedBuffer;
     friend class SharedBuffer;
-    friend class BufferManager;
+    friend class BufferPool;
     friend class SharedBufferView;
 
     friend MutableSharedBuffer make_mutable_buffer(std::size_t);
@@ -354,8 +364,8 @@ class MutableSharedBuffer : protected impl::SharedBufferBase {
     {
     }
 
-    MutableSharedBuffer(const std::size_t _cap, const std::thread::id& _thr_id)
-        : impl::SharedBufferBase(_cap, _thr_id)
+    MutableSharedBuffer(const std::size_t _cap, bool)
+        : impl::SharedBufferBase(_cap, true)
     {
     }
 
@@ -628,6 +638,7 @@ inline SharedBuffer::SharedBuffer(MutableSharedBuffer&& _other)
 {
 }
 
+#if 0
 //-----------------------------------------------------------------------------
 // BufferManager
 //-----------------------------------------------------------------------------
@@ -672,5 +683,99 @@ private:
     BufferManager(const Configuration& _config);
     ~BufferManager();
 };
+#endif
+
+#if 1
+class BufferPool : NonCopyable {
+    friend class impl::SharedBufferData;
+    friend class impl::SharedBufferBase;
+    struct LocalData;
+    struct OwnData;
+    struct Data;
+    PimplT<Data> pimpl_;
+
+    using DataT = impl::SharedBufferData;
+
+    static char*  release(DataT&);
+    static DataT* allocate(size_t _cap, uint64_t& _rown_id, size_t& _ralloc_capacity);
+
+public:
+    struct Configuration {
+        using CapacityDispatchFncT = std::function<std::pair<size_t, size_t>(size_t)>;
+
+        size_t const   cache_vector_capacity_  = 256;
+        size_t const   capacity_count_         = 12;
+        uint32_t const max_thread_count_       = 1024;
+        uint32_t const thread_spin_lock_count_ = 1024;
+
+        CapacityDispatchFncT capacity_dispatch_fnc_{
+            [](size_t const _requested_capacity) -> std::pair<size_t, size_t> {
+                if (_requested_capacity <= 64) {
+                    return {0, 64};
+                } else if (_requested_capacity <= 128) {
+                    return {1, 128};
+                } else if (_requested_capacity <= 256) {
+                    return {2, 256};
+                } else if (_requested_capacity <= 512) {
+                    return {3, 512};
+                } else if (_requested_capacity <= 1024) {
+                    return {4, 1024};
+                } else if (_requested_capacity <= 2048) {
+                    return {5, 2048};
+                } else if (_requested_capacity <= 4096) {
+                    return {6, 4096};
+                } else if (_requested_capacity <= (8 * 1024)) {
+                    return {7, (8 * 1024)};
+                } else if (_requested_capacity <= (16 * 1024)) {
+                    return {8, (16 * 1024)};
+                } else if (_requested_capacity <= (32 * 1024)) {
+                    return {9, (32 * 1024)};
+                } else if (_requested_capacity <= (64 * 1024)) {
+                    return {10, (64 * 1024)};
+                } else if (_requested_capacity <= (128 * 1024)) {
+                    return {11, (128 * 1024)};
+                } else if (_requested_capacity <= (256 * 1024)) {
+                    return {12, (256 * 1024)};
+                }
+                return {0, 0};
+            }};
+    };
+
+    static BufferPool& instance(Configuration const& _rconfig)
+    {
+        return do_instance(_rconfig);
+    }
+    static BufferPool& instance()
+    {
+        static Configuration const config;
+        return do_instance(config);
+    }
+
+    static SharedBuffer make(const size_t _cap)
+    {
+        return SharedBuffer{_cap, true};
+    }
+
+    static MutableSharedBuffer make_mutable(const size_t _cap)
+    {
+        return MutableSharedBuffer{make(_cap)};
+    }
+
+    static void   localMaxCount(size_t _cap, size_t _count);
+    static size_t localMaxCount(size_t _cap);
+    static size_t localCount(size_t _cap);
+
+    static const Configuration& configuration();
+
+private:
+    BufferPool(const Configuration& _config);
+    ~BufferPool();
+
+    static BufferPool& do_instance(Configuration const&);
+
+    static Data&      data();
+    static LocalData& local_data();
+};
+#endif
 
 } // namespace solid

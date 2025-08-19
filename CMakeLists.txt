@@ -64,7 +64,7 @@ message("Install directory: \"${CMAKE_INSTALL_PREFIX}\"")
 message("External directory: \"${EXTERNAL_DIR}\"")
 message("Fortify: \"${FORTIFY}\"")
 
-list(APPEND CMAKE_PREFIX_PATH ${EXTERNAL_PATH})
+list(APPEND CMAKE_PREFIX_PATH ${EXTERNAL_DIR})
 
 #-----------------------------------------------------------------
 # Prepare the definitions for build types

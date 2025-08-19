@@ -15,7 +15,7 @@ void complete_message(
 template <class Reg>
 void register_messages(Reg& _rmap)
 {
-    auto lambda = [&]<typename T>(const TypeIdT _id, const std::string_view _name, std::type_identity<T> const& _rtype) {
+    auto lambda = [&]<typename T>(const TypeIdT _id, const std::string_view _name, std::type_identity<T> const&) {
         _rmap.template registerMessage<T>(_id, _name, complete_message<T>);
     };
     alpha_protocol::configure_protocol(lambda);

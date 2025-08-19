@@ -42,12 +42,12 @@ std::ostream& operator<<(std::ostream& _ros, const RelayDataFlagsT& _flags)
 namespace {
 MutableSharedBuffer default_allocate_recv_buffer(const uint32_t _cp)
 {
-    return BufferManager::make_mutable(_cp);
+    return BufferPool::make_mutable(_cp);
 }
 
 MutableSharedBuffer default_allocate_send_buffer(const uint32_t _cp)
 {
-    return BufferManager::make_mutable(_cp);
+    return BufferPool::make_mutable(_cp);
 }
 
 // void empty_reset_serializer_limits(ConnectionContext &, serialization::binary::Limits&){}

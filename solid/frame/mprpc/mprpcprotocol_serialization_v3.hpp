@@ -20,10 +20,7 @@
 #include "solid/serialization/v3/serialization.hpp"
 #include "solid/system/error.hpp"
 
-namespace solid {
-namespace frame {
-namespace mprpc {
-namespace serialization_v3 {
+namespace solid::frame::mprpc::serialization_v3 {
 
 template <class MetadataVariant, class MetadataFactory, typename TypeId>
 using SerializerTT = serialization::v3::binary::Serializer<MetadataVariant, MetadataFactory, ConnectionContext, TypeId>;
@@ -134,6 +131,11 @@ struct is_pair<std::pair<T1, T2>> : std::true_type {
 template <class MetadataVariant, class MetadataFactory, typename TypeId>
 class Protocol : public mprpc::Protocol {
     struct TypeData {
+        MessageCompleteFunctionT complete_fnc_;
+
+        TypeData(const TypeData&) = default;
+        TypeData(TypeData&&)      = default;
+
         template <class F>
         TypeData(F&& _f)
             : complete_fnc_(std::forward<F>(_f))
@@ -146,8 +148,6 @@ class Protocol : public mprpc::Protocol {
         {
             complete_fnc_(_rctx, _p1, _p2, _e);
         }
-
-        MessageCompleteFunctionT complete_fnc_;
     };
 
     using ThisT    = Protocol<MetadataVariant, MetadataFactory, TypeId>;
@@ -384,7 +384,4 @@ auto create_protocol(MetadataFactory&& _metadata_factory, InitFunction _init_fnc
     return std::make_shared<ProtocolT>(_metadata_factory, _init_fnc);
 }
 
-} // namespace serialization_v3
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc::serialization_v3

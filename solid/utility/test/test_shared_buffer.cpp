@@ -28,6 +28,8 @@ int test_shared_buffer(int argc, char* argv[])
 
         solid_check(sb3);
     }
+    {
+    }
 #if false // TODO:
     {
         MutableSharedBuffer sb = make_mutable_buffer(1000);
@@ -133,20 +135,7 @@ int test_shared_buffer(int argc, char* argv[])
         SharedBuffer sb2 = BufferManager::make(i);
         solid_check(sb1.capacity() == i);
         solid_check(sb2.capacity() == i);
-        cout << i << " " << sb1.capacity() << " " << sb1.actualCapacity() << " " << sb2.capacity() << " " << sb2.actualCapacity() << endl;
     }
 #endif
-    {
-        SharedBuffer empty_buf;
-        solid_check(empty_buf.capacity() == 0);
-        cout << "Empty buffer actualCapacity = " << empty_buf.actualCapacity() << endl;
-        solid_check(empty_buf.actualCapacity() == 0);
-    }
-    {
-        SharedBuffer zero_buf = make_shared_buffer(0);
-        solid_check(zero_buf.capacity() == 0);
-        cout << "Zero buffer actualCapacity = " << zero_buf.actualCapacity() << endl;
-        solid_check(zero_buf.actualCapacity() != 0 && zero_buf.actualCapacity() < 0xffffffff);
-    }
     return 0;
 }

@@ -11,6 +11,7 @@
 #pragma once
 #include <atomic>
 #include <bit>
+#include <chrono>
 #include <deque>
 #include <functional>
 #include <thread>
@@ -58,6 +59,12 @@ struct ThreadPoolStatistic : solid::Statistic {
 
     ThreadPoolStatistic();
 
+    auto now()
+    {
+        using namespace std::chrono;
+        return high_resolution_clock::now();
+    }
+
     void createContext()
     {
         ++create_context_count_;
@@ -103,13 +110,16 @@ struct ThreadPoolStatistic : solid::Statistic {
         solid_statistic_max(max_consume_all_count_, _count);
     }
 
-    void pushOne(const bool _with_context, const uint64_t _duration_us)
+    template <typename TimePos>
+    void pushOne(const bool _with_context, TimePos const _start)
     {
+        using namespace std::chrono;
+        const uint64_t duration = duration_cast<microseconds>(now() - _start).count();
         ++push_one_count_[_with_context];
 
-        solid_statistic_min(push_one_latency_min_us_, _duration_us);
-        solid_statistic_max(push_one_latency_max_us_, _duration_us);
-        push_one_latency_sum_us_ += _duration_us;
+        solid_statistic_min(push_one_latency_min_us_, duration);
+        solid_statistic_max(push_one_latency_max_us_, duration);
+        push_one_latency_sum_us_ += duration;
     }
     void pushAll(const bool _should_wake)
     {
@@ -145,6 +155,11 @@ struct ThreadPoolStatistic : solid::Statistic {
 };
 
 struct EmptyThreadPoolStatistic : solid::Statistic {
+
+    static int now()
+    {
+        return 0;
+    }
 
     void createContext() {}
     void deleteContext() {}
@@ -492,13 +507,11 @@ private:
             }
         }
 
-        void notifyWhilePushOne(std::chrono::time_point<std::chrono::steady_clock> const& _start, uint64_t& _rduration) noexcept
+        void notifyWhilePushOne() noexcept
         {
-            using namespace std::chrono;
             event_ = to_underlying(EventE::Fill);
             ++consume_count_;
             std::atomic_notify_all(&consume_count_);
-            _rduration = duration_cast<microseconds>(steady_clock::now() - _start).count();
         }
 
         void waitWhileStop(Stats& _rstats, const AtomicCounterValueT _count, const size_t _spin_count) noexcept
@@ -1267,7 +1280,7 @@ template <class Tsk>
 void ThreadPool<TaskOne, TaskAll, Stats>::doPushOne(Tsk&& _task, ContextStub* _pctx)
 {
     using namespace std::chrono;
-    const auto start          = steady_clock::now();
+    const auto start          = statistic_.now();
     const auto [index, count] = pushOneIndex();
     auto& rstub               = one_.tasks_[index];
 
@@ -1281,10 +1294,8 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushOne(Tsk&& _task, ContextStub* _p
         _pctx->acquire();
         rstub.context_produce_id_ = _pctx->produce_id_.fetch_add(1);
     }
-    uint64_t duration;
-    rstub.notifyWhilePushOne(start, duration);
-    // const uint64_t duration = duration_cast<microseconds>(steady_clock::now() - start).count();
-    statistic_.pushOne(_pctx != nullptr, duration);
+    rstub.notifyWhilePushOne();
+    statistic_.pushOne(_pctx != nullptr, start);
 }
 //-----------------------------------------------------------------------------
 // NOTE:

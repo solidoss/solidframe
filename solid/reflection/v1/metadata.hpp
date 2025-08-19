@@ -239,7 +239,7 @@ struct Variant {
     template <class T>
     Variant& operator=(T&& _rv)
     {
-        var_ = std::move(_rv);
+        var_ = std::forward<T>(_rv);
         return *this;
     }
 
@@ -285,12 +285,6 @@ struct Variant {
         return std::get_if<Array>(&var_);
     }
 };
-
-template <typename T, size_t S>
-inline constexpr size_t array_size(const T (&arr)[S])
-{
-    return S;
-}
 
 inline constexpr auto factory = [](const auto& _rt, auto& _rctx, const TypeMapBase* _ptype_map) -> auto {
     using rem_ref_value_t = typename std::remove_reference<decltype(_rt)>::type;
