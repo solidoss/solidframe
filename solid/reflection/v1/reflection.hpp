@@ -15,6 +15,7 @@
 #include "solid/reflection/v1/reflector.hpp"
 #include "solid/reflection/v1/typetraits.hpp"
 
+#ifndef __cpp_explicit_this_parameter
 #define SOLID_REFLECT_V1(reflector, rthis, context)           \
     template <class Reflector, class Context>                 \
     void solidReflectV1(Reflector& _rr, Context& _rctx) const \
@@ -28,11 +29,13 @@
     }                                                         \
     template <class Reflector, class T, class Context>        \
     static void solidReflectV1(Reflector& reflector, T& rthis, Context& context)
-
-namespace solid {
-namespace reflection {
+#else
+#define SOLID_REFLECT_V1(reflector, rthis, context)    \
+    template <class Reflector, class T, class Context> \
+    static void solidReflectV1(Reflector& reflector, this T& rthis, Context& context)
+#endif
+namespace solid::reflection {
 
 using namespace v1;
 
-} // namespace reflection
-} // namespace solid
+} // namespace solid::reflection

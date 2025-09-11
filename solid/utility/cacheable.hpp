@@ -8,6 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 
+#include "solid/system/exception.hpp"
 #include "solid/utility/cast.hpp"
 #include "solid/utility/intrusiveptr.hpp"
 #include "solid/utility/stack.hpp"
@@ -20,7 +21,7 @@ protected:
     virtual void cacheableClear() {}
 
 public:
-    virtual ~Cacheable() {}
+    virtual ~Cacheable() = default;
 };
 
 class SharedCacheable : public Cacheable, public std::enable_shared_from_this<SharedCacheable> {
@@ -80,6 +81,15 @@ class IntrusiveCacheable : public Cacheable, public IntrusiveThreadSafeBase {
         }
     }
 
+    IntrusivePtr<IntrusiveCacheable> doDetach()
+    {
+        IntrusivePtr<IntrusiveCacheable> ptr = std::move(next_);
+        if (ptr) {
+            next_ = std::move(ptr->next_);
+        }
+        return ptr;
+    }
+
 public:
     void cache()
     {
@@ -104,6 +114,30 @@ public:
     void cacheableAttach(IntrusivePtr<Other>&& _other)
     {
         doAttach(static_pointer_cast<IntrusiveCacheable>(std::move(_other)));
+    }
+
+    template <class Other>
+    IntrusivePtr<Other> cacheableDetachAs()
+    {
+        return static_pointer_cast<Other>(doDetach());
+    }
+
+    template <class Other>
+    IntrusivePtr<Other> cacheableDetachAllAs()
+    {
+        return static_pointer_cast<Other>(std::move(next_));
+    }
+
+    ~IntrusiveCacheable() override
+    {
+        auto next = std::move(next_);
+        while (next) {
+            auto tmp = std::move(next->next_);
+            assert(not next->next_);
+            assert(next.useCount() == 1U);
+            next.reset();
+            next = std::move(tmp);
+        }
     }
 };
 

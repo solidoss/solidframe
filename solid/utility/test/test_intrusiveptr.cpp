@@ -43,7 +43,7 @@ struct TestWithCounter {
 
 private:
     friend class TestIntrusivePolicy;
-    mutable atomic<size_t> use_count_{0};
+    mutable atomic<size_t> use_count_{1};
 };
 
 template <typename T>
@@ -58,7 +58,7 @@ struct TestIntrusivePolicy {
     {
         return _p.use_count_.fetch_sub(1) == 1;
     }
-    static size_t useCount(const TestWithCounter& _p) noexcept
+    static size_t use_count(const TestWithCounter& _p) noexcept
     {
         return _p.use_count_.load(std::memory_order_relaxed);
     }

@@ -10,7 +10,9 @@
 #pragma once
 
 #include <atomic>
+#include <cassert>
 #include <cstddef>
+#include <type_traits>
 
 namespace solid {
 
@@ -18,7 +20,7 @@ struct IntrusiveThreadSafePolicy;
 
 class IntrusiveThreadSafeBase {
     friend struct IntrusiveThreadSafePolicy;
-    mutable std::atomic_size_t use_count_{0};
+    mutable std::atomic_size_t use_count_{1};
 
 protected:
     auto useCount() const
@@ -118,6 +120,28 @@ protected:
 protected:
     IntrusivePtrBase() = default;
 
+    IntrusivePtrBase(T* _ptr)
+        : ptr_(_ptr)
+    {
+        assert(ptr_ == nullptr or intrusive_ptr_use_count(*ptr_) == 1U);
+    }
+
+    IntrusivePtrBase(T* _ptr, const bool _do_acquire)
+        : ptr_(_ptr)
+    {
+        if (_ptr && _do_acquire) {
+            intrusive_ptr_acquire(*_ptr);
+        }
+    }
+
+    IntrusivePtrBase(T* _ptr, const std::true_type)
+        : ptr_(_ptr)
+    {
+        if (_ptr) {
+            intrusive_ptr_acquire(*_ptr);
+        }
+    }
+
     IntrusivePtrBase(const IntrusivePtrBase& _other)
         : ptr_(_other.ptr_)
     {
@@ -142,7 +166,7 @@ protected:
 
     template <class TT>
     IntrusivePtrBase(IntrusivePtrBase<TT>&& _other)
-        : ptr_(static_cast<TT*>(_other.detach()))
+        : ptr_(static_cast<T*>(_other.detach()))
     {
     }
 
@@ -172,22 +196,6 @@ protected:
     void doMove(IntrusivePtrBase<TT>&& _other) noexcept
     {
         IntrusivePtrBase{std::move(_other)}.swap(*this);
-    }
-
-    IntrusivePtrBase(T* _ptr)
-        : ptr_(_ptr)
-    {
-        if (_ptr) {
-            intrusive_ptr_acquire(*_ptr);
-        }
-    }
-
-    IntrusivePtrBase(T* _ptr, const bool _do_acquire)
-        : ptr_(_ptr)
-    {
-        if (_ptr && _do_acquire) {
-            intrusive_ptr_acquire(*_ptr);
-        }
     }
 
     T* detach() noexcept
@@ -325,6 +333,11 @@ private:
     template <class T1, class T2>
     friend IntrusivePtr<T1> dynamic_pointer_cast(IntrusivePtr<T2>&& _rp) noexcept;
 
+    IntrusivePtr(T* _ptr, std::true_type const _acquire)
+        : BaseT(_ptr, _acquire)
+    {
+    }
+
     IntrusivePtr(T* _ptr)
         : BaseT(_ptr)
     {
@@ -411,10 +424,6 @@ public:
 private:
     template <class TT, class... Args>
     friend MutableIntrusivePtr<TT> make_mutable_intrusive(Args&&... _args);
-    template <class T1, class T2>
-    friend MutableIntrusivePtr<T1> static_pointer_cast(const MutableIntrusivePtr<T2>& _rp) noexcept;
-    template <class T1, class T2>
-    friend MutableIntrusivePtr<T1> dynamic_pointer_cast(const MutableIntrusivePtr<T2>& _rp) noexcept;
     template <class T1, class T2>
     friend MutableIntrusivePtr<T1> static_pointer_cast(MutableIntrusivePtr<T2>&& _rp) noexcept;
     template <class T1, class T2>
@@ -554,6 +563,11 @@ private:
     template <class T1, class T2>
     friend ConstIntrusivePtr<T1> dynamic_pointer_cast(ConstIntrusivePtr<T2>&& _rp) noexcept;
 
+    ConstIntrusivePtr(T* _ptr, std::true_type const _acquire)
+        : BaseT(_ptr, _acquire)
+    {
+    }
+
     ConstIntrusivePtr(T* _ptr)
         : BaseT(_ptr)
     {
@@ -567,24 +581,23 @@ private:
 template <class TT, class... Args>
 inline IntrusivePtr<TT> make_intrusive(Args&&... _args)
 {
-    // return IntrusivePtr<TT>(new TT(std::forward<Args>(_args)...));
     return IntrusivePtr<TT>(impl::intrusive_ptr_create<TT>(std::forward<Args>(_args)...));
 }
 template <class T1, class T2>
 inline IntrusivePtr<T1> static_pointer_cast(const IntrusivePtr<T2>& _rp) noexcept
 {
-    return IntrusivePtr<T1>(static_cast<T1*>(_rp.get()));
+    return IntrusivePtr<T1>(static_cast<T1*>(_rp.get()), std::true_type{});
 }
 template <class T1, class T2>
 inline IntrusivePtr<T1> dynamic_pointer_cast(const IntrusivePtr<T2>& _rp) noexcept
 {
-    return IntrusivePtr<T1>(dynamic_cast<T1*>(_rp.get()));
+    return IntrusivePtr<T1>(dynamic_cast<T1*>(_rp.get()), std::true_type{});
 }
 
 template <class T1, class T2>
 inline IntrusivePtr<T1> static_pointer_cast(IntrusivePtr<T2>&& _rp) noexcept
 {
-    return IntrusivePtr<T1>(static_cast<T1*>(_rp.detach()));
+    return IntrusivePtr<T1>(std::move(_rp));
 }
 
 template <class T1, class T2>
@@ -608,21 +621,11 @@ inline MutableIntrusivePtr<TT> make_mutable_intrusive(Args&&... _args)
     // return IntrusivePtr<TT>(new TT(std::forward<Args>(_args)...));
     return MutableIntrusivePtr<TT>(make_intrusive<TT>(std::forward<Args>(_args)...));
 }
-template <class T1, class T2>
-inline MutableIntrusivePtr<T1> static_pointer_cast(const MutableIntrusivePtr<T2>& _rp) noexcept
-{
-    return MutableIntrusivePtr<T1>(static_cast<T1*>(_rp.get()));
-}
-template <class T1, class T2>
-inline MutableIntrusivePtr<T1> dynamic_pointer_cast(const MutableIntrusivePtr<T2>& _rp) noexcept
-{
-    return MutableIntrusivePtr<T1>(dynamic_cast<T1*>(_rp.get()));
-}
 
 template <class T1, class T2>
 inline MutableIntrusivePtr<T1> static_pointer_cast(MutableIntrusivePtr<T2>&& _rp) noexcept
 {
-    return MutableIntrusivePtr<T1>(static_cast<T1*>(_rp.detach()));
+    return MutableIntrusivePtr<T1>(std::move(_rp));
 }
 
 template <class T1, class T2>
@@ -643,18 +646,18 @@ inline MutableIntrusivePtr<T1> dynamic_pointer_cast(MutableIntrusivePtr<T2>&& _r
 template <class T1, class T2>
 inline ConstIntrusivePtr<T1> static_pointer_cast(const ConstIntrusivePtr<T2>& _rp) noexcept
 {
-    return ConstIntrusivePtr<T1>(static_cast<T1*>(_rp.get()));
+    return ConstIntrusivePtr<T1>(static_cast<T1*>(_rp.get()), std::true_type{});
 }
 template <class T1, class T2>
 inline ConstIntrusivePtr<T1> dynamic_pointer_cast(const ConstIntrusivePtr<T2>& _rp) noexcept
 {
-    return ConstIntrusivePtr<T1>(dynamic_cast<T1*>(_rp.get()));
+    return ConstIntrusivePtr<T1>(dynamic_cast<T1*>(_rp.get()), std::true_type{});
 }
 
 template <class T1, class T2>
 inline ConstIntrusivePtr<T1> static_pointer_cast(ConstIntrusivePtr<T2>&& _rp) noexcept
 {
-    return ConstIntrusivePtr<T1>(static_cast<T1*>(_rp.detach()));
+    return ConstIntrusivePtr<T1>(std::move(_rp));
 }
 
 template <class T1, class T2>
