@@ -32,7 +32,7 @@
 #else
 #define SOLID_REFLECT_V1(reflector, rthis, context)    \
     template <class Reflector, class T, class Context> \
-    static void solidReflectV1(Reflector& reflector, this T& rthis, Context& context)
+    void solidReflectV1(this T& rthis, Reflector& reflector, Context& context)
 #endif
 namespace solid::reflection {
 

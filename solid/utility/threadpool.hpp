@@ -310,22 +310,22 @@ typename std::decay<T>::type decay_copy(T&& v)
 
 template <class Task>
 class alignas(hardware_destructive_interference_size) TaskData {
-    std::aligned_storage_t<sizeof(Task), alignof(Task)> data_;
+    AlignedStorage<Task> data_;
 
 public:
     Task& task() noexcept
     {
-        return *std::launder(reinterpret_cast<Task*>(&data_));
+        return *data_.cast();
     }
     template <class T>
     void task(T&& _rt)
     {
-        ::new (&data_) Task(std::forward<T>(_rt));
+        ::new (data_.data()) Task(std::forward<T>(_rt));
     }
 
     void destroy()
     {
-        std::destroy_at(std::launder(reinterpret_cast<Task*>(&data_)));
+        std::destroy_at(data_.cast());
     }
 };
 

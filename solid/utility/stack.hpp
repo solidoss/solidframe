@@ -13,6 +13,7 @@
 #include "solid/system/convertors.hpp"
 #include <algorithm>
 #include <cstdlib>
+#include <solid/utility/common.hpp>
 
 namespace solid {
 
@@ -29,7 +30,7 @@ class Stack {
     static constexpr const size_t node_size = bits_to_count(NBits);
 
     struct Node {
-        using Storage = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
+        using Storage = AlignedStorage<T>;
 
         Node(Node* _pprev = nullptr)
             : pprev_(_pprev)
@@ -156,7 +157,7 @@ private:
         pcurrent_node->pprev_ = ptop_cached_nodes_;
         ptop_cached_nodes_    = pcurrent_node; // cache the node
         if (pprev_node) {
-            return std::launder(reinterpret_cast<T*>(&pprev_node->data_[node_size - 1]));
+            return pprev_node->data_[node_size - 1].cast();
         } else {
             solid_assert_log(!size_, generic_logger);
             return nullptr;

@@ -11,6 +11,7 @@
 #pragma once
 
 #include "solid/system/common.hpp"
+#include <cstddef>
 #include <limits>
 #ifdef __cpp_lib_bitops
 #include <bit>
@@ -292,5 +293,34 @@ class Padded : public Base {
 };
 
 #endif
+
+template <typename T>
+struct AlignedStorage {
+    static constexpr size_t size()
+    {
+        return sizeof(T);
+    }
+
+    alignas(T) std::byte data_[size()];
+
+    std::byte* data()
+    {
+        return data_;
+    }
+
+    std::byte const* data() const
+    {
+        return data_;
+    }
+
+    T* cast()
+    {
+        return std::launder(reinterpret_cast<T*>(data()));
+    }
+    T const* cast() const
+    {
+        return std::launder(reinterpret_cast<T const*>(data()));
+    }
+};
 
 } // namespace solid

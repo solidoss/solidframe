@@ -61,7 +61,7 @@ std::string TestErrorCategory::message(int _ev) const
     case 0:
         oss << "Success";
         break;
-    case to_underlying(TestErrorE::Dummy):
+    case solid::to_underlying(TestErrorE::Dummy):
         oss << " Dummy";
         break;
     default:
@@ -71,7 +71,7 @@ std::string TestErrorCategory::message(int _ev) const
     return oss.str();
 }
 
-const ErrorConditionT error_test_dummy(to_underlying(TestErrorE::Dummy), test_category);
+const ErrorConditionT error_test_dummy(solid::to_underlying(TestErrorE::Dummy), test_category);
 
 struct InitStub {
     size_t                      size;
