@@ -431,7 +431,6 @@ void Reactor::run()
     bool     running = true;
     int      waitmsec;
     NanoTime waittime;
-    size_t   waitcnt = 0;
 
     while (running) {
         impl_->current_time_ = NanoTime::nowSteady();
@@ -442,27 +441,30 @@ void Reactor::run()
 
         solid_log(logger, Verbose, "epoll_wait wait = " << waittime << ' ' << impl_->reactor_fd_ << ' ' << impl_->event_vec_.size());
         selcnt = epoll_pwait2(impl_->reactor_fd_, impl_->event_vec_.data(), static_cast<int>(impl_->event_vec_.size()), waittime != NanoTime::max() ? &waittime : nullptr, nullptr);
-        if (waittime.seconds() != 0 && waittime.nanoSeconds() != 0) {
-            ++waitcnt;
-        }
+
 #elif defined(SOLID_USE_EPOLL)
         waitmsec = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0 && pending_wake_count_.load() == 0);
 
         solid_log(logger, Verbose, "epoll_wait wait = " << waitmsec);
 
         selcnt = epoll_wait(impl_->reactor_fd_, impl_->event_vec_.data(), static_cast<int>(impl_->event_vec_.size()), waitmsec);
+
 #elif defined(SOLID_USE_KQUEUE)
         waittime = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0 && pending_wake_count_.load() == 0);
 
         solid_log(logger, Verbose, "kqueue wait = " << waittime);
 
         selcnt = kevent(impl_->reactor_fd_, nullptr, 0, impl_->event_vec_.data(), static_cast<int>(impl_->event_vec_.size()), waittime != NanoTime::max() ? &waittime : nullptr);
+
 #elif defined(SOLID_USE_WSAPOLL)
         waitmsec = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0 && pending_wake_count_.load() == 0);
         solid_log(logger, Verbose, "wsapoll wait msec = " << waitmsec);
         selcnt = WSAPoll(impl_->event_vec_.data(), impl_->event_vec_.size(), waitmsec);
+
 #endif
-        impl_->current_time_ = NanoTime::nowSteady();
+        if (waittime) {
+            impl_->current_time_ = NanoTime::nowSteady();
+        }
 #ifdef SOLID_AIO_TRACE_DURATION
         const auto start = high_resolution_clock::now();
 #endif
@@ -473,6 +475,7 @@ void Reactor::run()
 #endif
             crtload += selcnt;
             doCompleteIo(impl_->current_time_, selcnt);
+            impl_->current_time_ = NanoTime::nowSteady();
         } else if (selcnt < 0 && errno != EINTR) {
             solid_log(logger, Error, "epoll_wait errno  = " << last_system_error().message());
             running = false;
@@ -483,18 +486,15 @@ void Reactor::run()
 #ifdef SOLID_AIO_TRACE_DURATION
         const auto elapsed_io = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
 #endif
-        impl_->current_time_ = NanoTime::nowSteady();
         doCompleteTimer(impl_->current_time_);
 #ifdef SOLID_AIO_TRACE_DURATION
         const auto elapsed_timer = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
 #endif
-        impl_->current_time_ = NanoTime::nowSteady();
         doCompleteEvents(impl_->current_time_); // See NOTE above
 #ifdef SOLID_AIO_TRACE_DURATION
         const auto elapsed_event = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
 #endif
-        impl_->current_time_ = NanoTime::nowSteady();
-        const auto execnt    = doCompleteExec(impl_->current_time_);
+        const auto execnt = doCompleteExec(impl_->current_time_);
 #ifdef SOLID_AIO_TRACE_DURATION
         const auto elapsed_total = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
 
@@ -505,7 +505,6 @@ void Reactor::run()
         (void)execnt;
         running = impl_->running_ || (actor_count_ != 0) || current_exec_size_ != 0;
     }
-    solid_log(logger, Warning, "reactor waitcount = " << waitcnt);
 
     impl_->event_actor_ptr_->stop();
     doClearSpecific();

@@ -510,7 +510,7 @@ private:
         void notifyWhilePushOne() noexcept
         {
             event_ = to_underlying(EventE::Fill);
-            ++consume_count_;
+            consume_count_.fetch_add(1);
             std::atomic_notify_all(&consume_count_);
         }
 
@@ -654,19 +654,19 @@ private:
     using AtomicIndexT      = std::atomic_size_t;
     using AtomicIndexValueT = std::atomic_size_t::value_type;
 
-    alignas(hardware_destructive_interference_size * 2) AtomicIndexT push_one_index_{0};
-    alignas(hardware_destructive_interference_size * 2) AtomicIndexT pop_one_index_{0};
+    alignas(hardware_destructive_interference_size) AtomicIndexT push_one_index_{0};
+    alignas(hardware_destructive_interference_size) AtomicIndexT pop_one_index_{0};
     ThreadVectorT     threads_;
     std::atomic<bool> running_{false};
 
     std::tuple<AtomicIndexValueT, AtomicCounterValueT> pushOneIndex() noexcept
     {
-        const auto index = push_one_index_.fetch_add(1);
+        const auto index = push_one_index_.fetch_add(1, std::memory_order_relaxed);
         return {index % one_.capacity_, computeCounter(index, one_.capacity_)};
     }
     std::tuple<AtomicIndexValueT, AtomicCounterValueT> popOneIndex() noexcept
     {
-        const auto index = pop_one_index_.fetch_add(1);
+        const auto index = pop_one_index_.fetch_add(1, std::memory_order_relaxed);
         return {index % one_.capacity_, computeCounter(index, one_.capacity_)};
     }
 
@@ -678,7 +678,7 @@ private:
     void commitAllId(const uint64_t _id)
     {
         uint64_t id = _id - 1;
-        while (!all_.commited_index_.compare_exchange_weak(id, _id)) {
+        while (!all_.commited_index_.compare_exchange_weak(id, _id, std::memory_order_relaxed, std::memory_order_relaxed)) {
             id = _id - 1;
             cpu_pause();
         }
@@ -1228,7 +1228,7 @@ bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(AtomicCounterT* _p
         //  used by any one task. This is guranteed because when adding a new one task,
         //  before attaching the last commited_all_index to the current one task,
         //  we're atomicaly marking the one stub as Pushing.
-        const auto commited_all_index = all_.commited_index_.load();
+        const auto commited_all_index = all_.commited_index_.load(std::memory_order_relaxed);
 
         if (_pcounter && _pcounter->load(/* std::memory_order_relaxed */) == _count) {
             // NOTE: this is to ensure that pushOnes and pushAlls from
@@ -1288,7 +1288,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushOne(Tsk&& _task, ContextStub* _p
 
     rstub.task(std::forward<Tsk>(_task));
     rstub.pcontext_ = _pctx;
-    rstub.all_id_   = all_.commited_index_.load();
+    rstub.all_id_   = all_.commited_index_.load(std::memory_order_relaxed);
 
     if (_pctx) {
         _pctx->acquire();
