@@ -56,10 +56,11 @@ inline constexpr static auto computeCounter(const IndexT _index, const size_t _c
     return (_index / _capacity) & std::numeric_limits<AtomicCounterValueT>::max();
 }
 
-struct WakeStubBase {
+class WakeStubBase {
     AtomicCounterT produce_count_{0};
     AtomicCounterT consume_count_{static_cast<AtomicCounterValueT>(-1)};
 
+public:
     template <typename Statistic>
     void waitWhilePush(Statistic& _rstats, const AtomicCounterValueT _count, const size_t _spin_count = 1) noexcept
     {
@@ -80,7 +81,6 @@ struct WakeStubBase {
     void notifyWhilePush() noexcept
     {
         ++consume_count_;
-        std::atomic_notify_all(&consume_count_);
     }
 
     void notifyWhilePop() noexcept

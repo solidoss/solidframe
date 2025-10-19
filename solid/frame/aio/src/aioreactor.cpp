@@ -10,6 +10,7 @@
 #include <fcntl.h>
 
 #include "solid/system/common.hpp"
+#include "solid/system/statistic.hpp"
 
 #if defined(SOLID_USE_EPOLL)
 
@@ -64,9 +65,7 @@
 
 using namespace std;
 
-namespace solid {
-namespace frame {
-namespace aio {
+namespace solid::frame::aio {
 
 namespace {
 
@@ -439,9 +438,9 @@ void Reactor::run()
 #if defined(SOLID_USE_EPOLL2)
         waittime = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0 && pending_wake_count_.load() == 0);
 
-        solid_log(logger, Verbose, "epoll_wait wait = " << waittime << ' ' << impl_->reactor_fd_ << ' ' << impl_->event_vec_.size());
-        selcnt = epoll_pwait2(impl_->reactor_fd_, impl_->event_vec_.data(), static_cast<int>(impl_->event_vec_.size()), waittime != NanoTime::max() ? &waittime : nullptr, nullptr);
-
+        // solid_log(logger, Verbose, "epoll_wait wait = " << waittime << ' ' << impl_->reactor_fd_ << ' ' << impl_->event_vec_.size());
+        selcnt                = epoll_pwait2(impl_->reactor_fd_, impl_->event_vec_.data(), static_cast<int>(impl_->event_vec_.size()), waittime != NanoTime::max() ? &waittime : nullptr, nullptr);
+        auto const start_time = std::chrono::high_resolution_clock::now();
 #elif defined(SOLID_USE_EPOLL)
         waitmsec = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0 && pending_wake_count_.load() == 0);
 
@@ -487,6 +486,7 @@ void Reactor::run()
         const auto elapsed_io = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
 #endif
         doCompleteTimer(impl_->current_time_);
+
 #ifdef SOLID_AIO_TRACE_DURATION
         const auto elapsed_timer = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
 #endif
@@ -495,6 +495,10 @@ void Reactor::run()
         const auto elapsed_event = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
 #endif
         const auto execnt = doCompleteExec(impl_->current_time_);
+
+        auto const     stop_time = std::chrono::high_resolution_clock::now();
+        uint64_t const ns        = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time - start_time).count();
+        solid_statistic_add(rstatistic_.complete_events_total_ns_, ns);
 #ifdef SOLID_AIO_TRACE_DURATION
         const auto elapsed_total = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
 
@@ -1441,6 +1445,7 @@ std::ostream& ReactorStatistic::print(std::ostream& _ros) const
     _ros << " max_exec_size = " << max_exec_size_;
     _ros << " actor_count = " << actor_count_;
     _ros << " max_actor_count = " << max_actor_count_;
+    _ros << " complete_events_total_ms = " << (complete_events_total_ns_ / 1000000u);
     return _ros;
 }
 
@@ -1458,6 +1463,4 @@ void ReactorStatistic::clear()
     max_actor_count_   = 0;
 }
 
-} // namespace aio
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::aio

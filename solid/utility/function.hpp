@@ -8,7 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #pragma once
-
+#define SOLID_THROW_ON_BIG_FUNCTION
 #include <algorithm>
 #include <cstddef>
 #include <functional>
@@ -156,11 +156,17 @@ RepresentationE do_copy(
             _rpsmall_rtti = &small_rtti<T, R, ArgTypes...>;
             return RepresentationE::Small;
         } else {
+#if defined(SOLID_THROW_ON_BIG_FUNCTION)
+            solid_throw("Big Function");
+#endif
             _rpto_big   = ::new T(*static_cast<const T*>(_pfrom));
             _rpbig_rtti = &big_rtti<T, R, ArgTypes...>;
             return RepresentationE::Big;
         }
     } else if constexpr (std::is_trivially_constructible_v<T> || std::is_copy_constructible_v<T>) {
+#if defined(SOLID_THROW_ON_BIG_FUNCTION)
+        solid_throw("Big Function");
+#endif
         _rpto_big   = ::new T(*static_cast<const T*>(_pfrom));
         _rpbig_rtti = &big_rtti<T, R, ArgTypes...>;
         return RepresentationE::Big;
@@ -184,11 +190,17 @@ RepresentationE do_move(
             _rpsmall_rtti = &small_rtti<T, R, ArgTypes...>;
             return RepresentationE::Small;
         } else {
+#if defined(SOLID_THROW_ON_BIG_FUNCTION)
+            solid_throw("Big Function");
+#endif
             _rpto_big   = ::new T{std::move(*static_cast<T*>(_pfrom))};
             _rpbig_rtti = &big_rtti<T, R, ArgTypes...>;
             return RepresentationE::Big;
         }
     } else if constexpr (std::is_move_constructible_v<T>) {
+#if defined(SOLID_THROW_ON_BIG_FUNCTION)
+        solid_throw("Big Function");
+#endif
         _rpto_big   = ::new T{std::move(*static_cast<T*>(_pfrom))};
         _rpbig_rtti = &big_rtti<T, R, ArgTypes...>;
         return RepresentationE::Big;
@@ -533,6 +545,9 @@ private:
 
             return rval;
         } else {
+#if defined(SOLID_THROW_ON_BIG_FUNCTION)
+            solid_throw("Big Function");
+#endif
             T* const ptr         = ::new T(std::forward<Args>(_args)...);
             storage_.big_.ptr_   = ptr;
             storage_.big_.prtti_ = &fnc_impl::big_rtti<T, R, ArgTypes...>;

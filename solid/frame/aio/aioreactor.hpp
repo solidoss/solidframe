@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include <atomic>
+#include <solid/system/statistic.hpp>
 #include <tuple>
 
 #include "solid/frame/aio/aiocommon.hpp"
@@ -52,6 +54,7 @@ struct ReactorStatistic : ReactorStatisticBase {
     std::atomic_size_t   max_exec_size_;
     std::atomic_size_t   actor_count_;
     std::atomic_size_t   max_actor_count_;
+    std::atomic_size_t   complete_events_total_ns_{0};
 
     void actorCount(const size_t _count)
     {
@@ -122,16 +125,17 @@ protected:
 #else
     using MutexT = mutex;
 #endif
-    const size_t       wake_capacity_;
-    ReactorStatistic&  rstatistic_;
-    size_t             actor_count_{0};
-    size_t             current_exec_size_{0};
-    size_t             pop_wake_index_{0};
-    std::atomic_size_t pending_wake_count_{0};
-    std::atomic_size_t push_wake_index_{0};
+    const size_t                                                             wake_capacity_;
+    ReactorStatistic&                                                        rstatistic_;
+    size_t                                                                   actor_count_{0};
+    size_t                                                                   current_exec_size_{0};
+    size_t                                                                   pop_wake_index_{0};
+    /* alignas(hardware_destructive_interference_size) */ std::atomic_size_t pending_wake_count_{0};
+    /* alignas(hardware_destructive_interference_size) */ std::atomic_size_t push_wake_index_{0};
 
 public:
-    using StatisticT     = ReactorStatistic;
+    using StatisticT = ReactorStatistic;
+    // using EventFunctionT = solid::Function<void(ReactorContext&, EventBase&&)>;
     using EventFunctionT = solid::Function<void(ReactorContext&, EventBase&&)>;
 
     bool start();
@@ -144,7 +148,7 @@ protected:
 
     std::tuple<frame::impl::AtomicIndexValueT, frame::impl::AtomicCounterValueT> pushWakeIndex() noexcept
     {
-        const auto index = push_wake_index_.fetch_add(1);
+        const auto index = push_wake_index_.fetch_add(1, std::memory_order_relaxed);
         return {index % wake_capacity_, frame::impl::computeCounter(index, wake_capacity_)};
     }
 
@@ -368,8 +372,8 @@ class Reactor : public impl::Reactor {
     using WakeStubT  = impl::WakeStub<Evnt>;
     using ExecQueueT = Queue<ExecStubT>;
 
-    ExecQueueT                   exec_q_;
-    std::unique_ptr<WakeStubT[]> wake_arr_;
+    ExecQueueT exec_q_;
+    alignas(hardware_destructive_interference_size) std::unique_ptr<WakeStubT[]> wake_arr_;
 
 public:
     using ActorT = Actor;
@@ -395,7 +399,7 @@ public:
 
             rstub.reset(uid, _revent, std::move(_ract), &_rsvc);
 
-            notify = pending_wake_count_.fetch_add(1) == 0;
+            notify = pending_wake_count_.fetch_add(1, std::memory_order_relaxed) == 0;
 
             rstub.notifyWhilePush();
         }
@@ -424,7 +428,7 @@ public:
 
             rstub.reset(uid, std::move(_revent), std::move(_ract), &_rsvc);
 
-            notify = pending_wake_count_.fetch_add(1) == 0;
+            notify = pending_wake_count_.fetch_add(1, std::memory_order_relaxed) == 0;
 
             rstub.notifyWhilePush();
         }
@@ -452,7 +456,7 @@ private:
 
             rstub.reset(_ractuid, _revent);
 
-            notify = pending_wake_count_.fetch_add(1) == 0;
+            notify = pending_wake_count_.fetch_add(1, std::memory_order_relaxed) == 0;
 
             rstub.notifyWhilePush();
         }
@@ -478,7 +482,7 @@ private:
 
             rstub.reset(_ractuid, std::move(_revent));
 
-            notify = pending_wake_count_.fetch_add(1) == 0;
+            notify = pending_wake_count_.fetch_add(1, std::memory_order_relaxed) == 0;
 
             rstub.notifyWhilePush();
         }
@@ -524,9 +528,10 @@ private:
 
     void doCompleteEvents(NanoTime const& _rcrttime, const UniqueId& _completion_handler_uid) override
     {
-        solid_log(logger, Verbose, "");
+        // TODO:clean
+        // auto const start_time = std::chrono::high_resolution_clock::now();
 
-        if (pending_wake_count_.load(/* std::memory_order_relaxed */) && !emptyFreeUids()) {
+        if (pending_wake_count_.load(std::memory_order_relaxed) && !emptyFreeUids()) {
             std::lock_guard<MutexT> lock(mutex());
             pushFreeUids();
         }
@@ -543,7 +548,7 @@ private:
                     addActor(rstub.uid_, *rstub.pservice_, std::move(rstub.actor_ptr_));
                 }
                 exec_q_.push(ExecStubT(rstub.uid_, &call_actor_on_event, _completion_handler_uid, std::move(rstub.event_)));
-                --pending_wake_count_;
+                pending_wake_count_.fetch_sub(1, std::memory_order_relaxed);
                 ++pop_wake_index_;
                 rstub.clear();
                 rstub.notifyWhilePop();
@@ -551,6 +556,10 @@ private:
                 break;
             }
         }
+        // TODO:clean
+        // auto const     stop_time = std::chrono::high_resolution_clock::now();
+        // uint64_t const ns        = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time - start_time).count();
+        // solid_statistic_add(rstatistic_.complete_events_total_ns_, ns);
     }
 
     size_t doCompleteExec(NanoTime const& _rcrttime) override
@@ -563,7 +572,6 @@ private:
 
         while ((sz--) != 0) {
             auto& rexec(exec_q_.front());
-            solid_log(logger, Verbose, sz << " qsz = " << exec_q_.size());
             if (isValid(rexec.actor_uid_, rexec.completion_handler_uid_)) {
                 ctx.clearError();
                 update(ctx, static_cast<size_t>(rexec.completion_handler_uid_.index), static_cast<size_t>(rexec.actor_uid_.index));

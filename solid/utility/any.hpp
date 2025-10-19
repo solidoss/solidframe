@@ -9,7 +9,7 @@
 //
 
 #pragma once
-
+#define SOLID_THROW_ON_BIG_ANY
 #include <algorithm>
 #include <cstddef>
 #include <typeindex>
@@ -176,6 +176,9 @@ RepresentationE do_copy(
             _rpsmall_rtti = &small_rtti<T>;
             return RepresentationE::Small;
         } else {
+#if defined(SOLID_THROW_ON_BIG_ANY)
+            solid_throw("Big Any");
+#endif
             _rpto_big   = ::new T(*static_cast<const T*>(_pfrom));
             _rpbig_rtti = &big_rtti<T>;
             return RepresentationE::Big;
@@ -204,11 +207,17 @@ RepresentationE do_move(
             _rpsmall_rtti = &small_rtti<T>;
             return RepresentationE::Small;
         } else {
+#if defined(SOLID_THROW_ON_BIG_ANY)
+            solid_throw("Big Any");
+#endif
             _rpto_big   = ::new T{std::move(*static_cast<T*>(_pfrom))};
             _rpbig_rtti = &big_rtti<T>;
             return RepresentationE::Big;
         }
     } else if constexpr (std::is_move_constructible_v<T>) {
+#if defined(SOLID_THROW_ON_BIG_ANY)
+        solid_throw("Big Any");
+#endif
         _rpto_big   = ::new T{std::move(*static_cast<T*>(_pfrom))};
         _rpbig_rtti = &big_rtti<T>;
         return RepresentationE::Big;
@@ -649,6 +658,9 @@ private:
 
             return rval;
         } else {
+#if defined(SOLID_THROW_ON_BIG_ANY)
+            solid_throw("Big Any");
+#endif
             T* const ptr         = ::new T(std::forward<Args>(_args)...);
             storage_.big_.ptr_   = ptr;
             storage_.big_.prtti_ = &any_impl::big_rtti<T>;

@@ -9,6 +9,7 @@
 //
 
 #pragma once
+#define SOLID_THROW_ON_BIG_EVENT
 
 #include <ostream>
 #include <typeindex>
@@ -282,6 +283,9 @@ protected:
     template <class T, class... Args>
     T& doEmplaceBig(Args&&... _args)
     {
+#if defined(SOLID_THROW_ON_BIG_EVENT)
+        solid_throw("Big Event");
+#endif
         T* const ptr = ::new T(std::forward<Args>(_args)...);
         pdata_       = ptr;
         rtti_.pbig_  = &any_impl::big_rtti<T>;
