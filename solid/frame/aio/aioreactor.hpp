@@ -130,12 +130,11 @@ protected:
     size_t                                                                   actor_count_{0};
     size_t                                                                   current_exec_size_{0};
     size_t                                                                   pop_wake_index_{0};
-    /* alignas(hardware_destructive_interference_size) */ std::atomic_size_t pending_wake_count_{0};
+    /* alignas(hardware_destructive_interference_size) */ std::atomic_size_t pending_wake_count_{1u};
     /* alignas(hardware_destructive_interference_size) */ std::atomic_size_t push_wake_index_{0};
 
 public:
-    using StatisticT = ReactorStatistic;
-    // using EventFunctionT = solid::Function<void(ReactorContext&, EventBase&&)>;
+    using StatisticT     = ReactorStatistic;
     using EventFunctionT = solid::Function<void(ReactorContext&, EventBase&&)>;
 
     bool start();
@@ -251,7 +250,6 @@ private:
 
     void doCompleteIo(NanoTime const& _rcrttime, const size_t _sz);
     void doCompleteTimer(NanoTime const& _rcrttime);
-    void doCompleteEvents(ReactorContext const& _rctx);
     void doCompleteEvents(NanoTime const& _rcrttime);
     void doStoreSpecific();
     void doClearSpecific();
@@ -399,9 +397,9 @@ public:
 
             rstub.reset(uid, _revent, std::move(_ract), &_rsvc);
 
-            notify = pending_wake_count_.fetch_add(1, std::memory_order_relaxed) == 0;
-
             rstub.notifyWhilePush();
+
+            notify = pending_wake_count_.fetch_add(1, std::memory_order_release) == 0;
         }
         if (notify) {
             {
@@ -428,9 +426,9 @@ public:
 
             rstub.reset(uid, std::move(_revent), std::move(_ract), &_rsvc);
 
-            notify = pending_wake_count_.fetch_add(1, std::memory_order_relaxed) == 0;
-
             rstub.notifyWhilePush();
+
+            notify = pending_wake_count_.fetch_add(1, std::memory_order_release) == 0;
         }
 
         if (notify) {
@@ -456,9 +454,9 @@ private:
 
             rstub.reset(_ractuid, _revent);
 
-            notify = pending_wake_count_.fetch_add(1, std::memory_order_relaxed) == 0;
-
             rstub.notifyWhilePush();
+
+            notify = pending_wake_count_.fetch_add(1, std::memory_order_release) == 0;
         }
         if (notify) {
             {
@@ -482,9 +480,9 @@ private:
 
             rstub.reset(_ractuid, std::move(_revent));
 
-            notify = pending_wake_count_.fetch_add(1, std::memory_order_relaxed) == 0;
-
             rstub.notifyWhilePush();
+
+            notify = pending_wake_count_.fetch_add(1, std::memory_order_release) == 0;
         }
         if (notify) {
             {
@@ -528,15 +526,8 @@ private:
 
     void doCompleteEvents(NanoTime const& _rcrttime, const UniqueId& _completion_handler_uid) override
     {
-        // TODO:clean
-        // auto const start_time = std::chrono::high_resolution_clock::now();
-
-        if (pending_wake_count_.load(std::memory_order_relaxed) && !emptyFreeUids()) {
-            std::lock_guard<MutexT> lock(mutex());
-            pushFreeUids();
-        }
-
         ReactorContext ctx(context(_rcrttime));
+        bool           has_events = false;
 
         while (true) {
             const size_t index = pop_wake_index_ % wake_capacity_;
@@ -548,18 +539,19 @@ private:
                     addActor(rstub.uid_, *rstub.pservice_, std::move(rstub.actor_ptr_));
                 }
                 exec_q_.push(ExecStubT(rstub.uid_, &call_actor_on_event, _completion_handler_uid, std::move(rstub.event_)));
-                pending_wake_count_.fetch_sub(1, std::memory_order_relaxed);
                 ++pop_wake_index_;
+                has_events = true;
                 rstub.clear();
                 rstub.notifyWhilePop();
             } else {
                 break;
             }
         }
-        // TODO:clean
-        // auto const     stop_time = std::chrono::high_resolution_clock::now();
-        // uint64_t const ns        = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time - start_time).count();
-        // solid_statistic_add(rstatistic_.complete_events_total_ns_, ns);
+
+        if (has_events and not emptyFreeUids()) {
+            std::lock_guard<MutexT> lock(mutex());
+            pushFreeUids();
+        }
     }
 
     size_t doCompleteExec(NanoTime const& _rcrttime) override

@@ -9,7 +9,7 @@
 //
 
 #pragma once
-#define SOLID_THROW_ON_BIG_ANY
+// #define SOLID_THROW_ON_BIG_ANY
 #include <algorithm>
 #include <cstddef>
 #include <typeindex>
@@ -22,18 +22,8 @@
 #include "solid/utility/typetraits.hpp"
 
 namespace solid {
-inline constexpr size_t any_default_data_size = 3 * sizeof(void*);
 
-inline constexpr size_t any_size_from_sizeof(const size_t _sizeof)
-{
-    return _sizeof - sizeof(void*);
-}
-template <class T>
-inline constexpr const T& any_max(const T& a, const T& b)
-{
-    return (a < b) ? b : a;
-}
-template <size_t DataSize = any_default_data_size>
+template <size_t DataSize = 1>
 class Any;
 
 template <class T>
@@ -277,9 +267,11 @@ const void* do_get_if(const std::type_index& _type_index, const void* _pdata)
 
 constexpr size_t compute_small_capacity(const size_t _req_capacity)
 {
+    static constexpr size_t default_total_size = 32u;
+
     const size_t end_capacity = sizeof(uintptr_t) + sizeof(void*);
-    const size_t req_capacity = any_max(_req_capacity, any_max(end_capacity, sizeof(max_align_t)) - end_capacity);
-    const size_t tot_capacity = padded_size(req_capacity + sizeof(uintptr_t) + sizeof(void*), alignof(max_align_t));
+    const size_t req_capacity = std::max(_req_capacity, std::max(end_capacity, sizeof(max_align_t)) - end_capacity);
+    const size_t tot_capacity = std::max(default_total_size, padded_size(req_capacity + sizeof(uintptr_t) + sizeof(void*), alignof(max_align_t)));
 
     return tot_capacity - end_capacity;
 }
@@ -288,7 +280,7 @@ constexpr size_t compute_small_capacity(const size_t _req_capacity)
 
 template <size_t DataSize>
 class Any {
-    static constexpr size_t small_capacity = any_impl::compute_small_capacity(any_max(sizeof(void*) * 3, DataSize));
+    static constexpr size_t small_capacity = any_impl::compute_small_capacity(DataSize);
     static constexpr size_t big_padding    = small_capacity - sizeof(void*);
 
     struct Small {
@@ -679,12 +671,12 @@ inline void swap(Any<S1>& _a1, Any<S2>& _a2) noexcept
     _a1.swap(_a2);
 }
 
-template <class T, size_t Size = any_default_data_size, class... Args>
+template <class T, size_t Size = 1, class... Args>
 Any<Size> make_any(Args&&... _args)
 {
     return Any<Size>{std::in_place_type<T>, std::forward<Args>(_args)...};
 }
-template <class T, size_t Size = any_default_data_size, class E, class... Args>
+template <class T, size_t Size = 1, class E, class... Args>
 Any<Size> make_any(std::initializer_list<E> _ilist, Args&&... _args)
 {
     return Any<Size>{std::in_place_type<T>, _ilist, std::forward<Args>(_args)...};

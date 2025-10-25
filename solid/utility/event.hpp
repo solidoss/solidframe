@@ -9,6 +9,7 @@
 //
 
 #pragma once
+#include <cstddef>
 #define SOLID_THROW_ON_BIG_EVENT
 
 #include <ostream>
@@ -58,8 +59,10 @@ public:
     void resetData()
     {
         switch (representation()) {
-        case any_impl::RepresentationE::Small:
-            rtti_.psmall_->pdestroy_fnc_(pdata_);
+        [[likely]] case any_impl::RepresentationE::Small:
+            if (rtti_.psmall_->pdestroy_fnc_) {
+                rtti_.psmall_->pdestroy_fnc_(pdata_);
+            }
             break;
         case any_impl::RepresentationE::Big:
             rtti_.pbig_->pdestroy_fnc_(pdata_);
@@ -456,9 +459,22 @@ public:
     }
 };
 
+namespace event_impl {
+constexpr size_t compute_small_capacity(const size_t _req_capacity)
+{
+    static constexpr size_t default_total_size = 32u;
+
+    const size_t end_capacity = sizeof(uintptr_t) + sizeof(void*);
+    const size_t req_capacity = std::max(_req_capacity, std::max(end_capacity, sizeof(max_align_t)) - end_capacity);
+    const size_t tot_capacity = std::max(default_total_size, padded_size(req_capacity + sizeof(uintptr_t) + sizeof(void*), alignof(max_align_t)));
+
+    return tot_capacity - end_capacity;
+}
+} // namespace event_impl
+
 template <size_t SmallSize>
 class Event : public EventBase {
-    static constexpr size_t small_capacity = any_impl::compute_small_capacity(any_max(sizeof(void*), SmallSize));
+    static constexpr size_t small_capacity = event_impl::compute_small_capacity(SmallSize);
     union {
         unsigned char data_[small_capacity];
         max_align_t   dummy_;
