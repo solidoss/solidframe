@@ -245,8 +245,8 @@ int test_any(int /*argc*/, char* /*argv*/[])
         solid_check(ptr.use_count() == 0);
     }
     {
-        Any<sizeof(Test)> any_t{Test{10}};
-        Any<>             any_0{std::move(any_t)};
+        Any<8, sizeof(uintptr_t)> any_t{Test{10}};
+        Any<>                     any_0{std::move(any_t)};
 
         solid_check(!any_t.has_value());
         solid_check(any_0.has_value());
@@ -262,7 +262,7 @@ int test_any(int /*argc*/, char* /*argv*/[])
     {
 
         using Array4T = std::array<size_t, 4>;
-        Any<8> any{Array4T{{1, 2, 3, 4}}};
+        Any<8, 8> any{Array4T{{1, 2, 3, 4}}};
         solid_check((*any.cast<Array4T>())[0] == 1);
         solid_check((*any.cast<Array4T>())[1] == 2);
         solid_check((*any.cast<Array4T>())[2] == 3);
@@ -273,7 +273,7 @@ int test_any(int /*argc*/, char* /*argv*/[])
     {
 
         using Array4T = std::array<size_t, 4>;
-        Any<128> any(Array4T{{1, 2, 3, 4}});
+        Any<128, 8> any(Array4T{{1, 2, 3, 4}});
         solid_check((*any.cast<Array4T>())[0] == 1);
         solid_check((*any.cast<Array4T>())[1] == 2);
         solid_check((*any.cast<Array4T>())[2] == 3);
@@ -285,7 +285,7 @@ int test_any(int /*argc*/, char* /*argv*/[])
     {
 
         using Array4T = std::array<size_t, 4>;
-        Any<128> any;
+        Any<128, 8> any;
         any = Array4T{{1, 2, 3, 4}};
         solid_check((*any.cast<Array4T>())[0] == 1);
         solid_check((*any.cast<Array4T>())[1] == 2);
@@ -301,7 +301,7 @@ int test_any(int /*argc*/, char* /*argv*/[])
             solid_check(arr[3] == 4);
             arr[3] = 10;
         };
-        Any<128> any;
+        Any<128, 8> any;
         any = lambda;
         (*any.cast<decltype(lambda)>())("Test");
     }
@@ -312,7 +312,7 @@ int test_any(int /*argc*/, char* /*argv*/[])
             solid_check(arr[3] == 4);
             arr[3] = 10;
         };
-        Any<128> any(lambda);
+        Any<128, 8> any(lambda);
 
         (*any.cast<decltype(lambda)>())("Test");
     }
@@ -324,7 +324,7 @@ int test_any(int /*argc*/, char* /*argv*/[])
             solid_check(arr[3] == 4);
             arr[3] = 10;
         };
-        Any<128> any(std::move(lambda));
+        Any<128, 8> any(std::move(lambda));
 
         (*any.cast<decltype(lambda)>())("Test");
     }

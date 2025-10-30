@@ -23,7 +23,12 @@
 
 namespace solid {
 
-template <size_t DataSize = 1>
+constexpr size_t any_default_size  = 32 - sizeof(std::uintptr_t);
+constexpr size_t any_default_align = sizeof(std::uintptr_t);
+
+template <size_t SmallSize = any_default_size, size_t SmallAlign = any_default_align>
+    requires(SmallSize > 0 and SmallSize >= SmallAlign
+        and (SmallSize % SmallAlign == 0) and std::popcount(SmallAlign) == 1)
 class Any;
 
 template <class T>
@@ -43,22 +48,57 @@ enum struct RepresentationE : uintptr_t {
     Small,
     Big,
 };
-constexpr uintptr_t representation_mask           = 3;
-constexpr uintptr_t representation_and_flags_mask = representation_mask;
+constexpr uintptr_t representation_mask                    = 3;
+constexpr uintptr_t representation_and_flags_mask          = representation_mask;
+constexpr uintptr_t reversed_representation_and_flags_mask = ~representation_mask;
+
+inline RepresentationE representation(uintptr_t const _rtti) noexcept
+{
+    return static_cast<RepresentationE>(_rtti & representation_mask);
+}
+
+inline uintptr_t representation(uintptr_t const _rtti, RepresentationE const _repr) noexcept
+{
+    return (_rtti & (~representation_and_flags_mask)) | to_underlying(_repr);
+}
+
+inline uintptr_t representation(void const* _rtti, RepresentationE const _repr) noexcept
+{
+    return (reinterpret_cast<uintptr_t>(_rtti) & (~representation_and_flags_mask)) | to_underlying(_repr);
+}
 
 struct SmallRTTI;
+struct BigRTTI;
 
-struct BigRTTI {
-    using DestroyFncT = void(void*);
-    using CopyFncT    = RepresentationE(const void*, void*, const size_t, const SmallRTTI*&, void*&, const BigRTTI*&);
-    using MoveFncT    = RepresentationE(void*, void*, const size_t, const SmallRTTI*&, void*&, const BigRTTI*&);
-    using GetIfFncT   = const void*(const std::type_index&, const void*);
+struct BaseRTTI {
+    using DestroyFncT  = void(void*) noexcept;
+    using CopyFncT     = uintptr_t(const void*, void*, size_t, size_t, void*&);
+    using MoveFncT     = uintptr_t(void*, void*, size_t, size_t, void*&);
+    using GetIfFncT    = const void*(const std::type_index&, const void*);
+    using GetTypeInfoT = std::type_info const*() noexcept;
+
+    CopyFncT&     copy_fnc_;
+    MoveFncT&     move_fnc_;
+    GetIfFncT&    get_if_fnc_;
+    GetTypeInfoT& get_type_info_fnc_;
+    const bool    is_copyable_;
+    const bool    is_movable_;
+    const bool    is_tuple_;
+
+    static BaseRTTI const& get(uintptr_t const _rtti) noexcept
+    {
+        return *reinterpret_cast<const BaseRTTI*>(_rtti & reversed_representation_and_flags_mask);
+    }
+};
+
+struct BigRTTI : BaseRTTI {
+
+    DestroyFncT& destroy_fnc_;
 
     template <class T>
     static void destroy(void* const _what) noexcept
     {
-        //::delete static_cast<T*>(_what);
-        std::destroy_at(std::launder(static_cast<T*>(_what)));
+        ::delete static_cast<T*>(_what);
     }
 
     template <class T>
@@ -67,67 +107,80 @@ struct BigRTTI {
         return ::new T(std::move(*static_cast<T*>(_from)));
     }
 
-    DestroyFncT* pdestroy_fnc_;
-    CopyFncT*    pcopy_fnc_;
-    MoveFncT*    pmove_fnc_;
-    GetIfFncT*   pget_if_fnc_;
-    const bool   is_copyable_;
-    const bool   is_movable_;
-    const bool   is_tuple_;
+    static BigRTTI const& get(uintptr_t const _rtti) noexcept
+    {
+        return *reinterpret_cast<const BigRTTI*>(_rtti & reversed_representation_and_flags_mask);
+    }
 };
 
-struct SmallRTTI {
-    using DestroyFncT = void(void*) noexcept;
-    using CopyFncT    = RepresentationE(const void*, void*, const size_t, const SmallRTTI*&, void*&, const BigRTTI*&);
-    using MoveFncT    = RepresentationE(void*, void*, const size_t, const SmallRTTI*&, void*&, const BigRTTI*&);
-    using GetIfFncT   = const void*(const std::type_index&, const void*);
+struct SmallRTTI : BaseRTTI {
+
+    DestroyFncT* pdestroy_fnc_;
 
     template <class T>
     static void destroy(void* const _what) noexcept
     {
-        static_cast<T*>(_what)->~T();
+        std::destroy_at(std::launder(static_cast<T*>(_what)));
     }
     static void dummy_destroy(void* const _what) noexcept
     {
     }
-    DestroyFncT* pdestroy_fnc_;
-    CopyFncT*    pcopy_fnc_;
-    MoveFncT*    pmove_fnc_;
-    GetIfFncT*   pget_if_fnc_;
-    const bool   is_copyable_;
-    const bool   is_movable_;
-    const bool   is_tuple_;
+
+    static SmallRTTI const& get(uintptr_t const _rtti) noexcept
+    {
+        return *reinterpret_cast<const SmallRTTI*>(_rtti & reversed_representation_and_flags_mask);
+    }
 };
 
 template <class T>
-RepresentationE do_copy(
-    const void* _pfrom,
-    void* _pto_small, const size_t _small_cap, const SmallRTTI*& _rpsmall_rtti,
-    void*& _rpto_big, const BigRTTI*& _rpbig_rtti);
+uintptr_t do_copy(
+    const void*,
+    void*, size_t, size_t,
+    void*&);
 
 template <class T>
-RepresentationE do_move(
-    void* _pfrom,
-    void* _pto_small, const size_t _small_cap, const SmallRTTI*& _rpsmall_rtti,
-    void*& _rpto_big, const BigRTTI*& _rpbig_rtti);
+uintptr_t do_move(
+    void*,
+    void*, size_t, size_t,
+    void*&);
 
 template <class T>
-RepresentationE do_move_big(
-    void* _pfrom,
-    void* _pto_small, const size_t _small_cap, const SmallRTTI*& _rpsmall_rtti,
-    void*& _rpto_big, const BigRTTI*& _rpbig_rtti);
+uintptr_t do_move_big(
+    void*,
+    void*, size_t, size_t,
+    void*&);
 
 template <class T>
-const void* do_get_if(const std::type_index& _type_index, const void* _pdata);
+const void* do_get_if(const std::type_index&, const void*);
+
+template <class T>
+std::type_info const* get_type_info() noexcept;
 
 template <class T>
 inline constexpr BigRTTI big_rtti = {
-    &BigRTTI::destroy<T>, &do_copy<T>, &do_move_big<T>, &do_get_if<T>, std::is_copy_constructible_v<T>, std::is_move_constructible_v<T>, is_specialization_v<T, std::tuple>};
+    {do_copy<T>,
+        do_move_big<T>,
+        do_get_if<T>,
+        get_type_info<T>,
+        std::is_copy_constructible_v<T>,
+        std::is_move_constructible_v<T>,
+        is_specialization_v<T, std::tuple>},
+    BigRTTI::destroy<T>};
+//&BigRTTI::destroy<T>, &do_copy<T>, &do_move_big<T>, &do_get_if<T>, std::is_copy_constructible_v<T>, std::is_move_constructible_v<T>, is_specialization_v<T, std::tuple>};
 
 template <class T>
 inline constexpr SmallRTTI small_rtti = {
-    &SmallRTTI::destroy<T>, &do_copy<T>, &do_move<T>, &do_get_if<T>, std::is_copy_constructible_v<T>, std::is_move_constructible_v<T>, is_specialization_v<T, std::tuple>};
+    {do_copy<T>,
+        do_move<T>,
+        do_get_if<T>,
+        get_type_info<T>,
+        std::is_copy_constructible_v<T>,
+        std::is_move_constructible_v<T>,
+        is_specialization_v<T, std::tuple>},
+    &SmallRTTI::destroy<T>};
+//&SmallRTTI::destroy<T>, &do_copy<T>, &do_move<T>, &do_get_if<T>, std::is_copy_constructible_v<T>, std::is_move_constructible_v<T>, is_specialization_v<T, std::tuple>};
 
+#if 0 // TODO:remove
 inline RepresentationE do_dummy_copy(
     const void* _pfrom,
     void* _pto_small, const size_t _small_cap, const SmallRTTI*& _rpsmall_rtti,
@@ -151,94 +204,104 @@ inline const void* do_dummy_get_if(const std::type_index& _type_index, const voi
 
 inline constexpr SmallRTTI dummy_small_rtti = {
     &SmallRTTI::dummy_destroy, &do_dummy_copy, &do_dummy_move, &do_dummy_get_if, false, false, false};
+#endif
 
 template <class T>
-RepresentationE do_copy(
+uintptr_t do_copy(
     const void* _pfrom,
-    void* _pto_small, const size_t _small_cap, const SmallRTTI*& _rpsmall_rtti,
-    void*& _rpto_big, const BigRTTI*& _rpbig_rtti)
+    void* _pto_small, const size_t _small_cap, const size_t _small_align,
+    void*& _rpto_big)
 {
-    if constexpr (alignof(T) <= alignof(max_align_t) && std::is_copy_constructible_v<T>) {
-        if (sizeof(T) <= _small_cap) {
+    if constexpr (std::is_copy_constructible_v<T>) {
+        if (sizeof(T) <= _small_cap and alignof(T) <= _small_align) {
             T&       rdst = *static_cast<T*>(_pto_small);
             const T& rsrc = *static_cast<const T*>(_pfrom);
             ::new (const_cast<void*>(static_cast<const volatile void*>(std::addressof(rdst)))) T(rsrc);
-            _rpsmall_rtti = &small_rtti<T>;
-            return RepresentationE::Small;
+            return representation(&small_rtti<T>, RepresentationE::Small);
+            //_rpsmall_rtti = &small_rtti<T>;
+            // return RepresentationE::Small;
         } else {
 #if defined(SOLID_THROW_ON_BIG_ANY)
             solid_throw("Big Any");
 #endif
-            _rpto_big   = ::new T(*static_cast<const T*>(_pfrom));
-            _rpbig_rtti = &big_rtti<T>;
-            return RepresentationE::Big;
+            _rpto_big = ::new T(*static_cast<const T*>(_pfrom));
+            return representation(&big_rtti<T>, RepresentationE::Big);
+            //_rpbig_rtti = &big_rtti<T>;
+            // return RepresentationE::Big;
         }
     } else if constexpr (std::is_trivially_constructible_v<T> || std::is_copy_constructible_v<T>) {
-        _rpto_big   = ::new T(*static_cast<const T*>(_pfrom));
-        _rpbig_rtti = &big_rtti<T>;
-        return RepresentationE::Big;
+        _rpto_big = ::new T(*static_cast<const T*>(_pfrom));
+        return representation(&big_rtti<T>, RepresentationE::Big);
+        //_rpbig_rtti = &big_rtti<T>;
+        // return RepresentationE::Big;
     } else {
         solid_throw("Any: contained value not copyable");
-        return RepresentationE::None;
+        return 0;
     }
 }
 
 template <class T>
-RepresentationE do_move(
+uintptr_t do_move(
     void* _pfrom,
-    void* _pto_small, const size_t _small_cap, const SmallRTTI*& _rpsmall_rtti,
-    void*& _rpto_big, const BigRTTI*& _rpbig_rtti)
+    void* _pto_small, const size_t _small_cap, const size_t _small_align,
+    void*& _rpto_big)
 {
-    if constexpr (alignof(T) <= alignof(max_align_t) && std::is_move_constructible_v<T>) {
-        if (sizeof(T) <= _small_cap) {
+    if constexpr (std::is_move_constructible_v<T>) {
+        if (sizeof(T) <= _small_cap and alignof(T) <= _small_align) {
             T& rdst = *static_cast<T*>(_pto_small);
             T& rsrc = *static_cast<T*>(_pfrom);
             ::new (const_cast<void*>(static_cast<const volatile void*>(std::addressof(rdst)))) T{std::move(rsrc)};
-            _rpsmall_rtti = &small_rtti<T>;
-            return RepresentationE::Small;
+            return representation(&small_rtti<T>, RepresentationE::Small);
+            //_rpsmall_rtti = &small_rtti<T>;
+            // return RepresentationE::Small;
         } else {
 #if defined(SOLID_THROW_ON_BIG_ANY)
             solid_throw("Big Any");
 #endif
-            _rpto_big   = ::new T{std::move(*static_cast<T*>(_pfrom))};
-            _rpbig_rtti = &big_rtti<T>;
-            return RepresentationE::Big;
+            _rpto_big = ::new T{std::move(*static_cast<T*>(_pfrom))};
+            return representation(&big_rtti<T>, RepresentationE::Big);
+            //_rpbig_rtti = &big_rtti<T>;
+            // return RepresentationE::Big;
         }
     } else if constexpr (std::is_move_constructible_v<T>) {
 #if defined(SOLID_THROW_ON_BIG_ANY)
         solid_throw("Big Any");
 #endif
-        _rpto_big   = ::new T{std::move(*static_cast<T*>(_pfrom))};
-        _rpbig_rtti = &big_rtti<T>;
-        return RepresentationE::Big;
+        _rpto_big = ::new T{std::move(*static_cast<T*>(_pfrom))};
+        return representation(&big_rtti<T>, RepresentationE::Big);
+        //_rpbig_rtti = &big_rtti<T>;
+        // return RepresentationE::Big;
     } else {
         solid_throw("Any: contained value not movable");
-        return RepresentationE::None;
+        return 0;
     }
 }
 
 template <class T>
-RepresentationE do_move_big(
+uintptr_t do_move_big(
     void* _pfrom,
-    void* _pto_small, const size_t _small_cap, const SmallRTTI*& _rpsmall_rtti,
-    void*& _rpto_big, const BigRTTI*& _rpbig_rtti)
+    void* _pto_small, const size_t _small_cap, const size_t _small_align,
+    void*& _rpto_big)
 {
     if constexpr (alignof(T) <= alignof(max_align_t) && std::is_move_constructible_v<T>) {
-        if (sizeof(T) <= _small_cap) {
+        if (sizeof(T) <= _small_cap and alignof(T) <= _small_align) {
             T& rdst = *static_cast<T*>(_pto_small);
             T& rsrc = *static_cast<T*>(_pfrom);
             ::new (const_cast<void*>(static_cast<const volatile void*>(std::addressof(rdst)))) T{std::move(rsrc)};
-            _rpsmall_rtti = &small_rtti<T>;
-            return RepresentationE::Small;
+            return representation(&small_rtti<T>, RepresentationE::Small);
+            //_rpsmall_rtti = &small_rtti<T>;
+            // return RepresentationE::Small;
         } else {
-            _rpto_big   = static_cast<T*>(_pfrom); //::new T{ std::move(*static_cast<T*>(_pfrom)) };
-            _rpbig_rtti = &big_rtti<T>;
-            return RepresentationE::Big;
+            _rpto_big = static_cast<T*>(_pfrom);
+            return representation(&big_rtti<T>, RepresentationE::Big);
+            //_rpbig_rtti = &big_rtti<T>;
+            // return RepresentationE::Big;
         }
     } else {
-        _rpto_big   = static_cast<T*>(_pfrom); //::new T{ std::move(*static_cast<T*>(_pfrom)) };
-        _rpbig_rtti = &big_rtti<T>;
-        return RepresentationE::Big;
+        _rpto_big = static_cast<T*>(_pfrom);
+        return representation(&big_rtti<T>, RepresentationE::Big);
+        //_rpbig_rtti = &big_rtti<T>;
+        // return RepresentationE::Big;
     }
 }
 
@@ -265,84 +328,71 @@ const void* do_get_if(const std::type_index& _type_index, const void* _pdata)
     return nullptr;
 }
 
-constexpr size_t compute_small_capacity(const size_t _req_capacity)
+template <class T>
+std::type_info const* get_type_info() noexcept
 {
-    static constexpr size_t default_total_size = 32u;
-
-    const size_t end_capacity = sizeof(uintptr_t) + sizeof(void*);
-    const size_t req_capacity = std::max(_req_capacity, std::max(end_capacity, sizeof(max_align_t)) - end_capacity);
-    const size_t tot_capacity = std::max(default_total_size, padded_size(req_capacity + sizeof(uintptr_t) + sizeof(void*), alignof(max_align_t)));
-
-    return tot_capacity - end_capacity;
+    return &typeid(T);
 }
 
 } // namespace any_impl
 
-template <size_t DataSize>
+template <size_t SmallSize, size_t SmallAlign>
+    requires(SmallSize > 0 and SmallSize >= SmallAlign
+        and (SmallSize % SmallAlign == 0) and std::popcount(SmallAlign) == 1)
 class Any {
-    static constexpr size_t small_capacity = any_impl::compute_small_capacity(DataSize);
-    static constexpr size_t big_padding    = small_capacity - sizeof(void*);
 
     struct Small {
-        unsigned char              data_[small_capacity];
-        const any_impl::SmallRTTI* prtti_;
+        alignas(SmallAlign) unsigned char data_[SmallSize];
     };
 
     struct Big {
-        unsigned char            padding_[big_padding];
-        void*                    ptr_;
-        const any_impl::BigRTTI* prtti_;
+        void* pdata_;
     };
 
-    struct Storage {
-        union {
-            Small small_;
-            Big   big_;
-        };
-        uintptr_t type_data_;
-    };
-
+    uintptr_t rtti_ = 0;
     union {
-        Storage     storage_{};
-        max_align_t dummy_;
+        Small small_;
+        Big   big_;
     };
-    template <size_t S>
+
+    template <size_t S, size_t A>
+        requires(S > 0 and S >= A
+            and (S % A == 0) and std::popcount(A) == 1)
     friend class Any;
 
 private:
-    any_impl::RepresentationE representation() const noexcept
-    {
-        return static_cast<any_impl::RepresentationE>(storage_.type_data_ & any_impl::representation_and_flags_mask);
-    }
-
-    void representation(const any_impl::RepresentationE _repr) noexcept
-    {
-        storage_.type_data_ &= (~any_impl::representation_and_flags_mask);
-        storage_.type_data_ |= static_cast<uintptr_t>(_repr);
-    }
-
     const std::type_info* typeInfo() const noexcept
     {
-        return reinterpret_cast<const std::type_info*>(storage_.type_data_ & ~any_impl::representation_and_flags_mask);
+        // return reinterpret_cast<const std::type_info*>(storage_.type_data_ & ~any_impl::representation_and_flags_mask);
+        auto const rtti = rtti_;
+        if (rtti) [[likely]] {
+            return any_impl::BaseRTTI::get(rtti).get_type_info_fnc_();
+        }
+        return nullptr;
     }
 
 public:
-    using ThisT = Any<DataSize>;
+    using ThisT = Any<SmallSize, SmallAlign>;
 
     static constexpr size_t smallCapacity()
     {
-        return small_capacity;
+        return SmallSize;
+    }
+
+    static constexpr size_t smallAlign()
+    {
+        return SmallAlign;
     }
 
     template <class T>
     static constexpr bool is_small_type()
     {
-        return alignof(T) <= alignof(max_align_t) && sizeof(T) <= small_capacity;
+        return alignof(T) <= smallAlign() && sizeof(T) <= smallCapacity();
     }
 
     constexpr Any() noexcept
     {
-        storage_.type_data_ = 0;
+        rtti_ = 0;
     }
 
     Any(const ThisT& _other)
@@ -367,11 +417,8 @@ public:
         doMoveFrom(_other);
     }
 
-    template <class T, std::enable_if_t<std::conjunction_v<std::negation<is_any<std::decay_t<T>>>, std::negation<is_specialization<std::decay_t<T>, std::in_place_type_t>> /*,
-        std::is_copy_constructible<std::decay_t<T>>*/
-                                            >,
-                           int>
-        = 0>
+    template <
+        class T, std::enable_if_t<std::conjunction_v<std::negation<is_any<std::decay_t<T>>>, std::negation<is_specialization<std::decay_t<T>, std::in_place_type_t>>>, int> = 0>
     Any(T&& _rvalue)
     {
         doEmplace<std::decay_t<T>>(std::forward<T>(_rvalue));
@@ -461,18 +508,22 @@ public:
 
     void reset() noexcept
     {
-        switch (representation()) {
-        case any_impl::RepresentationE::Small:
-            storage_.small_.prtti_->pdestroy_fnc_(&storage_.small_.data_);
-            break;
-        case any_impl::RepresentationE::Big:
-            storage_.big_.prtti_->pdestroy_fnc_(storage_.big_.ptr_);
-            break;
+        auto const rtti = rtti_;
+        switch (any_impl::representation(rtti)) {
+        [[likely]] case any_impl::RepresentationE::Small: {
+            auto& rrtti = any_impl::SmallRTTI::get(rtti);
+            if (rrtti.pdestroy_fnc_) {
+                rrtti.pdestroy_fnc_(small_.data_);
+            }
+        } break;
+        case any_impl::RepresentationE::Big: {
+            any_impl::BigRTTI::get(rtti).destroy_fnc_(big_.pdata_);
+        } break;
         case any_impl::RepresentationE::None:
         default:
             break;
         }
-        storage_.type_data_ = 0;
+        rtti_ = 0u;
     }
 
     template <size_t Sz>
@@ -483,7 +534,7 @@ public:
 
     bool has_value() const noexcept
     {
-        return storage_.type_data_ != 0;
+        return rtti_ != 0u;
     }
 
     explicit operator bool() const noexcept
@@ -511,9 +562,9 @@ public:
         }
 
         if constexpr (is_small_type<T>()) {
-            return reinterpret_cast<const T*>(&storage_.small_.data_);
+            return reinterpret_cast<const T*>(&small_.data_);
         } else {
-            return static_cast<const T*>(storage_.big_.ptr_);
+            return static_cast<const T*>(big_.pdata_);
         }
     }
 
@@ -526,14 +577,12 @@ public:
     template <class T>
     const T* get_if() const noexcept
     {
-        switch (representation()) {
-        case any_impl::RepresentationE::Small:
-            return static_cast<const T*>(storage_.small_.prtti_->pget_if_fnc_(std::type_index(typeid(T)), &storage_.small_.data_));
-        case any_impl::RepresentationE::Big:
-            return static_cast<const T*>(storage_.big_.prtti_->pget_if_fnc_(std::type_index(typeid(T)), storage_.big_.ptr_));
-        default:
-            return nullptr;
+        auto const rtti = rtti_;
+        if (rtti) [[likely]] {
+            void const* pdata = any_impl::representation(rtti) == any_impl::RepresentationE::Small ? small_.data_ : big_.pdata_;
+            return static_cast<const T*>(any_impl::BaseRTTI::get(rtti).get_if_fnc_(std::type_index(typeid(T)), pdata));
         }
+        return nullptr;
     }
 
     template <class T>
@@ -544,46 +593,91 @@ public:
 
     bool is_movable() const
     {
+        auto const rtti = rtti_;
+        if (rtti) [[likely]] {
+            return any_impl::BaseRTTI::get(rtti).is_movable_;
+        }
+        return true;
+#if 0
         if (is_small()) {
             return storage_.small_.prtti_->is_movable_;
         } else if (is_big()) {
             return storage_.big_.prtti_->is_movable_;
         }
         return true;
+#endif
     }
     bool is_copyable() const
     {
+        auto const rtti = rtti_;
+        if (rtti) [[likely]] {
+            return any_impl::BaseRTTI::get(rtti).is_copyable_;
+        }
+        return true;
+#if 0
         if (is_small()) {
             return storage_.small_.prtti_->is_copyable_;
         } else if (is_big()) {
             return storage_.big_.prtti_->is_copyable_;
         }
         return true;
+#endif
     }
 
     bool is_tuple() const
     {
+        auto const rtti = rtti_;
+        if (rtti) [[likely]] {
+            return any_impl::BaseRTTI::get(rtti).is_tuple_;
+        }
+        return false;
+#if 0
         if (is_small()) {
             return storage_.small_.prtti_->is_tuple_;
         } else if (is_big()) {
             return storage_.big_.prtti_->is_tuple_;
         }
         return false;
+#endif
     }
 
     bool is_small() const
     {
-        return representation() == any_impl::RepresentationE::Small;
+        return any_impl::representation(rtti_) == any_impl::RepresentationE::Small;
     }
     bool is_big() const
     {
-        return representation() == any_impl::RepresentationE::Big;
+        return any_impl::representation(rtti_) == any_impl::RepresentationE::Big;
     }
 
 private:
-    template <size_t Sz>
-    void doMoveFrom(Any<Sz>& _other)
+    template <size_t Sz, size_t Al>
+    void doMoveFrom(Any<Sz, Al>& _other)
     {
+        auto const rtti = _other.rtti_;
+
+        switch (any_impl::representation(rtti)) {
+        case any_impl::RepresentationE::Small: {
+            rtti_ = any_impl::BaseRTTI::get(rtti).move_fnc_(
+                _other.small_.data_,
+                small_.data_, smallCapacity(), smallAlign(),
+                big_.pdata_);
+            _other.reset();
+        } break;
+        case any_impl::RepresentationE::Big: {
+            rtti_ = any_impl::BaseRTTI::get(rtti).move_fnc_(
+                _other.big_.pdata_,
+                small_.data_, smallCapacity(), smallAlign(),
+                big_.pdata_);
+            if (is_big()) {
+                _other.rtti_ = 0u;
+            }
+            _other.reset();
+        } break;
+        default:
+            break;
+        }
+#if 0
         storage_.type_data_ = _other.storage_.type_data_;
         representation(any_impl::RepresentationE::None);
         switch (_other.representation()) {
@@ -591,7 +685,7 @@ private:
             const auto repr = _other.storage_.small_.prtti_->pmove_fnc_(
                 _other.storage_.small_.data_,
                 storage_.small_.data_, small_capacity, storage_.small_.prtti_,
-                storage_.big_.ptr_, storage_.big_.prtti_);
+                storage_.big_.pdata_, storage_.big_.prtti_);
             representation(repr);
             _other.reset();
         } break;
@@ -610,11 +704,32 @@ private:
         default:
             break;
         }
+#endif
     }
 
-    template <size_t Sz>
-    void doCopyFrom(const Any<Sz>& _other)
+    template <size_t Sz, size_t Al>
+    void doCopyFrom(const Any<Sz, Al>& _other)
     {
+        auto const rtti = _other.rtti_;
+
+        switch (any_impl::representation(rtti)) {
+        case any_impl::RepresentationE::Small: {
+            rtti_ = any_impl::BaseRTTI::get(rtti).copy_fnc_(
+                _other.small_.data_,
+                small_.data_, smallCapacity(), smallAlign(),
+                big_.pdata_);
+        } break;
+        case any_impl::RepresentationE::Big: {
+            rtti_ = any_impl::BaseRTTI::get(rtti).copy_fnc_(
+                _other.big_.pdata_,
+                small_.data_, smallCapacity(), smallAlign(),
+                big_.pdata_);
+        } break;
+        default:
+            break;
+        }
+
+#if 0
         storage_.type_data_ = _other.storage_.type_data_;
         representation(any_impl::RepresentationE::None);
         switch (_other.representation()) {
@@ -635,29 +750,34 @@ private:
         default:
             break;
         }
+#endif
     }
 
     template <class T, class... Args>
     T& doEmplace(Args&&... _args)
     {
         if constexpr (is_small_type<T>()) {
-            auto& rval = reinterpret_cast<T&>(storage_.small_.data_);
+            auto& rval = reinterpret_cast<T&>(small_.data_);
 
             ::new (const_cast<void*>(static_cast<const volatile void*>(std::addressof(rval)))) T{std::forward<Args>(_args)...};
-            storage_.small_.prtti_ = &any_impl::small_rtti<T>;
-            storage_.type_data_    = reinterpret_cast<uintptr_t>(&typeid(T));
-            representation(any_impl::RepresentationE::Small);
+
+            rtti_ = representation(&any_impl::small_rtti<T>, any_impl::RepresentationE::Small);
+            // storage_.small_.prtti_ = &any_impl::small_rtti<T>;
+            // storage_.type_data_    = reinterpret_cast<uintptr_t>(&typeid(T));
+            // representation(any_impl::RepresentationE::Small);
 
             return rval;
         } else {
 #if defined(SOLID_THROW_ON_BIG_ANY)
             solid_throw("Big Any");
 #endif
-            T* const ptr         = ::new T(std::forward<Args>(_args)...);
-            storage_.big_.ptr_   = ptr;
-            storage_.big_.prtti_ = &any_impl::big_rtti<T>;
-            storage_.type_data_  = reinterpret_cast<uintptr_t>(&typeid(T));
-            representation(any_impl::RepresentationE::Big);
+            T* const ptr = ::new T(std::forward<Args>(_args)...);
+            big_.pdata_  = ptr;
+            rtti_        = representation(&any_impl::big_rtti<T>, any_impl::RepresentationE::Big);
+
+            // storage_.big_.prtti_ = &any_impl::big_rtti<T>;
+            // storage_.type_data_  = reinterpret_cast<uintptr_t>(&typeid(T));
+            // representation(any_impl::RepresentationE::Big);
             return *ptr;
         }
     }
@@ -665,21 +785,21 @@ private:
 
 //-----------------------------------------------------------------------------
 
-template <size_t S1, size_t S2>
-inline void swap(Any<S1>& _a1, Any<S2>& _a2) noexcept
+template <size_t S1, size_t A1, size_t S2, size_t A2>
+inline void swap(Any<S1, A1>& _a1, Any<S2, A2>& _a2) noexcept
 {
     _a1.swap(_a2);
 }
 
-template <class T, size_t Size = 1, class... Args>
-Any<Size> make_any(Args&&... _args)
+template <class T, size_t Size = any_default_size, size_t Align = any_default_align, class... Args>
+auto make_any(Args&&... _args)
 {
-    return Any<Size>{std::in_place_type<T>, std::forward<Args>(_args)...};
+    return Any<Size, Align>{std::in_place_type<T>, std::forward<Args>(_args)...};
 }
-template <class T, size_t Size = 1, class E, class... Args>
-Any<Size> make_any(std::initializer_list<E> _ilist, Args&&... _args)
+template <class T, size_t Size = any_default_size, size_t Align = any_default_align, class E, class... Args>
+auto make_any(std::initializer_list<E> _ilist, Args&&... _args)
 {
-    return Any<Size>{std::in_place_type<T>, _ilist, std::forward<Args>(_args)...};
+    return Any<Size, Align>{std::in_place_type<T>, _ilist, std::forward<Args>(_args)...};
 }
 
 //-----------------------------------------------------------------------------

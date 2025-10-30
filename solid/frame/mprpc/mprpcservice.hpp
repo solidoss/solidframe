@@ -45,7 +45,7 @@ class SocketStub;
 } // namespace openssl
 
 constexpr size_t event_small_size = 32;
-using EventT                      = Event<event_small_size>;
+using EventT                      = Event<event_small_size, sizeof(uintptr_t)>;
 
 extern const Event<> pool_event_connect;
 extern const Event<> pool_event_disconnect;
