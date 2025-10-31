@@ -147,7 +147,7 @@ inline SocketStubPtrT create_client_socket(Configuration const& /*_rcfg*/, frame
 {
 #ifdef SOLID_HAS_ASSERT
     static_assert(sizeof(SocketStub) <= socket_emplace_size);
-    static_assert(alignof(SocketStub) == socket_emplace_align);
+    static_assert(alignof(SocketStub) <= socket_emplace_align);
 #endif
     if constexpr (sizeof(SocketStub) > socket_emplace_size and alignof(SocketStub) > socket_emplace_align) {
         return SocketStubPtrT(new SocketStub(_rproxy), SocketStub::delete_deleter);
@@ -160,7 +160,7 @@ inline SocketStubPtrT create_server_socket(Configuration const& /*_rcfg*/, frame
 {
 #ifdef SOLID_HAS_ASSERT
     static_assert(sizeof(SocketStub) <= socket_emplace_size);
-    static_assert(alignof(SocketStub) == socket_emplace_align);
+    static_assert(alignof(SocketStub) <= socket_emplace_align);
 #endif
     if constexpr (sizeof(SocketStub) > socket_emplace_size and alignof(SocketStub) > socket_emplace_align) {
         return SocketStubPtrT(new SocketStub(_rproxy, std::move(_usd)), SocketStub::delete_deleter);
