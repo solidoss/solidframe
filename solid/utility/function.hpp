@@ -158,7 +158,7 @@ uintptr_t do_copy(
         if (sizeof(T) <= _small_cap and alignof(T) <= _small_align) {
             T&       rdst = *static_cast<T*>(_pto_small);
             const T& rsrc = *static_cast<const T*>(_pfrom);
-            ::new (const_cast<void*>(static_cast<const volatile void*>(std::addressof(rdst)))) T(rsrc);
+            ::new (std::addressof(rdst)) T(rsrc);
             return representation(&small_rtti<T, R, ArgTypes...>, RepresentationE::Small);
         } else {
 #if defined(SOLID_THROW_ON_BIG_FUNCTION)
@@ -183,7 +183,7 @@ uintptr_t do_move(
         if (sizeof(T) <= _small_cap and alignof(T) <= _small_align) {
             T& rdst = *static_cast<T*>(_pto_small);
             T& rsrc = *static_cast<T*>(_pfrom);
-            ::new (const_cast<void*>(static_cast<const volatile void*>(std::addressof(rdst)))) T{std::move(rsrc)};
+            ::new (std::addressof(rdst)) T{std::move(rsrc)};
             return representation(&small_rtti<T, R, ArgTypes...>, RepresentationE::Small);
         } else {
 #if defined(SOLID_THROW_ON_BIG_FUNCTION)
@@ -208,7 +208,7 @@ uintptr_t do_move_big(
         if (sizeof(T) <= _small_cap and alignof(T) <= _small_align) {
             T& rdst = *static_cast<T*>(_pto_small);
             T& rsrc = *static_cast<T*>(_pfrom);
-            ::new (const_cast<void*>(static_cast<const volatile void*>(std::addressof(rdst)))) T{std::move(rsrc)};
+            ::new (std::addressof(rdst)) T{std::move(rsrc)};
             return representation(&small_rtti<T, R, ArgTypes...>, RepresentationE::Small);
         } else {
             _rpto_big = static_cast<T*>(_pfrom);

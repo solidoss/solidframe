@@ -155,7 +155,7 @@ uintptr_t do_copy(
         if (sizeof(T) <= _small_cap and alignof(T) <= _small_align) {
             T&       rdst = *static_cast<T*>(_pto_small);
             const T& rsrc = *static_cast<const T*>(_pfrom);
-            ::new (const_cast<void*>(static_cast<const volatile void*>(std::addressof(rdst)))) T(rsrc);
+            ::new (std::addressof(rdst)) T(rsrc);
             return representation(&small_rtti<T>, RepresentationE::Small);
         } else {
             _rpto_big = ::new T(*static_cast<const T*>(_pfrom));
@@ -177,7 +177,7 @@ uintptr_t do_move(
         if (sizeof(T) <= _small_cap and alignof(T) <= _small_align) {
             T& rdst = *static_cast<T*>(_pto_small);
             T& rsrc = *static_cast<T*>(_pfrom);
-            ::new (const_cast<void*>(static_cast<const volatile void*>(std::addressof(rdst)))) T{std::move(rsrc)};
+            ::new (std::addressof(rdst)) T{std::move(rsrc)};
             return representation(&small_rtti<T>, RepresentationE::Small);
         } else {
             _rpto_big = ::new T{std::move(*static_cast<T*>(_pfrom))};
@@ -199,7 +199,7 @@ uintptr_t do_move_big(
         if (sizeof(T) <= _small_cap and alignof(T) <= _small_align) {
             T& rdst = *static_cast<T*>(_pto_small);
             T& rsrc = *static_cast<T*>(_pfrom);
-            ::new (const_cast<void*>(static_cast<const volatile void*>(std::addressof(rdst)))) T{std::move(rsrc)};
+            ::new (std::addressof(rdst)) T{std::move(rsrc)};
             return representation(&small_rtti<T>, RepresentationE::Small);
         } else {
             _rpto_big = static_cast<T*>(_pfrom);
@@ -588,7 +588,7 @@ private:
     {
         if constexpr (is_small_type<T>()) {
             auto& rval = reinterpret_cast<T&>(small_.data_);
-            ::new (const_cast<void*>(static_cast<const volatile void*>(std::addressof(rval)))) T{std::forward<Args>(_args)...};
+            ::new (std::addressof(rval)) T{std::forward<Args>(_args)...};
             rtti_ = representation(&any_impl::small_rtti<T>, any_impl::RepresentationE::Small);
             return rval;
         } else {

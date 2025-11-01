@@ -122,17 +122,6 @@ public:
 
     bool is_movable() const
     {
-#if 0
-        auto const lrtti = rtti_;
-        switch (any_impl::representation(lrtti)) {
-        case any_impl::RepresentationE::Small:
-            return any_impl::SmallRTTI::get(lrtti).is_movable_;
-        case any_impl::RepresentationE::Big:
-            return any_impl::BigRTTI::get(lrtti).is_movable_;
-        default:
-            return true;
-        }
-#endif
         auto const rtti = rtti_;
         if (rtti) [[likely]] {
             return any_impl::BaseRTTI::get(rtti).is_movable_;
@@ -141,17 +130,6 @@ public:
     }
     bool is_copyable() const
     {
-#if 0
-        auto const lrtti = rtti_;
-        switch (any_impl::representation(lrtti)) {
-        case any_impl::RepresentationE::Small:
-            return any_impl::SmallRTTI::get(lrtti).is_copyable_;
-        case any_impl::RepresentationE::Big:
-            return any_impl::BigRTTI::get(lrtti).is_copyable_;
-        default:
-            return true;
-        }
-#endif
         auto const rtti = rtti_;
         if (rtti) [[likely]] {
             return any_impl::BaseRTTI::get(rtti).is_copyable_;
@@ -161,17 +139,6 @@ public:
 
     bool is_tuple() const
     {
-#if 0
-        auto const lrtti = rtti_;
-        switch (any_impl::representation(lrtti)) {
-        case any_impl::RepresentationE::Small:
-            return any_impl::SmallRTTI::get(lrtti).is_tuple_;
-        case any_impl::RepresentationE::Big:
-            return any_impl::BigRTTI::get(lrtti).is_tuple_;
-        default:
-            return false;
-        }
-#endif
         auto const rtti = rtti_;
         if (rtti) [[likely]] {
             return any_impl::BaseRTTI::get(rtti).is_tuple_;
@@ -253,33 +220,6 @@ protected:
             }
             _other.reset();
         }
-#if 0
-        representation(any_impl::RepresentationE::None);
-        switch (_other.representation()) {
-        case any_impl::RepresentationE::Small: {
-            const auto repr = _other.rtti_.psmall_->pmove_fnc_(
-                _other.pdata_,
-                _psmall_data, _small_capacity, rtti_.psmall_,
-                pdata_, rtti_.pbig_);
-            representation(repr);
-            _other.reset();
-        } break;
-        case any_impl::RepresentationE::Big: {
-            const auto repr = _other.rtti_.pbig_->pmove_fnc_(
-                _other.pdata_,
-                _psmall_data, _small_capacity, rtti_.psmall_,
-                pdata_, rtti_.pbig_);
-            representation(repr);
-            if (repr == any_impl::RepresentationE::Big) {
-                _other.type_data_ = 0;
-            } else {
-                _other.reset();
-            }
-        } break;
-        default:
-            break;
-        }
-#endif
     }
 
     void doCopyFrom(void* _psmall_data, const size_t _small_capacity, const size_t _small_align, const EventBase& _other)
@@ -294,29 +234,6 @@ protected:
                 _psmall_data, _small_capacity, _small_align,
                 pdata_);
         }
-#if 0
-        type_data_ = _other.type_data_;
-        pdata_     = _psmall_data;
-        representation(any_impl::RepresentationE::None);
-        switch (_other.representation()) {
-        case any_impl::RepresentationE::Small: {
-            const auto repr = _other.rtti_.psmall_->pcopy_fnc_(
-                _other.pdata_,
-                _psmall_data, _small_capacity, rtti_.psmall_,
-                pdata_, rtti_.pbig_);
-            representation(repr);
-        } break;
-        case any_impl::RepresentationE::Big: {
-            const auto repr = _other.rtti_.pbig_->pcopy_fnc_(
-                _other.pdata_,
-                _psmall_data, _small_capacity, rtti_.psmall_,
-                pdata_, rtti_.pbig_);
-            representation(repr);
-        } break;
-        default:
-            break;
-        }
-#endif
     }
 
     template <class T, class... Args>
@@ -325,11 +242,6 @@ protected:
         auto* pdata = ::new (_psmall_data) T{std::forward<Args>(_args)...};
         pdata_      = _psmall_data;
         rtti_       = any_impl::representation(&any_impl::small_rtti<T>, any_impl::RepresentationE::Small);
-
-        // rtti_.psmall_ = &any_impl::small_rtti<T>;
-        // type_data_    = reinterpret_cast<uintptr_t>(&typeid(T));
-        // representation(any_impl::RepresentationE::Small);
-
         return *pdata;
     }
 
@@ -342,9 +254,6 @@ protected:
         T* const ptr = ::new T(std::forward<Args>(_args)...);
         pdata_       = ptr;
         rtti_        = representation(&any_impl::big_rtti<T>, any_impl::RepresentationE::Big);
-        // rtti_.pbig_  = &any_impl::big_rtti<T>;
-        // type_data_   = reinterpret_cast<uintptr_t>(&typeid(T));
-        // representation(any_impl::RepresentationE::Big);
         return *ptr;
     }
 };
@@ -515,21 +424,6 @@ public:
     {
     }
 };
-
-#if 0 // TODO:remove
-namespace event_impl {
-constexpr size_t compute_small_capacity(const size_t _req_capacity)
-{
-    static constexpr size_t default_total_size = 32u;
-
-    const size_t end_capacity = sizeof(uintptr_t) + sizeof(void*);
-    const size_t req_capacity = std::max(_req_capacity, std::max(end_capacity, sizeof(max_align_t)) - end_capacity);
-    const size_t tot_capacity = std::max(default_total_size, padded_size(req_capacity + sizeof(uintptr_t) + sizeof(void*), alignof(max_align_t)));
-
-    return tot_capacity - end_capacity;
-}
-} // namespace event_impl
-#endif
 
 template <size_t SmallSize, size_t SmallAlign>
     requires(SmallSize == 0 and SmallAlign == 0 or (SmallSize > 0 and SmallSize >= SmallAlign and (SmallSize % SmallAlign == 0) and std::popcount(SmallAlign) == 1))
