@@ -368,7 +368,7 @@ inline EventCategory<GenericEventE> category<GenericEventE>{
 //      Event<>
 //-----------------------------------------------------------------------------
 template <size_t SmallSize = 0, size_t SmallAlign = SmallSize == 0 ? 0 : sizeof(uintptr_t)>
-    requires(SmallSize == 0 and SmallAlign == 0 or (SmallSize > 0 and SmallSize >= SmallAlign and (SmallSize % SmallAlign == 0) and std::popcount(SmallAlign) == 1))
+    requires((SmallSize == 0 and SmallAlign == 0) or (SmallSize > 0 and SmallSize >= SmallAlign and (SmallSize % SmallAlign == 0) and std::popcount(SmallAlign) == 1))
 class Event;
 
 template <class T>
@@ -426,7 +426,7 @@ public:
 };
 
 template <size_t SmallSize, size_t SmallAlign>
-    requires(SmallSize == 0 and SmallAlign == 0 or (SmallSize > 0 and SmallSize >= SmallAlign and (SmallSize % SmallAlign == 0) and std::popcount(SmallAlign) == 1))
+    requires((SmallSize == 0 and SmallAlign == 0) or (SmallSize > 0 and SmallSize >= SmallAlign and (SmallSize % SmallAlign == 0) and std::popcount(SmallAlign) == 1))
 class Event : public EventBase {
     alignas(SmallAlign) unsigned char data_[SmallSize];
 

@@ -55,7 +55,7 @@ private:
     ConnectionProxy() {}
 
 private:
-    friend struct ConnectionContext;
+    friend class ConnectionContext;
     Service&    service(frame::aio::ReactorContext& _rctx) const;
     Connection& connection(frame::aio::ReactorContext& _rctx) const;
 };

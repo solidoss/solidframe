@@ -19,7 +19,7 @@ namespace solid {
 namespace frame {
 namespace mprpc {
 
-struct ConnectionContext;
+class ConnectionContext;
 
 class SocketStub {
 public:

@@ -913,7 +913,7 @@ private:
 
     template <class Meta, class T>
         requires(
-            !std::is_base_of_v<std::ostream, T> && !std::is_floating_point_v<T> || (std::is_pointer_v<T> && (is_shared_ptr_v<T> || is_unique_ptr_v<T> || is_intrusive_ptr_v<T>)))
+            (!std::is_base_of_v<std::ostream, T> && !std::is_floating_point_v<T>) || (std::is_pointer_v<T> && (is_shared_ptr_v<T> || is_unique_ptr_v<T> || is_intrusive_ptr_v<T>)))
     void addDispatch(const Meta& _meta, const T& _rt, ContextT& _rctx, const size_t _id, const char* const _name)
     {
 

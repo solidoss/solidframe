@@ -2156,7 +2156,7 @@ struct RelayContext {
 void RelayConnection::tryPollRelayEngine(frame::aio::ReactorContext& _rctx, const Configuration& _rconfig, MessageWriter& _rmsgwriter)
 {
     if (shouldPollRelayEngine()) {
-        auto relay_poll_push_lambda = [this, &_rconfig, &_rmsgwriter](
+        auto relay_poll_push_lambda = [&_rconfig, &_rmsgwriter](
                                           RelayData*&      _rprelay_data,
                                           const MessageId& _rengine_msg_id,
                                           MessageId& _rconn_msg_id, bool& _rmore) -> bool {

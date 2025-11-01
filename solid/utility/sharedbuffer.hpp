@@ -687,7 +687,7 @@ private:
 
 #if 1
 class BufferPool : NonCopyable {
-    friend class impl::SharedBufferData;
+    friend struct impl::SharedBufferData;
     friend class impl::SharedBufferBase;
     struct LocalData;
     struct OwnData;

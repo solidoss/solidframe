@@ -45,7 +45,7 @@ constexpr size_t socket_emplace_align = 16;
 class Service;
 class Connection;
 class MessageWriter;
-struct ConnectionContext;
+class ConnectionContext;
 class Configuration;
 
 typedef void (*OnSecureConnectF)(frame::aio::ReactorContext&);

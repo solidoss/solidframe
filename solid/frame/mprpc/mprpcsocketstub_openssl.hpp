@@ -239,7 +239,7 @@ inline SocketStubPtrT create_client_socket(mprpc::Configuration const& _rcfg, fr
 {
 #ifdef SOLID_HAS_ASSERT
     static_assert(sizeof(SocketStub) <= socket_emplace_size);
-    static_assert(alignof(SocketStub) == socket_emplace_align);
+    static_assert(alignof(SocketStub) <= socket_emplace_align);
 #endif
     if constexpr (sizeof(SocketStub) > socket_emplace_size and alignof(SocketStub) > socket_emplace_align) {
         return SocketStubPtrT(new SocketStub(_rproxy, const_cast<ClientConfiguration*>(_rcfg.client.secure_any.cast<ClientConfiguration>())->context), SocketStub::delete_deleter);
@@ -252,7 +252,7 @@ inline SocketStubPtrT create_server_socket(mprpc::Configuration const& _rcfg, fr
 {
 #ifdef SOLID_HAS_ASSERT
     static_assert(sizeof(SocketStub) <= socket_emplace_size);
-    static_assert(alignof(SocketStub) == socket_emplace_align);
+    static_assert(alignof(SocketStub) <= socket_emplace_align);
 #endif
 
     if constexpr (sizeof(SocketStub) > socket_emplace_size and alignof(SocketStub) > socket_emplace_align) {

@@ -273,7 +273,7 @@ private:
     ErrorConditionT pollServicePoolForUpdates(frame::aio::ReactorContext& _rctx, MessageId const& _rpool_msg_id);
 
 private:
-    friend struct ConnectionContext;
+    friend class ConnectionContext;
     friend class RelayEngine;
     friend class Service;
 

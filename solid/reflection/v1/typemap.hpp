@@ -494,20 +494,20 @@ private:
                 rref.add(rval, rctx, 0, "");
             }
         };
-        type_vec_[_type_index].reflector_vec_[_index].create_shared_fnc_ = [_create_f](void* _pctx, void* _pptr, const CastFunctionT& _cast) {
+        type_vec_[_type_index].reflector_vec_[_index].create_shared_fnc_ = [=](void* _pctx, void* _pptr, const CastFunctionT& _cast) {
             typename Ref::ContextT& rctx = *reinterpret_cast<typename Ref::ContextT*>(_pctx);
             std::shared_ptr<T>      ptr;
             _create_f(rctx, ptr);
             _cast(_pptr, &ptr);
         };
-        type_vec_[_type_index].reflector_vec_[_index].create_unique_fnc_ = [_create_f](void* _pctx, void* _pptr, const CastFunctionT& _cast) {
+        type_vec_[_type_index].reflector_vec_[_index].create_unique_fnc_ = [=](void* _pctx, void* _pptr, const CastFunctionT& _cast) {
             typename Ref::ContextT& rctx = *reinterpret_cast<typename Ref::ContextT*>(_pctx);
             std::unique_ptr<T>      ptr;
             _create_f(rctx, ptr);
             _cast(_pptr, &ptr);
         };
 
-        type_vec_[_type_index].reflector_vec_[_index].create_intrusive_fnc_ = [_create_f](void* _pctx, void* _pptr, const CastFunctionT& _cast) {
+        type_vec_[_type_index].reflector_vec_[_index].create_intrusive_fnc_ = [=](void* _pctx, void* _pptr, const CastFunctionT& _cast) {
             if constexpr (std::is_base_of_v<solid::IntrusiveThreadSafeBase, T>) {
                 typename Ref::ContextT& rctx = *reinterpret_cast<typename Ref::ContextT*>(_pctx);
                 solid::IntrusivePtr<T>  ptr;

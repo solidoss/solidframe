@@ -568,7 +568,7 @@ private:
     friend class Connection;
     friend class ClientConnection;
     friend class openssl::SocketStub;
-    friend struct ConnectionContext;
+    friend class ConnectionContext;
 
     Configuration const& configuration() const;
     ServiceStatistic&    wstatistic();
