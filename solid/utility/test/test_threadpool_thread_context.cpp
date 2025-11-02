@@ -18,7 +18,6 @@ using unique_lock_t = std::unique_lock<mutex_t>;
 
 namespace {
 
-mutex_t       mtx;
 const LoggerT logger("test");
 
 struct Context {

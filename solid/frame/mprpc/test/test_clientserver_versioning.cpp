@@ -461,7 +461,7 @@ void complete_message(
     if (_rctx.any().get_if<Version>()->version_ == 2) {
         // need to send back Response2
         auto res_ptr    = frame::mprpc::make_message<Response2>(*_rrecv_msg_ptr);
-        res_ptr->error_ = _rrecv_msg_ptr->values_.size();
+        res_ptr->error_ = static_cast<uint32_t>(_rrecv_msg_ptr->values_.size());
         _rctx.service().sendResponse(_rctx.recipientId(), res_ptr);
     } else if (_rctx.any().get_if<Version>()->request_ == 1) {
         auto res_ptr    = frame::mprpc::make_message<Response>(*_rrecv_msg_ptr);

@@ -43,9 +43,9 @@ int main(int argc, char* argv[])
             return 0;
         }
         cout << "File size: " << fd.size() << endl;
-        char b[20 * 1024];
-        int  rv;
-        int  rc;
+        char    b[20 * 1024];
+        ssize_t rv;
+        ssize_t rc;
         do {
             rv = 2 * 1024; // randomsize();
             // cout<<rv<<endl;
@@ -66,8 +66,8 @@ int main(int argc, char* argv[])
             return 0;
         }
         mf.seek(0, SeekBeg);
-        char b[20 * 1024];
-        int  rv, rc;
+        char    b[20 * 1024];
+        ssize_t rv, rc;
         do {
             rv = 2 * 1024; // randomsize();
             // cout<<rv<<endl;

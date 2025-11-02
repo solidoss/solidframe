@@ -60,11 +60,11 @@ InitStub initarray[] = {
 std::string  pattern;
 const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
-std::atomic<size_t> crtwriteidx(0);
-std::atomic<size_t> crtreadidx(0);
-std::atomic<size_t> crtbackidx(0);
-std::atomic<size_t> crtackidx(0);
-std::atomic<size_t> writecount(0);
+std::atomic<uint32_t> crtwriteidx(0);
+std::atomic<size_t>   crtreadidx(0);
+std::atomic<size_t>   crtbackidx(0);
+std::atomic<size_t>   crtackidx(0);
+std::atomic<size_t>   writecount(0);
 
 size_t                    connection_count(0);
 bool                      running = true;
@@ -246,11 +246,13 @@ void server_complete_message(
 
         ++crtreadidx;
         solid_dbg(generic_logger, Info, crtreadidx);
-        if (crtwriteidx < writecount) {
+        if (crtwriteidx < writecount and pmprpcclient) {
             err = pmprpcclient->sendMessage(
                 client_id, frame::mprpc::make_message<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
             solid_check(!err, "Connection id should not be invalid! " << err.message());
+        } else {
+            solid_check(pmprpcclient, "pmprpcclient should not be nullptr");
         }
     }
     if (_rsent_msg_ptr) {

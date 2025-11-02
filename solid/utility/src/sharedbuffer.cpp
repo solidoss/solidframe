@@ -310,7 +310,7 @@ struct Stub {
 
 uint64_t pack(uint64_t const _index, uint64_t const _unique)
 {
-    return _index << 32U + (_unique & 0xffffffffU);
+    return _index << (32U + (_unique & 0xffffffffU));
 }
 
 pair<uint32_t, uint32_t> unpack(uint64_t const _id)

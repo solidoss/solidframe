@@ -484,12 +484,12 @@ public:
     Event(const Evs _ev, T&& _rvalue)
         : EventBase(category<Evs>, to_underlying(_ev))
     {
-
-        if constexpr (is_small_type<T>()) {
-            auto& rval = reinterpret_cast<T&>(data_);
-            doEmplaceSmall<std::decay_t<T>>(const_cast<void*>(static_cast<const volatile void*>(std::addressof(rval))), std::forward<T>(_rvalue));
+        using ValueT = std::decay_t<T>;
+        if constexpr (is_small_type<ValueT>()) {
+            auto& rval = reinterpret_cast<ValueT&>(data_);
+            doEmplaceSmall<ValueT>(std::addressof(rval), std::forward<T>(_rvalue));
         } else {
-            doEmplaceBig<std::decay_t<T>>(std::forward<T>(_rvalue));
+            doEmplaceBig<ValueT>(std::forward<>(_rvalue));
         }
     }
 
@@ -497,12 +497,12 @@ public:
     Event(const EventCategoryBase& _category, const Evs _ev, T&& _rvalue)
         : EventBase(_category, to_underlying(_ev))
     {
-
-        if constexpr (is_small_type<T>()) {
-            auto& rval = reinterpret_cast<T&>(data_);
-            doEmplaceSmall<std::decay_t<T>>(const_cast<void*>(static_cast<const volatile void*>(std::addressof(rval))), std::forward<T>(_rvalue));
+        using ValueT = std::decay_t<T>;
+        if constexpr (is_small_type<ValueT>()) {
+            auto& rval = reinterpret_cast<ValueT&>(data_);
+            doEmplaceSmall<ValueT>(std::addressof(rval), std::forward<T>(_rvalue));
         } else {
-            doEmplaceBig<std::decay_t<T>>(std::forward<T>(_rvalue));
+            doEmplaceBig<ValueT>(std::forward<T>(_rvalue));
         }
     }
 
@@ -514,11 +514,12 @@ public:
     explicit Event(const Evs _ev, std::in_place_type_t<T>, Args&&... _args)
         : EventBase(category<Evs>, to_underlying(_ev))
     {
-        if constexpr (is_small_type<T>()) {
-            auto& rval = reinterpret_cast<T&>(data_);
-            doEmplaceSmall<std::decay_t<T>>(const_cast<void*>(static_cast<const volatile void*>(std::addressof(rval))), std::forward<Args>(_args)...);
+        using ValueT = std::decay_t<T>;
+        if constexpr (is_small_type<ValueT>()) {
+            auto& rval = reinterpret_cast<ValueT&>(data_);
+            doEmplaceSmall<ValueT>(std::addressof(rval), std::forward<Args>(_args)...);
         } else {
-            doEmplaceBig<std::decay_t<T>>(std::forward<Args>(_args)...);
+            doEmplaceBig<ValueT>(std::forward<Args>(_args)...);
         }
     }
 
@@ -530,11 +531,12 @@ public:
     explicit Event(const EventCategoryBase& _category, const Evs _ev, std::in_place_type_t<T>, Args&&... _args)
         : EventBase(_category, to_underlying(_ev))
     {
-        if constexpr (is_small_type<T>()) {
-            auto& rval = reinterpret_cast<T&>(data_);
-            doEmplaceSmall<std::decay_t<T>>(const_cast<void*>(static_cast<const volatile void*>(std::addressof(rval))), std::forward<Args>(_args)...);
+        using ValueT = std::decay_t<T>;
+        if constexpr (is_small_type<ValueT>()) {
+            auto& rval = reinterpret_cast<ValueT&>(data_);
+            doEmplaceSmall<ValueT>(std::addressof(rval), std::forward<Args>(_args)...);
         } else {
-            doEmplaceBig<std::decay_t<T>>(std::forward<Args>(_args)...);
+            doEmplaceBig<ValueT>(std::forward<Args>(_args)...);
         }
     }
 
@@ -546,11 +548,12 @@ public:
     explicit Event(const Evs _ev, std::in_place_type_t<T>, std::initializer_list<E> _ilist, Args&&... _args)
         : EventBase(category<Evs>, to_underlying(_ev))
     {
-        if constexpr (is_small_type<T>()) {
-            auto& rval = reinterpret_cast<T&>(data_);
-            doEmplaceSmall<std::decay_t<T>>(const_cast<void*>(static_cast<const volatile void*>(std::addressof(rval))), _ilist, std::forward<Args>(_args)...);
+        using ValueT = std::decay_t<T>;
+        if constexpr (is_small_type<ValueT>()) {
+            auto& rval = reinterpret_cast<ValueT&>(data_);
+            doEmplaceSmall<ValueT>(std::addressof(rval), _ilist, std::forward<Args>(_args)...);
         } else {
-            doEmplaceBig<std::decay_t<T>>(_ilist, std::forward<Args>(_args)...);
+            doEmplaceBig<ValueT>(_ilist, std::forward<Args>(_args)...);
         }
     }
 
@@ -562,11 +565,12 @@ public:
     explicit Event(const EventCategoryBase& _category, const Evs _ev, std::in_place_type_t<T>, std::initializer_list<E> _ilist, Args&&... _args)
         : EventBase(_category, to_underlying(_ev))
     {
-        if constexpr (is_small_type<T>()) {
-            auto& rval = reinterpret_cast<T&>(data_);
-            doEmplaceSmall<std::decay_t<T>>(const_cast<void*>(static_cast<const volatile void*>(std::addressof(rval))), _ilist, std::forward<Args>(_args)...);
+        using ValueT = std::decay_t<T>;
+        if constexpr (is_small_type<ValueT>()) {
+            auto& rval = reinterpret_cast<ValueT&>(data_);
+            doEmplaceSmall<ValueT>(std::addressof(rval), _ilist, std::forward<Args>(_args)...);
         } else {
-            doEmplaceBig<std::decay_t<T>>(_ilist, std::forward<Args>(_args)...);
+            doEmplaceBig<ValueT>(_ilist, std::forward<Args>(_args)...);
         }
     }
 
@@ -617,7 +621,7 @@ public:
 
         if constexpr (is_small_type<T>()) {
             auto& rval = reinterpret_cast<T&>(data_);
-            doEmplaceSmall<std::decay_t<T>>(const_cast<void*>(static_cast<const volatile void*>(std::addressof(rval))), std::forward<T>(_rvalue));
+            doEmplaceSmall<std::decay_t<T>>(std::addressof(rval), std::forward<T>(_rvalue));
         } else {
             doEmplaceBig<std::decay_t<T>>(std::forward<T>(_rvalue));
         }
@@ -632,11 +636,12 @@ public:
     std::decay_t<T>& emplace(Args&&... _args)
     {
         resetData();
-        if constexpr (is_small_type<T>()) {
-            auto& rval = reinterpret_cast<T&>(data_);
-            return doEmplaceSmall<std::decay_t<T>>(const_cast<void*>(static_cast<const volatile void*>(std::addressof(rval))), std::forward<Args>(_args)...);
+        using ValueT = std::decay_t<T>;
+        if constexpr (is_small_type<ValueT>()) {
+            auto& rval = reinterpret_cast<ValueT&>(data_);
+            return doEmplaceSmall<ValueT>(std::addressof(rval), std::forward<Args>(_args)...);
         } else {
-            return doEmplaceBig<std::decay_t<T>>(std::forward<Args>(_args)...);
+            return doEmplaceBig<ValueT>(std::forward<Args>(_args)...);
         }
     }
     template <class T, class E, class... Args,
@@ -644,11 +649,12 @@ public:
     std::decay_t<T>& emplace(std::initializer_list<E> _ilist, Args&&... _args)
     {
         resetData();
-        if constexpr (is_small_type<T>()) {
-            auto& rval = reinterpret_cast<T&>(data_);
-            return doEmplaceSmall<std::decay_t<T>>(const_cast<void*>(static_cast<const volatile void*>(std::addressof(rval))), _ilist, std::forward<Args>(_args)...);
+        using ValueT = std::decay_t<T>;
+        if constexpr (is_small_type<ValueT>()) {
+            auto& rval = reinterpret_cast<ValueT&>(data_);
+            return doEmplaceSmall<ValueT>(std::addressof(rval), _ilist, std::forward<Args>(_args)...);
         } else {
-            return doEmplaceBig<std::decay_t<T>>(_ilist, std::forward<Args>(_args)...);
+            return doEmplaceBig<ValueT>(_ilist, std::forward<Args>(_args)...);
         }
     }
 

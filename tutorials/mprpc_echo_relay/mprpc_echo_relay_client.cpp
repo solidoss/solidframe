@@ -166,13 +166,13 @@ int main(int argc, char* argv[])
 bool parseArguments(Parameters& _par, int argc, char* argv[])
 {
     if (argc == 2) {
-        _par.group_id = stoul(argv[1]);
+        _par.group_id = static_cast<uint32_t>(stoul(argv[1]));
         return true;
     }
     if (argc == 3) {
         size_t pos;
 
-        _par.group_id = stoul(argv[1]);
+        _par.group_id = static_cast<uint32_t>(stoul(argv[1]));
 
         _par.server_addr = argv[2];
 

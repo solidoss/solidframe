@@ -62,11 +62,11 @@ InitStub initarray[] = {
 std::string  pattern;
 const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
-std::atomic<size_t> crtwriteidx(0);
-std::atomic<size_t> crtreadidx(0);
-std::atomic<size_t> crtbackidx(0);
-std::atomic<size_t> crtackidx(0);
-std::atomic<size_t> writecount(0);
+std::atomic<uint32_t> crtwriteidx(0);
+std::atomic<size_t>   crtreadidx(0);
+std::atomic<size_t>   crtbackidx(0);
+std::atomic<size_t>   crtackidx(0);
+std::atomic<size_t>   writecount(0);
 
 size_t connection_count(0);
 
@@ -250,12 +250,14 @@ void server_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePoint
 
     ++crtreadidx;
     solid_dbg(generic_logger, Info, crtreadidx);
-    if (crtwriteidx < writecount) {
+    if (crtwriteidx < writecount and pmprpcclient) {
         MessagePointerT msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
         ++crtwriteidx;
         pmprpcclient->sendMessage(
             {"localhost"}, msgptr,
             initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
+    } else {
+        solid_check(pmprpcclient, "pointer should not be nullptr");
     }
 }
 

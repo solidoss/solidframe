@@ -116,7 +116,7 @@ public:
 
 public:
     std::istream& run(std::istream& _ris, void* _pctx = nullptr);
-    ptrdiff_t     run(const char* _pbeg, unsigned _sz, void* _pctx = nullptr);
+    ptrdiff_t     run(const char* _pbeg, size_t _sz, void* _pctx = nullptr);
 
     void clear();
 
@@ -1028,14 +1028,14 @@ public:
     }
 
     template <typename F>
-    ptrdiff_t run(const char* _pbeg, unsigned _sz, F _f, ContextT& _rctx)
+    ptrdiff_t run(const char* _pbeg, size_t _sz, F _f, ContextT& _rctx)
     {
         doPrepareRun(_pbeg, _sz);
         _f(*this, _rctx);
         return doRun(&_rctx);
     }
 
-    ptrdiff_t run(const char* _pbeg, unsigned _sz, ContextT& _rctx)
+    ptrdiff_t run(const char* _pbeg, size_t _sz, ContextT& _rctx)
     {
         return DeserializerBase::run(_pbeg, _sz, &_rctx);
     }

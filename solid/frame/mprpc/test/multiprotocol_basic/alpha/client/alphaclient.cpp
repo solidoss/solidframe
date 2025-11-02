@@ -139,7 +139,7 @@ ErrorConditionT start(
         _rctx.rwait_count += 3;
 
         err = mprpcclient_ptr->sendMessage(
-            {"localhost"}, frame::mprpc::make_message<alpha_protocol::FirstMessage>(100000UL, make_string(100000)),
+            {"localhost"}, frame::mprpc::make_message<alpha_protocol::FirstMessage>(100000U, make_string(100000)),
             {frame::mprpc::MessageFlagsE::AwaitResponse});
         if (err) {
             return err;

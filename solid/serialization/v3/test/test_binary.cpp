@@ -75,9 +75,9 @@ class Test {
     uint32_t           blob64_sz = 0;
     char               blob64[sizeof(uint64_t)];
 
-    std::ostringstream oss;
-    std::istringstream iss;
-    string*            pstr = nullptr;
+    std::ostringstream       oss;
+    std::istringstream       iss;
+    [[maybe_unused]] string* pstr = nullptr;
 
     void populate(bool _b)
     {

@@ -8,8 +8,8 @@ using namespace std;
 
 namespace {
 class Test : public IntrusiveThreadSafeBase {
-    string s_;
-    int    i_ = 0;
+    string               s_;
+    [[maybe_unused]] int i_ = 0;
 
 public:
     Test(const string_view _s, const int _i)
@@ -42,7 +42,7 @@ struct TestWithCounter {
     virtual ~TestWithCounter() {}
 
 private:
-    friend class TestIntrusivePolicy;
+    friend struct TestIntrusivePolicy;
     mutable atomic<size_t> use_count_{1};
 };
 

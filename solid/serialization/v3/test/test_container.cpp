@@ -232,7 +232,7 @@ void Test::init()
         }
     }
 
-    v32 = str.size();
+    v32 = static_cast<uint32_t>(str.size());
 
     for (size_t i = 0; i < 100; ++i) {
         sa[i] = kv_array[i % kv_array_size].second;

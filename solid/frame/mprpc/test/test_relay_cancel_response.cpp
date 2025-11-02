@@ -69,7 +69,7 @@ using MessageIdVectorT = std::deque<MessageIdT>;
 
 std::string            pattern;
 const size_t           initarraysize = sizeof(initarray) / sizeof(InitStub);
-std::atomic<size_t>    crtwriteidx(0);
+std::atomic<uint32_t>  crtwriteidx(0);
 std::atomic<size_t>    writecount(0);
 std::atomic<size_t>    created_count(0);
 std::atomic<size_t>    cancelable_created_count(0);

@@ -990,7 +990,7 @@ namespace relay {
 void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
     solid_dbg(generic_logger, Info, "");
-    unsigned repeatcnt = SocketInfo::max_listen_backlog_size();
+    size_t repeatcnt = SocketInfo::max_listen_backlog_size();
 
     do {
         if (!_rctx.error()) {

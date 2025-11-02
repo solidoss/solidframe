@@ -73,8 +73,8 @@ typedef std::vector<frame::mprpc::MessageId> MessageIdVectorT;
 std::string  pattern;
 const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
-std::atomic<size_t> crtwriteidx(0);
-std::atomic<size_t> crtreadidx(0);
+std::atomic<uint32_t> crtwriteidx(0);
+std::atomic<size_t>   crtreadidx(0);
 // std::atomic<size_t> crtbackidx(0);
 // std::atomic<size_t> crtackidx(0);
 std::atomic<size_t> writecount(0);
@@ -235,13 +235,15 @@ void server_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePoint
     transfered_size += _rmsgptr->str.size();
     ++transfered_count;
 
-    if (crtreadidx == 0) {
+    if (crtreadidx == 0 and pmprpcclient) {
         solid_dbg(generic_logger, Info, "canceling all messages");
         lock_guard<mutex> lock(mtx);
         for (auto& msguid : message_uid_vec) {
             solid_dbg(generic_logger, Info, "Cancel message: " << msguid);
             pmprpcclient->cancelMessage(recipient_id, msguid);
         }
+    } else {
+        solid_check(pmprpcclient, "pmprpcclient should not be nullptr");
     }
 
     ++crtreadidx;

@@ -32,9 +32,9 @@ InitStub initarray[] = {
 std::string  pattern;
 const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
-size_t crtwriteidx = 0;
-size_t crtreadidx  = 0;
-size_t writecount  = 0;
+uint32_t crtwriteidx = 0;
+uint32_t crtreadidx  = 0;
+size_t   writecount  = 0;
 
 size_t real_size(size_t _sz)
 {
@@ -187,7 +187,7 @@ struct Receiver : frame::mprpc::MessageReaderReceiver {
 
     void fillRequestVector(size_t _m = 10)
     {
-        for (size_t i = 0; i < _m; ++i) {
+        for (uint32_t i = 0; i < _m; ++i) {
             reqvec.push_back(frame::mprpc::RequestId(i, i));
         }
     }

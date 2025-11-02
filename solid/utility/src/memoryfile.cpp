@@ -85,7 +85,7 @@ ssize_t MemoryFile::read(char* _pb, size_t _bl)
     return rv;
 }
 
-ssize_t MemoryFile::write(const char* _pb, uint32_t _bl)
+ssize_t MemoryFile::write(const char* _pb, size_t _bl)
 {
     ssize_t rv(write(_pb, _bl, off));
     if (rv > 0) {

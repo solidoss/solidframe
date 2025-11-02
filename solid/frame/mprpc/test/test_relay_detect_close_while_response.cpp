@@ -182,8 +182,6 @@ void peera_complete_detect_close(
     solid::frame::mprpc::MessagePointerT<DetectCloseMessage>& _rsent_msg_ptr, solid::frame::mprpc::MessagePointerT<DetectCloseMessage>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
-    static size_t call_count = 0;
-    ++call_count;
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
     if (_rrecv_msg_ptr) {
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " peera received DetectCloseMessage " << _rrecv_msg_ptr->idx);

@@ -29,7 +29,7 @@ public:
     Pimpl(Args&&... args)
     {
         static_assert(sizeof(T) <= Cp && alignof(T) <= Align);
-#if __cpp_static_assert >= 202306L
+#if __cpp_static_assert > 202306L
         // Not real C++ yet (std::format should be constexpr to work):
         static_assert(sizeof(T) <= Cp, std::format("Increase the capacity! Expected {}, got {}", sizeof(T), Cp));
 #else

@@ -116,7 +116,7 @@ struct Message : frame::mprpc::Message {
             if (_rthis.isOnPeer()) {
                 ++crtreadidx;
                 solid_dbg(generic_logger, Info, crtreadidx);
-                if (crtreadidx == 1) {
+                if (crtreadidx == 1 and pmprpcclient) {
 
                     pmprpcclient->forceCloseConnectionPool(
                         recipinet_id,
@@ -126,6 +126,8 @@ struct Message : frame::mprpc::Message {
                             running = false;
                             cnd.notify_one();
                         });
+                } else {
+                    solid_check(pmprpcclient, "pmprpcclient should not be nullptr");
                 }
             }
         }
@@ -328,7 +330,7 @@ int test_pool_force_close(int argc, char* argv[])
             std::vector<MessagePointerT> msg_vec;
             ErrorConditionT              err;
 
-            for (size_t i = 0; i < start_count; ++i) {
+            for (uint32_t i = 0; i < start_count; ++i) {
                 msg_vec.push_back(MessagePointerT(frame::mprpc::make_message<Message>(i)));
             }
             {

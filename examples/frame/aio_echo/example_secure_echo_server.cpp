@@ -277,7 +277,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
     solid_log(generic_logger, Info, "");
-    unsigned repeatcnt = backlog_size();
+    size_t repeatcnt = backlog_size();
 
     do {
         if (!_rctx.error()) {

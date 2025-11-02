@@ -358,7 +358,7 @@ int test_pool_delay_close(int argc, char* argv[])
         {
             std::vector<MessagePointerT> msg_vec;
 
-            for (size_t i = 0; i < start_count; ++i) {
+            for (uint32_t i = 0; i < start_count; ++i) {
                 msg_vec.push_back(MessagePointerT(frame::mprpc::make_message<Message>(i)));
             }
 

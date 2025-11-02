@@ -41,7 +41,7 @@ std::ostream& SerializerBase::run(std::ostream& _ros, void* _pctx)
     return _ros;
 }
 
-ptrdiff_t SerializerBase::run(char* _pbeg, unsigned _sz, void* _pctx)
+ptrdiff_t SerializerBase::run(char* _pbeg, size_t const _sz, void* _pctx)
 {
     doPrepareRun(_pbeg, _sz);
     return doRun(_pctx);

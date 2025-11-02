@@ -86,9 +86,7 @@ typedef std::vector<MessageStub> MessageVectorT;
 struct FirstMessage;
 
 namespace {
-mutex              mtx;
-condition_variable cnd;
-Params             params;
+Params params;
 
 void broadcast_message(frame::mprpc::Service& _rsvc, frame::mprpc::MessagePointerT<>& _rmsgptr);
 } // namespace

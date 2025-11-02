@@ -101,7 +101,7 @@ public:
     static constexpr bool is_const_reflector = true;
 
     std::ostream& run(std::ostream& _ros, void* _pctx = nullptr);
-    ptrdiff_t     run(char* _pbeg, unsigned _sz, void* _pctx = nullptr);
+    ptrdiff_t     run(char* _pbeg, size_t _sz, void* _pctx = nullptr);
 
     void clear();
 
@@ -545,7 +545,7 @@ public: // should be protected
     }
 
 protected:
-    void doPrepareRun(char* _pbeg, unsigned _sz)
+    void doPrepareRun(char* _pbeg, size_t const _sz)
     {
         pbeg_ = _pbeg;
         pend_ = _pbeg + _sz;

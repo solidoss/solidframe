@@ -201,12 +201,14 @@ void client_complete_message(
             solid_throw("Message not back on sender!.");
         }
 
-        {
+        if (pmprpcclient) {
             auto msgptr(frame::mprpc::make_message<Logout>());
 
             pmprpcclient->sendMessage(
                 _rctx.recipientId(), msgptr,
                 {frame::mprpc::MessageFlagsE::AwaitResponse});
+        } else {
+            solid_check(pmprpcclient, "pmprpcclient should not be nullptr");
         }
 
         client_received_message = true;

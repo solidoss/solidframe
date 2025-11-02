@@ -483,9 +483,9 @@ int test_clientserver_topic(int argc, char* argv[])
 
         solid_log(logger, Warning, "========== START sending messages ==========");
 
-        if (false) {
+        if (/* DISABLES CODE */ (false)) {
             const uint64_t startms = microseconds_since_epoch();
-            for (size_t i = 0; i < message_count; ++i) {
+            for (uint32_t i = 0; i < message_count; ++i) {
                 mprpcclient.sendMessage(client_id, frame::mprpc::make_message<Request>(i, microseconds_since_epoch()), {frame::mprpc::MessageFlagsE::AwaitResponse});
             }
             solid_log(logger, Warning, "========== DONE sending messages ========== " << (microseconds_since_epoch() - startms) << "us");
@@ -495,7 +495,7 @@ int test_clientserver_topic(int argc, char* argv[])
 
             const auto start = chrono::high_resolution_clock::now();
 
-            for (size_t i = 0; i < message_count; ++i) {
+            for (uint32_t i = 0; i < message_count; ++i) {
                 this_thread::sleep_until(start + chrono::microseconds(static_cast<int64_t>(lin_value(0.0, stop, i, message_count))));
                 mprpcclient.sendMessage(client_id, frame::mprpc::make_message<Request>(i, microseconds_since_epoch()), {frame::mprpc::MessageFlagsE::AwaitResponse});
             }
@@ -537,7 +537,7 @@ int test_clientserver_topic(int argc, char* argv[])
             }
         }
 #endif
-        if (0) {
+        if (/* DISABLES CODE */ (false)) {
             ofstream ofs("trace.csv");
             if (ofs) {
                 for (const auto& t : trace_dq) {
@@ -692,7 +692,7 @@ void server_complete_request(
 
     static_assert(CallPoolT::is_small_one_type<decltype(lambda)>(), "Type not small");
 
-    if (false) {
+    if (/* DISABLES CODE */ (false)) {
         std::lock_guard<mutex> lock(trace_mtx);
         if (!trace_dq.empty()) {
             if (get<0>(trace_dq.back()) == _rctx.recipientId().connectionId().index) {
