@@ -16,7 +16,6 @@
 
 #include "solid/system/common.hpp"
 #include "solid/system/exception.hpp"
-#include "solid/utility/cacheable.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/typetraits.hpp"
 
@@ -28,9 +27,7 @@
 #include "solid/utility/intrusiveptr.hpp"
 #endif
 
-namespace solid {
-namespace frame {
-namespace mprpc {
+namespace solid::frame::mprpc {
 
 class Service;
 class Connection;
@@ -152,9 +149,9 @@ struct MessageHeader {
     }
 };
 #if defined(SOLID_MPRPC_USE_SHARED_PTR_MESSAGE)
-struct Message : SharedCacheable {
+struct Message {
 #else
-struct Message : IntrusiveCacheable {
+struct Message : IntrusiveThreadSafeBase {
 #endif
 
     using FlagsT = MessageFlagsValueT;
@@ -404,6 +401,4 @@ MessagePointerT<Msg> make_message(Args&&... _args)
 using MessageCompleteFunctionT = solid_function_t(void(
     ConnectionContext&, MessagePointerT<>&, MessagePointerT<>&, ErrorConditionT const&));
 
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc

@@ -18,8 +18,7 @@
 #include "solid/utility/common.hpp"
 #include "solid/utility/function.hpp"
 
-namespace solid {
-namespace frame {
+namespace solid::frame {
 
 using IndexT  = uint64_t;
 using UniqueT = uint32_t;
@@ -173,5 +172,4 @@ enum struct ReactorWaitRequestE {
     Error
 };
 
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame

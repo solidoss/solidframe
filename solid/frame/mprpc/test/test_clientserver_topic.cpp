@@ -180,12 +180,8 @@ struct Response : frame::mprpc::Message {
     }
 };
 
-using CacheableRequestT         = EnableCacheable<Request>;
-using CacheableResponseT        = EnableCacheable<Response>;
-using RequestPointerT           = solid::frame::mprpc::MessagePointerT<Request>;
-using CesponsePointerT          = solid::frame::mprpc::MessagePointerT<Response>;
-using CacheableRequestPointerT  = solid::frame::mprpc::MessagePointerT<CacheableRequestT>;
-using CacheableResponsePointerT = solid::frame::mprpc::MessagePointerT<CacheableResponseT>;
+using RequestPointerT  = solid::frame::mprpc::MessagePointerT<Request>;
+using ResponsePointerT = solid::frame::mprpc::MessagePointerT<Response>;
 
 template <typename T>
 auto lin_value(T _from, T _to, const size_t _index, const size_t _n)
@@ -234,22 +230,22 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_request(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT& _rsent_msg_ptr, CacheableResponsePointerT& _rrecv_msg_ptr,
+    RequestPointerT& _rsent_msg_ptr, ResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror);
 
 void client_complete_response(
     frame::mprpc::ConnectionContext& _rctx,
-    CacheableResponsePointerT& _rsent_msg_ptr, CacheableResponsePointerT& _rrecv_msg_ptr,
+    ResponsePointerT& _rsent_msg_ptr, ResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror);
 
 void server_complete_response(
     frame::mprpc::ConnectionContext& _rctx,
-    CacheableResponsePointerT& _rsent_msg_ptr, CacheableResponsePointerT& _rrecv_msg_ptr,
+    ResponsePointerT& _rsent_msg_ptr, ResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/);
 
 void server_complete_request(
     frame::mprpc::ConnectionContext& _rctx,
-    CacheableRequestPointerT& _rsent_msg_ptr, CacheableRequestPointerT& _rrecv_msg_ptr,
+    RequestPointerT& _rsent_msg_ptr, RequestPointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/);
 
 void multicast_run(CallPoolT& _work_pool);
@@ -300,13 +296,6 @@ chrono::microseconds                            test_duration{chrono::seconds(1)
 DurationDqT duration_dq;
 #endif
 
-auto create_message_ptr = [](auto& _rctx, auto& _rmsgptr) {
-    using PtrT  = std::decay_t<decltype(_rmsgptr)>;
-    using ElemT = typename PtrT::element_type;
-
-    _rmsgptr = ElemT::create();
-};
-
 //-----------------------------------------------------------------------------
 } // namespace
 
@@ -345,10 +334,6 @@ int test_clientserver_topic(int argc, char* argv[])
         sch_client.start([]() {set_current_thread_affinity();return true; }, []() {}, 1);
         sch_server.start([]() {
             set_current_thread_affinity();
-            for(size_t  i = 0; i < 2000; ++i){
-                auto  reply_ptr = frame::mprpc::make_message<CacheableResponseT>();
-                reply_ptr->cache();
-            }
             return true; }, []() {}, 2);
 
         {
@@ -376,8 +361,8 @@ int test_clientserver_topic(int argc, char* argv[])
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
-                    _rmap.template registerMessage<CacheableRequestT>(1, "Request", server_complete_request, create_message_ptr);
-                    _rmap.template registerMessage<CacheableResponseT>(2, "Response", server_complete_response, create_message_ptr);
+                    _rmap.template registerMessage<Request>(1, "Request", server_complete_request);
+                    _rmap.template registerMessage<Response>(2, "Response", server_complete_response);
                 });
             frame::mprpc::Configuration cfg(sch_server, proto);
 
@@ -421,7 +406,7 @@ int test_clientserver_topic(int argc, char* argv[])
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
                     _rmap.template registerMessage<Request>(1, "Request", client_complete_request);
-                    _rmap.template registerMessage<CacheableResponseT>(2, "Response", client_complete_response, create_message_ptr);
+                    _rmap.template registerMessage<Response>(2, "Response", client_complete_response);
                 });
             frame::mprpc::Configuration cfg(sch_client, proto);
 
@@ -589,7 +574,7 @@ void multicast_run(CallPoolT& _work_pool)
 }
 void client_complete_response(
     frame::mprpc::ConnectionContext& _rctx,
-    CacheableResponsePointerT& _rsent_msg_ptr, CacheableResponsePointerT& _rrecv_msg_ptr,
+    ResponsePointerT& _rsent_msg_ptr, ResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_check(false); // should not be called
@@ -597,7 +582,7 @@ void client_complete_response(
 
 void client_complete_request(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT& _rsent_msg_ptr, CacheableResponsePointerT& _rrecv_msg_ptr,
+    RequestPointerT& _rsent_msg_ptr, ResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(logger, Info, _rctx.recipientId());
@@ -627,8 +612,6 @@ void client_complete_request(
     );
 #endif
 
-    cacheable_cache(std::move(_rrecv_msg_ptr));
-
     _rsent_msg_ptr->time_point_ = now;
     ++_rsent_msg_ptr->iteration_;
 
@@ -651,18 +634,17 @@ void client_complete_request(
 
 void server_complete_response(
     frame::mprpc::ConnectionContext& _rctx,
-    CacheableResponsePointerT& _rsent_msg_ptr, CacheableResponsePointerT& _rrecv_msg_ptr,
+    ResponsePointerT& _rsent_msg_ptr, ResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
     solid_check(_rsent_msg_ptr);
     solid_check(!_rrecv_msg_ptr);
     solid_dbg(logger, Info, _rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
-    cacheable_cache(std::move(_rsent_msg_ptr));
 }
 
 void server_complete_request(
     frame::mprpc::ConnectionContext& _rctx,
-    CacheableRequestPointerT& _rsent_msg_ptr, CacheableRequestPointerT& _rrecv_msg_ptr,
+    RequestPointerT& _rsent_msg_ptr, RequestPointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
     solid_check(_rrecv_msg_ptr);
@@ -671,11 +653,9 @@ void server_complete_request(
 
     solid_dbg(logger, Info, _rctx.recipientId());
     auto& topic_ptr                = local_worker_context_ptr->topic_vec_[_rrecv_msg_ptr->topic_id_ % local_worker_context_ptr->topic_vec_.size()];
-    auto  reply_ptr                = CacheableResponseT::create();
+    auto  reply_ptr                = frame::mprpc::make_message<Response>();
     reply_ptr->receive_time_point_ = microseconds_since_epoch();
     reply_ptr->header(_rrecv_msg_ptr->header());
-
-    // cacheable_cache(std::move(_rrecv_msg_ptr));
 
     auto lambda = [topic_ptr, _rrecv_msg_ptr = std::move(_rrecv_msg_ptr),
                       &service = _rctx.service(), recipient_id = _rctx.recipientId(), reply_ptr = std::move(reply_ptr)]() {
@@ -684,8 +664,6 @@ void server_complete_request(
         reply_ptr->topic_value_   = topic_ptr->value_;
         reply_ptr->topic_context_ = local_thread_pool_context_ptr->value_;
         reply_ptr->time_point_    = microseconds_since_epoch();
-
-        reply_ptr->cacheableAttach(std::move(_rrecv_msg_ptr));
 
         service.sendResponse(recipient_id, reply_ptr);
     };

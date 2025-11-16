@@ -52,6 +52,7 @@ struct ReactorStatistic : ReactorStatisticBase {
     std::atomic_uint64_t post_count_;
     std::atomic_uint64_t post_stop_count_;
     std::atomic_size_t   max_exec_size_;
+    std::atomic_size_t   exec_count_;
     std::atomic_size_t   actor_count_;
     std::atomic_size_t   max_actor_count_;
     std::atomic_size_t   complete_events_total_ns_{0};
@@ -93,6 +94,7 @@ struct ReactorStatistic : ReactorStatisticBase {
     void execSize(const size_t _sz)
     {
         solid_statistic_max(max_exec_size_, _sz);
+        exec_count_ += _sz;
     }
 
     std::ostream& print(std::ostream& _ros) const override;
@@ -233,7 +235,7 @@ protected:
         return ReactorContext(*this, _rcrttime);
     }
 
-    void update(ReactorContext& _rctx, const size_t _completion_handler_index, const size_t _actor_index) const
+    static void update(ReactorContext& _rctx, const size_t _completion_handler_index, const size_t _actor_index)
     {
         _rctx.completion_heandler_index_ = _completion_handler_index;
         _rctx.actor_index_               = _actor_index;

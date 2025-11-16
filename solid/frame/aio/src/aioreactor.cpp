@@ -1437,6 +1437,7 @@ std::ostream& ReactorStatistic::print(std::ostream& _ros) const
     _ros << " post_count = " << post_count_;
     _ros << " post_stop_count = " << post_stop_count_;
     _ros << " max_exec_size = " << max_exec_size_;
+    _ros << " exec_count = " << exec_count_;
     _ros << " actor_count = " << actor_count_;
     _ros << " max_actor_count = " << max_actor_count_;
     _ros << " complete_events_total_ms = " << (complete_events_total_ns_ / 1000000u);
