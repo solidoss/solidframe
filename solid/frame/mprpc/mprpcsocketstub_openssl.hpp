@@ -33,10 +33,10 @@ namespace solid::frame::mprpc::openssl {
 using ContextT      = frame::aio::openssl::Context;
 using StreamSocketT = frame::aio::Stream<frame::aio::openssl::Socket>;
 
-using ConnectionPrepareServerFunctionT = solid_function_t(unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&));
-using ConnectionPrepareClientFunctionT = solid_function_t(unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&));
-using ConnectionServerVerifyFunctionT  = solid_function_t(bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&));
-using ConnectionClientVerifyFunctionT  = solid_function_t(bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&));
+using ConnectionPrepareServerFunctionT = solid_function_t(unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&), 64);
+using ConnectionPrepareClientFunctionT = solid_function_t(unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&), 64);
+using ConnectionServerVerifyFunctionT  = solid_function_t(bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&), 64);
+using ConnectionClientVerifyFunctionT  = solid_function_t(bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&), 64);
 
 struct ClientConfiguration {
     ClientConfiguration()
@@ -332,8 +332,8 @@ inline void setup_client(
 
     _ctx_fnc(rsecure_cfg.context);
 
-    rsecure_cfg.connection_prepare_secure_fnc = std::move(_start_fnc);
-    rsecure_cfg.connection_verify_fnc         = std::move(_verify_fnc);
+    rsecure_cfg.connection_prepare_secure_fnc.emplace(std::move(_start_fnc));
+    rsecure_cfg.connection_verify_fnc.emplace(std::move(_verify_fnc));
 }
 
 template <class ContextSetupFunction,
@@ -358,8 +358,8 @@ inline void setup_server(
 
     _ctx_fnc(rsecure_cfg.context);
 
-    rsecure_cfg.connection_prepare_secure_fnc = std::move(_start_fnc);
-    rsecure_cfg.connection_verify_fnc         = std::move(_verify_fnc);
+    rsecure_cfg.connection_prepare_secure_fnc.emplace(std::move(_start_fnc));
+    rsecure_cfg.connection_verify_fnc.emplace(std::move(_verify_fnc));
 }
 
 } // namespace solid::frame::mprpc::openssl

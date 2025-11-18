@@ -39,7 +39,7 @@ struct InitStub {
     frame::mprpc::MessageFlagsT flags;
 };
 
-using CallPoolT = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 InitStub initarray[] = {
     {100000, 0},
@@ -397,7 +397,7 @@ int test_clientserver_pause_read(int argc, char* argv[])
 
             cfg.pool_max_active_connection_count = 1; // NOTE: currently the test only works with one connection per pool
 
-            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF{resolver, server_port};
+            cfg.client.name_resolve_fnc.emplace(frame::mprpc::InternetResolverF{resolver, server_port});
 
             if (secure) {
                 solid_dbg(generic_logger, Info, "Configure SSL client ------------------------------------");

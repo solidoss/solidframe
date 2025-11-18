@@ -32,7 +32,7 @@ using namespace std;
 using namespace solid;
 
 namespace {
-using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT      = ThreadPool<Function64T<void()>, Function64T<void()>>;
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
 
@@ -286,7 +286,7 @@ int test_clientserver_upload(int argc, char* argv[])
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 
-            cfg.client.name_resolve_fnc       = frame::mprpc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/);
+            cfg.client.name_resolve_fnc.emplace(frame::mprpc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/));
             cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
 
             if (secure) {

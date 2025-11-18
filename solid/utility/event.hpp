@@ -386,6 +386,9 @@ template <class T>
 struct is_event : std::false_type {
 };
 
+template <class T>
+inline constexpr bool is_event_v = is_event<T>::value;
+
 template <>
 class Event<0, 0> : public EventBase {
 public:
@@ -480,8 +483,9 @@ public:
         doMoveFrom(data_, smallCapacity(), smallAlign(), _other);
     }
 
-    template <typename Evs, class T, std::enable_if_t<std::conjunction_v<std::negation<is_event<std::decay_t<T>>>, std::negation<is_specialization<std::decay_t<T>, std::in_place_type_t>>>, int> = 0>
+    template <typename Evs, class T>
     Event(const Evs _ev, T&& _rvalue)
+        requires(not is_event_v<std::decay_t<T>> and not is_specialization_v<std::decay_t<T>, std::in_place_type_t>)
         : EventBase(category<Evs>, to_underlying(_ev))
     {
         using ValueT = std::decay_t<T>;
@@ -493,8 +497,9 @@ public:
         }
     }
 
-    template <typename Evs, class T, std::enable_if_t<std::conjunction_v<std::negation<is_event<std::decay_t<T>>>, std::negation<is_specialization<std::decay_t<T>, std::in_place_type_t>>>, int> = 0>
+    template <typename Evs, class T>
     Event(const EventCategoryBase& _category, const Evs _ev, T&& _rvalue)
+        requires(not is_event_v<std::decay_t<T>> and not is_specialization_v<std::decay_t<T>, std::in_place_type_t>)
         : EventBase(_category, to_underlying(_ev))
     {
         using ValueT = std::decay_t<T>;
@@ -506,12 +511,9 @@ public:
         }
     }
 
-    template <typename Evs, class T, class... Args,
-        std::enable_if_t<
-            std::conjunction_v<std::is_constructible<std::decay_t<T>, Args...>>,
-            int>
-        = 0>
+    template <typename Evs, class T, class... Args>
     explicit Event(const Evs _ev, std::in_place_type_t<T>, Args&&... _args)
+        requires(std::is_constructible_v<std::decay_t<T>, Args...>)
         : EventBase(category<Evs>, to_underlying(_ev))
     {
         using ValueT = std::decay_t<T>;
@@ -523,12 +525,9 @@ public:
         }
     }
 
-    template <typename Evs, class T, class... Args,
-        std::enable_if_t<
-            std::conjunction_v<std::is_constructible<std::decay_t<T>, Args...>>,
-            int>
-        = 0>
+    template <typename Evs, class T, class... Args>
     explicit Event(const EventCategoryBase& _category, const Evs _ev, std::in_place_type_t<T>, Args&&... _args)
+        requires(std::is_constructible_v<std::decay_t<T>, Args...>)
         : EventBase(_category, to_underlying(_ev))
     {
         using ValueT = std::decay_t<T>;
@@ -540,12 +539,9 @@ public:
         }
     }
 
-    template <typename Evs, class T, class E, class... Args,
-        std::enable_if_t<std::conjunction_v<std::is_constructible<std::decay_t<T>, std::initializer_list<E>&, Args...>,
-                             std::is_copy_constructible<std::decay_t<T>>>,
-            int>
-        = 0>
+    template <typename Evs, class T, class E, class... Args>
     explicit Event(const Evs _ev, std::in_place_type_t<T>, std::initializer_list<E> _ilist, Args&&... _args)
+        requires(std::is_constructible_v<std::decay_t<T>, std::initializer_list<E>&, Args...> and std::is_copy_constructible_v<std::decay_t<T>>)
         : EventBase(category<Evs>, to_underlying(_ev))
     {
         using ValueT = std::decay_t<T>;
@@ -557,12 +553,9 @@ public:
         }
     }
 
-    template <typename Evs, class T, class E, class... Args,
-        std::enable_if_t<std::conjunction_v<std::is_constructible<std::decay_t<T>, std::initializer_list<E>&, Args...>,
-                             std::is_copy_constructible<std::decay_t<T>>>,
-            int>
-        = 0>
+    template <typename Evs, class T, class E, class... Args>
     explicit Event(const EventCategoryBase& _category, const Evs _ev, std::in_place_type_t<T>, std::initializer_list<E> _ilist, Args&&... _args)
+        requires(std::is_constructible_v<std::decay_t<T>, std::initializer_list<E>&, Args...> and std::is_copy_constructible_v<std::decay_t<T>>)
         : EventBase(_category, to_underlying(_ev))
     {
         using ValueT = std::decay_t<T>;
@@ -614,8 +607,9 @@ public:
         return *this;
     }
 
-    template <class T, std::enable_if_t<std::conjunction_v<std::negation<is_event<std::decay_t<T>>>, std::is_copy_constructible<std::decay_t<T>>>, int> = 0>
+    template <class T>
     ThisT& operator=(T&& _rvalue)
+        requires(not is_event_v<std::decay_t<T>> and std::is_copy_constructible_v<std::decay_t<T>>)
     {
         resetData();
 
@@ -628,12 +622,9 @@ public:
         return *this;
     }
 
-    template <class T, class... Args,
-        std::enable_if_t<
-            std::conjunction_v<std::is_constructible<std::decay_t<T>, Args...>>,
-            int>
-        = 0>
+    template <class T, class... Args>
     std::decay_t<T>& emplace(Args&&... _args)
+        requires(std::is_constructible_v<std::decay_t<T>, Args...>)
     {
         resetData();
         using ValueT = std::decay_t<T>;
@@ -644,9 +635,9 @@ public:
             return doEmplaceBig<ValueT>(std::forward<Args>(_args)...);
         }
     }
-    template <class T, class E, class... Args,
-        std::enable_if_t<std::conjunction_v<std::is_constructible<std::decay_t<T>, std::initializer_list<E>&, Args...>>, int> = 0>
+    template <class T, class E, class... Args>
     std::decay_t<T>& emplace(std::initializer_list<E> _ilist, Args&&... _args)
+        requires(std::is_constructible_v<std::decay_t<T>, std::initializer_list<E>&, Args...>)
     {
         resetData();
         using ValueT = std::decay_t<T>;
@@ -676,48 +667,56 @@ public:
 //-----------------------------------------------------------------------------
 //      make_event
 //-----------------------------------------------------------------------------
-template <class Events, std::enable_if_t<std::is_enum_v<Events>, int> = 0>
+template <class Events>
 inline auto make_event(const Events _id)
+    requires(std::is_enum_v<Events>)
 {
     return Event<>(_id);
 }
 
-template <class Events, std::enable_if_t<std::is_enum_v<Events>, int> = 0>
+template <class Events>
 inline auto make_event(const EventCategoryBase& _category, const Events _id)
+    requires(std::is_enum_v<Events>)
 {
     return Event<>(_category, _id);
 }
 
-template <class Events, typename T, std::enable_if_t<std::is_enum_v<Events>, int> = 0>
+template <class Events, typename T>
 inline auto make_event(const Events _id, T&& _data)
+    requires(std::is_enum_v<Events>)
 {
     return Event<sizeof(std::decay_t<T>), alignof(std::decay_t<T>)>(_id, std::forward<T>(_data));
 }
 
-template <class Events, class T, class... Args, std::enable_if_t<std::is_enum_v<Events>, int> = 0>
+template <class Events, class T, class... Args>
 auto make_event(const Events _id, Args&&... _args)
+    requires(std::is_enum_v<Events>)
 {
     return Event<sizeof(std::decay_t<T>), alignof(std::decay_t<T>)>{_id, std::in_place_type<T>, std::forward<Args>(_args)...};
 }
-template <class Events, class T, class E, class... Args, std::enable_if_t<std::is_enum_v<Events>, int> = 0>
+template <class Events, class T, class E, class... Args>
 auto make_event(const Events _id, std::initializer_list<E> _ilist, Args&&... _args)
+    requires(std::is_enum_v<Events>)
 {
     return Event<sizeof(std::decay_t<T>), alignof(std::decay_t<T>)>{_id, std::in_place_type<T>, _ilist, std::forward<Args>(_args)...};
 }
 
-template <class Events, typename T, std::enable_if_t<std::is_enum_v<Events>, int> = 0>
+template <class Events, typename T>
 inline auto make_event(const EventCategoryBase& _category, const Events _id, T&& _data)
+    requires(std::is_enum_v<Events>)
 {
     return Event<sizeof(std::decay_t<T>), alignof(std::decay_t<T>)>(_category, _id, std::forward<T>(_data));
 }
 
-template <class Events, class T, class... Args, std::enable_if_t<std::is_enum_v<Events>, int> = 0>
+template <class Events, class T, class... Args>
 auto make_event(const EventCategoryBase& _category, const Events _id, Args&&... _args)
+    requires(std::is_enum_v<Events>)
 {
     return Event<sizeof(std::decay_t<T>), alignof(std::decay_t<T>)>{_category, _id, std::in_place_type<T>, std::forward<Args>(_args)...};
 }
-template <class Events, class T, class E, class... Args, std::enable_if_t<std::is_enum_v<Events>, int> = 0>
+template <class Events, class T, class E, class... Args>
 auto make_event(const EventCategoryBase& _category, const Events _id, std::initializer_list<E> _ilist, Args&&... _args)
+    requires(std::is_enum_v<Events>)
 {
     return Event<sizeof(std::decay_t<T>), alignof(std::decay_t<T>)>{_category, _id, std::in_place_type<T>, _ilist, std::forward<Args>(_args)...};
 }

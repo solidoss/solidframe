@@ -23,9 +23,7 @@
 #include "solid/frame/mprpc/mprpcmessageflags.hpp"
 #include "solid/reflection/v1/reflection.hpp"
 
-#if !defined(SOLID_MPRPC_USE_SHARED_PTR_MESSAGE)
 #include "solid/utility/intrusiveptr.hpp"
-#endif
 
 namespace solid::frame::mprpc {
 
@@ -148,11 +146,8 @@ struct MessageHeader {
         }
     }
 };
-#if defined(SOLID_MPRPC_USE_SHARED_PTR_MESSAGE)
-struct Message {
-#else
+
 struct Message : IntrusiveThreadSafeBase {
-#endif
 
     using FlagsT = MessageFlagsValueT;
 
@@ -376,17 +371,6 @@ private:
     MessageHeader header_;
 };
 
-#if defined(SOLID_MPRPC_USE_SHARED_PTR_MESSAGE)
-template <class Msg = Message>
-using MessagePointerT = std::shared_ptr<Msg>;
-
-template <class Msg, class... Args>
-MessagePointerT<Msg> make_message(Args&&... _args)
-{
-    return std::make_shared<Msg>(std::forward<Args>(_args)...);
-}
-
-#else
 template <class Msg = Message>
 using MessagePointerT = IntrusivePtr<Msg>;
 
@@ -395,8 +379,6 @@ MessagePointerT<Msg> make_message(Args&&... _args)
 {
     return make_intrusive<Msg>(std::forward<Args>(_args)...);
 }
-
-#endif
 
 using MessageCompleteFunctionT = solid_function_t(void(
     ConnectionContext&, MessagePointerT<>&, MessagePointerT<>&, ErrorConditionT const&));

@@ -654,8 +654,8 @@ private:
             waitdq.push_back(WaitStub());
             pwait = &waitdq.back();
         }
-        pwait->kind  = _k;
-        pwait->fnc   = std::move(_f);
+        pwait->kind = _k;
+        pwait->fnc.emplace(std::move(_f));
         pwait->pnext = nullptr;
 
         if (rs.pwaitlast == nullptr) {

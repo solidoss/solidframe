@@ -12,6 +12,7 @@
 #include <atomic>
 #include <chrono>
 #include <optional>
+#include <type_traits>
 
 #include "solid/system/exception.hpp"
 #include "solid/system/statistic.hpp"
@@ -967,7 +968,7 @@ ErrorConditionT Service::connectionNotifyRecvSomeRawData(
     RecipientId const& _rrecipient_id,
     CompleteFnc        _complete_fnc)
 {
-    ConnectionRecvRawDataCompleteFunctionT complete_fnc(std::move(_complete_fnc));
+    ConnectionRecvRawDataCompleteFunctionT complete_fnc(std::move(_complete_fnc), std::false_type{});
     return doConnectionNotifyRecvRawData(_rrecipient_id, std::move(complete_fnc));
 }
 //-------------------------------------------------------------------------

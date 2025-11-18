@@ -17,7 +17,7 @@ using namespace solid;
 using namespace std;
 
 using AioSchedulerT = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
-using CallPoolT     = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT     = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 //-----------------------------------------------------------------------------
 //      Parameters
@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
                 });
             frame::mprpc::Configuration cfg(scheduler, proto);
 
-            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, p.port.c_str());
+            cfg.client.name_resolve_fnc.emplace(frame::mprpc::InternetResolverF(resolver, p.port.c_str()));
 
             cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
 

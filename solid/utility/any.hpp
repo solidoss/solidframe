@@ -41,6 +41,9 @@ template <class T>
 struct is_any : std::false_type {
 };
 
+template <class T>
+inline constexpr bool is_any_v = is_any<T>::value;
+
 namespace any_impl {
 
 struct SmallRTTI;
@@ -323,28 +326,23 @@ public:
     }
 
     template <
-        class T, std::enable_if_t<std::conjunction_v<std::negation<is_any<std::decay_t<T>>>, std::negation<is_specialization<std::decay_t<T>, std::in_place_type_t>>>, int> = 0>
+        class T>
     Any(T&& _rvalue)
+        requires(not is_any_v<std::decay_t<T>> and not is_specialization_v<std::decay_t<T>, std::in_place_type_t>)
     {
         doEmplace<std::decay_t<T>>(std::forward<T>(_rvalue));
     }
 
-    template <class T, class... Args,
-        std::enable_if_t<
-            std::conjunction_v<std::is_constructible<std::decay_t<T>, Args...> /*, std::is_copy_constructible<std::decay_t<T>>*/>,
-            int>
-        = 0>
+    template <class T, class... Args>
     explicit Any(std::in_place_type_t<T>, Args&&... _args)
+        requires(std::is_constructible_v<std::decay_t<T>, Args...>)
     {
         doEmplace<std::decay_t<T>>(std::forward<Args>(_args)...);
     }
 
-    template <class T, class E, class... Args,
-        std::enable_if_t<std::conjunction_v<std::is_constructible<std::decay_t<T>, std::initializer_list<E>&, Args...>,
-                             std::is_copy_constructible<std::decay_t<T>>>,
-            int>
-        = 0>
+    template <class T, class E, class... Args>
     explicit Any(std::in_place_type_t<T>, std::initializer_list<E> _ilist, Args&&... _args)
+        requires(std::is_constructible_v<std::decay_t<T>, std::initializer_list<E>&, Args...> and std::is_copy_constructible_v<std::decay_t<T>>)
     {
         doEmplace<std::decay_t<T>>(_ilist, std::forward<Args>(_args)...);
     }
@@ -382,30 +380,24 @@ public:
         return *this;
     }
 
-    template <class T, std::enable_if_t<std::conjunction_v<std::negation<is_any<std::decay_t<T>>>, std::is_copy_constructible<std::decay_t<T>>>, int> = 0>
+    template <class T>
     ThisT& operator=(T&& _rvalue)
+        requires(not is_any_v<std::decay_t<T>> and std::is_copy_constructible_v<std::decay_t<T>>)
     {
         *this = ThisT{std::forward<T>(_rvalue)};
         return *this;
     }
 
-    template <class T, class... Args,
-        std::enable_if_t<
-            std::conjunction_v<std::is_constructible<std::decay_t<T>, Args...>>,
-            int>
-        = 0>
+    template <class T, class... Args>
     std::decay_t<T>& emplace(Args&&... _args)
+        requires(std::is_constructible_v<std::decay_t<T>, Args...>)
     {
         reset();
         return doEmplace<std::decay_t<T>>(std::forward<Args>(_args)...);
     }
-    template <class T, class E, class... Args,
-        std::enable_if_t<std::conjunction_v<std::is_constructible<std::decay_t<T>, std::initializer_list<E>&, Args...> /*,
-        is_copy_constructible<decay_t<T>>*/
-                             >,
-            int>
-        = 0>
+    template <class T, class E, class... Args>
     std::decay_t<T>& emplace(std::initializer_list<E> _ilist, Args&&... _args)
+        requires(std::is_constructible_v<std::decay_t<T>, std::initializer_list<E>&, Args...>)
     {
         reset();
         return doEmplace<std::decay_t<T>>(_ilist, std::forward<Args>(_args)...);

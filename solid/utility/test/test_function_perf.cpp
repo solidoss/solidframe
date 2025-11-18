@@ -3,6 +3,7 @@
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <type_traits>
 using namespace solid;
 using namespace std;
 
@@ -46,7 +47,11 @@ public:
     void push(Fnc _f)
     {
         static const PrintSize ps(sizeof(_f));
-        fnc_dq.emplace_back(std::move(_f));
+        if constexpr (solid::is_function_v<F>) {
+            fnc_dq.emplace_back(std::move(_f), std::false_type{});
+        } else {
+            fnc_dq.emplace_back(std::move(_f));
+        }
     }
 
     void create(const size_t _create_count) override

@@ -73,7 +73,7 @@ class DeserializerBase : public Base {
             , size_(0)
             , data_(0)
             , name_(_name)
-            , fnc_ptr_(std::make_unique<FunctionT>(std::move(_f)))
+            , fnc_ptr_(std::make_unique<FunctionT>(std::move(_f), std::false_type{}))
             , limit_(0)
         {
         }

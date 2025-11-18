@@ -49,7 +49,7 @@ struct Message : IntrusiveThreadSafeBase {
     }
 };
 
-using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT      = ThreadPool<Function64T<void()>, Function64T<void()>>;
 using SharedMessageT = ConstIntrusivePtr<Message>;
 } // namespace
 

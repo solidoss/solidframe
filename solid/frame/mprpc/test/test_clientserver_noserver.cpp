@@ -33,7 +33,7 @@ using SecureContextT = frame::aio::openssl::Context;
 
 namespace {
 
-using CallPoolT = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 struct InitStub {
     size_t size;
@@ -245,7 +245,7 @@ int test_clientserver_noserver(int argc, char* argv[])
 
             cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
 
-            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/);
+            cfg.client.name_resolve_fnc.emplace(frame::mprpc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/));
 
             if (secure) {
                 solid_dbg(generic_logger, Info, "Configure SSL client ------------------------------------");

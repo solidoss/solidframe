@@ -267,7 +267,7 @@ private:
 using AddressVectorT                            = std::vector<SocketAddressInet>;
 using ServerSetupSocketDeviceFunctionT          = solid_function_t(bool(SocketDevice&));
 using ClientSetupSocketDeviceFunctionT          = solid_function_t(bool(SocketDevice&));
-using ResolveCompleteFunctionT                  = solid_function_t(void(AddressVectorT&&));
+using ResolveCompleteFunctionT                  = solid::Function<void(AddressVectorT&&), 64u>;
 using ConnectionStopFunctionT                   = solid_function_t(void(ConnectionContext&));
 using ConnectionStartFunctionT                  = solid_function_t(void(ConnectionContext&));
 using SendAllocateBufferFunctionT               = solid_function_t(MutableSharedBuffer(const uint32_t));

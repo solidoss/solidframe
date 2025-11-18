@@ -44,7 +44,7 @@ struct InitStub {
     frame::mprpc::MessageFlagsT flags;
 };
 
-using CallPoolT = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 // NOTE: if making more messages non-cancelable, please consider to change the value of expected_transfered_count
 
@@ -381,7 +381,7 @@ int test_clientserver_cancel_client(int argc, char* argv[])
 
             cfg.writer.max_message_count_multiplex = 6;
 
-            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/);
+            cfg.client.name_resolve_fnc.emplace(frame::mprpc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/));
 
             if (secure) {
                 solid_dbg(generic_logger, Info, "Configure SSL client ------------------------------------");

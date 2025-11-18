@@ -8,14 +8,16 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #pragma once
+
+// #define SOLID_THROW_ON_BIG_FUNCTION
+
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <solid/utility/any.hpp>
 #include <type_traits>
-#define SOLID_THROW_ON_BIG_FUNCTION
-#include <algorithm>
-#include <cstddef>
-#include <functional>
 #include <typeindex>
 #include <utility>
 
@@ -27,10 +29,21 @@
 
 namespace solid {
 
-constexpr size_t function_default_size  = 32 - sizeof(std::uintptr_t);
+template <size_t Size, size_t Align = alignof(std::uintptr_t)>
+    requires(std::popcount(Align) == 1)
+constexpr size_t function_size_to_small_size()
+{
+    constexpr size_t max = std::max(sizeof(std::uintptr_t), Align);
+    static_assert(Size >= max, "size must be greater than sizeof(std::uintptr_t)");
+    return Size - max;
+}
+
+constexpr size_t function_default_size  = function_size_to_small_size<32>();
 constexpr size_t function_default_align = alignof(std::uintptr_t);
 
 template <class, size_t SmallSize = function_default_size, size_t SmallAlign = function_default_align>
+    requires(SmallSize > 0 and SmallSize >= SmallAlign
+        and (SmallSize % SmallAlign == 0) and std::popcount(SmallAlign) == 1)
 class Function; // undefined
 
 template <class T>
@@ -43,6 +56,9 @@ struct is_function<Function<R(ArgTypes...), SmallSize, SmallAlign>> : std::true_
 template <class T>
 struct is_function : std::false_type {
 };
+
+template <class T>
+inline constexpr bool is_function_v = is_function<T>::value;
 
 namespace fnc_impl {
 
@@ -223,6 +239,8 @@ uintptr_t do_move_big(
 } // namespace fnc_impl
 
 template <class R, class... ArgTypes, size_t SmallSize, size_t SmallAlign>
+    requires(SmallSize > 0 and SmallSize >= SmallAlign
+        and (SmallSize % SmallAlign == 0) and std::popcount(SmallAlign) == 1)
 class Function<R(ArgTypes...), SmallSize, SmallAlign> {
     using BaseRTTI_T = fnc_impl::BaseRTTI<R, ArgTypes...>;
 
@@ -247,6 +265,8 @@ class Function<R(ArgTypes...), SmallSize, SmallAlign> {
     Storage storage_{};
 
     template <class F, size_t S, size_t A>
+        requires(S > 0 and S >= A
+            and (S % A == 0) and std::popcount(A) == 1)
     friend class Function;
 
 public:
@@ -294,44 +314,21 @@ public:
         doMoveFrom(_other);
     }
 
-    template <class T, std::enable_if_t<std::conjunction_v<std::negation<is_function<std::decay_t<T>>>, std::negation<is_specialization<std::decay_t<T>, std::in_place_type_t>> /*,
-        std::is_copy_constructible<std::decay_t<T>>*/
-                                            >,
-                           int>
-        = 0>
-    Function(const T& _fun)
+    template <class T, bool CheckSmall = true>
+    Function(T&& _fun, std::integral_constant<bool, CheckSmall> = std::true_type{})
+        requires(not is_function_v<std::decay_t<T>> and not is_specialization_v<std::decay_t<T>, std::in_place_type_t>)
     {
         using FncT = std::remove_cvref_t<std::decay_t<T>>;
+        static_assert(not CheckSmall or is_small_type<FncT>(), "Function not small. Construct with std::false_type.");
         if constexpr (is_small_type<FncT>()) {
             storage_.rtti_ = fnc_impl::representation(&fnc_impl::small_rtti<FncT, R, ArgTypes...>, fnc_impl::RepresentationE::Small);
             auto& rval     = reinterpret_cast<FncT&>(storage_.small_.data_);
-            std::construct_at(std::addressof(rval), _fun);
+            std::construct_at(std::addressof(rval), std::forward<T>(_fun));
         } else {
 #if defined(SOLID_THROW_ON_BIG_FUNCTION)
             solid_throw("Big Function");
 #endif
-            FncT* const ptr    = ::new FncT(_fun);
-            storage_.big_.ptr_ = ptr;
-            storage_.rtti_     = fnc_impl::representation(&fnc_impl::big_rtti<FncT, R, ArgTypes...>, fnc_impl::RepresentationE::Big);
-        }
-    }
-    template <class T, std::enable_if_t<std::conjunction_v<std::negation<is_function<std::decay_t<T>>>, std::negation<is_specialization<std::decay_t<T>, std::in_place_type_t>> /*,
-        std::is_copy_constructible<std::decay_t<T>>*/
-                                            >,
-                           int>
-        = 0>
-    Function(T&& _fun)
-    {
-        using FncT = std::remove_cvref_t<T>;
-        if constexpr (is_small_type<FncT>()) {
-            storage_.rtti_ = fnc_impl::representation(&fnc_impl::small_rtti<FncT, R, ArgTypes...>, fnc_impl::RepresentationE::Small);
-            auto& rval     = reinterpret_cast<FncT&>(storage_.small_.data_);
-            std::construct_at(std::addressof(rval), std::move(_fun));
-        } else {
-#if defined(SOLID_THROW_ON_BIG_FUNCTION)
-            solid_throw("Big Function");
-#endif
-            FncT* const ptr    = ::new FncT(std::move(_fun));
+            FncT* const ptr    = ::new FncT(std::forward<T>(_fun));
             storage_.big_.ptr_ = ptr;
             storage_.rtti_     = fnc_impl::representation(&fnc_impl::big_rtti<FncT, R, ArgTypes...>, fnc_impl::RepresentationE::Big);
         }
@@ -384,10 +381,17 @@ public:
         return *this;
     }
 
-    template <class T, std::enable_if_t<std::conjunction_v<std::negation<is_function<std::decay_t<T>>>, std::is_copy_constructible<std::decay_t<T>>>, int> = 0>
+    template <class T>
     ThisT& operator=(T&& _rvalue)
     {
         *this = ThisT{std::forward<T>(_rvalue)};
+        return *this;
+    }
+
+    template <class T>
+    ThisT& emplace(T&& _rvalue)
+    {
+        *this = ThisT{std::forward<T>(_rvalue), std::false_type{}};
         return *this;
     }
 
@@ -529,7 +533,14 @@ private:
 };
 
 //-----------------------------------------------------------------------------
-
+template <class T>
+using Function64T = Function<T, function_size_to_small_size<64>()>;
+template <class T>
+using Function96T = Function<T, function_size_to_small_size<96>()>;
+template <class T>
+using Function128T = Function<T, function_size_to_small_size<128>()>;
+template <class T>
+using Function256T = Function<T, function_size_to_small_size<256>()>;
 //-----------------------------------------------------------------------------
 
 } // namespace solid

@@ -14,6 +14,7 @@
 #include <deque>
 #include <mutex>
 #include <thread>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -2425,7 +2426,7 @@ bool Service::Data::doTryCreateNewConnectionForPool(Service& _rsvc, const size_t
 
             if (rpool.connect_addr_vec_.empty()) {
 
-                ResolveCompleteFunctionT cbk(OnRelsolveF(_rsvc.manager(), conuid, Connection::eventResolve()));
+                ResolveCompleteFunctionT cbk(OnRelsolveF(_rsvc.manager(), conuid, Connection::eventResolve()), std::false_type{});
 
                 config_.client.name_resolve_fnc(rpool.name_, cbk);
 

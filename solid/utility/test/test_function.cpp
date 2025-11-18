@@ -2,6 +2,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <type_traits>
 using namespace solid;
 using namespace std;
 
@@ -11,7 +12,7 @@ void test_fnc(void* _ptr, const char* _txt)
 }
 
 class Test2 {
-    Function<void(void*, const char*), 64> fnc_;
+    Function64T<void(void*, const char*)> fnc_;
 
 public:
     template <class F>
@@ -51,30 +52,40 @@ public:
 int test_function(int /*argc*/, char* /*argv*/[])
 {
     {
-        Function<void(void*, const char*), 64> fnc(&test_fnc);
+        Function64T<void(void*, const char*)> fnc(&test_fnc);
         fnc(&fnc, "something");
     }
     {
-        ifstream                               ifs;
-        Function<void(void*, const char*), 64> fnc(
+        ifstream                                ifs;
+        Function<void(void*, const char*), 512> fnc(
             [ifs = std::move(ifs)](void* _ptr, const char* _txt) mutable {
                 ifs.open("test.txt");
                 cout << "test_fnc: " << _ptr << " " << _txt << endl;
-            });
+            },
+            std::false_type{});
         fnc(&fnc, "something");
     }
 #if 0
     {
         ifstream ifs;
-        auto lambda = [ifs = std::move(ifs)](void *_ptr, const char*_txt)mutable{
+        auto     lambda = [ifs = std::move(ifs)](void* _ptr, const char* _txt) mutable {
             ifs.open("test.txt");
-            cout<<"test_fnc: "<<_ptr<<" "<<_txt<<endl;
+            cout << "test_fnc: " << _ptr << " " << _txt << endl;
         };
         std::function<void(void*, const char*)> fnc(std::move(lambda));
-        
+
         fnc(&fnc, "something");
     }
 #endif
+    {
+        Function<void(void*, const char*), function_size_to_small_size<64>()> fnc(&test_fnc);
+        static_assert(sizeof(fnc) == 64);
+        static_assert(sizeof(Function64T<void(void*, const char*)>) == 64);
+        static_assert(sizeof(Function96T<void(void*, const char*)>) == 96);
+        static_assert(sizeof(Function128T<void(void*, const char*)>) == 128);
+        static_assert(sizeof(Function256T<void(void*, const char*)>) == 256);
+        static_assert(sizeof(Function<void(void*, const char*), function_size_to_small_size<64, 16>(), 16>) == 64);
+    }
 
 #if 1
     {

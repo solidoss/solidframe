@@ -16,6 +16,7 @@
 #include "aiocompletion.hpp"
 #include "aioerror.hpp"
 #include "aioreactorcontext.hpp"
+#include "solid/utility/function.hpp"
 
 namespace solid {
 namespace frame {
@@ -54,7 +55,7 @@ class SteadyTimer : public CompletionHandler {
     {
     }
 
-    typedef solid_function_t(void(ReactorContext&)) FunctionT;
+    using FunctionT = solid::Function96T<void(ReactorContext&)>;
 
     FunctionT function_;
     size_t    storeidx_;

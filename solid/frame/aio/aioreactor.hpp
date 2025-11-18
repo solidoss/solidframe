@@ -137,7 +137,7 @@ protected:
 
 public:
     using StatisticT     = ReactorStatistic;
-    using EventFunctionT = solid::Function<void(ReactorContext&, EventBase&&)>;
+    using EventFunctionT = solid::Function128T<void(ReactorContext&, EventBase&&)>;
 
     bool start();
     void stop() override;

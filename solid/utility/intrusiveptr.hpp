@@ -117,7 +117,6 @@ class IntrusivePtrBase {
 protected:
     T* ptr_ = nullptr;
 
-protected:
     IntrusivePtrBase() = default;
 
     IntrusivePtrBase(T* _ptr)
@@ -150,7 +149,7 @@ protected:
         }
     }
 
-    IntrusivePtrBase(IntrusivePtrBase&& _other)
+    IntrusivePtrBase(IntrusivePtrBase&& _other) noexcept
         : ptr_(_other.detach())
     {
     }
@@ -261,7 +260,7 @@ public:
     {
     }
 
-    IntrusivePtr(IntrusivePtr&& _other)
+    IntrusivePtr(IntrusivePtr&& _other) noexcept
         : BaseT(std::move(_other))
     {
     }
@@ -377,7 +376,7 @@ public:
     template <class TT>
     MutableIntrusivePtr(const MutableIntrusivePtr<TT>& _other) = delete;
 
-    MutableIntrusivePtr(MutableIntrusivePtr&& _other)
+    MutableIntrusivePtr(MutableIntrusivePtr&& _other) noexcept
         : BaseT(std::move(_other))
     {
     }
@@ -481,7 +480,7 @@ public:
     {
     }
 
-    ConstIntrusivePtr(ConstIntrusivePtr&& _other)
+    ConstIntrusivePtr(ConstIntrusivePtr&& _other) noexcept
         : BaseT(std::move(_other))
     {
     }

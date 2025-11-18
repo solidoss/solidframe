@@ -243,7 +243,7 @@ bool restart(
     }
 
     if (params.connectstringvec.size()) {
-        cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(_resolver, params.baseport.c_str());
+        cfg.client.name_resolve_fnc.emplace(frame::mprpc::InternetResolverF(_resolver, params.baseport.c_str()));
     }
     cfg.connection_stop_fnc           = &connection_stop;
     cfg.server.connection_start_fnc   = &incoming_connection_start;
