@@ -12,6 +12,7 @@
 
 #include "solid/system/common.hpp"
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #ifdef __cpp_lib_bitops
 #include <bit>
@@ -322,5 +323,13 @@ struct AlignedStorage {
         return std::launder(reinterpret_cast<T const*>(data()));
     }
 };
+
+enum class StoreOption : uint8_t {
+    AcceptBig,
+    RejectBig
+};
+
+using AcceptBigT = std::integral_constant<StoreOption, StoreOption::AcceptBig>;
+using RejectBigT = std::integral_constant<StoreOption, StoreOption::RejectBig>;
 
 } // namespace solid

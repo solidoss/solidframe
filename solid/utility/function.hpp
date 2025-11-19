@@ -314,12 +314,12 @@ public:
         doMoveFrom(_other);
     }
 
-    template <class T, bool CheckSmall = true>
-    Function(T&& _fun, std::integral_constant<bool, CheckSmall> = std::true_type{})
+    template <class T, StoreOption Option = StoreOption::RejectBig>
+    Function(T&& _fun, std::integral_constant<StoreOption, Option> = RejectBigT{})
         requires(not is_function_v<std::decay_t<T>> and not is_specialization_v<std::decay_t<T>, std::in_place_type_t>)
     {
         using FncT = std::remove_cvref_t<std::decay_t<T>>;
-        static_assert(not CheckSmall or is_small_type<FncT>(), "Function not small. Construct with std::false_type.");
+        static_assert(Option == StoreOption::AcceptBig or is_small_type<FncT>(), "Function not small. Construct by using AcceptBigT{} or assign using .emplace()");
         if constexpr (is_small_type<FncT>()) {
             storage_.rtti_ = fnc_impl::representation(&fnc_impl::small_rtti<FncT, R, ArgTypes...>, fnc_impl::RepresentationE::Small);
             auto& rval     = reinterpret_cast<FncT&>(storage_.small_.data_);
@@ -391,7 +391,7 @@ public:
     template <class T>
     ThisT& emplace(T&& _rvalue)
     {
-        *this = ThisT{std::forward<T>(_rvalue), std::false_type{}};
+        *this = ThisT{std::forward<T>(_rvalue), AcceptBigT{}};
         return *this;
     }
 

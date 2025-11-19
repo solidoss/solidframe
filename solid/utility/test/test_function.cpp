@@ -1,3 +1,4 @@
+#include "solid/utility/common.hpp"
 #include "solid/utility/function.hpp"
 #include <fstream>
 #include <functional>
@@ -62,7 +63,7 @@ int test_function(int /*argc*/, char* /*argv*/[])
                 ifs.open("test.txt");
                 cout << "test_fnc: " << _ptr << " " << _txt << endl;
             },
-            std::false_type{});
+            AcceptBigT{});
         fnc(&fnc, "something");
     }
 #if 0

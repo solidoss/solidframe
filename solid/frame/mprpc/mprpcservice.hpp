@@ -968,7 +968,7 @@ ErrorConditionT Service::connectionNotifyRecvSomeRawData(
     RecipientId const& _rrecipient_id,
     CompleteFnc        _complete_fnc)
 {
-    ConnectionRecvRawDataCompleteFunctionT complete_fnc(std::move(_complete_fnc), std::false_type{});
+    ConnectionRecvRawDataCompleteFunctionT complete_fnc(std::move(_complete_fnc), AcceptBigT{});
     return doConnectionNotifyRecvRawData(_rrecipient_id, std::move(complete_fnc));
 }
 //-------------------------------------------------------------------------

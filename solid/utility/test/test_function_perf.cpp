@@ -1,3 +1,4 @@
+#include "solid/utility/common.hpp"
 #include "solid/utility/function.hpp"
 #include <array>
 #include <deque>
@@ -48,7 +49,7 @@ public:
     {
         static const PrintSize ps(sizeof(_f));
         if constexpr (solid::is_function_v<F>) {
-            fnc_dq.emplace_back(std::move(_f), std::false_type{});
+            fnc_dq.emplace_back(std::move(_f), AcceptBigT{});
         } else {
             fnc_dq.emplace_back(std::move(_f));
         }

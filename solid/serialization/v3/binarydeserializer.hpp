@@ -19,6 +19,7 @@
 #include "solid/system/cassert.hpp"
 #include "solid/system/convertors.hpp"
 #include "solid/system/exception.hpp"
+#include "solid/utility/common.hpp"
 #include "solid/utility/function.hpp"
 
 namespace solid {
@@ -73,7 +74,7 @@ class DeserializerBase : public Base {
             , size_(0)
             , data_(0)
             , name_(_name)
-            , fnc_ptr_(std::make_unique<FunctionT>(std::move(_f), std::false_type{}))
+            , fnc_ptr_(std::make_unique<FunctionT>(std::move(_f), AcceptBigT{}))
             , limit_(0)
         {
         }
