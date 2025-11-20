@@ -1,6 +1,7 @@
 #include "solid/system/cassert.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/utility/any.hpp"
+#include "solid/utility/common.hpp"
 #include <array>
 #include <fstream>
 #include <iostream>
@@ -52,11 +53,11 @@ std::string test_boost_any(const boost::any& _rany)
 }
 #endif
 
-void test_any_no_copy_copy(const Any<32>& _rany)
+void test_any_no_copy_copy(auto const& _rany)
 {
     bool caught_exception = false;
     try {
-        Any<32> tmp_any(_rany);
+        Any<> tmp_any(_rany);
         solid_check(!tmp_any.has_value());
         tmp_any.cast<TestNoCopy>()->str.clear();
     } catch (std::exception& rex) {
@@ -67,7 +68,7 @@ void test_any_no_copy_copy(const Any<32>& _rany)
     solid_check(caught_exception);
     caught_exception = false;
 
-    Any<32> tmp_any;
+    Any<> tmp_any;
 
     try {
         tmp_any = _rany;
@@ -81,11 +82,11 @@ void test_any_no_copy_copy(const Any<32>& _rany)
     solid_check(caught_exception);
 }
 
-std::string test_any_no_copy_move(Any<32>& _rany)
+std::string test_any_no_copy_move(auto& _rany)
 {
-    Any<32> tmp_any(std::move(_rany));
+    Any<> tmp_any(std::move(_rany));
 
-    solid_check(!_rany.has_value() || (_rany.cast<TestNoCopy>() && _rany.cast<TestNoCopy>()->str.empty()));
+    solid_check(!_rany.has_value() || (_rany.template cast<TestNoCopy>() && _rany.template cast<TestNoCopy>()->str.empty()));
     solid_check(tmp_any.has_value() && tmp_any.cast<TestNoCopy>() != nullptr && !tmp_any.cast<TestNoCopy>()->str.empty());
 
     TestNoCopy* p = tmp_any.cast<TestNoCopy>();
@@ -165,7 +166,7 @@ int test_any(int /*argc*/, char* /*argv*/[])
 #endif
 
     Any<> any0;
-    auto  any32(make_any<string, 32>(string("best string ever")));
+    Any<> any32{string("best string ever"), AcceptBigT{}};
 
     cout << "sizeof(any0) = " << sizeof(any0) << endl;
     cout << "sizeof(any32) = " << sizeof(any32) << endl;
@@ -213,7 +214,7 @@ int test_any(int /*argc*/, char* /*argv*/[])
     solid_check(*any16_2.cast<string>() == *any32.cast<string>());
     solid_check(*any16_2.get_if<string>() == *any32.get_if<string>());
 
-    auto any_nc_0(make_any<TestNoCopy, 32>("a string"));
+    Any<> any_nc_0{TestNoCopy{"a string"}, AcceptBigT{}};
 
     test_any_no_copy_copy(any_nc_0);
 
@@ -224,7 +225,7 @@ int test_any(int /*argc*/, char* /*argv*/[])
 
         cout << "ptr.get = " << ptr.get() << endl;
 
-        auto any_ptr1 = make_any<std::shared_ptr<Data>, 256>(ptr);
+        Any256T any_ptr1{std::shared_ptr<Data>{ptr}};
 
         cout << "any_ptr1->get = " << any_ptr1.cast<std::shared_ptr<Data>>()->get() << endl;
 
@@ -238,7 +239,7 @@ int test_any(int /*argc*/, char* /*argv*/[])
         solid_check(ptr.use_count() == 3);
         solid_check(ptr.get() == any_ptr1.cast<std::shared_ptr<Data>>()->get() && any_ptr2.cast<std::shared_ptr<Data>>()->get() == ptr.get());
 
-        auto any_ptr3 = make_any<std::shared_ptr<Data>, 256>(std::move(ptr));
+        Any256T any_ptr3{std::shared_ptr<Data>{std::move(ptr)}};
 
         solid_check(any_ptr2.cast<std::shared_ptr<Data>>()->get() == any_ptr2.cast<std::shared_ptr<Data>>()->get());
         solid_check(any_ptr2.cast<std::shared_ptr<Data>>()->use_count() == 3);
@@ -262,7 +263,7 @@ int test_any(int /*argc*/, char* /*argv*/[])
     {
 
         using Array4T = std::array<size_t, 4>;
-        Any<8, 8> any{Array4T{{1, 2, 3, 4}}};
+        Any<8, 8> any{Array4T{{1, 2, 3, 4}}, AcceptBigT{}};
         solid_check((*any.cast<Array4T>())[0] == 1);
         solid_check((*any.cast<Array4T>())[1] == 2);
         solid_check((*any.cast<Array4T>())[2] == 3);
@@ -324,7 +325,7 @@ int test_any(int /*argc*/, char* /*argv*/[])
             solid_check(arr[3] == 4);
             arr[3] = 10;
         };
-        Any<128, 8> any(std::move(lambda));
+        Any<> any(std::move(lambda), AcceptBigT{});
 
         (*any.cast<decltype(lambda)>())("Test");
     }

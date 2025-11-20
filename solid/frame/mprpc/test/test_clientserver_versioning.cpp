@@ -378,7 +378,7 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
                 solid_check(_rrecv_msg_ptr->error_);
             }
         };
-        _rctx.any() = std::make_tuple(version);
+        _rctx.any().emplace(std::make_tuple(version));
         _rctx.service().sendRequest(_rctx.recipientId(), req_ptr, lambda);
     };
     cfg.client.connection_start_fnc   = std::move(connection_start_lambda);

@@ -18,11 +18,21 @@
 #include "solid/system/exception.hpp"
 #include "solid/system/log.hpp"
 #include "solid/utility/anyimpl.hpp"
+#include "solid/utility/common.hpp"
 #include "solid/utility/typetraits.hpp"
 
 namespace solid {
 
-constexpr size_t any_default_size  = 32 - sizeof(std::uintptr_t);
+template <size_t Size, size_t Align = alignof(std::uintptr_t)>
+    requires(std::popcount(Align) == 1)
+constexpr size_t any_size_to_small_size()
+{
+    constexpr size_t max = std::max(sizeof(std::uintptr_t), Align);
+    static_assert(Size >= max, "size must be greater than sizeof(std::uintptr_t)");
+    return Size - max;
+}
+
+constexpr size_t any_default_size  = any_size_to_small_size<32>();
 constexpr size_t any_default_align = sizeof(std::uintptr_t);
 
 template <size_t SmallSize = any_default_size, size_t SmallAlign = any_default_align>
@@ -325,25 +335,30 @@ public:
         doMoveFrom(_other);
     }
 
-    template <
-        class T>
-    Any(T&& _rvalue)
+    template <class T, StoreOption Option = StoreOption::RejectBig>
+    Any(T&& _rvalue, std::integral_constant<StoreOption, Option> = RejectBigT{})
         requires(not is_any_v<std::decay_t<T>> and not is_specialization_v<std::decay_t<T>, std::in_place_type_t>)
     {
+        using ValueT = std::remove_cvref_t<std::decay_t<T>>;
+        static_assert(Option == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
         doEmplace<std::decay_t<T>>(std::forward<T>(_rvalue));
     }
 
-    template <class T, class... Args>
-    explicit Any(std::in_place_type_t<T>, Args&&... _args)
+    template <class T, class... Args, StoreOption Option = StoreOption::RejectBig>
+    explicit Any(std::in_place_type_t<T>, Args&&... _args, std::integral_constant<StoreOption, Option> = RejectBigT{})
         requires(std::is_constructible_v<std::decay_t<T>, Args...>)
     {
+        using ValueT = std::remove_cvref_t<std::decay_t<T>>;
+        static_assert(Option == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
         doEmplace<std::decay_t<T>>(std::forward<Args>(_args)...);
     }
 
-    template <class T, class E, class... Args>
-    explicit Any(std::in_place_type_t<T>, std::initializer_list<E> _ilist, Args&&... _args)
+    template <class T, class E, class... Args, StoreOption Option = StoreOption::RejectBig>
+    explicit Any(std::in_place_type_t<T>, std::initializer_list<E> _ilist, Args&&... _args, std::integral_constant<StoreOption, Option> = RejectBigT{})
         requires(std::is_constructible_v<std::decay_t<T>, std::initializer_list<E>&, Args...> and std::is_copy_constructible_v<std::decay_t<T>>)
     {
+        using ValueT = std::remove_cvref_t<std::decay_t<T>>;
+        static_assert(Option == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
         doEmplace<std::decay_t<T>>(_ilist, std::forward<Args>(_args)...);
     }
 
@@ -388,19 +403,26 @@ public:
         return *this;
     }
 
+    template <class T>
+    ThisT& emplace(T&& _rvalue)
+    {
+        *this = ThisT{std::forward<T>(_rvalue), AcceptBigT{}};
+        return *this;
+    }
+
     template <class T, class... Args>
-    std::decay_t<T>& emplace(Args&&... _args)
+    ThisT& emplace(Args&&... _args)
         requires(std::is_constructible_v<std::decay_t<T>, Args...>)
     {
-        reset();
-        return doEmplace<std::decay_t<T>>(std::forward<Args>(_args)...);
+        *this = ThisT{std::in_place_type_t<T>{}, std::forward<Args>(_args)..., AcceptBigT{}};
+        return *this;
     }
     template <class T, class E, class... Args>
-    std::decay_t<T>& emplace(std::initializer_list<E> _ilist, Args&&... _args)
+    ThisT& emplace(std::initializer_list<E> _ilist, Args&&... _args)
         requires(std::is_constructible_v<std::decay_t<T>, std::initializer_list<E>&, Args...>)
     {
-        reset();
-        return doEmplace<std::decay_t<T>>(_ilist, std::forward<Args>(_args)...);
+        *this = ThisT{std::in_place_type_t<T>{}, _ilist, std::forward<Args>(_args)..., AcceptBigT{}};
+        return *this;
     }
 
     void reset() noexcept
@@ -600,16 +622,16 @@ inline void swap(Any<S1, A1>& _a1, Any<S2, A2>& _a2) noexcept
     _a1.swap(_a2);
 }
 
-template <class T, size_t Size = any_default_size, size_t Align = any_default_align, class... Args>
-auto make_any(Args&&... _args)
-{
-    return Any<Size, Align>{std::in_place_type<T>, std::forward<Args>(_args)...};
-}
-template <class T, size_t Size = any_default_size, size_t Align = any_default_align, class E, class... Args>
-auto make_any(std::initializer_list<E> _ilist, Args&&... _args)
-{
-    return Any<Size, Align>{std::in_place_type<T>, _ilist, std::forward<Args>(_args)...};
-}
+using Any64T  = Any<any_size_to_small_size<64>()>;
+using Any96T  = Any<any_size_to_small_size<96>()>;
+using Any128T = Any<any_size_to_small_size<128>()>;
+using Any256T = Any<any_size_to_small_size<256>()>;
+
+static_assert(sizeof(Any<>) == 32);
+static_assert(sizeof(Any64T) == 64);
+static_assert(sizeof(Any96T) == 96);
+static_assert(sizeof(Any128T) == 128);
+static_assert(sizeof(Any256T) == 256);
 
 //-----------------------------------------------------------------------------
 

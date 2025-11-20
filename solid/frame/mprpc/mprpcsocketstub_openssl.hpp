@@ -321,7 +321,7 @@ inline void setup_client(
 {
 
     if (_rcfg.client.secure_any.empty()) {
-        _rcfg.client.secure_any = make_any<ClientConfiguration>();
+        _rcfg.client.secure_any.emplace(ClientConfiguration{});
     }
 
     _rcfg.client.connection_create_socket_fnc = &create_client_socket;
@@ -347,7 +347,7 @@ inline void setup_server(
 {
 
     if (_rcfg.server.secure_any.empty()) {
-        _rcfg.server.secure_any = make_any<ServerConfiguration>();
+        _rcfg.server.secure_any.emplace(ServerConfiguration{});
     }
 
     _rcfg.server.connection_create_socket_fnc = &create_server_socket;
