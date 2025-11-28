@@ -29,7 +29,7 @@ namespace impl {
 constexpr PoolConfig default_pool_config;
 
 template <typename ObjectType, template <typename> typename Ptr>
-class PoolBase {
+class PoolBase : NonCopyable {
 protected:
     static_assert(is_poolable_v<ObjectType>, "ObjectType must be Poolable");
     using ObjectPtrT = Ptr<ObjectType>;
