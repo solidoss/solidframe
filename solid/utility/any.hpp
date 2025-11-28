@@ -339,7 +339,7 @@ public:
     Any(T&& _rvalue, std::integral_constant<StoreOption, Option> = RejectBigT{})
         requires(not is_any_v<std::decay_t<T>> and not is_specialization_v<std::decay_t<T>, std::in_place_type_t>)
     {
-        using ValueT = std::remove_cvref_t<std::decay_t<T>>;
+        using ValueT = std::decay_t<T>;
         static_assert(Option == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
         doEmplace<std::decay_t<T>>(std::forward<T>(_rvalue));
     }
@@ -348,7 +348,7 @@ public:
     explicit Any(std::in_place_type_t<T>, Args&&... _args, std::integral_constant<StoreOption, Option> = RejectBigT{})
         requires(std::is_constructible_v<std::decay_t<T>, Args...>)
     {
-        using ValueT = std::remove_cvref_t<std::decay_t<T>>;
+        using ValueT = std::decay_t<T>;
         static_assert(Option == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
         doEmplace<std::decay_t<T>>(std::forward<Args>(_args)...);
     }
@@ -357,7 +357,7 @@ public:
     explicit Any(std::in_place_type_t<T>, std::initializer_list<E> _ilist, Args&&... _args, std::integral_constant<StoreOption, Option> = RejectBigT{})
         requires(std::is_constructible_v<std::decay_t<T>, std::initializer_list<E>&, Args...> and std::is_copy_constructible_v<std::decay_t<T>>)
     {
-        using ValueT = std::remove_cvref_t<std::decay_t<T>>;
+        using ValueT = std::decay_t<T>;
         static_assert(Option == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
         doEmplace<std::decay_t<T>>(_ilist, std::forward<Args>(_args)...);
     }

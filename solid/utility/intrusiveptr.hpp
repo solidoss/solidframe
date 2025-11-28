@@ -8,7 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #pragma once
-
+#include "solid/utility/poolable.hpp"
 #include <atomic>
 #include <cassert>
 #include <cstddef>
@@ -211,6 +211,9 @@ protected:
         _other.ptr_ = tmp;
     }
 
+    template <template <typename> typename Ptr>
+    void doPushToPool(Pool<T, Ptr>*);
+
 public:
     using element_type = T;
 
@@ -221,15 +224,27 @@ public:
 
     void reset()
     {
-        if (ptr_) {
-            if (intrusive_ptr_release(*ptr_)) {
-                intrusive_ptr_destroy(*ptr_);
+        if constexpr (is_poolable_v<T>) {
+            if (ptr_) {
+                if (ptr_->ppool_ and impl::intrusive_ptr_release(*ptr_)) {
+                    impl::intrusive_ptr_acquire(*ptr_);
+                    doPushToPool(ptr_->ppool_);
+                    return;
+                }
+                ptr_ = nullptr;
             }
-            ptr_ = nullptr;
+        } else {
+            if (ptr_) {
+                if (intrusive_ptr_release(*ptr_)) {
+                    intrusive_ptr_destroy(*ptr_);
+                }
+                ptr_ = nullptr;
+            }
         }
     }
 
-    size_t useCount() const noexcept
+    size_t
+    useCount() const noexcept
     {
         if (ptr_ != nullptr) [[likely]] {
             return intrusive_ptr_use_count(*ptr_);
@@ -240,12 +255,25 @@ public:
 
 } // namespace impl
 
+template <typename T, template <typename> typename Ptr>
+class Pool;
+
 template <class T>
 class IntrusivePtr : public impl::IntrusivePtrBase<T> {
     using BaseT = impl::IntrusivePtrBase<T>;
     using ThisT = IntrusivePtr<T>;
     template <class TT>
     friend class IntrusivePtr;
+    template <class TT>
+    friend class MutableIntrusivePtr;
+    template <class TT>
+    friend class impl::IntrusivePtrBase;
+
+    IntrusivePtr(impl::IntrusivePtrBase<T>&& _other)
+        : BaseT(std::move(_other))
+    {
+        assert(!BaseT::ptr_ or (BaseT::ptr_ and BaseT::useCount() == 1u));
+    }
 
 public:
     IntrusivePtr() = default;
@@ -277,7 +305,25 @@ public:
     {
     }
 
-    ~IntrusivePtr() = default;
+    template <class TT>
+    IntrusivePtr(MutableIntrusivePtr<TT>&& _other)
+        : BaseT(std::move(_other))
+    {
+    }
+
+    ~IntrusivePtr()
+    {
+        if constexpr (is_poolable_v<T>) {
+            if (BaseT::ptr_) {
+                if (BaseT::ptr_->ppool_ and impl::intrusive_ptr_release(*BaseT::ptr_)) {
+                    impl::intrusive_ptr_acquire(*BaseT::ptr_);
+                    BaseT::doPushToPool(BaseT::ptr_->ppool_);
+                    return;
+                }
+                BaseT::ptr_ = nullptr;
+            }
+        }
+    }
 
     IntrusivePtr& operator=(const IntrusivePtr& _other) noexcept
     {
@@ -357,10 +403,19 @@ class MutableIntrusivePtr : public impl::IntrusivePtrBase<T> {
     friend class MutableIntrusivePtr;
     template <class TT>
     friend class ConstIntrusivePtr;
+    template <class TT>
+    friend class impl::IntrusivePtrBase;
 
     MutableIntrusivePtr(IntrusivePtr<T>&& _other)
         : BaseT(std::move(_other))
     {
+        assert(!BaseT::ptr_ or (BaseT::ptr_ and BaseT::useCount() == 1u));
+    }
+
+    MutableIntrusivePtr(impl::IntrusivePtrBase<T>&& _other)
+        : BaseT(std::move(_other))
+    {
+        assert(!BaseT::ptr_ or (BaseT::ptr_ and BaseT::useCount() == 1u));
     }
 
 public:
@@ -369,6 +424,7 @@ public:
     MutableIntrusivePtr(T* _ptr, const bool _do_acquire)
         : BaseT(_ptr, _do_acquire)
     {
+        assert(!_ptr or (_ptr and BaseT::useCount() == 1u));
     }
 
     MutableIntrusivePtr(const MutableIntrusivePtr& _other) = delete;
@@ -386,7 +442,19 @@ public:
     {
     }
 
-    ~MutableIntrusivePtr() = default;
+    ~MutableIntrusivePtr()
+    {
+        if constexpr (is_poolable_v<T>) {
+            if (BaseT::ptr_) {
+                if (BaseT::ptr_->ppool_ and impl::intrusive_ptr_release(*BaseT::ptr_)) {
+                    impl::intrusive_ptr_acquire(*BaseT::ptr_);
+                    BaseT::doPushToPool(BaseT::ptr_->ppool_);
+                    return;
+                }
+                BaseT::ptr_ = nullptr;
+            }
+        }
+    }
 
     MutableIntrusivePtr& operator=(const MutableIntrusivePtr& _other) noexcept = delete;
 
@@ -497,7 +565,19 @@ public:
     {
     }
 
-    ~ConstIntrusivePtr() = default;
+    ~ConstIntrusivePtr()
+    {
+        if constexpr (is_poolable_v<T>) {
+            if (BaseT::ptr_) {
+                if (BaseT::ptr_->ppool_ and impl::intrusive_ptr_release(*BaseT::ptr_)) {
+                    impl::intrusive_ptr_acquire(*BaseT::ptr_);
+                    BaseT::doPushToPool(BaseT::ptr_->ppool_);
+                    return;
+                }
+                BaseT::ptr_ = nullptr;
+            }
+        }
+    }
 
     ConstIntrusivePtr& operator=(const ConstIntrusivePtr& _other) noexcept
     {

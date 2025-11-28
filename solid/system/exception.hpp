@@ -87,21 +87,8 @@ public:
         __FILE__, __LINE__, SOLID_FUNCTION_NAME)
 
 #define solid_check_error(a, c) \
-    (solid_likely(a) ? static_cast<void>(0) : solid_throw_error(c));
-
-// adapted from https://github.com/Microsoft/GSL/blob/master/include/gsl/gsl_assert
-#if 0
-#if defined(__clang__) || defined(__GNUC__)
-#define solid_likely(x) __builtin_expect(!!(x), 1)
-#define solid_unlikely(x) __builtin_expect(!!(x), 0)
-#else
-#define solid_likely(x) (!!(x))
-#define solid_unlikely(x) (!(x))
-#endif
-#else
-#define solid_likely(x) (!!(x))
-#define solid_unlikely(x) (!(x))
-#endif
+    if (not(a)) [[unlikely]]    \
+        solid_throw_error(c);
 
 #define solid_check1(a)                       \
     if (!(a)) [[unlikely]] {                  \

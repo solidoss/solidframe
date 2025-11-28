@@ -318,7 +318,7 @@ public:
     Function(T&& _fun, std::integral_constant<StoreOption, Option> = RejectBigT{})
         requires(not is_function_v<std::decay_t<T>> and not is_specialization_v<std::decay_t<T>, std::in_place_type_t>)
     {
-        using FncT = std::remove_cvref_t<std::decay_t<T>>;
+        using FncT = std::decay_t<T>;
         static_assert(Option == StoreOption::AcceptBig or is_small_type<FncT>(), "Function not small. Construct by using AcceptBigT{} or assign using .emplace()");
         if constexpr (is_small_type<FncT>()) {
             storage_.rtti_ = fnc_impl::representation(&fnc_impl::small_rtti<FncT, R, ArgTypes...>, fnc_impl::RepresentationE::Small);
@@ -515,7 +515,7 @@ private:
     template <typename Fnc>
     void doEmplace(Fnc _fun)
     {
-        using FncT = std::remove_cvref_t<Fnc>;
+        using FncT = std::decay_t<Fnc>;
         if constexpr (is_small_type<FncT>()) {
             storage_.rtti_ = representation(&fnc_impl::small_rtti<FncT, R, ArgTypes...>, fnc_impl::RepresentationE::Small);
             auto& rval     = reinterpret_cast<FncT&>(storage_.small_.data_);

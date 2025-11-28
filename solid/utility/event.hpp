@@ -179,7 +179,6 @@ protected:
 
     const std::type_info* typeInfo() const noexcept
     {
-        // return reinterpret_cast<const std::type_info*>(type_data_ & ~any_impl::representation_and_flags_mask);
         auto const rtti = rtti_;
         if (rtti) [[likely]] {
             return any_impl::BaseRTTI::get(rtti).get_type_info_fnc_();
@@ -483,12 +482,15 @@ public:
         doMoveFrom(data_, smallCapacity(), smallAlign(), _other);
     }
 
-    template <typename Evs, class T>
-    Event(const Evs _ev, T&& _rvalue)
+    template <typename Evs, class T, StoreOption Option = StoreOption::RejectBig>
+    Event(
+        const Evs _ev, T&& _rvalue,
+        std::integral_constant<StoreOption, Option> = RejectBigT{})
         requires(not is_event_v<std::decay_t<T>> and not is_specialization_v<std::decay_t<T>, std::in_place_type_t>)
         : EventBase(category<Evs>, to_underlying(_ev))
     {
         using ValueT = std::decay_t<T>;
+        static_assert(Option == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
         if constexpr (is_small_type<ValueT>()) {
             auto& rval = reinterpret_cast<ValueT&>(data_);
             doEmplaceSmall<ValueT>(std::addressof(rval), std::forward<T>(_rvalue));
@@ -497,12 +499,14 @@ public:
         }
     }
 
-    template <typename Evs, class T>
-    Event(const EventCategoryBase& _category, const Evs _ev, T&& _rvalue)
+    template <typename Evs, class T, StoreOption Option = StoreOption::RejectBig>
+    Event(const EventCategoryBase& _category, const Evs _ev,
+        T&& _rvalue, std::integral_constant<StoreOption, Option> = RejectBigT{})
         requires(not is_event_v<std::decay_t<T>> and not is_specialization_v<std::decay_t<T>, std::in_place_type_t>)
         : EventBase(_category, to_underlying(_ev))
     {
         using ValueT = std::decay_t<T>;
+        static_assert(Option == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
         if constexpr (is_small_type<ValueT>()) {
             auto& rval = reinterpret_cast<ValueT&>(data_);
             doEmplaceSmall<ValueT>(std::addressof(rval), std::forward<T>(_rvalue));
@@ -511,12 +515,14 @@ public:
         }
     }
 
-    template <typename Evs, class T, class... Args>
-    explicit Event(const Evs _ev, std::in_place_type_t<T>, Args&&... _args)
+    template <typename Evs, class T, class... Args, StoreOption Option = StoreOption::RejectBig>
+    explicit Event(const Evs _ev, std::in_place_type_t<T>, Args&&... _args,
+        std::integral_constant<StoreOption, Option> = RejectBigT{})
         requires(std::is_constructible_v<std::decay_t<T>, Args...>)
         : EventBase(category<Evs>, to_underlying(_ev))
     {
         using ValueT = std::decay_t<T>;
+        static_assert(Option == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
         if constexpr (is_small_type<ValueT>()) {
             auto& rval = reinterpret_cast<ValueT&>(data_);
             doEmplaceSmall<ValueT>(std::addressof(rval), std::forward<Args>(_args)...);
@@ -525,12 +531,14 @@ public:
         }
     }
 
-    template <typename Evs, class T, class... Args>
-    explicit Event(const EventCategoryBase& _category, const Evs _ev, std::in_place_type_t<T>, Args&&... _args)
+    template <typename Evs, class T, class... Args, StoreOption Option = StoreOption::RejectBig>
+    explicit Event(const EventCategoryBase& _category, const Evs _ev, std::in_place_type_t<T>,
+        Args&&... _args, std::integral_constant<StoreOption, Option> = RejectBigT{})
         requires(std::is_constructible_v<std::decay_t<T>, Args...>)
         : EventBase(_category, to_underlying(_ev))
     {
         using ValueT = std::decay_t<T>;
+        static_assert(Option == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
         if constexpr (is_small_type<ValueT>()) {
             auto& rval = reinterpret_cast<ValueT&>(data_);
             doEmplaceSmall<ValueT>(std::addressof(rval), std::forward<Args>(_args)...);
@@ -539,12 +547,14 @@ public:
         }
     }
 
-    template <typename Evs, class T, class E, class... Args>
-    explicit Event(const Evs _ev, std::in_place_type_t<T>, std::initializer_list<E> _ilist, Args&&... _args)
+    template <typename Evs, class T, class E, class... Args, StoreOption Option = StoreOption::RejectBig>
+    explicit Event(const Evs _ev, std::in_place_type_t<T>, std::initializer_list<E> _ilist,
+        Args&&... _args, std::integral_constant<StoreOption, Option> = RejectBigT{})
         requires(std::is_constructible_v<std::decay_t<T>, std::initializer_list<E>&, Args...> and std::is_copy_constructible_v<std::decay_t<T>>)
         : EventBase(category<Evs>, to_underlying(_ev))
     {
         using ValueT = std::decay_t<T>;
+        static_assert(Option == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
         if constexpr (is_small_type<ValueT>()) {
             auto& rval = reinterpret_cast<ValueT&>(data_);
             doEmplaceSmall<ValueT>(std::addressof(rval), _ilist, std::forward<Args>(_args)...);
@@ -553,12 +563,14 @@ public:
         }
     }
 
-    template <typename Evs, class T, class E, class... Args>
-    explicit Event(const EventCategoryBase& _category, const Evs _ev, std::in_place_type_t<T>, std::initializer_list<E> _ilist, Args&&... _args)
+    template <typename Evs, class T, class E, class... Args, StoreOption Option = StoreOption::RejectBig>
+    explicit Event(const EventCategoryBase& _category, const Evs _ev, std::in_place_type_t<T>,
+        std::initializer_list<E> _ilist, Args&&... _args, std::integral_constant<StoreOption, Option> = RejectBigT{})
         requires(std::is_constructible_v<std::decay_t<T>, std::initializer_list<E>&, Args...> and std::is_copy_constructible_v<std::decay_t<T>>)
         : EventBase(_category, to_underlying(_ev))
     {
         using ValueT = std::decay_t<T>;
+        static_assert(Option == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
         if constexpr (is_small_type<ValueT>()) {
             auto& rval = reinterpret_cast<ValueT&>(data_);
             doEmplaceSmall<ValueT>(std::addressof(rval), _ilist, std::forward<Args>(_args)...);
@@ -611,42 +623,62 @@ public:
     ThisT& operator=(T&& _rvalue)
         requires(not is_event_v<std::decay_t<T>> and std::is_copy_constructible_v<std::decay_t<T>>)
     {
+        using ValueT = std::decay_t<T>;
+        static_assert(is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
+
         resetData();
 
-        if constexpr (is_small_type<T>()) {
+        if constexpr (is_small_type<ValueT>()) {
             auto& rval = reinterpret_cast<T&>(data_);
-            doEmplaceSmall<std::decay_t<T>>(std::addressof(rval), std::forward<T>(_rvalue));
+            doEmplaceSmall<ValueT>(std::addressof(rval), std::forward<T>(_rvalue));
         } else {
-            doEmplaceBig<std::decay_t<T>>(std::forward<T>(_rvalue));
+            doEmplaceBig<ValueT>(std::forward<T>(_rvalue));
+        }
+        return *this;
+    }
+    template <class T>
+    ThisT& emplace(T&& _rvalue)
+        requires(not is_event_v<std::decay_t<T>> and std::is_copy_constructible_v<std::decay_t<T>>)
+    {
+        using ValueT = std::decay_t<T>;
+        resetData();
+
+        if constexpr (is_small_type<ValueT>()) {
+            auto& rval = reinterpret_cast<T&>(data_);
+            doEmplaceSmall<ValueT>(std::addressof(rval), std::forward<T>(_rvalue));
+        } else {
+            doEmplaceBig<ValueT>(std::forward<T>(_rvalue));
         }
         return *this;
     }
 
     template <class T, class... Args>
-    std::decay_t<T>& emplace(Args&&... _args)
+    ThisT& emplace(Args&&... _args)
         requires(std::is_constructible_v<std::decay_t<T>, Args...>)
     {
         resetData();
         using ValueT = std::decay_t<T>;
         if constexpr (is_small_type<ValueT>()) {
             auto& rval = reinterpret_cast<ValueT&>(data_);
-            return doEmplaceSmall<ValueT>(std::addressof(rval), std::forward<Args>(_args)...);
+            doEmplaceSmall<ValueT>(std::addressof(rval), std::forward<Args>(_args)...);
         } else {
-            return doEmplaceBig<ValueT>(std::forward<Args>(_args)...);
+            doEmplaceBig<ValueT>(std::forward<Args>(_args)...);
         }
+        return *this;
     }
     template <class T, class E, class... Args>
-    std::decay_t<T>& emplace(std::initializer_list<E> _ilist, Args&&... _args)
+    ThisT& emplace(std::initializer_list<E> _ilist, Args&&... _args)
         requires(std::is_constructible_v<std::decay_t<T>, std::initializer_list<E>&, Args...>)
     {
         resetData();
         using ValueT = std::decay_t<T>;
         if constexpr (is_small_type<ValueT>()) {
             auto& rval = reinterpret_cast<ValueT&>(data_);
-            return doEmplaceSmall<ValueT>(std::addressof(rval), _ilist, std::forward<Args>(_args)...);
+            doEmplaceSmall<ValueT>(std::addressof(rval), _ilist, std::forward<Args>(_args)...);
         } else {
-            return doEmplaceBig<ValueT>(_ilist, std::forward<Args>(_args)...);
+            doEmplaceBig<ValueT>(_ilist, std::forward<Args>(_args)...);
         }
+        return *this;
     }
 
     ThisT& operator=(const EventBase& _other)
@@ -668,21 +700,21 @@ public:
 //      make_event
 //-----------------------------------------------------------------------------
 template <class Events>
-inline auto make_event(const Events _id)
+auto make_event(const Events _id)
     requires(std::is_enum_v<Events>)
 {
     return Event<>(_id);
 }
 
 template <class Events>
-inline auto make_event(const EventCategoryBase& _category, const Events _id)
+auto make_event(const EventCategoryBase& _category, const Events _id)
     requires(std::is_enum_v<Events>)
 {
     return Event<>(_category, _id);
 }
 
 template <class Events, typename T>
-inline auto make_event(const Events _id, T&& _data)
+auto make_event(const Events _id, T&& _data)
     requires(std::is_enum_v<Events>)
 {
     return Event<sizeof(std::decay_t<T>), alignof(std::decay_t<T>)>(_id, std::forward<T>(_data));
@@ -702,7 +734,7 @@ auto make_event(const Events _id, std::initializer_list<E> _ilist, Args&&... _ar
 }
 
 template <class Events, typename T>
-inline auto make_event(const EventCategoryBase& _category, const Events _id, T&& _data)
+auto make_event(const EventCategoryBase& _category, const Events _id, T&& _data)
     requires(std::is_enum_v<Events>)
 {
     return Event<sizeof(std::decay_t<T>), alignof(std::decay_t<T>)>(_category, _id, std::forward<T>(_data));
