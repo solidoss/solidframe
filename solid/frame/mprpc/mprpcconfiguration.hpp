@@ -22,6 +22,7 @@
 #include "solid/frame/mprpc/mprpcprotocol.hpp"
 
 #include "solid/frame/scheduler.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/socketaddress.hpp"
 #include "solid/system/socketdevice.hpp"
 #include "solid/utility/function.hpp"

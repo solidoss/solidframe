@@ -297,11 +297,11 @@ void Connection::doPrepare(frame::aio::ReactorContext& _rctx)
 {
     Configuration const& config = service(_rctx).configuration();
 
-    recv_buf_       = service(_rctx).configuration().allocateRecvBuffer();
-    send_buf_       = service(_rctx).configuration().allocateSendBuffer();
+    recv_buf_       = config.allocateRecvBuffer();
+    send_buf_       = config.allocateSendBuffer();
     recv_buf_count_ = 1;
-    msg_reader_.prepare(service(_rctx).configuration().reader);
-    msg_writer_.prepare(service(_rctx).configuration().writer);
+    msg_reader_.prepare(config.reader);
+    msg_writer_.prepare(config.writer);
     const auto crt_time      = _rctx.steadyTime();
     recv_keepalive_boundary_ = crt_time + config.server.connection_inactivity_keepalive_interval;
 }

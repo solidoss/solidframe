@@ -40,14 +40,53 @@ std::ostream& operator<<(std::ostream& _ros, const RelayDataFlagsT& _flags)
 }
 
 namespace {
+constexpr size_t send_buffer_capacity = Protocol::max_packet_size;
+constexpr size_t recv_buffer_capacity = (send_buffer_capacity * 2) + 64;
+
+struct BufferPoolConfiguration {
+    using IndexT = uint32_t;
+
+    static constexpr IndexT capacity_count = 2;
+
+    static constexpr IndexT dispatch(size_t const _requested_capacity)
+    {
+        if (_requested_capacity == send_buffer_capacity) {
+            return 0;
+        } else {
+            assert(_requested_capacity == recv_buffer_capacity);
+            return 1;
+        }
+    }
+
+    static constexpr size_t capacity(IndexT const _index)
+    {
+        if (_index == 0) {
+            return send_buffer_capacity;
+        }
+        assert(_index == 1);
+        return recv_buffer_capacity;
+    }
+
+    static constexpr size_t count(IndexT const)
+    {
+        return 16 * 1024; // same for any buffer
+    }
+};
+
+using BufferPoolT = BufferPool<BufferPoolConfiguration>;
+
 MutableSharedBuffer default_allocate_recv_buffer(const uint32_t _cp)
 {
-    return BufferPool::make_mutable(_cp);
+    auto buf = BufferPoolT::create(_cp);
+    assert(buf.capacity() == _cp);
+    return buf;
 }
 
 MutableSharedBuffer default_allocate_send_buffer(const uint32_t _cp)
 {
-    return BufferPool::make_mutable(_cp);
+    auto buf = BufferPoolT::create(_cp);
+    assert(buf.capacity() == _cp);
+    return buf;
 }
 
 // void empty_reset_serializer_limits(ConnectionContext &, serialization::binary::Limits&){}
@@ -343,9 +382,6 @@ void Configuration::createListenerDevice(SocketDevice& _rsd) const
         solid_throw_log(service_logger(), "failed to create listener socket device");
     }
 }
-
-constexpr size_t send_buffer_capacity = Protocol::max_packet_size;
-constexpr size_t recv_buffer_capacity = send_buffer_capacity * 2 + 64;
 
 //-----------------------------------------------------------------------------
 MutableSharedBuffer Configuration::allocateRecvBuffer() const
