@@ -1285,7 +1285,7 @@ struct ConnectionReceiver : MessageReaderReceiver {
     {
     }
 
-    void receiveMessage(MessagePointerT<>& _rmsg_ptr, const size_t _msg_type_id) override
+    void receiveMessage(RecvMessagePointerT<>& _rmsg_ptr, const size_t _msg_type_id) override
     {
         rcon_.doCompleteMessage<Ctx>(rctx_, _rmsg_ptr, _msg_type_id);
         rcon_.flags_.set(Connection::FlagsE::PollPool);
@@ -1572,8 +1572,8 @@ template <class Ctx>
 //-----------------------------------------------------------------------------
 template <class Ctx>
 struct ConnectionSenderResponse : ConnectionSender<Ctx> {
-    MessagePointerT<>& rresponse_ptr_;
-    bool               request_found_ = false;
+    RecvMessagePointerT<>& rresponse_ptr_;
+    bool                   request_found_ = false;
 
     ConnectionSenderResponse(
         Connection&                 _rcon,
@@ -1581,7 +1581,7 @@ struct ConnectionSenderResponse : ConnectionSender<Ctx> {
         WriterConfiguration const&  _rconfig,
         Protocol const&             _rproto,
         ConnectionContext&          _rconctx,
-        MessagePointerT<>&          _rresponse_ptr)
+        RecvMessagePointerT<>&      _rresponse_ptr)
         : ConnectionSender<Ctx>(_rcon, _rctx, _rconfig, _rproto, _rconctx)
         , rresponse_ptr_(_rresponse_ptr)
     {
@@ -1617,7 +1617,7 @@ void Connection::updateContextOnCompleteMessage(
 }
 
 template <class Ctx>
-bool Connection::doCompleteMessage(frame::aio::ReactorContext& _rctx, MessagePointerT<>& _rresponse_ptr, const size_t _response_type_id)
+bool Connection::doCompleteMessage(frame::aio::ReactorContext& _rctx, RecvMessagePointerT<>& _rresponse_ptr, const size_t _response_type_id)
 {
     ConnectionContext    conctx(_rctx, service(_rctx), *this);
     const Configuration& rconfig = service(_rctx).configuration();
@@ -1648,10 +1648,10 @@ void Connection::doCompleteMessage(
     ErrorConditionT const&             _rerror)
 {
 
-    ConnectionContext    conctx(_rctx, service(_rctx), *this);
-    const Configuration& rconfig = service(_rctx).configuration();
-    const Protocol&      rproto  = rconfig.protocol();
-    MessagePointerT<>    dummy_recv_msg_ptr;
+    ConnectionContext     conctx(_rctx, service(_rctx), *this);
+    const Configuration&  rconfig = service(_rctx).configuration();
+    const Protocol&       rproto  = rconfig.protocol();
+    RecvMessagePointerT<> dummy_recv_msg_ptr;
 
     conctx.message_flags_ = _rmsg_bundle.message_flags;
     conctx.message_id_    = _rpool_msg_id;
@@ -2413,7 +2413,7 @@ Any<>& ConnectionContext::any()
     return rconnection_.any();
 }
 //-----------------------------------------------------------------------------
-MessagePointerT<> ConnectionContext::fetchRequest(Message const& _rmsg) const
+SendMessagePointerT<> ConnectionContext::fetchRequest(Message const& _rmsg) const
 {
     return rconnection_.fetchRequest(_rmsg);
 }

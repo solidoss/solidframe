@@ -166,14 +166,14 @@ public:
 struct MessageBundle {
     size_t                      message_type_id = InvalidIndex();
     MessageFlagsT               message_flags   = 0;
-    MessagePointerT<>           message_ptr;
+    SendMessagePointerT<>       message_ptr;
     MessageCompleteFunctionT    complete_fnc;
     OptionalMessageRelayHeaderT message_relay_header_;
 
     MessageBundle() = default;
 
     MessageBundle(
-        MessagePointerT<>&&           _rmsgptr,
+        SendMessagePointerT<>&&       _rmsgptr,
         const size_t                  _msg_type_idx,
         const MessageFlagsT&          _flags,
         MessageCompleteFunctionT&     _complete_fnc,
@@ -187,7 +187,7 @@ struct MessageBundle {
     }
 
     MessageBundle(
-        MessagePointerT<>&&                _rmsgptr,
+        SendMessagePointerT<>&&            _rmsgptr,
         const size_t                       _msg_type_idx,
         const MessageFlagsT&               _flags,
         MessageCompleteFunctionT&          _complete_fnc,
@@ -201,7 +201,7 @@ struct MessageBundle {
     }
 
     MessageBundle(
-        MessagePointerT<>&&       _rmsgptr,
+        SendMessagePointerT<>&&   _rmsgptr,
         const size_t              _msg_type_idx,
         const MessageFlagsT&      _flags,
         MessageCompleteFunctionT& _complete_fnc)

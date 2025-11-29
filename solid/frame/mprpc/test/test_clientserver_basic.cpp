@@ -153,7 +153,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
-using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+using SendMessagePointerT = solid::frame::mprpc::SendMessagePointerT<Message>;
+using RecvMessagePointerT = solid::frame::mprpc::RecvMessagePointerT<Message>;
 
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
@@ -188,7 +189,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " " << crtbackidx << " " << writecount);
@@ -223,7 +224,7 @@ void client_complete_message(
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
     if (_rrecv_msg_ptr) {
@@ -241,7 +242,7 @@ void server_complete_message(
 
         solid_check(_rctx.recipientId().isValidConnection(), "Connection id should not be invalid!");
 
-        ErrorConditionT err = use_context_on_response ? _rctx.service().sendResponse(_rctx, _rrecv_msg_ptr) : _rctx.service().sendResponse(_rctx.recipientId(), _rrecv_msg_ptr);
+        ErrorConditionT err = use_context_on_response ? _rctx.service().sendResponse(_rctx, std::move(_rrecv_msg_ptr)) : _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
         solid_check(!err, "Connection id should not be invalid: " << err.message());
 

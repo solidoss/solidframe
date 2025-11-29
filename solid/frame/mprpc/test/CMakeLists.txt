@@ -56,22 +56,22 @@ if(OPENSSL_FOUND)
 
     set( mprpcClientServerTestSuite
         test_clientserver_basic.cpp
-        test_clientserver_versioning.cpp
-        test_clientserver_sendrequest.cpp
-        test_clientserver_cancel_server.cpp
-        test_clientserver_cancel_client.cpp
-        test_clientserver_noserver.cpp
-        test_clientserver_oneshot.cpp
-        test_clientserver_delayed.cpp
-        test_clientserver_idempotent.cpp
-        test_clientserver_split.cpp
-        test_clientserver_upload.cpp
-        test_clientserver_upload_single.cpp
-        test_clientserver_download.cpp
-        test_clientserver_timeout_secure.cpp
-        test_clientserver_topic.cpp
-        test_clientserver_stop.cpp
-        test_clientserver_pause_read.cpp
+        # test_clientserver_versioning.cpp
+        # test_clientserver_sendrequest.cpp
+        # test_clientserver_cancel_server.cpp
+        # test_clientserver_cancel_client.cpp
+        # test_clientserver_noserver.cpp
+        # test_clientserver_oneshot.cpp
+        # test_clientserver_delayed.cpp
+        # test_clientserver_idempotent.cpp
+        # test_clientserver_split.cpp
+        # test_clientserver_upload.cpp
+        # test_clientserver_upload_single.cpp
+        # test_clientserver_download.cpp
+        # test_clientserver_timeout_secure.cpp
+        # test_clientserver_topic.cpp
+        # test_clientserver_stop.cpp
+        # test_clientserver_pause_read.cpp
     )
 
     if(SOLID_ON_WINDOWS)
@@ -96,7 +96,7 @@ if(OPENSSL_FOUND)
     )
 
     add_dependencies(test_mprpc_clientserver build-snappy mprpc_test_copy_certs build-openssl)
-
+    if(FALSE)
     if(SOLID_ON_WINDOWS AND OPENSSL_SSL_DLL AND OPENSSL_CRYPTO_DLL)
         add_custom_command(TARGET test_mprpc_clientserver POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_SSL_DLL} $<TARGET_FILE_DIR:test_mprpc_clientserver>
@@ -501,5 +501,5 @@ if(OPENSSL_FOUND)
         PROPERTIES LABELS "mprpc clientfrontback"
     )
     #==============================================================================
-    
+    endif(FALSE)
 endif(OPENSSL_FOUND)

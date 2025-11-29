@@ -372,15 +372,18 @@ private:
 };
 
 template <class Msg = Message>
-using MessagePointerT = IntrusivePtr<Msg>;
+using RecvMessagePointerT = MutableIntrusivePtr<Msg>;
+
+template <class Msg = Message>
+using SendMessagePointerT = ConstIntrusivePtr<Msg>;
 
 template <class Msg, class... Args>
-MessagePointerT<Msg> make_message(Args&&... _args)
+auto make_message(Args&&... _args)
 {
-    return make_intrusive<Msg>(std::forward<Args>(_args)...);
+    return make_mutable_intrusive<Msg>(std::forward<Args>(_args)...);
 }
 
 using MessageCompleteFunctionT = solid_function_t(void(
-    ConnectionContext&, MessagePointerT<>&, MessagePointerT<>&, ErrorConditionT const&));
+    ConnectionContext&, SendMessagePointerT<>&, RecvMessagePointerT<>&, ErrorConditionT const&));
 
 } // namespace solid::frame::mprpc

@@ -190,7 +190,7 @@ public:
 
     void cancel(MessageId const& _rmsguid, MessageWriterSender& _rsender, const bool _force = false);
 
-    [[nodiscard]] MessagePointerT<> fetchRequest(MessageId const& _rmsguid) const;
+    [[nodiscard]] SendMessagePointerT<> fetchRequest(MessageId const& _rmsguid) const;
 
     ResponseStateE checkResponseState(MessageId const& _rmsguid, MessageId& _rrelay_id, const bool _erase_request);
 
