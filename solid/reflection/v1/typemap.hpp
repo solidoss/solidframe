@@ -21,6 +21,7 @@
 #include "solid/system/cassert.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/utility/common.hpp"
+#include "solid/utility/typetraits.hpp"
 
 namespace solid {
 namespace reflection {
@@ -46,17 +47,11 @@ protected:
     using ReverseCastFunctionT = std::function<const void*(const void*)>;
 
     struct CastStub {
-        template <class SF, class UF, class IF, class RF>
-        CastStub(SF _sf, UF _uf, IF _if, RF _rf)
-            : shared_fnc_(_sf)
-            , unique_fnc_(_uf)
-            , intrusive_fnc_(_if)
-            , reverse_fnc_(_rf)
-        {
-        }
         CastFunctionT        shared_fnc_;
         CastFunctionT        unique_fnc_;
         CastFunctionT        intrusive_fnc_;
+        CastFunctionT        const_intrusive_fnc_;
+        CastFunctionT        mutable_intrusive_fnc_;
         ReverseCastFunctionT reverse_fnc_;
     };
     using TypeIndexPairT = std::pair<std::type_index, std::type_index>;
@@ -76,6 +71,8 @@ protected:
         CreateFunctionT  create_shared_fnc_;
         CreateFunctionT  create_unique_fnc_;
         CreateFunctionT  create_intrusive_fnc_;
+        CreateFunctionT  create_const_intrusive_fnc_;
+        CreateFunctionT  create_mutable_intrusive_fnc_;
     };
     using ReflectorVectorT = std::vector<ReflectorStub>;
     struct TypeStub {
@@ -320,7 +317,7 @@ public:
     {
         const size_t reflector_index = reflectorIndex<Reflector>();
         solid_assert(reflector_index != solid::InvalidIndex());
-        static_assert(solid::is_shared_ptr_v<Ptr> || solid::is_unique_ptr_v<Ptr> || solid::is_intrusive_ptr_v<Ptr>);
+        static_assert(solid::is_shared_ptr_v<Ptr> || solid::is_unique_ptr_v<Ptr> || solid::is_intrusive_ptr_v<Ptr> || solid::is_const_intrusive_ptr_v<Ptr> || solid::is_mutable_intrusive_ptr_v<Ptr>);
 
         solid_assert(_category < category_vec_.size());
         _rptr.reset();
@@ -347,8 +344,13 @@ public:
             } else if constexpr (solid::is_unique_ptr_v<Ptr>) { // unique_ptr
                 static_assert(std::is_same_v<Ptr, std::unique_ptr<typename Ptr::element_type>>, "Only unique with default deleter is supported");
                 rtypestub.reflector_vec_[reflector_index].create_unique_fnc_(&_rctx, &_rptr, rcaststub.unique_fnc_);
-            } else {
+            } else if constexpr (solid::is_intrusive_ptr_v<Ptr>) {
                 rtypestub.reflector_vec_[reflector_index].create_intrusive_fnc_(&_rctx, &_rptr, rcaststub.intrusive_fnc_);
+            } else if constexpr (solid::is_const_intrusive_ptr_v<Ptr>) {
+                rtypestub.reflector_vec_[reflector_index].create_const_intrusive_fnc_(&_rctx, &_rptr, rcaststub.const_intrusive_fnc_);
+            } else {
+                static_assert(solid::is_mutable_intrusive_ptr_v<Ptr>);
+                rtypestub.reflector_vec_[reflector_index].create_mutable_intrusive_fnc_(&_rctx, &_rptr, rcaststub.mutable_intrusive_fnc_);
             }
 
             rtypestub.reflector_vec_[reflector_index].reflect_fnc_(&_rreflector, _rptr.get(), &_rctx, rcaststub.reverse_fnc_);
@@ -516,6 +518,24 @@ private:
             }
         };
 
+        type_vec_[_type_index].reflector_vec_[_index].create_const_intrusive_fnc_ = [=](void* _pctx, void* _pptr, const CastFunctionT& _cast) {
+            if constexpr (std::is_base_of_v<solid::IntrusiveThreadSafeBase, T>) {
+                typename Ref::ContextT&     rctx = *reinterpret_cast<typename Ref::ContextT*>(_pctx);
+                solid::ConstIntrusivePtr<T> ptr;
+                _create_f(rctx, ptr);
+                _cast(_pptr, &ptr);
+            }
+        };
+
+        type_vec_[_type_index].reflector_vec_[_index].create_mutable_intrusive_fnc_ = [=](void* _pctx, void* _pptr, const CastFunctionT& _cast) {
+            if constexpr (std::is_base_of_v<solid::IntrusiveThreadSafeBase, T>) {
+                typename Ref::ContextT&       rctx = *reinterpret_cast<typename Ref::ContextT*>(_pctx);
+                solid::MutableIntrusivePtr<T> ptr;
+                _create_f(rctx, ptr);
+                _cast(_pptr, &ptr);
+            }
+        };
+
         if constexpr (!is_empty_pack<Rem...>::value) {
             doInitTypeReflect<CreateF, T, Rem...>(_create_f, _type_index, _index + 1);
         }
@@ -530,7 +550,8 @@ private:
         const size_t          _base_cast_index = 0)
     {
         solid_check(type_index_map_.find(std::type_index(typeid(T))) == type_index_map_.end(), "Type " << typeid(T).name() << " already registered");
-        const size_t index                          = type_vec_.size();
+        const size_t index = type_vec_.size();
+
         type_index_map_[std::type_index(typeid(T))] = std::make_tuple(index, _category, _id);
         if (category_vec_.size() <= _category) {
             category_vec_.resize(_category + 1);
@@ -558,7 +579,6 @@ private:
 
         const size_t cast_index                                                           = cast_vec_.size();
         cast_map_[std::make_pair(std::type_index(typeid(T)), std::type_index(typeid(B)))] = cast_index;
-
         cast_vec_.emplace_back(
             [](void* _pto, void* _pfrom) {
                 std::shared_ptr<B>& rto   = *reinterpret_cast<std::shared_ptr<B>*>(_pto);
@@ -572,9 +592,26 @@ private:
             },
             [](void* _pto, void* _pfrom) {
                 if constexpr (std::is_base_of_v<solid::IntrusiveThreadSafeBase, T> && std::is_base_of_v<solid::IntrusiveThreadSafeBase, B>) {
+
                     solid::IntrusivePtr<B>& rto   = *reinterpret_cast<solid::IntrusivePtr<B>*>(_pto);
                     solid::IntrusivePtr<T>& rfrom = *reinterpret_cast<solid::IntrusivePtr<T>*>(_pfrom);
                     rto                           = std::move(rfrom);
+                }
+            },
+            [](void* _pto, void* _pfrom) {
+                if constexpr (std::is_base_of_v<solid::IntrusiveThreadSafeBase, T> && std::is_base_of_v<solid::IntrusiveThreadSafeBase, B>) {
+
+                    solid::ConstIntrusivePtr<B>& rto   = *reinterpret_cast<solid::ConstIntrusivePtr<B>*>(_pto);
+                    solid::ConstIntrusivePtr<T>& rfrom = *reinterpret_cast<solid::ConstIntrusivePtr<T>*>(_pfrom);
+                    rto                                = std::move(rfrom);
+                }
+            },
+            [](void* _pto, void* _pfrom) {
+                if constexpr (std::is_base_of_v<solid::IntrusiveThreadSafeBase, T> && std::is_base_of_v<solid::IntrusiveThreadSafeBase, B>) {
+
+                    solid::MutableIntrusivePtr<B>& rto   = *reinterpret_cast<solid::MutableIntrusivePtr<B>*>(_pto);
+                    solid::MutableIntrusivePtr<T>& rfrom = *reinterpret_cast<solid::MutableIntrusivePtr<T>*>(_pfrom);
+                    rto                                  = std::move(rfrom);
                 }
             },
             [](const void* _pfrom) {
