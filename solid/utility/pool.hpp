@@ -68,6 +68,7 @@ protected:
             auto& entry = lock_free_data_.entries_[i];
             if (entry.ptr_) {
                 entry.ptr_->ppool_ = nullptr;
+                entry.ptr_.reset();
             }
         }
     }
