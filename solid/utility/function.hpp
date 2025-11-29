@@ -340,7 +340,7 @@ public:
         switch (fnc_impl::representation(rtti)) {
         [[likely]] case fnc_impl::RepresentationE::Small:
             if (auto* pf = Small::RTTI_T::get(rtti).pdestroy_fnc_) {
-                (*pf)(&storage_.small_.data_);
+                (*pf)(storage_.small_.data_);
             }
             break;
         case fnc_impl::RepresentationE::Big:
@@ -401,7 +401,7 @@ public:
         switch (fnc_impl::representation(rtti)) {
         [[likely]] case fnc_impl::RepresentationE::Small:
             if (auto* pfnc = Small::RTTI_T::get(rtti).pdestroy_fnc_) {
-                (*pfnc)(&storage_.small_.data_);
+                (*pfnc)(storage_.small_.data_);
             }
             break;
         case fnc_impl::RepresentationE::Big:
@@ -419,9 +419,9 @@ public:
     {
         auto const rtti = storage_.rtti_;
         if (auto const repr = fnc_impl::representation(rtti); repr == fnc_impl::RepresentationE::Small) [[likely]] {
-            return Small::RTTI_T::get(rtti).invoke_fnc_(&storage_.small_.data_, static_cast<ArgTypes&&>(_args)...);
+            return Small::RTTI_T::get(rtti).invoke_fnc_(storage_.small_.data_, static_cast<ArgTypes&&>(_args)...);
         } else if (repr == fnc_impl::RepresentationE::Big) {
-            return Big::RTTI_T::get(rtti).invoke_fnc_(&storage_.big_.ptr_, static_cast<ArgTypes&&>(_args)...);
+            return Big::RTTI_T::get(rtti).invoke_fnc_(storage_.big_.ptr_, static_cast<ArgTypes&&>(_args)...);
         } else {
             throw std::bad_function_call();
         }
