@@ -140,5 +140,16 @@ int test_intrusiveptr(int argc, char* argvp[])
         solid_check(!p1);
     }
 
+    {
+        auto l = [](ConstIntrusivePtr<Test> const& ptr) {
+            solid_check(ptr.useCount() == 1);
+        };
+
+        l(make_mutable_intrusive<Test>("ceva", 10));
+
+        auto ptr = make_mutable_intrusive<Test>("ceva", 10);
+        l(std::move(ptr));
+    }
+
     return 0;
 }

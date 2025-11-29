@@ -725,12 +725,14 @@ inline MutableIntrusivePtr<T1> dynamic_pointer_cast(MutableIntrusivePtr<T2>&& _r
 template <class T1, class T2>
 inline ConstIntrusivePtr<T1> static_pointer_cast(const ConstIntrusivePtr<T2>& _rp) noexcept
 {
-    return ConstIntrusivePtr<T1>(static_cast<T1*>(_rp.get()), std::true_type{});
+    auto* pt = const_cast<T2*>(_rp.get());
+    return ConstIntrusivePtr<T1>(static_cast<T1*>(pt), std::true_type{});
 }
 template <class T1, class T2>
 inline ConstIntrusivePtr<T1> dynamic_pointer_cast(const ConstIntrusivePtr<T2>& _rp) noexcept
 {
-    return ConstIntrusivePtr<T1>(dynamic_cast<T1*>(_rp.get()), std::true_type{});
+    auto* pt = const_cast<T2*>(_rp.get());
+    return ConstIntrusivePtr<T1>(dynamic_cast<T1*>(pt), std::true_type{});
 }
 
 template <class T1, class T2>
@@ -742,7 +744,7 @@ inline ConstIntrusivePtr<T1> static_pointer_cast(ConstIntrusivePtr<T2>&& _rp) no
 template <class T1, class T2>
 inline ConstIntrusivePtr<T1> dynamic_pointer_cast(ConstIntrusivePtr<T2>&& _rp) noexcept
 {
-    auto* pt = dynamic_cast<T1*>(_rp.get());
+    auto* pt = dynamic_cast<T1*>(const_cast<T2*>(_rp.get()));
     if (pt) {
         _rp.detach();
         return ConstIntrusivePtr<T1>(pt);
