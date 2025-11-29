@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <cassert>
 #include <cstdint>
 #include <functional>
 #include <limits>
@@ -9,24 +10,24 @@
 #include "solid/system/common.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/system/pimpl.hpp"
+#include "solid/system/spinlock.hpp"
 #include "solid/utility/common.hpp"
 
 namespace solid {
 
-class BufferManager;
-
 namespace impl {
 
-struct SharedBufferData {
+class BufferPoolBase;
+
+struct alignas(hardware_destructive_interference_size) SharedBufferData {
     friend class BufferManager;
 
     std::atomic<std::size_t> use_count_;
-    std::uint64_t            make_thread_id_ = InvalidIndex{};
-    // SharedBufferData*        pnext_          = nullptr;//TODO:remove
-    std::size_t size_     = 0;
-    std::size_t capacity_ = 0;
-    char*       buffer_   = nullptr;
-    char        data_[8];
+    BufferPoolBase*          ppool_    = nullptr;
+    std::size_t              size_     = 0;
+    std::size_t              capacity_ = 0;
+    char*                    buffer_   = nullptr;
+    char                     data_[8];
 
     SharedBufferData()
         : use_count_(1)
@@ -45,7 +46,11 @@ struct SharedBufferData {
         return *this;
     }
 
-    char* release(size_t& _previous_use_count);
+    bool release()
+    {
+        return use_count_.fetch_sub(1) == 1;
+    }
+
     char* collapse(size_t& _previous_use_count);
 
     char* data()
@@ -53,13 +58,10 @@ struct SharedBufferData {
         return data_;
     }
 
-    void reset(size_t const _cap, uint64_t const _own_id)
+    void reset()
     {
         use_count_.store(1);
         size_ = 0;
-        // pnext_          = nullptr;//TODO:remove
-        capacity_       = _cap;
-        make_thread_id_ = _own_id;
     }
 };
 
@@ -68,12 +70,13 @@ protected:
     friend class BufferManager;
 
     static inline SharedBufferData sentinel{};
-    static SharedBufferData*       allocate_data(std::size_t _cap);
+
+    static SharedBufferData* allocate_data(std::size_t _cap);
 
     SharedBufferData* pdata_;
 
-    SharedBufferBase()
-        : pdata_(&sentinel)
+    SharedBufferBase(SharedBufferData* _pdata = &sentinel)
+        : pdata_(_pdata)
     {
     }
 
@@ -81,8 +84,6 @@ protected:
         : pdata_(allocate_data(_cap))
     {
     }
-
-    SharedBufferBase(std::size_t _cap, bool);
 
     SharedBufferBase(const SharedBufferBase& _other)
         : pdata_(_other ? &_other.pdata_->acquire() : _other.pdata_)
@@ -142,13 +143,6 @@ public:
         return pdata_->capacity_;
     }
 
-    [[nodiscard]] std::size_t actualCapacity() const;
-
-    [[nodiscard]] auto makerThreadId() const
-    {
-        return pdata_->make_thread_id_;
-    }
-
     [[nodiscard]] bool empty() const
     {
         return pdata_->size_ == 0;
@@ -159,16 +153,7 @@ public:
         return pdata_->use_count_.load();
     }
 
-    size_t reset()
-    {
-        size_t previous_use_count = 0;
-        if (*this) {
-            auto* buf = pdata_->release(previous_use_count);
-            delete[] buf;
-            pdata_ = &sentinel;
-        }
-        return previous_use_count;
-    }
+    void reset();
 };
 
 } // namespace impl
@@ -180,16 +165,11 @@ class MutableSharedBuffer;
 //-----------------------------------------------------------------------------
 
 class SharedBuffer : public impl::SharedBufferBase {
-    friend class BufferPool;
+    friend class impl::BufferPoolBase;
     friend SharedBuffer make_shared_buffer(std::size_t);
 
     SharedBuffer(const std::size_t _cap)
         : SharedBufferBase(_cap)
-    {
-    }
-
-    SharedBuffer(const std::size_t _cap, bool)
-        : SharedBufferBase(_cap, true)
     {
     }
 
@@ -241,6 +221,11 @@ public:
     }
 
     SharedBuffer& operator=(MutableSharedBuffer&& _other);
+
+    void reset()
+    {
+        impl::SharedBufferBase::reset();
+    }
 };
 
 inline SharedBuffer make_shared_buffer(const std::size_t _cap)
@@ -263,12 +248,6 @@ class SharedBufferView : protected impl::SharedBufferBase {
 protected:
     SharedBufferView(size_t const _cap)
         : SharedBufferBase(_cap)
-        , data_(impl::SharedBufferBase::data())
-    {
-    }
-
-    SharedBufferView(const std::size_t _cap, bool)
-        : SharedBufferBase(_cap, true)
         , data_(impl::SharedBufferBase::data())
     {
     }
@@ -354,7 +333,8 @@ class ConstSharedBuffer;
 class MutableSharedBuffer : protected impl::SharedBufferBase {
     friend class ConstSharedBuffer;
     friend class SharedBuffer;
-    friend class BufferPool;
+    friend class impl::BufferPoolBase;
+    friend class impl::SharedBufferBase;
     friend class SharedBufferView;
 
     friend MutableSharedBuffer make_mutable_buffer(std::size_t);
@@ -364,8 +344,8 @@ class MutableSharedBuffer : protected impl::SharedBufferBase {
     {
     }
 
-    MutableSharedBuffer(const std::size_t _cap, bool)
-        : impl::SharedBufferBase(_cap, true)
+    MutableSharedBuffer(impl::SharedBufferBase&& _other)
+        : impl::SharedBufferBase(std::move(_other))
     {
     }
 
@@ -406,7 +386,7 @@ public:
         return impl::SharedBufferBase::useCount();
     }
 
-    char* mdata()
+    [[nodiscard]] char* mdata() const
     {
         return impl::SharedBufferBase::data() + size();
     }
@@ -420,6 +400,11 @@ public:
     {
         solid_check(_size <= msize());
         pdata_->size_ += _size;
+    }
+
+    void clear()
+    {
+        pdata_->size_ = 0;
     }
 
     [[nodiscard]] size_t capacity() const
@@ -450,6 +435,11 @@ public:
         }
         solid_check((_offset + _size) <= size());
         return {*this, _offset, _size};
+    }
+
+    void reset()
+    {
+        impl::SharedBufferBase::reset();
     }
 };
 
@@ -638,144 +628,221 @@ inline SharedBuffer::SharedBuffer(MutableSharedBuffer&& _other)
 {
 }
 
-#if 0
 //-----------------------------------------------------------------------------
-// BufferManager
+// BufferPool
 //-----------------------------------------------------------------------------
 
-class BufferManager : NonCopyable {
-    friend class impl::SharedBufferData;
-    friend class impl::SharedBufferBase;
-    struct Data;
-    PimplT<Data> pimpl_;
+struct BufferPoolDefaultConfiguration {
+    static constexpr size_t capacity_count = 11;
 
-    using DataT = impl::SharedBufferData;
+    using IndexT = uint32_t;
 
-    static char*  release(DataT* _pdata);
-    static DataT* allocate(size_t _cap);
+    static constexpr std::array<size_t, capacity_count> capacities{
+        1024, 2048, 4096, 8 * 1024,
+        16 * 1024, 32 * 1024, 64 * 1024, 128 * 1024, 256 * 1024, 512 * 1024, 1024 * 1024};
 
-public:
-    struct LocalData;
+    static constexpr IndexT dispatch(size_t const _requested_capacity)
+    {
+        for (uint32_t i = 0; i < capacity_count; ++i) {
+            if (_requested_capacity <= capacities[i]) {
+                return i;
+            }
+        }
+        return std::numeric_limits<IndexT>::max();
+    }
 
-    struct Configuration {
-        size_t default_local_max_count_ = 0;
+    static constexpr size_t capacity(IndexT const _index)
+    {
+        if (_index < capacity_count) {
+            return capacities[_index];
+        }
+        return 0;
+    }
+
+    static constexpr size_t count(IndexT const)
+    {
+        return 16 * 1024; // same for any buffer
+    }
+};
+
+namespace impl {
+class BufferPoolBase : NonCopyable {
+    friend class SharedBufferBase;
+
+protected:
+    struct LockFreeEntry {
+        std::atomic_flag    flag_;
+        MutableSharedBuffer buf_;
+    };
+    struct LockFreeData {
+        size_t                           count_        = 0;
+        size_t                           create_count_ = 0u;
+        std::unique_ptr<LockFreeEntry[]> entries_;
+        size_t                           pop_index_                                           = 0;
+        alignas(solid::hardware_destructive_interference_size) std::atomic_size_t push_index_ = 0;
     };
 
-    static BufferManager& instance(const Configuration* _pconfig = nullptr);
+    std::unique_ptr<LockFreeData[]> data_entries_;
+    std::atomic_size_t              await_return_count_ = 0u;
+    std::atomic_flag                is_stopping_{};
+    std::atomic_flag                can_destroy_{};
 
-    static SharedBuffer make(const size_t _cap)
+    virtual ~BufferPoolBase() = default;
+
+    bool isFull()
     {
-        return SharedBuffer{_cap, std::this_thread::get_id()};
+        return await_return_count_ == 0u;
     }
 
-    static MutableSharedBuffer make_mutable(const size_t _cap)
+    [[nodiscard]] virtual size_t getIndex(size_t) const = 0;
+
+    void setPool(MutableSharedBuffer& _rbuf)
     {
-        return MutableSharedBuffer{make(_cap)};
+        assert(_rbuf);
+        _rbuf.pdata_->ppool_ = this;
+    }
+    void resetPool(MutableSharedBuffer& _rbuf)
+    {
+        assert(_rbuf);
+        _rbuf.pdata_->ppool_ = nullptr;
     }
 
-    static void   localMaxCount(size_t _cap, size_t _count);
-    static size_t localMaxCount(size_t _cap);
-    static size_t localCount(size_t _cap);
+    [[nodiscard]] size_t createCount(size_t const _data_index) const
+    {
+        auto& data_entry = data_entries_[_data_index];
+        return data_entry.create_count_;
+    }
 
-    static const Configuration& configuration();
+    void incrementCreateCount(size_t const _data_index)
+    {
+        auto& data_entry = data_entries_[_data_index];
+        ++data_entry.create_count_;
+    }
 
-private:
-    BufferManager(const Configuration& _config);
-    ~BufferManager();
+    [[nodiscard]] MutableSharedBuffer pop(size_t const _data_index)
+    {
+        MutableSharedBuffer buf;
+        auto&               data_entry = data_entries_[_data_index];
+
+        auto const index  = data_entry.pop_index_;
+        auto&      rentry = data_entry.entries_[index % data_entry.count_];
+
+        if (rentry.flag_.test(std::memory_order_acquire)) {
+            assert(rentry.buf_);
+            buf = std::move(rentry.buf_);
+            assert(not rentry.buf_);
+            rentry.flag_.clear(std::memory_order_release);
+            ++data_entry.pop_index_;
+        }
+        return buf;
+    }
+
+    void push(MutableSharedBuffer&& _buf)
+    {
+        if (not _buf) {
+            return;
+        }
+
+        auto const data_index = getIndex(_buf.capacity());
+        auto&      data_entry = data_entries_[data_index];
+        {
+            auto const index  = data_entry.push_index_.fetch_add(1, std::memory_order_relaxed);
+            auto&      rentry = data_entry.entries_[index % data_entry.count_];
+
+            while (rentry.flag_.test(std::memory_order_acquire)) {
+                cpu_pause();
+            }
+            assert(not rentry.buf_);
+            rentry.buf_ = std::move(_buf);
+            rentry.flag_.test_and_set(std::memory_order_release);
+        }
+        if (await_return_count_.fetch_sub(1, std::memory_order_relaxed) == 1u and is_stopping_.test()) {
+            can_destroy_.notify_one();
+        }
+    }
 };
-#endif
+} // namespace impl
 
-#if 1
-class BufferPool : NonCopyable {
-    friend struct impl::SharedBufferData;
-    friend class impl::SharedBufferBase;
-    struct LocalData;
-    struct OwnData;
-    struct Data;
-    PimplT<Data> pimpl_;
+template <typename Config = BufferPoolDefaultConfiguration>
+class BufferPool final : protected impl::BufferPoolBase {
+    using ThisT = BufferPool<Config>;
+    Config const config_;
+    BufferPool(Config const& _config)
+        : config_(_config)
+    {
+        data_entries_.reset(new LockFreeData[config_.capacity_count]);
+        for (size_t i = 0; i < config_.capacity_count; ++i) {
+            auto& data_entry  = data_entries_[i];
+            data_entry.count_ = config_.count(i);
+            data_entry.entries_.reset(new LockFreeEntry[data_entry.count_]);
+        }
+    }
 
-    using DataT = impl::SharedBufferData;
+    auto capacity(size_t const _capacity) const
+    {
+        auto const idx = config_.dispatch(_capacity);
+        if (idx != std::numeric_limits<decltype(idx)>::max()) {
+            return config_.capacity(idx);
+        }
+        return _capacity;
+    }
 
-    static char*  release(DataT&);
-    static DataT* allocate(size_t _cap, uint64_t& _rown_id, size_t& _ralloc_capacity);
+    [[nodiscard]] size_t getIndex(size_t _capacity) const override
+    {
+        auto const idx = config_.dispatch(_capacity);
+        assert(idx != std::numeric_limits<decltype(idx)>::max());
+        return idx;
+    }
 
-public:
-    struct Configuration {
-        using CapacityDispatchFncT = std::function<std::pair<size_t, size_t>(size_t)>;
+    ~BufferPool()
+    {
+        is_stopping_.test_and_set();
+        while (not isFull()) {
+            can_destroy_.wait(false);
+        }
 
-        size_t const   cache_vector_capacity_  = 256;
-        size_t const   capacity_count_         = 12;
-        uint32_t const max_thread_count_       = 1024;
-        uint32_t const thread_spin_lock_count_ = 1024;
-
-        CapacityDispatchFncT capacity_dispatch_fnc_{
-            [](size_t const _requested_capacity) -> std::pair<size_t, size_t> {
-                if (_requested_capacity <= 64) {
-                    return {0, 64};
-                } else if (_requested_capacity <= 128) {
-                    return {1, 128};
-                } else if (_requested_capacity <= 256) {
-                    return {2, 256};
-                } else if (_requested_capacity <= 512) {
-                    return {3, 512};
-                } else if (_requested_capacity <= 1024) {
-                    return {4, 1024};
-                } else if (_requested_capacity <= 2048) {
-                    return {5, 2048};
-                } else if (_requested_capacity <= 4096) {
-                    return {6, 4096};
-                } else if (_requested_capacity <= (8 * 1024)) {
-                    return {7, (8 * 1024)};
-                } else if (_requested_capacity <= (16 * 1024)) {
-                    return {8, (16 * 1024)};
-                } else if (_requested_capacity <= (32 * 1024)) {
-                    return {9, (32 * 1024)};
-                } else if (_requested_capacity <= (64 * 1024)) {
-                    return {10, (64 * 1024)};
-                } else if (_requested_capacity <= (128 * 1024)) {
-                    return {11, (128 * 1024)};
-                } else if (_requested_capacity <= (256 * 1024)) {
-                    return {12, (256 * 1024)};
+        for (size_t i = 0; i < config_.capacity_count; ++i) {
+            auto& data_entry = data_entries_[i];
+            for (size_t j = 0; j < data_entry.count_; ++j) {
+                auto& entry = data_entry.entries_[j];
+                if (entry.buf_) {
+                    resetPool(entry.buf_);
+                    entry.buf_.reset();
                 }
-                return {0, 0};
-            }};
-    };
-
-    static BufferPool& instance(Configuration const& _rconfig)
-    {
-        return do_instance(_rconfig);
-    }
-    static BufferPool& instance()
-    {
-        static Configuration const config;
-        return do_instance(config);
+            }
+        }
     }
 
-    static SharedBuffer make(const size_t _cap)
+public:
+    static auto& get(Config const& _config = {})
     {
-        return SharedBuffer{_cap, true};
+        static thread_local ThisT ins{_config};
+        return ins;
     }
-
-    static MutableSharedBuffer make_mutable(const size_t _cap)
+    static MutableSharedBuffer create(const size_t _capacity)
     {
-        return MutableSharedBuffer{make(_cap)};
+        auto&      rthis = get();
+        auto const idx   = rthis.config_.dispatch(_capacity);
+
+        if (idx != std::numeric_limits<decltype(idx)>::max()) {
+            auto buf = rthis.pop(idx);
+            if (buf) {
+                buf.clear();
+                ++rthis.await_return_count_;
+                return buf;
+            } else {
+                if (rthis.createCount(idx) < rthis.config_.count(idx)) {
+                    rthis.incrementCreateCount(idx);
+                    buf = make_mutable_buffer(rthis.config_.capacity(idx));
+                    rthis.setPool(buf);
+                    ++rthis.await_return_count_;
+                    return buf;
+                }
+            }
+        }
+
+        return make_mutable_buffer(_capacity);
     }
-
-    static void   localMaxCount(size_t _cap, size_t _count);
-    static size_t localMaxCount(size_t _cap);
-    static size_t localCount(size_t _cap);
-
-    static const Configuration& configuration();
-
-private:
-    BufferPool(const Configuration& _config);
-    ~BufferPool();
-
-    static BufferPool& do_instance(Configuration const&);
-
-    static Data&      data();
-    static LocalData& local_data();
 };
-#endif
 
 } // namespace solid
