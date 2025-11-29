@@ -6,6 +6,7 @@
 #include <functional>
 #include <limits>
 #include <thread>
+#include <type_traits>
 
 #include "solid/system/common.hpp"
 #include "solid/system/exception.hpp"
@@ -633,9 +634,9 @@ inline SharedBuffer::SharedBuffer(MutableSharedBuffer&& _other)
 //-----------------------------------------------------------------------------
 
 struct BufferPoolDefaultConfiguration {
-    static constexpr size_t capacity_count = 11;
-
     using IndexT = uint32_t;
+
+    static constexpr IndexT capacity_count = 11;
 
     static constexpr std::array<size_t, capacity_count> capacities{
         1024, 2048, 4096, 8 * 1024,
@@ -771,7 +772,8 @@ class BufferPool final : protected impl::BufferPoolBase {
         : config_(_config)
     {
         data_entries_.reset(new LockFreeData[config_.capacity_count]);
-        for (size_t i = 0; i < config_.capacity_count; ++i) {
+        using IndexT = std::decay_t<decltype(config_.capacity_count)>;
+        for (IndexT i = 0; i < config_.capacity_count; ++i) {
             auto& data_entry  = data_entries_[i];
             data_entry.count_ = config_.count(i);
             data_entry.entries_.reset(new LockFreeEntry[data_entry.count_]);
