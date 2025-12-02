@@ -76,7 +76,7 @@ struct CompleteHandler {
         RecvMessagePointerT<>& _rres_msg_ptr,
         ErrorConditionT const& _err)
     {
-        SendMessagePointerT<Req> req_msg_ptr(solid::dynamic_pointer_cast<Req>(_rreq_msg_ptr));
+        SendMessagePointerT<Req> req_msg_ptr(solid::dynamic_pointer_cast<Req>(std::move(_rreq_msg_ptr)));
         RecvMessagePointerT<Res> res_msg_ptr(solid::dynamic_pointer_cast<Res>(std::move(_rres_msg_ptr)));
         ErrorConditionT          error(_err);
 

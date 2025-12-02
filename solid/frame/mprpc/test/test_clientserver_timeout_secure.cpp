@@ -96,8 +96,8 @@ void server_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 }
 
 void server_complete_message(
-    frame::mprpc::ConnectionContext&         _rctx,
-    frame::mprpc::MessagePointerT<Activate>& _rsent_msg_ptr, frame::mprpc::MessagePointerT<Activate>& _rrecv_msg_ptr,
+    frame::mprpc::ConnectionContext&             _rctx,
+    frame::mprpc::SendMessagePointerT<Activate>& _rsent_msg_ptr, frame::mprpc::RecvMessagePointerT<Activate>& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
     solid_check(false);

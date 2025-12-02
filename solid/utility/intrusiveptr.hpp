@@ -141,6 +141,11 @@ protected:
         }
     }
 
+    IntrusivePtrBase(T* _ptr, const std::false_type)
+        : ptr_(_ptr)
+    {
+    }
+
     IntrusivePtrBase(const IntrusivePtrBase& _other)
         : ptr_(_other.ptr_)
     {
@@ -647,8 +652,8 @@ private:
     {
     }
 
-    ConstIntrusivePtr(T* _ptr)
-        : BaseT(_ptr)
+    ConstIntrusivePtr(T* _ptr, std::false_type const)
+        : BaseT(_ptr, std::false_type{})
     {
     }
 };
@@ -747,7 +752,7 @@ inline ConstIntrusivePtr<T1> dynamic_pointer_cast(ConstIntrusivePtr<T2>&& _rp) n
     auto* pt = dynamic_cast<T1*>(const_cast<T2*>(_rp.get()));
     if (pt) {
         _rp.detach();
-        return ConstIntrusivePtr<T1>(pt);
+        return ConstIntrusivePtr<T1>(pt, std::false_type{});
     }
     return ConstIntrusivePtr<T1>();
 }

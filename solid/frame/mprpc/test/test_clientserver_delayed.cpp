@@ -150,7 +150,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
-using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+using SendMessagePointerT = solid::frame::mprpc::SendMessagePointerT<Message>;
+using RecvMessagePointerT = solid::frame::mprpc::RecvMessagePointerT<Message>;
 
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
@@ -177,7 +178,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -229,7 +230,7 @@ void client_complete_message(
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
     if (_rrecv_msg_ptr) {
@@ -247,7 +248,7 @@ void server_complete_message(
         if (_rctx.recipientId().isInvalidConnection()) {
             solid_throw("Connection id should not be invalid!");
         }
-        ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), _rrecv_msg_ptr);
+        ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
         solid_check(!err, "Connection id should not be invalid! " << err.message());
     }
@@ -357,24 +358,21 @@ int test_clientserver_delayed(int argc, char* argv[])
             }
         }
         {
-            MessagePointerT msgptr(frame::mprpc::make_message<Message>(0));
             err = mprpcclient.sendMessage(
-                {"localhost"}, msgptr);
+                {"localhost"}, frame::mprpc::make_message<Message>(0));
             ++writecount;
         }
 
         {
-            MessagePointerT msgptr(frame::mprpc::make_message<Message>(1));
             err = mprpcclient.sendMessage(
-                {"localhost"}, msgptr, {frame::mprpc::MessageFlagsE::OneShotSend});
+                {"localhost"}, frame::mprpc::make_message<Message>(1), {frame::mprpc::MessageFlagsE::OneShotSend});
             //++writecount;
             // this message should not be sent
         }
 
         {
-            MessagePointerT msgptr(frame::mprpc::make_message<Message>(2));
             err = mprpcclient.sendMessage(
-                {"localhost"}, msgptr, {frame::mprpc::MessageFlagsE::AwaitResponse});
+                {"localhost"}, frame::mprpc::make_message<Message>(2), {frame::mprpc::MessageFlagsE::AwaitResponse});
             ++writecount;
         }
 

@@ -180,8 +180,10 @@ struct Response : frame::mprpc::Message {
     }
 };
 
-using RequestPointerT  = solid::frame::mprpc::MessagePointerT<Request>;
-using ResponsePointerT = solid::frame::mprpc::MessagePointerT<Response>;
+using SendRequestPointerT  = solid::frame::mprpc::SendMessagePointerT<Request>;
+using RecvRequestPointerT  = solid::frame::mprpc::RecvMessagePointerT<Request>;
+using SendResponsePointerT = solid::frame::mprpc::SendMessagePointerT<Response>;
+using RecvResponsePointerT = solid::frame::mprpc::RecvMessagePointerT<Response>;
 
 template <typename T>
 auto lin_value(T _from, T _to, const size_t _index, const size_t _n)
@@ -230,22 +232,22 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_request(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT& _rsent_msg_ptr, ResponsePointerT& _rrecv_msg_ptr,
+    SendRequestPointerT& _rsent_msg_ptr, RecvResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror);
 
 void client_complete_response(
     frame::mprpc::ConnectionContext& _rctx,
-    ResponsePointerT& _rsent_msg_ptr, ResponsePointerT& _rrecv_msg_ptr,
+    SendResponsePointerT& _rsent_msg_ptr, RecvResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror);
 
 void server_complete_response(
     frame::mprpc::ConnectionContext& _rctx,
-    ResponsePointerT& _rsent_msg_ptr, ResponsePointerT& _rrecv_msg_ptr,
+    SendResponsePointerT& _rsent_msg_ptr, RecvResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/);
 
 void server_complete_request(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT& _rsent_msg_ptr, RequestPointerT& _rrecv_msg_ptr,
+    SendRequestPointerT& _rsent_msg_ptr, RecvRequestPointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/);
 
 void multicast_run(CallPoolT& _work_pool);
@@ -574,7 +576,7 @@ void multicast_run(CallPoolT& _work_pool)
 }
 void client_complete_response(
     frame::mprpc::ConnectionContext& _rctx,
-    ResponsePointerT& _rsent_msg_ptr, ResponsePointerT& _rrecv_msg_ptr,
+    SendResponsePointerT& _rsent_msg_ptr, RecvResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_check(false); // should not be called
@@ -582,7 +584,7 @@ void client_complete_response(
 
 void client_complete_request(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT& _rsent_msg_ptr, ResponsePointerT& _rrecv_msg_ptr,
+    SendRequestPointerT& _rsent_msg_ptr, RecvResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(logger, Info, _rctx.recipientId());
@@ -612,12 +614,16 @@ void client_complete_request(
     );
 #endif
 
-    _rsent_msg_ptr->time_point_ = now;
-    ++_rsent_msg_ptr->iteration_;
+    auto sent_msg_ptr = _rsent_msg_ptr.collapse();
+    solid_check(sent_msg_ptr);
+    solid_check(!_rsent_msg_ptr);
 
-    if (_rsent_msg_ptr->iteration_ < per_message_loop_count) {
-        _rsent_msg_ptr->clearHeader();
-        _rctx.service().sendMessage(client_id, std::move(_rsent_msg_ptr), {frame::mprpc::MessageFlagsE::AwaitResponse});
+    sent_msg_ptr->time_point_ = now;
+    ++sent_msg_ptr->iteration_;
+
+    if (sent_msg_ptr->iteration_ < per_message_loop_count) {
+        sent_msg_ptr->clearHeader();
+        _rctx.service().sendMessage(client_id, std::move(sent_msg_ptr), {frame::mprpc::MessageFlagsE::AwaitResponse});
         local_send_duration += (microseconds_since_epoch() - now);
         solid_statistic_inc(request_count);
     } else {
@@ -634,7 +640,7 @@ void client_complete_request(
 
 void server_complete_response(
     frame::mprpc::ConnectionContext& _rctx,
-    ResponsePointerT& _rsent_msg_ptr, ResponsePointerT& _rrecv_msg_ptr,
+    SendResponsePointerT& _rsent_msg_ptr, RecvResponsePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
     solid_check(_rsent_msg_ptr);
@@ -644,7 +650,7 @@ void server_complete_response(
 
 void server_complete_request(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT& _rsent_msg_ptr, RequestPointerT& _rrecv_msg_ptr,
+    SendRequestPointerT& _rsent_msg_ptr, RecvRequestPointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
     solid_check(_rrecv_msg_ptr);
@@ -658,14 +664,14 @@ void server_complete_request(
     reply_ptr->header(_rrecv_msg_ptr->header());
 
     auto lambda = [topic_ptr, _rrecv_msg_ptr = std::move(_rrecv_msg_ptr),
-                      &service = _rctx.service(), recipient_id = _rctx.recipientId(), reply_ptr = std::move(reply_ptr)]() {
+                      &service = _rctx.service(), recipient_id = _rctx.recipientId(), reply_ptr = std::move(reply_ptr)]() mutable {
         ++topic_ptr->value_;
 
         reply_ptr->topic_value_   = topic_ptr->value_;
         reply_ptr->topic_context_ = local_thread_pool_context_ptr->value_;
         reply_ptr->time_point_    = microseconds_since_epoch();
 
-        service.sendResponse(recipient_id, reply_ptr);
+        service.sendResponse(recipient_id, std::move(reply_ptr));
     };
 
     static_assert(CallPoolT::is_small_one_type<decltype(lambda)>(), "Type not small");

@@ -12,6 +12,7 @@
 #include "solid/frame/aio/aioreactorcontext.hpp"
 #include "solid/frame/manager.hpp"
 #include "solid/frame/mprpc/mprpcerror.hpp"
+#include "solid/frame/mprpc/mprpcmessage.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 #include "solid/utility/event.hpp"
 #include <algorithm>
@@ -1591,15 +1592,20 @@ struct ConnectionSenderResponse : ConnectionSender<Ctx> {
     {
         this->rcon_.updateContextOnCompleteMessage(this->context(), _rmsg_bundle, _rpool_msg_id, *rresponse_ptr_);
 
-        const bool must_clear_request = !rresponse_ptr_->isResponsePart(); // do not clear the request if the response is a partial one
-
+        const bool            must_clear_request = !rresponse_ptr_->isResponsePart(); // do not clear the request if the response is a partial one
+        SendMessagePointerT<> send_msg_ptr;
+        if (must_clear_request) {
+            send_msg_ptr = std::move(_rmsg_bundle.message_ptr);
+        } else {
+            send_msg_ptr = _rmsg_bundle.message_ptr;
+        }
         if (!solid_function_empty(_rmsg_bundle.complete_fnc)) {
-            solid_log(logger, Info, this);
-            _rmsg_bundle.complete_fnc(this->context(), _rmsg_bundle.message_ptr, rresponse_ptr_, this->err_);
+            solid_log(logger, Info, this << " clear_request = " << must_clear_request);
+            _rmsg_bundle.complete_fnc(this->context(), send_msg_ptr, rresponse_ptr_, this->err_);
             request_found_ = true;
-        } else if (_rmsg_bundle.message_ptr) {
-            solid_log(logger, Info, this << " " << _rmsg_bundle.message_type_id);
-            this->rproto_.complete(_rmsg_bundle.message_type_id, this->context(), _rmsg_bundle.message_ptr, rresponse_ptr_, this->err_);
+        } else if (send_msg_ptr) {
+            solid_log(logger, Info, this << " " << _rmsg_bundle.message_type_id << " clear_request = " << must_clear_request);
+            this->rproto_.complete(_rmsg_bundle.message_type_id, this->context(), send_msg_ptr, rresponse_ptr_, this->err_);
             this->request_found_ = true;
         }
 

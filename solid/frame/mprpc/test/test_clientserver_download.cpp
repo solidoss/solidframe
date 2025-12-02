@@ -49,9 +49,9 @@ promise<void>  prom;
 struct Response;
 
 struct Request : frame::mprpc::Message {
-    string   name_;
-    ofstream ofs_;
-    bool     send_request_;
+    string           name_;
+    mutable ofstream ofs_; // TODO: find a better solution
+    mutable bool     send_request_;
 
     Request(Response& _rmsg);
 
@@ -119,8 +119,10 @@ struct Response : frame::mprpc::Message {
     }
 };
 
-using RequestPointerT  = solid::frame::mprpc::MessagePointerT<Request>;
-using ResponsePointerT = solid::frame::mprpc::MessagePointerT<Response>;
+using SendRequestPointerT  = solid::frame::mprpc::SendMessagePointerT<Request>;
+using RecvRequestPointerT  = solid::frame::mprpc::RecvMessagePointerT<Request>;
+using SendResponsePointerT = solid::frame::mprpc::SendMessagePointerT<Response>;
+using RecvResponsePointerT = solid::frame::mprpc::RecvMessagePointerT<Response>;
 
 Request::Request(Response& _rmsg)
     : frame::mprpc::Message(_rmsg)
@@ -130,8 +132,8 @@ Request::Request(Response& _rmsg)
 
 void on_client_request(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT&                 _rsent_msg_ptr,
-    RequestPointerT&                 _rrecv_msg_ptr,
+    SendRequestPointerT&             _rsent_msg_ptr,
+    RecvRequestPointerT&             _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "on message");
@@ -139,8 +141,8 @@ void on_client_request(
 
 void on_client_response(
     frame::mprpc::ConnectionContext& _rctx,
-    ResponsePointerT&                _rsent_msg_ptr,
-    ResponsePointerT&                _rrecv_msg_ptr,
+    SendResponsePointerT&            _rsent_msg_ptr,
+    RecvResponsePointerT&            _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "on message");
@@ -148,20 +150,20 @@ void on_client_response(
 
 void on_client_receive_response(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT&                 _rsent_msg_ptr,
-    ResponsePointerT&                _rrecv_msg_ptr,
+    SendRequestPointerT&             _rsent_msg_ptr,
+    RecvResponsePointerT&            _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror);
 
 void on_server_receive_first_request(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT&                 _rsent_msg_ptr,
-    RequestPointerT&                 _rrecv_msg_ptr,
+    SendRequestPointerT&             _rsent_msg_ptr,
+    RecvRequestPointerT&             _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror);
 
 void on_server_response(
     frame::mprpc::ConnectionContext& _rctx,
-    ResponsePointerT&                _rsent_msg_ptr,
-    ResponsePointerT&                _rrecv_msg_ptr,
+    SendResponsePointerT&            _rsent_msg_ptr,
+    RecvResponsePointerT&            _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "on message");
@@ -324,7 +326,7 @@ int test_clientserver_download(int argc, char* argv[])
             auto msg_ptr = frame::mprpc::make_message<Request>(f);
             msg_ptr->ofs_.open(string("client_storage/") + f);
 
-            mprpc_client.sendRequest({"localhost"}, msg_ptr, on_client_receive_response);
+            mprpc_client.sendRequest({"localhost"}, std::move(msg_ptr), on_client_receive_response);
         }
 
         auto fut = prom.get_future();
@@ -436,8 +438,8 @@ void check_files(const vector<string>& _file_vec, const char* _path_prefix_clien
 
 void on_client_receive_response(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT&                 _rsent_msg_ptr,
-    ResponsePointerT&                _rrecv_msg_ptr,
+    SendRequestPointerT&             _rsent_msg_ptr,
+    RecvResponsePointerT&            _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_check(_rrecv_msg_ptr);
@@ -455,7 +457,7 @@ void on_client_receive_response(
         if (_rsent_msg_ptr->send_request_) {
             _rsent_msg_ptr->send_request_ = false;
             auto res_ptr                  = frame::mprpc::make_message<Request>(*_rrecv_msg_ptr);
-            auto err                      = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, {frame::mprpc::MessageFlagsE::Response});
+            auto err                      = _rctx.service().sendMessage(_rctx.recipientId(), std::move(res_ptr), {frame::mprpc::MessageFlagsE::Response});
             solid_log(logger, Verbose, "send response to: " << _rctx.recipientId() << " err: " << err.message());
         } else {
             _rsent_msg_ptr->send_request_ = true;
@@ -473,8 +475,8 @@ void on_client_receive_response(
 
 void on_server_receive_request(
     frame::mprpc::ConnectionContext& _rctx,
-    ResponsePointerT&                _rsent_msg_ptr,
-    RequestPointerT&                 _rrecv_msg_ptr,
+    SendResponsePointerT&            _rsent_msg_ptr,
+    RecvRequestPointerT&             _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_check(_rrecv_msg_ptr);
@@ -484,18 +486,18 @@ void on_server_receive_request(
         frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::ResponsePart, frame::mprpc::MessageFlagsE::AwaitResponse};
         _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, on_server_receive_request, flags);
         flags.reset(frame::mprpc::MessageFlagsE::AwaitResponse);
-        _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, flags);
+        _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rsent_msg_ptr), flags);
     } else {
         solid_log(logger, Verbose, "Sending to " << _rctx.recipientId() << " last");
         frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::ResponseLast};
-        _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, flags);
+        _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rsent_msg_ptr), flags);
     }
 }
 
 void on_server_receive_first_request(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT&                 _rsent_msg_ptr,
-    RequestPointerT&                 _rrecv_msg_ptr,
+    SendRequestPointerT&             _rsent_msg_ptr,
+    RecvRequestPointerT&             _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     string path = string("server_storage") + '/' + _rrecv_msg_ptr->name_;
@@ -507,17 +509,18 @@ void on_server_receive_first_request(
     solid_check(res_ptr->ifs_, "failed open file: " << path);
 
     if (!res_ptr->ifs_.eof()) {
+        SendResponsePointerT send_ptr{std::move(res_ptr)};
         solid_log(logger, Verbose, "Sending " << _rrecv_msg_ptr->name_ << " to " << _rctx.recipientId());
         frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::ResponsePart, frame::mprpc::MessageFlagsE::AwaitResponse};
-        auto                        error = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, on_server_receive_request, flags);
+        auto                        error = _rctx.service().sendMessage(_rctx.recipientId(), send_ptr, on_server_receive_request, flags);
         solid_check(!error, "failed send message: " << error.message());
         flags.reset(frame::mprpc::MessageFlagsE::AwaitResponse);
-        error = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, flags);
+        error = _rctx.service().sendMessage(_rctx.recipientId(), std::move(send_ptr), flags);
         solid_check(!error, "failed send message: " << error.message());
     } else {
         solid_log(logger, Verbose, "Sending " << _rsent_msg_ptr->name_ << " to " << _rctx.recipientId() << " last");
         frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::ResponseLast};
-        _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, flags);
+        _rctx.service().sendMessage(_rctx.recipientId(), std::move(res_ptr), flags);
     }
 }
 
