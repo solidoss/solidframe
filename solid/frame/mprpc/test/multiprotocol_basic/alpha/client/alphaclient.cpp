@@ -25,17 +25,17 @@ void client_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 template <class M>
 void complete_message(
-    frame::mprpc::ConnectionContext&  _rctx,
-    frame::mprpc::MessagePointerT<M>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<M>& _rrecv_msg_ptr,
-    ErrorConditionT const&            _rerror);
+    frame::mprpc::ConnectionContext&      _rctx,
+    frame::mprpc::SendMessagePointerT<M>& _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<M>& _rrecv_msg_ptr,
+    ErrorConditionT const&                _rerror);
 
 template <>
 void complete_message<alpha_protocol::FirstMessage>(
-    frame::mprpc::ConnectionContext&                             _rctx,
-    frame::mprpc::MessagePointerT<alpha_protocol::FirstMessage>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<alpha_protocol::FirstMessage>& _rrecv_msg_ptr,
-    ErrorConditionT const&                                       _rerror)
+    frame::mprpc::ConnectionContext&                                 _rctx,
+    frame::mprpc::SendMessagePointerT<alpha_protocol::FirstMessage>& _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<alpha_protocol::FirstMessage>& _rrecv_msg_ptr,
+    ErrorConditionT const&                                           _rerror)
 {
     solid_dbg(generic_logger, Info, "");
     solid_check(!_rerror);
@@ -53,10 +53,10 @@ void complete_message<alpha_protocol::FirstMessage>(
 
 template <>
 void complete_message<alpha_protocol::SecondMessage>(
-    frame::mprpc::ConnectionContext&                              _rctx,
-    frame::mprpc::MessagePointerT<alpha_protocol::SecondMessage>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<alpha_protocol::SecondMessage>& _rrecv_msg_ptr,
-    ErrorConditionT const&                                        _rerror)
+    frame::mprpc::ConnectionContext&                                  _rctx,
+    frame::mprpc::SendMessagePointerT<alpha_protocol::SecondMessage>& _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<alpha_protocol::SecondMessage>& _rrecv_msg_ptr,
+    ErrorConditionT const&                                            _rerror)
 {
     solid_dbg(generic_logger, Info, "");
     solid_check(!_rerror);
@@ -74,10 +74,10 @@ void complete_message<alpha_protocol::SecondMessage>(
 
 template <>
 void complete_message<alpha_protocol::ThirdMessage>(
-    frame::mprpc::ConnectionContext&                             _rctx,
-    frame::mprpc::MessagePointerT<alpha_protocol::ThirdMessage>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<alpha_protocol::ThirdMessage>& _rrecv_msg_ptr,
-    ErrorConditionT const&                                       _rerror)
+    frame::mprpc::ConnectionContext&                                 _rctx,
+    frame::mprpc::SendMessagePointerT<alpha_protocol::ThirdMessage>& _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<alpha_protocol::ThirdMessage>& _rrecv_msg_ptr,
+    ErrorConditionT const&                                           _rerror)
 {
     solid_dbg(generic_logger, Info, "");
     solid_check(!_rerror);

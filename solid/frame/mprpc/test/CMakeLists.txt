@@ -205,7 +205,6 @@ if(OPENSSL_FOUND)
         PROPERTIES LABELS "mprpc clientserver"
     )
     #==============================================================================
-    if(FALSE)
     set( mprpcKeepAliveTestSuite
         test_keepalive_fail.cpp
         test_keepalive_success.cpp
@@ -270,7 +269,6 @@ if(OPENSSL_FOUND)
     )
 
     #==============================================================================
-
     set( mprpcPoolTestSuite
         test_pool_basic.cpp
         test_pool_force_close.cpp
@@ -317,7 +315,7 @@ if(OPENSSL_FOUND)
     )
 
     #==============================================================================
-
+    
     add_subdirectory(multiprotocol_basic)
 
     set( mprpcMultiProtocolTestSuite
@@ -355,7 +353,7 @@ if(OPENSSL_FOUND)
     )
 
     #==============================================================================
-
+    IF(0)
     set( mprpcRawTestSuite
         test_raw_basic.cpp
         test_raw_proxy.cpp

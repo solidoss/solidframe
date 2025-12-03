@@ -147,7 +147,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
-using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+using SendMessagePointerT = solid::frame::mprpc::SendMessagePointerT<Message>;
+using RecvMessagePointerT = solid::frame::mprpc::RecvMessagePointerT<Message>;
 
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
@@ -192,7 +193,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 }
 
-void client_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePointerT& _rmsgptr)
+void client_receive_message(frame::mprpc::ConnectionContext& _rctx, RecvMessagePointerT& _rmsgptr)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 
@@ -219,7 +220,7 @@ void client_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePoint
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -234,7 +235,7 @@ void client_complete_message(
     }
 }
 
-void server_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePointerT& _rmsgptr)
+void server_receive_message(frame::mprpc::ConnectionContext& _rctx, RecvMessagePointerT& _rmsgptr)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " message id on sender " << _rmsgptr->senderRequestId());
     if (!_rmsgptr->check()) {
@@ -246,15 +247,15 @@ void server_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePoint
     }
 
     // send message back
-    _rctx.service().sendResponse(_rctx.recipientId(), _rmsgptr);
+    _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rmsgptr));
 
     ++crtreadidx;
     solid_dbg(generic_logger, Info, crtreadidx);
     if (crtwriteidx < writecount and pmprpcclient) {
-        MessagePointerT msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
+        auto msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
         ++crtwriteidx;
         pmprpcclient->sendMessage(
-            {"localhost"}, msgptr,
+            {"localhost"}, std::move(msgptr),
             initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
     } else {
         solid_check(pmprpcclient, "pointer should not be nullptr");
@@ -263,7 +264,7 @@ void server_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePoint
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -390,10 +391,10 @@ int test_keepalive_fail(int argc, char* argv[])
         writecount = 1;
 
         {
-            MessagePointerT msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
+            auto msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
             ++crtwriteidx;
             mprpcclient.sendMessage(
-                {"localhost"}, msgptr,
+                {"localhost"}, std::move(msgptr),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 

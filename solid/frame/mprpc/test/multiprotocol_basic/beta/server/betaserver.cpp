@@ -10,10 +10,10 @@ namespace beta_server {
 
 template <>
 void complete_message<beta_protocol::FirstMessage>(
-    frame::mprpc::ConnectionContext&                            _rctx,
-    frame::mprpc::MessagePointerT<beta_protocol::FirstMessage>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<beta_protocol::FirstMessage>& _rrecv_msg_ptr,
-    ErrorConditionT const&                                      _rerror)
+    frame::mprpc::ConnectionContext&                                _rctx,
+    frame::mprpc::SendMessagePointerT<beta_protocol::FirstMessage>& _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<beta_protocol::FirstMessage>& _rrecv_msg_ptr,
+    ErrorConditionT const&                                          _rerror)
 {
     solid_dbg(generic_logger, Info, "");
     solid_check(!_rerror);
@@ -33,10 +33,10 @@ void complete_message<beta_protocol::FirstMessage>(
 
 template <>
 void complete_message<beta_protocol::SecondMessage>(
-    frame::mprpc::ConnectionContext&                             _rctx,
-    frame::mprpc::MessagePointerT<beta_protocol::SecondMessage>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<beta_protocol::SecondMessage>& _rrecv_msg_ptr,
-    ErrorConditionT const&                                       _rerror)
+    frame::mprpc::ConnectionContext&                                 _rctx,
+    frame::mprpc::SendMessagePointerT<beta_protocol::SecondMessage>& _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<beta_protocol::SecondMessage>& _rrecv_msg_ptr,
+    ErrorConditionT const&                                           _rerror)
 {
     solid_dbg(generic_logger, Info, "");
     solid_check(!_rerror);
@@ -53,10 +53,10 @@ void complete_message<beta_protocol::SecondMessage>(
 
 template <>
 void complete_message<beta_protocol::ThirdMessage>(
-    frame::mprpc::ConnectionContext&                            _rctx,
-    frame::mprpc::MessagePointerT<beta_protocol::ThirdMessage>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<beta_protocol::ThirdMessage>& _rrecv_msg_ptr,
-    ErrorConditionT const&                                      _rerror)
+    frame::mprpc::ConnectionContext&                                _rctx,
+    frame::mprpc::SendMessagePointerT<beta_protocol::ThirdMessage>& _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<beta_protocol::ThirdMessage>& _rrecv_msg_ptr,
+    ErrorConditionT const&                                          _rerror)
 {
     solid_dbg(generic_logger, Info, "");
     solid_check(!_rerror);
