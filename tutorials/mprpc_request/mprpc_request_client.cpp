@@ -36,10 +36,10 @@ namespace rpc_request_client {
 
 template <class M>
 void complete_message(
-    frame::mprpc::ConnectionContext&  _rctx,
-    frame::mprpc::MessagePointerT<M>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<M>& _rrecv_msg_ptr,
-    ErrorConditionT const&            _rerror)
+    frame::mprpc::ConnectionContext&      _rctx,
+    frame::mprpc::SendMessagePointerT<M>& _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<M>& _rrecv_msg_ptr,
+    ErrorConditionT const&                _rerror)
 {
     solid_check(false); // this method should not be called
 }
@@ -126,10 +126,10 @@ int main(int argc, char* argv[])
                 if (offset != string::npos) {
                     recipient   = line.substr(0, offset);
                     auto lambda = [](
-                                      frame::mprpc::ConnectionContext&                      _rctx,
-                                      frame::mprpc::MessagePointerT<rpc_request::Request>&  _rsent_msg_ptr,
-                                      frame::mprpc::MessagePointerT<rpc_request::Response>& _rrecv_msg_ptr,
-                                      ErrorConditionT const&                                _rerror) {
+                                      frame::mprpc::ConnectionContext&                          _rctx,
+                                      frame::mprpc::SendMessagePointerT<rpc_request::Request>&  _rsent_msg_ptr,
+                                      frame::mprpc::RecvMessagePointerT<rpc_request::Response>& _rrecv_msg_ptr,
+                                      ErrorConditionT const&                                    _rerror) {
                         if (_rerror) {
                             cout << "Error sending message to " << _rctx.recipientName() << ". Error: " << _rerror.message() << endl;
                             return;
@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
                     auto req_ptr = frame::mprpc::make_message<rpc_request::Request>(line.substr(offset + 1));
 
                     rpcservice.sendRequest(
-                        {recipient}, req_ptr, lambda, 0);
+                        {recipient}, std::move(req_ptr), lambda, 0);
                 } else {
                     cout << "No recipient specified. E.g:" << endl
                          << "localhost:4444 Some text to send" << endl;

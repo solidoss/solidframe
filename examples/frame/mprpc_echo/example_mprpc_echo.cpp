@@ -1,3 +1,4 @@
+#include "solid/frame/mprpc/mprpcmessage.hpp"
 #include "solid/frame/mprpc/mprpcsocketstub_openssl.hpp"
 
 #include "solid/frame/manager.hpp"
@@ -17,6 +18,7 @@
 #include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
+#include "solid/utility/intrusiveptr.hpp"
 #include "solid/utility/threadpool.hpp"
 
 #include "solid/system/socketaddress.hpp"
@@ -88,7 +90,7 @@ struct FirstMessage;
 namespace {
 Params params;
 
-void broadcast_message(frame::mprpc::Service& _rsvc, frame::mprpc::MessagePointerT<>& _rmsgptr);
+void broadcast_message(frame::mprpc::Service& _rsvc, frame::mprpc::SendMessagePointerT<> _rmsgptr);
 } // namespace
 
 struct FirstMessage : frame::mprpc::Message {
@@ -189,8 +191,8 @@ int main(int argc, char* argv[])
                         return 1;
                     }
                 } else {
-                    frame::mprpc::MessagePointerT<> msgptr = frame::mprpc::make_message<FirstMessage>(s);
-                    broadcast_message(ipcsvc, msgptr);
+                    frame::mprpc::SendMessagePointerT<FirstMessage> msgptr = frame::mprpc::make_message<FirstMessage>(s);
+                    broadcast_message(ipcsvc, static_pointer_cast<solid::frame::mprpc::Message>(std::move(msgptr)));
                 }
             } while (s.size());
         }
@@ -210,14 +212,14 @@ bool restart(
         [&](auto& _rmap) {
             _rmap.template registerMessage<FirstMessage>(1, "FirstMessage",
                            [](
-                    frame::mprpc::ConnectionContext&             _rctx,
-                    frame::mprpc::MessagePointerT<FirstMessage>& _rsend_msg,
-                    frame::mprpc::MessagePointerT<FirstMessage>& _rrecv_msg,
-                    ErrorConditionT const&                       _rerr) {
+                    frame::mprpc::ConnectionContext&                 _rctx,
+                    frame::mprpc::SendMessagePointerT<FirstMessage>& _rsend_msg,
+                    frame::mprpc::RecvMessagePointerT<FirstMessage>& _rrecv_msg,
+                    ErrorConditionT const&                           _rerr) {
                     if (_rrecv_msg) {
                         solid_log(generic_logger, Info, _rctx.recipientId() << " Message received: is_on_sender: " << _rrecv_msg->isOnSender() << ", is_on_peer: " << _rrecv_msg->isOnPeer() << ", is_back_on_sender: " << _rrecv_msg->isBackOnSender());
                         if (_rrecv_msg->isOnPeer()) {
-                            _rctx.service().sendResponse(_rctx.recipientId(), _rrecv_msg);
+                            _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg));
                         } else if (_rrecv_msg->isBackOnSender()) {
                             cout << "Received from " << _rctx.recipientName() << ": " << _rrecv_msg->str << endl;
                         }
@@ -250,16 +252,13 @@ bool restart(
     cfg.client.connection_start_fnc   = &outgoing_connection_start;
     cfg.client.connection_start_state = frame::mprpc::ConnectionState::Active;
     cfg.server.connection_start_state = frame::mprpc::ConnectionState::Active;
-#if 1
+
     if (params.secure) {
         // configure OpenSSL:
         solid_log(generic_logger, Info, "Configure SSL ---------------------------------------");
         frame::mprpc::openssl::setup_client(
             cfg,
             [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
-                //_rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-                //_rctx.loadCertificateFile("echo-client-cert.pem");
-                //_rctx.loadPrivateKeyFile("echo-client-key.pem");
                 _rctx.addVerifyAuthority(loadFile("echo-ca-cert.pem"));
                 _rctx.loadCertificate(loadFile("echo-client-cert.pem"));
                 _rctx.loadPrivateKey(loadFile("echo-client-key.pem"));
@@ -278,7 +277,6 @@ bool restart(
             frame::mprpc::openssl::NameCheckSecureStart{"echo-client"} // does nothing - OpenSSL does not check for hostname on SSL_accept
         );
     }
-#endif
 
     {
         frame::mprpc::ServiceStartStatus start_status;
@@ -339,7 +337,7 @@ std::string loadFile(const char* _path)
 
 namespace {
 
-void broadcast_message(frame::mprpc::Service& _rsvc, frame::mprpc::MessagePointerT<frame::mprpc::Message>& _rmsgptr)
+void broadcast_message(frame::mprpc::Service& _rsvc, frame::mprpc::SendMessagePointerT<> _rmsgptr)
 {
 
     solid_log(generic_logger, Verbose, "done stop===============================");

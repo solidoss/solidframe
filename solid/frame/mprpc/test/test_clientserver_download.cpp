@@ -445,11 +445,11 @@ void on_client_receive_response(
     solid_check(_rrecv_msg_ptr);
 
     solid_check(_rrecv_msg_ptr->error_ == 0);
-
-    string s = _rrecv_msg_ptr->oss_.str();
-    _rsent_msg_ptr->ofs_.write(s.data(), s.size());
-
-    solid_log(logger, Verbose, "received response data of size: " << s.size());
+    {
+        string s = _rrecv_msg_ptr->oss_.str();
+        _rsent_msg_ptr->ofs_.write(s.data(), s.size());
+        solid_log(logger, Verbose, "received response data of size: " << s.size());
+    }
 
     frame::mprpc::MessageFlagsT flags;
 

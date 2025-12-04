@@ -47,9 +47,7 @@ struct Request : frame::mprpc::Message {
     ofstream         ofs_;
     ostringstream    oss_;
 
-    Request()
-    {
-    }
+    Request() = default;
 
     Request(const string& _name)
         : name_(_name)
@@ -91,9 +89,7 @@ struct Response : frame::mprpc::Message {
     RecvRequestPointerT req_ptr_;
     mutable bool        send_response_ = false; // TODO: find a better solution
 
-    Response()
-    {
-    }
+    Response() = default;
 
     Response(Request& _req)
         : frame::mprpc::Message(_req)

@@ -187,8 +187,11 @@ struct Message : frame::mprpc::Message {
     }
 };
 
-using RegisterPointerT = solid::frame::mprpc::MessagePointerT<Register>;
-using MessagePointerT  = solid::frame::mprpc::MessagePointerT<Message>;
+using SendRegisterPointerT = solid::frame::mprpc::SendMessagePointerT<Register>;
+using RecvRegisterPointerT = solid::frame::mprpc::RecvMessagePointerT<Register>;
+
+using SendMessagePointerT = solid::frame::mprpc::SendMessagePointerT<Message>;
+using RecvMessagePointerT = solid::frame::mprpc::RecvMessagePointerT<Message>;
 
 //-----------------------------------------------------------------------------
 //      PeerA
@@ -209,7 +212,7 @@ void peera_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 
 void peera_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
@@ -262,7 +265,7 @@ void peerb_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 
 void peerb_complete_register(
     frame::mprpc::ConnectionContext& _rctx,
-    RegisterPointerT& _rsent_msg_ptr, RegisterPointerT& _rrecv_msg_ptr,
+    SendRegisterPointerT& _rsent_msg_ptr, RecvRegisterPointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -280,7 +283,7 @@ void peerb_complete_register(
 
 void peerb_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr) {
@@ -411,8 +414,8 @@ int test_relay_basic(int argc, char* argv[])
 
             auto con_register = [&relay_engine, test_ptr = std::move(test_ptr)](
                                     frame::mprpc::ConnectionContext& _rctx,
-                                    RegisterPointerT&                _rsent_msg_ptr,
-                                    RegisterPointerT&                _rrecv_msg_ptr,
+                                    SendRegisterPointerT&            _rsent_msg_ptr,
+                                    RecvRegisterPointerT&            _rrecv_msg_ptr,
                                     ErrorConditionT const&           _rerror) mutable {
                 solid_check(!_rerror);
                 solid_check(*test_ptr == "test", "");

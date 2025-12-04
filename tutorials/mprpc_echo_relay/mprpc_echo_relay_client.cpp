@@ -78,10 +78,10 @@ int main(int argc, char* argv[])
 
         {
             auto con_register = [](
-                                    frame::mprpc::ConnectionContext&         _rctx,
-                                    frame::mprpc::MessagePointerT<Register>& _rsent_msg_ptr,
-                                    frame::mprpc::MessagePointerT<Register>& _rrecv_msg_ptr,
-                                    ErrorConditionT const&                   _rerror) {
+                                    frame::mprpc::ConnectionContext&             _rctx,
+                                    frame::mprpc::SendMessagePointerT<Register>& _rsent_msg_ptr,
+                                    frame::mprpc::RecvMessagePointerT<Register>& _rrecv_msg_ptr,
+                                    ErrorConditionT const&                       _rerror) {
                 solid_check(!_rerror);
 
                 if (_rrecv_msg_ptr) {
@@ -93,10 +93,10 @@ int main(int argc, char* argv[])
                 }
             };
             auto on_message = [&p](
-                                  frame::mprpc::ConnectionContext&        _rctx,
-                                  frame::mprpc::MessagePointerT<Message>& _rsent_msg_ptr,
-                                  frame::mprpc::MessagePointerT<Message>& _rrecv_msg_ptr,
-                                  ErrorConditionT const&                  _rerror) {
+                                  frame::mprpc::ConnectionContext&            _rctx,
+                                  frame::mprpc::SendMessagePointerT<Message>& _rsent_msg_ptr,
+                                  frame::mprpc::RecvMessagePointerT<Message>& _rrecv_msg_ptr,
+                                  ErrorConditionT const&                      _rerror) {
                 if (_rrecv_msg_ptr) {
                     cout << _rrecv_msg_ptr->group_id_ << ": " << _rrecv_msg_ptr->data << endl;
                     if (!_rsent_msg_ptr) {

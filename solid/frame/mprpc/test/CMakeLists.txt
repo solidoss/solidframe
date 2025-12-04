@@ -353,7 +353,7 @@ if(OPENSSL_FOUND)
     )
 
     #==============================================================================
-    IF(0)
+
     set( mprpcRawTestSuite
         test_raw_basic.cpp
         test_raw_proxy.cpp
@@ -499,5 +499,4 @@ if(OPENSSL_FOUND)
         PROPERTIES LABELS "mprpc clientfrontback"
     )
     #==============================================================================
-    endif(FALSE)
 endif(OPENSSL_FOUND)
