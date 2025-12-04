@@ -68,7 +68,7 @@ int test_callpool_multicast_basic(int argc, char* argv[])
                 std::future<void>  barrier_future = barrier.get_future();
 
                 std::thread all_thr{
-                    [&cp](std::promise<void> barrier) {
+                    [&cp, cnt](std::promise<void> barrier) {
                         barrier.set_value();
                         for (uint32_t i = 0; i < cnt; ++i) {
                             if ((i % 10) == 0) {
