@@ -149,9 +149,9 @@ enum struct RelayEngineNotification {
 class RelayEngine {
 
 protected:
-    using PushFunctionT   = solid_function_t(bool(RelayData*&, const MessageId&, MessageId&, bool&));
-    using DoneFunctionT   = solid_function_t(void(SharedBufferView&));
-    using CancelFunctionT = solid_function_t(void(const MessageHeader&));
+    using PushFunctionT   = SmallFunctionT<bool(RelayData*&, const MessageId&, MessageId&, bool&)>;
+    using DoneFunctionT   = SmallFunctionT<void(SharedBufferView&)>;
+    using CancelFunctionT = SmallFunctionT<void(const MessageHeader&)>;
 
     RelayEngine() {}
     virtual ~RelayEngine();
@@ -266,25 +266,25 @@ private:
 };
 
 using AddressVectorT                            = std::vector<SocketAddressInet>;
-using ServerSetupSocketDeviceFunctionT          = solid_function_t(bool(SocketDevice&));
-using ClientSetupSocketDeviceFunctionT          = solid_function_t(bool(SocketDevice&));
+using ServerSetupSocketDeviceFunctionT          = solid::Function<bool(SocketDevice&)>;
+using ClientSetupSocketDeviceFunctionT          = solid::Function<bool(SocketDevice&)>;
 using ResolveCompleteFunctionT                  = solid::Function<void(AddressVectorT&&), 64u>;
-using ConnectionStopFunctionT                   = solid_function_t(void(ConnectionContext&));
-using ConnectionStartFunctionT                  = solid_function_t(void(ConnectionContext&));
-using SendAllocateBufferFunctionT               = solid_function_t(MutableSharedBuffer(const uint32_t));
-using RecvAllocateBufferFunctionT               = solid_function_t(MutableSharedBuffer(const uint32_t));
-using CompressFunctionT                         = solid_function_t(size_t(char*, size_t, ErrorConditionT&));
-using UncompressFunctionT                       = solid_function_t(size_t(char*, const char*, size_t, ErrorConditionT&));
-using ConnectionEnterActiveCompleteFunctionT    = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
-using ConnectionPostCompleteFunctionT           = solid_function_t(void(ConnectionContext&));
-using ConnectionSendTimeoutSoftFunctionT        = solid_function_t(void(ConnectionContext&));
-using ConnectionEnterPassiveCompleteFunctionT   = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
-using ConnectionSecureHandhakeCompleteFunctionT = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
-using ConnectionSendRawDataCompleteFunctionT    = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
-using ConnectionRecvRawDataCompleteFunctionT    = solid_function_t(void(ConnectionContext&, const char*, size_t&, ErrorConditionT const&));
-using ConnectionOnEventFunctionT                = solid_function_t(void(ConnectionContext&, EventBase&));
-using PoolOnEventFunctionT                      = solid_function_t(void(ConnectionContext&, EventBase&&, const ErrorConditionT&));
-using ActorCreateFunctionT                      = solid_function_t(ActorIdT(aio::ActorPointerT&&, frame::Service&, EventBase&&, ErrorConditionT&));
+using ConnectionStopFunctionT                   = solid::Function<void(ConnectionContext&)>;
+using ConnectionStartFunctionT                  = solid::Function<void(ConnectionContext&)>;
+using SendAllocateBufferFunctionT               = solid::Function<MutableSharedBuffer(const uint32_t)>;
+using RecvAllocateBufferFunctionT               = solid::Function<MutableSharedBuffer(const uint32_t)>;
+using CompressFunctionT                         = solid::Function<size_t(char*, size_t, ErrorConditionT&)>;
+using UncompressFunctionT                       = solid::Function<size_t(char*, const char*, size_t, ErrorConditionT&)>;
+using ConnectionEnterActiveCompleteFunctionT    = solid::Function<void(ConnectionContext&, ErrorConditionT const&)>;
+using ConnectionPostCompleteFunctionT           = solid::Function<void(ConnectionContext&)>;
+using ConnectionSendTimeoutSoftFunctionT        = solid::Function<void(ConnectionContext&)>;
+using ConnectionEnterPassiveCompleteFunctionT   = solid::Function<void(ConnectionContext&, ErrorConditionT const&)>;
+using ConnectionSecureHandhakeCompleteFunctionT = solid::Function<void(ConnectionContext&, ErrorConditionT const&)>;
+using ConnectionSendRawDataCompleteFunctionT    = solid::Function<void(ConnectionContext&, ErrorConditionT const&)>;
+using ConnectionRecvRawDataCompleteFunctionT    = solid::Function<void(ConnectionContext&, const char*, size_t&, ErrorConditionT const&)>;
+using ConnectionOnEventFunctionT                = solid::Function<void(ConnectionContext&, EventBase&)>;
+using PoolOnEventFunctionT                      = solid::Function<void(ConnectionContext&, EventBase&&, const ErrorConditionT&)>;
+using ActorCreateFunctionT                      = solid::Function<ActorIdT(aio::ActorPointerT&&, frame::Service&, EventBase&&, ErrorConditionT&)>;
 
 enum struct ConnectionState {
     Raw,
@@ -347,8 +347,8 @@ public:
     ActorCreateFunctionT                             actor_create_fnc;
 
     struct Server {
-        using ConnectionCreateSocketFunctionT    = solid_function_t(SocketStubPtrT(Configuration const&, frame::aio::ActorProxy const&, SocketDevice&&, char*));
-        using ConnectionSecureHandshakeFunctionT = solid_function_t(void(ConnectionContext&));
+        using ConnectionCreateSocketFunctionT    = solid::Function<SocketStubPtrT(Configuration const&, frame::aio::ActorProxy const&, SocketDevice&&, char*)>;
+        using ConnectionSecureHandshakeFunctionT = solid::Function<void(ConnectionContext&)>;
 
         ConnectionCreateSocketFunctionT    connection_create_socket_fnc;
         ConnectionState                    connection_start_state                   = ConnectionState::Passive;
@@ -388,9 +388,9 @@ public:
     } server;
 
     struct Client {
-        using ConnectionCreateSocketFunctionT    = solid_function_t(SocketStubPtrT(Configuration const&, frame::aio::ActorProxy const&, char*));
-        using AsyncResolveFunctionT              = solid_function_t(void(const std::string&, ResolveCompleteFunctionT&));
-        using ConnectionSecureHandshakeFunctionT = solid_function_t(void(ConnectionContext&));
+        using ConnectionCreateSocketFunctionT    = solid::Function<SocketStubPtrT(Configuration const&, frame::aio::ActorProxy const&, char*)>;
+        using AsyncResolveFunctionT              = solid::Function64T<void(const std::string&, ResolveCompleteFunctionT&)>;
+        using ConnectionSecureHandshakeFunctionT = solid::Function<void(ConnectionContext&)>;
 
         std::chrono::milliseconds          connection_timeout_reconnect = std::chrono::seconds(10);
         std::chrono::milliseconds          connection_timeout_keepalive = std::chrono::seconds(5);
@@ -485,7 +485,7 @@ public:
 
     bool isClient() const
     {
-        return !solid_function_empty(client.name_resolve_fnc);
+        return client.name_resolve_fnc.has_value();
     }
 
     bool isServerOnly() const

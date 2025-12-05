@@ -228,7 +228,7 @@ struct MessageBundle {
         message_flags         = _rmsgbundle.message_flags;
         message_ptr           = std::move(_rmsgbundle.message_ptr);
         message_relay_header_ = std::move(_rmsgbundle.message_relay_header_);
-        solid_function_clear(complete_fnc);
+        complete_fnc          = nullptr;
         std::swap(complete_fnc, _rmsgbundle.complete_fnc);
         return *this;
     }
@@ -239,7 +239,7 @@ struct MessageBundle {
         message_flags.reset();
         message_ptr.reset();
         message_relay_header_.reset();
-        solid_function_clear(complete_fnc);
+        complete_fnc = nullptr;
     }
 };
 

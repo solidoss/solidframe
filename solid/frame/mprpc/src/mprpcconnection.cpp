@@ -437,7 +437,7 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
             // no event get posted
         } else if (has_no_message) {
             // try handle the returned message if any
-            if (msg_bundle.message_ptr || !solid_function_empty(msg_bundle.complete_fnc)) {
+            if (msg_bundle.message_ptr || msg_bundle.complete_fnc) {
                 doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
             }
             solid_log(logger, Info, this << ' ' << this->id() << " wait " << wait_duration.count());
@@ -506,7 +506,7 @@ void Connection::doContinueStopping(
         postStop(_rctx, std::move(lambda));
         // no event get posted
     } else {
-        if (msg_bundle.message_ptr || !solid_function_empty(msg_bundle.complete_fnc)) {
+        if (msg_bundle.message_ptr || msg_bundle.complete_fnc) {
             doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
         }
         if (wait_duration != std::chrono::milliseconds(0)) {
@@ -632,7 +632,7 @@ void Connection::onStopped(
 
     service(_rctx).connectionStop(conctx);
 
-    if (_rmsg_bundle.message_ptr || !solid_function_empty(_rmsg_bundle.complete_fnc)) {
+    if (_rmsg_bundle.message_ptr || _rmsg_bundle.complete_fnc) {
         doCompleteMessage(_rctx, _rpool_msg_id, _rmsg_bundle, error_message_connection);
     }
 
@@ -938,14 +938,14 @@ template <class Ctx>
         return;
     }
 
-    if (!solid_function_empty(config.client.connection_on_secure_handshake_fnc)) {
+    if (config.client.connection_on_secure_handshake_fnc) {
         config.client.connection_on_secure_handshake_fnc(conctx);
     }
 
     if (!config.client.connection_start_secure) {
         solid_log(logger, Verbose, &rthis << "");
         // we need the connection_on_secure_connect_fnc for advancing.
-        if (solid_function_empty(config.client.connection_on_secure_handshake_fnc)) {
+        if (not config.client.connection_on_secure_handshake_fnc) {
             rthis.doStop<Ctx>(_rctx, error_connection_invalid_state);
         }
     } else {
@@ -991,14 +991,14 @@ template <class Ctx>
         return;
     }
 
-    if (!solid_function_empty(config.server.connection_on_secure_handshake_fnc)) {
+    if (config.server.connection_on_secure_handshake_fnc) {
         config.server.connection_on_secure_handshake_fnc(conctx);
     }
 
     if (!config.server.connection_start_secure) {
         solid_log(logger, Verbose, &rthis << "");
         // we need the connection_on_secure_accept_fnc for advancing.
-        if (solid_function_empty(config.server.connection_on_secure_handshake_fnc)) {
+        if (not config.server.connection_on_secure_handshake_fnc) {
             rthis.doStop<Ctx>(_rctx, error_connection_invalid_state); // TODO: add new error
         }
     } else {
@@ -1599,7 +1599,7 @@ struct ConnectionSenderResponse : ConnectionSender<Ctx> {
         } else {
             send_msg_ptr = _rmsg_bundle.message_ptr;
         }
-        if (!solid_function_empty(_rmsg_bundle.complete_fnc)) {
+        if (_rmsg_bundle.complete_fnc) {
             solid_log(logger, Info, this << " clear_request = " << must_clear_request);
             _rmsg_bundle.complete_fnc(this->context(), send_msg_ptr, rresponse_ptr_, this->err_);
             request_found_ = true;
@@ -1662,7 +1662,7 @@ void Connection::doCompleteMessage(
     conctx.message_flags_ = _rmsg_bundle.message_flags;
     conctx.message_id_    = _rpool_msg_id;
 
-    if (!solid_function_empty(_rmsg_bundle.complete_fnc)) {
+    if (_rmsg_bundle.complete_fnc) {
         solid_log(logger, Info, this);
         _rmsg_bundle.complete_fnc(conctx, _rmsg_bundle.message_ptr, dummy_recv_msg_ptr, _rerror);
     } else {

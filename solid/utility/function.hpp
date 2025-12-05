@@ -41,7 +41,10 @@ constexpr size_t function_size_to_small_size()
 constexpr size_t function_default_size  = function_size_to_small_size<32>();
 constexpr size_t function_default_align = alignof(std::uintptr_t);
 
-template <class, size_t SmallSize = function_default_size, size_t SmallAlign = function_default_align>
+template <class,
+    size_t      SmallSize  = function_default_size,
+    size_t      SmallAlign = function_default_align,
+    StoreOption Option     = StoreOption::AcceptBig>
     requires(SmallSize > 0 and SmallSize >= SmallAlign
         and (SmallSize % SmallAlign == 0) and std::popcount(SmallAlign) == 1)
 class Function; // undefined
@@ -49,8 +52,8 @@ class Function; // undefined
 template <class T>
 struct is_function;
 
-template <class R, class... ArgTypes, size_t SmallSize, size_t SmallAlign>
-struct is_function<Function<R(ArgTypes...), SmallSize, SmallAlign>> : std::true_type {
+template <class R, class... ArgTypes, size_t SmallSize, size_t SmallAlign, StoreOption Option>
+struct is_function<Function<R(ArgTypes...), SmallSize, SmallAlign, Option>> : std::true_type {
 };
 
 template <class T>
@@ -238,10 +241,12 @@ uintptr_t do_move_big(
 
 } // namespace fnc_impl
 
-template <class R, class... ArgTypes, size_t SmallSize, size_t SmallAlign>
+template <class R, class... ArgTypes,
+    size_t SmallSize, size_t SmallAlign,
+    StoreOption Option>
     requires(SmallSize > 0 and SmallSize >= SmallAlign
         and (SmallSize % SmallAlign == 0) and std::popcount(SmallAlign) == 1)
-class Function<R(ArgTypes...), SmallSize, SmallAlign> {
+class Function<R(ArgTypes...), SmallSize, SmallAlign, Option> {
     using BaseRTTI_T = fnc_impl::BaseRTTI<R, ArgTypes...>;
 
     struct Small {
@@ -264,13 +269,13 @@ class Function<R(ArgTypes...), SmallSize, SmallAlign> {
 
     Storage storage_{};
 
-    template <class F, size_t S, size_t A>
+    template <class F, size_t S, size_t A, StoreOption O>
         requires(S > 0 and S >= A
             and (S % A == 0) and std::popcount(A) == 1)
     friend class Function;
 
 public:
-    using ThisT = Function<R(ArgTypes...), SmallSize, SmallAlign>;
+    using ThisT = Function<R(ArgTypes...), SmallSize, SmallAlign, Option>;
 
     static constexpr size_t smallCapacity()
     {
@@ -297,8 +302,8 @@ public:
         doCopyFrom(_other);
     }
 
-    template <size_t Sz>
-    Function(const Function<R(ArgTypes...), Sz>& _other)
+    template <size_t Sz, size_t Al, StoreOption Op>
+    Function(const Function<R(ArgTypes...), Sz, Al, Op>& _other)
     {
         doCopyFrom(_other);
     }
@@ -308,18 +313,18 @@ public:
         doMoveFrom(_other);
     }
 
-    template <size_t Sz>
-    Function(Function<R(ArgTypes...), Sz>&& _other) noexcept
+    template <size_t Sz, size_t Al, StoreOption Op>
+    Function(Function<R(ArgTypes...), Sz, Al, Op>&& _other) noexcept
     {
         doMoveFrom(_other);
     }
 
-    template <class T, StoreOption Option = StoreOption::RejectBig>
-    Function(T&& _fun, std::integral_constant<StoreOption, Option> = RejectBigT{})
+    template <class T, StoreOption Opt = Option>
+    Function(T&& _fun, std::integral_constant<StoreOption, Opt> = store_option_dispatch<Opt>())
         requires(not is_function_v<std::decay_t<T>> and not is_specialization_v<std::decay_t<T>, std::in_place_type_t>)
     {
         using FncT = std::decay_t<T>;
-        static_assert(Option == StoreOption::AcceptBig or is_small_type<FncT>(), "Function not small. Construct by using AcceptBigT{} or assign using .emplace()");
+        static_assert(Opt == StoreOption::AcceptBig or is_small_type<FncT>(), "Function not small. Construct by using AcceptBigT{} or assign using .emplace()");
         if constexpr (is_small_type<FncT>()) {
             storage_.rtti_ = fnc_impl::representation(&fnc_impl::small_rtti<FncT, R, ArgTypes...>, fnc_impl::RepresentationE::Small);
             auto& rval     = reinterpret_cast<FncT&>(storage_.small_.data_);
@@ -366,15 +371,15 @@ public:
         return *this;
     }
 
-    template <size_t Sz>
-    ThisT& operator=(const Function<R(ArgTypes...), Sz>& _other)
+    template <size_t Sz, size_t Al, StoreOption Op>
+    ThisT& operator=(const Function<R(ArgTypes...), Sz, Al, Op>& _other)
     {
         *this = ThisT{_other};
         return *this;
     }
 
-    template <size_t Sz>
-    ThisT& operator=(Function<R(ArgTypes...), Sz>&& _other) noexcept
+    template <size_t Sz, size_t Al, StoreOption Op>
+    ThisT& operator=(Function<R(ArgTypes...), Sz, Al, Op>&& _other) noexcept
     {
         reset();
         doMoveFrom(_other);
@@ -388,13 +393,14 @@ public:
         return *this;
     }
 
+#if 0
     template <class T>
     ThisT& emplace(T&& _rvalue)
     {
         *this = ThisT{std::forward<T>(_rvalue), AcceptBigT{}};
         return *this;
     }
-
+#endif
     void reset() noexcept
     {
         auto const rtti = storage_.rtti_;
@@ -427,8 +433,8 @@ public:
         }
     }
 
-    template <size_t Sz>
-    void swap(Function<R(ArgTypes...), Sz>& _other) noexcept
+    template <size_t Sz, size_t Al, StoreOption Op>
+    void swap(Function<R(ArgTypes...), Sz, Al, Op>& _other) noexcept
     {
         _other = std::exchange(*this, std::move(_other));
     }
@@ -475,8 +481,8 @@ public:
     }
 
 private:
-    template <size_t Sz>
-    void doMoveFrom(Function<R(ArgTypes...), Sz>& _other)
+    template <size_t Sz, size_t Al, StoreOption Op>
+    void doMoveFrom(Function<R(ArgTypes...), Sz, Al, Op>& _other)
     {
         storage_.rtti_ = 0u;
         switch (fnc_impl::representation(_other.storage_.rtti_)) {
@@ -496,8 +502,8 @@ private:
         }
     }
 
-    template <size_t Sz>
-    void doCopyFrom(const Function<R(ArgTypes...), Sz>& _other)
+    template <size_t Sz, size_t Al, StoreOption Op>
+    void doCopyFrom(const Function<R(ArgTypes...), Sz, Al, Op>& _other)
     {
         storage_.rtti_ = 0u;
         switch (fnc_impl::representation(_other.storage_.rtti_)) {
@@ -541,9 +547,23 @@ template <class T>
 using Function128T = Function<T, function_size_to_small_size<128>()>;
 template <class T>
 using Function256T = Function<T, function_size_to_small_size<256>()>;
+
+template <class T>
+using SmallFunctionT = Function<T, function_default_size, function_default_align, StoreOption::RejectBig>;
+
+template <class T>
+using SmallFunction64T = Function<T, function_size_to_small_size<64>(), function_default_align, StoreOption::RejectBig>;
+template <class T>
+using SmallFunction96T = Function<T, function_size_to_small_size<96>(), function_default_align, StoreOption::RejectBig>;
+template <class T>
+using SmallFunction128T = Function<T, function_size_to_small_size<128>(), function_default_align, StoreOption::RejectBig>;
+template <class T>
+using SmallFunction256T = Function<T, function_size_to_small_size<256>(), function_default_align, StoreOption::RejectBig>;
 //-----------------------------------------------------------------------------
 
 } // namespace solid
+
+#if 0
 
 #ifdef SOLID_USE_STD_FUNCTION
 
@@ -557,3 +577,4 @@ using Function256T = Function<T, function_size_to_small_size<256>()>;
 
 #define solid_function_empty(f) (!f)
 #define solid_function_clear(f) (f = nullptr)
+#endif

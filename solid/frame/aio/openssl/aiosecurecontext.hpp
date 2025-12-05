@@ -89,7 +89,7 @@ private:
     ErrorCodeT doSetPasswordCallback();
 
 private:
-    using PasswordFunctionT = solid_function_t(std::string(std::size_t, PasswordPurpose));
+    using PasswordFunctionT = Function<std::string(std::size_t, PasswordPurpose)>;
 
     friend class Socket;
     SSL_CTX*          pctx;

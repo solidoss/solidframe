@@ -381,7 +381,7 @@ int test_keepalive_fail(int argc, char* argv[])
 
             cfg.writer.max_message_count_multiplex = 6;
 
-            cfg.client.name_resolve_fnc.emplace(frame::mprpc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/));
+            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/);
 
             mprpcclient.start(std::move(cfg));
         }

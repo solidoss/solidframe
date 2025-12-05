@@ -105,7 +105,7 @@ private:
     virtual size_t registerConnection(Proxy& _proxy, const uint32_t _group_id, const uint16_t _replica_id) = 0;
 
 private:
-    using ExecuteFunctionT = solid_function_t(void(Proxy&));
+    using ExecuteFunctionT = SmallFunctionT<void(Proxy&)>;
 
     void doExecute(ExecuteFunctionT& _rfnc);
 

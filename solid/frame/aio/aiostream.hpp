@@ -329,14 +329,14 @@ public:
         this->deactivate(false);
     }
 
-    bool hasPendingRecv() const
+    [[nodiscard]] bool hasPendingRecv() const
     {
-        return !solid_function_empty(recv_fnc);
+        return recv_fnc.has_value();
     }
 
-    bool hasPendingSend() const
+    [[nodiscard]] bool hasPendingSend() const
     {
-        return !solid_function_empty(send_fnc);
+        return send_fnc.has_value();
     }
     SocketDevice& device()
     {
@@ -370,7 +370,7 @@ public:
     template <typename F>
     bool postRecvSome(ReactorContext& _rctx, char* _buf, size_t _bufcp, F&& _f)
     {
-        if (solid_function_empty(recv_fnc)) {
+        if (not recv_fnc) {
             using RealF    = typename std::decay<F>::type;
             recv_fnc       = RecvSomeFunctor<RealF>{std::forward<RealF>(_f)};
             recv_buf       = _buf;
@@ -389,7 +389,7 @@ public:
     template <typename F>
     bool recvSome(ReactorContext& _rctx, char* _buf, size_t _bufcp, F&& _f, size_t& _sz)
     {
-        if (solid_function_empty(recv_fnc)) {
+        if (not recv_fnc) {
             errorClear(_rctx);
             contextBind(_rctx);
 
@@ -420,7 +420,7 @@ public:
     template <typename F>
     bool postSendAll(ReactorContext& _rctx, const char* _buf, size_t _bufcp, F&& _f)
     {
-        if (solid_function_empty(send_fnc)) {
+        if (not send_fnc) {
             using RealF    = typename std::decay<F>::type;
             send_fnc       = SendAllFunctor<RealF>{std::forward<RealF>(_f)};
             send_buf       = _buf;
@@ -439,7 +439,7 @@ public:
     template <typename F>
     bool sendAll(ReactorContext& _rctx, const char* _buf, size_t _bufcp, F&& _f)
     {
-        if (solid_function_empty(send_fnc)) {
+        if (not send_fnc) {
             errorClear(_rctx);
             contextBind(_rctx);
 
@@ -464,7 +464,7 @@ public:
     template <typename F>
     bool connect(ReactorContext& _rctx, SocketAddressStub const& _rsas, F&& _f)
     {
-        if (solid_function_empty(send_fnc)) {
+        if (not send_fnc) {
             errorClear(_rctx);
             contextBind(_rctx);
 
@@ -507,7 +507,7 @@ public:
     template <typename F>
     bool secureConnect(ReactorContext& _rctx, F&& _f)
     {
-        if (solid_function_empty(send_fnc)) {
+        if (not send_fnc) {
             errorClear(_rctx);
             contextBind(_rctx);
 
@@ -532,7 +532,7 @@ public:
     template <typename F>
     bool secureAccept(ReactorContext& _rctx, F&& _f)
     {
-        if (solid_function_empty(recv_fnc)) {
+        if (not recv_fnc) {
             errorClear(_rctx);
             contextBind(_rctx);
 
@@ -557,7 +557,7 @@ public:
     template <typename F>
     bool secureShutdown(ReactorContext& _rctx, F&& _f)
     {
-        if (solid_function_empty(send_fnc)) {
+        if (not send_fnc) {
             errorClear(_rctx);
             contextBind(_rctx);
 
@@ -640,7 +640,7 @@ private:
 
     void doRecv(ReactorContext& _rctx)
     {
-        if (!recv_is_posted && !solid_function_empty(recv_fnc)) {
+        if (!recv_is_posted && recv_fnc) {
             solid_log(logger, Verbose, "");
             errorClear(_rctx);
 
@@ -650,7 +650,7 @@ private:
 
     void doSend(ReactorContext& _rctx)
     {
-        if (!send_is_posted && !solid_function_empty(send_fnc)) {
+        if (!send_is_posted && send_fnc) {
             errorClear(_rctx);
 
             send_fnc(*this, _rctx);
@@ -730,11 +730,11 @@ private:
         error(_rctx, error_stream_socket);
         systemError(_rctx, s.device().error());
 
-        if (!solid_function_empty(send_fnc)) {
+        if (send_fnc) {
             send_buf_sz = send_buf_cp = 0;
             send_fnc(*this, _rctx);
         }
-        if (!solid_function_empty(recv_fnc)) {
+        if (recv_fnc) {
             recv_buf_sz = recv_buf_cp = 0;
             recv_fnc(*this, _rctx);
         }
@@ -742,16 +742,16 @@ private:
 
     void doClearRecv(ReactorContext& _rctx)
     {
-        solid_function_clear(recv_fnc);
-        solid_assert_log(solid_function_empty(recv_fnc), generic_logger);
+        recv_fnc = nullptr;
+        solid_assert_log(not recv_fnc, generic_logger);
         recv_buf    = nullptr;
         recv_buf_sz = recv_buf_cp = 0;
     }
 
     void doClearSend(ReactorContext& _rctx)
     {
-        solid_function_clear(send_fnc);
-        solid_assert_log(solid_function_empty(send_fnc), generic_logger);
+        send_fnc = nullptr;
+        solid_assert_log(not send_fnc, generic_logger);
         send_buf    = nullptr;
         send_buf_sz = send_buf_cp = 0;
     }

@@ -82,7 +82,7 @@ public:
 
     bool hasPending() const
     {
-        return !solid_function_empty(function_);
+        return function_.has_value();
     }
 
     // Returns false when the operation is scheduled for completion. On completion _f(...) will be called.
@@ -120,7 +120,7 @@ public:
 
     void cancel(ReactorContext& _rctx)
     {
-        if (!solid_function_empty(function_)) {
+        if (function_) {
             remTimer(_rctx, storeidx_);
             error(_rctx, error_timer_cancel);
             doExec(_rctx);
@@ -139,7 +139,7 @@ private:
     }
     void doClear(ReactorContext& _rctx)
     {
-        solid_function_clear(function_);
+        function_ = nullptr;
         remTimer(_rctx, storeidx_);
         storeidx_ = InvalidIndex();
     }

@@ -126,7 +126,7 @@ private:
     static int on_verify(int preverify_ok, X509_STORE_CTX* x509_ctx);
 
 private:
-    using VerifyFunctionT = solid_function_t(bool(void*, bool, VerifyContextT&));
+    using VerifyFunctionT = Function<bool(void*, bool, VerifyContextT&)>;
 
     SSL*            pssl;
     bool            want_read_on_recv;

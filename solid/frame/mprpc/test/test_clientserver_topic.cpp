@@ -419,7 +419,7 @@ int test_clientserver_topic(int argc, char* argv[])
             cfg.pool_max_active_connection_count         = max_per_pool_connection_count;
             cfg.pool_max_message_queue_size              = message_count;
 
-            cfg.client.name_resolve_fnc.emplace(frame::mprpc::InternetResolverF{resolver, server_port});
+            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF{resolver, server_port};
 
             if (secure) {
                 solid_dbg(logger, Info, "Configure SSL client ------------------------------------");

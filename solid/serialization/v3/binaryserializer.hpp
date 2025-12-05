@@ -37,7 +37,7 @@ class SerializerBase : public Base {
 
     typedef ReturnE (*CallbackT)(SerializerBase&, Runnable&, void*);
 
-    using FunctionT    = solid_function_t(ReturnE(SerializerBase&, Runnable&, void*), 64);
+    using FunctionT    = SmallFunction64T<ReturnE(SerializerBase&, Runnable&, void*)>;
     using FunctionPtrT = std::unique_ptr<FunctionT>;
 
     struct Runnable {

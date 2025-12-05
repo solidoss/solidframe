@@ -296,7 +296,7 @@ struct ConnectionPoolStub : inner::Node<to_underlying(ConnectionPoolInnerLink::C
         flags_               = 0;
         retry_connect_count_ = 0;
         connect_addr_vec_.clear();
-        solid_function_clear(on_event_fnc_);
+        on_event_fnc_ = nullptr;
         solid_assert_log(message_order_inner_list_.check(), logger);
     }
 
@@ -2000,7 +2000,7 @@ bool Service::connectionStopping(
         } else {
             retval = pimpl_->doMainConnectionStoppingPrepareCleanAll(rcon, _ractuid, _rwait_duration, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
         }
-        if (!was_disconnected && rpool.isDisconnected() && !solid_function_empty(rpool.on_event_fnc_)) {
+        if (!was_disconnected && rpool.isDisconnected() && rpool.on_event_fnc_) {
             ppool = &rpool;
         }
     }
@@ -2370,7 +2370,7 @@ void Service::connectionStop(ConnectionContext& _rconctx)
         pool_lock.unlock();
 
         // do not call callback under lock
-        if (!solid_function_empty(rpool.on_event_fnc_) && _rconctx.connection().isConnected()) {
+        if (rpool.on_event_fnc_ && _rconctx.connection().isConnected()) {
             rpool.on_event_fnc_(_rconctx, make_event(pool_event_category, PoolEvents::ConnectionStop), ErrorConditionT());
         }
 
@@ -2395,7 +2395,7 @@ void Service::connectionStop(ConnectionContext& _rconctx)
             rpool.clear();
         }
     }
-    if (!solid_function_empty(on_event_fnc)) {
+    if (on_event_fnc) {
         on_event_fnc(_rconctx, make_event(pool_event_category, PoolEvents::PoolStop), ErrorConditionT());
     }
 }
@@ -2587,7 +2587,7 @@ ErrorConditionT Service::activateConnection(ConnectionContext& _rconctx, ActorId
 
         rpool.resetDisconnected();
 
-        if (!solid_function_empty(rpool.on_event_fnc_)) {
+        if (rpool.on_event_fnc_) {
             pconpool = &rpool;
         }
     }
@@ -2658,7 +2658,7 @@ void Service::onOutgoingConnectionStart(ConnectionContext& _rconctx)
             return;
         }
 
-        if (!solid_function_empty(rpool.on_event_fnc_)) {
+        if (rpool.on_event_fnc_) {
             ppool = &rpool;
         }
     }

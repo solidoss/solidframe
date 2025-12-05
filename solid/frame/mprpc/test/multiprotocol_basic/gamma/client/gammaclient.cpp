@@ -80,7 +80,7 @@ ErrorConditionT start(
 
         cfg.pool_max_active_connection_count = _rctx.max_per_pool_connection_count;
 
-        cfg.client.name_resolve_fnc.emplace(frame::mprpc::InternetResolverF(_rctx.rresolver, _rctx.rserver_port.c_str() /*, SocketInfo::Inet4*/));
+        cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(_rctx.rresolver, _rctx.rserver_port.c_str() /*, SocketInfo::Inet4*/);
 
         mprpcclient_ptr = std::make_shared<frame::mprpc::ServiceT>(_rctx.rm);
         mprpcclient_ptr->start(std::move(cfg));

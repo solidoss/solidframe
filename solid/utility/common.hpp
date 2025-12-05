@@ -332,4 +332,14 @@ enum class StoreOption : uint8_t {
 using AcceptBigT = std::integral_constant<StoreOption, StoreOption::AcceptBig>;
 using RejectBigT = std::integral_constant<StoreOption, StoreOption::RejectBig>;
 
+template <StoreOption Option>
+constexpr auto store_option_dispatch()
+{
+    if constexpr (Option == StoreOption::AcceptBig) {
+        return AcceptBigT{};
+    } else {
+        return RejectBigT{};
+    }
+}
+
 } // namespace solid

@@ -378,7 +378,7 @@ int test_connection_close(int argc, char* argv[])
 
             cfg.pool_max_active_connection_count = 1;
 
-            cfg.client.name_resolve_fnc.emplace(frame::mprpc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/));
+            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/);
 
             mprpcclient.start(std::move(cfg));
         }

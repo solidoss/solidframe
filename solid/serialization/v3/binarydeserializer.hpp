@@ -32,7 +32,7 @@ class DeserializerBase : public Base {
 
     typedef ReturnE (*CallbackT)(DeserializerBase&, Runnable&, void*);
 
-    using FunctionT    = solid_function_t(ReturnE(DeserializerBase&, Runnable&, void*), 64);
+    using FunctionT    = SmallFunction64T<ReturnE(DeserializerBase&, Runnable&, void*)>;
     using FunctionPtrT = std::unique_ptr<FunctionT>;
 
     struct Runnable {

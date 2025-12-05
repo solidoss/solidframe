@@ -16,6 +16,7 @@
 #include "solid/system/common.hpp"
 #include "solid/system/socketdevice.hpp"
 #include "solid/utility/event.hpp"
+#include "solid/utility/function.hpp"
 
 namespace solid {
 namespace frame {
@@ -27,8 +28,8 @@ struct ReactorContex;
 template <class Sock>
 class Datagram : public CompletionHandler {
     using ThisT         = Datagram<Sock>;
-    using RecvFunctionT = solid_function_t(void(ThisT&, ReactorContext&));
-    using SendFunctionT = solid_function_t(void(ThisT&, ReactorContext&));
+    using RecvFunctionT = SmallFunctionT<void(ThisT&, ReactorContext&)>;
+    using SendFunctionT = SmallFunctionT<void(ThisT&, ReactorContext&)>;
 
     static void on_init_completion(CompletionHandler& _rch, ReactorContext& _rctx)
     {
@@ -290,18 +291,18 @@ public:
 
     bool hasPendingRecv() const
     {
-        return !solid_function_empty(recv_fnc);
+        return recv_fnc;
     }
 
     bool hasPendingSend() const
     {
-        return !solid_function_empty(send_fnc);
+        return send_fnc;
     }
 
     template <typename F>
     bool connect(ReactorContext& _rctx, SocketAddressStub const& _rsas, F&& _f)
     {
-        if (solid_function_empty(send_fnc)) {
+        if (not send_fnc) {
             ErrorCodeT err;
 
             errorClear(_rctx);
@@ -341,7 +342,7 @@ public:
         char* _buf, size_t _bufcp,
         F&& _f)
     {
-        if (solid_function_empty(recv_fnc)) {
+        if (not recv_fnc) {
             using RealF    = typename std::decay<F>::type;
             recv_fnc       = RecvFromFunctor<RealF>{std::forward<RealF>(_f)};
             recv_buf       = _buf;
@@ -362,7 +363,7 @@ public:
         char* _buf, size_t _bufcp,
         F&& _f)
     {
-        if (solid_function_empty(recv_fnc)) {
+        if (not recv_fnc) {
             using RealF    = typename std::decay<F>::type;
             recv_fnc       = RecvFunctor<RealF>{std::forward<RealF>(_f)};
             recv_buf       = _buf;
@@ -385,7 +386,7 @@ public:
         SocketAddress& _raddr,
         size_t&        _sz)
     {
-        if (solid_function_empty(recv_fnc)) {
+        if (not recv_fnc) {
             contextBind(_rctx);
 
             bool       can_retry;
@@ -426,7 +427,7 @@ public:
         F&&     _f,
         size_t& _sz)
     {
-        if (solid_function_empty(recv_fnc)) {
+        if (not recv_fnc) {
             contextBind(_rctx);
 
             bool       can_retry;
@@ -467,7 +468,7 @@ public:
         SocketAddressStub const& _addrstub,
         F&&                      _f)
     {
-        if (solid_function_empty(send_fnc)) {
+        if (not send_fnc) {
             using RealF    = typename std::decay<F>::type;
             send_fnc       = SendToFunctor<RealF>{std::forward<RealF>(_f)};
             send_buf       = _buf;
@@ -490,7 +491,7 @@ public:
         const char* _buf, size_t _bufcp,
         F&& _f)
     {
-        if (solid_function_empty(send_fnc)) {
+        if (not send_fnc) {
             using RealF    = typename std::decay<F>::type;
             send_fnc       = SendFunctor<RealF>{std::forward<RealF>(_f)};
             send_buf       = _buf;
@@ -513,7 +514,7 @@ public:
         SocketAddressStub const& _addrstub,
         F&&                      _f)
     {
-        if (solid_function_empty(send_fnc)) {
+        if (not send_fnc) {
             contextBind(_rctx);
 
             bool       can_retry;
@@ -552,7 +553,7 @@ public:
         F&&     _f,
         size_t& _sz)
     {
-        if (solid_function_empty(send_fnc)) {
+        if (not send_fnc) {
             contextBind(_rctx);
 
             bool       can_retry;
@@ -595,7 +596,7 @@ private:
 
     void doRecv(ReactorContext& _rctx)
     {
-        if (!recv_is_posted && !solid_function_empty(recv_fnc)) {
+        if (!recv_is_posted && recv_fnc) {
             errorClear(_rctx);
             recv_fnc(*this, _rctx);
         }
@@ -603,7 +604,7 @@ private:
 
     void doSend(ReactorContext& _rctx)
     {
-        if (!send_is_posted && !solid_function_empty(send_fnc)) {
+        if (!send_is_posted && send_fnc) {
             errorClear(_rctx);
             send_fnc(*this, _rctx);
         }
@@ -614,24 +615,24 @@ private:
         error(_rctx, error_datagram_socket);
         // TODO: set proper system error based on socket error
 
-        if (!solid_function_empty(send_fnc)) {
+        if (send_fnc) {
             send_fnc(*this, _rctx);
         }
-        if (!solid_function_empty(recv_fnc)) {
+        if (recv_fnc) {
             recv_fnc(*this, _rctx);
         }
     }
 
     void doClearRecv(ReactorContext& _rctx)
     {
-        solid_function_clear(recv_fnc);
+        recv_fnc    = nullptr;
         recv_buf    = nullptr;
         recv_buf_cp = 0;
     }
 
     void doClearSend(ReactorContext& _rctx)
     {
-        solid_function_clear(send_fnc);
+        send_fnc    = nullptr;
         send_buf    = nullptr;
         recv_buf_cp = 0;
     }

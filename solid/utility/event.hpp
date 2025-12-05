@@ -10,7 +10,7 @@
 
 #pragma once
 #include <cstddef>
-#define SOLID_THROW_ON_BIG_EVENT
+// #define SOLID_THROW_ON_BIG_EVENT
 
 #include <ostream>
 #include <typeindex>
@@ -265,7 +265,7 @@ std::ostream& operator<<(std::ostream& _ros, EventBase const& _re);
 
 class EventCategoryBase {
 public:
-    const std::string& name() const
+    [[nodiscard]] const std::string& name() const
     {
         return name_;
     }
@@ -278,14 +278,14 @@ protected:
 
     virtual ~EventCategoryBase() {}
 
-    uintptr_t eventId(const EventBase& _revt) const
+    [[nodiscard]] uintptr_t eventId(const EventBase& _revt) const
     {
         return _revt.id_;
     }
 
 private:
     friend class EventBase;
-    virtual std::string_view eventName(const EventBase& _revt) const = 0;
+    [[nodiscard]] virtual std::string_view eventName(const EventBase& _revt) const = 0;
 
 private:
     const std::string name_;
@@ -799,8 +799,7 @@ protected:
 template <typename RetVal, typename... Args>
 class EventHandler : protected EventHandlerBase {
 public:
-    // using FunctionT = solid_function_t(RetVal(Event&, Args...));
-    using FunctionT = std::function<RetVal(EventBase&, Args...)>;
+    using FunctionT = Function<RetVal(EventBase&, Args...)>;
 
 private:
     using FunctionVectorT = std::vector<FunctionT>;

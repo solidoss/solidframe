@@ -155,10 +155,10 @@ class MessageWriter {
     Serializer::PointerT    serializer_stack_top_;
 
 public:
-    using VisitFunctionT = solid_function_t(void(
+    using VisitFunctionT = SmallFunctionT<void(
         MessageBundle& /*_rmsgbundle*/,
         MessageId const& /*_rmsgid*/
-        ));
+        )>;
 
     enum PrintWhat {
         PrintInnerListsE,

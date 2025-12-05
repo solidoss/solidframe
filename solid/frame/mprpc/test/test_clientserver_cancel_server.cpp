@@ -394,7 +394,7 @@ int test_clientserver_cancel_server(int argc, char* argv[])
 
             cfg.writer.max_message_count_multiplex = 6;
 
-            cfg.client.name_resolve_fnc.emplace(frame::mprpc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/));
+            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/);
 
             if (secure) {
                 solid_dbg(generic_logger, Info, "Configure SSL client ------------------------------------");

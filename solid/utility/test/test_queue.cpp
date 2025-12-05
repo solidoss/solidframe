@@ -52,7 +52,7 @@ struct UniqueId {
     }
 };
 
-typedef solid_function_t(void(size_t&, EventBase&&)) EventFunctionT;
+using EventFunctionT = Function<void(size_t&, EventBase&&)>;
 
 struct ExecStub {
     using EventT = Event<256, 8>;

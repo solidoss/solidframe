@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
             cfg.client.connection_start_fnc = std::move(on_connection_start);
             cfg.connection_stop_fnc         = std::move(on_connection_stop);
 
-            cfg.client.name_resolve_fnc.emplace(frame::mprpc::InternetResolverF(resolver, p.server_port.c_str()));
+            cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(resolver, p.server_port.c_str());
 
             rpcservice.start(std::move(cfg));
         }

@@ -140,7 +140,7 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
         });
     frame::mprpc::Configuration cfg(_rsch, proto);
 
-    cfg.client.name_resolve_fnc.emplace(frame::mprpc::InternetResolverF(_rrsv, _server_port.c_str()));
+    cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(_rrsv, _server_port.c_str());
 
     auto connection_start_lambda = [](frame::mprpc::ConnectionContext& _rctx) {
         solid_log(logger, Info, "Connection start");
@@ -210,7 +210,7 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
         });
     frame::mprpc::Configuration cfg(_rsch, proto);
 
-    cfg.client.name_resolve_fnc.emplace(frame::mprpc::InternetResolverF(_rrsv, _server_port.c_str()));
+    cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(_rrsv, _server_port.c_str());
 
     auto connection_start_lambda = [](frame::mprpc::ConnectionContext& _rctx) {
         solid_log(logger, Info, "Connection start");
@@ -285,7 +285,7 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
             configure_protocol(lambda);
         });
     frame::mprpc::Configuration cfg(_rsch, proto);
-    cfg.client.name_resolve_fnc.emplace(frame::mprpc::InternetResolverF(_rrsv, _server_port.c_str()));
+    cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(_rrsv, _server_port.c_str());
 
     auto connection_start_lambda = [](frame::mprpc::ConnectionContext& _rctx) {
         solid_log(logger, Info, "Connection start");
@@ -360,7 +360,7 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
         });
     frame::mprpc::Configuration cfg(_rsch, proto);
 
-    cfg.client.name_resolve_fnc.emplace(frame::mprpc::InternetResolverF(_rrsv, _server_port.c_str()));
+    cfg.client.name_resolve_fnc = frame::mprpc::InternetResolverF(_rrsv, _server_port.c_str());
 
     auto connection_start_lambda = [](frame::mprpc::ConnectionContext& _rctx) {
         solid_log(logger, Info, "Connection start");
