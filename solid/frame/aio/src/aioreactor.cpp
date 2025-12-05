@@ -1369,7 +1369,7 @@ void EventHandler::write(impl::Reactor& _rreactor)
 
 /*static*/ void EventHandler::on_completion(CompletionHandler& _rch, ReactorContext& _rctx)
 {
-    EventHandler& rthis = static_cast<EventHandler&>(_rch);
+    [[maybe_unused]] EventHandler& rthis = static_cast<EventHandler&>(_rch);
 #if defined(SOLID_USE_EPOLL)
     uint64_t v = -1;
     ssize_t  rv;

@@ -12,6 +12,7 @@
 #include <atomic>
 #include <cassert>
 #include <cstddef>
+#include <utility>
 #include <type_traits>
 
 namespace solid {
