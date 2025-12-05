@@ -26,12 +26,12 @@ int test_shared_buffer(int argc, char* argv[])
         }
         cout << "exiting..." << endl;
         return 0;
-        //solid_check(sb2.size() == 100);
+        // solid_check(sb2.size() == 100);
 
-        //SharedBuffer sb3 = sb2; // sb3 == sb2
+        // SharedBuffer sb3 = sb2; // sb3 == sb2
 
-        //solid_check(sb3);
-        //cout << "exiting..." << endl;
+        // solid_check(sb3);
+        // cout << "exiting..." << endl;
     }
     {
         cout << "exiting..." << endl;
