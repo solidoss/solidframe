@@ -393,14 +393,13 @@ public:
         return *this;
     }
 
-#if 0
     template <class T>
     ThisT& emplace(T&& _rvalue)
     {
         *this = ThisT{std::forward<T>(_rvalue), AcceptBigT{}};
         return *this;
     }
-#endif
+
     void reset() noexcept
     {
         auto const rtti = storage_.rtti_;
