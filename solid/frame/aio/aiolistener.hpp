@@ -32,7 +32,7 @@ class Listener : public CompletionHandler {
     static void on_posted_accept(ReactorContext& _rctx, EventBase&&);
     static void on_dummy(ReactorContext&, SocketDevice&);
 
-    using FunctionT = SmallFunctionT<void(ReactorContext&, SocketDevice&)>;
+    using FunctionT = SmallFunction64T<void(ReactorContext&, SocketDevice&)>;
     FunctionT  f_;
     SocketBase s_;
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <array>
 #include <cassert>
 #include <cstdint>
 #include <functional>
@@ -20,7 +21,7 @@ namespace impl {
 
 class BufferPoolBase;
 
-struct alignas(hardware_destructive_interference_size) SharedBufferData {
+struct /* alignas(hardware_destructive_interference_size) */ SharedBufferData {
     friend class BufferManager;
 
     std::atomic<std::size_t> use_count_;
@@ -189,10 +190,7 @@ public:
 
     SharedBuffer(MutableSharedBuffer&& _other);
 
-    ~SharedBuffer()
-    {
-        reset();
-    }
+    ~SharedBuffer() = default;
 
     [[nodiscard]] char* data() const
     {
@@ -372,10 +370,7 @@ public:
     {
     }
 
-    ~MutableSharedBuffer()
-    {
-        reset();
-    }
+    ~MutableSharedBuffer() = default;
 
     explicit operator bool() const noexcept
     {
@@ -528,10 +523,7 @@ public:
     {
     }
 
-    ~ConstSharedBuffer()
-    {
-        reset();
-    }
+    ~ConstSharedBuffer() = default;
 
     [[nodiscard]] const char* data() const
     {
