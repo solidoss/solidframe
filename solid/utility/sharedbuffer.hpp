@@ -21,7 +21,7 @@ namespace impl {
 
 class BufferPoolBase;
 
-struct /* alignas(hardware_destructive_interference_size) */ SharedBufferData {
+struct alignas(hardware_destructive_interference_size) SharedBufferData {
     friend class BufferManager;
 
     std::atomic<std::size_t> use_count_;

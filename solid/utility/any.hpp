@@ -35,7 +35,10 @@ constexpr size_t any_size_to_small_size()
 constexpr size_t any_default_size  = any_size_to_small_size<32>();
 constexpr size_t any_default_align = sizeof(std::uintptr_t);
 
-template <size_t SmallSize = any_default_size, size_t SmallAlign = any_default_align>
+template <
+    size_t      SmallSize  = any_default_size,
+    size_t      SmallAlign = any_default_align,
+    StoreOption Option     = StoreOption::AcceptBig>
     requires(SmallSize > 0 and SmallSize >= SmallAlign
         and (SmallSize % SmallAlign == 0) and std::popcount(SmallAlign) == 1)
 class Any;
@@ -43,8 +46,8 @@ class Any;
 template <class T>
 struct is_any;
 
-template <size_t V, size_t A>
-struct is_any<Any<V, A>> : std::true_type {
+template <size_t V, size_t A, StoreOption O>
+struct is_any<Any<V, A, O>> : std::true_type {
 };
 
 template <class T>
@@ -255,7 +258,7 @@ std::type_info const* get_type_info() noexcept
 
 } // namespace any_impl
 
-template <size_t SmallSize, size_t SmallAlign>
+template <size_t SmallSize, size_t SmallAlign, StoreOption Option>
     requires(SmallSize > 0 and SmallSize >= SmallAlign
         and (SmallSize % SmallAlign == 0) and std::popcount(SmallAlign) == 1)
 class Any {
@@ -274,13 +277,13 @@ class Any {
         Big   big_;
     };
 
-    template <size_t S, size_t A>
+    template <size_t S, size_t A, StoreOption O>
         requires(S > 0 and S >= A
             and (S % A == 0) and std::popcount(A) == 1)
     friend class Any;
 
 private:
-    const std::type_info* typeInfo() const noexcept
+    [[nodiscard]] const std::type_info* typeInfo() const noexcept
     {
         auto const rtti = rtti_;
         if (rtti) [[likely]] {
@@ -290,7 +293,7 @@ private:
     }
 
 public:
-    using ThisT = Any<SmallSize, SmallAlign>;
+    using ThisT = Any<SmallSize, SmallAlign, Option>;
 
     static constexpr size_t smallCapacity()
     {
@@ -318,8 +321,8 @@ public:
         doCopyFrom(_other);
     }
 
-    template <size_t Sz>
-    Any(const Any<Sz>& _other)
+    template <size_t Sz, size_t Al, StoreOption Op>
+    Any(const Any<Sz, Al, Op>& _other)
     {
         doCopyFrom(_other);
     }
@@ -329,36 +332,36 @@ public:
         doMoveFrom(_other);
     }
 
-    template <size_t Sz>
-    Any(Any<Sz>&& _other) noexcept
+    template <size_t Sz, size_t Al, StoreOption Op>
+    Any(Any<Sz, Al, Op>&& _other) noexcept
     {
         doMoveFrom(_other);
     }
 
-    template <class T, StoreOption Option = StoreOption::RejectBig>
-    Any(T&& _rvalue, std::integral_constant<StoreOption, Option> = RejectBigT{})
+    template <class T, StoreOption Opt = Option>
+    Any(T&& _rvalue, std::integral_constant<StoreOption, Opt> = store_option_dispatch<Opt>())
         requires(not is_any_v<std::decay_t<T>> and not is_specialization_v<std::decay_t<T>, std::in_place_type_t>)
     {
         using ValueT = std::decay_t<T>;
-        static_assert(Option == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
+        static_assert(Opt == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
         doEmplace<std::decay_t<T>>(std::forward<T>(_rvalue));
     }
 
-    template <class T, class... Args, StoreOption Option = StoreOption::RejectBig>
-    explicit Any(std::in_place_type_t<T>, Args&&... _args, std::integral_constant<StoreOption, Option> = RejectBigT{})
+    template <class T, class... Args, StoreOption Opt = Option>
+    explicit Any(std::in_place_type_t<T>, Args&&... _args, std::integral_constant<StoreOption, Opt> = store_option_dispatch<Opt>())
         requires(std::is_constructible_v<std::decay_t<T>, Args...>)
     {
         using ValueT = std::decay_t<T>;
-        static_assert(Option == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
+        static_assert(Opt == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
         doEmplace<std::decay_t<T>>(std::forward<Args>(_args)...);
     }
 
-    template <class T, class E, class... Args, StoreOption Option = StoreOption::RejectBig>
-    explicit Any(std::in_place_type_t<T>, std::initializer_list<E> _ilist, Args&&... _args, std::integral_constant<StoreOption, Option> = RejectBigT{})
+    template <class T, class E, class... Args, StoreOption Opt = Option>
+    explicit Any(std::in_place_type_t<T>, std::initializer_list<E> _ilist, Args&&... _args, std::integral_constant<StoreOption, Opt> = store_option_dispatch<Opt>())
         requires(std::is_constructible_v<std::decay_t<T>, std::initializer_list<E>&, Args...> and std::is_copy_constructible_v<std::decay_t<T>>)
     {
         using ValueT = std::decay_t<T>;
-        static_assert(Option == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
+        static_assert(Opt == StoreOption::AcceptBig or is_small_type<ValueT>(), "Value not small. Construct by using AcceptBigT{} or assign using .emplace()");
         doEmplace<std::decay_t<T>>(_ilist, std::forward<Args>(_args)...);
     }
 
@@ -380,15 +383,15 @@ public:
         return *this;
     }
 
-    template <size_t Sz>
-    ThisT& operator=(const Any<Sz>& _other)
+    template <size_t Sz, size_t Al, StoreOption Op>
+    ThisT& operator=(const Any<Sz, Al, Op>& _other)
     {
         *this = ThisT{_other};
         return *this;
     }
 
-    template <size_t Sz>
-    ThisT& operator=(Any<Sz>&& _other) noexcept
+    template <size_t Sz, size_t Al, StoreOption Op>
+    ThisT& operator=(Any<Sz, Al, Op>&& _other) noexcept
     {
         reset();
         doMoveFrom(_other);
@@ -402,7 +405,7 @@ public:
         *this = ThisT{std::forward<T>(_rvalue)};
         return *this;
     }
-
+#if 0
     template <class T>
     ThisT& emplace(T&& _rvalue)
     {
@@ -424,7 +427,7 @@ public:
         *this = ThisT{std::in_place_type_t<T>{}, _ilist, std::forward<Args>(_args)..., AcceptBigT{}};
         return *this;
     }
-
+#endif
     void reset() noexcept
     {
         auto const rtti = rtti_;
@@ -445,13 +448,13 @@ public:
         rtti_ = 0u;
     }
 
-    template <size_t Sz>
-    void swap(Any<Sz>& _other) noexcept
+    template <size_t Sz, size_t Al, StoreOption Op>
+    void swap(Any<Sz, Al, Op>& _other) noexcept
     {
         _other = std::exchange(*this, std::move(_other));
     }
 
-    bool has_value() const noexcept
+    [[nodiscard]] bool has_value() const noexcept
     {
         return rtti_ != 0u;
     }
@@ -461,12 +464,12 @@ public:
         return has_value();
     }
 
-    bool empty() const noexcept
+    [[nodiscard]] bool empty() const noexcept
     {
         return !has_value();
     }
 
-    const std::type_info& type() const noexcept
+    [[nodiscard]] const std::type_info& type() const noexcept
     {
         const std::type_info* const pinfo = typeInfo();
         return pinfo ? *pinfo : typeid(void);
@@ -510,7 +513,7 @@ public:
         return const_cast<T*>(static_cast<const ThisT*>(this)->get_if<T>());
     }
 
-    bool is_movable() const
+    [[nodiscard]] bool is_movable() const
     {
         auto const rtti = rtti_;
         if (rtti) [[likely]] {
@@ -518,7 +521,7 @@ public:
         }
         return true;
     }
-    bool is_copyable() const
+    [[nodiscard]] bool is_copyable() const
     {
         auto const rtti = rtti_;
         if (rtti) [[likely]] {
@@ -527,7 +530,7 @@ public:
         return true;
     }
 
-    bool is_tuple() const
+    [[nodiscard]] bool is_tuple() const
     {
         auto const rtti = rtti_;
         if (rtti) [[likely]] {
@@ -536,11 +539,12 @@ public:
         return false;
     }
 
-    bool is_small() const
+    [[nodiscard]] bool is_small() const
     {
         return any_impl::representation(rtti_) == any_impl::RepresentationE::Small;
     }
-    bool is_big() const
+
+    [[nodiscard]] bool is_big() const
     {
         return any_impl::representation(rtti_) == any_impl::RepresentationE::Big;
     }
@@ -626,6 +630,12 @@ using Any64T  = Any<any_size_to_small_size<64>()>;
 using Any96T  = Any<any_size_to_small_size<96>()>;
 using Any128T = Any<any_size_to_small_size<128>()>;
 using Any256T = Any<any_size_to_small_size<256>()>;
+
+using SmallAnyT    = Any<any_default_size, any_default_align, StoreOption::RejectBig>;
+using SmallAny64T  = Any<any_size_to_small_size<64>(), any_default_align, StoreOption::RejectBig>;
+using SmallAny96T  = Any<any_size_to_small_size<96>(), any_default_align, StoreOption::RejectBig>;
+using SmallAny128T = Any<any_size_to_small_size<128>(), any_default_align, StoreOption::RejectBig>;
+using SmallAny256T = Any<any_size_to_small_size<256>(), any_default_align, StoreOption::RejectBig>;
 
 static_assert(sizeof(Any<>) == 32);
 static_assert(sizeof(Any64T) == 64);
