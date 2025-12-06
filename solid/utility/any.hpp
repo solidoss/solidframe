@@ -550,8 +550,8 @@ public:
     }
 
 private:
-    template <size_t Sz, size_t Al>
-    void doMoveFrom(Any<Sz, Al>& _other)
+    template <size_t Sz, size_t Al, StoreOption Op>
+    void doMoveFrom(Any<Sz, Al, Op>& _other)
     {
         auto const rtti = _other.rtti_;
 
@@ -578,8 +578,8 @@ private:
         }
     }
 
-    template <size_t Sz, size_t Al>
-    void doCopyFrom(const Any<Sz, Al>& _other)
+    template <size_t Sz, size_t Al, StoreOption Op>
+    void doCopyFrom(const Any<Sz, Al, Op>& _other)
     {
         auto const rtti = _other.rtti_;
 
@@ -620,8 +620,8 @@ private:
 
 //-----------------------------------------------------------------------------
 
-template <size_t S1, size_t A1, size_t S2, size_t A2>
-inline void swap(Any<S1, A1>& _a1, Any<S2, A2>& _a2) noexcept
+template <size_t S1, size_t A1, StoreOption O1, size_t S2, size_t A2, StoreOption O2>
+inline void swap(Any<S1, A1, O1>& _a1, Any<S2, A2, O2>& _a2) noexcept
 {
     _a1.swap(_a2);
 }
