@@ -383,7 +383,7 @@ auto make_message(Args&&... _args)
     return make_mutable_intrusive<Msg>(std::forward<Args>(_args)...);
 }
 
-using MessageCompleteFunctionT = SmallFunctionT<void(
+using MessageCompleteFunctionT = Function128T<void(
     ConnectionContext&, SendMessagePointerT<>&, RecvMessagePointerT<>&, ErrorConditionT const&)>;
 
 } // namespace solid::frame::mprpc
