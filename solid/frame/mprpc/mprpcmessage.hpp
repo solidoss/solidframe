@@ -372,10 +372,16 @@ private:
 };
 
 template <class Msg = Message>
-using RecvMessagePointerT = MutableIntrusivePtr<Msg>;
+using MutableMessagePointerT = MutableIntrusivePtr<Msg>;
 
 template <class Msg = Message>
-using SendMessagePointerT = ConstIntrusivePtr<Msg>;
+using ConstMessagePointerT = ConstIntrusivePtr<Msg>;
+
+template <class Msg = Message>
+using RecvMessagePointerT = MutableMessagePointerT<Msg>;
+
+template <class Msg = Message>
+using SendMessagePointerT = ConstMessagePointerT<Msg>;
 
 template <class Msg, class... Args>
 auto make_message(Args&&... _args)

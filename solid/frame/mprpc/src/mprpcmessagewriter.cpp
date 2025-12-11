@@ -1044,9 +1044,10 @@ void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const& _rvisit_f
                 doUnprepareMessageStub(oldidx);
 
             } else {
-
                 msgidx = order_inner_list_.previousIndex(msgidx);
             }
+        } else {
+            msgidx = order_inner_list_.previousIndex(msgidx);
         }
     } // while
 }
