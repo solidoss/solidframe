@@ -38,7 +38,12 @@ struct SynchContext {
     size_t                               validation_ = 0;
 };
 
-size_t synch_contexts_validations[synch_context_count] = {0};
+//size_t synch_contexts_validations[synch_context_count] = {0};
+struct alignas(std::hardware_destructive_interference_size) Validation{
+    atomic_size_t validation_{0};
+};
+
+auto synch_contexts_validations = std::unique_ptr<Validation[]>(new Validation[synch_context_count]);
 
 } // namespace
 
@@ -66,7 +71,7 @@ int test_threadpool_multicast_synchronization_context_basic(int argc, char* argv
                 record_dq[_r.value_].value_           = _r.value_;
                 record_dq[_r.value_].context_id_      = _r.context_id_;
                 if (_r.context_id_ != InvalidIndex{}) {
-                    solid_check(synch_contexts_validations[_r.context_id_]++ == _r.validation_);
+                    solid_check(synch_contexts_validations[_r.context_id_].validation_.fetch_add(1) == _r.validation_);
                 }
                 // solid_log(logger, Verbose, "job " << _r.value_);
             },

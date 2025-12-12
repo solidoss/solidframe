@@ -86,9 +86,9 @@ uint64_t microseconds_since_epoch()
 }
 
 struct Topic {
-    const size_t  id_;
-    SynchContextT synch_ctx_;
-    uint64_t      value_ = 0;
+    const size_t    id_;
+    SynchContextT   synch_ctx_;
+    atomic_uint64_t value_ = 0;
 
     Topic(
         const size_t    _id,

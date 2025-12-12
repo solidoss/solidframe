@@ -232,10 +232,13 @@ public:
     {
         if constexpr (is_poolable_v<T>) {
             if (ptr_) {
-                if (ptr_->ppool_ and impl::intrusive_ptr_release(*ptr_)) {
-                    impl::intrusive_ptr_acquire(*ptr_);
-                    doPushToPool(ptr_->ppool_);
-                    return;
+                if (impl::intrusive_ptr_release(*ptr_)) {
+                    if (ptr_->ppool_) {
+                        impl::intrusive_ptr_acquire(*ptr_);
+                        doPushToPool(ptr_->ppool_);
+                    } else {
+                        intrusive_ptr_destroy(*ptr_);
+                    }
                 }
                 ptr_ = nullptr;
             }
@@ -249,7 +252,7 @@ public:
         }
     }
 
-    size_t
+    [[nodiscard]] size_t
     useCount() const noexcept
     {
         if (ptr_ != nullptr) [[likely]] {
@@ -319,16 +322,7 @@ public:
 
     ~IntrusivePtr()
     {
-        if constexpr (is_poolable_v<T>) {
-            if (BaseT::ptr_) {
-                if (BaseT::ptr_->ppool_ and impl::intrusive_ptr_release(*BaseT::ptr_)) {
-                    impl::intrusive_ptr_acquire(*BaseT::ptr_);
-                    BaseT::doPushToPool(BaseT::ptr_->ppool_);
-                    return;
-                }
-                BaseT::ptr_ = nullptr;
-            }
-        }
+        this->reset();
     }
 
     IntrusivePtr& operator=(const IntrusivePtr& _other) noexcept
