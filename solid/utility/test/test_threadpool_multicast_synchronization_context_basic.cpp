@@ -38,8 +38,8 @@ struct SynchContext {
     size_t                               validation_ = 0;
 };
 
-//size_t synch_contexts_validations[synch_context_count] = {0};
-struct alignas(std::hardware_destructive_interference_size) Validation{
+// size_t synch_contexts_validations[synch_context_count] = {0};
+struct alignas(std::hardware_destructive_interference_size) Validation {
     atomic_size_t validation_{0};
 };
 
