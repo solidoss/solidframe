@@ -138,10 +138,12 @@ void test_thread_pool()
 int test_buffer_pool_basic(int /*argc*/, char* /*argv*/[])
 {
     {
-        jthread thr{test_local_pool};
+        thread thr{test_local_pool};
+        thr.join();
     }
     {
-        jthread thr{test_thread_pool};
+        thread thr{test_thread_pool};
+        thr.join();
     }
     return 0;
 }

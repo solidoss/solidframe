@@ -16,9 +16,7 @@
 #include "solid/utility/function.hpp"
 #include <cerrno>
 
-namespace solid {
-namespace frame {
-namespace aio {
+namespace solid::frame::aio {
 
 class ReactorContext;
 
@@ -142,6 +140,4 @@ inline Socket::NativeHandleT Socket::nativeHandle() const
 }
 
 } // namespace openssl
-} // namespace aio
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::aio
