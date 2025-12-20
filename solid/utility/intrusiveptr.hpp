@@ -8,9 +8,12 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #pragma once
-
+#include "solid/utility/poolable.hpp"
 #include <atomic>
+#include <cassert>
 #include <cstddef>
+#include <type_traits>
+#include <utility>
 
 namespace solid {
 
@@ -18,7 +21,7 @@ struct IntrusiveThreadSafePolicy;
 
 class IntrusiveThreadSafeBase {
     friend struct IntrusiveThreadSafePolicy;
-    mutable std::atomic_size_t use_count_{0};
+    mutable std::atomic_size_t use_count_{1};
 
 protected:
     auto useCount() const
@@ -115,8 +118,34 @@ class IntrusivePtrBase {
 protected:
     T* ptr_ = nullptr;
 
-protected:
     IntrusivePtrBase() = default;
+
+    IntrusivePtrBase(T* _ptr)
+        : ptr_(_ptr)
+    {
+        assert(ptr_ == nullptr or intrusive_ptr_use_count(*ptr_) == 1U);
+    }
+
+    IntrusivePtrBase(T* _ptr, const bool _do_acquire)
+        : ptr_(_ptr)
+    {
+        if (_ptr && _do_acquire) {
+            intrusive_ptr_acquire(*_ptr);
+        }
+    }
+
+    IntrusivePtrBase(T* _ptr, const std::true_type)
+        : ptr_(_ptr)
+    {
+        if (_ptr) {
+            intrusive_ptr_acquire(*_ptr);
+        }
+    }
+
+    IntrusivePtrBase(T* _ptr, const std::false_type)
+        : ptr_(_ptr)
+    {
+    }
 
     IntrusivePtrBase(const IntrusivePtrBase& _other)
         : ptr_(_other.ptr_)
@@ -126,7 +155,7 @@ protected:
         }
     }
 
-    IntrusivePtrBase(IntrusivePtrBase&& _other)
+    IntrusivePtrBase(IntrusivePtrBase&& _other) noexcept
         : ptr_(_other.detach())
     {
     }
@@ -142,7 +171,7 @@ protected:
 
     template <class TT>
     IntrusivePtrBase(IntrusivePtrBase<TT>&& _other)
-        : ptr_(static_cast<TT*>(_other.detach()))
+        : ptr_(static_cast<T*>(_other.detach()))
     {
     }
 
@@ -174,22 +203,6 @@ protected:
         IntrusivePtrBase{std::move(_other)}.swap(*this);
     }
 
-    IntrusivePtrBase(T* _ptr)
-        : ptr_(_ptr)
-    {
-        if (_ptr) {
-            intrusive_ptr_acquire(*_ptr);
-        }
-    }
-
-    IntrusivePtrBase(T* _ptr, const bool _do_acquire)
-        : ptr_(_ptr)
-    {
-        if (_ptr && _do_acquire) {
-            intrusive_ptr_acquire(*_ptr);
-        }
-    }
-
     T* detach() noexcept
     {
         T* ret = ptr_;
@@ -204,6 +217,9 @@ protected:
         _other.ptr_ = tmp;
     }
 
+    template <template <typename> typename Ptr>
+    void doPushToPool(Pool<T, Ptr>*);
+
 public:
     using element_type = T;
 
@@ -214,15 +230,30 @@ public:
 
     void reset()
     {
-        if (ptr_) {
-            if (intrusive_ptr_release(*ptr_)) {
-                intrusive_ptr_destroy(*ptr_);
+        if constexpr (is_poolable_v<T>) {
+            if (ptr_) {
+                if (impl::intrusive_ptr_release(*ptr_)) {
+                    if (ptr_->ppool_) {
+                        impl::intrusive_ptr_acquire(*ptr_);
+                        doPushToPool(ptr_->ppool_);
+                    } else {
+                        intrusive_ptr_destroy(*ptr_);
+                    }
+                }
+                ptr_ = nullptr;
             }
-            ptr_ = nullptr;
+        } else {
+            if (ptr_) {
+                if (intrusive_ptr_release(*ptr_)) {
+                    intrusive_ptr_destroy(*ptr_);
+                }
+                ptr_ = nullptr;
+            }
         }
     }
 
-    size_t useCount() const noexcept
+    [[nodiscard]] size_t
+    useCount() const noexcept
     {
         if (ptr_ != nullptr) [[likely]] {
             return intrusive_ptr_use_count(*ptr_);
@@ -233,12 +264,25 @@ public:
 
 } // namespace impl
 
+template <typename T, template <typename> typename Ptr>
+class Pool;
+
 template <class T>
 class IntrusivePtr : public impl::IntrusivePtrBase<T> {
     using BaseT = impl::IntrusivePtrBase<T>;
     using ThisT = IntrusivePtr<T>;
     template <class TT>
     friend class IntrusivePtr;
+    template <class TT>
+    friend class MutableIntrusivePtr;
+    template <class TT>
+    friend class impl::IntrusivePtrBase;
+
+    IntrusivePtr(impl::IntrusivePtrBase<T>&& _other)
+        : BaseT(std::move(_other))
+    {
+        assert(!BaseT::ptr_ or (BaseT::ptr_ and BaseT::useCount() == 1u));
+    }
 
 public:
     IntrusivePtr() = default;
@@ -253,7 +297,7 @@ public:
     {
     }
 
-    IntrusivePtr(IntrusivePtr&& _other)
+    IntrusivePtr(IntrusivePtr&& _other) noexcept
         : BaseT(std::move(_other))
     {
     }
@@ -270,7 +314,16 @@ public:
     {
     }
 
-    ~IntrusivePtr() = default;
+    template <class TT>
+    IntrusivePtr(MutableIntrusivePtr<TT>&& _other)
+        : BaseT(std::move(_other))
+    {
+    }
+
+    ~IntrusivePtr()
+    {
+        this->reset();
+    }
 
     IntrusivePtr& operator=(const IntrusivePtr& _other) noexcept
     {
@@ -325,6 +378,11 @@ private:
     template <class T1, class T2>
     friend IntrusivePtr<T1> dynamic_pointer_cast(IntrusivePtr<T2>&& _rp) noexcept;
 
+    IntrusivePtr(T* _ptr, std::true_type const _acquire)
+        : BaseT(_ptr, _acquire)
+    {
+    }
+
     IntrusivePtr(T* _ptr)
         : BaseT(_ptr)
     {
@@ -345,10 +403,19 @@ class MutableIntrusivePtr : public impl::IntrusivePtrBase<T> {
     friend class MutableIntrusivePtr;
     template <class TT>
     friend class ConstIntrusivePtr;
+    template <class TT>
+    friend class impl::IntrusivePtrBase;
 
     MutableIntrusivePtr(IntrusivePtr<T>&& _other)
         : BaseT(std::move(_other))
     {
+        assert(!BaseT::ptr_ or (BaseT::ptr_ and BaseT::useCount() == 1u));
+    }
+
+    MutableIntrusivePtr(impl::IntrusivePtrBase<T>&& _other)
+        : BaseT(std::move(_other))
+    {
+        assert(!BaseT::ptr_ or (BaseT::ptr_ and BaseT::useCount() == 1u));
     }
 
 public:
@@ -357,6 +424,7 @@ public:
     MutableIntrusivePtr(T* _ptr, const bool _do_acquire)
         : BaseT(_ptr, _do_acquire)
     {
+        assert(!_ptr or (_ptr and BaseT::useCount() == 1u));
     }
 
     MutableIntrusivePtr(const MutableIntrusivePtr& _other) = delete;
@@ -364,7 +432,7 @@ public:
     template <class TT>
     MutableIntrusivePtr(const MutableIntrusivePtr<TT>& _other) = delete;
 
-    MutableIntrusivePtr(MutableIntrusivePtr&& _other)
+    MutableIntrusivePtr(MutableIntrusivePtr&& _other) noexcept
         : BaseT(std::move(_other))
     {
     }
@@ -374,7 +442,19 @@ public:
     {
     }
 
-    ~MutableIntrusivePtr() = default;
+    ~MutableIntrusivePtr()
+    {
+        if constexpr (is_poolable_v<T>) {
+            if (BaseT::ptr_) {
+                if (BaseT::ptr_->ppool_ and impl::intrusive_ptr_release(*BaseT::ptr_)) {
+                    impl::intrusive_ptr_acquire(*BaseT::ptr_);
+                    BaseT::doPushToPool(BaseT::ptr_->ppool_);
+                    return;
+                }
+                BaseT::ptr_ = nullptr;
+            }
+        }
+    }
 
     MutableIntrusivePtr& operator=(const MutableIntrusivePtr& _other) noexcept = delete;
 
@@ -411,10 +491,6 @@ public:
 private:
     template <class TT, class... Args>
     friend MutableIntrusivePtr<TT> make_mutable_intrusive(Args&&... _args);
-    template <class T1, class T2>
-    friend MutableIntrusivePtr<T1> static_pointer_cast(const MutableIntrusivePtr<T2>& _rp) noexcept;
-    template <class T1, class T2>
-    friend MutableIntrusivePtr<T1> dynamic_pointer_cast(const MutableIntrusivePtr<T2>& _rp) noexcept;
     template <class T1, class T2>
     friend MutableIntrusivePtr<T1> static_pointer_cast(MutableIntrusivePtr<T2>&& _rp) noexcept;
     template <class T1, class T2>
@@ -472,7 +548,7 @@ public:
     {
     }
 
-    ConstIntrusivePtr(ConstIntrusivePtr&& _other)
+    ConstIntrusivePtr(ConstIntrusivePtr&& _other) noexcept
         : BaseT(std::move(_other))
     {
     }
@@ -489,7 +565,19 @@ public:
     {
     }
 
-    ~ConstIntrusivePtr() = default;
+    ~ConstIntrusivePtr()
+    {
+        if constexpr (is_poolable_v<T>) {
+            if (BaseT::ptr_) {
+                if (BaseT::ptr_->ppool_ and impl::intrusive_ptr_release(*BaseT::ptr_)) {
+                    impl::intrusive_ptr_acquire(*BaseT::ptr_);
+                    BaseT::doPushToPool(BaseT::ptr_->ppool_);
+                    return;
+                }
+                BaseT::ptr_ = nullptr;
+            }
+        }
+    }
 
     ConstIntrusivePtr& operator=(const ConstIntrusivePtr& _other) noexcept
     {
@@ -554,8 +642,13 @@ private:
     template <class T1, class T2>
     friend ConstIntrusivePtr<T1> dynamic_pointer_cast(ConstIntrusivePtr<T2>&& _rp) noexcept;
 
-    ConstIntrusivePtr(T* _ptr)
-        : BaseT(_ptr)
+    ConstIntrusivePtr(T* _ptr, std::true_type const _acquire)
+        : BaseT(_ptr, _acquire)
+    {
+    }
+
+    ConstIntrusivePtr(T* _ptr, std::false_type const)
+        : BaseT(_ptr, std::false_type{})
     {
     }
 };
@@ -567,24 +660,23 @@ private:
 template <class TT, class... Args>
 inline IntrusivePtr<TT> make_intrusive(Args&&... _args)
 {
-    // return IntrusivePtr<TT>(new TT(std::forward<Args>(_args)...));
     return IntrusivePtr<TT>(impl::intrusive_ptr_create<TT>(std::forward<Args>(_args)...));
 }
 template <class T1, class T2>
 inline IntrusivePtr<T1> static_pointer_cast(const IntrusivePtr<T2>& _rp) noexcept
 {
-    return IntrusivePtr<T1>(static_cast<T1*>(_rp.get()));
+    return IntrusivePtr<T1>(static_cast<T1*>(_rp.get()), std::true_type{});
 }
 template <class T1, class T2>
 inline IntrusivePtr<T1> dynamic_pointer_cast(const IntrusivePtr<T2>& _rp) noexcept
 {
-    return IntrusivePtr<T1>(dynamic_cast<T1*>(_rp.get()));
+    return IntrusivePtr<T1>(dynamic_cast<T1*>(_rp.get()), std::true_type{});
 }
 
 template <class T1, class T2>
 inline IntrusivePtr<T1> static_pointer_cast(IntrusivePtr<T2>&& _rp) noexcept
 {
-    return IntrusivePtr<T1>(static_cast<T1*>(_rp.detach()));
+    return IntrusivePtr<T1>(std::move(_rp));
 }
 
 template <class T1, class T2>
@@ -608,21 +700,11 @@ inline MutableIntrusivePtr<TT> make_mutable_intrusive(Args&&... _args)
     // return IntrusivePtr<TT>(new TT(std::forward<Args>(_args)...));
     return MutableIntrusivePtr<TT>(make_intrusive<TT>(std::forward<Args>(_args)...));
 }
-template <class T1, class T2>
-inline MutableIntrusivePtr<T1> static_pointer_cast(const MutableIntrusivePtr<T2>& _rp) noexcept
-{
-    return MutableIntrusivePtr<T1>(static_cast<T1*>(_rp.get()));
-}
-template <class T1, class T2>
-inline MutableIntrusivePtr<T1> dynamic_pointer_cast(const MutableIntrusivePtr<T2>& _rp) noexcept
-{
-    return MutableIntrusivePtr<T1>(dynamic_cast<T1*>(_rp.get()));
-}
 
 template <class T1, class T2>
 inline MutableIntrusivePtr<T1> static_pointer_cast(MutableIntrusivePtr<T2>&& _rp) noexcept
 {
-    return MutableIntrusivePtr<T1>(static_cast<T1*>(_rp.detach()));
+    return MutableIntrusivePtr<T1>(std::move(_rp));
 }
 
 template <class T1, class T2>
@@ -643,27 +725,29 @@ inline MutableIntrusivePtr<T1> dynamic_pointer_cast(MutableIntrusivePtr<T2>&& _r
 template <class T1, class T2>
 inline ConstIntrusivePtr<T1> static_pointer_cast(const ConstIntrusivePtr<T2>& _rp) noexcept
 {
-    return ConstIntrusivePtr<T1>(static_cast<T1*>(_rp.get()));
+    auto* pt = const_cast<T2*>(_rp.get());
+    return ConstIntrusivePtr<T1>(static_cast<T1*>(pt), std::true_type{});
 }
 template <class T1, class T2>
 inline ConstIntrusivePtr<T1> dynamic_pointer_cast(const ConstIntrusivePtr<T2>& _rp) noexcept
 {
-    return ConstIntrusivePtr<T1>(dynamic_cast<T1*>(_rp.get()));
+    auto* pt = const_cast<T2*>(_rp.get());
+    return ConstIntrusivePtr<T1>(dynamic_cast<T1*>(pt), std::true_type{});
 }
 
 template <class T1, class T2>
 inline ConstIntrusivePtr<T1> static_pointer_cast(ConstIntrusivePtr<T2>&& _rp) noexcept
 {
-    return ConstIntrusivePtr<T1>(static_cast<T1*>(_rp.detach()));
+    return ConstIntrusivePtr<T1>(std::move(_rp));
 }
 
 template <class T1, class T2>
 inline ConstIntrusivePtr<T1> dynamic_pointer_cast(ConstIntrusivePtr<T2>&& _rp) noexcept
 {
-    auto* pt = dynamic_cast<T1*>(_rp.get());
+    auto* pt = dynamic_cast<T1*>(const_cast<T2*>(_rp.get()));
     if (pt) {
         _rp.detach();
-        return ConstIntrusivePtr<T1>(pt);
+        return ConstIntrusivePtr<T1>(pt, std::false_type{});
     }
     return ConstIntrusivePtr<T1>();
 }

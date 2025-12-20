@@ -239,7 +239,7 @@ struct Variant {
     template <class T>
     Variant& operator=(T&& _rv)
     {
-        var_ = std::move(_rv);
+        var_ = std::forward<T>(_rv);
         return *this;
     }
 
@@ -286,18 +286,12 @@ struct Variant {
     }
 };
 
-template <typename T, size_t S>
-inline constexpr size_t array_size(const T (&arr)[S])
-{
-    return S;
-}
-
 inline constexpr auto factory = [](const auto& _rt, auto& _rctx, const TypeMapBase* _ptype_map) -> auto {
     using rem_ref_value_t = typename std::remove_reference<decltype(_rt)>::type;
     using value_t         = std::decay_t<decltype(_rt)>;
     if constexpr (std::is_enum_v<value_t>) {
         return Enum{};
-    } else if constexpr (is_shared_ptr_v<value_t> || is_unique_ptr_v<value_t> || is_intrusive_ptr_v<value_t>) {
+    } else if constexpr (is_shared_ptr_v<value_t> || is_unique_ptr_v<value_t> || is_intrusive_ptr_v<value_t> || is_const_intrusive_ptr_v<value_t> || is_mutable_intrusive_ptr_v<value_t>) {
         return Pointer{_ptype_map};
     } else if constexpr (std::is_signed_v<value_t>) {
         return SignedInteger{std::numeric_limits<value_t>::min(), std::numeric_limits<value_t>::max()};

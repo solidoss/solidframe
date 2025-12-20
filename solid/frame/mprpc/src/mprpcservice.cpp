@@ -14,6 +14,7 @@
 #include <deque>
 #include <mutex>
 #include <thread>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -46,9 +47,7 @@
 
 using namespace std;
 
-namespace solid {
-namespace frame {
-namespace mprpc {
+namespace solid::frame::mprpc {
 namespace {
 
 const LoggerT logger("solid::frame::mprpc::service");
@@ -115,7 +114,7 @@ struct MessageStub : inner::Node<to_underlying(MessageInnerLink::Count)> {
     uint          flags_;
 
     MessageStub(
-        MessagePointerT<>&&           _rmsgptr,
+        SendMessagePointerT<>&&       _rmsgptr,
         const size_t                  _msg_type_idx,
         MessageCompleteFunctionT&     _rcomplete_fnc,
         ulong                         _msgflags,
@@ -127,7 +126,7 @@ struct MessageStub : inner::Node<to_underlying(MessageInnerLink::Count)> {
     }
 
     MessageStub(
-        MessagePointerT<>&&                _rmsgptr,
+        SendMessagePointerT<>&&            _rmsgptr,
         const size_t                       _msg_type_idx,
         MessageCompleteFunctionT&          _rcomplete_fnc,
         ulong                              _msgflags,
@@ -297,12 +296,12 @@ struct ConnectionPoolStub : inner::Node<to_underlying(ConnectionPoolInnerLink::C
         flags_               = 0;
         retry_connect_count_ = 0;
         connect_addr_vec_.clear();
-        solid_function_clear(on_event_fnc_);
+        on_event_fnc_ = nullptr;
         solid_assert_log(message_order_inner_list_.check(), logger);
     }
 
     MessageId insertMessage(
-        MessagePointerT<>&                 _rmsgptr,
+        SendMessagePointerT<>&             _rmsgptr,
         const size_t                       _msg_type_idx,
         MessageCompleteFunctionT&          _rcomplete_fnc,
         const MessageFlagsT&               _flags,
@@ -327,7 +326,7 @@ struct ConnectionPoolStub : inner::Node<to_underlying(ConnectionPoolInnerLink::C
     }
 
     MessageId pushBackMessage(
-        MessagePointerT<>&                 _rmsgptr,
+        SendMessagePointerT<>&             _rmsgptr,
         const size_t                       _msg_type_idx,
         MessageCompleteFunctionT&          _rcomplete_fnc,
         const MessageFlagsT&               _flags,
@@ -352,7 +351,7 @@ struct ConnectionPoolStub : inner::Node<to_underlying(ConnectionPoolInnerLink::C
     }
 
     MessageId pushFrontMessage(
-        MessagePointerT<>&                 _rmsgptr,
+        SendMessagePointerT<>&             _rmsgptr,
         const size_t                       _msg_type_idx,
         MessageCompleteFunctionT&          _rcomplete_fnc,
         const MessageFlagsT&               _flags,
@@ -376,7 +375,7 @@ struct ConnectionPoolStub : inner::Node<to_underlying(ConnectionPoolInnerLink::C
 
     MessageId reinsertFrontMessage(
         MessageId const&              _rmsgid,
-        MessagePointerT<>&            _rmsgptr,
+        SendMessagePointerT<>&        _rmsgptr,
         const size_t                  _msg_type_idx,
         MessageCompleteFunctionT&     _rcomplete_fnc,
         const MessageFlagsT&          _flags,
@@ -636,8 +635,7 @@ struct Service::Data {
     NameMapT                 name_map_;
     ConnectionPoolDequeT     pool_dq_;
     ConnectionPoolInnerListT pool_free_list_;
-    // std::string              tmp_str_;
-    ServiceStatistic statistic_;
+    ServiceStatistic         statistic_;
 
     Data(Service& _rsvc, Configuration&& _config)
         : rmutex_(_rsvc.mutex())
@@ -675,7 +673,7 @@ struct Service::Data {
     ErrorConditionT doSendMessageToConnection(
         Service&                           _rsvc,
         const RecipientId&                 _rrecipient_id_in,
-        MessagePointerT<>&                 _rmsgptr,
+        SendMessagePointerT<>&             _rmsgptr,
         MessageCompleteFunctionT&          _rcomplete_fnc,
         MessageId*                         _pmsg_id_out,
         MessageFlagsT                      _flags,
@@ -755,7 +753,7 @@ struct Service::Data {
     bool doTryNotifyPoolWaitingConnection(Service& _rsvc, const size_t _pool_index);
 
     ErrorConditionT doSendMessageToPool(
-        Service& _rsvc, const ConnectionPoolId& _rpool_id, MessagePointerT<>& _rmsgptr,
+        Service& _rsvc, const ConnectionPoolId& _rpool_id, SendMessagePointerT<>& _rmsgptr,
         MessageCompleteFunctionT&          _rcomplete_fnc,
         const size_t                       _msg_type_idx,
         const OptionalMessageRelayHeaderT& _relay,
@@ -1033,7 +1031,7 @@ ErrorConditionT Service::Data::doLockPool(
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::doSendMessageUsingConnectionContext(
     const RecipientUrl&       _recipient_url,
-    MessagePointerT<>&        _rmsgptr,
+    SendMessagePointerT<>&    _rmsgptr,
     MessageCompleteFunctionT& _rcomplete_fnc,
     RecipientId*              _precipient_id_out,
     MessageId*                _pmsg_id_out,
@@ -1073,7 +1071,7 @@ ErrorConditionT Service::doSendMessageUsingConnectionContext(
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::doSendMessage(
     const RecipientUrl&       _recipient_url,
-    MessagePointerT<>&        _rmsgptr,
+    SendMessagePointerT<>&    _rmsgptr,
     MessageCompleteFunctionT& _rcomplete_fnc,
     RecipientId*              _precipient_id_out,
     MessageId*                _pmsgid_out,
@@ -1186,7 +1184,7 @@ ErrorConditionT Service::doSendMessage(
 ErrorConditionT Service::Data::doSendMessageToConnection(
     Service&                           _rsvc,
     const RecipientId&                 _rrecipient_id_in,
-    MessagePointerT<>&                 _rmsgptr,
+    SendMessagePointerT<>&             _rmsgptr,
     MessageCompleteFunctionT&          _rcomplete_fnc,
     MessageId*                         _pmsgid_out,
     MessageFlagsT                      _flags,
@@ -1264,7 +1262,7 @@ ErrorConditionT Service::Data::doSendMessageToConnection(
 }
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::Data::doSendMessageToPool(
-    Service& _rsvc, const ConnectionPoolId& _rpool_id, MessagePointerT<>& _rmsgptr,
+    Service& _rsvc, const ConnectionPoolId& _rpool_id, SendMessagePointerT<>& _rmsgptr,
     MessageCompleteFunctionT&          _rcomplete_fnc,
     const size_t                       _msg_type_idx,
     const OptionalMessageRelayHeaderT& _relay,
@@ -1632,9 +1630,9 @@ ErrorConditionT Service::doDelayCloseConnectionPool(
         }
     }
 
-    MessagePointerT<> empty_msg_ptr;
-    bool              is_first;
-    const MessageId   msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, 0, {}, is_first);
+    SendMessagePointerT<> empty_msg_ptr;
+    bool                  is_first;
+    const MessageId       msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, 0, {}, is_first);
     (void)msgid;
 
     // notify all waiting connections about the new message
@@ -1683,9 +1681,9 @@ ErrorConditionT Service::doForceCloseConnectionPool(
         }
     }
 
-    MessagePointerT<> empty_msg_ptr;
-    bool              is_first;
-    const MessageId   msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, {MessageFlagsE::Synchronous}, {}, is_first);
+    SendMessagePointerT<> empty_msg_ptr;
+    bool                  is_first;
+    const MessageId       msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, {MessageFlagsE::Synchronous}, {}, is_first);
     (void)msgid;
 
     // no reason to cancel all messages - they'll be handled on connection stop.
@@ -2002,7 +2000,7 @@ bool Service::connectionStopping(
         } else {
             retval = pimpl_->doMainConnectionStoppingPrepareCleanAll(rcon, _ractuid, _rwait_duration, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
         }
-        if (!was_disconnected && rpool.isDisconnected() && !solid_function_empty(rpool.on_event_fnc_)) {
+        if (!was_disconnected && rpool.isDisconnected() && rpool.on_event_fnc_) {
             ppool = &rpool;
         }
     }
@@ -2196,7 +2194,7 @@ bool Service::Data::doMainConnectionStoppingCleanAll(
             solid_log(logger, Verbose, this << " pool " << pool_index << " set closing");
         }
 
-        return true; // TODO: maybe we should return false
+        return true;
     }
     return false;
 }
@@ -2372,7 +2370,7 @@ void Service::connectionStop(ConnectionContext& _rconctx)
         pool_lock.unlock();
 
         // do not call callback under lock
-        if (!solid_function_empty(rpool.on_event_fnc_) && _rconctx.connection().isConnected()) {
+        if (rpool.on_event_fnc_ && _rconctx.connection().isConnected()) {
             rpool.on_event_fnc_(_rconctx, make_event(pool_event_category, PoolEvents::ConnectionStop), ErrorConditionT());
         }
 
@@ -2397,7 +2395,7 @@ void Service::connectionStop(ConnectionContext& _rconctx)
             rpool.clear();
         }
     }
-    if (!solid_function_empty(on_event_fnc)) {
+    if (on_event_fnc) {
         on_event_fnc(_rconctx, make_event(pool_event_category, PoolEvents::PoolStop), ErrorConditionT());
     }
 }
@@ -2428,7 +2426,7 @@ bool Service::Data::doTryCreateNewConnectionForPool(Service& _rsvc, const size_t
 
             if (rpool.connect_addr_vec_.empty()) {
 
-                ResolveCompleteFunctionT cbk(OnRelsolveF(_rsvc.manager(), conuid, Connection::eventResolve()));
+                ResolveCompleteFunctionT cbk(OnRelsolveF(_rsvc.manager(), conuid, Connection::eventResolve()), AcceptBigT{});
 
                 config_.client.name_resolve_fnc(rpool.name_, cbk);
 
@@ -2589,7 +2587,7 @@ ErrorConditionT Service::activateConnection(ConnectionContext& _rconctx, ActorId
 
         rpool.resetDisconnected();
 
-        if (!solid_function_empty(rpool.on_event_fnc_)) {
+        if (rpool.on_event_fnc_) {
             pconpool = &rpool;
         }
     }
@@ -2660,7 +2658,7 @@ void Service::onOutgoingConnectionStart(ConnectionContext& _rconctx)
             return;
         }
 
-        if (!solid_function_empty(rpool.on_event_fnc_)) {
+        if (rpool.on_event_fnc_) {
             ppool = &rpool;
         }
     }
@@ -2844,9 +2842,8 @@ std::ostream& ServiceStatistic::print(std::ostream& _ros) const
     _ros << " 70:" << poll_pool_fetch_count_70_ << " 80:" << poll_pool_fetch_count_80_ << ']';
     _ros << " max_fetch = " << max_fetch_size_;
     _ros << " min_fetch = " << min_fetch_size_;
+    _ros << " max_optimize_duration_us_ = " << max_optimize_duration_us_;
     return _ros;
 }
 //=============================================================================
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc

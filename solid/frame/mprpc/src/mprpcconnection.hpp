@@ -15,7 +15,6 @@
 #include "solid/system/flags.hpp"
 #include "solid/utility/any.hpp"
 #include "solid/utility/event.hpp"
-#include "solid/utility/queue.hpp"
 
 #include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiotimer.hpp"
@@ -26,14 +25,11 @@
 #include "mprpcmessagereader.hpp"
 #include "mprpcmessagewriter.hpp"
 
-namespace solid {
-namespace frame {
-namespace aio {
+namespace solid::frame {
 
-namespace openssl {
+namespace aio::openssl {
 class Context;
-} // namespace openssl
-} // namespace aio
+} // namespace aio::openssl
 
 namespace mprpc {
 
@@ -42,12 +38,12 @@ class Service;
 struct ResolveMessage {
     AddressVectorT addrvec;
 
-    bool empty() const
+    [[nodiscard]] bool empty() const
     {
         return addrvec.empty();
     }
 
-    SocketAddressInet const& currentAddress() const
+    [[nodiscard]] SocketAddressInet const& currentAddress() const
     {
         return addrvec.back();
     }
@@ -61,7 +57,7 @@ struct ResolveMessage {
 
     ResolveMessage(const ResolveMessage&) = delete;
 
-    ResolveMessage(ResolveMessage&& _urm)
+    ResolveMessage(ResolveMessage&& _urm) noexcept
         : addrvec(std::move(_urm.addrvec))
     {
     }
@@ -127,7 +123,7 @@ public:
     const UniqueId& relayId() const;
     void            relayId(const UniqueId& _relay_id);
 
-    MessagePointerT<> fetchRequest(Message const& _rmsg) const;
+    SendMessagePointerT<> fetchRequest(Message const& _rmsg) const;
 
     ConnectionPoolId const& poolId() const;
     const std::string&      poolName() const;
@@ -200,9 +196,9 @@ protected:
     void setFlag(const FlagsE _flag);
     void resetFlag(const FlagsE _flag);
 
-    const SharedBuffer& recvBuffer() const;
+    SharedBufferView recvBufferView(const char*, size_t) const;
 
-    void returnRecvBuffer(SharedBuffer&& _buf);
+    bool returnRecvBuffer(SharedBufferView&& _buf);
 
     void ackBufferCountAdd(uint8_t _val);
 
@@ -269,7 +265,7 @@ private:
     template <class Ctx>
     bool recvSome(frame::aio::ReactorContext& _rctx, char* _buf, size_t _bufcp, size_t& _sz);
     template <class Ctx>
-    bool sendAll(frame::aio::ReactorContext& _rctx, char* _buf, size_t _bufcp);
+    bool sendAll(frame::aio::ReactorContext& _rctx, char const* _buf, size_t _bufcp);
     void prepareSocket(frame::aio::ReactorContext& _rctx);
 
     const NanoTime& minTimeout() const;
@@ -277,7 +273,7 @@ private:
     ErrorConditionT pollServicePoolForUpdates(frame::aio::ReactorContext& _rctx, MessageId const& _rpool_msg_id);
 
 private:
-    friend struct ConnectionContext;
+    friend class ConnectionContext;
     friend class RelayEngine;
     friend class Service;
 
@@ -316,7 +312,6 @@ private:
         EventBase&                  _revent);
 
     void doOptimizeRecvBuffer();
-    void doOptimizeRecvBufferForced();
     void doPrepare(frame::aio::ReactorContext& _rctx);
     void doUnprepare(frame::aio::ReactorContext& _rctx);
     template <class Ctx>
@@ -326,7 +321,7 @@ private:
     ResponseStateE doCheckResponseState(frame::aio::ReactorContext& _rctx, const MessageHeader& _rmsghdr, MessageId& _rrelay_id, const bool _erase_request);
     template <class Ctx>
     bool doCompleteMessage(
-        frame::aio::ReactorContext& _rctx, MessagePointerT<>& _rresponse_ptr, const size_t _response_type_id);
+        frame::aio::ReactorContext& _rctx, RecvMessagePointerT<>& _rresponse_ptr, const size_t _response_type_id);
 
     void doCompleteMessage(
         solid::frame::aio::ReactorContext& _rctx,
@@ -349,7 +344,7 @@ private:
         = frame::aio::SteadyTimer;
     using FlagsT            = solid::Flags<FlagsE>;
     using RequestIdVectorT  = MessageWriter::RequestIdVectorT;
-    using RecvBufferVectorT = std::vector<SharedBuffer>;
+    using RecvBufferVectorT = std::vector<MutableSharedBuffer>;
 
     template <class Ctx>
     friend struct ConnectionReceiver;
@@ -362,15 +357,14 @@ private:
     const std::string&                    rpool_name_;
     TimerT                                timer_;
     FlagsT                                flags_                   = 0;
-    size_t                                cons_buf_off_            = 0;
     uint32_t                              recv_keepalive_count_    = 0;
     std::chrono::steady_clock::time_point recv_keepalive_boundary_ = std::chrono::steady_clock::time_point::min();
     uint16_t                              recv_buf_count_          = 0;
     uint8_t                               send_relay_free_count_;
     uint8_t                               ackd_buf_count_ = 0;
-    SharedBuffer                          recv_buf_;
+    RingSharedBuffer                      recv_buf_;
     RecvBufferVectorT                     recv_buf_vec_;
-    SharedBuffer                          send_buf_;
+    MutableSharedBuffer                   send_buf_;
     MessageIdVectorT                      pending_message_vec_;
     MessageReader                         msg_reader_;
     MessageWriter                         msg_writer_;
@@ -380,15 +374,15 @@ private:
     bool                                  poll_pool_more_ = true;
     bool                                  send_posted_    = false;
     Any<>                                 any_data_;
-    char                                  socket_emplace_buf_[static_cast<size_t>(ConnectionValues::SocketEmplacementSize)] = {};
-    SocketStubPtrT                        sock_ptr_;
-    NanoTime                              timeout_recv_      = NanoTime::max(); // client and server
-    NanoTime                              timeout_send_soft_ = NanoTime::max(); // client and server
-    NanoTime                              timeout_send_hard_ = NanoTime::max(); // client and server
-    NanoTime                              timeout_secure_    = NanoTime::max(); // server
-    NanoTime                              timeout_active_    = NanoTime::max(); // server
-    NanoTime                              timeout_keepalive_ = NanoTime::max(); // client
-    UniqueId                              relay_id_;
+    alignas(socket_emplace_align) char socket_emplace_buf_[socket_emplace_size] = {};
+    SocketStubPtrT sock_ptr_;
+    NanoTime       timeout_recv_      = NanoTime::max(); // client and server
+    NanoTime       timeout_send_soft_ = NanoTime::max(); // client and server
+    NanoTime       timeout_send_hard_ = NanoTime::max(); // client and server
+    NanoTime       timeout_secure_    = NanoTime::max(); // server
+    NanoTime       timeout_active_    = NanoTime::max(); // server
+    NanoTime       timeout_keepalive_ = NanoTime::max(); // client
+    UniqueId       relay_id_;
 };
 
 //-----------------------------------------------------------------------------
@@ -602,7 +596,7 @@ inline Any<>& Connection::any()
     return any_data_;
 }
 //-----------------------------------------------------------------------------
-inline MessagePointerT<> Connection::fetchRequest(Message const& _rmsg) const
+inline SendMessagePointerT<> Connection::fetchRequest(Message const& _rmsg) const
 {
     return msg_writer_.fetchRequest(_rmsg.requestId());
 }
@@ -666,14 +660,18 @@ inline void Connection::resetFlag(const FlagsE _flag)
     flags_.reset(_flag);
 }
 //-----------------------------------------------------------------------------
-inline const SharedBuffer& Connection::recvBuffer() const
+inline SharedBufferView Connection::recvBufferView(const char* _pbuf, size_t const _size) const
 {
-    return recv_buf_;
+    return recv_buf_.view(_pbuf - recv_buf_.data(), _size);
 }
 //-----------------------------------------------------------------------------
-inline void Connection::returnRecvBuffer(SharedBuffer&& _buf)
+inline bool Connection::returnRecvBuffer(SharedBufferView&& _buf)
 {
-    recv_buf_vec_.emplace_back(std::move(_buf));
+    if (auto buf = _buf.collapse()) {
+        recv_buf_vec_.emplace_back(std::move(buf));
+        return true;
+    }
+    return false;
 }
 //-----------------------------------------------------------------------------
 inline void Connection::ackBufferCountAdd(uint8_t _val)
@@ -712,5 +710,4 @@ inline ErrorConditionT Connection::pollServicePoolForUpdates(frame::aio::Reactor
 }
 //-----------------------------------------------------------------------------
 } // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame

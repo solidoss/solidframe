@@ -17,8 +17,7 @@
 #include "reactorcontext.hpp"
 #include "solid/frame/error.hpp"
 
-namespace solid {
-namespace frame {
+namespace solid::frame {
 
 struct ActorProxy;
 class ReactorContext;
@@ -42,7 +41,7 @@ class SteadyTimer : public CompletionHandler {
             break;
         case ReactorEventE::Clear:
             rthis.doClear(_rctx);
-            rthis.function_ = &on_dummy;
+            rthis.function_ = on_dummy;
             break;
         default:
             solid_assert_log(false, generic_logger);
@@ -52,7 +51,7 @@ class SteadyTimer : public CompletionHandler {
     {
     }
 
-    typedef solid_function_t(void(ReactorContext&)) FunctionT;
+    using FunctionT = SmallFunctionT<void(ReactorContext&)>;
 
     FunctionT function_;
     size_t    storeidx_;
@@ -71,9 +70,9 @@ public:
         this->deactivate(false);
     }
 
-    bool hasPending() const
+    bool hasPending() const noexcept
     {
-        return !solid_function_empty(function_);
+        return function_.has_value();
     }
 
     template <class Rep, class Period, typename F>
@@ -98,7 +97,7 @@ public:
 
     void cancel(ReactorContext& _rctx)
     {
-        if (!solid_function_empty(function_)) {
+        if (function_) {
             remTimer(_rctx, storeidx_);
             error(_rctx, error_timer_cancel);
             doExec(_rctx);
@@ -118,11 +117,10 @@ private:
     }
     void doClear(ReactorContext& _rctx)
     {
-        solid_function_clear(function_);
+        function_ = nullptr;
         remTimer(_rctx, storeidx_);
         storeidx_ = InvalidIndex();
     }
 };
 
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame

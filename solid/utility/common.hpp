@@ -11,6 +11,8 @@
 #pragma once
 
 #include "solid/system/common.hpp"
+#include <cstddef>
+#include <cstdint>
 #include <limits>
 #ifdef __cpp_lib_bitops
 #include <bit>
@@ -292,5 +294,52 @@ class Padded : public Base {
 };
 
 #endif
+
+template <typename T>
+struct AlignedStorage {
+    static constexpr size_t size()
+    {
+        return sizeof(T);
+    }
+
+    alignas(T) std::byte data_[size()];
+
+    std::byte* data()
+    {
+        return data_;
+    }
+
+    std::byte const* data() const
+    {
+        return data_;
+    }
+
+    T* cast()
+    {
+        return std::launder(reinterpret_cast<T*>(data()));
+    }
+    T const* cast() const
+    {
+        return std::launder(reinterpret_cast<T const*>(data()));
+    }
+};
+
+enum class StoreOption : uint8_t {
+    AcceptBig,
+    RejectBig
+};
+
+using AcceptBigT = std::integral_constant<StoreOption, StoreOption::AcceptBig>;
+using RejectBigT = std::integral_constant<StoreOption, StoreOption::RejectBig>;
+
+template <StoreOption Option>
+constexpr auto store_option_dispatch()
+{
+    if constexpr (Option == StoreOption::AcceptBig) {
+        return AcceptBigT{};
+    } else {
+        return RejectBigT{};
+    }
+}
 
 } // namespace solid

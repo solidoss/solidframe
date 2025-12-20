@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 #-----------------------------------------------------------------
 # The project
 #-----------------------------------------------------------------
-project (SolidFrame VERSION 12.3)
+project (SolidFrame VERSION 13.0)
 
 message("SolidFrame version: ${PROJECT_VERSION} - ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 #-----------------------------------------------------------------
@@ -33,19 +33,25 @@ find_package(Threads REQUIRED)
 #-----------------------------------------------------------------
 
 if(NOT CMAKE_CXX_STANDARD)
-    file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/cpp20.cpp" source_code)
+    file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/cpp23.cpp" source_code)
 
-    set(CMAKE_CXX_STANDARD 20)
+    set(CMAKE_CXX_STANDARD 23)
     include(CheckCXXSourceCompiles)
-    CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_COMPILE_CXX20)
-    if(NOT SOLID_COMPILE_CXX20)
-        set(CMAKE_CXX_STANDARD 17)
-        set(CMAKE_CXX_STANDARD_REQUIRED ON)
-        file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/cpp17.cpp" source_code)
-        CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_COMPILE_CXX17)
+    CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_COMPILE_CXX23)
+    if(NOT SOLID_COMPILE_CXX23)
+        file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/cpp20.cpp" source_code)
 
-        if(NOT SOLID_COMPILE_CXX17)
-            message(FATAL_ERROR "SolidFrame needs at least CXX17!")
+        set(CMAKE_CXX_STANDARD 20)
+        CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_COMPILE_CXX20)
+        if(NOT SOLID_COMPILE_CXX20)
+            set(CMAKE_CXX_STANDARD 17)
+            set(CMAKE_CXX_STANDARD_REQUIRED ON)
+            file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/cpp17.cpp" source_code)
+            CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_COMPILE_CXX17)
+
+            if(NOT SOLID_COMPILE_CXX17)
+                message(FATAL_ERROR "SolidFrame needs at least CXX17!")
+            endif()
         endif()
     endif()
 endif()
@@ -64,7 +70,7 @@ message("Install directory: \"${CMAKE_INSTALL_PREFIX}\"")
 message("External directory: \"${EXTERNAL_DIR}\"")
 message("Fortify: \"${FORTIFY}\"")
 
-list(APPEND CMAKE_PREFIX_PATH ${EXTERNAL_PATH})
+list(APPEND CMAKE_PREFIX_PATH ${EXTERNAL_DIR})
 
 #-----------------------------------------------------------------
 # Prepare the definitions for build types
@@ -150,7 +156,6 @@ set(SYSTEM_BASIC_LIBRARIES "")
 
 
 option(SOLID_FRAME_AIO_REACTOR_USE_SPINLOCK "Use SpinLock on AIO Reactor" ON)
-option(SOLID_MPRPC_USE_SHARED_PTR_MESSAGE "Use std::shared_ptr with mprpc::Message" OFF)
 
 #-----------------------------------------------------------------
 # Per OS configuration
@@ -199,6 +204,10 @@ if(CMAKE_SYSTEM MATCHES "Darwin*")
         "$<$<CONFIG:MAINTAIN>:SHELL: ${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized -Wabi>"
         "$<$<CONFIG:CUSTOM>:>"
     )
+
+    if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+        add_compile_options("-stdlib=libc++")
+    endif()
     
     string(APPEND CMAKE_EXE_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
     
@@ -328,7 +337,7 @@ if(NOT NO_EXTERNAL)
     include_directories(${CMAKE_BINARY_DIR}/external/include)
 
     if(EXTERNAL_DIR STREQUAL "" OR NOT EXISTS ${EXTERNAL_DIR})
-        set(EXTERNAL_DIR "${CMAKE_CURRENT_BINARY_DIR}/external")
+        set(EXTERNAL_DIR "${CMAKE_BINARY_DIR}/external")
 
         include(cmake/build-openssl.cmake)
     else()

@@ -152,7 +152,7 @@ int test_threadpool_batch(int argc, char* argv[])
 
                 for (size_t j = 0; j < entries.size(); ++j) {
                     auto& entry{entries[j]};
-                    auto  lambda = [&entry, start, j](Context& _rctx) mutable {
+                    auto  lambda = [start](Context& _rctx) mutable {
                         const auto     now      = chrono::steady_clock::now();
                         const uint64_t duration = chrono::duration_cast<chrono::microseconds>(now - start).count();
                         store_min(_rctx.min_, duration);

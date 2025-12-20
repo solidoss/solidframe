@@ -24,7 +24,7 @@ using namespace solid;
 using namespace std;
 
 using AioSchedulerT = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
-using CallPoolT     = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT     = ThreadPool<Function64T<void()>, Function64T<void()>>;
 //-----------------------------------------------------------------------------
 //      Parameters
 //-----------------------------------------------------------------------------
@@ -52,10 +52,10 @@ using namespace rpc_request;
 
 template <class M>
 void complete_message(
-    frame::mprpc::ConnectionContext&  _rctx,
-    frame::mprpc::MessagePointerT<M>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<M>& _rrecv_msg_ptr,
-    ErrorConditionT const&            _rerror)
+    frame::mprpc::ConnectionContext&      _rctx,
+    frame::mprpc::SendMessagePointerT<M>& _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<M>& _rrecv_msg_ptr,
+    ErrorConditionT const&                _rerror)
 {
     solid_check(false); // this method should not be called
 }
@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
-                    auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const& _rtype) {
+                    auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const&) {
                         using TypeT = T;
 
                         if constexpr (std::is_base_of_v<rpc_request::RequestKey, TypeT>) {
@@ -156,10 +156,10 @@ int main(int argc, char* argv[])
                     recipient = line.substr(0, offset);
 
                     auto lambda = [](
-                                      frame::mprpc::ConnectionContext&                      _rctx,
-                                      frame::mprpc::MessagePointerT<rpc_request::Request>&  _rsent_msg_ptr,
-                                      frame::mprpc::MessagePointerT<rpc_request::Response>& _rrecv_msg_ptr,
-                                      ErrorConditionT const&                                _rerror) {
+                                      frame::mprpc::ConnectionContext&                          _rctx,
+                                      frame::mprpc::SendMessagePointerT<rpc_request::Request>&  _rsent_msg_ptr,
+                                      frame::mprpc::RecvMessagePointerT<rpc_request::Response>& _rrecv_msg_ptr,
+                                      ErrorConditionT const&                                    _rerror) {
                         if (_rerror) {
                             cout << "Error sending message to " << _rctx.recipientName() << ". Error: " << _rerror.message() << endl;
                             return;
@@ -190,7 +190,7 @@ int main(int argc, char* argv[])
 
                     rpcservice.sendRequest(
                         {recipient}, // frame::mprpc::make_message<rpc_request::Request>(line.substr(offset + 1)),
-                        req_ptr, lambda, 0);
+                        std::move(req_ptr), lambda, 0);
                 } else {
                     cout << "No recipient specified. E.g:" << endl
                          << "localhost:4444 Some text to send" << endl;

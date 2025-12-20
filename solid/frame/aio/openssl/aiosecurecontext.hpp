@@ -9,15 +9,20 @@
 //
 
 #pragma once
+#include "solid/utility/common.hpp"
+#ifdef SOLID_ON_WINDOWS
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
+#endif
 
 #include "openssl/ssl.h"
 #include "solid/system/error.hpp"
 #include "solid/utility/function.hpp"
 
-namespace solid {
-namespace frame {
-namespace aio {
-namespace openssl {
+namespace solid::frame::aio::openssl {
 
 enum struct PasswordPurpose {
     Read,
@@ -89,14 +94,11 @@ private:
     ErrorCodeT doSetPasswordCallback();
 
 private:
-    using PasswordFunctionT = solid_function_t(std::string(std::size_t, PasswordPurpose));
+    using PasswordFunctionT = Function<std::string(std::size_t, PasswordPurpose)>;
 
     friend class Socket;
     SSL_CTX*          pctx;
     PasswordFunctionT pwdfnc;
 };
 
-} // namespace openssl
-} // namespace aio
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::aio::openssl

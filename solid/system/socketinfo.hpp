@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include "solid/system/common.hpp"
+
 #ifdef SOLID_ON_WINDOWS
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -18,6 +20,7 @@
 #ifndef VC_EXTRALEAN
 #define VC_EXTRALEAN
 #endif
+
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif

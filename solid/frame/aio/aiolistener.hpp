@@ -16,6 +16,7 @@
 #include "aioreactorcontext.hpp"
 #include "solid/frame/aio/aiocompletion.hpp"
 #include "solid/frame/aio/aiosocketbase.hpp"
+#include "solid/utility/function.hpp"
 
 namespace solid {
 class EventBase;
@@ -31,7 +32,7 @@ class Listener : public CompletionHandler {
     static void on_posted_accept(ReactorContext& _rctx, EventBase&&);
     static void on_dummy(ReactorContext&, SocketDevice&);
 
-    typedef solid_function_t(void(ReactorContext&, SocketDevice&)) FunctionT;
+    using FunctionT = SmallFunction64T<void(ReactorContext&, SocketDevice&)>;
     FunctionT  f_;
     SocketBase s_;
 
@@ -59,7 +60,7 @@ public:
     template <typename F>
     bool postAccept(ReactorContext& _rctx, F&& _f)
     {
-        if (solid_function_empty(f_)) {
+        if (not f_) {
             f_ = std::forward<F>(_f);
             doPostAccept(_rctx);
             return false;
@@ -74,7 +75,7 @@ public:
     template <typename F>
     bool accept(ReactorContext& _rctx, F&& _f, SocketDevice& _rsd)
     {
-        if (solid_function_empty(f_)) {
+        if (not f_) {
             contextBind(_rctx);
 
             if (this->doTryAccept(_rctx, _rsd)) {

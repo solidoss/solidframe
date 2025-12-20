@@ -68,7 +68,7 @@ public:
     //! Read data from file
     ssize_t read(char* _pb, size_t _bl);
     //! Write data to file
-    ssize_t write(const char* _pb, uint32_t _bl);
+    ssize_t write(const char* _pb, size_t _bl);
     //! Move the file cursor at position
     int64_t seek(int64_t _pos, SeekRef _ref = SeekBeg);
     //! Truncate the file

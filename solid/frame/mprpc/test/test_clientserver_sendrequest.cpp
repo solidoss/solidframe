@@ -32,7 +32,7 @@ namespace {
 
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
-using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT      = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 struct InitStub {
     size_t size;
@@ -59,11 +59,11 @@ InitStub initarray[] = {
 std::string  pattern;
 const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
-std::atomic<size_t> crtwriteidx(0);
-std::atomic<size_t> crtreadidx(0);
-std::atomic<size_t> crtbackidx(0);
-std::atomic<size_t> crtackidx(0);
-std::atomic<size_t> writecount(0);
+std::atomic<uint32_t> crtwriteidx(0);
+std::atomic<size_t>   crtreadidx(0);
+std::atomic<size_t>   crtbackidx(0);
+std::atomic<size_t>   crtackidx(0);
+std::atomic<size_t>   writecount(0);
 
 size_t connection_count(0);
 
@@ -167,8 +167,10 @@ struct Response : frame::mprpc::Message {
     }
 };
 
-using RequestPointerT  = solid::frame::mprpc::MessagePointerT<Request>;
-using ResponsePointerT = solid::frame::mprpc::MessagePointerT<Response>;
+using RequestPointerT      = solid::frame::mprpc::SendMessagePointerT<Request>;
+using RecvRequestPointerT  = solid::frame::mprpc::RecvMessagePointerT<Request>;
+using ResponsePointerT     = solid::frame::mprpc::RecvMessagePointerT<Response>;
+using SendResponsePointerT = solid::frame::mprpc::SendMessagePointerT<Response>;
 
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
@@ -218,7 +220,7 @@ void client_complete_request(
 
 void client_complete_response(
     frame::mprpc::ConnectionContext& _rctx,
-    ResponsePointerT& /*_rsendmsgptr*/,
+    SendResponsePointerT& /*_rsendmsgptr*/,
     ResponsePointerT& /*_rrecvmsgptr*/,
     ErrorConditionT const& /*_rerr*/)
 {
@@ -273,7 +275,7 @@ struct ResponseHandler {
 void server_complete_request(
     frame::mprpc::ConnectionContext& _rctx,
     RequestPointerT&                 _rsendmsgptr,
-    RequestPointerT&                 _rrecvmsgptr,
+    RecvRequestPointerT&             _rrecvmsgptr,
     ErrorConditionT const&           _rerr)
 {
     if (_rerr) {
@@ -303,17 +305,17 @@ void server_complete_request(
 
     // send message back
     auto msgptr(frame::mprpc::make_message<Response>(*_rrecvmsgptr));
-    _rctx.service().sendResponse(_rctx.recipientId(), msgptr);
+    _rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr));
 
     ++crtreadidx;
 
     solid_dbg(generic_logger, Info, crtreadidx);
 
-    if (crtwriteidx < writecount) {
+    if (crtwriteidx < writecount and pmprpcclient) {
         auto msgptr(frame::mprpc::make_message<Request>(crtwriteidx));
         ++crtwriteidx;
         pmprpcclient->sendRequest(
-            {"localhost"}, msgptr,
+            {"localhost"}, std::move(msgptr),
             // on_receive_response
             ResponseHandler()
             /*[](frame::mprpc::ConnectionContext &_rctx, ResponsePointerT &_rmsgptr, ErrorConditionT const &_rerr)->void{
@@ -321,12 +323,14 @@ void server_complete_request(
                 }*/
             ,
             initarray[crtwriteidx % initarraysize].flags);
+    } else {
+        solid_check(pmprpcclient, "pmprpcclient should not be nullptr");
     }
 }
 
 void server_complete_response(
     frame::mprpc::ConnectionContext& _rctx,
-    ResponsePointerT&                _rsendmsgptr,
+    SendResponsePointerT&            _rsendmsgptr,
     ResponsePointerT&                _rrecvmsgptr,
     ErrorConditionT const&           _rerr)
 {
@@ -482,7 +486,7 @@ int test_clientserver_sendrequest(int argc, char* argv[])
             auto msgptr(frame::mprpc::make_message<Request>(crtwriteidx));
             ++crtwriteidx;
             mprpcclient.sendRequest(
-                {"localhost"}, msgptr,
+                {"localhost"}, std::move(msgptr),
 
                 // ResponseHandler()
                 [](

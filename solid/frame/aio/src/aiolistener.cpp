@@ -36,11 +36,11 @@ const LoggerT logger("solid::frame::aio");
 
     switch (rthis.reactorEvent(_rctx)) {
     case ReactorEventE::Recv:
-        if (!solid_function_empty(rthis.f_)) {
+        if (rthis.f_) {
             SocketDevice sd;
             FunctionT    tmpf;
             std::swap(tmpf, rthis.f_);
-            solid_assert_log(solid_function_empty(rthis.f_), logger);
+            solid_assert_log(not rthis.f_, logger);
             rthis.doAccept(_rctx, sd);
 
             tmpf(_rctx, sd);
@@ -48,7 +48,7 @@ const LoggerT logger("solid::frame::aio");
         break;
     case ReactorEventE::Error:
     case ReactorEventE::Hangup:
-        if (!solid_function_empty(rthis.f_)) {
+        if (rthis.f_) {
             SocketDevice sd;
             FunctionT    tmpf;
             std::swap(tmpf, rthis.f_);
@@ -72,7 +72,7 @@ const LoggerT logger("solid::frame::aio");
     Listener&    rthis = *pthis;
     SocketDevice sd;
 
-    if (!solid_function_empty(rthis.f_) && rthis.doTryAccept(_rctx, sd)) {
+    if (rthis.f_ && rthis.doTryAccept(_rctx, sd)) {
         FunctionT tmpf;
         std::swap(tmpf, rthis.f_);
         tmpf(_rctx, sd);
@@ -134,7 +134,7 @@ void Listener::doAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 
 void Listener::doClear(ReactorContext& _rctx)
 {
-    solid_function_clear(f_);
+    f_ = nullptr;
     remDevice(_rctx, s_.device());
     f_ = &on_dummy;
 }

@@ -61,7 +61,7 @@ std::string TestErrorCategory::message(int _ev) const
     case 0:
         oss << "Success";
         break;
-    case to_underlying(TestErrorE::Dummy):
+    case solid::to_underlying(TestErrorE::Dummy):
         oss << " Dummy";
         break;
     default:
@@ -71,14 +71,14 @@ std::string TestErrorCategory::message(int _ev) const
     return oss.str();
 }
 
-const ErrorConditionT error_test_dummy(to_underlying(TestErrorE::Dummy), test_category);
+const ErrorConditionT error_test_dummy(solid::to_underlying(TestErrorE::Dummy), test_category);
 
 struct InitStub {
     size_t                      size;
     frame::mprpc::MessageFlagsT flags;
 };
 
-using CallPoolT = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 InitStub initarray[] = {
     {100000, 0},
@@ -100,11 +100,11 @@ InitStub initarray[] = {
 std::string  pattern;
 const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
-std::atomic<size_t> crtwriteidx(0);
-std::atomic<size_t> crtreadidx(0);
-std::atomic<size_t> crtbackidx(0);
-std::atomic<size_t> crtackidx(0);
-std::atomic<size_t> writecount(0);
+std::atomic<uint32_t> crtwriteidx(0);
+std::atomic<size_t>   crtreadidx(0);
+std::atomic<size_t>   crtbackidx(0);
+std::atomic<size_t>   crtackidx(0);
+std::atomic<size_t>   writecount(0);
 
 size_t                 connection_count(0);
 bool                   running = true;
@@ -192,7 +192,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
-using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+using SendMessagePointerT = solid::frame::mprpc::SendMessagePointerT<Message>;
+using RecvMessagePointerT = solid::frame::mprpc::RecvMessagePointerT<Message>;
 
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
@@ -232,7 +233,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " " << crtbackidx << " " << writecount);
@@ -264,7 +265,7 @@ void client_complete_message(
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
     if (_rrecv_msg_ptr) {
@@ -276,7 +277,7 @@ void server_complete_message(
 
         solid_check(_rctx.recipientId().isValidConnection(), "Connection id should not be invalid!");
 
-        ErrorConditionT err = use_context_on_response ? _rctx.service().sendResponse(_rctx, _rrecv_msg_ptr) : _rctx.service().sendResponse(_rctx.recipientId(), _rrecv_msg_ptr);
+        ErrorConditionT err = use_context_on_response ? _rctx.service().sendResponse(_rctx, std::move(_rrecv_msg_ptr)) : _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
         // solid_check(!err, "Connection id should not be invalid: " << err.message());
 
@@ -287,11 +288,13 @@ void server_complete_message(
         }
 
         solid_dbg(generic_logger, Info, crtreadidx << " " << crtwriteidx);
-        if (crtwriteidx < writecount) {
+        if (crtwriteidx < writecount and pmprpcclient) {
             err = pmprpcclient->sendMessage(
                 {""}, frame::mprpc::make_message<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse | frame::mprpc::MessageFlagsE::Idempotent);
             solid_check(!err, "Connection id should not be invalid! " << err.message());
+        } else {
+            solid_check(pmprpcclient, "pmprpcclient should not be nullptr");
         }
     }
     if (_rsent_msg_ptr) {

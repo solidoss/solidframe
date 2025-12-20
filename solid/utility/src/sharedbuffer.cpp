@@ -1,7 +1,16 @@
 
 #include "solid/utility/sharedbuffer.hpp"
+#include "solid/system/common.hpp"
+#include "solid/system/spinlock.hpp"
+#include "solid/utility/common.hpp"
+#include "solid/utility/stack.hpp"
+#include <cassert>
+#include <cstddef>
+#include <mutex>
 #include <new>
 #include <unordered_map>
+
+using namespace std;
 
 namespace solid {
 
@@ -11,7 +20,7 @@ namespace {
 template <size_t DataSize>
 inline constexpr std::size_t compute_capacity(const std::size_t _cap)
 {
-    constexpr std::size_t allign = 256;
+    constexpr std::size_t allign = hardware_destructive_interference_size;
     const std::size_t     sum    = (_cap + DataSize);
 
     static_assert(allign >= DataSize);
@@ -25,14 +34,12 @@ inline constexpr std::size_t compute_capacity(const std::size_t _cap)
 } // namespace
 
 namespace impl {
-char* SharedBufferData::release(size_t& _previous_use_count)
+
+char* SharedBufferData::collapse(size_t& _previous_use_count)
 {
-    if ((_previous_use_count = use_count_.fetch_sub(1)) == 1) {
-        if (make_thread_id_ == std::thread::id{}) {
-            return buffer_;
-        } else {
-            return BufferManager::release(this);
-        }
+    _previous_use_count = use_count_.fetch_sub(1);
+    if (_previous_use_count == 1) {
+        return buffer_;
     }
     return nullptr;
 }
@@ -43,158 +50,37 @@ char* SharedBufferData::release(size_t& _previous_use_count)
     auto              pbuf    = new char[new_cap];
 
     auto pdata       = new (pbuf) SharedBufferData{pbuf};
-    pdata->capacity_ = _cap; //(pbuf + new_cap) - pdata->data();
+    pdata->capacity_ = _cap;
     return pdata;
 }
 
-SharedBufferBase::SharedBufferBase(const std::size_t _cap, const std::thread::id& _thr_id)
+void SharedBufferBase::reset()
 {
-    pdata_ = BufferManager::allocate(_cap);
-    if (pdata_ == nullptr) [[unlikely]] {
-        const std::size_t new_cap = compute_capacity<sizeof(SharedBufferData)>(_cap);
-        char*             pbuf    = new char[new_cap];
-        pdata_                    = new (pbuf) SharedBufferData{pbuf};
-        pdata_->capacity_         = _cap; //(pbuf + new_cap) - pdata_->data();
-    }
-    pdata_->make_thread_id_ = _thr_id;
-}
+    if (*this and pdata_->release()) {
 
-std::size_t SharedBufferBase::actualCapacity() const
-{
-    if (*this) {
-        const std::size_t new_cap = compute_capacity<sizeof(SharedBufferData)>(pdata_->capacity_);
-        return (pdata_->buffer_ + new_cap) - pdata_->data();
-    } else {
-        return 0;
+        if (pdata_->ppool_) {
+            pdata_->reset();
+            pdata_->ppool_->push(SharedBufferBase{pdata_});
+        } else {
+            delete[] pdata_->buffer_;
+        }
+        pdata_ = &sentinel;
     }
 }
 
 } // namespace impl
 
-//-----------------------------------------------------------------------------
-
-struct BufferManager::LocalData {
-    struct Entry {
-        impl::SharedBufferData* ptop_      = nullptr;
-        size_t                  max_count_ = BufferManager::configuration().default_local_max_count_;
-        size_t                  count_     = 0;
-
-        inline bool empty() const noexcept
-        {
-            return ptop_ == nullptr;
-        }
-
-        inline bool full() const noexcept
-        {
-            return max_count_ != 0 && count_ >= max_count_;
-        }
-
-        inline impl::SharedBufferData* pop() noexcept
-        {
-            if (!empty()) {
-                auto* ptmp = ptop_;
-                ptop_      = ptop_->pnext_;
-                --count_;
-                return ptmp;
-            }
-            return nullptr;
-        }
-
-        inline void push(impl::SharedBufferData* _pnode) noexcept
-        {
-            if (_pnode) {
-                _pnode->pnext_ = ptop_;
-                ptop_          = _pnode;
-                ++count_;
-            }
-        }
-    };
-
-    using CapacityMapT = std::unordered_map<size_t, Entry>;
-    CapacityMapT entry_map_;
-};
-
-namespace {
-
-thread_local BufferManager::LocalData local_data;
-
-} // namespace
-
-struct BufferManager::Data {
-    const Configuration config_;
-
-    Data(const BufferManager::Configuration& _config)
-        : config_(_config)
-    {
+void RingSharedBuffer::optimize()
+{
+    solid_check(canOptimize());
+    if (consume_offset_ == size()) [[likely]] {
+        consume_offset_ = 0U;
+        pdata_->size_   = 0U;
+    } else {
+        memmove(impl::SharedBufferBase::data(), cdata(), csize());
+        pdata_->size_   = csize();
+        consume_offset_ = 0U;
     }
-};
-
-BufferManager::BufferManager(const BufferManager::Configuration& _config)
-    : pimpl_{make_pimpl<Data>(_config)}
-{
-}
-
-BufferManager::~BufferManager() {}
-
-/* static */ BufferManager& BufferManager::instance(const BufferManager::Configuration* _pconfig)
-{
-    static const Configuration cfg;
-    static BufferManager       ins{_pconfig ? *_pconfig : cfg};
-    return ins;
-}
-
-/* static */ char* BufferManager::release(DataT* _pdata)
-{
-    if (_pdata) {
-        if (_pdata->make_thread_id_ == std::this_thread::get_id()) {
-            const std::size_t new_cap = compute_capacity<sizeof(DataT)>(_pdata->capacity_);
-            auto&             entry   = local_data.entry_map_[new_cap];
-
-            if (!entry.full()) {
-                entry.push(_pdata);
-                return nullptr;
-            }
-        }
-        return _pdata->buffer_;
-    }
-    return nullptr;
-}
-
-/* static */ BufferManager::DataT* BufferManager::allocate(const size_t _cap)
-{
-    const std::size_t new_cap = compute_capacity<sizeof(DataT)>(_cap);
-    auto&             entry   = local_data.entry_map_[new_cap];
-    auto*             pdata   = entry.pop();
-    if (pdata) {
-        pdata->use_count_.store(1);
-        pdata->size_     = 0;
-        pdata->pnext_    = nullptr;
-        pdata->capacity_ = _cap;
-    }
-    return pdata;
-}
-
-/* static */ void BufferManager::localMaxCount(const size_t _cap, const size_t _count)
-{
-    const std::size_t new_cap                 = compute_capacity<sizeof(DataT)>(_cap);
-    local_data.entry_map_[new_cap].max_count_ = _count;
-}
-
-/* static */ size_t BufferManager::localMaxCount(const size_t _cap)
-{
-    const std::size_t new_cap = compute_capacity<sizeof(DataT)>(_cap);
-    return local_data.entry_map_[new_cap].max_count_;
-}
-
-/* static */ size_t BufferManager::localCount(const size_t _cap)
-{
-    const std::size_t new_cap = compute_capacity<sizeof(DataT)>(_cap);
-    return local_data.entry_map_[new_cap].count_;
-}
-
-/* static */ const BufferManager::Configuration& BufferManager::configuration()
-{
-    return instance().pimpl_->config_;
 }
 
 } // namespace solid

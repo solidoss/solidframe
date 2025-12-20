@@ -62,7 +62,7 @@ struct NanoTime : public timespec {
 
     explicit operator bool() const noexcept
     {
-        return tv_sec == 0 && tv_nsec == 0;
+        return tv_sec != 0 or tv_nsec != 0;
     }
 
     template <class TimePoint>

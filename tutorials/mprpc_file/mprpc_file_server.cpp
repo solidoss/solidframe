@@ -44,17 +44,17 @@ namespace rpc_file_server {
 
 template <class M>
 void complete_message(
-    frame::mprpc::ConnectionContext&  _rctx,
-    frame::mprpc::MessagePointerT<M>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<M>& _rrecv_msg_ptr,
-    ErrorConditionT const&            _rerror);
+    frame::mprpc::ConnectionContext&      _rctx,
+    frame::mprpc::SendMessagePointerT<M>& _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<M>& _rrecv_msg_ptr,
+    ErrorConditionT const&                _rerror);
 
 template <>
 void complete_message<rpc_file::ListRequest>(
-    frame::mprpc::ConnectionContext&                      _rctx,
-    frame::mprpc::MessagePointerT<rpc_file::ListRequest>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<rpc_file::ListRequest>& _rrecv_msg_ptr,
-    ErrorConditionT const&                                _rerror)
+    frame::mprpc::ConnectionContext&                          _rctx,
+    frame::mprpc::SendMessagePointerT<rpc_file::ListRequest>& _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<rpc_file::ListRequest>& _rrecv_msg_ptr,
+    ErrorConditionT const&                                    _rerror)
 {
     solid_check(!_rerror);
     solid_check(_rrecv_msg_ptr);
@@ -83,10 +83,10 @@ void complete_message<rpc_file::ListRequest>(
 
 template <>
 void complete_message<rpc_file::ListResponse>(
-    frame::mprpc::ConnectionContext&                       _rctx,
-    frame::mprpc::MessagePointerT<rpc_file::ListResponse>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<rpc_file::ListResponse>& _rrecv_msg_ptr,
-    ErrorConditionT const&                                 _rerror)
+    frame::mprpc::ConnectionContext&                           _rctx,
+    frame::mprpc::SendMessagePointerT<rpc_file::ListResponse>& _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<rpc_file::ListResponse>& _rrecv_msg_ptr,
+    ErrorConditionT const&                                     _rerror)
 {
     solid_check(!_rerror);
     solid_check(!_rrecv_msg_ptr);
@@ -95,10 +95,10 @@ void complete_message<rpc_file::ListResponse>(
 
 template <>
 void complete_message<rpc_file::FileRequest>(
-    frame::mprpc::ConnectionContext&                      _rctx,
-    frame::mprpc::MessagePointerT<rpc_file::FileRequest>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<rpc_file::FileRequest>& _rrecv_msg_ptr,
-    ErrorConditionT const&                                _rerror)
+    frame::mprpc::ConnectionContext&                          _rctx,
+    frame::mprpc::SendMessagePointerT<rpc_file::FileRequest>& _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<rpc_file::FileRequest>& _rrecv_msg_ptr,
+    ErrorConditionT const&                                    _rerror)
 {
     solid_check(!_rerror);
     solid_check(_rrecv_msg_ptr);
@@ -117,10 +117,10 @@ void complete_message<rpc_file::FileRequest>(
 
 template <>
 void complete_message<rpc_file::FileResponse>(
-    frame::mprpc::ConnectionContext&                       _rctx,
-    frame::mprpc::MessagePointerT<rpc_file::FileResponse>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<rpc_file::FileResponse>& _rrecv_msg_ptr,
-    ErrorConditionT const&                                 _rerror)
+    frame::mprpc::ConnectionContext&                           _rctx,
+    frame::mprpc::SendMessagePointerT<rpc_file::FileResponse>& _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<rpc_file::FileResponse>& _rrecv_msg_ptr,
+    ErrorConditionT const&                                     _rerror)
 {
     solid_check(!_rerror);
     solid_check(!_rrecv_msg_ptr);
@@ -157,7 +157,7 @@ int main(int argc, char* argv[])
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
-                    auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const& _rtype) {
+                    auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const&) {
                         _rmap.template registerMessage<T>(_id, _name, rpc_file_server::complete_message<T>);
                     };
                     rpc_file::configure_protocol(lambda);

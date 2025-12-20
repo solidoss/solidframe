@@ -55,7 +55,7 @@ private:
     ConnectionProxy() {}
 
 private:
-    friend struct ConnectionContext;
+    friend class ConnectionContext;
     Service&    service(frame::aio::ReactorContext& _rctx) const;
     Connection& connection(frame::aio::ReactorContext& _rctx) const;
 };
@@ -80,37 +80,37 @@ public:
     {
     }
 
-    Service& service() const
+    [[nodiscard]] Service& service() const
     {
         return rservice_;
     }
 
-    Configuration const& configuration() const;
+    [[nodiscard]] Configuration const& configuration() const;
 
-    ActorIdT connectionId() const;
+    [[nodiscard]] ActorIdT connectionId() const;
 
-    const UniqueId& relayId() const;
+    [[nodiscard]] const UniqueId& relayId() const;
 
-    RecipientId recipientId() const;
+    [[nodiscard]] RecipientId recipientId() const;
 
-    const std::string& recipientName() const;
+    [[nodiscard]] const std::string& recipientName() const;
 
-    SocketDevice const& device() const;
+    [[nodiscard]] SocketDevice const& device() const;
 
-    bool isConnectionActive() const;
-    bool isConnectionServer() const;
+    [[nodiscard]] bool isConnectionActive() const;
+    [[nodiscard]] bool isConnectionServer() const;
 
-    const MessageFlagsT& messageFlags() const
+    [[nodiscard]] const MessageFlagsT& messageFlags() const
     {
         return message_flags_;
     }
 
-    MessageId const& localMessageId() const
+    [[nodiscard]] MessageId const& localMessageId() const
     {
         return message_id_;
     }
 
-    MessagePointerT<> fetchRequest(Message const& _rmsg) const;
+    [[nodiscard]] SendMessagePointerT<> fetchRequest(Message const& _rmsg) const;
 
     //! Keep any connection data
     Any<>& any();
@@ -125,7 +125,7 @@ public:
 
 private:
     // not used for now
-    RequestId const& requestId() const
+    [[nodiscard]] RequestId const& requestId() const
     {
         return request_id_;
     }

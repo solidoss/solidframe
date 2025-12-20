@@ -22,6 +22,8 @@ set( UtilityTestSuite
     test_function_any_speed_full_solid.cpp
     test_function_any_speed_full_stl.cpp
     test_shared_buffer.cpp
+    test_pool_basic.cpp
+    test_buffer_pool_basic.cpp
 )
 
 set( ThreadPoolTestSuite
@@ -76,6 +78,8 @@ add_test(NAME TestCollapse_B                            COMMAND  test_utility te
 add_test(NAME TestCollapse_p                            COMMAND  test_utility test_collapse p 10 4)
 add_test(NAME TestCollapse_b                            COMMAND  test_utility test_collapse b 10 4)
 add_test(NAME TestIntrusivePtr                          COMMAND  test_utility test_intrusiveptr)
+add_test(NAME TestUtilityPoolBasic                      COMMAND  test_utility test_pool_basic)
+add_test(NAME TestBufferPoolBasic                       COMMAND  test_utility test_buffer_pool_basic)
 add_test(NAME TestUtilityFunctionPerf_s_2_10000_1000    COMMAND  test_utility test_function_perf s 2 10000 1000)
 add_test(NAME TestUtilityFunctionPerf_S_2_10000_1000    COMMAND  test_utility test_function_perf S 2 10000 1000)
 

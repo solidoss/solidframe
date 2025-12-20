@@ -11,6 +11,7 @@ set(Sources
 set(Headers
     algorithm.hpp
     any.hpp
+    anyimpl.hpp
     common.hpp
     event.hpp
     innerlist.hpp
@@ -26,7 +27,6 @@ set(Headers
     super.hpp
     sharedbuffer.hpp
     threadpool.hpp
-    cacheable.hpp
     cast.hpp
     intrusiveptr.hpp
     collapse.hpp

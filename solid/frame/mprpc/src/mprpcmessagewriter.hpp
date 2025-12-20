@@ -22,25 +22,22 @@
 #include "solid/system/flags.hpp"
 #include "solid/utility/innerlist.hpp"
 
-namespace solid {
-namespace frame {
-namespace mprpc {
+namespace solid::frame::mprpc {
 
-// TODO: replace this with SharedBuffer
 struct WriteBuffer {
     WriteBuffer(char* _data = nullptr, size_t _size = -1)
         : data_(_data)
         , size_(_size)
     {
     }
-    char*  data() const noexcept { return data_; }
-    size_t size() const noexcept { return size_; }
+    [[nodiscard]] char*  data() const noexcept { return data_; }
+    [[nodiscard]] size_t size() const noexcept { return size_; }
 
     void resize(const size_t _size) noexcept { size_ = _size; }
 
-    bool empty() const noexcept { return size_ == 0; }
+    [[nodiscard]] bool empty() const noexcept { return size_ == 0; }
 
-    char* end() const noexcept { return data_ + size_; }
+    [[nodiscard]] char* end() const noexcept { return data_ + size_; }
 
     void reset(char* _data = nullptr, size_t _size = -1) noexcept
     {
@@ -68,9 +65,9 @@ struct MessageWriterSender {
     {
     }
 
-    WriterConfiguration const& configuration() const { return rconfig_; }
-    Protocol const&            protocol() const { return rproto_; }
-    ConnectionContext&         context() const { return rconctx_; }
+    [[nodiscard]] WriterConfiguration const& configuration() const { return rconfig_; }
+    [[nodiscard]] Protocol const&            protocol() const { return rproto_; }
+    [[nodiscard]] ConnectionContext&         context() const { return rconctx_; }
 
     virtual ~MessageWriterSender();
 
@@ -158,10 +155,10 @@ class MessageWriter {
     Serializer::PointerT    serializer_stack_top_;
 
 public:
-    using VisitFunctionT = solid_function_t(void(
+    using VisitFunctionT = SmallFunctionT<void(
         MessageBundle& /*_rmsgbundle*/,
         MessageId const& /*_rmsgid*/
-        ));
+        )>;
 
     enum PrintWhat {
         PrintInnerListsE,
@@ -193,7 +190,7 @@ public:
 
     void cancel(MessageId const& _rmsguid, MessageWriterSender& _rsender, const bool _force = false);
 
-    MessagePointerT<> fetchRequest(MessageId const& _rmsguid) const;
+    [[nodiscard]] SendMessagePointerT<> fetchRequest(MessageId const& _rmsguid) const;
 
     ResponseStateE checkResponseState(MessageId const& _rmsguid, MessageId& _rrelay_id, const bool _erase_request);
 
@@ -399,6 +396,4 @@ inline bool MessageWriter::MessageStub::isSynchronous() const noexcept
     return Message::is_synchronous(msgbundle_.message_flags);
 }
 //-----------------------------------------------------------------------------
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc

@@ -43,7 +43,7 @@ std::istream& DeserializerBase::run(std::istream& _ris, void* /*_pctx*/)
     return _ris;
 }
 
-ptrdiff_t DeserializerBase::run(const char* _pbeg, unsigned _sz, void* _pctx)
+ptrdiff_t DeserializerBase::run(const char* _pbeg, size_t const _sz, void* _pctx)
 {
     doPrepareRun(_pbeg, _sz);
     return doRun(_pctx);

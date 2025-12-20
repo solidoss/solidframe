@@ -24,8 +24,7 @@ class Service;
 class ReactorBase;
 class ActorBase;
 
-// typedef FunctorReference<bool, ReactorBase&>  ScheduleFunctorT;
-typedef solid_function_t(bool(ReactorBase&)) ScheduleFunctionT;
+using ScheduleFunctionT = solid::SmallFunctionT<bool(ReactorBase&)>;
 
 //! A base class for all schedulers
 class SchedulerBase : NonCopyable {
@@ -35,8 +34,8 @@ class SchedulerBase : NonCopyable {
 protected:
     typedef bool (*CreateWorkerF)(SchedulerBase& _rsch, const size_t, std::thread& _rthr, const size_t _wake_capacity);
 
-    typedef solid_function_t(bool()) ThreadEnterFunctionT;
-    typedef solid_function_t(void()) ThreadExitFunctionT;
+    using ThreadEnterFunctionT = solid::Function<bool()>;
+    using ThreadExitFunctionT  = solid::Function<void()>;
 
     void doStart(
         CreateWorkerF         _pf,

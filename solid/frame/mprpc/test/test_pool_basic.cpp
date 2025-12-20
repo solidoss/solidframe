@@ -33,7 +33,7 @@ namespace {
 
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
-using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT      = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 struct InitStub {
     size_t                      size;
@@ -60,11 +60,11 @@ InitStub initarray[] = {
 std::string  pattern;
 const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
-std::atomic<size_t> crtwriteidx(0);
-std::atomic<size_t> crtreadidx(0);
-std::atomic<size_t> crtbackidx(0);
-std::atomic<size_t> crtackidx(0);
-std::atomic<size_t> writecount(0);
+std::atomic<uint32_t> crtwriteidx(0);
+std::atomic<size_t>   crtreadidx(0);
+std::atomic<size_t>   crtbackidx(0);
+std::atomic<size_t>   crtackidx(0);
+std::atomic<size_t>   writecount(0);
 
 size_t                    connection_count(0);
 bool                      running = true;
@@ -152,7 +152,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
-using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+using SendMessagePointerT = solid::frame::mprpc::SendMessagePointerT<Message>;
+using RecvMessagePointerT = solid::frame::mprpc::RecvMessagePointerT<Message>;
 
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
@@ -187,7 +188,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -222,7 +223,7 @@ void client_complete_message(
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr) {
@@ -246,11 +247,13 @@ void server_complete_message(
 
         ++crtreadidx;
         solid_dbg(generic_logger, Info, crtreadidx);
-        if (crtwriteidx < writecount) {
+        if (crtwriteidx < writecount and pmprpcclient) {
             err = pmprpcclient->sendMessage(
                 client_id, frame::mprpc::make_message<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
             solid_check(!err, "Connection id should not be invalid! " << err.message());
+        } else {
+            solid_check(pmprpcclient, "pmprpcclient should not be nullptr");
         }
     }
     if (_rsent_msg_ptr) {

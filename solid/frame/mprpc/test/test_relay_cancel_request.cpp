@@ -34,7 +34,7 @@ using namespace solid;
 namespace {
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
-using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT      = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 struct InitStub {
     size_t                      size;
@@ -69,7 +69,7 @@ using MessageIdVectorT = std::deque<MessageIdT>;
 
 std::string            pattern;
 const size_t           initarraysize = sizeof(initarray) / sizeof(InitStub);
-std::atomic<size_t>    crtwriteidx(0);
+std::atomic<uint32_t>  crtwriteidx(0);
 std::atomic<size_t>    writecount(0);
 std::atomic<size_t>    created_count(0);
 std::atomic<size_t>    cancelable_created_count(0);
@@ -235,8 +235,12 @@ struct Message : frame::mprpc::Message {
         return true;
     }
 };
-using RegisterPointerT = solid::frame::mprpc::MessagePointerT<Register>;
-using MessagePointerT  = solid::frame::mprpc::MessagePointerT<Message>;
+
+using SendRegisterPointerT = solid::frame::mprpc::SendMessagePointerT<Register>;
+using RecvRegisterPointerT = solid::frame::mprpc::RecvMessagePointerT<Register>;
+
+using SendMessagePointerT = solid::frame::mprpc::SendMessagePointerT<Message>;
+using RecvMessagePointerT = solid::frame::mprpc::RecvMessagePointerT<Message>;
 
 //-----------------------------------------------------------------------------
 //      PeerA
@@ -257,7 +261,7 @@ void peera_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 
 void peera_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
@@ -308,7 +312,7 @@ void peerb_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 
 void peerb_complete_register(
     frame::mprpc::ConnectionContext& _rctx,
-    RegisterPointerT& _rsent_msg_ptr, RegisterPointerT& _rrecv_msg_ptr,
+    SendRegisterPointerT& _rsent_msg_ptr, RecvRegisterPointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -326,7 +330,7 @@ void peerb_complete_register(
 
 void peerb_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr) {
@@ -462,8 +466,8 @@ int test_relay_cancel_request(int argc, char* argv[])
             };
             auto con_register = [&relay_engine](
                                     frame::mprpc::ConnectionContext& _rctx,
-                                    RegisterPointerT&                _rsent_msg_ptr,
-                                    RegisterPointerT&                _rrecv_msg_ptr,
+                                    SendRegisterPointerT&            _rsent_msg_ptr,
+                                    RecvRegisterPointerT&            _rrecv_msg_ptr,
                                     ErrorConditionT const&           _rerror) {
                 solid_check(!_rerror);
                 if (_rrecv_msg_ptr) {

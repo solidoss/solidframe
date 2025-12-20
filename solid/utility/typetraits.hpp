@@ -77,14 +77,19 @@ struct is_container<
 template <class T>
 inline constexpr bool is_container_v = is_container<T>::value;
 
+namespace impl {
 template <class _Type, template <class...> class _Template>
 inline constexpr bool is_specialization_v = false;
 template <template <class...> class _Template, class... _Types>
 inline constexpr bool is_specialization_v<_Template<_Types...>, _Template> = true;
+} // namespace impl
 
 template <class _Type, template <class...> class _Template>
-struct is_specialization : std::bool_constant<is_specialization_v<_Type, _Template>> {
+struct is_specialization : std::bool_constant<impl::is_specialization_v<_Type, _Template>> {
 };
+
+template <class T, template <class...> class _Template>
+inline constexpr bool is_specialization_v = is_specialization<T, _Template>::value;
 
 template <typename T>
 struct is_unique_ptr : std::false_type {
@@ -118,6 +123,14 @@ template <typename T>
 struct is_const_intrusive_ptr<solid::ConstIntrusivePtr<T>> : std::true_type {
 };
 
+template <typename T>
+struct is_mutable_intrusive_ptr : std::false_type {
+};
+
+template <typename T>
+struct is_mutable_intrusive_ptr<solid::MutableIntrusivePtr<T>> : std::true_type {
+};
+
 template <class T>
 inline constexpr bool is_unique_ptr_v = is_unique_ptr<T>::value;
 
@@ -129,6 +142,9 @@ inline constexpr bool is_intrusive_ptr_v = is_intrusive_ptr<T>::value;
 
 template <class T>
 inline constexpr bool is_const_intrusive_ptr_v = is_const_intrusive_ptr<T>::value;
+
+template <class T>
+inline constexpr bool is_mutable_intrusive_ptr_v = is_mutable_intrusive_ptr<T>::value;
 
 template <typename T>
 struct is_bitset : std::false_type {

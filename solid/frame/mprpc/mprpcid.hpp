@@ -10,7 +10,7 @@ class EngineCore;
 }
 
 class Service;
-struct ConnectionContext;
+class ConnectionContext;
 
 //! A structure to uniquely indetify an IPC connection pool
 /*!
@@ -31,7 +31,7 @@ struct ConnectionPoolId : UniqueId {
 class RecipientId {
     friend class Service;
     friend class Connection;
-    friend struct ConnectionContext;
+    friend class ConnectionContext;
 
     ConnectionPoolId pool_id_;
     ActorIdT         connection_id_;

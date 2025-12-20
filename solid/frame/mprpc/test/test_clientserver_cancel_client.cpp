@@ -44,7 +44,7 @@ struct InitStub {
     frame::mprpc::MessageFlagsT flags;
 };
 
-using CallPoolT = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 // NOTE: if making more messages non-cancelable, please consider to change the value of expected_transfered_count
 
@@ -73,8 +73,8 @@ typedef std::vector<frame::mprpc::MessageId> MessageIdVectorT;
 std::string  pattern;
 const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
-std::atomic<size_t> crtwriteidx(0);
-std::atomic<size_t> crtreadidx(0);
+std::atomic<uint32_t> crtwriteidx(0);
+std::atomic<size_t>   crtreadidx(0);
 // std::atomic<size_t> crtbackidx(0);
 // std::atomic<size_t> crtackidx(0);
 std::atomic<size_t> writecount(0);
@@ -167,7 +167,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
-using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+using SendMessagePointerT = solid::frame::mprpc::SendMessagePointerT<Message>;
+using RecvMessagePointerT = solid::frame::mprpc::RecvMessagePointerT<Message>;
 
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
@@ -192,7 +193,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 }
 
-void client_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePointerT& _rmsgptr)
+void client_receive_message(frame::mprpc::ConnectionContext& _rctx, RecvMessagePointerT& _rmsgptr)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 
@@ -202,7 +203,7 @@ void client_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePoint
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& /*_rsent_msg_ptr*/, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& /*_rsent_msg_ptr*/, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error = " << _rerror.message());
@@ -211,7 +212,7 @@ void client_complete_message(
     }
 }
 
-void server_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePointerT& _rmsgptr)
+void server_receive_message(frame::mprpc::ConnectionContext& _rctx, RecvMessagePointerT& _rmsgptr)
 {
 
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " message id on sender " << _rmsgptr->senderRequestId());
@@ -235,13 +236,15 @@ void server_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePoint
     transfered_size += _rmsgptr->str.size();
     ++transfered_count;
 
-    if (crtreadidx == 0) {
+    if (crtreadidx == 0 and pmprpcclient) {
         solid_dbg(generic_logger, Info, "canceling all messages");
         lock_guard<mutex> lock(mtx);
         for (auto& msguid : message_uid_vec) {
             solid_dbg(generic_logger, Info, "Cancel message: " << msguid);
             pmprpcclient->cancelMessage(recipient_id, msguid);
         }
+    } else {
+        solid_check(pmprpcclient, "pmprpcclient should not be nullptr");
     }
 
     ++crtreadidx;
@@ -255,7 +258,7 @@ void server_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePoint
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& /*_rsent_msg_ptr*/, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& /*_rsent_msg_ptr*/, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -407,7 +410,7 @@ int test_clientserver_cancel_client(int argc, char* argv[])
                 frame::mprpc::MessageId msguid;
 
                 ErrorConditionT err = mprpcclient.sendMessage(
-                    {"localhost"}, frame::mprpc::MessagePointerT<>(frame::mprpc::make_message<Message>(crtwriteidx)),
+                    {"localhost"}, frame::mprpc::make_message<Message>(crtwriteidx),
                     recipient_id,
                     msguid);
 

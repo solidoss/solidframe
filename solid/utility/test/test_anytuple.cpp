@@ -4,6 +4,7 @@
 
 #include "solid/system/exception.hpp"
 #include "solid/utility/any.hpp"
+#include "solid/utility/common.hpp"
 
 using namespace std;
 using namespace solid;
@@ -21,7 +22,7 @@ int test_anytuple(int /*argc*/, char* /*argv*/[])
 {
     // using TupleT = std::tuple<Alpha, Beta, string, vector<string>>;
 
-    Any<> anytuple{make_tuple(Alpha{}, Beta{}, string("something"), vector<string>{"one", "two", "three"})};
+    Any<> anytuple{make_tuple(Alpha{}, Beta{}, string("something"), vector<string>{"one", "two", "three"}), AcceptBigT{}};
 
     solid_check(anytuple.is_tuple());
     solid_check(anytuple.get_if<string>() != nullptr && *anytuple.get_if<string>() == "something");

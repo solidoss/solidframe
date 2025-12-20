@@ -16,7 +16,6 @@
 
 #include "solid/system/common.hpp"
 #include "solid/system/exception.hpp"
-#include "solid/utility/cacheable.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/typetraits.hpp"
 
@@ -24,13 +23,10 @@
 #include "solid/frame/mprpc/mprpcmessageflags.hpp"
 #include "solid/reflection/v1/reflection.hpp"
 
-#if !defined(SOLID_MPRPC_USE_SHARED_PTR_MESSAGE)
 #include "solid/utility/intrusiveptr.hpp"
-#endif
+#include "solid/utility/pool.hpp"
 
-namespace solid {
-namespace frame {
-namespace mprpc {
+namespace solid::frame::mprpc {
 
 class Service;
 class Connection;
@@ -151,11 +147,8 @@ struct MessageHeader {
         }
     }
 };
-#if defined(SOLID_MPRPC_USE_SHARED_PTR_MESSAGE)
-struct Message : SharedCacheable {
-#else
-struct Message : IntrusiveCacheable {
-#endif
+
+struct Message : IntrusiveThreadSafeBase {
 
     using FlagsT = MessageFlagsValueT;
 
@@ -379,31 +372,31 @@ private:
     MessageHeader header_;
 };
 
-#if defined(SOLID_MPRPC_USE_SHARED_PTR_MESSAGE)
 template <class Msg = Message>
-using MessagePointerT = std::shared_ptr<Msg>;
+using MutableMessagePointerT = MutableIntrusivePtr<Msg>;
+
+template <class Msg = Message>
+using ConstMessagePointerT = ConstIntrusivePtr<Msg>;
+
+template <class Msg = Message>
+using RecvMessagePointerT = MutableMessagePointerT<Msg>;
+
+template <class Msg = Message>
+using SendMessagePointerT = ConstMessagePointerT<Msg>;
 
 template <class Msg, class... Args>
-MessagePointerT<Msg> make_message(Args&&... _args)
+auto make_message(Args&&... _args)
 {
-    return std::make_shared<Msg>(std::forward<Args>(_args)...);
+    return make_mutable_intrusive<Msg>(std::forward<Args>(_args)...);
 }
-
-#else
-template <class Msg = Message>
-using MessagePointerT = IntrusivePtr<Msg>;
 
 template <class Msg, class... Args>
-MessagePointerT<Msg> make_message(Args&&... _args)
+auto make_pool_message(Args&&... _args)
 {
-    return make_intrusive<Msg>(std::forward<Args>(_args)...);
+    return Pool<Msg>::create(std::forward<Args>(_args)...);
 }
 
-#endif
+using MessageCompleteFunctionT = Function128T<void(
+    ConnectionContext&, SendMessagePointerT<>&, RecvMessagePointerT<>&, ErrorConditionT const&)>;
 
-using MessageCompleteFunctionT = solid_function_t(void(
-    ConnectionContext&, MessagePointerT<>&, MessagePointerT<>&, ErrorConditionT const&));
-
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc

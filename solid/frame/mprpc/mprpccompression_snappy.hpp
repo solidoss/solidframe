@@ -16,10 +16,7 @@
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
 #include "solid/frame/mprpc/mprpcprotocol.hpp"
 
-namespace solid {
-namespace frame {
-namespace mprpc {
-namespace snappy {
+namespace solid::frame::mprpc::snappy {
 
 struct Engine {
     const size_t buff_threshold;
@@ -37,7 +34,7 @@ struct Engine {
 
         if (_bufsz > buff_threshold) {
 
-            char tmpbuf[Protocol::MaxPacketDataSize];
+            char tmpbuf[Protocol::max_packet_size];
 
             size_t len = 0;
 
@@ -80,7 +77,4 @@ inline void setup(mprpc::Configuration& _rcfg, size_t _buff_threshold = 1024, si
     _rcfg.writer.inplace_compress_fnc = Engine(_buff_threshold, _diff_threshold);
 }
 
-} // namespace snappy
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc::snappy

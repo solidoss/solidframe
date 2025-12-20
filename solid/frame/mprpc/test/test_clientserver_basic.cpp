@@ -39,7 +39,7 @@ struct InitStub {
     frame::mprpc::MessageFlagsT flags;
 };
 
-using CallPoolT = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 InitStub initarray[] = {
     {100000, 0},
@@ -61,11 +61,11 @@ InitStub initarray[] = {
 std::string  pattern;
 const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
-std::atomic<size_t> crtwriteidx(0);
-std::atomic<size_t> crtreadidx(0);
-std::atomic<size_t> crtbackidx(0);
-std::atomic<size_t> crtackidx(0);
-std::atomic<size_t> writecount(0);
+std::atomic<uint32_t> crtwriteidx(0);
+std::atomic<size_t>   crtreadidx(0);
+std::atomic<size_t>   crtbackidx(0);
+std::atomic<size_t>   crtackidx(0);
+std::atomic<size_t>   writecount(0);
 
 size_t                 connection_count(0);
 bool                   running = true;
@@ -83,6 +83,8 @@ size_t real_size(size_t _sz)
 }
 
 struct Message : frame::mprpc::Message {
+    static atomic_uint32_t create_count;
+
     uint32_t     idx;
     std::string  str;
     mutable bool serialized;
@@ -91,12 +93,14 @@ struct Message : frame::mprpc::Message {
         : idx(_idx)
         , serialized(false)
     {
+        ++create_count;
         solid_dbg(generic_logger, Info, "CREATE ---------------- " << this << " idx = " << idx);
         init();
     }
     Message()
         : serialized(false)
     {
+        ++create_count;
         solid_dbg(generic_logger, Info, "CREATE ---------------- " << this);
     }
     ~Message() override
@@ -153,7 +157,10 @@ struct Message : frame::mprpc::Message {
     }
 };
 
-using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+atomic_uint32_t Message::create_count{0};
+
+using SendMessagePointerT = solid::frame::mprpc::SendMessagePointerT<Message>;
+using RecvMessagePointerT = solid::frame::mprpc::RecvMessagePointerT<Message>;
 
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
@@ -188,7 +195,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " " << crtbackidx << " " << writecount);
@@ -223,7 +230,7 @@ void client_complete_message(
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
     if (_rrecv_msg_ptr) {
@@ -241,17 +248,19 @@ void server_complete_message(
 
         solid_check(_rctx.recipientId().isValidConnection(), "Connection id should not be invalid!");
 
-        ErrorConditionT err = use_context_on_response ? _rctx.service().sendResponse(_rctx, _rrecv_msg_ptr) : _rctx.service().sendResponse(_rctx.recipientId(), _rrecv_msg_ptr);
+        ErrorConditionT err = use_context_on_response ? _rctx.service().sendResponse(_rctx, std::move(_rrecv_msg_ptr)) : _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
         solid_check(!err, "Connection id should not be invalid: " << err.message());
 
         ++crtreadidx;
         solid_dbg(generic_logger, Info, crtreadidx);
-        if (crtwriteidx < writecount) {
+        if (crtwriteidx < writecount and pmprpcclient) {
             err = pmprpcclient->sendMessage(
                 {""}, frame::mprpc::make_message<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
             solid_check(!err, "Connection id should not be invalid! " << err.message());
+        } else {
+            solid_check(pmprpcclient, "pmprpcclient should not be nullptr");
         }
     }
     if (_rsent_msg_ptr) {
@@ -265,7 +274,7 @@ int test_clientserver_basic(int argc, char* argv[])
 {
 
     solid::log_start(std::cerr, {".*:EWXS"});
-    // solid::log_start(std::cerr, {"solid::frame::mprpc.*:EWX", "\\*:VIEWX"});
+    // solid::log_start(std::cerr, {"solid::frame::mprpc.*:VIEWX", "\\*:VIEWX"});
 
     size_t max_per_pool_connection_count = 1;
 
@@ -450,6 +459,7 @@ int test_clientserver_basic(int argc, char* argv[])
     std::cout << "Transfered size = " << (transfered_size * 2) / 1024 << "KB" << endl;
     std::cout << "Transfered count = " << transfered_count << endl;
     std::cout << "Connection count = " << connection_count << endl;
+    std::cout << "Message create count = " << Message::create_count << endl;
 
     return 0;
 }

@@ -18,8 +18,8 @@ struct Event {
 #ifdef EVENT_USE_STD_ANY
     using AnyT = std::any;
 #else
-    static constexpr size_t any_size = sizeof(void*) == 8 ? any_size_from_sizeof(64 - sizeof(void*) - sizeof(uintptr_t)) : any_size_from_sizeof(32 - sizeof(void*) - sizeof(uintptr_t));
-    using AnyT                       = Any<any_size>;
+    static constexpr size_t any_size = 32 - sizeof(uintptr_t);
+    using AnyT                       = Any<any_size, 8>;
 #endif
     Event();
     Event(Event&&);

@@ -132,12 +132,12 @@ int test_event(int /*argc*/, char* /*argv*/[])
 
     check_event(tuple_event);
 
-    Event<8> tuple_event8(tuple_event);
+    Event<8, 8> tuple_event8(tuple_event);
     check_event(tuple_event8);
     check_event(tuple_event);
 
     {
-        Event<8> tuple_event8(std::move(tuple_event));
+        Event<8, 8> tuple_event8(std::move(tuple_event));
         check_event(tuple_event8);
         solid_check(!tuple_event);
     }
@@ -146,7 +146,7 @@ int test_event(int /*argc*/, char* /*argv*/[])
     check_event(tuple_event8);
     check_event(tuple_event);
 
-    Event<10> tuple_event10;
+    Event<16, 8> tuple_event10;
 
     tuple_event10 = std::move(tuple_event);
     solid_check(!tuple_event);

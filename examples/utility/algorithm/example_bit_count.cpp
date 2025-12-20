@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
     if (argc == 2) {
         cout << "Generate table for [0, 255]:" << endl;
         cout << '{';
-        for (size_t i = 0; i < 256; ++i) {
+        for (uint32_t i = 0; i < 256; ++i) {
             if (!(i % 16)) {
                 cout << endl
                      << "\t";

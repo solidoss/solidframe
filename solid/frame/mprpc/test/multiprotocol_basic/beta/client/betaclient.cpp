@@ -22,10 +22,10 @@ void client_connection_start(frame::mprpc::ConnectionContext& _rctx)
 }
 
 void complete_message_first(
-    frame::mprpc::ConnectionContext&                             _rctx,
-    frame::mprpc::MessagePointerT<beta_protocol::FirstMessage>&  _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<beta_protocol::SecondMessage>& _rrecv_msg_ptr,
-    ErrorConditionT const&                                       _rerror)
+    frame::mprpc::ConnectionContext&                                 _rctx,
+    frame::mprpc::SendMessagePointerT<beta_protocol::FirstMessage>&  _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<beta_protocol::SecondMessage>& _rrecv_msg_ptr,
+    ErrorConditionT const&                                           _rerror)
 {
     solid_dbg(generic_logger, Info, "");
     solid_check(!_rerror);
@@ -42,10 +42,10 @@ void complete_message_first(
 }
 
 void complete_message_second(
-    frame::mprpc::ConnectionContext&                             _rctx,
-    frame::mprpc::MessagePointerT<beta_protocol::SecondMessage>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<beta_protocol::SecondMessage>& _rrecv_msg_ptr,
-    ErrorConditionT const&                                       _rerror)
+    frame::mprpc::ConnectionContext&                                 _rctx,
+    frame::mprpc::SendMessagePointerT<beta_protocol::SecondMessage>& _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<beta_protocol::SecondMessage>& _rrecv_msg_ptr,
+    ErrorConditionT const&                                           _rerror)
 {
     solid_dbg(generic_logger, Info, "");
     solid_check(!_rerror);
@@ -62,10 +62,10 @@ void complete_message_second(
 }
 
 void complete_message_third(
-    frame::mprpc::ConnectionContext&                            _rctx,
-    frame::mprpc::MessagePointerT<beta_protocol::ThirdMessage>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<beta_protocol::FirstMessage>& _rrecv_msg_ptr,
-    ErrorConditionT const&                                      _rerror)
+    frame::mprpc::ConnectionContext&                                _rctx,
+    frame::mprpc::SendMessagePointerT<beta_protocol::ThirdMessage>& _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<beta_protocol::FirstMessage>& _rrecv_msg_ptr,
+    ErrorConditionT const&                                          _rerror)
 {
     solid_dbg(generic_logger, Info, "");
     solid_check(!_rerror);
@@ -105,7 +105,7 @@ ErrorConditionT start(
         auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, TypeIdT>(
             reflection::v1::metadata::factory,
             [](auto& _rmap) {
-                auto lambda = [&]<typename T>(const TypeIdT _id, const std::string_view _name, type_identity<T> const& _rtype) {
+                auto lambda = [&]<typename T>(const TypeIdT _id, const std::string_view _name, type_identity<T> const&) {
                     using TypeT = T;
                     if constexpr (std::is_same_v<TypeT, beta_protocol::FirstMessage>) {
                         _rmap.template registerMessage<TypeT>(_id, _name, complete_message_first);
@@ -134,7 +134,7 @@ ErrorConditionT start(
         _rctx.rwait_count += 3;
 
         err = mprpcclient_ptr->sendMessage(
-            {"localhost"}, frame::mprpc::make_message<beta_protocol::FirstMessage>(100000UL, make_string(100000)),
+            {"localhost"}, frame::mprpc::make_message<beta_protocol::FirstMessage>(100000U, make_string(100000)),
             {frame::mprpc::MessageFlagsE::AwaitResponse});
         if (err) {
             return err;

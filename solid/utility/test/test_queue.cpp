@@ -52,10 +52,10 @@ struct UniqueId {
     }
 };
 
-typedef solid_function_t(void(size_t&, EventBase&&)) EventFunctionT;
+using EventFunctionT = Function<void(size_t&, EventBase&&)>;
 
 struct ExecStub {
-    using EventT = Event<256>;
+    using EventT = Event<256, 8>;
     UniqueId       actuid;
     UniqueId       chnuid;
     EventFunctionT exefnc;
@@ -120,7 +120,7 @@ int test_queue(int args, char* argv[])
     }
 
     while (!eventq.empty()) {
-        eventq.front().exefnc(v, Event<128>(eventq.front().event));
+        eventq.front().exefnc(v, Event<128, 8>(eventq.front().event));
         eventq.pop();
     }
     cout << "v = " << v << endl;

@@ -7,9 +7,11 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
+#include <atomic>
 #include <fcntl.h>
 
 #include "solid/system/common.hpp"
+#include "solid/system/statistic.hpp"
 
 #if defined(SOLID_USE_EPOLL)
 
@@ -64,9 +66,7 @@
 
 using namespace std;
 
-namespace solid {
-namespace frame {
-namespace aio {
+namespace solid::frame::aio {
 
 namespace {
 
@@ -122,7 +122,6 @@ struct ActorStub {
 //=============================================================================
 
 constexpr size_t min_event_capacity = 32;
-constexpr size_t max_event_capacity = 1024 * 64;
 
 //=============================================================================
 
@@ -408,6 +407,12 @@ bool Reactor::start()
 }
 
 //-----------------------------------------------------------------------------
+inline void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
+{
+    doCompleteEvents(_rcrttime, impl_->dummyCompletionHandlerUid());
+}
+
+//-----------------------------------------------------------------------------
 
 /*NOTE:
 
@@ -421,7 +426,7 @@ bool Reactor::start()
     to be delivered to the actor.
 
 */
-// #define SOLID_AIO_TRACE_DURATION
+#define SOLID_AIO_TRACE_DURATION
 void Reactor::run()
 {
     using namespace std::chrono;
@@ -431,41 +436,57 @@ void Reactor::run()
     bool     running = true;
     int      waitmsec;
     NanoTime waittime;
-    size_t   waitcnt = 0;
+    auto     previous_wake_count = pending_wake_count_.load();
 
     while (running) {
         impl_->current_time_ = NanoTime::nowSteady();
 
-        crtload = actor_count_ + impl_->device_count_ + current_exec_size_;
-#if defined(SOLID_USE_EPOLL2)
-        waittime = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0 && pending_wake_count_.load() == 0);
+        crtload       = actor_count_ + impl_->device_count_ + current_exec_size_;
+        bool can_wait = current_exec_size_ == 0u;
+        {
+            decltype(previous_wake_count) new_count          = not can_wait;
+            auto                          current_wake_count = pending_wake_count_.exchange(new_count, std::memory_order_acquire);
 
-        solid_log(logger, Verbose, "epoll_wait wait = " << waittime << ' ' << impl_->reactor_fd_ << ' ' << impl_->event_vec_.size());
-        selcnt = epoll_pwait2(impl_->reactor_fd_, impl_->event_vec_.data(), static_cast<int>(impl_->event_vec_.size()), waittime != NanoTime::max() ? &waittime : nullptr, nullptr);
-        if (waittime.seconds() != 0 && waittime.nanoSeconds() != 0) {
-            ++waitcnt;
+            can_wait            = can_wait and (current_wake_count == previous_wake_count);
+            previous_wake_count = new_count;
         }
+
+#if defined(SOLID_USE_EPOLL2)
+
+        waittime
+            = impl_->computeWaitDuration(impl_->current_time_, can_wait);
+
+        // solid_log(logger, Verbose, "epoll_wait wait = " << waittime << ' ' << impl_->reactor_fd_ << ' ' << impl_->event_vec_.size());
+        selcnt = epoll_pwait2(impl_->reactor_fd_, impl_->event_vec_.data(), static_cast<int>(impl_->event_vec_.size()), waittime != NanoTime::max() ? &waittime : nullptr, nullptr);
 #elif defined(SOLID_USE_EPOLL)
-        waitmsec = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0 && pending_wake_count_.load() == 0);
+        waitmsec
+            = impl_->computeWaitDuration(impl_->current_time_, can_wait);
 
         solid_log(logger, Verbose, "epoll_wait wait = " << waitmsec);
 
         selcnt = epoll_wait(impl_->reactor_fd_, impl_->event_vec_.data(), static_cast<int>(impl_->event_vec_.size()), waitmsec);
+
 #elif defined(SOLID_USE_KQUEUE)
-        waittime = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0 && pending_wake_count_.load() == 0);
+        waittime
+            = impl_->computeWaitDuration(impl_->current_time_, can_wait);
 
         solid_log(logger, Verbose, "kqueue wait = " << waittime);
 
         selcnt = kevent(impl_->reactor_fd_, nullptr, 0, impl_->event_vec_.data(), static_cast<int>(impl_->event_vec_.size()), waittime != NanoTime::max() ? &waittime : nullptr);
+
 #elif defined(SOLID_USE_WSAPOLL)
-        waitmsec = impl_->computeWaitDuration(impl_->current_time_, current_exec_size_ == 0 && pending_wake_count_.load() == 0);
+        waitmsec
+            = impl_->computeWaitDuration(impl_->current_time_, can_wait);
         solid_log(logger, Verbose, "wsapoll wait msec = " << waitmsec);
         selcnt = WSAPoll(impl_->event_vec_.data(), impl_->event_vec_.size(), waitmsec);
+
 #endif
-        impl_->current_time_ = NanoTime::nowSteady();
-#ifdef SOLID_AIO_TRACE_DURATION
-        const auto start = high_resolution_clock::now();
-#endif
+        if (waittime) {
+            impl_->current_time_ = NanoTime::nowSteady();
+        }
+
+        doCompleteEvents(impl_->current_time_); // See NOTE above
+
 #if defined(SOLID_USE_WSAPOLL)
         if (selcnt > 0 || impl_->connect_vec_.size()) {
 #else
@@ -473,6 +494,7 @@ void Reactor::run()
 #endif
             crtload += selcnt;
             doCompleteIo(impl_->current_time_, selcnt);
+            impl_->current_time_ = NanoTime::nowSteady();
         } else if (selcnt < 0 && errno != EINTR) {
             solid_log(logger, Error, "epoll_wait errno  = " << last_system_error().message());
             running = false;
@@ -480,32 +502,20 @@ void Reactor::run()
         } else {
             solid_log(logger, Verbose, "epoll_wait done");
         }
-#ifdef SOLID_AIO_TRACE_DURATION
-        const auto elapsed_io = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
-#endif
-        impl_->current_time_ = NanoTime::nowSteady();
-        doCompleteTimer(impl_->current_time_);
-#ifdef SOLID_AIO_TRACE_DURATION
-        const auto elapsed_timer = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
-#endif
-        impl_->current_time_ = NanoTime::nowSteady();
-        doCompleteEvents(impl_->current_time_); // See NOTE above
-#ifdef SOLID_AIO_TRACE_DURATION
-        const auto elapsed_event = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
-#endif
-        impl_->current_time_ = NanoTime::nowSteady();
-        const auto execnt    = doCompleteExec(impl_->current_time_);
-#ifdef SOLID_AIO_TRACE_DURATION
-        const auto elapsed_total = duration_cast<microseconds>(high_resolution_clock::now() - start).count();
 
-        if (elapsed_total >= 6000) {
-            solid_log(logger, Warning, "reactor loop duration: io " << elapsed_io << " timers " << elapsed_timer << " events " << elapsed_event << " total " << elapsed_total << " execnt " << execnt);
-        }
+        doCompleteTimer(impl_->current_time_);
+#if defined(SOLID_AIO_TRACE_DURATION)
+        auto const start_time = std::chrono::high_resolution_clock::now();
 #endif
-        (void)execnt;
+
+        doCompleteExec(impl_->current_time_);
+#if defined(SOLID_AIO_TRACE_DURATION)
+        auto const     stop_time = std::chrono::high_resolution_clock::now();
+        uint64_t const ns        = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time - start_time).count();
+        solid_statistic_add(rstatistic_.complete_events_total_ns_, ns);
+#endif
         running = impl_->running_ || (actor_count_ != 0) || current_exec_size_ != 0;
     }
-    solid_log(logger, Warning, "reactor waitcount = " << waitcnt);
 
     impl_->event_actor_ptr_->stop();
     doClearSpecific();
@@ -906,18 +916,6 @@ void Reactor::doCompleteTimer(NanoTime const& _rcrttime)
         [this, &ctx](const size_t _chidx, const NanoTime& /* _expiry */, const size_t /* _proxy_index */) {
             onTimer(ctx, _chidx);
         });
-}
-
-//-----------------------------------------------------------------------------
-void Reactor::doCompleteEvents(ReactorContext const& _rctx)
-{
-    doCompleteEvents(_rctx.nanoTime(), impl_->dummyCompletionHandlerUid());
-}
-
-void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
-{
-    ReactorContext ctx(*this, _rcrttime);
-    doCompleteEvents(ctx);
 }
 
 //-----------------------------------------------------------------------------
@@ -1371,7 +1369,7 @@ void EventHandler::write(impl::Reactor& _rreactor)
 
 /*static*/ void EventHandler::on_completion(CompletionHandler& _rch, ReactorContext& _rctx)
 {
-    EventHandler& rthis = static_cast<EventHandler&>(_rch);
+    [[maybe_unused]] EventHandler& rthis = static_cast<EventHandler&>(_rch);
 #if defined(SOLID_USE_EPOLL)
     uint64_t v = -1;
     ssize_t  rv;
@@ -1389,7 +1387,6 @@ void EventHandler::write(impl::Reactor& _rreactor)
     rthis.contextBind(_rctx);
     rthis.reactor(_rctx).modDevice(_rctx, rthis.dev_, ReactorWaitRequestE::Read);
 #endif
-    rthis.reactor(_rctx).doCompleteEvents(_rctx);
 }
 
 //-----------------------------------------------------------------------------
@@ -1440,8 +1437,10 @@ std::ostream& ReactorStatistic::print(std::ostream& _ros) const
     _ros << " post_count = " << post_count_;
     _ros << " post_stop_count = " << post_stop_count_;
     _ros << " max_exec_size = " << max_exec_size_;
+    _ros << " exec_count = " << exec_count_;
     _ros << " actor_count = " << actor_count_;
     _ros << " max_actor_count = " << max_actor_count_;
+    _ros << " complete_events_total_ms = " << (complete_events_total_ns_ / 1000000u);
     return _ros;
 }
 
@@ -1459,6 +1458,4 @@ void ReactorStatistic::clear()
     max_actor_count_   = 0;
 }
 
-} // namespace aio
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::aio

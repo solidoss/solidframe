@@ -10,15 +10,22 @@
 
 #pragma once
 
+#include "solid/utility/common.hpp"
+#ifdef SOLID_ON_WINDOWS
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
+#endif
+
 #include "openssl/ssl.h"
 #include "solid/frame/aio/aiosocketbase.hpp"
 #include "solid/system/socketdevice.hpp"
 #include "solid/utility/function.hpp"
 #include <cerrno>
 
-namespace solid {
-namespace frame {
-namespace aio {
+namespace solid::frame::aio {
 
 class ReactorContext;
 
@@ -26,7 +33,7 @@ namespace openssl {
 
 class Context;
 
-enum VerifyMode {
+enum VerifyMode : std::uint8_t {
     VerifyModeNone             = 1,
     VerifyModePeer             = 2,
     VerifyModeFailIfNoPeerCert = 4,
@@ -40,7 +47,7 @@ class Socket;
 struct VerifyContext {
     using NativeContextT = X509_STORE_CTX;
 
-    NativeContextT* nativeHandle() const
+    [[nodiscard]] NativeContextT* nativeHandle() const
     {
         return ssl_ctx;
     }
@@ -57,7 +64,6 @@ private:
     {
     }
 
-private:
     NativeContextT* ssl_ctx;
 };
 
@@ -126,7 +132,7 @@ private:
     static int on_verify(int preverify_ok, X509_STORE_CTX* x509_ctx);
 
 private:
-    using VerifyFunctionT = solid_function_t(bool(void*, bool, VerifyContextT&));
+    using VerifyFunctionT = Function<bool(void*, bool, VerifyContextT&)>;
 
     SSL*            pssl;
     bool            want_read_on_recv;
@@ -142,6 +148,4 @@ inline Socket::NativeHandleT Socket::nativeHandle() const
 }
 
 } // namespace openssl
-} // namespace aio
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::aio

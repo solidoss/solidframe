@@ -10,6 +10,7 @@
 #pragma once
 
 #include "solid/system/common.hpp"
+#include "solid/system/exception.hpp"
 
 #if (defined(__i386__) || defined(__x86_64__)) && defined(__clang__)
 #include <emmintrin.h>

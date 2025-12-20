@@ -10,10 +10,10 @@ namespace gamma_server {
 
 template <class M>
 void complete_message(
-    solid::frame::mprpc::ConnectionContext&  _rctx,
-    solid::frame::mprpc::MessagePointerT<M>& _rsent_msg_ptr,
-    solid::frame::mprpc::MessagePointerT<M>& _rrecv_msg_ptr,
-    solid::ErrorConditionT const&            _rerror)
+    solid::frame::mprpc::ConnectionContext&      _rctx,
+    solid::frame::mprpc::SendMessagePointerT<M>& _rsent_msg_ptr,
+    solid::frame::mprpc::RecvMessagePointerT<M>& _rrecv_msg_ptr,
+    solid::ErrorConditionT const&                _rerror)
 {
     solid_dbg(solid::generic_logger, Info, "");
     solid_check(!_rerror);
@@ -31,7 +31,7 @@ void complete_message(
 template <class Reg>
 void register_messages(Reg& _rmap)
 {
-    auto lambda = [&]<typename T>(const TypeIdT _id, const std::string_view _name, std::type_identity<T> const& _rtype) {
+    auto lambda = [&]<typename T>(const TypeIdT _id, const std::string_view _name, std::type_identity<T> const&) {
         _rmap.template registerMessage<T>(_id, _name, complete_message<T>);
     };
     gamma_protocol::configure_protocol(lambda);

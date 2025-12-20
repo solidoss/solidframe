@@ -7,8 +7,17 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#include "solid/frame/aio/openssl/aiosecuresocket.hpp"
+
+#include "solid/utility/common.hpp"
+
+#ifdef SOLID_ON_WINDOWS
+#define NOMINMAX
+#include <WinSock2.h>
+#include <windows.h>
+#endif
+
 #include "solid/frame/aio/openssl/aiosecurecontext.hpp"
+#include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 
 #include "solid/frame/aio/aioerror.hpp"
 
@@ -405,7 +414,7 @@ ErrorCodeT Context::doSetPasswordCallback()
 
     buf[0] = 0;
 
-    if (!solid_function_empty(rthis.pwdfnc)) {
+    if (rthis.pwdfnc) {
         std::string pwd = rthis.pwdfnc(size, rwflag == 1 ? PasswordPurpose::Write : PasswordPurpose::Read);
         size_t      sz  = strlen(pwd.c_str());
 
@@ -910,7 +919,7 @@ ErrorCodeT Socket::doPrepareVerifyCallback(VerifyMaskT _verify_mask)
 
     solid_check_log(ssl && pthis, logger);
 
-    if (!solid_function_empty(pthis->verify_cbk)) {
+    if (pthis->verify_cbk) {
         VerifyContext vctx(x509_ctx);
 
         bool rv = pthis->verify_cbk(pctx, preverify_ok != 0, vctx);

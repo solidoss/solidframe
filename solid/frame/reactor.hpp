@@ -15,6 +15,7 @@
 #include "solid/system/log.hpp"
 #include "solid/system/pimpl.hpp"
 #include "solid/utility/event.hpp"
+#include "solid/utility/function.hpp"
 #include "solid/utility/queue.hpp"
 #include <mutex>
 
@@ -110,7 +111,7 @@ protected:
 
 public:
     using StatisticT     = ReactorStatistic;
-    using EventFunctionT = solid_function_t(void(ReactorContext&, EventBase&&));
+    using EventFunctionT = SmallFunctionT<void(ReactorContext&, EventBase&&)>;
 
     bool start();
     void stop() override;
@@ -532,7 +533,7 @@ private:
 };
 
 constexpr size_t reactor_default_event_small_size = std::max(sizeof(Function<void()>), sizeof(std::function<void()>));
-using ReactorEventT                               = Event<reactor_default_event_small_size>;
+using ReactorEventT                               = Event<reactor_default_event_small_size, sizeof(uintptr_t)>;
 using ReactorT                                    = Reactor<ReactorEventT>;
 
 } // namespace frame

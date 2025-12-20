@@ -110,7 +110,7 @@ frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr)
     return r;
 }
 
-using CallPoolT = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 } // namespace
 

@@ -7,6 +7,14 @@ $ openssl x509 -req -in server-req.pem -days 1000 -CA ca-cert.pem -CAkey ca-key.
 
 */
 
+#include "solid/utility/common.hpp"
+
+#ifdef SOLID_ON_WINDOWS
+#define NOMINMAX
+#include <WinSock2.h>
+#include <windows.h>
+#endif
+
 #include "solid/frame/aio/openssl/aiosecurecontext.hpp"
 #include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 
@@ -277,7 +285,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
     solid_log(generic_logger, Info, "");
-    unsigned repeatcnt = backlog_size();
+    size_t repeatcnt = backlog_size();
 
     do {
         if (!_rctx.error()) {

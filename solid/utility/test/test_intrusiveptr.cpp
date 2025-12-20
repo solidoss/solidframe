@@ -8,8 +8,8 @@ using namespace std;
 
 namespace {
 class Test : public IntrusiveThreadSafeBase {
-    string s_;
-    int    i_ = 0;
+    string               s_;
+    [[maybe_unused]] int i_ = 0;
 
 public:
     Test(const string_view _s, const int _i)
@@ -42,8 +42,8 @@ struct TestWithCounter {
     virtual ~TestWithCounter() {}
 
 private:
-    friend class TestIntrusivePolicy;
-    mutable atomic<size_t> use_count_{0};
+    friend struct TestIntrusivePolicy;
+    mutable atomic<size_t> use_count_{1};
 };
 
 template <typename T>
@@ -58,7 +58,7 @@ struct TestIntrusivePolicy {
     {
         return _p.use_count_.fetch_sub(1) == 1;
     }
-    static size_t useCount(const TestWithCounter& _p) noexcept
+    static size_t use_count(const TestWithCounter& _p) noexcept
     {
         return _p.use_count_.load(std::memory_order_relaxed);
     }
@@ -138,6 +138,17 @@ int test_intrusiveptr(int argc, char* argvp[])
 
         solid_check(p2);
         solid_check(!p1);
+    }
+
+    {
+        auto l = [](ConstIntrusivePtr<Test> const& ptr) {
+            solid_check(ptr.useCount() == 1);
+        };
+
+        l(make_mutable_intrusive<Test>("ceva", 10));
+
+        auto ptr = make_mutable_intrusive<Test>("ceva", 10);
+        l(std::move(ptr));
     }
 
     return 0;

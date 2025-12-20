@@ -11,6 +11,7 @@
 #pragma once
 #include <atomic>
 #include <bit>
+#include <chrono>
 #include <deque>
 #include <functional>
 #include <thread>
@@ -58,6 +59,12 @@ struct ThreadPoolStatistic : solid::Statistic {
 
     ThreadPoolStatistic();
 
+    auto now()
+    {
+        using namespace std::chrono;
+        return high_resolution_clock::now();
+    }
+
     void createContext()
     {
         ++create_context_count_;
@@ -103,13 +110,16 @@ struct ThreadPoolStatistic : solid::Statistic {
         solid_statistic_max(max_consume_all_count_, _count);
     }
 
-    void pushOne(const bool _with_context, const uint64_t _duration_us)
+    template <typename TimePos>
+    void pushOne(const bool _with_context, TimePos const _start)
     {
+        using namespace std::chrono;
+        const uint64_t duration = duration_cast<microseconds>(now() - _start).count();
         ++push_one_count_[_with_context];
 
-        solid_statistic_min(push_one_latency_min_us_, _duration_us);
-        solid_statistic_max(push_one_latency_max_us_, _duration_us);
-        push_one_latency_sum_us_ += _duration_us;
+        solid_statistic_min(push_one_latency_min_us_, duration);
+        solid_statistic_max(push_one_latency_max_us_, duration);
+        push_one_latency_sum_us_ += duration;
     }
     void pushAll(const bool _should_wake)
     {
@@ -145,6 +155,11 @@ struct ThreadPoolStatistic : solid::Statistic {
 };
 
 struct EmptyThreadPoolStatistic : solid::Statistic {
+
+    static int now()
+    {
+        return 0;
+    }
 
     void createContext() {}
     void deleteContext() {}
@@ -295,22 +310,22 @@ typename std::decay<T>::type decay_copy(T&& v)
 
 template <class Task>
 class alignas(hardware_destructive_interference_size) TaskData {
-    std::aligned_storage_t<sizeof(Task), alignof(Task)> data_;
+    AlignedStorage<Task> data_;
 
 public:
     Task& task() noexcept
     {
-        return *std::launder(reinterpret_cast<Task*>(&data_));
+        return *data_.cast();
     }
     template <class T>
     void task(T&& _rt)
     {
-        ::new (&data_) Task(std::forward<T>(_rt));
+        ::new (data_.data()) Task(std::forward<T>(_rt));
     }
 
     void destroy()
     {
-        std::destroy_at(std::launder(reinterpret_cast<Task*>(&data_)));
+        std::destroy_at(data_.cast());
     }
 };
 
@@ -492,13 +507,11 @@ private:
             }
         }
 
-        void notifyWhilePushOne(std::chrono::time_point<std::chrono::steady_clock> const& _start, uint64_t& _rduration) noexcept
+        void notifyWhilePushOne() noexcept
         {
-            using namespace std::chrono;
             event_ = to_underlying(EventE::Fill);
-            ++consume_count_;
+            consume_count_.fetch_add(1);
             std::atomic_notify_all(&consume_count_);
-            _rduration = duration_cast<microseconds>(steady_clock::now() - _start).count();
         }
 
         void waitWhileStop(Stats& _rstats, const AtomicCounterValueT _count, const size_t _spin_count) noexcept
@@ -641,19 +654,19 @@ private:
     using AtomicIndexT      = std::atomic_size_t;
     using AtomicIndexValueT = std::atomic_size_t::value_type;
 
-    alignas(hardware_destructive_interference_size * 2) AtomicIndexT push_one_index_{0};
-    alignas(hardware_destructive_interference_size * 2) AtomicIndexT pop_one_index_{0};
+    alignas(hardware_destructive_interference_size) AtomicIndexT push_one_index_{0};
+    alignas(hardware_destructive_interference_size) AtomicIndexT pop_one_index_{0};
     ThreadVectorT     threads_;
     std::atomic<bool> running_{false};
 
     std::tuple<AtomicIndexValueT, AtomicCounterValueT> pushOneIndex() noexcept
     {
-        const auto index = push_one_index_.fetch_add(1);
+        const auto index = push_one_index_.fetch_add(1, std::memory_order_relaxed);
         return {index % one_.capacity_, computeCounter(index, one_.capacity_)};
     }
     std::tuple<AtomicIndexValueT, AtomicCounterValueT> popOneIndex() noexcept
     {
-        const auto index = pop_one_index_.fetch_add(1);
+        const auto index = pop_one_index_.fetch_add(1, std::memory_order_relaxed);
         return {index % one_.capacity_, computeCounter(index, one_.capacity_)};
     }
 
@@ -665,7 +678,7 @@ private:
     void commitAllId(const uint64_t _id)
     {
         uint64_t id = _id - 1;
-        while (!all_.commited_index_.compare_exchange_weak(id, _id)) {
+        while (!all_.commited_index_.compare_exchange_weak(id, _id, std::memory_order_relaxed, std::memory_order_relaxed)) {
             id = _id - 1;
             cpu_pause();
         }
@@ -1215,7 +1228,7 @@ bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(AtomicCounterT* _p
         //  used by any one task. This is guranteed because when adding a new one task,
         //  before attaching the last commited_all_index to the current one task,
         //  we're atomicaly marking the one stub as Pushing.
-        const auto commited_all_index = all_.commited_index_.load();
+        const auto commited_all_index = all_.commited_index_.load(std::memory_order_relaxed);
 
         if (_pcounter && _pcounter->load(/* std::memory_order_relaxed */) == _count) {
             // NOTE: this is to ensure that pushOnes and pushAlls from
@@ -1267,7 +1280,7 @@ template <class Tsk>
 void ThreadPool<TaskOne, TaskAll, Stats>::doPushOne(Tsk&& _task, ContextStub* _pctx)
 {
     using namespace std::chrono;
-    const auto start          = steady_clock::now();
+    const auto start          = statistic_.now();
     const auto [index, count] = pushOneIndex();
     auto& rstub               = one_.tasks_[index];
 
@@ -1275,16 +1288,14 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushOne(Tsk&& _task, ContextStub* _p
 
     rstub.task(std::forward<Tsk>(_task));
     rstub.pcontext_ = _pctx;
-    rstub.all_id_   = all_.commited_index_.load();
+    rstub.all_id_   = all_.commited_index_.load(std::memory_order_relaxed);
 
     if (_pctx) {
         _pctx->acquire();
         rstub.context_produce_id_ = _pctx->produce_id_.fetch_add(1);
     }
-    uint64_t duration;
-    rstub.notifyWhilePushOne(start, duration);
-    // const uint64_t duration = duration_cast<microseconds>(steady_clock::now() - start).count();
-    statistic_.pushOne(_pctx != nullptr, duration);
+    rstub.notifyWhilePushOne();
+    statistic_.pushOne(_pctx != nullptr, start);
 }
 //-----------------------------------------------------------------------------
 // NOTE:

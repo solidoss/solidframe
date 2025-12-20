@@ -10,11 +10,11 @@
 
 #pragma once
 
-#include <cstdlib>
-#include <utility>
-
 #include "solid/system/cassert.hpp"
 #include "solid/system/convertors.hpp"
+#include "solid/utility/common.hpp"
+#include <cstdlib>
+#include <utility>
 
 namespace solid {
 
@@ -31,7 +31,7 @@ class Queue {
     static constexpr const size_t node_size = bits_to_count(NBits);
 
     struct Node {
-        using Storage = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
+        using Storage = AlignedStorage<T>;
 
         Node(Node* _pnext = nullptr)
             : pnext_(_pnext)
@@ -190,10 +190,10 @@ private:
             if (pcurrent_node) {
                 pcurrent_node->pnext_ = new Node;
                 pcurrent_node         = pcurrent_node->pnext_;
-                return std::launder(reinterpret_cast<T*>(&pcurrent_node->data_[0]));
+                return pcurrent_node->data_[0].cast();
             } else {
                 pcurrent_node = new Node;
-                return (pfront_ = std::launder(reinterpret_cast<T*>(&pcurrent_node->data_[0])));
+                return (pfront_ = pcurrent_node->data_[0].cast());
             }
         }
     }
@@ -205,7 +205,7 @@ private:
         pcurrent_node->pnext_ = ptop_cached_nodes_;
         ptop_cached_nodes_    = pcurrent_node; // cache the node
         if (pnext_node) {
-            return std::launder(reinterpret_cast<T*>(&pnext_node->data_[0]));
+            return pnext_node->data_[0].cast();
         } else {
             solid_assert_log(!size_, generic_logger);
             pback_ = nullptr;

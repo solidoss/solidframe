@@ -34,7 +34,7 @@ namespace {
 
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
-using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT      = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 struct InitStub {
     size_t                      size;
@@ -61,7 +61,7 @@ InitStub initarray[] = {
 std::string  pattern;
 const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
-std::atomic<size_t> crtwriteidx(0);
+std::atomic<uint32_t> crtwriteidx(0);
 // std::atomic<size_t> crtreadidx(0);
 std::atomic<size_t> crtbackidx(0);
 std::atomic<size_t> crtackidx(0);
@@ -146,7 +146,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
-using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+using SendMessagePointerT = solid::frame::mprpc::SendMessagePointerT<Message>;
+using RecvMessagePointerT = solid::frame::mprpc::RecvMessagePointerT<Message>;
 
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
@@ -171,7 +172,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 }
 
-void client_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePointerT& _rmsgptr)
+void client_receive_message(frame::mprpc::ConnectionContext& _rctx, RecvMessagePointerT& _rmsgptr)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 
@@ -199,7 +200,7 @@ void client_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePoint
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -214,7 +215,7 @@ void client_complete_message(
     }
 }
 
-void server_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePointerT& _rmsgptr)
+void server_receive_message(frame::mprpc::ConnectionContext& _rctx, RecvMessagePointerT& _rmsgptr)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " message id on sender " << _rmsgptr->senderRequestId());
     if (!_rmsgptr->check()) {
@@ -226,7 +227,7 @@ void server_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePoint
     }
 
     // send message back
-    _rctx.service().sendResponse(_rctx.recipientId(), _rmsgptr);
+    _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rmsgptr));
     /*
     ++crtreadidx;
     solid_dbg(generic_logger, Info, crtreadidx);
@@ -242,7 +243,7 @@ void server_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePoint
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -364,10 +365,10 @@ int test_keepalive_success(int argc, char* argv[])
         writecount = 2;
 
         {
-            MessagePointerT msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
+            auto msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
             ++crtwriteidx;
             mprpcclient.sendMessage(
-                {"localhost"}, msgptr,
+                {"localhost"}, std::move(msgptr),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
         solid_dbg(generic_logger, Info, "before sleep");
@@ -376,10 +377,10 @@ int test_keepalive_success(int argc, char* argv[])
 
         solid_dbg(generic_logger, Info, "after sleep");
         {
-            MessagePointerT msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
+            auto msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
             ++crtwriteidx;
             mprpcclient.sendMessage(
-                {"localhost"}, msgptr,
+                {"localhost"}, std::move(msgptr),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 

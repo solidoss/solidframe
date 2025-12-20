@@ -19,6 +19,7 @@
 #include "solid/system/cassert.hpp"
 #include "solid/system/convertors.hpp"
 #include "solid/system/exception.hpp"
+#include "solid/utility/common.hpp"
 #include "solid/utility/function.hpp"
 
 namespace solid {
@@ -31,7 +32,7 @@ class DeserializerBase : public Base {
 
     typedef ReturnE (*CallbackT)(DeserializerBase&, Runnable&, void*);
 
-    using FunctionT    = solid_function_t(ReturnE(DeserializerBase&, Runnable&, void*), 64);
+    using FunctionT    = SmallFunction128T<ReturnE(DeserializerBase&, Runnable&, void*)>;
     using FunctionPtrT = std::unique_ptr<FunctionT>;
 
     struct Runnable {
@@ -73,7 +74,7 @@ class DeserializerBase : public Base {
             , size_(0)
             , data_(0)
             , name_(_name)
-            , fnc_ptr_(std::make_unique<FunctionT>(std::move(_f)))
+            , fnc_ptr_(std::make_unique<FunctionT>(std::move(_f), AcceptBigT{}))
             , limit_(0)
         {
         }
@@ -116,7 +117,7 @@ public:
 
 public:
     std::istream& run(std::istream& _ris, void* _pctx = nullptr);
-    ptrdiff_t     run(const char* _pbeg, unsigned _sz, void* _pctx = nullptr);
+    ptrdiff_t     run(const char* _pbeg, size_t _sz, void* _pctx = nullptr);
 
     void clear();
 
@@ -1028,14 +1029,14 @@ public:
     }
 
     template <typename F>
-    ptrdiff_t run(const char* _pbeg, unsigned _sz, F _f, ContextT& _rctx)
+    ptrdiff_t run(const char* _pbeg, size_t _sz, F _f, ContextT& _rctx)
     {
         doPrepareRun(_pbeg, _sz);
         _f(*this, _rctx);
         return doRun(&_rctx);
     }
 
-    ptrdiff_t run(const char* _pbeg, unsigned _sz, ContextT& _rctx)
+    ptrdiff_t run(const char* _pbeg, size_t _sz, ContextT& _rctx)
     {
         return DeserializerBase::run(_pbeg, _sz, &_rctx);
     }
@@ -1088,11 +1089,9 @@ private:
         }
     }
 
-    template <class Meta, class T /*, typename = std::enable_if_t<!std::is_base_of_v<std::istream, T>>*/>
-#if 1
+    template <class Meta, class T>
         requires(
-            !std::is_base_of_v<std::istream, T> && !std::is_floating_point_v<T> || (std::is_pointer_v<T> && (is_shared_ptr_v<T> || is_unique_ptr_v<T> || is_intrusive_ptr_v<T>)))
-#endif
+            (!std::is_base_of_v<std::istream, T> && !std::is_floating_point_v<T>) || (std::is_pointer_v<T> && (is_shared_ptr_v<T> || is_unique_ptr_v<T> || is_intrusive_ptr_v<T> || is_mutable_intrusive_ptr_v<T>)))
     void addDispatch(const Meta& _meta, T& _rt, ContextT& _rctx, const size_t _id, const char* const _name)
     {
         if constexpr (std::is_base_of_v<std::ostream, T>) {
@@ -1104,7 +1103,7 @@ private:
             addBasicCompacted(_rt.value_, _name);
         } else if constexpr (is_bitset_v<T>) {
             addBitset(_rt, _name);
-        } else if constexpr (is_shared_ptr_v<T> || is_unique_ptr_v<T> || is_intrusive_ptr_v<T>) {
+        } else if constexpr (is_shared_ptr_v<T> || is_unique_ptr_v<T> || is_intrusive_ptr_v<T> || is_mutable_intrusive_ptr_v<T>) {
             const auto* ptypemap = _meta.map();
             solid_assert(ptypemap != nullptr);
             add(type_id_, _rctx, 1, "type_id");

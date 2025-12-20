@@ -38,7 +38,7 @@ using SecureContextT = frame::aio::openssl::Context;
 
 namespace {
 
-using CallPoolT = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 struct InitStub {
     size_t                      size;
@@ -72,7 +72,7 @@ typedef std::vector<frame::mprpc::MessageId> MessageIdVectorT;
 
 std::string               pattern;
 const size_t              initarraysize = sizeof(initarray) / sizeof(InitStub);
-std::atomic<size_t>       crtwriteidx(0);
+std::atomic<uint32_t>     crtwriteidx(0);
 std::atomic<size_t>       crtbackidx(0);
 std::atomic<size_t>       crtackidx(0);
 std::atomic<size_t>       writecount(0);
@@ -162,7 +162,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
-using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+using SendMessagePointerT = solid::frame::mprpc::SendMessagePointerT<Message>;
+using RecvMessagePointerT = solid::frame::mprpc::RecvMessagePointerT<Message>;
 
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
@@ -187,7 +188,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 }
 
-void client_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePointerT& _rmsgptr)
+void client_receive_message(frame::mprpc::ConnectionContext& _rctx, RecvMessagePointerT& _rmsgptr)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 
@@ -200,13 +201,15 @@ void client_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePoint
     transfered_size += _rmsgptr->str.size();
     ++transfered_count;
 
-    if (crtbackidx == 0u) {
+    if (crtbackidx == 0u and pmprpcclient) {
         solid_dbg(generic_logger, Info, "canceling all messages");
         lock_guard<mutex> lock(mtx);
         for (const auto& msguid : message_uid_vec) {
             solid_dbg(generic_logger, Info, "Cancel message: " << msguid);
             pmprpcserver->cancelMessage(recipient_id, msguid);
         }
+    } else {
+        solid_check(pmprpcclient, "pmprpcclient should not be nullptr");
     }
 
     ++crtbackidx;
@@ -220,7 +223,7 @@ void client_receive_message(frame::mprpc::ConnectionContext& _rctx, MessagePoint
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -237,7 +240,7 @@ void client_complete_message(
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& /*_rsent_msg_ptr*/, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& /*_rsent_msg_ptr*/, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -263,7 +266,7 @@ void server_complete_message(
             frame::mprpc::MessageId msguid;
 
             ErrorConditionT err = _rctx.service().sendMessage(
-                {recipient_id}, frame::mprpc::MessagePointerT<>(frame::mprpc::make_message<Message>(crtwriteidx)),
+                {recipient_id}, frame::mprpc::make_message<Message>(crtwriteidx),
                 msguid);
 
             solid_check(!err, "Connection id should not be invalid! " << err.message());
@@ -416,7 +419,7 @@ int test_clientserver_cancel_server(int argc, char* argv[])
             // Step 1.
             auto msgptr(frame::mprpc::make_message<Message>(0));
             mprpcclient.sendMessage(
-                {"localhost"}, msgptr,
+                {"localhost"}, std::move(msgptr),
                 initarray[0].flags);
         }
 

@@ -43,7 +43,7 @@ frame::mprpc::ServiceT* pmprpc_front_server = nullptr;
 atomic<size_t>          expect_count(0);
 promise<void>           prom;
 
-using CallPoolT = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 namespace back {
 struct Request;
@@ -52,13 +52,11 @@ struct Request;
 namespace front {
 
 struct Request : frame::mprpc::Message {
-    string           name_;
-    mutable ifstream ifs_;
-    ostringstream    oss_;
+    string                name_;
+    mutable ifstream      ifs_;
+    mutable ostringstream oss_;
 
-    Request()
-    {
-    }
+    Request() = default;
 
     Request(const string& _name)
         : name_(_name)
@@ -93,13 +91,11 @@ struct Request : frame::mprpc::Message {
 };
 
 struct Response : frame::mprpc::Message {
-    uint32_t                                     error_ = -1;
-    frame::mprpc::RecipientId                    recipient_id_;
-    frame::mprpc::MessagePointerT<back::Request> req_ptr_;
+    uint32_t                                                 error_ = -1;
+    frame::mprpc::RecipientId                                recipient_id_;
+    mutable frame::mprpc::RecvMessagePointerT<back::Request> req_ptr_;
 
-    Response()
-    {
-    }
+    Response() = default;
 
     Response(Request& _req)
         : frame::mprpc::Message(_req)
@@ -116,19 +112,21 @@ struct Response : frame::mprpc::Message {
     }
 };
 
-using RequestPointerT  = solid::frame::mprpc::MessagePointerT<Request>;
-using ResponsePointerT = solid::frame::mprpc::MessagePointerT<Response>;
+using SendRequestPointerT  = solid::frame::mprpc::SendMessagePointerT<Request>;
+using RecvRequestPointerT  = solid::frame::mprpc::RecvMessagePointerT<Request>;
+using SendResponsePointerT = solid::frame::mprpc::SendMessagePointerT<Response>;
+using RecvResponsePointerT = solid::frame::mprpc::RecvMessagePointerT<Response>;
 
 void on_server_receive_first_request(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT&                 _rsent_msg_ptr,
-    RequestPointerT&                 _rrecv_msg_ptr,
+    SendRequestPointerT&             _rsent_msg_ptr,
+    RecvRequestPointerT&             _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror);
 
 void on_server_response(
     frame::mprpc::ConnectionContext& _rctx,
-    ResponsePointerT&                _rsent_msg_ptr,
-    ResponsePointerT&                _rrecv_msg_ptr,
+    SendResponsePointerT&            _rsent_msg_ptr,
+    RecvResponsePointerT&            _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "front: on message");
@@ -136,8 +134,8 @@ void on_server_response(
 
 void on_client_request(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT&                 _rsent_msg_ptr,
-    RequestPointerT&                 _rrecv_msg_ptr,
+    SendRequestPointerT&             _rsent_msg_ptr,
+    RecvRequestPointerT&             _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "front: on message");
@@ -145,8 +143,8 @@ void on_client_request(
 
 void on_client_response(
     frame::mprpc::ConnectionContext& _rctx,
-    ResponsePointerT&                _rsent_msg_ptr,
-    ResponsePointerT&                _rrecv_msg_ptr,
+    SendResponsePointerT&            _rsent_msg_ptr,
+    RecvResponsePointerT&            _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "front: on message");
@@ -154,8 +152,8 @@ void on_client_response(
 
 void on_client_receive_first_response(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT&                 _rsent_msg_ptr,
-    ResponsePointerT&                _rrecv_msg_ptr,
+    SendRequestPointerT&             _rsent_msg_ptr,
+    RecvResponsePointerT&            _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror);
 
 } // namespace front
@@ -163,16 +161,14 @@ void on_client_receive_first_response(
 namespace back {
 
 struct Request : frame::mprpc::Message {
-    string                                         name_;
-    mutable istringstream                          iss_;
-    ofstream                                       ofs_;
-    ostringstream                                  oss_;
-    frame::mprpc::RecipientId                      recipient_id_;
-    frame::mprpc::MessagePointerT<front::Response> res_ptr_;
+    string                              name_;
+    mutable istringstream               iss_;
+    ofstream                            ofs_;
+    ostringstream                       oss_;
+    frame::mprpc::RecipientId           recipient_id_;
+    mutable front::RecvResponsePointerT res_ptr_;
 
-    Request()
-    {
-    }
+    Request() = default;
 
     Request(const string& _name)
         : name_(_name)
@@ -206,23 +202,22 @@ struct Request : frame::mprpc::Message {
     }
 };
 
-using RequestPointerT = solid::frame::mprpc::MessagePointerT<Request>;
+using SendRequestPointerT = solid::frame::mprpc::SendMessagePointerT<Request>;
+using RecvRequestPointerT = solid::frame::mprpc::RecvMessagePointerT<Request>;
 
 struct Response : frame::mprpc::Message {
-    uint32_t        error_ = -1;
-    RequestPointerT req_ptr_;
-    bool            send_response_ = false;
+    uint32_t            error_ = -1;
+    RecvRequestPointerT req_ptr_;
+    mutable bool        send_response_ = false;
 
-    Response()
-    {
-    }
+    Response() = default;
 
     Response(Request& _req)
         : frame::mprpc::Message(_req)
     {
     }
 
-    Response(RequestPointerT&& _req_ptr)
+    Response(RecvRequestPointerT&& _req_ptr)
         : frame::mprpc::Message(*_req_ptr)
         , req_ptr_(std::move(_req_ptr))
 
@@ -240,18 +235,19 @@ struct Response : frame::mprpc::Message {
     }
 };
 
-using ResponsePointerT = solid::frame::mprpc::MessagePointerT<Response>;
+using SendResponsePointerT = solid::frame::mprpc::SendMessagePointerT<Response>;
+using RecvResponsePointerT = solid::frame::mprpc::RecvMessagePointerT<Response>;
 
 void on_server_receive_first_request(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT&                 _rsent_msg_ptr,
-    RequestPointerT&                 _rrecv_msg_ptr,
+    SendRequestPointerT&             _rsent_msg_ptr,
+    RecvRequestPointerT&             _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror);
 
 void on_server_response(
     frame::mprpc::ConnectionContext& _rctx,
-    ResponsePointerT&                _rsent_msg_ptr,
-    ResponsePointerT&                _rrecv_msg_ptr,
+    SendResponsePointerT&            _rsent_msg_ptr,
+    RecvResponsePointerT&            _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "back: on message");
@@ -259,8 +255,8 @@ void on_server_response(
 
 void on_client_request(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT&                 _rsent_msg_ptr,
-    RequestPointerT&                 _rrecv_msg_ptr,
+    SendRequestPointerT&             _rsent_msg_ptr,
+    RecvRequestPointerT&             _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "back: on message");
@@ -268,8 +264,8 @@ void on_client_request(
 
 void on_client_response(
     frame::mprpc::ConnectionContext& _rctx,
-    ResponsePointerT&                _rsent_msg_ptr,
-    ResponsePointerT&                _rrecv_msg_ptr,
+    SendResponsePointerT&            _rsent_msg_ptr,
+    RecvResponsePointerT&            _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "back: on message");
@@ -518,7 +514,7 @@ int test_clientfrontback_upload(int argc, char* argv[])
             auto msg_ptr = frame::mprpc::make_message<front::Request>(f);
             msg_ptr->ifs_.open(string("client_storage/") + f);
 
-            mprpc_front_client.sendRequest({"localhost"}, msg_ptr, front::on_client_receive_first_response);
+            mprpc_front_client.sendRequest({"localhost"}, std::move(msg_ptr), front::on_client_receive_first_response);
         }
 
         auto fut = prom.get_future();
@@ -628,16 +624,16 @@ void check_files(const vector<string>& _file_vec, const char* _path_prefix_clien
 namespace back {
 
 void on_client_receive_response(
-    frame::mprpc::ConnectionContext&               _rctx,
-    frame::mprpc::MessagePointerT<back::Request>&  _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<back::Response>& _rrecv_msg_ptr,
-    ErrorConditionT const&                         _rerror);
+    frame::mprpc::ConnectionContext&                   _rctx,
+    frame::mprpc::SendMessagePointerT<back::Request>&  _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<back::Response>& _rrecv_msg_ptr,
+    ErrorConditionT const&                             _rerror);
 
 void on_client_receive_first_response(
-    frame::mprpc::ConnectionContext&               _rctx,
-    frame::mprpc::MessagePointerT<back::Request>&  _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<back::Response>& _rrecv_msg_ptr,
-    ErrorConditionT const&                         _rerror);
+    frame::mprpc::ConnectionContext&                   _rctx,
+    frame::mprpc::SendMessagePointerT<back::Request>&  _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<back::Response>& _rrecv_msg_ptr,
+    ErrorConditionT const&                             _rerror);
 } // namespace back
 
 namespace front {
@@ -648,8 +644,8 @@ namespace front {
 
 void on_client_receive_last_response(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT&                 _rsent_msg_ptr,
-    ResponsePointerT&                _rrecv_msg_ptr,
+    SendRequestPointerT&             _rsent_msg_ptr,
+    RecvResponsePointerT&            _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_check(_rrecv_msg_ptr);
@@ -662,8 +658,8 @@ void on_client_receive_last_response(
 
 void on_client_receive_response(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT&                 _rsent_msg_ptr,
-    ResponsePointerT&                _rrecv_msg_ptr,
+    SendRequestPointerT&             _rsent_msg_ptr,
+    RecvResponsePointerT&            _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_check(_rrecv_msg_ptr);
@@ -675,33 +671,40 @@ void on_client_receive_response(
         frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::ResponsePart, frame::mprpc::MessageFlagsE::AwaitResponse};
         _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, on_client_receive_response, flags);
         flags.reset(frame::mprpc::MessageFlagsE::AwaitResponse);
-        _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, flags);
+        _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rsent_msg_ptr), flags);
     } else {
         solid_log(logger, Verbose, "front: sending " << _rsent_msg_ptr->name_ << " to " << _rctx.recipientId() << " last");
         frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::ResponseLast, frame::mprpc::MessageFlagsE::AwaitResponse};
-        _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, on_client_receive_last_response, flags);
+        _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rsent_msg_ptr), on_client_receive_last_response, flags);
     }
 }
 
 void on_client_receive_first_response(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT&                 _rsent_msg_ptr,
-    ResponsePointerT&                _rrecv_msg_ptr,
+    SendRequestPointerT&             _rsent_msg_ptr,
+    RecvResponsePointerT&            _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     solid_check(_rrecv_msg_ptr);
 
     solid_check(_rrecv_msg_ptr->error_ == 0);
 
-    _rsent_msg_ptr->name_.clear();
-    _rsent_msg_ptr->header(_rrecv_msg_ptr->header());
+    {
+        auto sent_msg_ptr = _rsent_msg_ptr.collapse();
+        solid_check(sent_msg_ptr);
+        solid_check(!_rsent_msg_ptr);
+        sent_msg_ptr->name_.clear();
+        sent_msg_ptr->header(_rrecv_msg_ptr->header());
+
+        _rsent_msg_ptr = std::move(sent_msg_ptr);
+    }
 
     if (!_rsent_msg_ptr->ifs_.eof()) {
         solid_log(logger, Verbose, "front: sending " << _rsent_msg_ptr->name_ << " to " << _rctx.recipientId());
         frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::ResponsePart, frame::mprpc::MessageFlagsE::AwaitResponse};
         _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, on_client_receive_response, flags);
         flags.reset(frame::mprpc::MessageFlagsE::AwaitResponse);
-        _rctx.service().sendMessage(_rctx.recipientId(), _rsent_msg_ptr, flags);
+        _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rsent_msg_ptr), flags);
     } else {
         solid_log(logger, Verbose, "front: sending " << _rsent_msg_ptr->name_ << " to " << _rctx.recipientId() << " last");
         frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::ResponseLast, frame::mprpc::MessageFlagsE::AwaitResponse};
@@ -714,15 +717,15 @@ void on_client_receive_first_response(
 //-----------------------------------------------------------------------------
 
 void on_server_receive_request(
-    frame::mprpc::ConnectionContext&                _rctx,
-    frame::mprpc::MessagePointerT<front::Response>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<front::Request>&  _rrecv_msg_ptr,
-    ErrorConditionT const&                          _rerror)
+    frame::mprpc::ConnectionContext& _rctx,
+    front::SendResponsePointerT&     _rsent_msg_ptr,
+    front::RecvRequestPointerT&      _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "front: received request for: " << _rsent_msg_ptr->req_ptr_->name_);
 
     if (!_rrecv_msg_ptr->isResponseLast()) {
-        frame::mprpc::MessagePointerT<back::Request> req_ptr = frame::mprpc::make_message<back::Request>();
+        auto req_ptr = frame::mprpc::make_message<back::Request>();
         req_ptr->header(_rsent_msg_ptr->req_ptr_->header());
         req_ptr->iss_.str(_rrecv_msg_ptr->oss_.str());
 
@@ -731,32 +734,32 @@ void on_server_receive_request(
             req_ptr->recipient_id_ = _rctx.recipientId();
             req_ptr->res_ptr_      = std::move(_rsent_msg_ptr->req_ptr_->res_ptr_);
             req_ptr->res_ptr_->header(_rrecv_msg_ptr->header());
-            pmprpc_back_client->sendMessage(_rsent_msg_ptr->recipient_id_, req_ptr, back::on_client_receive_response, flags);
+            pmprpc_back_client->sendMessage(_rsent_msg_ptr->recipient_id_, std::move(req_ptr), back::on_client_receive_response, flags);
             solid_log(logger, Verbose, "front: forward request with wait response");
         } else {
             frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::ResponsePart};
-            pmprpc_back_client->sendMessage(_rsent_msg_ptr->recipient_id_, req_ptr, flags);
+            pmprpc_back_client->sendMessage(_rsent_msg_ptr->recipient_id_, std::move(req_ptr), flags);
             _rsent_msg_ptr->req_ptr_->res_ptr_ = frame::mprpc::make_message<front::Response>();
             solid_log(logger, Verbose, "front: forward request without wait response");
         }
     } else {
         solid_check(_rsent_msg_ptr->req_ptr_->res_ptr_);
 
-        frame::mprpc::MessageFlagsT                  flags{frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::ResponseLast};
-        frame::mprpc::MessagePointerT<back::Request> req_ptr = std::move(_rsent_msg_ptr->req_ptr_);
+        frame::mprpc::MessageFlagsT                      flags{frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::ResponseLast};
+        frame::mprpc::RecvMessagePointerT<back::Request> req_ptr = std::move(_rsent_msg_ptr->req_ptr_);
         req_ptr->res_ptr_->header(_rrecv_msg_ptr->header());
         req_ptr->recipient_id_ = _rctx.recipientId();
-        pmprpc_back_client->sendMessage(_rsent_msg_ptr->recipient_id_, req_ptr, back::on_client_receive_response, flags);
+        pmprpc_back_client->sendMessage(_rsent_msg_ptr->recipient_id_, std::move(req_ptr), back::on_client_receive_response, flags);
         solid_log(logger, Verbose, "front: forward last request with wait response");
     }
 }
 
 // front server upload entry point - called only once at the begining of every file upload
 void on_server_receive_first_request(
-    frame::mprpc::ConnectionContext&               _rctx,
-    frame::mprpc::MessagePointerT<front::Request>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<front::Request>& _rrecv_msg_ptr,
-    ErrorConditionT const&                         _rerror)
+    frame::mprpc::ConnectionContext& _rctx,
+    front::SendRequestPointerT&      _rsent_msg_ptr,
+    front::RecvRequestPointerT&      _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror)
 {
     solid_check(_rrecv_msg_ptr);
 
@@ -770,7 +773,7 @@ void on_server_receive_first_request(
     req_ptr->recipient_id_ = _rctx.recipientId();
     req_ptr->res_ptr_      = frame::mprpc::make_message<front::Response>(*_rrecv_msg_ptr);
 
-    pmprpc_back_client->sendRequest({"localhost"}, req_ptr, back::on_client_receive_first_response, flags);
+    pmprpc_back_client->sendRequest({"localhost"}, std::move(req_ptr), back::on_client_receive_first_response, flags);
 }
 
 } // namespace front
@@ -778,40 +781,44 @@ void on_server_receive_first_request(
 namespace back {
 
 void on_client_receive_first_response(
-    frame::mprpc::ConnectionContext&               _rctx,
-    frame::mprpc::MessagePointerT<back::Request>&  _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<back::Response>& _rrecv_msg_ptr,
-    ErrorConditionT const&                         _rerror)
+    frame::mprpc::ConnectionContext& _rctx,
+    SendRequestPointerT&             _rsent_msg_ptr,
+    RecvResponsePointerT&            _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "back: received response on back client for: " << _rsent_msg_ptr->name_);
-    frame::mprpc::MessagePointerT<front::Response> res_ptr = std::move(_rsent_msg_ptr->res_ptr_);
-    frame::mprpc::MessageFlagsT                    flags{frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::Response};
+    frame::mprpc::RecvMessagePointerT<front::Response> res_ptr = std::move(_rsent_msg_ptr->res_ptr_);
+    frame::mprpc::MessageFlagsT                        flags{frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::Response};
     _rsent_msg_ptr->res_ptr_ = frame::mprpc::make_message<front::Response>();
     res_ptr->error_          = _rrecv_msg_ptr->error_;
     res_ptr->recipient_id_   = _rctx.recipientId();
-    res_ptr->req_ptr_        = std::move(_rsent_msg_ptr);
+    res_ptr->req_ptr_        = _rsent_msg_ptr.collapse();
+    solid_check(!_rsent_msg_ptr);
+    solid_check(res_ptr->req_ptr_);
     res_ptr->req_ptr_->header(_rrecv_msg_ptr->header());
 
     // forward the message to front client
-    pmprpc_front_server->sendMessage(res_ptr->req_ptr_->recipient_id_, res_ptr, front::on_server_receive_request, flags);
+    pmprpc_front_server->sendMessage(res_ptr->req_ptr_->recipient_id_, std::move(res_ptr), front::on_server_receive_request, flags);
 }
 
 void on_client_receive_response(
-    frame::mprpc::ConnectionContext&               _rctx,
-    frame::mprpc::MessagePointerT<back::Request>&  _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<back::Response>& _rrecv_msg_ptr,
-    ErrorConditionT const&                         _rerror)
+    frame::mprpc::ConnectionContext& _rctx,
+    SendRequestPointerT&             _rsent_msg_ptr,
+    RecvResponsePointerT&            _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror)
 {
     solid_log(logger, Verbose, "back: received response on back client for: " << _rsent_msg_ptr->name_);
-    frame::mprpc::MessagePointerT<front::Response> res_ptr = std::move(_rsent_msg_ptr->res_ptr_);
-    frame::mprpc::MessageFlagsT                    flags{frame::mprpc::MessageFlagsE::Response};
+    frame::mprpc::RecvMessagePointerT<front::Response> res_ptr = std::move(_rsent_msg_ptr->res_ptr_);
+    frame::mprpc::MessageFlagsT                        flags{frame::mprpc::MessageFlagsE::Response};
     res_ptr->error_        = _rrecv_msg_ptr->error_;
     res_ptr->recipient_id_ = _rctx.recipientId();
-    res_ptr->req_ptr_      = std::move(_rsent_msg_ptr);
+    res_ptr->req_ptr_      = _rsent_msg_ptr.collapse();
+    solid_check(!_rsent_msg_ptr);
+    solid_check(res_ptr->req_ptr_);
     res_ptr->req_ptr_->header(_rrecv_msg_ptr->header());
 
     // forward the message to front client
-    pmprpc_front_server->sendMessage(res_ptr->req_ptr_->recipient_id_, res_ptr, flags);
+    pmprpc_front_server->sendMessage(res_ptr->req_ptr_->recipient_id_, std::move(res_ptr), flags);
 }
 
 //-----------------------------------------------------------------------------
@@ -819,8 +826,8 @@ void on_client_receive_response(
 //-----------------------------------------------------------------------------
 void on_server_receive_request(
     frame::mprpc::ConnectionContext& _rctx,
-    ResponsePointerT&                _rsent_msg_ptr,
-    RequestPointerT&                 _rrecv_msg_ptr,
+    SendResponsePointerT&            _rsent_msg_ptr,
+    RecvRequestPointerT&             _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     // the server will keep receiving new Requests
@@ -836,7 +843,7 @@ void on_server_receive_request(
             _rsent_msg_ptr->send_response_ = false;
             auto res_ptr                   = frame::mprpc::make_message<Response>(*_rrecv_msg_ptr);
             res_ptr->error_                = 0;
-            auto err                       = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, {frame::mprpc::MessageFlagsE::Response});
+            auto err                       = _rctx.service().sendMessage(_rctx.recipientId(), std::move(res_ptr), {frame::mprpc::MessageFlagsE::Response});
             solid_log(logger, Verbose, "back: send response to: " << _rctx.recipientId() << " err: " << err.message());
         } else {
             _rsent_msg_ptr->send_response_ = true;
@@ -845,15 +852,15 @@ void on_server_receive_request(
         _rsent_msg_ptr->req_ptr_->ofs_.flush();
         auto res_ptr    = frame::mprpc::make_message<Response>(*_rrecv_msg_ptr);
         res_ptr->error_ = 0;
-        auto err        = _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, {frame::mprpc::MessageFlagsE::Response});
+        auto err        = _rctx.service().sendMessage(_rctx.recipientId(), std::move(res_ptr), {frame::mprpc::MessageFlagsE::Response});
         solid_log(logger, Verbose, "back: send last response to: " << _rctx.recipientId() << " err: " << err.message());
     }
 }
 
 void on_server_receive_first_request(
     frame::mprpc::ConnectionContext& _rctx,
-    RequestPointerT&                 _rsent_msg_ptr,
-    RequestPointerT&                 _rrecv_msg_ptr,
+    SendRequestPointerT&             _rsent_msg_ptr,
+    RecvRequestPointerT&             _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
     string path = string("server_storage") + '/' + _rrecv_msg_ptr->name_;
@@ -865,7 +872,7 @@ void on_server_receive_first_request(
     auto res_ptr    = frame::mprpc::make_message<Response>(std::move(_rrecv_msg_ptr));
     res_ptr->error_ = 0;
     const frame::mprpc::MessageFlagsT flags{frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::Response};
-    _rctx.service().sendMessage(_rctx.recipientId(), res_ptr, on_server_receive_request, flags);
+    _rctx.service().sendMessage(_rctx.recipientId(), std::move(res_ptr), on_server_receive_request, flags);
 }
 
 } // namespace back

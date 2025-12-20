@@ -17,7 +17,7 @@ using namespace solid;
 using namespace std;
 
 using AioSchedulerT = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
-using CallPoolT     = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT     = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 //-----------------------------------------------------------------------------
 //      Parameters
@@ -36,10 +36,10 @@ namespace rpc_echo_client {
 
 template <class M>
 void complete_message(
-    frame::mprpc::ConnectionContext&  _rctx,
-    frame::mprpc::MessagePointerT<M>& _rsent_msg_ptr,
-    frame::mprpc::MessagePointerT<M>& _rrecv_msg_ptr,
-    ErrorConditionT const&            _rerror)
+    frame::mprpc::ConnectionContext&      _rctx,
+    frame::mprpc::SendMessagePointerT<M>& _rsent_msg_ptr,
+    frame::mprpc::RecvMessagePointerT<M>& _rrecv_msg_ptr,
+    ErrorConditionT const&                _rerror)
 {
     if (_rerror) {
         cout << "Error sending message to " << _rctx.recipientName() << ". Error: " << _rerror.message() << endl;
@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
-                    auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const& _rtype) {
+                    auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const&) {
                         _rmap.template registerMessage<T>(_id, _name, rpc_echo_client::complete_message<T>);
                     };
                     rpc_echo::configure_protocol(lambda);

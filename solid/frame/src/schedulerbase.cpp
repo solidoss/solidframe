@@ -185,15 +185,15 @@ void SchedulerBase::doStart(
 
         pimpl_->reactor_vec_.resize(_reactorcnt);
 
-        if (!solid_function_empty(_renter_fnc)) {
-            solid_function_clear(pimpl_->thread_enter_fnc_);
+        if (_renter_fnc) {
+            pimpl_->thread_enter_fnc_ = nullptr;
             std::swap(pimpl_->thread_enter_fnc_, _renter_fnc);
         } else {
             pimpl_->thread_enter_fnc_ = &dummy_thread_enter;
         }
 
-        if (!solid_function_empty(_rexit_fnc)) {
-            solid_function_clear(pimpl_->thread_exit_fnc_);
+        if (_rexit_fnc) {
+            pimpl_->thread_exit_fnc_ = nullptr;
             std::swap(pimpl_->thread_exit_fnc_, _rexit_fnc);
         } else {
             pimpl_->thread_exit_fnc_ = &dummy_thread_exit;

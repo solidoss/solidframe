@@ -56,6 +56,7 @@ if(OPENSSL_FOUND)
 
     set( mprpcClientServerTestSuite
         test_clientserver_basic.cpp
+        test_clientserver_pool.cpp
         test_clientserver_versioning.cpp
         test_clientserver_sendrequest.cpp
         test_clientserver_cancel_server.cpp
@@ -127,6 +128,8 @@ if(OPENSSL_FOUND)
     add_test(NAME TestClientServerBasic_4B               COMMAND  test_mprpc_clientserver test_clientserver_basic 4 b)
     add_test(NAME TestClientServerBasic_8B               COMMAND  test_mprpc_clientserver test_clientserver_basic 8 b)
     add_test(NAME TestClientServerBasic_8BC              COMMAND  test_mprpc_clientserver test_clientserver_basic 8 b c)
+
+    add_test(NAME TestClientServerPool_8                 COMMAND  test_mprpc_clientserver test_clientserver_pool 8)
 
     add_test(NAME TestClientServerVersioning            COMMAND  test_mprpc_clientserver test_clientserver_versioning)
 
@@ -205,7 +208,6 @@ if(OPENSSL_FOUND)
         PROPERTIES LABELS "mprpc clientserver"
     )
     #==============================================================================
-
     set( mprpcKeepAliveTestSuite
         test_keepalive_fail.cpp
         test_keepalive_success.cpp
@@ -270,7 +272,6 @@ if(OPENSSL_FOUND)
     )
 
     #==============================================================================
-
     set( mprpcPoolTestSuite
         test_pool_basic.cpp
         test_pool_force_close.cpp
@@ -317,7 +318,7 @@ if(OPENSSL_FOUND)
     )
 
     #==============================================================================
-
+    
     add_subdirectory(multiprotocol_basic)
 
     set( mprpcMultiProtocolTestSuite
@@ -501,5 +502,4 @@ if(OPENSSL_FOUND)
         PROPERTIES LABELS "mprpc clientfrontback"
     )
     #==============================================================================
-    
 endif(OPENSSL_FOUND)

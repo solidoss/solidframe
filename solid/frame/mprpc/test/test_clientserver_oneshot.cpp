@@ -32,7 +32,7 @@ namespace {
 
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
-using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT      = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 struct InitStub {
     size_t size;
@@ -46,10 +46,7 @@ std::string  pattern;
 const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
 std::atomic<size_t> crtwriteidx(0);
-// std::atomic<size_t> crtreadidx(0);
-// std::atomic<size_t> crtbackidx(0);
 std::atomic<size_t> crtackidx(0);
-// std::atomic<size_t> writecount(0);
 
 size_t connection_count(0);
 
@@ -136,7 +133,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
-using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+using SendMessagePointerT = solid::frame::mprpc::SendMessagePointerT<Message>;
+using RecvMessagePointerT = solid::frame::mprpc::RecvMessagePointerT<Message>;
 
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
@@ -155,7 +153,7 @@ void client_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " " << _rerror.message());
@@ -270,10 +268,8 @@ int test_clientserver_oneshot(int argc, char* argv[])
         frame::mprpc::RecipientId recipient_id;
         frame::mprpc::MessageId   message_id;
         {
-            MessagePointerT msgptr(frame::mprpc::make_message<Message>(0));
-
             err = mprpcclient.sendMessage(
-                {"localhost"}, msgptr,
+                {"localhost"}, frame::mprpc::make_message<Message>(0),
                 recipient_id, message_id,
                 {frame::mprpc::MessageFlagsE::AwaitResponse, frame::mprpc::MessageFlagsE::OneShotSend});
             solid_check(!err, "" << err.message());

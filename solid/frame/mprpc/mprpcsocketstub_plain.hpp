@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "solid/frame/mprpc/mprpcconfiguration.hpp"
 #include "solid/system/socketdevice.hpp"
 
 #include "solid/utility/event.hpp"
@@ -18,10 +19,7 @@
 #include "solid/frame/aio/aiostream.hpp"
 #include "solid/frame/mprpc/mprpcsocketstub.hpp"
 
-namespace solid {
-namespace frame {
-namespace mprpc {
-namespace plain {
+namespace solid::frame::mprpc::plain {
 
 class SocketStub final : public mprpc::SocketStub {
 public:
@@ -69,8 +67,6 @@ private:
 
         } lambda(_pf, _revent);
 
-        // TODO: find solution for costly event copy
-
         return sock.postSendAll(_rctx, _pbuf, _bufcp, lambda);
     }
 
@@ -100,8 +96,6 @@ private:
 
         } lambda(_pf, _revent);
 
-        // TODO: find solution for costly event copy
-
         return sock.postRecvSome(_rctx, _pbuf, _bufcp, lambda);
     }
 
@@ -128,7 +122,7 @@ private:
     }
 
     bool sendAll(
-        frame::aio::ReactorContext& _rctx, OnSendF _pf, char* _buf, size_t _bufcp) override final
+        frame::aio::ReactorContext& _rctx, OnSendF _pf, char const* _buf, size_t _bufcp) override final
     {
         return sock.sendAll(_rctx, _buf, _bufcp, _pf);
     }
@@ -151,7 +145,11 @@ private:
 
 inline SocketStubPtrT create_client_socket(Configuration const& /*_rcfg*/, frame::aio::ActorProxy const& _rproxy, char* _emplace_buf)
 {
-    if (sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)) {
+#ifdef SOLID_HAS_ASSERT
+    static_assert(sizeof(SocketStub) <= socket_emplace_size);
+    static_assert(alignof(SocketStub) <= socket_emplace_align);
+#endif
+    if constexpr (sizeof(SocketStub) > socket_emplace_size and alignof(SocketStub) > socket_emplace_align) {
         return SocketStubPtrT(new SocketStub(_rproxy), SocketStub::delete_deleter);
     } else {
         return SocketStubPtrT(new (_emplace_buf) SocketStub(_rproxy), SocketStub::emplace_deleter);
@@ -160,15 +158,15 @@ inline SocketStubPtrT create_client_socket(Configuration const& /*_rcfg*/, frame
 
 inline SocketStubPtrT create_server_socket(Configuration const& /*_rcfg*/, frame::aio::ActorProxy const& _rproxy, SocketDevice&& _usd, char* _emplace_buf)
 {
-
-    if (sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)) {
+#ifdef SOLID_HAS_ASSERT
+    static_assert(sizeof(SocketStub) <= socket_emplace_size);
+    static_assert(alignof(SocketStub) <= socket_emplace_align);
+#endif
+    if constexpr (sizeof(SocketStub) > socket_emplace_size and alignof(SocketStub) > socket_emplace_align) {
         return SocketStubPtrT(new SocketStub(_rproxy, std::move(_usd)), SocketStub::delete_deleter);
     } else {
         return SocketStubPtrT(new (_emplace_buf) SocketStub(_rproxy, std::move(_usd)), SocketStub::emplace_deleter);
     }
 }
 
-} // namespace plain
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc::plain

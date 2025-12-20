@@ -19,7 +19,7 @@ namespace solid {
 namespace frame {
 namespace mprpc {
 
-struct ConnectionContext;
+class ConnectionContext;
 
 class SocketStub {
 public:
@@ -73,7 +73,7 @@ public:
     virtual bool hasPendingSend() const = 0;
 
     virtual bool sendAll(
-        frame::aio::ReactorContext& _rctx, OnSendF _pf, char* _buf, size_t _bufcp)
+        frame::aio::ReactorContext& _rctx, OnSendF _pf, char const* _buf, size_t _bufcp)
         = 0;
 
     virtual void prepareSocket(

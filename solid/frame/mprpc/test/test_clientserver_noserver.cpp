@@ -33,7 +33,7 @@ using SecureContextT = frame::aio::openssl::Context;
 
 namespace {
 
-using CallPoolT = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 struct InitStub {
     size_t size;
@@ -137,7 +137,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
-using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+using SendMessagePointerT = solid::frame::mprpc::SendMessagePointerT<Message>;
+using RecvMessagePointerT = solid::frame::mprpc::RecvMessagePointerT<Message>;
 
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
@@ -154,7 +155,7 @@ void client_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -268,10 +269,8 @@ int test_clientserver_noserver(int argc, char* argv[])
         frame::mprpc::RecipientId recipient_id;
         frame::mprpc::MessageId   message_id;
         {
-            MessagePointerT msgptr(frame::mprpc::make_message<Message>(0));
-
             err = mprpcclient.sendMessage(
-                {"localhost"}, msgptr,
+                {"localhost"}, frame::mprpc::make_message<Message>(0),
                 recipient_id, message_id,
                 {frame::mprpc::MessageFlagsE::AwaitResponse});
             solid_check(!err);

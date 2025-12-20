@@ -37,7 +37,7 @@ class SerializerBase : public Base {
 
     typedef ReturnE (*CallbackT)(SerializerBase&, Runnable&, void*);
 
-    using FunctionT    = solid_function_t(ReturnE(SerializerBase&, Runnable&, void*), 64);
+    using FunctionT    = SmallFunction128T<ReturnE(SerializerBase&, Runnable&, void*)>;
     using FunctionPtrT = std::unique_ptr<FunctionT>;
 
     struct Runnable {
@@ -101,7 +101,7 @@ public:
     static constexpr bool is_const_reflector = true;
 
     std::ostream& run(std::ostream& _ros, void* _pctx = nullptr);
-    ptrdiff_t     run(char* _pbeg, unsigned _sz, void* _pctx = nullptr);
+    ptrdiff_t     run(char* _pbeg, size_t _sz, void* _pctx = nullptr);
 
     void clear();
 
@@ -545,7 +545,7 @@ public: // should be protected
     }
 
 protected:
-    void doPrepareRun(char* _pbeg, unsigned _sz)
+    void doPrepareRun(char* _pbeg, size_t const _sz)
     {
         pbeg_ = _pbeg;
         pend_ = _pbeg + _sz;
@@ -913,7 +913,7 @@ private:
 
     template <class Meta, class T>
         requires(
-            !std::is_base_of_v<std::ostream, T> && !std::is_floating_point_v<T> || (std::is_pointer_v<T> && (is_shared_ptr_v<T> || is_unique_ptr_v<T> || is_intrusive_ptr_v<T>)))
+            (!std::is_base_of_v<std::ostream, T> && !std::is_floating_point_v<T>) || (std::is_pointer_v<T> && (is_shared_ptr_v<T> || is_unique_ptr_v<T> || is_intrusive_ptr_v<T> || is_const_intrusive_ptr_v<T>)))
     void addDispatch(const Meta& _meta, const T& _rt, ContextT& _rctx, const size_t _id, const char* const _name)
     {
 
@@ -927,7 +927,7 @@ private:
             addBasicCompacted(_rt.value_, _name);
         } else if constexpr (is_bitset_v<T>) {
             addBitset(_rt, _name);
-        } else if constexpr (is_shared_ptr_v<T> || is_unique_ptr_v<T> || is_intrusive_ptr_v<T>) {
+        } else if constexpr (is_shared_ptr_v<T> || is_unique_ptr_v<T> || is_intrusive_ptr_v<T> || is_const_intrusive_ptr_v<T>) {
             const auto* ptypemap = _meta.map();
             solid_assert(ptypemap != nullptr);
             const auto index_tuple = ptypemap->id(_rt.get());

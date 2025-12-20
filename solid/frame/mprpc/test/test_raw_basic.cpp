@@ -30,7 +30,7 @@ using namespace solid;
 namespace {
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
-using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT      = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 struct InitStub {
     size_t                      size;
@@ -57,11 +57,11 @@ InitStub initarray[] = {
 std::string  pattern;
 const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
-std::atomic<size_t> crtwriteidx(0);
-std::atomic<size_t> crtreadidx(0);
-std::atomic<size_t> crtbackidx(0);
-std::atomic<size_t> crtackidx(0);
-std::atomic<size_t> writecount(0);
+std::atomic<uint32_t> crtwriteidx(0);
+std::atomic<size_t>   crtreadidx(0);
+std::atomic<size_t>   crtbackidx(0);
+std::atomic<size_t>   crtackidx(0);
+std::atomic<size_t>   writecount(0);
 
 size_t connection_count(0);
 
@@ -155,7 +155,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
-using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+using SendMessagePointerT = solid::frame::mprpc::SendMessagePointerT<Message>;
+using RecvMessagePointerT = solid::frame::mprpc::RecvMessagePointerT<Message>;
 
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
@@ -249,7 +250,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -284,7 +285,7 @@ void client_complete_message(
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr) {
@@ -425,10 +426,10 @@ int test_raw_basic(int argc, char* argv[])
         writecount = 10; // initarraysize * 10;//start_count;//
 
         for (; crtwriteidx < start_count;) {
-            MessagePointerT msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
+            auto msgptr(frame::mprpc::make_message<Message>(crtwriteidx));
             ++crtwriteidx;
             mprpcclient.sendMessage(
-                {"localhost"}, msgptr,
+                {"localhost"}, std::move(msgptr),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 

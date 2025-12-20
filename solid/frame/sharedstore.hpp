@@ -545,7 +545,7 @@ public:
     }
 
 private:
-    typedef solid_function_t(void(ControllerT&, PointerT&, ErrorCodeT const&)) FunctionT;
+    using FunctionT = Function<void(ControllerT&, PointerT&, ErrorCodeT const&)>;
 
     struct WaitStub {
         WaitStub()

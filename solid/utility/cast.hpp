@@ -9,7 +9,6 @@
 //
 #pragma once
 
-#include "solid/utility/innerlist.hpp"
 #include <memory>
 
 namespace solid {

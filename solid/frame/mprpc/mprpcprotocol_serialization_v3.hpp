@@ -20,10 +20,7 @@
 #include "solid/serialization/v3/serialization.hpp"
 #include "solid/system/error.hpp"
 
-namespace solid {
-namespace frame {
-namespace mprpc {
-namespace serialization_v3 {
+namespace solid::frame::mprpc::serialization_v3 {
 
 template <class MetadataVariant, class MetadataFactory, typename TypeId>
 using SerializerTT = serialization::v3::binary::Serializer<MetadataVariant, MetadataFactory, ConnectionContext, TypeId>;
@@ -47,13 +44,13 @@ public:
     }
 
 private:
-    ptrdiff_t run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessageHeader& _rmsghdr) override
+    ptrdiff_t run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessageHeader const& _rmsghdr) override
     {
         return ser_.run(
             _pdata, static_cast<unsigned>(_data_len), [&_rmsghdr](SerializerT& _rs, ConnectionContext& _rctx) { _rs.add(_rmsghdr, _rctx, 0, "header"); }, _rctx);
     }
 
-    ptrdiff_t run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessagePointerT<>& _rmsgptr, const size_t /*_msg_type_idx*/) override
+    ptrdiff_t run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, SendMessagePointerT<>& _rmsgptr, const size_t /*_msg_type_idx*/) override
     {
         return ser_.run(
             _pdata, static_cast<unsigned>(_data_len), [&_rmsgptr](SerializerT& _rs, ConnectionContext& _rctx) { _rs.add(_rmsgptr, _rctx, 0, "message"); }, _rctx);
@@ -98,7 +95,7 @@ private:
             _pdata, static_cast<unsigned>(_data_len), [&_rmsghdr](DeserializerT& _rd, ConnectionContext& _rctx) mutable { _rd.add(_rmsghdr, _rctx, 0, "header"); }, _rctx);
     }
 
-    ptrdiff_t run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, MessagePointerT<>& _rmsgptr) override
+    ptrdiff_t run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, RecvMessagePointerT<>& _rmsgptr) override
     {
         return des_.run(
             _pdata, static_cast<unsigned>(_data_len), [&_rmsgptr](DeserializerT& _rd, ConnectionContext& _rctx) { _rd.add(_rmsgptr, _rctx, 0, "message"); }, _rctx);
@@ -134,6 +131,11 @@ struct is_pair<std::pair<T1, T2>> : std::true_type {
 template <class MetadataVariant, class MetadataFactory, typename TypeId>
 class Protocol : public mprpc::Protocol {
     struct TypeData {
+        MessageCompleteFunctionT complete_fnc_;
+
+        TypeData(const TypeData&) = default;
+        TypeData(TypeData&&)      = default;
+
         template <class F>
         TypeData(F&& _f)
             : complete_fnc_(std::forward<F>(_f))
@@ -142,12 +144,10 @@ class Protocol : public mprpc::Protocol {
 
         TypeData() {}
 
-        void complete(ConnectionContext& _rctx, MessagePointerT<>& _p1, MessagePointerT<>& _p2, ErrorConditionT const& _e) const
+        void complete(ConnectionContext& _rctx, SendMessagePointerT<>& _p1, RecvMessagePointerT<>& _p2, ErrorConditionT const& _e) const
         {
             complete_fnc_(_rctx, _p1, _p2, _e);
         }
-
-        MessageCompleteFunctionT complete_fnc_;
     };
 
     using ThisT    = Protocol<MetadataVariant, MetadataFactory, TypeId>;
@@ -219,11 +219,7 @@ class Protocol : public mprpc::Protocol {
             auto create_lambda     = [](auto& _rctx, auto& _rptr) {
                 using PtrType = std::decay_t<decltype(_rptr)>;
                 using CtxType = std::decay_t<decltype(_rctx)>;
-#if defined(SOLID_MPRPC_USE_SHARED_PTR_MESSAGE)
-                if constexpr (solid::is_shared_ptr_v<PtrType>) {
-#else
-                if constexpr (solid::is_intrusive_ptr_v<PtrType>) {
-#endif
+                if constexpr (solid::is_mutable_intrusive_ptr_v<PtrType>) {
                     _rptr = make_message<typename PtrType::element_type>();
                     if constexpr (std::is_same_v<ConnectionContext, CtxType>) {
                         _rptr->header(_rctx);
@@ -251,11 +247,8 @@ class Protocol : public mprpc::Protocol {
             auto create_lambda     = [_create_fnc](auto& _rctx, auto& _rptr) {
                 using PtrType = std::decay_t<decltype(_rptr)>;
                 using CtxType = std::decay_t<decltype(_rctx)>;
-#if defined(SOLID_MPRPC_USE_SHARED_PTR_MESSAGE)
-                if constexpr (solid::is_shared_ptr_v<PtrType>) {
-#else
-                if constexpr (solid::is_intrusive_ptr_v<PtrType>) {
-#endif
+
+                if constexpr (solid::is_mutable_intrusive_ptr_v<PtrType>) {
                     _create_fnc(_rctx, _rptr);
 
                     if constexpr (std::is_same_v<ConnectionContext, CtxType>) {
@@ -338,7 +331,7 @@ public:
         return type_map_.index(_pmsg);
     }
 
-    void complete(const size_t _idx, ConnectionContext& _rctx, MessagePointerT<>& _rsent_msg_ptr, MessagePointerT<>& _rrecv_msg_ptr, ErrorConditionT const& _rerr) const override
+    void complete(const size_t _idx, ConnectionContext& _rctx, SendMessagePointerT<>& _rsent_msg_ptr, RecvMessagePointerT<>& _rrecv_msg_ptr, ErrorConditionT const& _rerr) const override
     {
         type_data_vec_[_idx].complete(_rctx, _rsent_msg_ptr, _rrecv_msg_ptr, _rerr);
     }
@@ -361,7 +354,7 @@ public:
     {
     }
 
-    size_t minimumFreePacketDataSize() const override
+    [[nodiscard]] size_t minimumFreePacketDataSize() const override
     {
         return 16;
     }
@@ -384,7 +377,4 @@ auto create_protocol(MetadataFactory&& _metadata_factory, InitFunction _init_fnc
     return std::make_shared<ProtocolT>(_metadata_factory, _init_fnc);
 }
 
-} // namespace serialization_v3
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc::serialization_v3

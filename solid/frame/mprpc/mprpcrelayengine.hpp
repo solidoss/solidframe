@@ -14,10 +14,7 @@
 #include "solid/system/error.hpp"
 #include "solid/system/pimpl.hpp"
 
-namespace solid {
-namespace frame {
-namespace mprpc {
-namespace relay {
+namespace solid::frame::mprpc::relay {
 
 struct ConnectionStubBase {
     ActorIdT id_;
@@ -98,7 +95,7 @@ protected:
         doExecute(f);
     }
 
-    ConnectionPrintStub plot(const ConnectionStubBase& _rcon) const
+    [[nodiscard]] ConnectionPrintStub plot(const ConnectionStubBase& _rcon) const
     {
         return ConnectionPrintStub(*this, _rcon);
     }
@@ -108,7 +105,7 @@ private:
     virtual size_t registerConnection(Proxy& _proxy, const uint32_t _group_id, const uint16_t _replica_id) = 0;
 
 private:
-    using ExecuteFunctionT = solid_function_t(void(Proxy&));
+    using ExecuteFunctionT = SmallFunctionT<void(Proxy&)>;
 
     void doExecute(ExecuteFunctionT& _rfnc);
 
@@ -158,7 +155,4 @@ private:
     void doRegisterConnectionId(const ConnectionContext& _rconctx, const size_t _idx);
 };
 
-} // namespace relay
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc::relay

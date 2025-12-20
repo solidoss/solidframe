@@ -18,12 +18,11 @@ using unique_lock_t = std::unique_lock<mutex_t>;
 
 namespace {
 
-mutex_t       mtx;
 const LoggerT logger("test");
 
 struct Context {
-    string text_;
-    size_t count_;
+    string        text_;
+    atomic_size_t count_{0};
 
     Context(const std::string& _txt, size_t _count)
         : text_(_txt)

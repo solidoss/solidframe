@@ -32,7 +32,7 @@ namespace {
 
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
-using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT      = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 struct InitStub {
     size_t size;
@@ -116,7 +116,7 @@ struct Message : frame::mprpc::Message {
             if (_rthis.isOnPeer()) {
                 ++crtreadidx;
                 solid_dbg(generic_logger, Info, crtreadidx);
-                if (crtreadidx == 1) {
+                if (crtreadidx == 1 and pmprpcclient) {
 
                     pmprpcclient->forceCloseConnectionPool(
                         recipinet_id,
@@ -126,6 +126,8 @@ struct Message : frame::mprpc::Message {
                             running = false;
                             cnd.notify_one();
                         });
+                } else {
+                    solid_check(pmprpcclient, "pmprpcclient should not be nullptr");
                 }
             }
         }
@@ -167,7 +169,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
-using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+using SendMessagePointerT = solid::frame::mprpc::SendMessagePointerT<Message>;
+using RecvMessagePointerT = solid::frame::mprpc::RecvMessagePointerT<Message>;
 
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
@@ -194,7 +197,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
@@ -208,7 +211,7 @@ void client_complete_message(
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_check(false);
@@ -325,14 +328,14 @@ int test_pool_force_close(int argc, char* argv[])
 
         writecount = start_count; //
         {
-            std::vector<MessagePointerT> msg_vec;
-            ErrorConditionT              err;
+            std::vector<SendMessagePointerT> msg_vec;
+            ErrorConditionT                  err;
 
-            for (size_t i = 0; i < start_count; ++i) {
-                msg_vec.push_back(MessagePointerT(frame::mprpc::make_message<Message>(i)));
+            for (uint32_t i = 0; i < start_count; ++i) {
+                msg_vec.push_back(frame::mprpc::make_message<Message>(i));
             }
             {
-                std::vector<MessagePointerT>::iterator it = msg_vec.begin();
+                auto it = msg_vec.begin();
 
                 {
                     ++crtwriteidx;

@@ -44,7 +44,7 @@ static T align(T _v, const unsigned long _by)
     }
 }
 
-const uint32_t pagesize = memory_page_size();
+const size_t pagesize = memory_page_size();
 
 using FileDeuqeT = std::deque<FileDevice>;
 
@@ -111,14 +111,12 @@ int main(int argc, char* argv[])
         {1, 100, 0}, [](const size_t, Context&) {}, [](const size_t, Context&) {},
         [](FileDevice* _pfile, Context& _rctx) {
             int64_t sz = _pfile->size();
-            int     toread;
-            int     cnt = 0;
+            int64_t toread;
             while (sz > 0) {
                 toread = _rctx.readsz;
                 if (toread > sz)
                     toread = sz;
-                int rv = _pfile->read(_rctx.buf, toread);
-                cnt += rv;
+                ssize_t rv = _pfile->read(_rctx.buf, toread);
                 sz -= rv;
             }
         },

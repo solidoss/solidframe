@@ -39,7 +39,7 @@ namespace {
 
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
-using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT      = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 const solid::LoggerT logger("test");
 
@@ -112,8 +112,8 @@ namespace {
 template <class M>
 void complete_message(
     frame::mprpc::ConnectionContext& /*_rctx*/,
-    frame::mprpc::MessagePointerT<M>& /*_rsent_msg_ptr*/,
-    frame::mprpc::MessagePointerT<M>& /*_rrecv_msg_ptr*/,
+    frame::mprpc::SendMessagePointerT<M>& /*_rsent_msg_ptr*/,
+    frame::mprpc::RecvMessagePointerT<M>& /*_rrecv_msg_ptr*/,
     ErrorConditionT const& /*_rerror*/)
 {
     // catch all messages
@@ -123,17 +123,17 @@ void complete_message(
 namespace v1 {
 using namespace versioning::v1;
 
-using RequestPointerT      = solid::frame::mprpc::MessagePointerT<Request>;
-using ResponsePointerT     = solid::frame::mprpc::MessagePointerT<Response>;
-using InitRequestPointerT  = solid::frame::mprpc::MessagePointerT<InitRequest>;
-using InitResponsePointerT = solid::frame::mprpc::MessagePointerT<InitResponse>;
+using RequestPointerT      = solid::frame::mprpc::SendMessagePointerT<Request>;
+using ResponsePointerT     = solid::frame::mprpc::RecvMessagePointerT<Response>;
+using InitRequestPointerT  = solid::frame::mprpc::SendMessagePointerT<InitRequest>;
+using InitResponsePointerT = solid::frame::mprpc::RecvMessagePointerT<InitResponse>;
 
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port)
 {
     auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
         reflection::v1::metadata::factory,
         [&](auto& _rmap) {
-            auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, const type_identity<T>& _rtype) {
+            auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, const type_identity<T>&) {
                 _rmap.template registerMessage<T>(_id, _name, complete_message<T>);
             };
             configure_protocol(lambda);
@@ -160,7 +160,7 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
             }
         };
         _rctx.any() = std::make_tuple(version);
-        _rctx.service().sendRequest(_rctx.recipientId(), req_ptr, lambda);
+        _rctx.service().sendRequest(_rctx.recipientId(), std::move(req_ptr), lambda);
     };
     cfg.client.connection_start_fnc   = std::move(connection_start_lambda);
     cfg.client.connection_start_state = frame::mprpc::ConnectionState::Passive;
@@ -171,7 +171,7 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
 {
     auto req_ptr = frame::mprpc::make_message<v1::Request>();
     _rsvc.sendRequest(
-        {"localhost"}, req_ptr,
+        {"localhost"}, std::move(req_ptr),
         [](
             frame::mprpc::ConnectionContext& _rctx,
             RequestPointerT&                 _rreqmsgptr,
@@ -193,17 +193,17 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
 namespace v2 {
 using namespace versioning::v2;
 
-using RequestPointerT      = solid::frame::mprpc::MessagePointerT<Request>;
-using ResponsePointerT     = solid::frame::mprpc::MessagePointerT<Response>;
-using InitRequestPointerT  = solid::frame::mprpc::MessagePointerT<InitRequest>;
-using InitResponsePointerT = solid::frame::mprpc::MessagePointerT<InitResponse>;
+using RequestPointerT      = solid::frame::mprpc::SendMessagePointerT<Request>;
+using ResponsePointerT     = solid::frame::mprpc::RecvMessagePointerT<Response>;
+using InitRequestPointerT  = solid::frame::mprpc::SendMessagePointerT<InitRequest>;
+using InitResponsePointerT = solid::frame::mprpc::RecvMessagePointerT<InitResponse>;
 
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port)
 {
     auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
         reflection::v1::metadata::factory,
         [&](auto& _rmap) {
-            auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const& _rtype) {
+            auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const&) {
                 _rmap.template registerMessage<T>(_id, _name, complete_message<T>);
             };
             configure_protocol(lambda);
@@ -230,7 +230,7 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
             }
         };
         _rctx.any() = std::make_tuple(version);
-        _rctx.service().sendRequest(_rctx.recipientId(), req_ptr, lambda);
+        _rctx.service().sendRequest(_rctx.recipientId(), std::move(req_ptr), lambda);
     };
     cfg.client.connection_start_fnc   = std::move(connection_start_lambda);
     cfg.client.connection_start_state = frame::mprpc::ConnectionState::Passive;
@@ -242,7 +242,7 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
     auto req_ptr    = frame::mprpc::make_message<Request>();
     req_ptr->value_ = 11;
     _rsvc.sendRequest(
-        {"localhost"}, req_ptr,
+        {"localhost"}, std::move(req_ptr),
         [](
             frame::mprpc::ConnectionContext& _rctx,
             RequestPointerT&                 _rreqmsgptr,
@@ -266,18 +266,20 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
 namespace v3 {
 using namespace versioning::v3;
 
-using RequestPointerT      = solid::frame::mprpc::MessagePointerT<Request>;
-using ResponsePointerT     = solid::frame::mprpc::MessagePointerT<Response>;
-using Response2PointerT    = solid::frame::mprpc::MessagePointerT<Response2>;
-using InitRequestPointerT  = solid::frame::mprpc::MessagePointerT<InitRequest>;
-using InitResponsePointerT = solid::frame::mprpc::MessagePointerT<InitResponse>;
+using RequestPointerT         = solid::frame::mprpc::SendMessagePointerT<Request>;
+using RecvRequestPointerT     = solid::frame::mprpc::RecvMessagePointerT<Request>;
+using ResponsePointerT        = solid::frame::mprpc::RecvMessagePointerT<Response>;
+using Response2PointerT       = solid::frame::mprpc::RecvMessagePointerT<Response2>;
+using SendInitRequestPointerT = solid::frame::mprpc::SendMessagePointerT<InitRequest>;
+using RecvInitRequestPointerT = solid::frame::mprpc::RecvMessagePointerT<InitRequest>;
+using InitResponsePointerT    = solid::frame::mprpc::RecvMessagePointerT<InitResponse>;
 
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port)
 {
     auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
         reflection::v1::metadata::factory,
         [&](auto& _rmap) {
-            auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const& _rtype) {
+            auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const&) {
                 _rmap.template registerMessage<T>(_id, _name, complete_message<T>);
             };
             configure_protocol(lambda);
@@ -290,7 +292,7 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
         auto req_ptr = frame::mprpc::make_message<InitRequest>();
         auto lambda  = [](
                           frame::mprpc::ConnectionContext& _rctx,
-                          InitRequestPointerT&             _rsent_msg_ptr,
+                          SendInitRequestPointerT&         _rsent_msg_ptr,
                           InitResponsePointerT&            _rrecv_msg_ptr,
                           ErrorConditionT const&           _rerror) {
             if (_rrecv_msg_ptr) {
@@ -304,7 +306,7 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
         };
 
         _rctx.any() = std::make_tuple(version);
-        _rctx.service().sendRequest(_rctx.recipientId(), req_ptr, lambda);
+        _rctx.service().sendRequest(_rctx.recipientId(), std::move(req_ptr), lambda);
     };
     cfg.client.connection_start_fnc   = std::move(connection_start_lambda);
     cfg.client.connection_start_state = frame::mprpc::ConnectionState::Passive;
@@ -316,7 +318,7 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
     auto req_ptr     = frame::mprpc::make_message<Request>();
     req_ptr->values_ = "test";
     _rsvc.sendRequest(
-        {"localhost"}, req_ptr,
+        {"localhost"}, std::move(req_ptr),
         [](
             frame::mprpc::ConnectionContext& _rctx,
             RequestPointerT&                 _rreqmsgptr,
@@ -340,17 +342,18 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
 namespace v4 {
 using namespace versioning::v4;
 
-using InitRequestPointerT  = solid::frame::mprpc::MessagePointerT<InitRequest>;
-using InitResponsePointerT = solid::frame::mprpc::MessagePointerT<InitResponse>;
-using Request2PointerT     = solid::frame::mprpc::MessagePointerT<Request2>;
-using Response2PointerT    = solid::frame::mprpc::MessagePointerT<Response2>;
+using SendInitRequestPointerT = solid::frame::mprpc::SendMessagePointerT<InitRequest>;
+using RecvInitRequestPointerT = solid::frame::mprpc::RecvMessagePointerT<InitRequest>;
+using InitResponsePointerT    = solid::frame::mprpc::RecvMessagePointerT<InitResponse>;
+using Request2PointerT        = solid::frame::mprpc::SendMessagePointerT<Request2>;
+using Response2PointerT       = solid::frame::mprpc::RecvMessagePointerT<Response2>;
 
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port)
 {
     auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
         reflection::v1::metadata::factory,
         [&](auto& _rmap) {
-            auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const& _rtype) {
+            auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const&) {
                 _rmap.template registerMessage<T>(_id, _name, complete_message<T>);
             };
             configure_protocol(lambda);
@@ -364,7 +367,7 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
         auto req_ptr = frame::mprpc::make_message<InitRequest>();
         auto lambda  = [](
                           frame::mprpc::ConnectionContext& _rctx,
-                          InitRequestPointerT&             _rsent_msg_ptr,
+                          SendInitRequestPointerT&         _rsent_msg_ptr,
                           InitResponsePointerT&            _rrecv_msg_ptr,
                           ErrorConditionT const&           _rerror) {
             if (_rrecv_msg_ptr) {
@@ -379,7 +382,7 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
             }
         };
         _rctx.any() = std::make_tuple(version);
-        _rctx.service().sendRequest(_rctx.recipientId(), req_ptr, lambda);
+        _rctx.service().sendRequest(_rctx.recipientId(), std::move(req_ptr), lambda);
     };
     cfg.client.connection_start_fnc   = std::move(connection_start_lambda);
     cfg.client.connection_start_state = frame::mprpc::ConnectionState::Passive;
@@ -390,7 +393,7 @@ void send_request(frame::mprpc::ServiceT& _rsvc)
 {
     auto req_ptr = frame::mprpc::make_message<Request2>();
     _rsvc.sendRequest(
-        {"localhost"}, req_ptr,
+        {"localhost"}, std::move(req_ptr),
         [](
             frame::mprpc::ConnectionContext& _rctx,
             Request2PointerT&                _rreqmsgptr,
@@ -416,15 +419,15 @@ using namespace versioning::v3;
 template <class M>
 void complete_message(
     frame::mprpc::ConnectionContext& /*_rctx*/,
-    frame::mprpc::MessagePointerT<M>& /*_rsent_msg_ptr*/,
-    frame::mprpc::MessagePointerT<M>& /*_rrecv_msg_ptr*/,
+    frame::mprpc::SendMessagePointerT<M>& /*_rsent_msg_ptr*/,
+    frame::mprpc::RecvMessagePointerT<M>& /*_rrecv_msg_ptr*/,
     ErrorConditionT const& /*_rerror*/);
 
 template <>
 void complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    InitRequestPointerT& /*_rsent_msg_ptr*/,
-    InitRequestPointerT& _rrecv_msg_ptr,
+    SendInitRequestPointerT& /*_rsent_msg_ptr*/,
+    RecvInitRequestPointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
     solid_log(logger, Info, "Init request: peer [" << _rrecv_msg_ptr->version_.version_ << ']');
@@ -439,13 +442,13 @@ void complete_message(
         auto lambda     = [response_ptr = std::move(res_ptr)](frame::mprpc::ConnectionContext& _rctx, ErrorConditionT const& _rerror) mutable {
             solid_check(!_rerror, "error activating connection: " << _rerror.message());
 
-            _rctx.service().sendResponse(_rctx.recipientId(), response_ptr);
+            _rctx.service().sendResponse(_rctx.recipientId(), std::move(response_ptr));
         };
-        _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
+        _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), std::move(lambda));
     } else {
         res_ptr->error_   = 1;
         res_ptr->message_ = "unsupported version";
-        _rctx.service().sendResponse(_rctx.recipientId(), res_ptr);
+        _rctx.service().sendResponse(_rctx.recipientId(), std::move(res_ptr));
         _rctx.service().delayCloseConnectionPool(_rctx.recipientId(), [](frame::mprpc::ConnectionContext& /*_rctx*/) {});
     }
 }
@@ -454,31 +457,31 @@ template <>
 void complete_message(
     frame::mprpc::ConnectionContext& _rctx,
     RequestPointerT& /*_rsent_msg_ptr*/,
-    RequestPointerT& _rrecv_msg_ptr,
+    RecvRequestPointerT& _rrecv_msg_ptr,
     ErrorConditionT const& /*_rerror*/)
 {
 
     if (_rctx.any().get_if<Version>()->version_ == 2) {
         // need to send back Response2
         auto res_ptr    = frame::mprpc::make_message<Response2>(*_rrecv_msg_ptr);
-        res_ptr->error_ = _rrecv_msg_ptr->values_.size();
-        _rctx.service().sendResponse(_rctx.recipientId(), res_ptr);
+        res_ptr->error_ = static_cast<uint32_t>(_rrecv_msg_ptr->values_.size());
+        _rctx.service().sendResponse(_rctx.recipientId(), std::move(res_ptr));
     } else if (_rctx.any().get_if<Version>()->request_ == 1) {
         auto res_ptr    = frame::mprpc::make_message<Response>(*_rrecv_msg_ptr);
         res_ptr->error_ = 10;
-        _rctx.service().sendResponse(_rctx.recipientId(), res_ptr);
+        _rctx.service().sendResponse(_rctx.recipientId(), std::move(res_ptr));
     } else if (_rctx.any().get_if<Version>()->request_ == 2) {
         auto res_ptr    = frame::mprpc::make_message<Response>(*_rrecv_msg_ptr);
         res_ptr->error_ = _rrecv_msg_ptr->valuei_;
-        _rctx.service().sendResponse(_rctx.recipientId(), res_ptr);
+        _rctx.service().sendResponse(_rctx.recipientId(), std::move(res_ptr));
     }
 }
 
 template <class M>
 void complete_message(
     frame::mprpc::ConnectionContext& /*_rctx*/,
-    frame::mprpc::MessagePointerT<M>& /*_rsent_msg_ptr*/,
-    frame::mprpc::MessagePointerT<M>& /*_rrecv_msg_ptr*/,
+    frame::mprpc::SendMessagePointerT<M>& /*_rsent_msg_ptr*/,
+    frame::mprpc::RecvMessagePointerT<M>& /*_rrecv_msg_ptr*/,
     ErrorConditionT const& /*_rerror*/)
 {
     // catch all
@@ -489,7 +492,7 @@ string configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch)
     auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
         reflection::v1::metadata::factory,
         [&](auto& _rmap) {
-            auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const& _rtype) {
+            auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const&) {
                 _rmap.template registerMessage<T>(_id, _name, complete_message<T>);
             };
             configure_protocol(lambda);

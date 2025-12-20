@@ -32,7 +32,7 @@ using namespace solid;
 namespace {
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
-using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT      = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 struct InitStub {
     size_t                      size;
@@ -132,7 +132,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
-using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+using SendMessagePointerT = solid::frame::mprpc::SendMessagePointerT<Message>;
+using RecvMessagePointerT = solid::frame::mprpc::RecvMessagePointerT<Message>;
 
 struct Logout : frame::mprpc::Message {
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
@@ -180,7 +181,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
@@ -201,12 +202,14 @@ void client_complete_message(
             solid_throw("Message not back on sender!.");
         }
 
-        {
+        if (pmprpcclient) {
             auto msgptr(frame::mprpc::make_message<Logout>());
 
             pmprpcclient->sendMessage(
-                _rctx.recipientId(), msgptr,
+                _rctx.recipientId(), std::move(msgptr),
                 {frame::mprpc::MessageFlagsE::AwaitResponse});
+        } else {
+            solid_check(pmprpcclient, "pmprpcclient should not be nullptr");
         }
 
         client_received_message = true;
@@ -214,8 +217,8 @@ void client_complete_message(
 }
 
 void client_complete_logout(
-    frame::mprpc::ConnectionContext&       _rctx,
-    frame::mprpc::MessagePointerT<Logout>& _rsent_msg_ptr, frame::mprpc::MessagePointerT<Logout>& _rrecv_msg_ptr,
+    frame::mprpc::ConnectionContext&           _rctx,
+    frame::mprpc::SendMessagePointerT<Logout>& _rsent_msg_ptr, frame::mprpc::RecvMessagePointerT<Logout>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_check(!_rerror);
@@ -226,7 +229,7 @@ void client_complete_logout(
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr.get()) {
@@ -254,8 +257,8 @@ void server_complete_message(
 }
 
 void server_complete_logout(
-    frame::mprpc::ConnectionContext&       _rctx,
-    frame::mprpc::MessagePointerT<Logout>& _rsent_msg_ptr, frame::mprpc::MessagePointerT<Logout>& _rrecv_msg_ptr,
+    frame::mprpc::ConnectionContext&           _rctx,
+    frame::mprpc::SendMessagePointerT<Logout>& _rsent_msg_ptr, frame::mprpc::RecvMessagePointerT<Logout>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr.get()) {
@@ -383,9 +386,9 @@ int test_connection_close(int argc, char* argv[])
         pmprpcclient = &mprpcclient;
 
         {
-            MessagePointerT msgptr(frame::mprpc::make_message<Message>(0));
+            auto msgptr(frame::mprpc::make_message<Message>(0));
             mprpcclient.sendMessage(
-                {"localhost"}, msgptr,
+                {"localhost"}, std::move(msgptr),
                 initarray[0].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 

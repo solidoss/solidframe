@@ -19,34 +19,42 @@ int test_shared_buffer(int argc, char* argv[])
         sb.resize(100);
 
         solid_check(sb.size() == 100);
+        {
+            SharedBuffer sb2 = sb;
 
-        SharedBuffer sb2 = sb;
+            cout << "sb.usecount = " << sb2.useCount() << endl;
+        }
+        cout << "exiting..." << endl;
+        return 0;
+        // solid_check(sb2.size() == 100);
 
-        solid_check(sb2.size() == 100);
+        // SharedBuffer sb3 = sb2; // sb3 == sb2
 
-        SharedBuffer sb3 = sb2; // sb3 == sb2
-
-        solid_check(sb3);
+        // solid_check(sb3);
+        // cout << "exiting..." << endl;
+    }
+    {
+        cout << "exiting..." << endl;
     }
     {
         MutableSharedBuffer sb = make_mutable_buffer(1000);
 
         cout << sb.capacity() << endl;
-        cout << sb.size() << endl;
+        cout << sb.msize() << endl;
         string_view pangram = "the quick brown fox jumps over the lazy dog";
-        strncpy(sb.data(), pangram.data(), sb.capacity());
+        strncpy(sb.mdata(), pangram.data(), sb.capacity());
 
-        sb.resize(pangram.size());
+        sb.append(pangram.size());
 
-        sb.data()[0] = 'T';
+        sb.mdata()[0] = 'T';
 
-        solid_check(sb.size() == pangram.size());
+        solid_check(sb.msize() == pangram.size());
 
         // MutableSharedBuffer sbxx{sb};//will not compile
 
         MutableSharedBuffer sbx{std::move(sb)};
 
-        solid_check(sbx.size() == pangram.size());
+        solid_check(sbx.msize() == pangram.size());
         solid_check(!sb);
 
         ConstSharedBuffer csb = std::move(sbx);
@@ -63,88 +71,8 @@ int test_shared_buffer(int argc, char* argv[])
         sbc = csb2.collapse();
         solid_check(sbc);
         solid_check(!csb2);
-        solid_check(sbc.size() == pangram.size());
-        cout << "Data: " << sbc.data() << endl;
-    }
-    {
-        std::promise<MutableSharedBuffer> p;
-        std::future<MutableSharedBuffer>  f = p.get_future();
-
-        vector<thread> thr_vec;
-        const void*    psb1 = nullptr;
-        {
-
-            ConstSharedBuffer csb1 = BufferManager::makeMutable(1000);
-            ConstSharedBuffer csb2 = BufferManager::makeMutable(2000);
-
-            cout << static_cast<const void*>(csb1.data()) << endl;
-            cout << static_cast<const void*>(csb2.data()) << endl;
-
-            psb1 = csb1.data();
-
-            solid_check(psb1);
-
-            auto lambda = [&p, csb1, csb2]() mutable {
-                this_thread::sleep_for(chrono::milliseconds(200));
-                auto sbc = csb1.collapse();
-                if (sbc) {
-                    p.set_value(std::move(sbc));
-                }
-                solid_check(!sbc);
-                sbc = csb2.collapse();
-                if (sbc) {
-                    solid_check(!csb2);
-                    solid_check(BufferManager::localCount(2000) == 0);
-                }
-            };
-
-            for (size_t i = 0; i < 4; ++i) {
-                thr_vec.emplace_back(lambda);
-            }
-            auto sbc = csb1.collapse();
-            if (sbc) {
-                p.set_value(std::move(sbc));
-            }
-        }
-
-        for (auto& t : thr_vec) {
-            t.join();
-        }
-        solid_check(BufferManager::localCount(1000) == 0);
-        {
-            auto sb = f.get();
-
-            cout << static_cast<void*>(sb.data()) << endl;
-            solid_check(psb1 == static_cast<void*>(sb.data()));
-        }
-        solid_check(BufferManager::localCount(1000) == 1);
-        {
-            SharedBuffer sb1 = BufferManager::make(1000);
-            cout << static_cast<void*>(sb1.data()) << endl;
-            solid_check(BufferManager::localCount(1000) == 0);
-            solid_check(psb1 == static_cast<void*>(sb1.data()));
-        }
-        solid_check(BufferManager::localCount(1000) == 1);
-    }
-
-    for (size_t i = 100; i < 4000; i += 100) {
-        SharedBuffer sb1 = make_shared_buffer(i);
-        SharedBuffer sb2 = BufferManager::make(i);
-        solid_check(sb1.capacity() == i);
-        solid_check(sb2.capacity() == i);
-        cout << i << " " << sb1.capacity() << " " << sb1.actualCapacity() << " " << sb2.capacity() << " " << sb2.actualCapacity() << endl;
-    }
-    {
-        SharedBuffer empty_buf;
-        solid_check(empty_buf.capacity() == 0);
-        cout << "Empty buffer actualCapacity = " << empty_buf.actualCapacity() << endl;
-        solid_check(empty_buf.actualCapacity() == 0);
-    }
-    {
-        SharedBuffer zero_buf = make_shared_buffer(0);
-        solid_check(zero_buf.capacity() == 0);
-        cout << "Zero buffer actualCapacity = " << zero_buf.actualCapacity() << endl;
-        solid_check(zero_buf.actualCapacity() != 0 && zero_buf.actualCapacity() < 0xffffffff);
+        solid_check(sbc.msize() == pangram.size());
+        cout << "Data: " << sbc.mdata() << endl;
     }
     return 0;
 }

@@ -41,7 +41,7 @@ using namespace solid;
 typedef frame::aio::openssl::Context SecureContextT;
 
 namespace {
-using CallPoolT = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 std::atomic<size_t> wait_count(0);
 mutex               mtx;

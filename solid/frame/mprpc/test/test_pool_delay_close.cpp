@@ -31,7 +31,7 @@ using namespace solid;
 namespace {
 using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor<frame::mprpc::EventT>>;
 using SecureContextT = frame::aio::openssl::Context;
-using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT      = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 struct InitStub {
     size_t size;
@@ -150,7 +150,8 @@ struct Message : frame::mprpc::Message {
     }
 };
 
-using MessagePointerT = solid::frame::mprpc::MessagePointerT<Message>;
+using SendMessagePointerT = solid::frame::mprpc::SendMessagePointerT<Message>;
+using RecvMessagePointerT = solid::frame::mprpc::RecvMessagePointerT<Message>;
 
 void client_connection_stop(frame::mprpc::ConnectionContext& _rctx)
 {
@@ -177,7 +178,7 @@ void server_connection_start(frame::mprpc::ConnectionContext& _rctx)
 
 void client_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
@@ -218,7 +219,7 @@ void client_complete_message(
 
 void server_complete_message(
     frame::mprpc::ConnectionContext& _rctx,
-    MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr,
+    SendMessagePointerT& _rsent_msg_ptr, RecvMessagePointerT& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr.get()) {
@@ -356,14 +357,14 @@ int test_pool_delay_close(int argc, char* argv[])
 
         writecount = start_count; //
         {
-            std::vector<MessagePointerT> msg_vec;
+            std::vector<SendMessagePointerT> msg_vec;
 
-            for (size_t i = 0; i < start_count; ++i) {
-                msg_vec.push_back(MessagePointerT(frame::mprpc::make_message<Message>(i)));
+            for (uint32_t i = 0; i < start_count; ++i) {
+                msg_vec.push_back(frame::mprpc::make_message<Message>(i));
             }
 
             {
-                std::vector<MessagePointerT>::iterator it = msg_vec.begin();
+                auto it = msg_vec.begin();
 
                 {
                     ++crtwriteidx;
@@ -399,9 +400,9 @@ int test_pool_delay_close(int argc, char* argv[])
                 });
 
             {
-                MessagePointerT msgptr(frame::mprpc::make_message<Message>(0));
+                auto            msgptr(frame::mprpc::make_message<Message>(0));
                 ErrorConditionT err = pmprpcclient->sendMessage(
-                    recipinet_id, msgptr,
+                    recipinet_id, std::move(msgptr),
                     {frame::mprpc::MessageFlagsE::AwaitResponse});
                 solid_dbg(generic_logger, Info, "send message error message: " << err.message());
                 solid_check(err);

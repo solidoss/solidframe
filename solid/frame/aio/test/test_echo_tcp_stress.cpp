@@ -37,7 +37,7 @@ namespace {
 using AioSchedulerT  = frame::Scheduler<frame::aio::ReactorT>;
 using AtomicSizeT    = atomic<size_t>;
 using SecureContextT = frame::aio::openssl::Context;
-using CallPoolT      = ThreadPool<Function<void()>, Function<void()>>;
+using CallPoolT      = ThreadPool<Function64T<void()>, Function64T<void()>>;
 
 bool                 running = true;
 mutex                mtx;
@@ -990,7 +990,7 @@ namespace relay {
 void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
     solid_dbg(generic_logger, Info, "");
-    unsigned repeatcnt = SocketInfo::max_listen_backlog_size();
+    size_t repeatcnt = SocketInfo::max_listen_backlog_size();
 
     do {
         if (!_rctx.error()) {

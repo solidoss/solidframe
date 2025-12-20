@@ -11,9 +11,7 @@
 #include "solid/frame/mprpc/mprpcerror.hpp"
 #include <sstream>
 
-namespace solid {
-namespace frame {
-namespace mprpc {
+namespace solid::frame::mprpc {
 
 namespace {
 
@@ -288,6 +286,4 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_service_connection_not_needed(ErrorServiceConnectionNotNeededE, category);
 /*extern*/ const ErrorConditionT error_service_connection_pool_count(ErrorServiceConnectionPoolCountE, category);
 
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc
