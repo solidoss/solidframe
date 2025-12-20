@@ -8,12 +8,16 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 
+#include "solid/utility/common.hpp"
+
 #ifdef SOLID_ON_WINDOWS
 #define NOMINMAX
+#include <WinSock2.h>
+#include <windows.h>
 #endif
 
-#include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 #include "solid/frame/aio/openssl/aiosecurecontext.hpp"
+#include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 
 #include "solid/frame/aio/aioerror.hpp"
 

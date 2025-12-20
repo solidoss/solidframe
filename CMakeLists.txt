@@ -201,6 +201,7 @@ if(CMAKE_SYSTEM MATCHES "Darwin*")
     set(SOLID_ON_POSIX TRUE)
     
     add_compile_options(
+        "$<$<CXX_COMPILER_ID:Clang>:-stdlib=libc++>"
         "$<$<CONFIG:MAINTAIN>:SHELL: ${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized -Wabi>"
         "$<$<CONFIG:CUSTOM>:>"
     )
