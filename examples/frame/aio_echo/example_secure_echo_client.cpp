@@ -1,3 +1,11 @@
+#include "solid/utility/common.hpp"
+
+#ifdef SOLID_ON_WINDOWS
+#define NOMINMAX
+#include <WinSock2.h>
+#include <windows.h>
+#endif
+
 #include "solid/frame/aio/openssl/aiosecurecontext.hpp"
 #include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 

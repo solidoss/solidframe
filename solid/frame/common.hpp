@@ -16,7 +16,6 @@
 #include "solid/reflection/reflection.hpp"
 #include "solid/system/convertors.hpp"
 #include "solid/utility/common.hpp"
-#include "solid/utility/function.hpp"
 
 namespace solid::frame {
 
@@ -40,11 +39,11 @@ struct UniqueId {
     {
     }
 
-    bool isInvalid() const
+    [[nodiscard]] bool isInvalid() const
     {
         return index == InvalidIndex();
     }
-    bool isValid() const
+    [[nodiscard]] bool isValid() const
     {
         return !isInvalid();
     }
