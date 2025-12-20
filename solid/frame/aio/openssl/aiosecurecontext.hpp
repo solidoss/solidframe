@@ -9,15 +9,20 @@
 //
 
 #pragma once
+#include "solid/utility/common.hpp"
+#ifdef SOLID_ON_WINDOWS
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
+#endif
 
 #include "openssl/ssl.h"
 #include "solid/system/error.hpp"
 #include "solid/utility/function.hpp"
 
-namespace solid {
-namespace frame {
-namespace aio {
-namespace openssl {
+namespace solid::frame::aio::openssl {
 
 enum struct PasswordPurpose {
     Read,
@@ -96,7 +101,4 @@ private:
     PasswordFunctionT pwdfnc;
 };
 
-} // namespace openssl
-} // namespace aio
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::aio::openssl

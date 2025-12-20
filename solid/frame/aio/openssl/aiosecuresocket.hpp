@@ -10,6 +10,15 @@
 
 #pragma once
 
+#include "solid/utility/common.hpp"
+#ifdef SOLID_ON_WINDOWS
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
+#endif
+
 #include "openssl/ssl.h"
 #include "solid/frame/aio/aiosocketbase.hpp"
 #include "solid/system/socketdevice.hpp"
@@ -24,7 +33,7 @@ namespace openssl {
 
 class Context;
 
-enum VerifyMode {
+enum VerifyMode : std::uint8_t {
     VerifyModeNone             = 1,
     VerifyModePeer             = 2,
     VerifyModeFailIfNoPeerCert = 4,
@@ -38,7 +47,7 @@ class Socket;
 struct VerifyContext {
     using NativeContextT = X509_STORE_CTX;
 
-    NativeContextT* nativeHandle() const
+    [[nodiscard]] NativeContextT* nativeHandle() const
     {
         return ssl_ctx;
     }
@@ -55,7 +64,6 @@ private:
     {
     }
 
-private:
     NativeContextT* ssl_ctx;
 };
 
