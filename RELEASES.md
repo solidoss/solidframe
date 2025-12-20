@@ -1,5 +1,17 @@
 # SolidFrame Releases
 
+## Version 13.0
+ * solid/utility:
+    * MutableIntrusivePtr, ConstIntrusivePtr
+    * Pool of MutableIntrusivePtr of Poolable types
+    * MutableSharedBuffer, ConstSharedBuffer
+    * BufferPool of MutableSharedBuffers
+ * solid/frame/aio:
+    * Reactor improvements
+ * solid/frame/mprpc:
+    * breaking change related to write buffer - both the message header and the message chunk should fit in write buffer
+    * breaking change - switch to using MutableMessagePointer and ConstMessagePointer for Recv and Send messages respectively, in the message callback.
+
 ## Version 12.2
  * improvements and fixes on reflection
  * use std::variant in example_threadpool
