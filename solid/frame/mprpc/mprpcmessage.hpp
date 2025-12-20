@@ -24,6 +24,7 @@
 #include "solid/reflection/v1/reflection.hpp"
 
 #include "solid/utility/intrusiveptr.hpp"
+#include "solid/utility/pool.hpp"
 
 namespace solid::frame::mprpc {
 
@@ -387,6 +388,12 @@ template <class Msg, class... Args>
 auto make_message(Args&&... _args)
 {
     return make_mutable_intrusive<Msg>(std::forward<Args>(_args)...);
+}
+
+template <class Msg, class... Args>
+auto make_pool_message(Args&&... _args)
+{
+    return Pool<Msg>::create(std::forward<Args>(_args)...);
 }
 
 using MessageCompleteFunctionT = Function128T<void(

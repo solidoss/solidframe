@@ -3,6 +3,7 @@
 #include <mutex>
 #include <thread>
 
+#include "solid/frame/mprpc/mprpcmessage.hpp"
 #include "solid/frame/mprpc/mprpcsocketstub_openssl.hpp"
 
 #include "solid/frame/mprpc/mprpccompression_snappy.hpp"
@@ -82,7 +83,7 @@ size_t real_size(size_t _sz)
     return _sz + ((sizeof(uint64_t) - (_sz % sizeof(uint64_t))) % sizeof(uint64_t));
 }
 
-struct Message : frame::mprpc::Message {
+struct Message final : frame::mprpc::Message, Poolable<Message> {
     static atomic_uint32_t create_count;
 
     uint32_t     idx;
@@ -95,7 +96,7 @@ struct Message : frame::mprpc::Message {
     {
         ++create_count;
         solid_dbg(generic_logger, Info, "CREATE ---------------- " << this << " idx = " << idx);
-        init();
+        init_start();
     }
     Message()
         : serialized(false)
@@ -122,6 +123,23 @@ struct Message : frame::mprpc::Message {
     }
 
     void init()
+    {
+        idx = 0;
+        str.clear();
+        serialized = false;
+        clearHeader();
+    }
+
+    void init(uint32_t _idx)
+    {
+        idx = _idx;
+        str.clear();
+        serialized = false;
+        init_start();
+        clearHeader();
+    }
+
+    void init_start()
     {
         const size_t sz = real_size(initarray[idx % initarraysize].size);
         str.resize(sz);
@@ -256,7 +274,7 @@ void server_complete_message(
         solid_dbg(generic_logger, Info, crtreadidx);
         if (crtwriteidx < writecount and pmprpcclient) {
             err = pmprpcclient->sendMessage(
-                {""}, frame::mprpc::make_message<Message>(crtwriteidx++),
+                {""}, frame::mprpc::make_pool_message<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
             solid_check(!err, "Connection id should not be invalid! " << err.message());
         } else {
@@ -270,7 +288,7 @@ void server_complete_message(
 
 } // namespace
 
-int test_clientserver_basic(int argc, char* argv[])
+int test_clientserver_pool(int argc, char* argv[])
 {
 
     solid::log_start(std::cerr, {".*:EWXS"});
@@ -347,7 +365,9 @@ int test_clientserver_basic(int argc, char* argv[])
             auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
                 reflection::v1::metadata::factory,
                 [&](auto& _rmap) {
-                    _rmap.template registerMessage<Message>(1, "Message", server_complete_message);
+                    _rmap.template registerMessage<Message>(1, "Message", server_complete_message, [](auto&, auto& ptr) {
+                        ptr = frame::mprpc::make_pool_message<Message>();
+                    });
                 });
             frame::mprpc::Configuration cfg(sch_server, proto);
 
@@ -433,7 +453,7 @@ int test_clientserver_basic(int argc, char* argv[])
 
         for (; crtwriteidx < start_count;) {
             mprpcclient.sendMessage(
-                {""}, frame::mprpc::make_message<Message>(crtwriteidx++),
+                {""}, frame::mprpc::make_pool_message<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mprpc::MessageFlagsE::AwaitResponse);
         }
 

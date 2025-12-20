@@ -19,11 +19,18 @@ using namespace solid;
 namespace {
 
 struct First final : IntrusiveThreadSafeBase, Poolable<First> {
-    uint64_t v_ = 0;
+    static atomic_uint32_t create_count;
+    uint64_t               v_ = 0;
 
     First(uint64_t _v)
         : v_(_v)
     {
+        ++create_count;
+    }
+
+    ~First()
+    {
+        --create_count;
     }
 
     void init(uint64_t _v)
@@ -33,11 +40,18 @@ struct First final : IntrusiveThreadSafeBase, Poolable<First> {
 };
 
 struct Second final : IntrusiveThreadSafeBase, Poolable<Second> {
-    string v_;
+    static atomic_uint32_t create_count;
+    string                 v_;
 
     Second(string_view _v)
         : v_(_v)
     {
+        ++create_count;
+    }
+
+    ~Second()
+    {
+        --create_count;
     }
 
     void init(string_view _v)
@@ -45,6 +59,9 @@ struct Second final : IntrusiveThreadSafeBase, Poolable<Second> {
         v_ = _v;
     }
 };
+
+atomic_uint32_t First::create_count{0};
+atomic_uint32_t Second::create_count{0};
 
 template <typename Msg>
 struct Task {
@@ -176,5 +193,8 @@ int test_pool_basic(int /*argc*/, char* /*argv*/[])
     {
         jthread thr{test_thread_pool};
     }
+
+    solid_check(First::create_count == 0);
+    solid_check(Second::create_count == 0);
     return 0;
 }

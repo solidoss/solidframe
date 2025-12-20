@@ -56,6 +56,7 @@ if(OPENSSL_FOUND)
 
     set( mprpcClientServerTestSuite
         test_clientserver_basic.cpp
+        test_clientserver_pool.cpp
         test_clientserver_versioning.cpp
         test_clientserver_sendrequest.cpp
         test_clientserver_cancel_server.cpp
@@ -127,6 +128,8 @@ if(OPENSSL_FOUND)
     add_test(NAME TestClientServerBasic_4B               COMMAND  test_mprpc_clientserver test_clientserver_basic 4 b)
     add_test(NAME TestClientServerBasic_8B               COMMAND  test_mprpc_clientserver test_clientserver_basic 8 b)
     add_test(NAME TestClientServerBasic_8BC              COMMAND  test_mprpc_clientserver test_clientserver_basic 8 b c)
+
+    add_test(NAME TestClientServerPool_8                 COMMAND  test_mprpc_clientserver test_clientserver_pool 8)
 
     add_test(NAME TestClientServerVersioning            COMMAND  test_mprpc_clientserver test_clientserver_versioning)
 
