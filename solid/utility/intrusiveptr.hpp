@@ -697,7 +697,6 @@ inline IntrusivePtr<T1> dynamic_pointer_cast(IntrusivePtr<T2>&& _rp) noexcept
 template <class TT, class... Args>
 inline MutableIntrusivePtr<TT> make_mutable_intrusive(Args&&... _args)
 {
-    // return IntrusivePtr<TT>(new TT(std::forward<Args>(_args)...));
     return MutableIntrusivePtr<TT>(make_intrusive<TT>(std::forward<Args>(_args)...));
 }
 
