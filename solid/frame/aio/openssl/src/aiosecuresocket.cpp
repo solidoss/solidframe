@@ -122,10 +122,7 @@ std::string ErrorCategory::message(int _ev) const
 
 } // namespace
 
-namespace solid {
-namespace frame {
-namespace aio {
-namespace openssl {
+namespace solid::frame::aio::openssl {
 
 namespace {
 const LoggerT logger("solid::frame::aio::openssl");
@@ -592,7 +589,6 @@ ssize_t Socket::recv(ReactorContext& _rctx, char* _pb, size_t _bl, bool& _can_re
         if (err_sys) {
             _rerr = err_sys;
         } else {
-            // TODO: find out why this happens
             _rerr = solid::error_system;
         }
         solid_assert_log(_rerr, logger);
@@ -653,7 +649,6 @@ ssize_t Socket::send(ReactorContext& _rctx, const char* _pb, size_t _bl, bool& _
         if (err_sys) {
             _rerr = err_sys;
         } else {
-            // TODO: find out why this happens
             _rerr = solid::error_system;
         }
         break;
@@ -713,7 +708,6 @@ bool Socket::secureAccept(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& _
         if (err_sys) {
             _rerr = err_sys;
         } else {
-            // TODO: find out why this happens
             _rerr = solid::error_system;
         }
         break;
@@ -775,7 +769,6 @@ bool Socket::secureConnect(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& 
         if (err_sys) {
             _rerr = err_sys;
         } else {
-            // TODO: find out why this happens
             _rerr = solid::error_system;
         }
         break;
@@ -835,7 +828,6 @@ bool Socket::secureShutdown(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT&
         if (err_sys) {
             _rerr = err_sys;
         } else {
-            // TODO: find out why this happens
             _rerr = solid::error_system;
         }
         break;
@@ -975,7 +967,4 @@ ErrorCodeT Socket::setCheckIP(const std::string& _ip)
     return wrapper_category.makeError(WrapperError::SetCheckIP);
 }
 
-} // namespace openssl
-} // namespace aio
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::aio::openssl

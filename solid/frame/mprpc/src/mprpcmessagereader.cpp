@@ -19,9 +19,7 @@
 
 #include <cassert>
 
-namespace solid {
-namespace frame {
-namespace mprpc {
+namespace solid::frame::mprpc {
 namespace {
 const LoggerT logger("solid::frame::mprpc::reader");
 }
@@ -168,7 +166,6 @@ void MessageReader::doConsumePacketLoop(
     } // while
 }
 //-----------------------------------------------------------------------------
-// TODO: change the CHECKs below to propper protocol errors.
 void MessageReader::doConsumePacket(
     const char*            _pbuf,
     PacketHeader const&    _packet_header,
@@ -191,7 +188,7 @@ void MessageReader::doConsumePacket(
     if (!_packet_header.isCompressed()) [[likely]] {
         doConsumePacketLoop(pbufpos, pbufend, _receiver, _rerror);
     } else {
-        char         tmpbuf[Protocol::max_packet_size]; // decompress = TODO: try not to use so much stack
+        char         tmpbuf[Protocol::max_packet_size]; // TODO: try not to use so much stack
         const size_t uncompressed_size = _receiver.configuration().decompress_fnc(tmpbuf, pbufpos, pbufend - pbufpos, _rerror);
 
         if (!_rerror) {
@@ -506,7 +503,6 @@ void MessageReader::doConsumeMessageRelayResponse(
         solid_log(logger, Verbose, "msgidx = " << _msgidx << " message_size = " << _message_size);
         const bool is_message_end = (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0;
 
-        // TODO:
         if (_receiver.receiveRelayResponse(rmsgstub.message_header_, _pbufpos, _message_size, rmsgstub.relay_id, is_message_end, _rerror)) {
             rmsgstub.state_ = MessageStub::StateE::RelayBody;
         } else {
@@ -642,6 +638,4 @@ Deserializer::PointerT MessageReader::createDeserializer(MessageReaderReceiver& 
 /*virtual*/ void MessageReaderReceiver::cancelRelayed(const MessageId&) {}
 //-----------------------------------------------------------------------------
 
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc

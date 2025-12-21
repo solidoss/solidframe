@@ -1321,7 +1321,7 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushAll(Tsk&& _task)
 
     if (should_wake_threads) {
         for (size_t i = 0; i < threads_.size(); ++i) {
-            const auto [index, count] = pushOneIndex(); // TODO:
+            const auto [index, count] = pushOneIndex();
             auto& rstub               = one_.tasks_[index];
 
             rstub.waitWhilePushAll(statistic_, count, spin_count_);

@@ -25,9 +25,7 @@ namespace {
 const LoggerT logger("solid::frame::mprpc::relay");
 }
 
-namespace frame {
-namespace mprpc {
-namespace relay {
+namespace frame::mprpc::relay {
 //-----------------------------------------------------------------------------
 namespace {
 using ConnectionMapT = std::unordered_map<uint32_t, size_t>;
@@ -138,7 +136,6 @@ std::ostream& SingleNameEngine::print(std::ostream& _ros, const ConnectionStubBa
     return _ros << "con.id = " << _rcon.id_ << " con = " << _rcon.group_id_ << ", " << _rcon.replica_id_;
 }
 //-----------------------------------------------------------------------------
-} // namespace relay
-} // namespace mprpc
-} // namespace frame
+} // namespace frame::mprpc::relay
+
 } // namespace solid

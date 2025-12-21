@@ -405,29 +405,7 @@ public:
         *this = ThisT{std::forward<T>(_rvalue)};
         return *this;
     }
-#if 0
-    template <class T>
-    ThisT& emplace(T&& _rvalue)
-    {
-        *this = ThisT{std::forward<T>(_rvalue), AcceptBigT{}};
-        return *this;
-    }
 
-    template <class T, class... Args>
-    ThisT& emplace(Args&&... _args)
-        requires(std::is_constructible_v<std::decay_t<T>, Args...>)
-    {
-        *this = ThisT{std::in_place_type_t<T>{}, std::forward<Args>(_args)..., AcceptBigT{}};
-        return *this;
-    }
-    template <class T, class E, class... Args>
-    ThisT& emplace(std::initializer_list<E> _ilist, Args&&... _args)
-        requires(std::is_constructible_v<std::decay_t<T>, std::initializer_list<E>&, Args...>)
-    {
-        *this = ThisT{std::in_place_type_t<T>{}, _ilist, std::forward<Args>(_args)..., AcceptBigT{}};
-        return *this;
-    }
-#endif
     void reset() noexcept
     {
         auto const rtti = rtti_;

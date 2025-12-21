@@ -27,10 +27,7 @@
 #include "solid/utility/innerlist.hpp"
 #include "solid/utility/ioformat.hpp"
 
-namespace solid {
-namespace serialization {
-inline namespace v3 {
-namespace binary {
+namespace solid::serialization::inline v3::binary {
 
 class SerializerBase : public Base {
     struct Runnable;
@@ -396,7 +393,7 @@ public: // should be protected
             typename C::const_iterator it = _rc.cbegin();
 
             while (_rs.pcrt_ != _rs.pend_ && it != _rc.cend()) {
-                _rs.add(*it, _rctx, 0, _name); // TODO: use index instead of 0
+                _rs.add(*it, _rctx, 0, _name);
                 ++it;
             }
 
@@ -408,7 +405,7 @@ public: // should be protected
                     const RunListIteratorT old_sentinel = _rs.sentinel();
 
                     while (_rs.pcrt_ != _rs.pend_ && it != rcontainer.cend()) {
-                        rs.add(*it, rctx, 0, _rr.name_); // TODO: use index instead of 0
+                        rs.add(*it, rctx, 0, _rr.name_);
                         ++it;
                     }
 
@@ -981,7 +978,4 @@ inline std::ostream& operator>>(std::ostream& _ros, std::pair<S&, typename S::Co
     return _ser.first.run(_ros, _ser.second);
 }
 
-} // namespace binary
-} // namespace v3
-} // namespace serialization
-} // namespace solid
+} // namespace solid::serialization::inline v3::binary

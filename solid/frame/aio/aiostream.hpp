@@ -16,9 +16,7 @@
 #include "solid/system/socketdevice.hpp"
 #include <cassert>
 
-namespace solid {
-namespace frame {
-namespace aio {
+namespace solid::frame::aio {
 
 struct ActorProxy;
 class ReactorContext;
@@ -781,6 +779,4 @@ private:
     bool          send_is_posted;
 };
 
-} // namespace aio
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::aio

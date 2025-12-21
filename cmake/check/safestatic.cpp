@@ -1,4 +1,3 @@
-//TODO: usefull comment
 #include <cstdlib>
 using namespace std;
 
@@ -7,15 +6,18 @@ void sssleep();
 
 static int counter = 0;
 
-struct A{
-    A(int _v=0):v(_v){
+struct A {
+    A(int _v = 0)
+        : v(_v)
+    {
         ssleep();
         v = -1;
     }
     int v;
 };
 
-int getV(){
+int getV()
+{
     static A a;
     return a.v;
 }
@@ -25,27 +27,31 @@ int getV(){
 
 static CRITICAL_SECTION cs;
 
-void init(){
-    //on windows allways a problem with the static
-    //assert(false);
+void init()
+{
+    // on windows allways a problem with the static
+    // assert(false);
     InitializeCriticalSection(&cs);
 }
-DWORD th_run(void *_pv){
+DWORD th_run(void* _pv)
+{
     int v = getV();
-    //assert(v);
-    if(v == 0){
+    // assert(v);
+    if (v == 0) {
         exit(-3);
     }
     return 0;
 }
-void create_thread(){
+void create_thread()
+{
     CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&th_run, NULL, 0, NULL);
 }
 
-void ssleep(){
+void ssleep()
+{
     EnterCriticalSection(&cs);
-    //assert(!counter);
-    if(counter != 0){
+    // assert(!counter);
+    if (counter != 0) {
         exit(-2);
     }
     counter = 1;
@@ -53,10 +59,10 @@ void ssleep(){
     Sleep(1000);
 }
 
-void sssleep(){
+void sssleep()
+{
     Sleep(2000);
 }
-
 
 #else
 
@@ -65,19 +71,21 @@ void sssleep(){
 
 pthread_mutex_t mut;
 
-void init(){
+void init()
+{
     counter = 0;
-//  pthread_mutexattr_t att;
-//  pthread_mutexattr_init(&att);
-//  pthread_mutexattr_settype(&att, (int)ERRORCHECK);
-    pthread_mutex_init(&mut,NULL);
-    //pthread_mutexattr_destroy(&att);
+    //  pthread_mutexattr_t att;
+    //  pthread_mutexattr_init(&att);
+    //  pthread_mutexattr_settype(&att, (int)ERRORCHECK);
+    pthread_mutex_init(&mut, NULL);
+    // pthread_mutexattr_destroy(&att);
 }
 
-void ssleep(){
+void ssleep()
+{
     pthread_mutex_lock(&mut);
-    //assert(!counter);
-    if(counter != 0){
+    // assert(!counter);
+    if (counter != 0) {
         exit(-3);
     }
     counter = 1;
@@ -85,32 +93,36 @@ void ssleep(){
     sleep(1);
 }
 
-void sssleep(){
+void sssleep()
+{
     sleep(2);
 }
 
-void* th_run(void *pv){
-    //assert(getV());
+void* th_run(void* pv)
+{
+    // assert(getV());
     int v = getV();
-    //assert(v);
-    if(v == 0){
+    // assert(v);
+    if (v == 0) {
         exit(-2);
     }
     return NULL;
 }
 
-void create_thread(){
+void create_thread()
+{
     pthread_t th;
-    pthread_create(&th,NULL,&th_run,NULL);
+    pthread_create(&th, NULL, &th_run, NULL);
 }
 #endif
 
-int main(){
+int main()
+{
     init();
     create_thread();
     int v = getV();
-    //assert(v);
-    if(v == 0){
+    // assert(v);
+    if (v == 0) {
         return -1;
     }
     sssleep();

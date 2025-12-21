@@ -927,11 +927,8 @@ char* MessageWriter::doWriteRelayedCancel(
 
     _pbufpos = _rsender.protocol().storeCompactValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
 
-    // TODO: add support for sending also rmsgstub.prelay_data_->pmessage_header_->recipient_request_id_
     solid_check_log(_pbufpos != nullptr, logger, "fail store cross value");
     solid_assert_log(rmsgstub.prelay_data_ == nullptr, logger);
-    //_rsender.completeRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
-    // rmsgstub.prelay_data_ = nullptr;msgstub.prelay_data_
 
     solid_assert_log(write_inner_list_.size(), logger);
     doWriteQueueErase(_msgidx, __LINE__);

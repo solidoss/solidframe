@@ -561,19 +561,3 @@ using SmallFunction256T = Function<T, function_size_to_small_size<256>(), functi
 //-----------------------------------------------------------------------------
 
 } // namespace solid
-
-#if 0
-
-#ifdef SOLID_USE_STD_FUNCTION
-
-#define solid_function_t(...) std::function<__VA_ARGS__>
-
-#else
-
-#define solid_function_t(...) solid::Function<__VA_ARGS__>
-
-#endif
-
-#define solid_function_empty(f) (!f)
-#define solid_function_clear(f) (f = nullptr)
-#endif

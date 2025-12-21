@@ -60,7 +60,6 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             service(_rctx).acceptIncomingConnection(_rsd);
         } else if (_rctx.error() == aio::error_listener_hangup) {
             solid_log(logger, Error, "listen hangup" << _rctx.error().message());
-            // TODO: maybe you shoud restart the listener.
             postStop(_rctx);
         } else {
             solid_log(logger, Info, "listen error" << _rctx.error().message());

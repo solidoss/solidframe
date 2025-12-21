@@ -22,10 +22,7 @@
 #include "solid/utility/common.hpp"
 #include "solid/utility/function.hpp"
 
-namespace solid {
-namespace serialization {
-inline namespace v3 {
-namespace binary {
+namespace solid::serialization::inline v3::binary {
 
 class DeserializerBase : public Base {
     struct Runnable;
@@ -379,7 +376,7 @@ public:
             const RunListIteratorT old_sentinel = _rd.sentinel();
 
             while (_rd.pcrt_ != _rd.pend_ && _rr.size_ != 0) {
-                rd.add(value, rctx, 0, _rr.name_); // TODO: use a propper index
+                rd.add(value, rctx, 0, _rr.name_);
                 --_rr.size_;
 
                 if (_rd.isRunEmpty()) {
@@ -758,7 +755,7 @@ private:
         const RunListIteratorT old_sentinel = _rd.sentinel();
 
         while (_rd.pcrt_ != _rd.pend_ && _rr.data_ < _rr.size_) {
-            rd.add(rcontainer[static_cast<size_t>(_rr.data_)], rctx, 0, _rr.name_); // TODO: add propper index
+            rd.add(rcontainer[static_cast<size_t>(_rr.data_)], rctx, 0, _rr.name_);
             ++_rr.data_;
         }
 
@@ -1169,7 +1166,4 @@ inline std::istream& operator>>(std::istream& _ris, std::pair<D&, typename D::Co
     return _des.first.run(_ris, _des.second);
 }
 
-} // namespace binary
-} // namespace v3
-} // namespace serialization
-} // namespace solid
+} // namespace solid::serialization::inline v3::binary

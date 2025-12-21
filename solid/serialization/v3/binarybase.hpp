@@ -20,9 +20,7 @@
 #include "solid/system/log.hpp"
 #include "solid/utility/common.hpp"
 
-namespace solid {
-namespace serialization {
-inline namespace v3 {
+namespace solid::serialization::inline v3 {
 
 extern const LoggerT logger;
 
@@ -46,6 +44,4 @@ protected:
 };
 
 } // namespace binary
-} // namespace v3
-} // namespace serialization
-} // namespace solid
+} // namespace solid::serialization::inline v3

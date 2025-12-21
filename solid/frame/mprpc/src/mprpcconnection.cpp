@@ -999,7 +999,7 @@ template <class Ctx>
         solid_log(logger, Verbose, &rthis << "");
         // we need the connection_on_secure_accept_fnc for advancing.
         if (not config.server.connection_on_secure_handshake_fnc) {
-            rthis.doStop<Ctx>(_rctx, error_connection_invalid_state); // TODO: add new error
+            rthis.doStop<Ctx>(_rctx, error_connection_invalid_state);
         }
     } else {
         rthis.flags_.set(FlagsE::Secure);
@@ -2383,8 +2383,6 @@ void RelayConnection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, 
             cancelRemoveMessageVectorAppend(_rmsghdr.recipient_request_id_);
             // we do nothing here because the message cancel will be discovered onto messagereader
             // when calling receiveRelayBody which will return false
-
-            // TODO:!!!!
         };
 
         config.relayEngine().pollDone(relayId(), done_lambda, cancel_lambda);

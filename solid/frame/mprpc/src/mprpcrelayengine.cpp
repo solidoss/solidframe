@@ -894,7 +894,6 @@ void EngineCore::doComplete(
                 }
             } else if (_prelay_data->isMessageEnd()) {
                 // completed a partial response message
-                // TODO:!!!!
                 rmsg.state_ = MessageStateE::WaitResponsePart;
 
                 solid_log(logger, Info, _rrelay_con_uid << " WaitResponsePart " << msgidx << " send snd_lst = " << rsndcon.send_msg_list_ << " send rcv_lst = " << rsndcon.recv_msg_list_ << " recv snd_lst = " << rrcvcon.send_msg_list_ << " recv rcv_lst = " << rrcvcon.recv_msg_list_);
