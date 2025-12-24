@@ -89,7 +89,7 @@ class DeserializerBase : public Base {
             , size_(_size)
             , data_(_data)
             , name_(_name)
-            , fnc_ptr_(std::make_unique<FunctionT>(std::move(_f)))
+            , fnc_ptr_(std::make_unique<FunctionT>(std::move(_f), AcceptBigT{}))
             , limit_(0)
         {
         }
