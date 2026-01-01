@@ -60,7 +60,7 @@ void test_thread_pool()
     constexpr size_t thread_count = 1;
 
     using VariantT    = std::variant<Task>;
-    using ThreadPoolT = ThreadPool<VariantT, size_t, solid::EmptyThreadPoolStatistic>;
+    using ThreadPoolT = ThreadPool<VariantT, size_t, solid::DefaultThreadPoolTraits<solid::EmptyThreadPoolStatistic>>;
 
     mutex                           m;
     std::unordered_set<void const*> uset;

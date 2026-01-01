@@ -229,7 +229,16 @@ struct ThreadPoolConfiguration {
     }
 };
 
-template <class TaskOne, class TaskAll, class Stats = ThreadPoolStatistic>
+template <typename Stats = ThreadPoolStatistic>
+struct DefaultThreadPoolTraits {
+    using StatsT            = Stats;
+    using AllIdT            = uint64_t;
+    using ContextProduceIdT = uint32_t;
+    using CounterT          = uint8_t;
+    using EventUnderlyingT  = uint8_t;
+};
+
+template <class TaskOne, class TaskAll, class Traits = DefaultThreadPoolTraits<>>
 class ThreadPool;
 
 template <class TP, class ContextStub>
@@ -237,7 +246,7 @@ class SynchronizationContext {
     TP*          pthread_pool_ = nullptr;
     ContextStub* pcontext_     = nullptr;
 
-    template <class TaskOne, class TaskAll, class Stats>
+    template <class TaskOne, class TaskAll, class Traits>
     friend class ThreadPool;
 
     SynchronizationContext(TP* _pthread_pool, ContextStub* _pcontext)
@@ -287,7 +296,7 @@ public:
         }
     }
 
-    bool empty() const
+    [[nodiscard]] bool empty() const
     {
         return pthread_pool_ == nullptr;
     }
@@ -303,7 +312,7 @@ public:
 namespace tpimpl {
 
 template <typename T>
-typename std::decay<T>::type decay_copy(T&& v)
+std::decay_t<T> decay_copy(T&& v)
 {
     return std::forward<T>(v);
 }
@@ -413,7 +422,7 @@ NOTE:
     the processing will get delayed because we need to build the All context by
     running all the TaskAll.
 */
-template <class TaskOne, class TaskAll, class Stats>
+template <class TaskOne, class TaskAll, class Traits>
 class ThreadPool : NonCopyable {
 public:
     static constexpr size_t spin_count = 10;
@@ -446,29 +455,34 @@ public:
         }
     };
 
+    using StatsT = Traits::StatsT;
+
 private:
-    enum struct EventE : uint8_t {
+    enum struct EventE : typename Traits::EventUnderlyingT {
         Fill,
         Stop,
         Wake,
     };
 
-    using AtomicCounterT      = std::atomic<uint8_t>;
+    using AtomicCounterT      = std::atomic<typename Traits::CounterT>;
     using AtomicCounterValueT = AtomicCounterT::value_type;
+    using AllIdT              = Traits::AllIdT;
+    using ContextProduceIdT   = Traits::ContextProduceIdT;
+
     template <class IndexT>
-    inline constexpr static auto computeCounter(const IndexT _index, const size_t _capacity) noexcept
+    constexpr static auto computeCounter(const IndexT _index, const size_t _capacity) noexcept
     {
         return (_index / _capacity) & std::numeric_limits<AtomicCounterValueT>::max();
     }
 
     struct OneStub {
-        AtomicCounterT     produce_count_{0};
-        AtomicCounterT     consume_count_{std::numeric_limits<AtomicCounterValueT>::max()};
-        std::uint8_t       event_              = {to_underlying(EventE::Fill)};
-        TaskData<TaskOne>* data_ptr_           = nullptr;
-        ContextStub*       pcontext_           = nullptr;
-        uint64_t           all_id_             = 0;
-        uint64_t           context_produce_id_ = 0;
+        TaskData<TaskOne>*             data_ptr_           = nullptr;
+        ContextStub*                   pcontext_           = nullptr;
+        AllIdT                         all_id_             = 0;
+        ContextProduceIdT              context_produce_id_ = 0;
+        AtomicCounterT                 produce_count_{0};
+        AtomicCounterT                 consume_count_{std::numeric_limits<AtomicCounterValueT>::max()};
+        std::underlying_type_t<EventE> event_ = {to_underlying(EventE::Fill)};
 
         auto& task() noexcept
         {
@@ -492,7 +506,7 @@ private:
             context_produce_id_ = 0;
         }
 
-        void waitWhilePushOne(Stats& _rstats, const AtomicCounterValueT _count, const size_t _spin_count) noexcept
+        void waitWhilePushOne(StatsT& _rstats, const AtomicCounterValueT _count, const size_t _spin_count) noexcept
         {
             auto spin = _spin_count;
             while (true) {
@@ -514,12 +528,12 @@ private:
             std::atomic_notify_all(&consume_count_);
         }
 
-        void waitWhileStop(Stats& _rstats, const AtomicCounterValueT _count, const size_t _spin_count) noexcept
+        void waitWhileStop(StatsT& _rstats, const AtomicCounterValueT _count, const size_t _spin_count) noexcept
         {
             waitWhilePushOne(_rstats, _count, _spin_count);
         }
 
-        void waitWhilePushAll(Stats& _rstats, const AtomicCounterValueT _count, const size_t _spin_count) noexcept
+        void waitWhilePushAll(StatsT& _rstats, const AtomicCounterValueT _count, const size_t _spin_count) noexcept
         {
             waitWhilePushOne(_rstats, _count, _spin_count);
         }
@@ -542,7 +556,7 @@ private:
             class Fnc,
             class AllFnc,
             typename... Args>
-        EventE waitWhilePop(Stats& _rstats, const AtomicCounterValueT _count, const size_t _spin_count, const Fnc& _try_consume_an_all_fnc, AllFnc& _all_fnc, Args&&... _args) noexcept
+        EventE waitWhilePop(StatsT& _rstats, const AtomicCounterValueT _count, const size_t _spin_count, const Fnc& _try_consume_an_all_fnc, AllFnc& _all_fnc, Args&&... _args) noexcept
         {
             auto spin = _spin_count;
             while (true) {
@@ -589,7 +603,7 @@ private:
             data_ptr_->destroy();
         }
 
-        void waitWhilePushAll(Stats& _rstats, const AtomicCounterValueT _count, const size_t _spin_count) noexcept
+        void waitWhilePushAll(StatsT& _rstats, const AtomicCounterValueT _count, const size_t _spin_count) noexcept
         {
             auto spin = _spin_count;
             while (true) {
@@ -623,7 +637,7 @@ private:
             return false;
         }
 
-        bool isFilled(const uint64_t _id, const size_t _capacity) const
+        [[nodiscard]] bool isFilled(const uint64_t _id, const size_t _capacity) const
         {
             const auto                count          = consume_count_.load();
             const AtomicCounterValueT expected_count = computeCounter(_id, _capacity);
@@ -645,12 +659,12 @@ private:
         size_t                               capacity_{0};
         std::atomic_size_t                   pending_count_{0};
         std::atomic_uint_fast64_t            push_index_{1};
-        std::atomic_uint_fast64_t            commited_index_{0};
+        std::atomic<typename Traits::AllIdT> commited_index_{0};
         std::unique_ptr<AllStubT[]>          tasks_;
         std::unique_ptr<TaskData<TaskAll>[]> datas_;
     } all_;
 
-    Stats statistic_;
+    StatsT statistic_;
     using AtomicIndexT      = std::atomic_size_t;
     using AtomicIndexValueT = std::atomic_size_t::value_type;
 
@@ -709,7 +723,7 @@ public:
     template <class Tsk>
     void doPushAll(Tsk&& _task);
 
-    const Stats& statistic() const
+    const StatsT& statistic() const
     {
         return statistic_;
     }
@@ -731,11 +745,11 @@ public:
 
     ContextStub* doCreateContext();
 
-    size_t capacityOne() const
+    [[nodiscard]] size_t capacityOne() const
     {
         return one_.capacity_;
     }
-    size_t capacityAll() const
+    [[nodiscard]] size_t capacityAll() const
     {
         return all_.capacity_;
     }
@@ -746,31 +760,31 @@ private:
         class AllFnc,
         typename... Args>
     void doRun(
-        const size_t _thread_index,
-        OneFnc&      _one_fnc,
-        AllFnc&      _all_fnc,
+        size_t  _thread_index,
+        OneFnc& _one_fnc,
+        AllFnc& _all_fnc,
         Args&&... _args);
 
     template <
         class AllFnc,
         typename... Args>
     bool tryConsumeAnAllTask(AtomicCounterT* _pcounter,
-        const AtomicCounterValueT _count, LocalContext& _rlocal_context, AllFnc& _all_fnc, Args&&... _args);
+        AtomicCounterValueT _count, LocalContext& _rlocal_context, AllFnc& _all_fnc, Args&&... _args);
     template <
         class AllFnc,
         typename... Args>
-    void consumeAll(LocalContext& _rlocal_context, const uint64_t _all_id, AllFnc& _all_fnc, Args&&... _args);
+    void consumeAll(LocalContext& _rlocal_context, uint64_t _all_id, AllFnc& _all_fnc, Args&&... _args);
 };
 
 } // namespace tpimpl
 
-template <class TaskOne, class TaskAll, class Stats>
+template <class TaskOne, class TaskAll, class Traits>
 class ThreadPool {
     template <class TP, class ContextStub>
     friend class SynchronizationContext;
 
-    using ImplT = tpimpl::ThreadPool<TaskOne, TaskAll, Stats>;
-    using ThisT = ThreadPool<TaskOne, TaskAll, Stats>;
+    using ImplT = tpimpl::ThreadPool<TaskOne, TaskAll, Traits>;
+    using ThisT = ThreadPool<TaskOne, TaskAll, Traits>;
 
     ImplT impl_;
 
@@ -841,7 +855,7 @@ public:
         return SynchronizationContextT{this, impl_.doCreateContext()};
     }
 
-    const Stats& statistic() const
+    [[nodiscard]] const ImplT::StatsT& statistic() const
     {
         return impl_.statistic();
     }
@@ -862,11 +876,11 @@ public:
     {
         impl_.doPushAll(std::forward<Tsk>(_task));
     }
-    size_t capacityOne() const
+    [[nodiscard]] size_t capacityOne() const
     {
         return impl_.capacityOne();
     }
-    size_t capacityAll() const
+    [[nodiscard]] size_t capacityAll() const
     {
         return impl_.capacityAll();
     }
@@ -878,15 +892,15 @@ private:
     }
 };
 
-template <class... ArgTypes, size_t OneFunctionDataSize, size_t AllFunctionDataSize, class Stats>
-class ThreadPool<Function<void(ArgTypes...), OneFunctionDataSize>, Function<void(ArgTypes...), AllFunctionDataSize>, Stats> {
+template <class... ArgTypes, size_t OneFunctionDataSize, size_t AllFunctionDataSize, class Traits>
+class ThreadPool<Function<void(ArgTypes...), OneFunctionDataSize>, Function<void(ArgTypes...), AllFunctionDataSize>, Traits> {
     template <class TP, class ContextStub>
     friend class SynchronizationContext;
 
     using OneFunctionT = Function<void(ArgTypes...), OneFunctionDataSize>;
     using AllFunctionT = Function<void(ArgTypes...), AllFunctionDataSize>;
-    using ImplT        = tpimpl::ThreadPool<OneFunctionT, AllFunctionT, Stats>;
-    using ThisT        = ThreadPool<OneFunctionT, AllFunctionT, Stats>;
+    using ImplT        = tpimpl::ThreadPool<OneFunctionT, AllFunctionT, Traits>;
+    using ThisT        = ThreadPool<OneFunctionT, AllFunctionT, Traits>;
 
     ImplT impl_;
 
@@ -966,7 +980,7 @@ public:
         return SynchronizationContextT{this, impl_.doCreateContext()};
     }
 
-    const Stats& statistic() const
+    [[nodiscard]] const ImplT::StatsT& statistic() const
     {
         return impl_.statistic();
     }
@@ -987,11 +1001,11 @@ public:
     {
         impl_.doPushAll(std::forward<Tsk>(_task));
     }
-    size_t capacityOne() const
+    [[nodiscard]] size_t capacityOne() const
     {
         return impl_.capacityOne();
     }
-    size_t capacityAll() const
+    [[nodiscard]] size_t capacityAll() const
     {
         return impl_.capacityAll();
     }
@@ -1005,14 +1019,14 @@ private:
 
 namespace tpimpl {
 //-----------------------------------------------------------------------------
-template <class TaskOne, class TaskAll, class Stats>
+template <class TaskOne, class TaskAll, class Traits>
 template <
     class StartFnc,
     class StopFnc,
     class OneFnc,
     class AllFnc,
     typename... Args>
-void ThreadPool<TaskOne, TaskAll, Stats>::doStart(
+void ThreadPool<TaskOne, TaskAll, Traits>::doStart(
     const ThreadPoolConfiguration& _config,
     StartFnc                       _start_fnc,
     StopFnc                        _stop_fnc,
@@ -1070,8 +1084,8 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doStart(
     }
 }
 //-----------------------------------------------------------------------------
-template <class TaskOne, class TaskAll, class Stats>
-void ThreadPool<TaskOne, TaskAll, Stats>::doStop()
+template <class TaskOne, class TaskAll, class Traits>
+void ThreadPool<TaskOne, TaskAll, Traits>::doStop()
 {
     bool expect = true;
 
@@ -1093,12 +1107,12 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doStop()
     }
 }
 //-----------------------------------------------------------------------------
-template <class TaskOne, class TaskAll, class Stats>
+template <class TaskOne, class TaskAll, class Traits>
 template <
     class OneFnc,
     class AllFnc,
     typename... Args>
-void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
+void ThreadPool<TaskOne, TaskAll, Traits>::doRun(
     const size_t _thread_index,
     OneFnc&      _one_fnc,
     AllFnc&      _all_fnc,
@@ -1213,11 +1227,11 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doRun(
     }
 }
 //-----------------------------------------------------------------------------
-template <class TaskOne, class TaskAll, class Stats>
+template <class TaskOne, class TaskAll, class Traits>
 template <
     class AllFnc,
     typename... Args>
-bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(AtomicCounterT* _pcounter,
+bool ThreadPool<TaskOne, TaskAll, Traits>::tryConsumeAnAllTask(AtomicCounterT* _pcounter,
     const AtomicCounterValueT _count, LocalContext& _rlocal_context, AllFnc& _all_fnc, Args&&... _args)
 {
     auto& rstub = all_.tasks_[_rlocal_context.next_all_id_ % all_.capacity_];
@@ -1261,11 +1275,11 @@ bool ThreadPool<TaskOne, TaskAll, Stats>::tryConsumeAnAllTask(AtomicCounterT* _p
     return should_retry;
 }
 //-----------------------------------------------------------------------------
-template <class TaskOne, class TaskAll, class Stats>
+template <class TaskOne, class TaskAll, class Traits>
 template <
     class AllFnc,
     typename... Args>
-void ThreadPool<TaskOne, TaskAll, Stats>::consumeAll(LocalContext& _rlocal_context, const uint64_t _all_id, AllFnc& _all_fnc, Args&&... _args)
+void ThreadPool<TaskOne, TaskAll, Traits>::consumeAll(LocalContext& _rlocal_context, const uint64_t _all_id, AllFnc& _all_fnc, Args&&... _args)
 {
     size_t repeat_count = 0;
     while (overflow_safe_less(_rlocal_context.next_all_id_, _all_id) || _rlocal_context.next_all_id_ == _all_id) {
@@ -1275,9 +1289,9 @@ void ThreadPool<TaskOne, TaskAll, Stats>::consumeAll(LocalContext& _rlocal_conte
     statistic_.consumeAll(repeat_count);
 }
 //-----------------------------------------------------------------------------
-template <class TaskOne, class TaskAll, class Stats>
+template <class TaskOne, class TaskAll, class Traits>
 template <class Tsk>
-void ThreadPool<TaskOne, TaskAll, Stats>::doPushOne(Tsk&& _task, ContextStub* _pctx)
+void ThreadPool<TaskOne, TaskAll, Traits>::doPushOne(Tsk&& _task, ContextStub* _pctx)
 {
     using namespace std::chrono;
     const auto start          = statistic_.now();
@@ -1334,8 +1348,8 @@ void ThreadPool<TaskOne, TaskAll, Stats>::doPushAll(Tsk&& _task)
     statistic_.pushAll(should_wake_threads);
 }
 //-----------------------------------------------------------------------------
-template <class TaskOne, class TaskAll, class Stats>
-typename ThreadPool<TaskOne, TaskAll, Stats>::ContextStub* ThreadPool<TaskOne, TaskAll, Stats>::doCreateContext()
+template <class TaskOne, class TaskAll, class Traits>
+typename ThreadPool<TaskOne, TaskAll, Traits>::ContextStub* ThreadPool<TaskOne, TaskAll, Traits>::doCreateContext()
 {
     statistic_.createContext();
     return new ContextStub{};
