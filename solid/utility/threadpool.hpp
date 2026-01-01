@@ -14,6 +14,7 @@
 #include <chrono>
 #include <deque>
 #include <functional>
+#include <memory>
 #include <thread>
 #include <type_traits>
 
@@ -476,7 +477,12 @@ private:
     }
 
     struct OneStub {
-        TaskData<TaskOne>*             data_ptr_           = nullptr;
+        struct Init {
+            mutable size_t     index_ = 0;
+            TaskData<TaskOne>* tasks_ = nullptr;
+        };
+
+        TaskData<TaskOne>&             rdata_;
         ContextStub*                   pcontext_           = nullptr;
         AllIdT                         all_id_             = 0;
         ContextProduceIdT              context_produce_id_ = 0;
@@ -484,19 +490,24 @@ private:
         AtomicCounterT                 consume_count_{std::numeric_limits<AtomicCounterValueT>::max()};
         std::underlying_type_t<EventE> event_ = {to_underlying(EventE::Fill)};
 
+        OneStub(Init const& _rinit)
+            : rdata_(_rinit.tasks_[_rinit.index_++])
+        {
+        }
+
         auto& task() noexcept
         {
-            return data_ptr_->task();
+            return rdata_.task();
         }
         template <class T>
         void task(T&& _rt)
         {
-            data_ptr_->task(std::forward<T>(_rt));
+            rdata_.task(std::forward<T>(_rt));
         }
 
         void destroy()
         {
-            data_ptr_->destroy();
+            rdata_.destroy();
         }
 
         void clear() noexcept
@@ -648,10 +659,12 @@ private:
     using OneStubT      = OneStub;
     using ThreadVectorT = std::vector<std::thread>;
 
-    size_t spin_count_ = 1;
+    std::allocator<OneStubT> one_stub_allocator_;
+    size_t                   spin_count_ = 1;
     /* alignas(hardware_constructive_interference_size) */ struct {
-        size_t                               capacity_{0};
-        std::unique_ptr<OneStubT[]>          tasks_;
+        size_t capacity_{0};
+        // std::unique_ptr<OneStubT[]>          tasks_;//TODO:remove
+        OneStubT*                            tasks_;
         std::unique_ptr<TaskData<TaskOne>[]> datas_;
     } one_;
 
@@ -700,6 +713,14 @@ private:
 
 public:
     ThreadPool() = default;
+
+    ~ThreadPool()
+    {
+        for (size_t i = 0; i < one_.capacity_; ++i) {
+            std::destroy_at(&one_.tasks_[i]);
+        }
+        one_stub_allocator_.deallocate(one_.tasks_, one_.capacity_);
+    }
 
     template <
         class StartFnc,
@@ -1050,11 +1071,18 @@ void ThreadPool<TaskOne, TaskAll, Traits>::doStart(
     threads_.reserve(thread_count);
 
     one_.capacity_ = std::bit_ceil(std::max(_config.one_capacity_, thread_count));
-    one_.tasks_.reset(new OneStubT[one_.capacity_]);
     one_.datas_.reset(new TaskData<TaskOne>[one_.capacity_]);
+#if 0 // TODO:remove
+    one_.tasks_.reset(new OneStubT[one_.capacity_]);
 
     for (size_t i = 0; i < one_.capacity_; ++i) {
         one_.tasks_[i].data_ptr_ = &one_.datas_[i];
+    }
+#endif
+    one_.tasks_ = one_stub_allocator_.allocate(one_.capacity_);
+    {
+        typename OneStubT::Init init{0, one_.datas_.get()};
+        std::uninitialized_fill(one_.tasks_, one_.tasks_ + one_.capacity_, init);
     }
 
     all_.capacity_ = std::bit_ceil(_config.all_capacity_ ? _config.all_capacity_ : 1);
