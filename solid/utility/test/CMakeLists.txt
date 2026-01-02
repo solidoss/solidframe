@@ -34,6 +34,7 @@ set( ThreadPoolTestSuite
     test_threadpool_chain.cpp
     test_threadpool_pattern.cpp
     test_threadpool_batch.cpp
+    test_threadpool_perf_basic.cpp
     #test_threadpool_try.cpp
 )
 

@@ -234,7 +234,7 @@ template <typename Stats = ThreadPoolStatistic>
 struct DefaultThreadPoolTraits {
     using StatsT            = Stats;
     using AllIdT            = uint64_t;
-    using ContextProduceIdT = uint32_t;
+    using ContextProduceIdT = uint64_t;
     using CounterT          = uint8_t;
     using EventUnderlyingT  = uint8_t;
 };
@@ -482,32 +482,27 @@ private:
             TaskData<TaskOne>* tasks_ = nullptr;
         };
 
-        TaskData<TaskOne>&             rdata_;
-        ContextStub*                   pcontext_           = nullptr;
-        AllIdT                         all_id_             = 0;
-        ContextProduceIdT              context_produce_id_ = 0;
         AtomicCounterT                 produce_count_{0};
         AtomicCounterT                 consume_count_{std::numeric_limits<AtomicCounterValueT>::max()};
-        std::underlying_type_t<EventE> event_ = {to_underlying(EventE::Fill)};
-
-        OneStub(Init const& _rinit)
-            : rdata_(_rinit.tasks_[_rinit.index_++])
-        {
-        }
+        std::underlying_type_t<EventE> event_{to_underlying(EventE::Fill)};
+        ContextProduceIdT              context_produce_id_{0};
+        TaskData<TaskOne>*             data_;
+        ContextStub*                   pcontext_ = nullptr;
+        AllIdT                         all_id_   = 0;
 
         auto& task() noexcept
         {
-            return rdata_.task();
+            return data_->task();
         }
         template <class T>
         void task(T&& _rt)
         {
-            rdata_.task(std::forward<T>(_rt));
+            data_->task(std::forward<T>(_rt));
         }
 
         void destroy()
         {
-            rdata_.destroy();
+            data_->destroy();
         }
 
         void clear() noexcept
@@ -595,23 +590,23 @@ private:
     struct AllStub {
         AtomicCounterT       produce_count_{0};
         AtomicCounterT       consume_count_{std::numeric_limits<AtomicCounterValueT>::max()};
-        std::atomic_uint32_t use_count_ = {0};
-        std::atomic_uint64_t id_        = {0};
-        TaskData<TaskAll>*   data_ptr_  = nullptr;
+        std::atomic_uint32_t use_count_{0};
+        std::atomic_uint64_t id_{0};
+        TaskData<TaskAll>*   data_{nullptr};
 
         auto& task() noexcept
         {
-            return data_ptr_->task();
+            return data_->task();
         }
         template <class T>
         void task(T&& _rt)
         {
-            data_ptr_->task(std::forward<T>(_rt));
+            data_->task(std::forward<T>(_rt));
         }
 
         void destroy()
         {
-            data_ptr_->destroy();
+            data_->destroy();
         }
 
         void waitWhilePushAll(StatsT& _rstats, const AtomicCounterValueT _count, const size_t _spin_count) noexcept
@@ -658,21 +653,19 @@ private:
     using AllStubT      = AllStub;
     using OneStubT      = OneStub;
     using ThreadVectorT = std::vector<std::thread>;
-
-    std::allocator<OneStubT> one_stub_allocator_;
-    size_t                   spin_count_ = 1;
+    size_t spin_count_  = 1;
     /* alignas(hardware_constructive_interference_size) */ struct {
-        size_t capacity_{0};
-        // std::unique_ptr<OneStubT[]>          tasks_;//TODO:remove
-        OneStubT*                            tasks_;
+        size_t                               capacity_{0};
+        std::unique_ptr<OneStubT[]>          tasks_; // TODO:remove
         std::unique_ptr<TaskData<TaskOne>[]> datas_;
     } one_;
 
     /* alignas(hardware_constructive_interference_size) */ struct {
-        size_t                               capacity_{0};
-        std::atomic_size_t                   pending_count_{0};
-        std::atomic_uint_fast64_t            push_index_{1};
-        std::atomic<typename Traits::AllIdT> commited_index_{0};
+        size_t                    capacity_{0};
+        std::atomic_size_t        pending_count_{0};
+        std::atomic_uint_fast64_t push_index_{1};
+        // std::atomic<typename Traits::AllIdT> commited_index_{0};
+        std::atomic_uint_fast64_t            commited_index_{0};
         std::unique_ptr<AllStubT[]>          tasks_;
         std::unique_ptr<TaskData<TaskAll>[]> datas_;
     } all_;
@@ -713,14 +706,6 @@ private:
 
 public:
     ThreadPool() = default;
-
-    ~ThreadPool()
-    {
-        for (size_t i = 0; i < one_.capacity_; ++i) {
-            std::destroy_at(&one_.tasks_[i]);
-        }
-        one_stub_allocator_.deallocate(one_.tasks_, one_.capacity_);
-    }
 
     template <
         class StartFnc,
@@ -913,8 +898,12 @@ private:
     }
 };
 
-template <class... ArgTypes, size_t OneFunctionDataSize, size_t AllFunctionDataSize, class Traits>
-class ThreadPool<Function<void(ArgTypes...), OneFunctionDataSize>, Function<void(ArgTypes...), AllFunctionDataSize>, Traits> {
+template <class... ArgTypes,
+    size_t OneFunctionDataSize, size_t OneFunctionDataAlign, StoreOption OneFunctionStoreOpt,
+    size_t AllFunctionDataSize, size_t AllFunctionDataAlign, StoreOption AllFunctionStoreOpt, class Traits>
+class ThreadPool<
+    Function<void(ArgTypes...), OneFunctionDataSize, OneFunctionDataAlign, OneFunctionStoreOpt>,
+    Function<void(ArgTypes...), AllFunctionDataSize, AllFunctionDataAlign, AllFunctionStoreOpt>, Traits> {
     template <class TP, class ContextStub>
     friend class SynchronizationContext;
 
@@ -1072,17 +1061,10 @@ void ThreadPool<TaskOne, TaskAll, Traits>::doStart(
 
     one_.capacity_ = std::bit_ceil(std::max(_config.one_capacity_, thread_count));
     one_.datas_.reset(new TaskData<TaskOne>[one_.capacity_]);
-#if 0 // TODO:remove
     one_.tasks_.reset(new OneStubT[one_.capacity_]);
 
     for (size_t i = 0; i < one_.capacity_; ++i) {
-        one_.tasks_[i].data_ptr_ = &one_.datas_[i];
-    }
-#endif
-    one_.tasks_ = one_stub_allocator_.allocate(one_.capacity_);
-    {
-        typename OneStubT::Init init{0, one_.datas_.get()};
-        std::uninitialized_fill(one_.tasks_, one_.tasks_ + one_.capacity_, init);
+        one_.tasks_[i].data_ = &one_.datas_[i];
     }
 
     all_.capacity_ = std::bit_ceil(_config.all_capacity_ ? _config.all_capacity_ : 1);
@@ -1093,7 +1075,7 @@ void ThreadPool<TaskOne, TaskAll, Traits>::doStart(
         (std::numeric_limits<AtomicIndexValueT>::max() % one_.capacity_) == (one_.capacity_ - 1) && (std::numeric_limits<AtomicIndexValueT>::max() % all_.capacity_) == (all_.capacity_ - 1));
 
     for (size_t i = 0; i < all_.capacity_; ++i) {
-        all_.tasks_[i].data_ptr_ = &all_.datas_[i];
+        all_.tasks_[i].data_ = &all_.datas_[i];
     }
     all_.tasks_[0].produce_count_ = 1; //+
     all_.tasks_[0].consume_count_ = 0; // first entry is skipped on the first iteration
