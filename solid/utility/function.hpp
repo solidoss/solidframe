@@ -83,7 +83,7 @@ struct Storage {
     template <class T>
     static constexpr bool is_small_type()
     {
-        return alignof(T) <= SmallAlign && sizeof(T) <= SmallSize;
+        return ((SmallAlign % alignof(T)) == 0) && sizeof(T) <= SmallSize;
     }
 
     void ptr(void* _ptr)
@@ -211,7 +211,8 @@ uintptr_t do_copy(
     void*&      _rpto_big)
 {
     if constexpr (std::is_copy_constructible_v<T>) {
-        if constexpr (sizeof(T) <= SmallSize and alignof(T) <= SmallAlign) {
+        using StorageT = Storage<SmallSize, SmallAlign>;
+        if constexpr (StorageT::template is_small_type<T>()) {
             T&       rdst = *static_cast<T*>(_pto_small);
             const T& rsrc = *static_cast<const T*>(_pfrom);
             ::new (std::addressof(rdst)) T(rsrc);
@@ -236,7 +237,8 @@ uintptr_t do_move(
     void*& _rpto_big)
 {
     if constexpr (std::is_move_constructible_v<T>) {
-        if constexpr (sizeof(T) <= SmallSize and alignof(T) <= SmallAlign) {
+        using StorageT = Storage<SmallSize, SmallAlign>;
+        if constexpr (StorageT::template is_small_type<T>()) {
             T& rdst = *static_cast<T*>(_pto_small);
             T& rsrc = *static_cast<T*>(_pfrom);
             ::new (std::addressof(rdst)) T{std::move(rsrc)};
@@ -261,7 +263,8 @@ uintptr_t do_move_big(
     void*& _rpto_big)
 {
     if constexpr (std::is_move_constructible_v<T>) {
-        if constexpr (sizeof(T) <= SmallSize and alignof(T) <= SmallAlign) {
+        using StorageT = Storage<SmallSize, SmallAlign>;
+        if constexpr (StorageT::template is_small_type<T>()) {
             T& rdst = *static_cast<T*>(_pto_small);
             T& rsrc = *static_cast<T*>(_pfrom);
             ::new (std::addressof(rdst)) T{std::move(rsrc)};
