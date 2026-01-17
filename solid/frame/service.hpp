@@ -74,7 +74,7 @@ public:
 
     virtual ~Service();
 
-    bool registered() const;
+    [[nodiscard]] bool registered() const;
 
     void notifyAll(EventBase const& _e);
 
@@ -85,23 +85,23 @@ public:
 
     Manager& manager();
 
-    ActorMutexT& mutex(const ActorBase& _ract) const;
+    [[nodiscard]] ActorMutexT& mutex(const ActorBase& _ract) const;
 
-    ActorIdT id(const ActorBase& _ract) const;
+    [[nodiscard]] ActorIdT id(const ActorBase& _ract) const;
 
     auto& any()
     {
         return any_;
     }
-    const auto& any() const
+    [[nodiscard]] const auto& any() const
     {
         return any_;
     }
 
-    ServiceStatusE status() const;
+    [[nodiscard]] ServiceStatusE status() const;
 
 protected:
-    ServiceMutexT& mutex() const;
+    [[nodiscard]] ServiceMutexT& mutex() const;
 
     ServiceStatusE status(std::unique_lock<ServiceMutexT>& _rlock) const;
 
@@ -122,9 +122,9 @@ private:
 
     ActorIdT registerActor(ActorBase& _ract, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
 
-    size_t       index() const;
-    void         index(const size_t _idx);
-    virtual void onLockedStoppingBeforeActors();
+    [[nodiscard]] size_t index() const;
+    void                 index(const size_t _idx);
+    virtual void         onLockedStoppingBeforeActors();
 };
 
 inline Service::Service(

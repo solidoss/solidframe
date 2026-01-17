@@ -32,8 +32,7 @@
 #include "solid/system/pimpl.hpp"
 #include "solid/system/statistic.hpp"
 
-namespace solid {
-namespace frame {
+namespace solid::frame {
 
 namespace aio {
 class ReactorContext;
@@ -323,7 +322,7 @@ public:
     //! Destructor
     ~Service();
 
-    const ServiceStatistic& statistic() const;
+    [[nodiscard]] const ServiceStatistic& statistic() const;
 
     ErrorConditionT createConnectionPool(const std::string_view& _url, const size_t _persistent_connection_count = 1);
 
@@ -571,8 +570,8 @@ private:
     friend class openssl::SocketStub;
     friend class ConnectionContext;
 
-    Configuration const& configuration() const;
-    ServiceStatistic&    wstatistic();
+    [[nodiscard]] Configuration const& configuration() const;
+    ServiceStatistic&                  wstatistic();
 
     std::shared_ptr<Data> acquire(std::unique_lock<std::mutex>& _lock);
     std::shared_ptr<Data> acquire();
@@ -992,5 +991,4 @@ ErrorConditionT Service::createConnectionPool(
 //-------------------------------------------------------------------------
 //-------------------------------------------------------------------------
 } // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame
