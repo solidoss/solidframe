@@ -12,9 +12,7 @@
 
 #include "solid/system/flags.hpp"
 
-namespace solid {
-namespace frame {
-namespace mprpc {
+namespace solid::frame::mprpc {
 
 using MessageFlagsValueT = uint32_t;
 
@@ -37,6 +35,4 @@ enum struct MessageFlagsE : MessageFlagsValueT {
 
 using MessageFlagsT = Flags<MessageFlagsE>;
 
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc

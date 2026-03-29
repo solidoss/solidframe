@@ -21,9 +21,7 @@
 #include <typeindex>
 #include <utility>
 
-namespace solid {
-namespace reflection {
-namespace v1 {
+namespace solid::reflection::v1 {
 
 template <class Reflector>
 class BaseNode {
@@ -796,6 +794,4 @@ using ReflectorT = impl::Reflector<MetadataVariant, MetadataFactory, Context>;
 template <class MetadataVariant, class MetadataFactory, class Context = solid::EmptyType>
 using ConstReflectorT = impl::ConstReflector<MetadataVariant, MetadataFactory, Context>;
 
-} // namespace v1
-} // namespace reflection
-} // namespace solid
+} // namespace solid::reflection::v1

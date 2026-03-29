@@ -12,10 +12,7 @@
 #include "solid/serialization/v3/binarybasic.hpp"
 #include "solid/system/exception.hpp"
 
-namespace solid {
-namespace serialization {
-inline namespace v3 {
-namespace binary {
+namespace solid::serialization::inline v3::binary {
 
 //== Deserializer  ==============================================================
 
@@ -214,7 +211,4 @@ Base::ReturnE DeserializerBase::load_stream_chunk(DeserializerBase& _rd, Runnabl
     return ReturnE::Wait;
 }
 
-} // namespace binary
-} // namespace v3
-} // namespace serialization
-} // namespace solid
+} // namespace solid::serialization::inline v3::binary

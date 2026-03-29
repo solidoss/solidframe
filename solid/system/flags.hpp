@@ -19,7 +19,7 @@ namespace solid {
 template <class E, E Last = E::LastFlag>
 class Flags {
 public:
-    using UTypeT                  = typename std::underlying_type<E>::type;
+    using UTypeT                  = std::underlying_type_t<E>;
     using ThisT                   = Flags<E, Last>;
     using FlagT                   = E;
     static constexpr size_t count = 1 + static_cast<UTypeT>(Last);

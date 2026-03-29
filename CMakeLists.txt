@@ -232,7 +232,7 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
         )
     else()
         add_compile_options(
-           "$<$<CONFIG:MAINTAIN>:SHELL: ${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -Wall -Wdelete-non-virtual-dtor -Wnon-virtual-dtor>"
+           "$<$<CONFIG:MAINTAIN>:SHELL: ${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -Wall -Wconversion -Wdelete-non-virtual-dtor -Wnon-virtual-dtor>"
            "$<$<CONFIG:CUSTOM>:>"
         )
     endif()

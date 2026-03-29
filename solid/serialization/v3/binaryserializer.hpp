@@ -27,7 +27,7 @@
 #include "solid/utility/innerlist.hpp"
 #include "solid/utility/ioformat.hpp"
 
-namespace solid::serialization::inline v3::binary {
+namespace solid::serialization::v3::binary {
 
 class SerializerBase : public Base {
     struct Runnable;
@@ -108,7 +108,7 @@ public:
     }
 
 public: // should be protected
-    inline void addBasic(const bool& _rb, const char* _name)
+    void addBasic(const bool& _rb, const char* _name)
     {
         solid_log(logger, Info, _name);
         Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb ? 0xFF : 0xAA), _name};
@@ -122,7 +122,7 @@ public: // should be protected
         schedule(std::move(r));
     }
 
-    inline void addBasic(const int8_t& _rb, const char* _name)
+    void addBasic(const int8_t& _rb, const char* _name)
     {
         solid_log(logger, Info, _name);
         Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb), _name};
@@ -136,7 +136,7 @@ public: // should be protected
         schedule(std::move(r));
     }
 
-    inline void addBasic(const uint8_t& _rb, const char* _name)
+    void addBasic(const uint8_t& _rb, const char* _name)
     {
         solid_log(logger, Info, _name);
         Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb), _name};
@@ -150,7 +150,7 @@ public: // should be protected
         schedule(std::move(r));
     }
 
-    inline void addBasic(const std::string& _rb, const uint64_t _limit, const char* _name)
+    void addBasic(const std::string& _rb, const uint64_t _limit, const char* _name)
     {
         solid_log(logger, Info, _name << ' ' << _rb.size() << ' ' << _limit << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
 
@@ -173,7 +173,7 @@ public: // should be protected
     }
 
     template <typename T, class A>
-    inline void addBinaryVector(const std::vector<T, A>& _rb, const uint64_t _limit, const char* _name)
+    void addBinaryVector(const std::vector<T, A>& _rb, const uint64_t _limit, const char* _name)
     {
         solid_log(logger, Info, _name << ' ' << _rb.size() << ' ' << _limit);
 
@@ -196,7 +196,7 @@ public: // should be protected
     }
 
     template <typename T, size_t Sz>
-    inline void addBinaryArray(const std::array<T, Sz>& _ra, const uint64_t _limit, const char* _name)
+    void addBinaryArray(const std::array<T, Sz>& _ra, const uint64_t _limit, const char* _name)
     {
         solid_log(logger, Info, _name << ' ' << _ra.size() << ' ' << _limit);
 
@@ -219,7 +219,7 @@ public: // should be protected
     }
 
     template <typename T, size_t Sz>
-    inline void addCBinaryArray(const T (&_ra)[Sz], const uint64_t _limit, const char* _name)
+    void addCBinaryArray(const T (&_ra)[Sz], const uint64_t _limit, const char* _name)
     {
         solid_log(logger, Info, _name << ' ' << Sz << ' ' << _limit);
 
@@ -270,7 +270,7 @@ public: // should be protected
     }
 
     template <typename T>
-    inline void addBasicCompactedInline(const T& _rb, const char* _name)
+    void addBasicCompactedInline(const T& _rb, const char* _name)
     {
         static_assert(std::is_integral_v<T>, "only integral types are accepted");
         solid_log(logger, Info, _name << ' ' << _rb);
@@ -572,7 +572,7 @@ private:
         sentinel_ = _s;
     }
 
-    bool isRunEmpty() const
+    [[nodiscard]] bool isRunEmpty() const
     {
         return sentinel_ == run_lst_.cbegin();
     }
@@ -682,7 +682,7 @@ private:
     }
 
 private:
-    inline Base::ReturnE doStoreByte(Runnable& _rr)
+    Base::ReturnE doStoreByte(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
             const char c = static_cast<char>(_rr.data_);
@@ -694,7 +694,7 @@ private:
     }
 
     template <size_t Sz = 1>
-    inline Base::ReturnE doStoreBinary(Runnable& _rr)
+    Base::ReturnE doStoreBinary(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
             size_t towrite = pend_ - pcrt_;
@@ -714,7 +714,7 @@ private:
         return ReturnE::Wait;
     }
 
-    inline Base::ReturnE doStoreCompactedInline(Runnable& _rr)
+    Base::ReturnE doStoreCompactedInline(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
             int8_t* pcrt = reinterpret_cast<int8_t*>(pcrt_);
@@ -736,7 +736,7 @@ private:
         return ReturnE::Wait;
     }
 
-    inline Base::ReturnE doStoreCompacted(Runnable& _rr)
+    Base::ReturnE doStoreCompacted(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
             int8_t* pcrt = reinterpret_cast<int8_t*>(pcrt_);
@@ -757,7 +757,7 @@ private:
         return ReturnE::Wait;
     }
 
-    inline Base::ReturnE doStoreInteger(Runnable& _rr)
+    Base::ReturnE doStoreInteger(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
             data_.u64_ = _rr.data_;
@@ -880,7 +880,7 @@ public:
         return SerializerBase::run(_pbeg, _sz, &_rctx);
     }
 
-    const ErrorConditionT& error() const
+    [[nodiscard]] const ErrorConditionT& error() const
     {
         return this->Base::error();
     }
@@ -967,15 +967,15 @@ private:
 };
 
 template <class MetadataVariant, class MetadataFactory, class Context, typename TypeId>
-inline std::ostream& operator<<(std::ostream& _ros, Serializer<MetadataVariant, MetadataFactory, Context, TypeId>& _rser)
+std::ostream& operator<<(std::ostream& _ros, Serializer<MetadataVariant, MetadataFactory, Context, TypeId>& _rser)
 {
     return _rser.SerializerBase::run(_ros);
 }
 
 template <typename S>
-inline std::ostream& operator>>(std::ostream& _ros, std::pair<S&, typename S::ContextT&> _ser)
+std::ostream& operator>>(std::ostream& _ros, std::pair<S&, typename S::ContextT&> _ser)
 {
     return _ser.first.run(_ros, _ser.second);
 }
 
-} // namespace solid::serialization::inline v3::binary
+} // namespace solid::serialization::v3::binary

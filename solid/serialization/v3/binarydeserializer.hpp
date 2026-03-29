@@ -22,7 +22,7 @@
 #include "solid/utility/common.hpp"
 #include "solid/utility/function.hpp"
 
-namespace solid::serialization::inline v3::binary {
+namespace solid::serialization::v3::binary {
 
 class DeserializerBase : public Base {
     struct Runnable;
@@ -128,7 +128,7 @@ public:
         return run_lst_.empty();
     }
 
-    inline void addBasic(bool& _rb, const char* _name)
+    void addBasic(bool& _rb, const char* _name)
     {
         solid_log(logger, Info, _name);
         Runnable r{&_rb, &load_bool, 1, 0, _name};
@@ -142,7 +142,7 @@ public:
         schedule(std::move(r));
     }
 
-    inline void addBasic(int8_t& _rb, const char* _name)
+    void addBasic(int8_t& _rb, const char* _name)
     {
         solid_log(logger, Info, _name);
         Runnable r{&_rb, &load_byte, 1, 0, _name};
@@ -156,7 +156,7 @@ public:
         schedule(std::move(r));
     }
 
-    inline void addBasic(uint8_t& _rb, const char* _name)
+    void addBasic(uint8_t& _rb, const char* _name)
     {
         solid_log(logger, Info, _name);
         Runnable r{&_rb, &load_byte, 1, 0, _name};
@@ -170,7 +170,7 @@ public:
         schedule(std::move(r));
     }
     template <typename T, size_t Sz>
-    inline void addBinaryArray(std::array<T, Sz>& _ra, const uint64_t _limit, const char* _name)
+    void addBinaryArray(std::array<T, Sz>& _ra, const uint64_t _limit, const char* _name)
     {
         solid_log(logger, Info, _name);
         addBasicCompacted(data_.u64_, _name);
@@ -183,7 +183,7 @@ public:
     }
 
     template <typename T, size_t Sz>
-    inline void addCBinaryArray(T (&_ra)[Sz], const uint64_t _limit, const char* _name)
+    void addCBinaryArray(T (&_ra)[Sz], const uint64_t _limit, const char* _name)
     {
         solid_log(logger, Info, _name);
         addBasicCompacted(data_.u64_, _name);
@@ -196,7 +196,7 @@ public:
     }
 
     template <typename A>
-    inline void addVectorBool(std::vector<bool, A>& _rv, const uint64_t _limit, const char* _name)
+    void addVectorBool(std::vector<bool, A>& _rv, const uint64_t _limit, const char* _name)
     {
         solid_log(logger, Info, _name);
         addBasicCompacted(data_.u64_, _name);
@@ -209,7 +209,7 @@ public:
     }
 
     template <size_t N>
-    inline void addBitset(std::bitset<N>& _rb, const char* _name)
+    void addBitset(std::bitset<N>& _rb, const char* _name)
     {
         solid_log(logger, Info, _name);
         addBasicCompacted(data_.u64_, _name);
@@ -359,6 +359,10 @@ public:
                 _rd.sentinel(old_sentinel);
                 if (!is_run_empty) {
                     return ReturnE::Wait;
+                }
+                if (_rr.size_ > _rr.limit_) {
+                    _rd.baseError(error_limit_container);
+                    return ReturnE::Done;
                 }
                 if constexpr (is_std_vector_v<C>) {
                     rcontainer.reserve(_rr.size_);
@@ -540,13 +544,13 @@ private:
     }
 
     template <typename T>
-    inline static ReturnE load_compacted(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+    static ReturnE load_compacted(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
     {
         return _rd.doLoadCompacted<T>(_rr);
     }
 
     template <typename T>
-    inline static ReturnE load_integer(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+    static ReturnE load_integer(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
     {
         return _rd.doLoadInteger<T>(_rr);
     }
@@ -783,7 +787,7 @@ private:
 
 private:
     template <size_t Sz = 1>
-    inline Base::ReturnE doLoadBinary(Runnable& _rr)
+    Base::ReturnE doLoadBinary(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
             size_t toread = pend_ - pcrt_;
@@ -798,7 +802,7 @@ private:
         }
         return ReturnE::Wait;
     }
-    inline Base::ReturnE doLoadBool(Runnable& _rr)
+    Base::ReturnE doLoadBool(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
             bool* pb = static_cast<bool*>(_rr.ptr_);
@@ -809,7 +813,7 @@ private:
         return ReturnE::Wait;
     }
 
-    inline Base::ReturnE doLoadByte(Runnable& _rr)
+    Base::ReturnE doLoadByte(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
             uint8_t* pb = static_cast<uint8_t*>(_rr.ptr_);
@@ -819,7 +823,7 @@ private:
         }
         return ReturnE::Wait;
     }
-    inline Base::ReturnE doLoadString(Runnable& _rr)
+    Base::ReturnE doLoadString(Runnable& _rr)
     {
         solid_log(logger, Info, _rr.name_);
         if (data_.u64_ != 0) {
@@ -841,7 +845,7 @@ private:
     }
 
     template <typename T>
-    inline ReturnE doLoadCompactedData(Runnable& _rr)
+    ReturnE doLoadCompactedData(Runnable& _rr)
     {
         // TODO: this is called only on BIG_ENDIAN - optimize
         if (pcrt_ != pend_) {
@@ -874,7 +878,7 @@ private:
 
     // NOTE: must not use data_!
     template <typename T>
-    inline ReturnE doLoadCompacted(Runnable& _rr)
+    ReturnE doLoadCompacted(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
             const int8_t* pcrt = reinterpret_cast<const int8_t*>(pcrt_);
@@ -902,7 +906,7 @@ private:
     }
 
     template <typename T>
-    inline ReturnE doLoadIntegerData(Runnable& _rr)
+    ReturnE doLoadIntegerData(Runnable& _rr)
     {
         if (pcrt_ != pend_) {
             size_t toread = pend_ - pcrt_;
@@ -933,7 +937,7 @@ private:
     }
 
     template <typename T>
-    inline ReturnE doLoadInteger(Runnable& _rr)
+    ReturnE doLoadInteger(Runnable& _rr)
     {
         return doLoadBinary(_rr);
     }
@@ -1155,15 +1159,15 @@ private:
 };
 
 template <class MetadataVariant, class MetadataFactory, class Context, typename TypeId>
-inline std::istream& operator>>(std::istream& _ris, Deserializer<MetadataFactory, MetadataFactory, Context, TypeId>& _rdes)
+std::istream& operator>>(std::istream& _ris, Deserializer<MetadataFactory, MetadataFactory, Context, TypeId>& _rdes)
 {
     return _rdes.DeserializerBase::run(_ris);
 }
 
 template <typename D>
-inline std::istream& operator>>(std::istream& _ris, std::pair<D&, typename D::ContextT&> _des)
+std::istream& operator>>(std::istream& _ris, std::pair<D&, typename D::ContextT&> _des)
 {
     return _des.first.run(_ris, _des.second);
 }
 
-} // namespace solid::serialization::inline v3::binary
+} // namespace solid::serialization::v3::binary

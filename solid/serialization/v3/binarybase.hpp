@@ -34,7 +34,7 @@ public:
         Wait
     };
 
-    const ErrorConditionT& error() const
+    [[nodiscard]] const ErrorConditionT& error() const
     {
         return error_;
     }

@@ -11,9 +11,7 @@
 
 #include "solid/utility/typetraits.hpp"
 
-namespace solid {
-namespace reflection {
-namespace v1 {
+namespace solid::reflection::v1 {
 
 template <typename T, typename _ = void>
 struct is_reflective : std::false_type {
@@ -102,6 +100,4 @@ struct is_compacted<compacted<T>> : std::true_type {
 template <class T>
 inline constexpr bool is_compacted_v = is_compacted<T>::value;
 
-} // namespace v1
-} // namespace reflection
-} // namespace solid
+} // namespace solid::reflection::v1

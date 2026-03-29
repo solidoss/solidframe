@@ -12,10 +12,7 @@
 #include "solid/serialization/v3/binarybasic.hpp"
 #include "solid/system/exception.hpp"
 
-namespace solid {
-namespace serialization {
-inline namespace v3 {
-namespace binary {
+namespace solid::serialization::inline v3::binary {
 
 //== Serializer  ==============================================================
 SerializerBase::SerializerBase(const reflection::v1::TypeMapBase* const _ptype_map)
@@ -170,7 +167,4 @@ Base::ReturnE SerializerBase::store_stream(SerializerBase& _rs, Runnable& _rr, v
     return ReturnE::Done;
 }
 
-} // namespace binary
-} // namespace v3
-} // namespace serialization
-} // namespace solid
+} // namespace solid::serialization::inline v3::binary
