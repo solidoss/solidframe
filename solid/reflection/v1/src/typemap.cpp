@@ -10,9 +10,7 @@
 
 #include "solid/reflection/v1/typemap.hpp"
 
-namespace solid {
-namespace reflection {
-namespace v1 {
+namespace solid::reflection::v1 {
 
 size_t current_index()
 {
@@ -20,6 +18,4 @@ size_t current_index()
     return index.fetch_add(1);
 }
 
-} // namespace v1
-} // namespace reflection
-} // namespace solid
+} // namespace solid::reflection::v1

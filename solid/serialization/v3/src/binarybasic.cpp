@@ -12,9 +12,7 @@
 #include "solid/serialization/v3/binarybase.hpp"
 #include "solid/system/cassert.hpp"
 
-namespace solid {
-namespace serialization {
-inline namespace v3 {
+namespace solid::serialization::inline v3 {
 
 const LoggerT logger{"solid::serialization"};
 
@@ -26,6 +24,4 @@ const LoggerT& serialization_logger()
 namespace binary {
 } // namespace binary
 
-} // namespace v3
-} // namespace serialization
-} // namespace solid
+} // namespace solid::serialization::inline v3

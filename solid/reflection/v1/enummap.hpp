@@ -19,9 +19,7 @@
 #include "solid/system/exception.hpp"
 #include "solid/utility/common.hpp"
 
-namespace solid {
-namespace reflection {
-namespace v1 {
+namespace solid::reflection::v1 {
 
 template <typename T>
 class EnumMap : NonCopyable {
@@ -73,6 +71,4 @@ extern EnumMap<T> enum_map_v;
     template <>             \
     reflection::EnumMap<V> solid::reflection::v1::enum_map_v<V>
 
-} // namespace v1
-} // namespace reflection
-} // namespace solid
+} // namespace solid::reflection::v1

@@ -477,11 +477,6 @@ private:
     }
 
     struct OneStub {
-        struct Init {
-            mutable size_t     index_ = 0;
-            TaskData<TaskOne>* tasks_ = nullptr;
-        };
-
         AtomicCounterT                 produce_count_{0};
         AtomicCounterT                 consume_count_{std::numeric_limits<AtomicCounterValueT>::max()};
         std::underlying_type_t<EventE> event_{to_underlying(EventE::Fill)};
