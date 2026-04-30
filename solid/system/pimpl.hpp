@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <new>
 #include <type_traits>
@@ -22,7 +23,7 @@ class Pimpl;
 template <typename T, size_t Cp, size_t Align>
 class Pimpl {
     T* ptr_;
-    alignas(Align) uint8_t data_[Cp];
+    alignas(Align) std::uint8_t data_[Cp];
 
 public:
     template <typename... Args>

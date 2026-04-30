@@ -18,6 +18,7 @@
 
 #ifdef SOLID_USE_PTHREAD_SPINLOCK
 
+#include <mutex>
 #include <pthread.h>
 
 #else
