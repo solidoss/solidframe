@@ -61,12 +61,12 @@ private:
         return ser_.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
 
-    ErrorConditionT error() const override
+    [[nodiscard]] ErrorConditionT error() const override
     {
         return ser_.error();
     }
 
-    bool empty() const override
+    [[nodiscard]] bool empty() const override
     {
         return ser_.empty();
     }
@@ -105,12 +105,12 @@ private:
         return des_.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
 
-    ErrorConditionT error() const override
+    [[nodiscard]] ErrorConditionT error() const override
     {
         return des_.error();
     }
 
-    bool empty() const override
+    [[nodiscard]] bool empty() const override
     {
         return des_.empty();
     }
