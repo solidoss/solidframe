@@ -130,7 +130,7 @@ protected:
     void          doDone(const LogLineBase& _log_ros) const;
 
 public:
-    const std::string& name() const
+    [[nodiscard]] const std::string& name() const
     {
         return name_;
     }
@@ -138,7 +138,7 @@ public:
     {
         flags_.store(_msk);
     }
-    LogAtomicFlagsBackT flags() const
+    [[nodiscard]] LogAtomicFlagsBackT flags() const
     {
         return flags_.load(std::memory_order_relaxed);
     }

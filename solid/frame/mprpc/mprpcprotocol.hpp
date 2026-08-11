@@ -97,12 +97,12 @@ public:
     using PointerT = std::unique_ptr<Deserializer>;
 
     virtual ~Deserializer();
-    virtual ptrdiff_t       run(ConnectionContext&, const char* _pdata, size_t _data_len, MessageHeader& _rmsghdr)         = 0;
-    virtual ptrdiff_t       run(ConnectionContext&, const char* _pdata, size_t _data_len, RecvMessagePointerT<>& _rmsgptr) = 0;
-    virtual ptrdiff_t       run(ConnectionContext&, const char* _pdata, size_t _data_len)                                  = 0;
-    virtual ErrorConditionT error() const                                                                                  = 0;
-    virtual bool            empty() const                                                                                  = 0;
-    virtual void            clear()                                                                                        = 0;
+    virtual ptrdiff_t                     run(ConnectionContext&, const char* _pdata, size_t _data_len, MessageHeader& _rmsghdr)         = 0;
+    virtual ptrdiff_t                     run(ConnectionContext&, const char* _pdata, size_t _data_len, RecvMessagePointerT<>& _rmsgptr) = 0;
+    virtual ptrdiff_t                     run(ConnectionContext&, const char* _pdata, size_t _data_len)                                  = 0;
+    [[nodiscard]] virtual ErrorConditionT error() const                                                                                  = 0;
+    [[nodiscard]] virtual bool            empty() const                                                                                  = 0;
+    virtual void                          clear()                                                                                        = 0;
 
     void link(PointerT& _ptr)
     {
@@ -113,7 +113,7 @@ public:
     {
         return next_;
     }
-    const PointerT& link() const
+    [[nodiscard]] const PointerT& link() const
     {
         return next_;
     }
@@ -127,12 +127,12 @@ public:
     using PointerT = std::unique_ptr<Serializer>;
 
     virtual ~Serializer();
-    virtual ptrdiff_t       run(ConnectionContext&, char* _pdata, size_t _data_len, MessageHeader const& _rmsghdr)                                   = 0;
-    virtual ptrdiff_t       run(ConnectionContext&, char* _pdata, size_t _data_len, SendMessagePointerT<>& _rmsgptr, const size_t _msg_type_idx = 0) = 0;
-    virtual ptrdiff_t       run(ConnectionContext&, char* _pdata, size_t _data_len)                                                                  = 0;
-    virtual ErrorConditionT error() const                                                                                                            = 0;
-    virtual bool            empty() const                                                                                                            = 0;
-    virtual void            clear()                                                                                                                  = 0;
+    virtual ptrdiff_t                     run(ConnectionContext&, char* _pdata, size_t _data_len, MessageHeader const& _rmsghdr)                                   = 0;
+    virtual ptrdiff_t                     run(ConnectionContext&, char* _pdata, size_t _data_len, SendMessagePointerT<>& _rmsgptr, const size_t _msg_type_idx = 0) = 0;
+    virtual ptrdiff_t                     run(ConnectionContext&, char* _pdata, size_t _data_len)                                                                  = 0;
+    [[nodiscard]] virtual ErrorConditionT error() const                                                                                                            = 0;
+    [[nodiscard]] virtual bool            empty() const                                                                                                            = 0;
+    virtual void                          clear()                                                                                                                  = 0;
 
     void link(PointerT& _ptr)
     {
@@ -143,7 +143,7 @@ public:
     {
         return next_;
     }
-    const PointerT& link() const
+    [[nodiscard]] const PointerT& link() const
     {
         return next_;
     }

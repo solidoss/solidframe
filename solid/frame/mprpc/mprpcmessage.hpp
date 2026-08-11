@@ -152,102 +152,102 @@ struct Message : IntrusiveThreadSafeBase {
 
     using FlagsT = MessageFlagsValueT;
 
-    inline static bool is_synchronous(const MessageFlagsT& _flags)
+    static bool is_synchronous(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::Synchronous);
     }
-    inline static bool is_asynchronous(const MessageFlagsT& _flags)
+    static bool is_asynchronous(const MessageFlagsT& _flags)
     {
         return !is_synchronous(_flags);
     }
 
-    inline static bool is_awaiting_response(const MessageFlagsT& _flags)
+    static bool is_awaiting_response(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::AwaitResponse);
     }
 
-    inline static bool is_request(const MessageFlagsT& _flags)
+    static bool is_request(const MessageFlagsT& _flags)
     {
         return is_awaiting_response(_flags);
     }
 
-    inline static bool is_idempotent(const MessageFlagsT& _flags)
+    static bool is_idempotent(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::Idempotent);
     }
 
-    inline static bool is_started_send(const MessageFlagsT& _flags)
+    static bool is_started_send(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::StartedSend);
     }
 
-    inline static bool is_done_send(const MessageFlagsT& _flags)
+    static bool is_done_send(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::DoneSend);
     }
 
-    inline static bool is_canceled(const MessageFlagsT& _flags)
+    static bool is_canceled(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::Canceled);
     }
 
-    inline static bool is_one_shot(const MessageFlagsT& _flags)
+    static bool is_one_shot(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::OneShotSend);
     }
 
-    inline static bool is_response(const MessageFlagsT& _flags)
+    static bool is_response(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::Response);
     }
 
-    inline static bool is_response_part(const MessageFlagsT& _flags)
+    static bool is_response_part(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::ResponsePart);
     }
 
-    inline static bool is_response_last(const MessageFlagsT& _flags)
+    static bool is_response_last(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::ResponseLast);
     }
 
-    inline static bool is_on_sender(const MessageFlagsT& _flags)
+    static bool is_on_sender(const MessageFlagsT& _flags)
     {
         return !is_on_peer(_flags) && !is_back_on_sender(_flags);
     }
 
-    inline static bool is_on_peer(const MessageFlagsT& _flags)
+    static bool is_on_peer(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::OnPeer);
     }
 
-    inline static bool is_back_on_sender(const MessageFlagsT& _flags)
+    static bool is_back_on_sender(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::BackOnSender);
     }
 
-    inline static bool is_back_on_peer(const MessageFlagsT& _flags)
+    static bool is_back_on_peer(const MessageFlagsT& _flags)
     {
         return is_on_peer(_flags) && is_back_on_sender(_flags);
     }
 
-    inline static bool is_relayed(const MessageFlagsT& _flags)
+    static bool is_relayed(const MessageFlagsT& _flags)
     {
         return _flags.has(MessageFlagsE::Relayed);
     }
 
-    inline static MessageFlagsT clear_state_flags(MessageFlagsT _flags)
+    static MessageFlagsT clear_state_flags(MessageFlagsT _flags)
     {
         _flags.reset(MessageFlagsE::OnPeer).reset(MessageFlagsE::BackOnSender).reset(MessageFlagsE::Relayed);
         return _flags;
     }
 
-    inline static MessageFlagsT state_flags(const MessageFlagsT& _flags)
+    static MessageFlagsT state_flags(const MessageFlagsT& _flags)
     {
         return MessageHeader::fetch_state_flags(_flags);
     }
 
-    inline static MessageFlagsT update_state_flags(MessageFlagsT _flags)
+    static MessageFlagsT update_state_flags(MessageFlagsT _flags)
     {
         if (is_on_sender(_flags)) {
             return _flags | MessageFlagsE::OnPeer;
@@ -260,9 +260,7 @@ struct Message : IntrusiveThreadSafeBase {
         }
     }
 
-    Message()
-    {
-    }
+    Message() = default;
 
     Message(Message const& _rmsg)
         : header_(_rmsg.header_)
