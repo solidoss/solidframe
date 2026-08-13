@@ -20,9 +20,9 @@
 
 namespace solid::reflection::v2 {
 
-template <size_t Id, typename Val, typename... Args>
+template <detail::FieldIdC auto Id, typename Val, typename... Args>
 auto make(std::string_view _name, Val& _ref, Args&&... _args);
-template <size_t Id, typename GetF, typename SetF, typename... ArgsF>
+template <detail::FieldIdC auto Id, typename GetF, typename SetF, typename... ArgsF>
 auto makef(std::string_view _name, GetF&& _get, SetF&& _set, ArgsF&&... _args);
 
 template <size_t Id, typename ValT>

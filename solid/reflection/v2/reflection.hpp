@@ -94,23 +94,24 @@ concept ReflectableC = requires(T& t, std::nullopt_t& ctx) {
     solid::reflection::v2::reflect(static_cast<T const&>(t), [](auto&&) {}, ctx, {});
 };
 
-template <size_t Id, typename Val, typename... Args>
+template <detail::FieldIdC auto Id, typename Val, typename... Args>
 auto make(std::string_view _name, Val& _ref, Args&&... _args)
 {
     using ValT = std::decay_t<Val>;
-    static constexpr auto type_id{detail::to_type_id<ValT>()};
+    static constexpr size_t id{static_cast<size_t>(Id)};
+    static constexpr auto   type_id{detail::to_type_id<ValT>()};
 
     if constexpr (type_id == TypeIdE::Boolean) {
-        return Boolean<Id, Val>{_name, _ref};
+        return Boolean<id, Val>{_name, _ref};
     } else if constexpr (type_id == TypeIdE::Integral) {
-        return Integral<Id, Val>{_name, _ref};
+        return Integral<id, Val>{_name, _ref};
     } else if constexpr (type_id == TypeIdE::Enum) {
         if constexpr (sizeof...(Args) != 0) {
             // Caller supplied its own name<->value converters: forward them
             // verbatim. Such an enum needs no to_string/from_string overloads.
             static_assert(sizeof...(Args) == 2,
                 "make: an enum takes an optional get_sv/set_sv pair");
-            return Enum<Id, Val, std::decay_t<Args>...>{_name, _ref, std::forward<Args>(_args)...};
+            return Enum<id, Val, std::decay_t<Args>...>{_name, _ref, std::forward<Args>(_args)...};
         } else {
             static_assert(detail::NamedEnumC<ValT>,
                 "reflected enums must provide ADL to_string(E) and "
@@ -130,63 +131,64 @@ auto make(std::string_view _name, Val& _ref, Args&&... _args)
                 }
                 return false;
             };
-            return Enum<Id, Val, decltype(get_sv), decltype(set_sv)>{_name, _ref, get_sv, set_sv};
+            return Enum<id, Val, decltype(get_sv), decltype(set_sv)>{_name, _ref, get_sv, set_sv};
         }
     } else if constexpr (type_id == TypeIdE::String) {
-        return String<Id, Val>{_name, _ref};
+        return String<id, Val>{_name, _ref};
     } else if constexpr (type_id == TypeIdE::IOStream) {
-        return IOStream<Id>{_name, _ref};
+        return IOStream<id>{_name, _ref};
     } else if constexpr (type_id == TypeIdE::OStream) {
-        return OStream<Id>{_name, _ref};
+        return OStream<id>{_name, _ref};
     } else if constexpr (type_id == TypeIdE::IStream) {
-        return IStream<Id>{_name, _ref};
+        return IStream<id>{_name, _ref};
     } else if constexpr (type_id == TypeIdE::Array) {
-        return Container<Id, Val>{_name, _ref};
+        return Container<id, Val>{_name, _ref};
     } else if constexpr (type_id == TypeIdE::Bitset) {
-        return Container<Id, Val>{_name, _ref};
+        return Container<id, Val>{_name, _ref};
     } else if constexpr (type_id == TypeIdE::BitVector) {
-        return Container<Id, Val>{_name, _ref};
+        return Container<id, Val>{_name, _ref};
     } else if constexpr (type_id == TypeIdE::Container || type_id == TypeIdE::KeyContainer || type_id == TypeIdE::KeyValueContainer) {
-        return Container<Id, Val>{_name, _ref};
+        return Container<id, Val>{_name, _ref};
     } else if constexpr (type_id == TypeIdE::Reflectable) {
-        return Reflectable<Id, Val>{_name, _ref};
+        return Reflectable<id, Val>{_name, _ref};
     } else if constexpr (type_id == TypeIdE::Pointer) {
-        return Pointer<Id, Val>{_name, _ref};
+        return Pointer<id, Val>{_name, _ref};
     } else if constexpr (type_id == TypeIdE::Optional) {
-        return Optional<Id, Val>{_name, _ref};
+        return Optional<id, Val>{_name, _ref};
     } else if constexpr (type_id == TypeIdE::Variant) {
-        return Variant<Id, Val>{_name, _ref};
+        return Variant<id, Val>{_name, _ref};
     }
 }
 
-template <size_t Id, typename Val>
+template <detail::FieldIdC auto Id, typename Val>
     requires detail::CallableC<std::decay_t<Val>>
 auto make(std::string_view _name, Val&& _ref)
 {
-    return Callable<Id, Val>{_name, std::forward<Val>(_ref)};
+    return Callable<static_cast<size_t>(Id), Val>{_name, std::forward<Val>(_ref)};
 }
 
 // Function-based counterpart of make: the reflected value is only reachable
 // through the accessor closures, no reference is stored. The descriptor kind
 // is deduced from the getter's return type.
-template <size_t Id, typename GetF, typename SetF, typename... ArgsF>
+template <detail::FieldIdC auto Id, typename GetF, typename SetF, typename... ArgsF>
 auto makef(std::string_view _name, GetF&& _get, SetF&& _set, ArgsF&&... _args)
 {
     using RetT = std::invoke_result_t<GetF>;
     using ValT = std::decay_t<RetT>;
-    static constexpr auto type_id{detail::to_type_id<ValT>()};
+    static constexpr size_t id{static_cast<size_t>(Id)};
+    static constexpr auto   type_id{detail::to_type_id<ValT>()};
 
     if constexpr (type_id == TypeIdE::Boolean) {
-        return BooleanF<Id, ValT, GetF, SetF>{_name, std::forward<GetF>(_get), std::forward<SetF>(_set)};
+        return BooleanF<id, ValT, GetF, SetF>{_name, std::forward<GetF>(_get), std::forward<SetF>(_set)};
     } else if constexpr (type_id == TypeIdE::Integral) {
-        return IntegralF<Id, ValT, GetF, SetF>{_name, std::forward<GetF>(_get), std::forward<SetF>(_set)};
+        return IntegralF<id, ValT, GetF, SetF>{_name, std::forward<GetF>(_get), std::forward<SetF>(_set)};
     } else if constexpr (type_id == TypeIdE::Enum) {
         if constexpr (sizeof...(ArgsF) != 0) {
             // Caller supplied its own name<->value converters: forward them
             // verbatim. Such an enum needs no to_string/from_string overloads.
             static_assert(sizeof...(ArgsF) == 2,
                 "makef: an enum takes an optional get_sv/set_sv pair");
-            return EnumF<Id, ValT, GetF, SetF, std::decay_t<ArgsF>...>{_name, std::forward<GetF>(_get), std::forward<SetF>(_set), std::forward<ArgsF>(_args)...};
+            return EnumF<id, ValT, GetF, SetF, std::decay_t<ArgsF>...>{_name, std::forward<GetF>(_get), std::forward<SetF>(_set), std::forward<ArgsF>(_args)...};
         } else {
             static_assert(detail::NamedEnumC<ValT>,
                 "reflected enums must provide ADL to_string(E) and "
@@ -205,18 +207,18 @@ auto makef(std::string_view _name, GetF&& _get, SetF&& _set, ArgsF&&... _args)
                 }
                 return false;
             };
-            return EnumF<Id, ValT, GetF, SetF, decltype(get_sv), decltype(set_sv)>{_name, std::forward<GetF>(_get), std::forward<SetF>(_set), get_sv, set_sv};
+            return EnumF<id, ValT, GetF, SetF, decltype(get_sv), decltype(set_sv)>{_name, std::forward<GetF>(_get), std::forward<SetF>(_set), get_sv, set_sv};
         }
     } else if constexpr (type_id == TypeIdE::String) {
         auto view = [_get]() {
             return std::string_view{_get()};
         };
-        return StringF<Id, ValT, GetF, SetF, decltype(view)>{_name, std::forward<GetF>(_get), std::forward<SetF>(_set), view};
+        return StringF<id, ValT, GetF, SetF, decltype(view)>{_name, std::forward<GetF>(_get), std::forward<SetF>(_set), view};
     } else if constexpr (type_id == TypeIdE::Container) {
         // RetT (not ValT): a getter returning a reference to a real container
         // stores that reference; one returning a view (std::span) stores the
         // view by value.
-        return ContainerF<Id, RetT, GetF, SetF>{_name, std::forward<GetF>(_get), std::forward<SetF>(_set)};
+        return ContainerF<id, RetT, GetF, SetF>{_name, std::forward<GetF>(_get), std::forward<SetF>(_set)};
     } else {
         static_assert(type_id == TypeIdE::Boolean, "makef: unsupported value type");
     }
@@ -318,12 +320,12 @@ void Reflectable<Id, ValT>::reflect(this T& rthis, V&& _rv, C& _rc)
     solid::reflection::v2::reflect(rthis.ref, std::forward<V>(_rv), _rc, rthis.name);
 }
 
-template <size_t Id, typename T, typename R, typename Ctx>
+template <detail::FieldIdC auto Id, typename T, typename R, typename Ctx>
 void reflect_at(T& rt, R&& _rr, Ctx& _rc)
 {
     auto ref = [&_rr](auto&& _field, Ctx& _rc) {
         using FieldT = std::decay_t<decltype(_field)>;
-        if constexpr (FieldT::id == Id) {
+        if constexpr (FieldT::id == static_cast<size_t>(Id)) {
             _rr(std::forward<decltype(_field)>(_field), _rc);
         }
     };

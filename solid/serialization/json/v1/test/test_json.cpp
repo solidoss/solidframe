@@ -1,5 +1,6 @@
 #include "solid/serialization/json/v1/deserialization.hpp"
 #include "solid/serialization/json/v1/serialization.hpp"
+#include "solid/system/exception.hpp"
 
 #include <algorithm>
 #include <array>
@@ -42,6 +43,10 @@ struct Sub {
 };
 
 struct SubWrap {
+    enum class FieldE {
+        sub_lst,
+        sub_ptr
+    };
     std::list<Sub>       sub_lst_;
     std::shared_ptr<Sub> sub_ptr_;
 
@@ -49,8 +54,8 @@ struct SubWrap {
     void solidReflectV2(this T& rthis, Reflector&& _rr, Ctx& _rc)
     {
         using namespace solid::reflection::v2;
-        _rr(make<1>("sub_lst"sv, rthis.sub_lst_), _rc);
-        _rr(make<2>("sub_ptr"sv, rthis.sub_ptr_), _rc);
+        _rr(make<FieldE::sub_lst>("sub_lst"sv, rthis.sub_lst_), _rc);
+        _rr(make<FieldE::sub_ptr>("sub_ptr"sv, rthis.sub_ptr_), _rc);
     }
 };
 
@@ -359,15 +364,23 @@ public:
         }
     }
 
+    enum class FieldE {
+        v1,
+        secret_key,
+        description,
+        max_depth,
+        buy,
+        sell
+    };
     template <typename T, typename Reflector, typename Ctx>
     void solidReflectV2(this T& rthis, Reflector&& _rr, Ctx& _rc)
     {
-        _rr(SFR_V2_MAKEF(1, rthis, v1), _rc);
-        _rr(SFR_V2_MAKEF(2, rthis, secret_key), _rc);
-        _rr(SFR_V2_MAKEF(3, rthis, description), _rc);
-        _rr(SFR_V2_MAKEF(4, rthis, max_depth), _rc);
-        _rr(SFR_V2_MAKEF(5, rthis, buy).with_max_size(rthis.max_depth()), _rc);
-        _rr(SFR_V2_MAKEF(5, rthis, sell).with_max_size(rthis.max_depth()), _rc);
+        _rr(SFR_V2_MAKEF(FieldE::v1, rthis, v1), _rc);
+        _rr(SFR_V2_MAKEF(FieldE::secret_key, rthis, secret_key), _rc);
+        _rr(SFR_V2_MAKEF(FieldE::description, rthis, description), _rc);
+        _rr(SFR_V2_MAKEF(FieldE::max_depth, rthis, max_depth), _rc);
+        _rr(SFR_V2_MAKEF(FieldE::buy, rthis, buy).with_max_size(rthis.max_depth()), _rc);
+        _rr(SFR_V2_MAKEF(FieldE::sell, rthis, sell).with_max_size(rthis.max_depth()), _rc);
     }
 };
 
@@ -449,6 +462,15 @@ int test_json(int /*argc*/, char* /*argv*/[])
         alpha::Two two;
         two.init();
         json_str.clear();
+
+        solid::reflection::v2::reflect_at<alpha::Two::FieldE::description>(
+            two,
+            [](auto&& _field, Context&) {
+                static_assert(_field.type_id == solid::reflection::v2::TypeIdE::String);
+                solid_check(_field.get() == "some description"sv);
+                _field.set("some other description"sv);
+            },
+            ctx);
         to_json_str(json_str, two, ctx);
         cout << "two: to_json: " << json_str << endl;
     }

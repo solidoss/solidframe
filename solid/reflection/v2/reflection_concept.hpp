@@ -153,6 +153,12 @@ concept VariantC = is_variant<std::decay_t<T>>::value;
 template <typename T>
 concept EnumC = std::is_enum_v<std::decay_t<T>>;
 
+// A field id may be spelled either as an integral constant or as an enumerator
+// (e.g. an enum class listing a struct's fields); the metadata descriptors
+// always carry it as the size_t it static_casts to.
+template <typename T>
+concept FieldIdC = std::is_integral_v<T> || std::is_enum_v<T>;
+
 // An enum is "named" when it provides ADL-reachable
 //   std::string_view          to_string(E)
 //   std::optional<E>          from_string(std::type_identity<E>, std::string_view)
