@@ -542,6 +542,13 @@ bool parse_field(std::string_view& s, Field&& _field, Ctx& rc)
                 if (!parse_elem(s, elem, rc))
                     return false;
                 _field.emplace(std::move(elem));
+            } else if constexpr (requires { _field.grow_back(); } && reflection::detail::to_type_id<std::decay_t<typename FieldT::element_type>>() == reflection::TypeIdE::Reflectable) {
+                // In-place growth (overlay containers): the next element lives
+                // in an underlying buffer and may own trailing variable-size
+                // content that a stack-local copy could not hold — parse
+                // directly into it.
+                if (!parse_object(s, _field.grow_back(), rc))
+                    return false;
             } else {
                 std::decay_t<typename FieldT::element_type> elem{};
                 if (!parse_elem(s, elem, rc))

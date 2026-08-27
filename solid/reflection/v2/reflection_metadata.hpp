@@ -852,6 +852,16 @@ public:
         assert(offset < cont.size());
         cont[offset++] = {std::forward<Args>(args)...};
     }
+
+    // In-place growth: expose the next element slot directly instead of
+    // copying a parsed local in. Required for overlay containers whose
+    // elements live in an underlying flat buffer and may own trailing
+    // variable-size content that a stack-local copy could not hold.
+    auto& grow_back()
+        requires requires(std::remove_reference_t<ContT>& c, size_t i) { c[i]; }
+    {
+        return cont[offset++];
+    }
 };
 
 } // namespace solid::reflection::v2
