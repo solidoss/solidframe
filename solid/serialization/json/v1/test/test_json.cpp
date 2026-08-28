@@ -33,8 +33,8 @@ struct Sub {
     uint64_t a_;
     string   b_;
 
-    template <typename T, typename Reflector, typename Ctx>
-    void solidReflectV2(this T& rthis, Reflector&& _rr, Ctx& _rc)
+    template <typename Reflector, typename Ctx>
+    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
     {
         using namespace solid::reflection::v2;
         _rr(make<1>("a"sv, rthis.a_), _rc);
@@ -50,8 +50,8 @@ struct SubWrap {
     std::list<Sub>       sub_lst_;
     std::shared_ptr<Sub> sub_ptr_;
 
-    template <typename T, typename Reflector, typename Ctx>
-    void solidReflectV2(this T& rthis, Reflector&& _rr, Ctx& _rc)
+    template <typename Reflector, typename Ctx>
+    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
     {
         using namespace solid::reflection::v2;
         _rr(make<FieldE::sub_lst>("sub_lst"sv, rthis.sub_lst_), _rc);
@@ -170,8 +170,8 @@ public:
     {
     }
 
-    template <typename T, typename Reflector, typename Ctx>
-    void solidReflectV2(this T& rthis, Reflector&& _rr, Ctx& _rc)
+    template <typename Reflector, typename Ctx>
+    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
     {
         using namespace solid::reflection::v2;
         _rr(make<1>("b"sv, rthis.vb_), _rc);
@@ -265,8 +265,8 @@ public:
     [[nodiscard]] constexpr OrderCount order_count() const noexcept { return orderCount_; }
     constexpr void                     set_order_count(OrderCount value) noexcept { orderCount_ = value; }
 
-    template <typename T, typename Reflector, typename Ctx>
-    void solidReflectV2(this T& rthis, Reflector&& _rr, Ctx& _rc)
+    template <typename Reflector, typename Ctx>
+    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
     {
         _rr(SFR_V2_MAKEF(1, rthis, is_encrypted), _rc);
         _rr(SFR_V2_MAKEF(2, rthis, encryption_offset), _rc);
@@ -372,8 +372,8 @@ public:
         buy,
         sell
     };
-    template <typename T, typename Reflector, typename Ctx>
-    void solidReflectV2(this T& rthis, Reflector&& _rr, Ctx& _rc)
+    template <typename Reflector, typename Ctx>
+    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
     {
         _rr(SFR_V2_MAKEF(FieldE::v1, rthis, v1), _rc);
         _rr(SFR_V2_MAKEF(FieldE::secret_key, rthis, secret_key), _rc);
