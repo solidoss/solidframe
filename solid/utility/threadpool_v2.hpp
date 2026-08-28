@@ -1123,7 +1123,8 @@ void ThreadPool<TaskOne, TaskAll, Traits>::doRun(
     Args&&... _args)
 {
     LocalContext local_context;
-
+#if 0
+#else
     while (true) {
         const auto [index, count]        = popOneIndex();
         auto&    rstub                   = one_.tasks_[index];
@@ -1229,6 +1230,7 @@ void ThreadPool<TaskOne, TaskAll, Traits>::doRun(
             break;
         }
     }
+#endif
 }
 //-----------------------------------------------------------------------------
 template <class TaskOne, class TaskAll, class Traits>
@@ -1298,7 +1300,10 @@ template <class Tsk>
 void ThreadPool<TaskOne, TaskAll, Traits>::doPushOne(Tsk&& _task, ContextStub* _pctx)
 {
     using namespace std::chrono;
-    const auto start          = statistic_.now();
+    const auto start = statistic_.now();
+#if 1
+
+#else
     const auto [index, count] = pushOneIndex();
     auto& rstub               = one_.tasks_[index];
 
@@ -1313,6 +1318,7 @@ void ThreadPool<TaskOne, TaskAll, Traits>::doPushOne(Tsk&& _task, ContextStub* _
         rstub.context_produce_id_ = _pctx->produce_id_.fetch_add(1);
     }
     rstub.notifyWhilePushOne();
+#endif
     statistic_.pushOne(_pctx != nullptr, start);
 }
 //-----------------------------------------------------------------------------
@@ -1324,6 +1330,8 @@ template <class TaskOne, class TaskAll, class Stats>
 template <class Tsk>
 void ThreadPool<TaskOne, TaskAll, Stats>::doPushAll(Tsk&& _task)
 {
+    solid_throw("Not implemented yet!");
+
     const auto id    = pushAllId();
     auto&      rstub = all_.tasks_[id % all_.capacity_];
 
