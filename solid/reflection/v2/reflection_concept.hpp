@@ -154,8 +154,10 @@ template <typename T>
 concept EnumC = std::is_enum_v<std::decay_t<T>>;
 
 // A field id may be spelled either as an integral constant or as an enumerator
-// (e.g. an enum class listing a struct's fields); the metadata descriptors
-// always carry it as the size_t it static_casts to.
+// (e.g. an enum class listing a struct's fields). It reaches the reflector as
+// a std::integral_constant (see id<> in reflection_metadata.hpp), separate
+// from the metadata descriptor; serializers that need a number static_cast
+// its value to size_t.
 template <typename T>
 concept FieldIdC = std::is_integral_v<T> || std::is_enum_v<T>;
 
@@ -213,8 +215,8 @@ concept AnyContainerC = KeyValueContainerC<T> || KeyContainerC<T> || ContainerC<
 
 template <typename T>
 concept IntrusiveReflectableC = requires(T& t, std::nullopt_t& ctx) {
-    t.solidReflectV2([](auto&&) {}, ctx);
-    static_cast<T const&>(t).solidReflectV2([](auto&&) {}, ctx);
+    t.solidReflectV2([](auto, auto&&, auto&) {}, ctx);
+    static_cast<T const&>(t).solidReflectV2([](auto, auto&&, auto&) {}, ctx);
 };
 
 template <typename Val>

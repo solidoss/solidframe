@@ -35,6 +35,9 @@ __attribute__((always_inline)) inline void append_int(std::string& out, auto val
 // get()/get_sv() for scalars, for_each() for containers (one descriptor per
 // element), reflect() for nested reflectables and with_if() for
 // optionals/pointers/variants. The walked values are never touched directly.
+// Every visitor takes (id, descriptor, ctx): the field id arrives as a
+// std::integral_constant and only matters for unnamed fields, whose JSON key
+// is the id spelled as a number.
 
 template <typename Ctx>
 class JsonWriter {
@@ -53,7 +56,7 @@ public:
     {
         out += '{';
         bool first = true;
-        _apply([this, &first](auto&& _field, Ctx& _rctx) {
+        _apply([this, &first](auto _id, auto&& _field, Ctx& _rctx) {
             using namespace reflection;
             using FieldT = std::decay_t<decltype(_field)>;
             if constexpr (FieldT::type_id == TypeIdE::Callable || FieldT::type_id == TypeIdE::IOStream || FieldT::type_id == TypeIdE::OStream || FieldT::type_id == TypeIdE::IStream) {
@@ -66,7 +69,7 @@ public:
                 if (not _field.name.empty()) {
                     out.append(_field.name.data(), _field.name.size());
                 } else {
-                    detail::append_int(out, _field.id);
+                    detail::append_int(out, static_cast<size_t>(_id.value));
                 }
                 out += "\":";
                 value(_field, _rctx);
@@ -99,7 +102,7 @@ public:
         } else if constexpr (FieldT::type_id == TypeIdE::Container || FieldT::type_id == TypeIdE::Array || FieldT::type_id == TypeIdE::KeyContainer || FieldT::type_id == TypeIdE::KeyValueContainer) {
             out += '[';
             bool first = true;
-            _f.for_each([this, &first](auto&& _e, Ctx& _rctx) {
+            _f.for_each([this, &first](auto, auto&& _e, Ctx& _rctx) {
                 if (!first)
                     out += ',';
                 first = false;
@@ -112,7 +115,7 @@ public:
             // descriptors).
             out += '[';
             bool first = true;
-            _f.for_each([this, &first](auto&& _e, Ctx&) {
+            _f.for_each([this, &first](auto, auto&& _e, Ctx&) {
                 if (!first)
                     out += ',';
                 first = false;
@@ -128,7 +131,7 @@ public:
                 object([&_f, &_rc](auto&& _rv) { _f.with_if(_rv, _rc); }, _rc);
             } else {
                 // Scalar/container content arrives as a single descriptor.
-                _f.with_if([this](auto&& _e, Ctx& _rctx) { value(_e, _rctx); }, _rc);
+                _f.with_if([this](auto, auto&& _e, Ctx& _rctx) { value(_e, _rctx); }, _rc);
             }
         } else if constexpr (FieldT::type_id == TypeIdE::Variant) {
             out += '[';
@@ -148,7 +151,7 @@ public:
                         } else if constexpr (reflection::detail::to_type_id<AltT>() == TypeIdE::Reflectable) {
                             object([&_f, &_rc](auto&& _rv) { _f.with_if(_rv, _rc); }, _rc);
                         } else {
-                            _f.with_if([this](auto&& _e, Ctx& _rctx) { value(_e, _rctx); }, _rc);
+                            _f.with_if([this](auto, auto&& _e, Ctx& _rctx) { value(_e, _rctx); }, _rc);
                         }
                         return true;
                     };

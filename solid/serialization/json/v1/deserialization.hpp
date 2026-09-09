@@ -578,7 +578,7 @@ bool parse_field(std::string_view& s, Field&& _field, Ctx& rc)
         } else {
             // Scalar/container content arrives as a single descriptor.
             bool ok = false;
-            _field.with_if([&](auto&& _d, Ctx& _rctx) { ok = parse_field(s, _d, _rctx); }, rc);
+            _field.with_if([&](auto, auto&& _d, Ctx& _rctx) { ok = parse_field(s, _d, _rctx); }, rc);
             return ok;
         }
     } else if constexpr (FieldT::type_id == TypeIdE::Variant) {
@@ -608,7 +608,7 @@ bool parse_field(std::string_view& s, Field&& _field, Ctx& rc)
                     return parse_object_with(s, rc, [&](auto&& _rv) { _field.with_if(_rv, rc); });
                 } else {
                     bool alt_ok = false;
-                    _field.with_if([&](auto&& _d, Ctx& _rctx) { alt_ok = parse_field(s, _d, _rctx); }, rc);
+                    _field.with_if([&](auto, auto&& _d, Ctx& _rctx) { alt_ok = parse_field(s, _d, _rctx); }, rc);
                     return alt_ok;
                 }
             };
@@ -626,6 +626,8 @@ bool parse_field(std::string_view& s, Field&& _field, Ctx& rc)
 
 // Parses '{...}' by repeatedly re-walking the fields via apply(visitor) and
 // letting the matching field descriptor consume its value through parse_field.
+// The visitor receives (id, descriptor, ctx); an unnamed field is matched by
+// its id spelled as a number.
 template <typename Ctx, typename ApplyF>
 bool parse_object_with(std::string_view& s, Ctx& rc, ApplyF&& apply)
 {
@@ -656,7 +658,7 @@ bool parse_object_with(std::string_view& s, Ctx& rc, ApplyF&& apply)
         bool field_found = false;
         bool field_ok    = true;
 
-        apply([&](auto&& _field, Ctx& _rc) {
+        apply([&](auto _id, auto&& _field, Ctx& _rc) {
             using FieldT = std::decay_t<decltype(_field)>;
             if constexpr (FieldT::type_id == reflection::TypeIdE::Callable || FieldT::type_id == reflection::TypeIdE::IOStream || FieldT::type_id == reflection::TypeIdE::OStream || FieldT::type_id == reflection::TypeIdE::IStream) {
                 return;
@@ -666,7 +668,7 @@ bool parse_object_with(std::string_view& s, Ctx& rc, ApplyF&& apply)
                 if (_field.name.empty()) {
                     size_t           idx = 0;
                     std::string_view num{key};
-                    if (!parse_number(num, idx) || !num.empty() || idx != _field.id)
+                    if (!parse_number(num, idx) || !num.empty() || idx != static_cast<size_t>(_id.value))
                         return;
                 } else if (_field.name != key) {
                     return;

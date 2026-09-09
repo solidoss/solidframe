@@ -37,8 +37,8 @@ struct Sub {
     void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
     {
         using namespace solid::reflection::v2;
-        _rr(make<1>("a"sv, rthis.a_), _rc);
-        _rr(make<2>("b"sv, rthis.b_), _rc);
+        _rr(id<1>, make("a"sv, rthis.a_), _rc);
+        _rr(id<2>, make("b"sv, rthis.b_), _rc);
     }
 };
 
@@ -54,8 +54,8 @@ struct SubWrap {
     void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
     {
         using namespace solid::reflection::v2;
-        _rr(make<FieldE::sub_lst>("sub_lst"sv, rthis.sub_lst_), _rc);
-        _rr(make<FieldE::sub_ptr>("sub_ptr"sv, rthis.sub_ptr_), _rc);
+        _rr(id<FieldE::sub_lst>, make("sub_lst"sv, rthis.sub_lst_), _rc);
+        _rr(id<FieldE::sub_ptr>, make("sub_ptr"sv, rthis.sub_ptr_), _rc);
     }
 };
 
@@ -174,30 +174,30 @@ public:
     void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
     {
         using namespace solid::reflection::v2;
-        _rr(make<1>("b"sv, rthis.vb_), _rc);
-        _rr(make<2>("u32"sv, rthis.vu32_).set_max(1000).set_min(10), _rc);
-        _rr(make<3>("s"sv, rthis.vs_).set_max_size(1000), _rc);
-        _rr(make<4>("sub"sv, rthis.sub_), _rc);
-        _rr(make<5>("sub_dq"sv, rthis.sub_dq_), _rc);
-        _rr(make<6>("sub_map"sv, rthis.sub_map_), _rc);
-        _rr(make<7>("callback"sv, [](auto&&, Ctx&) { cout << "Callback called!" << endl; }), _rc);
-        _rr(make<8>("ioss"sv, rthis.ioss_), _rc);
-        _rr(make<9>("oss"sv, rthis.oss_), _rc);
-        _rr(make<9>("iss"sv, rthis.iss_).set_progress([](std::istream&, size_t, bool, Ctx&) { cout << "Progress called" << endl; }), _rc);
-        _rr(make<10>("bool_vec"sv, rthis.bool_vec_), _rc);
-        _rr(make<11>("sub_arr"sv, rthis.sub_arr_), _rc);
-        _rr(make<12>("tuple"sv, rthis.tuple_), _rc);
-        _rr(make<13>("subw_ptr"sv, rthis.subw_ptr_), _rc);
-        _rr(make<14>("bits"sv, rthis.bits_), _rc);
-        _rr(make<15>("subw_opt"sv, rthis.subw_opt_), _rc);
-        _rr(make<16>("null_str_opt"sv, rthis.null_str_opt_), _rc);
-        _rr(make<17>("uint8_vec_opt"sv, rthis.uint8_vec_opt_), _rc);
-        _rr(make<18>("bool_opt"sv, rthis.bool_opt_), _rc);
-        _rr(make<19>("bool_ptr"sv, rthis.bool_ptr_), _rc);
-        _rr(make<20>("str_opt"sv, rthis.str_opt_), _rc);
-        _rr(make<21>("variant_vec"sv, rthis.variant_vec_), _rc);
-        _rr(make<22>("number"sv, rthis.number_), _rc);
-        _rr(make<23>("numbers"sv, rthis.numbers_), _rc);
+        _rr(id<1>, make("b"sv, rthis.vb_), _rc);
+        _rr(id<2>, make("u32"sv, rthis.vu32_).set_max(1000).set_min(10), _rc);
+        _rr(id<3>, make("s"sv, rthis.vs_).set_max_size(1000), _rc);
+        _rr(id<4>, make("sub"sv, rthis.sub_), _rc);
+        _rr(id<5>, make("sub_dq"sv, rthis.sub_dq_), _rc);
+        _rr(id<6>, make("sub_map"sv, rthis.sub_map_), _rc);
+        _rr(id<7>, make("callback"sv, [](auto&&, Ctx&) { cout << "Callback called!" << endl; }), _rc);
+        _rr(id<8>, make("ioss"sv, rthis.ioss_), _rc);
+        _rr(id<9>, make("oss"sv, rthis.oss_), _rc);
+        _rr(id<9>, make("iss"sv, rthis.iss_).set_progress([](std::istream&, size_t, bool, Ctx&) { cout << "Progress called" << endl; }), _rc);
+        _rr(id<10>, make("bool_vec"sv, rthis.bool_vec_), _rc);
+        _rr(id<11>, make("sub_arr"sv, rthis.sub_arr_), _rc);
+        _rr(id<12>, make("tuple"sv, rthis.tuple_), _rc);
+        _rr(id<13>, make("subw_ptr"sv, rthis.subw_ptr_), _rc);
+        _rr(id<14>, make("bits"sv, rthis.bits_), _rc);
+        _rr(id<15>, make("subw_opt"sv, rthis.subw_opt_), _rc);
+        _rr(id<16>, make("null_str_opt"sv, rthis.null_str_opt_), _rc);
+        _rr(id<17>, make("uint8_vec_opt"sv, rthis.uint8_vec_opt_), _rc);
+        _rr(id<18>, make("bool_opt"sv, rthis.bool_opt_), _rc);
+        _rr(id<19>, make("bool_ptr"sv, rthis.bool_ptr_), _rc);
+        _rr(id<20>, make("str_opt"sv, rthis.str_opt_), _rc);
+        _rr(id<21>, make("variant_vec"sv, rthis.variant_vec_), _rc);
+        _rr(id<22>, make("number"sv, rthis.number_), _rc);
+        _rr(id<23>, make("numbers"sv, rthis.numbers_), _rc);
     }
 };
 
@@ -268,12 +268,13 @@ public:
     template <typename Reflector, typename Ctx>
     void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
     {
-        _rr(SFR_V2_MAKEF(1, rthis, is_encrypted), _rc);
-        _rr(SFR_V2_MAKEF(2, rthis, encryption_offset), _rc);
-        _rr(SFR_V2_MAKEF(3, rthis, encryption_key_id), _rc);
-        _rr(SFR_V2_MAKEF(4, rthis, price), _rc);
-        _rr(SFR_V2_MAKEF(5, rthis, quantity), _rc);
-        _rr(SFR_V2_MAKEF(6, rthis, order_count), _rc);
+        using solid::reflection::v2::id;
+        _rr(id<1>, SFR_V2_MAKEF(rthis, is_encrypted), _rc);
+        _rr(id<2>, SFR_V2_MAKEF(rthis, encryption_offset), _rc);
+        _rr(id<3>, SFR_V2_MAKEF(rthis, encryption_key_id), _rc);
+        _rr(id<4>, SFR_V2_MAKEF(rthis, price), _rc);
+        _rr(id<5>, SFR_V2_MAKEF(rthis, quantity), _rc);
+        _rr(id<6>, SFR_V2_MAKEF(rthis, order_count), _rc);
     }
 
 private:
@@ -375,12 +376,13 @@ public:
     template <typename Reflector, typename Ctx>
     void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
     {
-        _rr(SFR_V2_MAKEF(FieldE::v1, rthis, v1), _rc);
-        _rr(SFR_V2_MAKEF(FieldE::secret_key, rthis, secret_key), _rc);
-        _rr(SFR_V2_MAKEF(FieldE::description, rthis, description), _rc);
-        _rr(SFR_V2_MAKEF(FieldE::max_depth, rthis, max_depth), _rc);
-        _rr(SFR_V2_MAKEF(FieldE::buy, rthis, buy).with_max_size(rthis.max_depth()), _rc);
-        _rr(SFR_V2_MAKEF(FieldE::sell, rthis, sell).with_max_size(rthis.max_depth()), _rc);
+        using solid::reflection::v2::id;
+        _rr(id<FieldE::v1>, SFR_V2_MAKEF(rthis, v1), _rc);
+        _rr(id<FieldE::secret_key>, SFR_V2_MAKEF(rthis, secret_key), _rc);
+        _rr(id<FieldE::description>, SFR_V2_MAKEF(rthis, description), _rc);
+        _rr(id<FieldE::max_depth>, SFR_V2_MAKEF(rthis, max_depth), _rc);
+        _rr(id<FieldE::buy>, SFR_V2_MAKEF(rthis, buy).with_max_size(rthis.max_depth()), _rc);
+        _rr(id<FieldE::sell>, SFR_V2_MAKEF(rthis, sell).with_max_size(rthis.max_depth()), _rc);
     }
 };
 
