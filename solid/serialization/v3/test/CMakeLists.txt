@@ -24,4 +24,3 @@ add_test(NAME TestSerializationV3Polymorphic  COMMAND  test_serialization_v3 tes
 add_test(NAME TestSerializationV3Container    COMMAND  test_serialization_v3 test_container)
 
 #==============================================================================
-

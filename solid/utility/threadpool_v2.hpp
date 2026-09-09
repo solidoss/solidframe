@@ -318,7 +318,7 @@ std::decay_t<T> decay_copy(T&& v)
 }
 
 template <class Task>
-class alignas(hardware_destructive_interference_size) TaskData {
+class alignas(alignof(Task)) TaskData {
     AlignedStorage<Task> data_;
 
 public:
@@ -476,27 +476,27 @@ private:
     }
 
     struct OneStub {
-        AtomicCounterT                 produce_count_{0};
-        AtomicCounterT                 consume_count_{std::numeric_limits<AtomicCounterValueT>::max()};
-        std::underlying_type_t<EventE> event_{to_underlying(EventE::Fill)};
-        ContextProduceIdT              context_produce_id_{0};
-        TaskData<TaskOne>*             data_;
-        ContextStub*                   pcontext_ = nullptr;
-        AllIdT                         all_id_   = 0;
+        AtomicCounterT    produce_count_{0};
+        AtomicCounterT    consume_count_{std::numeric_limits<AtomicCounterValueT>::max()};
+        EventE            event_{EventE::Fill};
+        ContextProduceIdT context_produce_id_{0};
+        ContextStub*      pcontext_ = nullptr;
+        AllIdT            all_id_   = 0;
+        TaskData<TaskOne> data_;
 
         auto& task() noexcept
         {
-            return data_->task();
+            return data_.task();
         }
         template <class T>
         void task(T&& _rt)
         {
-            data_->task(std::forward<T>(_rt));
+            data_.task(std::forward<T>(_rt));
         }
 
         void destroy()
         {
-            data_->destroy();
+            data_.destroy();
         }
 
         void clear() noexcept
@@ -523,7 +523,7 @@ private:
 
         void notifyWhilePushOne() noexcept
         {
-            event_ = to_underlying(EventE::Fill);
+            event_ = EventE::Fill;
             consume_count_.fetch_add(1);
             std::atomic_notify_all(&consume_count_);
         }
@@ -540,14 +540,14 @@ private:
 
         void notifyWhileStop() noexcept
         {
-            event_ = to_underlying(EventE::Stop);
+            event_ = EventE::Stop;
             ++consume_count_;
             std::atomic_notify_all(&consume_count_);
         }
 
         void notifyWhilePushAll() noexcept
         {
-            event_ = to_underlying(EventE::Wake);
+            event_ = EventE::Wake;
             ++consume_count_;
             std::atomic_notify_all(&consume_count_);
         }
@@ -562,7 +562,7 @@ private:
             while (true) {
                 const auto cnt = consume_count_.load();
                 if (cnt == _count) {
-                    return static_cast<EventE>(event_);
+                    return event_;
                 } else if (!_try_consume_an_all_fnc(&consume_count_, _count, _all_fnc, _args...) && _spin_count && !spin--) {
 
                     // std::atomic_wait_explicit(&consume_count_, cnt, std::memory_order_relaxed);
@@ -586,21 +586,21 @@ private:
         AtomicCounterT       consume_count_{std::numeric_limits<AtomicCounterValueT>::max()};
         std::atomic_uint32_t use_count_{0};
         std::atomic_uint64_t id_{0};
-        TaskData<TaskAll>*   data_{nullptr};
+        TaskData<TaskAll>    data_;
 
         auto& task() noexcept
         {
-            return data_->task();
+            return data_.task();
         }
         template <class T>
         void task(T&& _rt)
         {
-            data_->task(std::forward<T>(_rt));
+            data_.task(std::forward<T>(_rt));
         }
 
         void destroy()
         {
-            data_->destroy();
+            data_.destroy();
         }
 
         void waitWhilePushAll(StatsT& _rstats, const AtomicCounterValueT _count, const size_t _spin_count) noexcept
@@ -644,14 +644,15 @@ private:
             return count == expected_count && id_.load() == _id;
         }
     };
+
     using AllStubT      = AllStub;
     using OneStubT      = OneStub;
     using ThreadVectorT = std::vector<std::thread>;
-    size_t spin_count_  = 1;
+
+    size_t spin_count_ = 1;
     /* alignas(hardware_constructive_interference_size) */ struct {
-        size_t                               capacity_{0};
-        std::unique_ptr<OneStubT[]>          tasks_; // TODO:remove
-        std::unique_ptr<TaskData<TaskOne>[]> datas_;
+        size_t                      capacity_{0};
+        std::unique_ptr<OneStubT[]> tasks_;
     } one_;
 
     /* alignas(hardware_constructive_interference_size) */ struct {
@@ -659,9 +660,8 @@ private:
         std::atomic_size_t        pending_count_{0};
         std::atomic_uint_fast64_t push_index_{1};
         // std::atomic<typename Traits::AllIdT> commited_index_{0};
-        std::atomic_uint_fast64_t            commited_index_{0};
-        std::unique_ptr<AllStubT[]>          tasks_;
-        std::unique_ptr<TaskData<TaskAll>[]> datas_;
+        std::atomic_uint_fast64_t   commited_index_{0};
+        std::unique_ptr<AllStubT[]> tasks_;
     } all_;
 
     StatsT statistic_;
@@ -1054,23 +1054,14 @@ void ThreadPool<TaskOne, TaskAll, Traits>::doStart(
     threads_.reserve(thread_count);
 
     one_.capacity_ = std::bit_ceil(std::max(_config.one_capacity_, thread_count));
-    one_.datas_.reset(new TaskData<TaskOne>[one_.capacity_]);
     one_.tasks_.reset(new OneStubT[one_.capacity_]);
-
-    for (size_t i = 0; i < one_.capacity_; ++i) {
-        one_.tasks_[i].data_ = &one_.datas_[i];
-    }
 
     all_.capacity_ = std::bit_ceil(_config.all_capacity_ ? _config.all_capacity_ : 1);
     all_.tasks_.reset(new AllStubT[all_.capacity_]);
-    all_.datas_.reset(new TaskData<TaskAll>[all_.capacity_]);
 
     solid_check(
         (std::numeric_limits<AtomicIndexValueT>::max() % one_.capacity_) == (one_.capacity_ - 1) && (std::numeric_limits<AtomicIndexValueT>::max() % all_.capacity_) == (all_.capacity_ - 1));
 
-    for (size_t i = 0; i < all_.capacity_; ++i) {
-        all_.tasks_[i].data_ = &all_.datas_[i];
-    }
     all_.tasks_[0].produce_count_ = 1; //+
     all_.tasks_[0].consume_count_ = 0; // first entry is skipped on the first iteration
 
