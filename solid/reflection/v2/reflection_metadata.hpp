@@ -20,17 +20,23 @@
 
 namespace solid::reflection::v2 {
 
-template <detail::FieldIdC auto Id, typename Val, typename... Args>
+// A field id is handed to the reflector as its own argument — id<N> or
+// id<SomeEnum::field>, a std::integral_constant — rather than being baked into
+// the metadata descriptor. The descriptor only describes the value; the
+// reflector is always invoked as _rr(id<...>, descriptor, ctx).
+template <detail::FieldIdC auto Id>
+constexpr inline std::integral_constant<decltype(Id), Id> id;
+
+template <typename Val, typename... Args>
 auto make(std::string_view _name, Val& _ref, Args&&... _args);
-template <detail::FieldIdC auto Id, typename GetF, typename SetF, typename... ArgsF>
+template <typename GetF, typename SetF, typename... ArgsF>
 auto makef(std::string_view _name, GetF&& _get, SetF&& _set, ArgsF&&... _args);
 
-template <size_t Id, typename ValT>
+template <typename ValT>
 class Boolean {
     ValT& ref;
 
 public:
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::Boolean};
     using value_type = std::decay_t<ValT>;
 
@@ -53,12 +59,11 @@ public:
     }
 };
 
-template <size_t Id, typename ValT>
+template <typename ValT>
 class Integral {
     ValT& ref;
 
 public:
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::Integral};
     using value_type = std::decay_t<ValT>;
 
@@ -94,12 +99,11 @@ public:
     }
 };
 
-template <size_t Id, typename ValT>
+template <typename ValT>
 class String {
     ValT& ref;
 
 public:
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::String};
     using value_type = std::decay_t<ValT>;
 
@@ -144,12 +148,11 @@ public:
     }
 };
 
-template <size_t Id, typename ValT>
+template <typename ValT>
 class Reflectable {
     ValT& ref;
 
 public:
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::Reflectable};
     using value_type = std::decay_t<ValT>;
 
@@ -165,17 +168,16 @@ public:
     void reflect(this T& rthis, V&& _rv, C& _rc);
 };
 
-template <size_t Id, typename ValT>
+template <typename ValT>
 class Container;
 
-template <size_t Id, detail::AnyContainerC ValT>
-class Container<Id, ValT> {
+template <detail::AnyContainerC ValT>
+class Container<ValT> {
     ValT& ref;
 
 public:
     using value_type   = std::decay_t<ValT>;
     using element_type = typename ValT::value_type;
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{detail::to_type_id<ValT>()};
 
     std::string_view const name;
@@ -233,14 +235,13 @@ public:
     }
 };
 
-template <size_t Id, detail::StdArrayC ValT>
-class Container<Id, ValT> {
+template <detail::StdArrayC ValT>
+class Container<ValT> {
     ValT& ref;
 
 public:
     using value_type   = std::decay_t<ValT>;
     using element_type = typename ValT::value_type;
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::Array};
 
     std::string_view const name;
@@ -282,14 +283,13 @@ public:
     void emplace_back_with(this T& rthis, V&& _rv, C& _rc, Args&&... args);
 };
 
-template <size_t Id, detail::BitsetC ValT>
-class Container<Id, ValT> {
+template <detail::BitsetC ValT>
+class Container<ValT> {
     ValT& ref;
 
 public:
     using value_type   = std::decay_t<ValT>;
     using element_type = bool;
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::Bitset};
     static constexpr TypeIdE element_type_id{TypeIdE::Integral};
 
@@ -324,14 +324,13 @@ public:
     }
 };
 
-template <size_t Id, detail::BitVectorC ValT>
-class Container<Id, ValT> {
+template <detail::BitVectorC ValT>
+class Container<ValT> {
     ValT& ref;
 
 public:
     using value_type   = std::decay_t<ValT>;
     using element_type = bool;
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::BitVector};
     static constexpr TypeIdE element_type_id{TypeIdE::Integral};
 
@@ -365,12 +364,11 @@ public:
     }
 };
 
-template <size_t Id, typename ValT>
+template <typename ValT>
 class Callable {
     ValT&& ref;
 
 public:
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::Callable};
 
     std::string_view const name;
@@ -387,15 +385,14 @@ public:
     }
 };
 
-template <size_t Id, typename ProgressF = void>
+template <typename ProgressF = void>
 class IStream;
 
-template <size_t Id>
-class IStream<Id, void> {
+template <>
+class IStream<void> {
     std::istream& ref;
 
 public:
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::IStream};
 
     std::string_view const name;
@@ -415,25 +412,24 @@ public:
     auto set_progress(ProgressF&& _fnc)
     {
         using ProgressT = std::decay_t<ProgressF>;
-        return IStream<Id, ProgressT>{*this, std::forward<ProgressF>(_fnc)};
+        return IStream<ProgressT>{*this, std::forward<ProgressF>(_fnc)};
     }
 };
 
-template <size_t Id, typename ProgressF>
-class IStream : public IStream<Id, void> {
+template <typename ProgressF>
+class IStream : public IStream<void> {
 public:
     ProgressF progress;
 };
 
-template <size_t Id, typename ProgressF = void>
+template <typename ProgressF = void>
 class OStream;
 
-template <size_t Id>
-class OStream<Id, void> {
+template <>
+class OStream<void> {
     std::ostream& ref;
 
 public:
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::OStream};
 
     std::string_view const name;
@@ -453,25 +449,24 @@ public:
     auto set_progress(ProgressF&& _fnc)
     {
         using ProgressT = std::decay_t<ProgressF>;
-        return IStream<Id, ProgressT>{*this, std::forward<ProgressF>(_fnc)};
+        return OStream<ProgressT>{*this, std::forward<ProgressF>(_fnc)};
     }
 };
 
-template <size_t Id, typename ProgressF>
-class OStream : public OStream<Id, void> {
+template <typename ProgressF>
+class OStream : public OStream<void> {
 public:
     ProgressF progress;
 };
 
-template <size_t Id, typename ProgressF = void>
+template <typename ProgressF = void>
 class IOStream;
 
-template <size_t Id>
-class IOStream<Id, void> {
+template <>
+class IOStream<void> {
     std::iostream& ref;
 
 public:
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::IOStream};
 
     std::string_view const name;
@@ -491,22 +486,21 @@ public:
     auto set_progress(ProgressF&& _fnc)
     {
         using ProgressT = std::decay_t<ProgressF>;
-        return IStream<Id, ProgressT>{*this, std::forward<ProgressF>(_fnc)};
+        return IOStream<ProgressT>{*this, std::forward<ProgressF>(_fnc)};
     }
 };
 
-template <size_t Id, typename ProgressF>
-class IOStream : public IOStream<Id, void> {
+template <typename ProgressF>
+class IOStream : public IOStream<void> {
 public:
     ProgressF progress;
 };
 
-template <size_t Id, typename ValT>
+template <typename ValT>
 class Pointer {
     ValT& ref;
 
 public:
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::Pointer};
     using value_type   = std::decay_t<ValT>;
     using element_type = typename ValT::element_type;
@@ -549,12 +543,11 @@ public:
     }
 };
 
-template <size_t Id, typename ValT>
+template <typename ValT>
 class Optional {
     ValT& ref;
 
 public:
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::Optional};
     using value_type   = std::decay_t<ValT>;
     using element_type = typename ValT::value_type;
@@ -587,12 +580,11 @@ public:
     }
 };
 
-template <size_t Id, typename ValT>
+template <typename ValT>
 class Variant {
     ValT& ref;
 
 public:
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::Variant};
     using value_type = std::decay_t<ValT>;
 
@@ -640,12 +632,11 @@ public:
 // ADL-reachable to_string / from_string customization points (see NamedEnumC).
 // get() yields the current value's name; set() parses a name back into the enum
 // and reports whether the name was recognized.
-template <size_t Id, typename ValT, typename GetF, typename SetF>
+template <typename ValT, typename GetF, typename SetF>
 class Enum {
     ValT& ref;
 
 public:
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::Enum};
     using value_type      = std::decay_t<ValT>;
     using underlying_type = std::underlying_type_t<value_type>;
@@ -674,16 +665,15 @@ public:
 };
 
 // —— Function-based descriptors ——
-// Mirror the public surface (id, type_id, name, get/set/view, for_each, ...)
+// Mirror the public surface (type_id, name, get/set/view, for_each, ...)
 // of their reference-based counterparts so serializers dispatch identically,
 // but hold no reference to the reflected member: all access goes through the
 // get/set closures. Needed for types whose state is only reachable via
 // accessor methods (see makef and SFR_V2_MAKEF).
 
-template <size_t Id, typename ValT, typename GetF, typename SetF>
+template <typename ValT, typename GetF, typename SetF>
 class BooleanF {
 public:
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::Boolean};
     using value_type = ValT;
 
@@ -699,10 +689,9 @@ public:
     }
 };
 
-template <size_t Id, typename ValT, typename GetF, typename SetF>
+template <typename ValT, typename GetF, typename SetF>
 class IntegralF {
 public:
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::Integral};
     using value_type = ValT;
 
@@ -731,10 +720,9 @@ public:
     }
 };
 
-template <size_t Id, typename ValT, typename GetF, typename SetF, typename ViewF>
+template <typename ValT, typename GetF, typename SetF, typename ViewF>
 class StringF {
 public:
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::String};
     using value_type = ValT;
 
@@ -764,10 +752,9 @@ public:
     }
 };
 
-template <size_t Id, typename ValT, typename GetF, typename SetF, typename GetSvF, typename SetSvF>
+template <typename ValT, typename GetF, typename SetF, typename GetSvF, typename SetSvF>
 class EnumF {
 public:
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::Enum};
     using value_type      = ValT;
     using underlying_type = std::underlying_type_t<value_type>;
@@ -795,14 +782,13 @@ public:
 // for_each honors max_size, which enables repeating groups: a fixed wire-size
 // array of which only the first N (e.g. max_depth) entries are active —
 // .with_max_size(N) limits serialization to those.
-template <size_t Id, typename ContT, typename GetF, typename SetF>
+template <typename ContT, typename GetF, typename SetF>
 class ContainerF {
     ContT cont;
 
 public:
     using value_type   = std::decay_t<ContT>;
     using element_type = typename value_type::value_type;
-    static constexpr size_t  id{Id};
     static constexpr TypeIdE type_id{TypeIdE::Container};
 
     std::string_view const name;
@@ -832,7 +818,7 @@ public:
         for (auto& re : cont) {
             if (count++ >= max_size)
                 break;
-            std::invoke(_rv, make<0>(""sv, re), _rc);
+            std::invoke(_rv, id<0>, make(""sv, re), _rc);
         }
     }
 
