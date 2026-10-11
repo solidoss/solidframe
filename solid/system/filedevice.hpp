@@ -9,8 +9,9 @@
 //
 
 #pragma once
-#include "seekabledevice.hpp"
+#include "solid/system/seekabledevice.hpp"
 #include <fcntl.h>
+#include <string_view>
 
 namespace solid {
 
@@ -26,25 +27,24 @@ public:
         CreateE    = O_CREAT //!< Create
     };
     FileDevice();
-    //! returns the size of a file without opening it - using stat!
-    static int64_t size(const char* _fname);
+    //! Returns the size of a file without opening it - using stat!
+    [[nodiscard]] static std::expected<int64_t, std::error_code> size(std::string_view _fname);
     //! Open a file using its name and open mode flags
-    bool open(const char* _fname, int _how);
+    [[nodiscard]] std::expected<void, std::error_code> open(std::string_view _fname, int _how);
     //! Create a file using its name and open mode flags
-    bool create(const char* _fname, int _how);
+    [[nodiscard]] std::expected<void, std::error_code> create(std::string_view _fname, int _how);
     //! Get the size of an opened file
     /*!
-        Use FileDevice::size(const char*) to find the size of a file
+        Use FileDevice::size(std::string_view) to find the size of a file
         without opening it
     */
-    int64_t size() const;
-    //! Check if a failed open opperation may succeed on retry
+    [[nodiscard]] std::expected<int64_t, std::error_code> size() const;
+    //! Check if a failed open operation may succeed on retry
     /*!
-        It uses errno so, it should be used imediatly after the open call.
         It returns true in cases when the file could not be opened because
         there were no available file descriptors or kernel memory.
     */
-    bool canRetryOpen() const;
+    [[nodiscard]] static bool can_retry_open(const std::error_code& _err) noexcept;
 };
 
 } // namespace solid

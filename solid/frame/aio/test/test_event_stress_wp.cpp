@@ -10,6 +10,8 @@
 #include "solid/utility/function.hpp"
 #include "solid/utility/string.hpp"
 #include "solid/utility/threadpool.hpp"
+#include <span>
+#include <tuple>
 
 #include <future>
 #include <iostream>

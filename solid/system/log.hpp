@@ -15,10 +15,14 @@
 #include "solid/system/error.hpp"
 #include <atomic>
 #include <cstring>
+#include <expected>
 #include <memory>
 #include <ostream>
 #include <sstream>
 #include <string>
+#include <string_view>
+#include <system_error>
+#include <vector>
 
 namespace solid {
 
@@ -74,8 +78,8 @@ private:
 
 struct LogLineBase {
     virtual ~LogLineBase();
-    virtual std::ostream& writeTo(std::ostream&) const = 0;
-    virtual size_t        size() const                 = 0;
+    virtual std::ostream&        writeTo(std::ostream&) const = 0;
+    [[nodiscard]] virtual size_t size() const                 = 0;
 };
 
 namespace impl {
@@ -89,7 +93,7 @@ public:
     {
         return BaseStream::writeTo(_ros);
     }
-    size_t size() const override
+    [[nodiscard]] size_t size() const override
     {
         return BaseStream::size();
     }
@@ -197,24 +201,28 @@ struct LogStreamRecorder : LogRecorder {
 
 using LogRecorderPtrT = std::shared_ptr<LogRecorder>;
 
-ErrorConditionT log_start(
+//! Start logging using the given recorder
+void log_start(
     LogRecorderPtrT&&               _rec_ptr,
     const std::vector<std::string>& _rmodule_mask_vec);
 
-ErrorConditionT log_start(
+//! Start logging into the given stream
+void log_start(
     std::ostream&                   _ros,
     const std::vector<std::string>& _rmodule_mask_vec);
 
-ErrorConditionT log_start(
-    const char*                     _fname,
+//! Start logging into files with the given path prefix - the log files are respinned
+[[nodiscard]] std::expected<void, std::error_code> log_start(
+    std::string_view                _prefix,
     const std::vector<std::string>& _rmodule_mask_vec,
     bool                            _buffered   = true,
     uint32_t                        _respincnt  = 2,
     uint64_t                        _respinsize = 1024 * 1024 * 1024);
 
-ErrorConditionT log_start(
-    const char*                     _addr,
-    const char*                     _port,
+//! Start logging to a socket connected to the given address and port
+[[nodiscard]] std::expected<void, std::error_code> log_start(
+    std::string_view                _addr,
+    std::string_view                _port,
     const std::vector<std::string>& _rmodule_mask_vec,
     bool                            _buffered = true);
 

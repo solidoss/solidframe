@@ -29,10 +29,8 @@ int test_log_file(int argc, char* argv[])
         count = atoi(argv[2]);
     }
 
-    auto err = solid::log_start(prefix, {".*:VIEW"}, true, 2, 1024 * 1024 * 10);
-
-    if (err) {
-        cout << "Log start error: " << err.message() << endl;
+    if (const auto rv = solid::log_start(prefix, {".*:VIEW"}, true, 2, 1024 * 1024 * 10); !rv) {
+        cout << "Log start error: " << rv.error().message() << endl;
         return 0;
     }
 

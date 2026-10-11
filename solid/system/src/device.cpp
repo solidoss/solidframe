@@ -31,6 +31,8 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
+#include <string>
+#include <tuple>
 
 #include "solid/system/cassert.hpp"
 #include "solid/system/directory.hpp"
@@ -44,19 +46,33 @@ using namespace std;
 
 namespace solid {
 
+namespace {
+
+#ifdef SOLID_ON_WINDOWS
+constexpr char path_separator = '\\';
+#else
+constexpr char path_separator = '/';
+#endif
+
+} // namespace
+
+//-- Device ----------------------------------------
+
 Device::Device(Device&& _dev) noexcept
     : desc_(_dev.descriptor())
 {
     _dev.desc_ = invalidDescriptor();
 }
 
-Device& Device::operator=(Device&& _dev) noexcept
+Device&
+Device::operator=(Device&& _dev) noexcept
 {
     close();
     desc_      = _dev.descriptor();
     _dev.desc_ = invalidDescriptor();
     return *this;
 }
+
 Device::Device(DescriptorT _desc)
     : desc_(_desc)
 {
@@ -67,44 +83,52 @@ Device::~Device()
     close();
 }
 
-ssize_t Device::read(char* _pb, size_t _bl)
+std::expected<std::size_t, std::error_code>
+Device::read(std::span<std::byte> _buf)
 {
 #ifdef SOLID_ON_WINDOWS
-    DWORD cnt;
-    if (ReadFile(desc_, _pb, static_cast<DWORD>(_bl), &cnt, nullptr)) {
-        return cnt;
-    } else {
-        return -1;
+    DWORD cnt = 0;
+    if (ReadFile(desc_, _buf.data(), static_cast<DWORD>(_buf.size()), &cnt, nullptr)) {
+        return static_cast<std::size_t>(cnt);
     }
+    return std::unexpected(last_system_error());
 #else
-    return ::read(desc_, _pb, _bl);
+    const auto rv = ::read(desc_, _buf.data(), _buf.size());
+    if (rv < 0) {
+        return std::unexpected(last_system_error());
+    }
+    return static_cast<std::size_t>(rv);
 #endif
 }
 
-ssize_t Device::write(const char* _pb, size_t _bl)
+std::expected<std::size_t, std::error_code>
+Device::write(std::span<const std::byte> _buf)
 {
 #ifdef SOLID_ON_WINDOWS
-    DWORD cnt;
-    /*OVERLAPPED ovp;
-    ovp.Offset = 0;
-    ovp.OffsetHigh = 0;
-    ovp.hEvent = nullptr;*/
-    if (WriteFile(desc_, const_cast<char*>(_pb), static_cast<DWORD>(_bl), &cnt, nullptr)) {
-        return cnt;
-    } else {
-        return -1;
+    DWORD cnt = 0;
+    if (WriteFile(desc_, _buf.data(), static_cast<DWORD>(_buf.size()), &cnt, nullptr)) {
+        return static_cast<std::size_t>(cnt);
     }
+    return std::unexpected(last_system_error());
 #else
-    return ::write(desc_, _pb, _bl);
+    const auto rv = ::write(desc_, _buf.data(), _buf.size());
+    if (rv < 0) {
+        return std::unexpected(last_system_error());
+    }
+    return static_cast<std::size_t>(rv);
 #endif
 }
 
-bool Device::cancel()
+std::expected<void, std::error_code>
+Device::cancel()
 {
 #ifdef SOLID_ON_WINDOWS
-    return CancelIoEx(Device::descriptor(), nullptr) != 0;
+    if (CancelIoEx(Device::descriptor(), nullptr) != 0) {
+        return {};
+    }
+    return std::unexpected(last_system_error());
 #else
-    return true;
+    return {};
 #endif
 }
 
@@ -114,57 +138,86 @@ void Device::close()
 #ifdef SOLID_ON_WINDOWS
         CloseHandle(desc_);
 #else
-        if (::close(desc_) != 0) {
-            solid_assert(errno != EBADF);
-        }
+        ::close(desc_);
 #endif
         desc_ = invalidDescriptor();
     }
 }
 
-void Device::flush()
+std::expected<void, std::error_code>
+Device::flush()
 {
 #ifdef SOLID_ON_WINDOWS
-    FlushFileBuffers(desc_);
+    if (FlushFileBuffers(desc_)) {
+        return {};
+    }
+    return std::unexpected(last_system_error());
 #else
-    fsync(desc_);
+    if (::fsync(desc_) == 0) {
+        return {};
+    }
+    return std::unexpected(last_system_error());
 #endif
 }
 
 //-- SeekableDevice ----------------------------------------
-ssize_t SeekableDevice::read(char* _pb, size_t _bl, int64_t _off)
+
+std::expected<std::size_t, std::error_code>
+SeekableDevice::read(std::span<std::byte> _buf, int64_t _off)
 {
 #ifdef SOLID_ON_WINDOWS
-    int64_t off(seek(0, SeekCur));
-    seek(_off);
-    ssize_t rv = Device::read(_pb, _bl);
-    seek(off);
+    const auto off = seek(0, SeekCur);
+    if (!off) {
+        return std::unexpected(off.error());
+    }
+    if (const auto rv = seek(_off); !rv) {
+        return std::unexpected(rv.error());
+    }
+    const auto rv = Device::read(_buf);
+    std::ignore   = seek(*off);
     return rv;
 #else
-    return pread(descriptor(), _pb, _bl, _off);
+    const auto rv = ::pread(descriptor(), _buf.data(), _buf.size(), _off);
+    if (rv < 0) {
+        return std::unexpected(last_system_error());
+    }
+    return static_cast<std::size_t>(rv);
 #endif
 }
 
-ssize_t SeekableDevice::write(const char* _pb, size_t _bl, int64_t _off)
+std::expected<std::size_t, std::error_code>
+SeekableDevice::write(std::span<const std::byte> _buf, int64_t _off)
 {
 #ifdef SOLID_ON_WINDOWS
-    int64_t off(seek(0, SeekCur));
-    seek(_off);
-    ssize_t rv = Device::write(_pb, _bl);
-    seek(off);
+    const auto off = seek(0, SeekCur);
+    if (!off) {
+        return std::unexpected(off.error());
+    }
+    if (const auto rv = seek(_off); !rv) {
+        return std::unexpected(rv.error());
+    }
+    const auto rv = Device::write(_buf);
+    std::ignore   = seek(*off);
     return rv;
 #else
-    return pwrite(descriptor(), _pb, _bl, _off);
+    const auto rv = ::pwrite(descriptor(), _buf.data(), _buf.size(), _off);
+    if (rv < 0) {
+        return std::unexpected(last_system_error());
+    }
+    return static_cast<std::size_t>(rv);
 #endif
 }
 
+namespace {
 #ifdef SOLID_ON_WINDOWS
-const DWORD seekmap[3] = {FILE_BEGIN, FILE_CURRENT, FILE_END};
+constexpr DWORD seekmap[3] = {FILE_BEGIN, FILE_CURRENT, FILE_END};
 #else
-const int seekmap[3] = {SEEK_SET, SEEK_CUR, SEEK_END};
+constexpr int seekmap[3] = {SEEK_SET, SEEK_CUR, SEEK_END};
 #endif
+} // namespace
 
-int64_t SeekableDevice::seek(int64_t _pos, SeekRef _ref)
+std::expected<int64_t, std::error_code>
+SeekableDevice::seek(int64_t _pos, SeekRef _ref)
 {
 #ifdef SOLID_ON_WINDOWS
     LARGE_INTEGER li;
@@ -172,23 +225,35 @@ int64_t SeekableDevice::seek(int64_t _pos, SeekRef _ref)
     li.QuadPart = _pos;
     li.LowPart  = SetFilePointer(descriptor(), li.LowPart, &li.HighPart, seekmap[_ref]);
 
-    if (
-        li.LowPart == INVALID_SET_FILE_POINTER && GetLastError() != NO_ERROR) {
-        li.QuadPart = -1;
+    if (li.LowPart == INVALID_SET_FILE_POINTER && GetLastError() != NO_ERROR) {
+        return std::unexpected(last_system_error());
     }
-    return li.QuadPart;
+    return static_cast<int64_t>(li.QuadPart);
 #else
-    return ::lseek(descriptor(), _pos, seekmap[_ref]);
+    const auto rv = ::lseek(descriptor(), _pos, seekmap[_ref]);
+    if (rv < 0) {
+        return std::unexpected(last_system_error());
+    }
+    return static_cast<int64_t>(rv);
 #endif
 }
 
-bool SeekableDevice::truncate(int64_t _len)
+std::expected<void, std::error_code>
+SeekableDevice::truncate(int64_t _len)
 {
 #ifdef SOLID_ON_WINDOWS
-    seek(_len);
-    return SetEndOfFile(descriptor());
+    if (const auto rv = seek(_len); !rv) {
+        return std::unexpected(rv.error());
+    }
+    if (SetEndOfFile(descriptor())) {
+        return {};
+    }
+    return std::unexpected(last_system_error());
 #else
-    return ::ftruncate(descriptor(), _len) == 0;
+    if (::ftruncate(descriptor(), _len) == 0) {
+        return {};
+    }
+    return std::unexpected(last_system_error());
 #endif
 }
 
@@ -199,7 +264,9 @@ FileDevice::FileDevice()
 }
 
 #ifdef SOLID_ON_WINDOWS
-HANDLE do_open(WCHAR* _pwc, const char* _fname, const size_t _sz, const size_t _wcp, int _how)
+namespace {
+HANDLE
+do_open(const char* _fname, int _how)
 {
     DWORD acc(0);
     if (_how & FileDevice::ReadOnlyE) {
@@ -229,135 +296,166 @@ HANDLE do_open(WCHAR* _pwc, const char* _fname, const size_t _sz, const size_t _
         acc |= FILE_APPEND_DATA;
     }
 
-    const HANDLE h = CreateFileA(_fname, acc, FILE_SHARE_READ, nullptr, creat, FILE_ATTRIBUTE_NORMAL, nullptr);
-    return h;
+    return CreateFileA(_fname, acc, FILE_SHARE_READ, nullptr, creat, FILE_ATTRIBUTE_NORMAL, nullptr);
 }
+} // namespace
 #endif
 
-bool FileDevice::open(const char* _fname, int _how)
+std::expected<void, std::error_code>
+FileDevice::open(std::string_view _fname, int _how)
 {
+    const std::string fname{_fname};
 #ifdef SOLID_ON_WINDOWS
-    //_fname is utf-8, so we need to convert it to WCHAR
-    const size_t sz(strlen(_fname));
-    const size_t szex = sz + 1;
-    if (szex < 256) {
-        WCHAR pwc[512];
-        descriptor(do_open(pwc, _fname, sz, 512, _how));
-    } else if (szex < 512) {
-        WCHAR pwc[1024];
-        descriptor(do_open(pwc, _fname, sz, 1024, _how));
-    } else if (szex < 1024) {
-        WCHAR pwc[2048];
-        descriptor(do_open(pwc, _fname, sz, 2048, _how));
-    } else {
-        WCHAR pwc[4096];
-        descriptor(do_open(pwc, _fname, sz, 4096, _how));
+    descriptor(do_open(fname.c_str(), _how));
+    if (!ok()) {
+        return std::unexpected(last_system_error());
     }
-    if (ok()) {
-        if (_how & AppendE) {
-            seek(0, SeekEnd);
+    if (_how & AppendE) {
+        if (const auto rv = seek(0, SeekEnd); !rv) {
+            close();
+            return std::unexpected(rv.error());
         }
     }
-    return ok();
+    return {};
 #else
-    descriptor(::open(_fname, _how, 00666));
-    return ok();
+    descriptor(::open(fname.c_str(), _how, 00666));
+    if (!ok()) {
+        return std::unexpected(last_system_error());
+    }
+    return {};
 #endif
 }
 
-bool FileDevice::create(const char* _fname, int _how)
+std::expected<void, std::error_code>
+FileDevice::create(std::string_view _fname, int _how)
 {
     return this->open(_fname, _how | CreateE | TruncateE);
 }
 
-int64_t FileDevice::size() const
+std::expected<int64_t, std::error_code>
+FileDevice::size() const
 {
 #ifdef SOLID_ON_WINDOWS
     LARGE_INTEGER li;
 
     li.QuadPart = 0;
     if (GetFileSizeEx(descriptor(), &li)) {
-        return li.QuadPart;
-    } else {
-        return -1;
+        return static_cast<int64_t>(li.QuadPart);
     }
+    return std::unexpected(last_system_error());
 #else
     struct stat st;
-    if (fstat(descriptor(), &st) != 0) {
-        return -1;
+    if (::fstat(descriptor(), &st) != 0) {
+        return std::unexpected(last_system_error());
     }
-    return st.st_size;
+    return static_cast<int64_t>(st.st_size);
 #endif
 }
-bool FileDevice::canRetryOpen() const
+
+/*static*/ bool
+FileDevice::can_retry_open(const std::error_code& _err) noexcept
 {
 #ifdef SOLID_ON_WINDOWS
+    (void)_err;
     return false;
 #else
-    return (errno == EMFILE) || (errno == ENOMEM);
+    return _err == std::errc::too_many_files_open || _err == std::errc::not_enough_memory;
 #endif
 }
-/*static*/ int64_t FileDevice::size(const char* _fname)
+
+/*static*/ std::expected<int64_t, std::error_code>
+FileDevice::size(std::string_view _fname)
 {
 #ifdef SOLID_ON_WINDOWS
     FileDevice fd;
-    if (fd.open(_fname, ReadOnlyE)) {
-        return -1;
+    if (const auto rv = fd.open(_fname, ReadOnlyE); !rv) {
+        return std::unexpected(rv.error());
     }
     return fd.size();
 #else
-    struct stat st;
-    if (stat(_fname, &st) != 0) {
-        return -1;
+    const std::string fname{_fname};
+    struct stat       st;
+    if (::stat(fname.c_str(), &st) != 0) {
+        return std::unexpected(last_system_error());
     }
-    return st.st_size;
+    return static_cast<int64_t>(st.st_size);
 #endif
 }
+
 //-- Directory -------------------------------------
-/*static*/ bool Directory::create(const char* _fname)
+
+/*static*/ std::expected<void, std::error_code>
+Directory::create(std::string_view _path)
 {
+    const std::string path{_path};
 #ifdef SOLID_ON_WINDOWS
-    return CreateDirectoryA(_fname, nullptr) == TRUE;
-#else
-    return mkdir(_fname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
-#endif
-}
-
-/*static*/ bool Directory::create_all(const char* _fname)
-{
-#ifdef SOLID_ON_WINDOWS
-    static constexpr const char sep = '\\';
-#else
-    static constexpr const char sep = '/';
-#endif
-    string path(_fname);
-
-    size_t sep_pos = path.find(sep, 0);
-
-    while (sep_pos != string::npos) {
-        path[sep_pos] = 0;
-        create(path.c_str());
-        path[sep_pos] = sep;
-        sep_pos       = path.find(sep, sep_pos + 1);
+    if (CreateDirectoryA(path.c_str(), nullptr) == TRUE) {
+        return {};
     }
-    create(_fname);
-    return true;
-}
-
-/*static*/ bool Directory::eraseFile(const char* _fname)
-{
-#ifdef SOLID_ON_WINDOWS
-    return DeleteFileA(_fname) == TRUE;
+    return std::unexpected(last_system_error());
 #else
-    return unlink(_fname) == 0;
+    if (::mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0) {
+        return {};
+    }
+    return std::unexpected(last_system_error());
 #endif
 }
-/*static*/ bool Directory::renameFile(const char* _from, const char* _to)
+
+/*static*/ std::expected<void, std::error_code>
+Directory::create_all(std::string_view _path)
 {
+    const auto create_if_missing = [](std::string_view _dir) -> std::expected<void, std::error_code> {
+        if (const auto rv = create(_dir); !rv && rv.error() != std::errc::file_exists) {
+            return rv;
+        }
+        return {};
+    };
+
+    size_t sep_pos = _path.find(path_separator);
+
+    while (sep_pos != std::string_view::npos) {
+        if (sep_pos != 0) {
+            if (const auto rv = create_if_missing(_path.substr(0, sep_pos)); !rv) {
+                return rv;
+            }
+        }
+        sep_pos = _path.find(path_separator, sep_pos + 1);
+    }
+    return create_if_missing(_path);
+}
+
+/*static*/ std::expected<void, std::error_code>
+Directory::erase_file(std::string_view _path)
+{
+    const std::string path{_path};
 #ifdef SOLID_ON_WINDOWS
-    return MoveFileExA(_from, _to, MOVEFILE_WRITE_THROUGH | MOVEFILE_REPLACE_EXISTING);
+    if (DeleteFileA(path.c_str()) == TRUE) {
+        return {};
+    }
+    return std::unexpected(last_system_error());
 #else
-    return ::rename(_from, _to) == 0;
+    if (::unlink(path.c_str()) == 0) {
+        return {};
+    }
+    return std::unexpected(last_system_error());
+#endif
+}
+
+/*static*/ std::expected<void, std::error_code>
+Directory::rename_file(std::string_view _from, std::string_view _to)
+{
+    const std::string from{_from};
+    const std::string to{_to};
+#ifdef SOLID_ON_WINDOWS
+    if (MoveFileExA(from.c_str(), to.c_str(), MOVEFILE_WRITE_THROUGH | MOVEFILE_REPLACE_EXISTING)) {
+        return {};
+    }
+    return std::unexpected(last_system_error());
+#else
+    if (::rename(from.c_str(), to.c_str()) == 0) {
+        return {};
+    }
+    return std::unexpected(last_system_error());
 #endif
 }
 
@@ -392,7 +490,8 @@ struct Starter {
 } // namespace
 #endif
 
-ErrorCodeT last_socket_error()
+ErrorCodeT
+last_socket_error()
 {
 #ifdef SOLID_ON_WINDOWS
     const DWORD err = WSAGetLastError();
@@ -401,6 +500,48 @@ ErrorCodeT last_socket_error()
     return solid::last_system_error();
 #endif
 }
+
+namespace {
+
+#ifdef SOLID_ON_WINDOWS
+using SockBufLenT = int;
+inline char*
+sock_buf(std::span<std::byte> _buf)
+{
+    return reinterpret_cast<char*>(_buf.data());
+}
+inline const char*
+sock_buf(std::span<const std::byte> _buf)
+{
+    return reinterpret_cast<const char*>(_buf.data());
+}
+#else
+using SockBufLenT = size_t;
+inline void*
+sock_buf(std::span<std::byte> _buf)
+{
+    return _buf.data();
+}
+inline const void*
+sock_buf(std::span<const std::byte> _buf)
+{
+    return _buf.data();
+}
+#endif
+
+inline SockBufLenT
+sock_len(const size_t _sz)
+{
+    return static_cast<SockBufLenT>(_sz);
+}
+
+inline bool
+is_system_error(const std::error_code& _err) noexcept
+{
+    return _err.category() == std::system_category() || _err.category() == std::generic_category();
+}
+
+} // namespace
 
 SocketDevice::SocketDevice(SocketDevice&& _sd) noexcept
     : Device(std::move(_sd))
@@ -416,7 +557,8 @@ SocketDevice::SocketDevice()
 {
 }
 
-SocketDevice& SocketDevice::operator=(SocketDevice&& _dev) noexcept
+SocketDevice&
+SocketDevice::operator=(SocketDevice&& _dev) noexcept
 {
     *static_cast<Device*>(this) = static_cast<Device&&>(_dev);
     return *this;
@@ -427,7 +569,8 @@ SocketDevice::~SocketDevice()
     close();
 }
 
-void SocketDevice::shutdownRead()
+std::expected<void, std::error_code>
+SocketDevice::shutdownRead()
 {
 #ifdef SOLID_ON_WINDOWS
     if (ok()) {
@@ -435,11 +578,16 @@ void SocketDevice::shutdownRead()
     }
 #else
     if (ok()) {
-        shutdown(descriptor(), SHUT_RD);
+        if (shutdown(descriptor(), SHUT_RD) != 0) {
+            return std::unexpected(last_system_error());
+        }
     }
 #endif
+    return {};
 }
-void SocketDevice::shutdownWrite()
+
+std::expected<void, std::error_code>
+SocketDevice::shutdownWrite()
 {
 #ifdef SOLID_ON_WINDOWS
     if (ok()) {
@@ -447,11 +595,16 @@ void SocketDevice::shutdownWrite()
     }
 #else
     if (ok()) {
-        shutdown(descriptor(), SHUT_WR);
+        if (shutdown(descriptor(), SHUT_WR) != 0) {
+            return std::unexpected(last_system_error());
+        }
     }
 #endif
+    return {};
 }
-void SocketDevice::shutdownReadWrite()
+
+std::expected<void, std::error_code>
+SocketDevice::shutdownReadWrite()
 {
 #ifdef SOLID_ON_WINDOWS
     if (ok()) {
@@ -459,726 +612,543 @@ void SocketDevice::shutdownReadWrite()
     }
 #else
     if (ok()) {
-        shutdown(descriptor(), SHUT_RDWR);
+        if (shutdown(descriptor(), SHUT_RDWR) != 0) {
+            return std::unexpected(last_system_error());
+        }
     }
 #endif
+    return {};
 }
+
 void SocketDevice::close()
 {
-#ifdef SOLID_ON_WINDOWS
-    shutdownReadWrite();
     if (ok()) {
+        std::ignore = shutdownReadWrite();
+#ifdef SOLID_ON_WINDOWS
         closesocket(descriptor());
         Device::descriptor((HANDLE)invalidDescriptor(), false);
+#else
+        Device::close();
+#endif
     }
-#else
-    shutdownReadWrite();
-    Device::close();
-#endif
 }
 
-ErrorCodeT SocketDevice::create(const ResolveIterator& _rri)
+std::expected<void, std::error_code>
+SocketDevice::create(const ResolveIterator& _rri)
 {
-#ifdef SOLID_ON_WINDOWS
-    // NOTE: must use WSASocket instead of socket because
-    // the latter seems to create the socket with OVERLAPPED support
-    // which will not work with above WriteFile for synchronous IO
-    SOCKET s = WSASocketW(_rri.family(), _rri.type(), _rri.protocol(), nullptr, 0, WSA_FLAG_OVERLAPPED);
-    Device::descriptor((HANDLE)s);
-    enableLoopbackFastPath();
-#else
-    Device::descriptor(socket(_rri.family(), _rri.type(), _rri.protocol()));
-#endif
-    return ok() ? ErrorCodeT() : last_socket_error();
+    return create(static_cast<SocketInfo::Family>(_rri.family()), static_cast<SocketInfo::Type>(_rri.type()), _rri.protocol());
 }
 
-ErrorCodeT SocketDevice::create(
+std::expected<void, std::error_code>
+SocketDevice::create(
     SocketInfo::Family _family,
     SocketInfo::Type   _type,
     int                _proto)
 {
 #ifdef SOLID_ON_WINDOWS
+    // NOTE: must use WSASocket instead of socket because
+    // the latter seems to create the socket with OVERLAPPED support
+    // which will not work with above WriteFile for synchronous IO
     SOCKET s = WSASocketW(_family, _type, _proto, nullptr, 0, WSA_FLAG_OVERLAPPED);
     Device::descriptor((HANDLE)s);
-    enableLoopbackFastPath();
+    if (!ok()) {
+        return std::unexpected(last_socket_error());
+    }
+    std::ignore = enableLoopbackFastPath();
+    return {};
 #else
-    Device::descriptor(socket(_family, _type, _proto));
+    Device::descriptor(::socket(_family, _type, _proto));
+    if (!ok()) {
+        return std::unexpected(last_socket_error());
+    }
+    return {};
 #endif
-    return ok() ? ErrorCodeT() : last_socket_error();
 }
 
-ErrorCodeT SocketDevice::connect(const SocketAddressStub& _rsas, bool& _rcan_wait)
+std::expected<void, std::error_code>
+SocketDevice::connect(const SocketAddressStub& _rsas)
 {
-#ifdef SOLID_ON_WINDOWS
-    const int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
-    _rcan_wait   = (WSAGetLastError() == WSAEWOULDBLOCK);
-#else
-    const int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
-    _rcan_wait   = (errno == EINPROGRESS);
-#endif
-    return rv == 0 ? ErrorCodeT() : last_socket_error();
+    if (::connect(descriptor(), _rsas.sockAddr(), _rsas.size()) == 0) {
+        return {};
+    }
+    return std::unexpected(last_socket_error());
 }
 
-ErrorCodeT SocketDevice::connect(const SocketAddressStub& _rsas)
+std::expected<void, std::error_code>
+SocketDevice::prepareAccept(const SocketAddressStub& _rsas, size_t _listencnt)
 {
-#ifdef SOLID_ON_WINDOWS
-    int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
-#else
-    int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
-#endif
-    return rv == 0 ? ErrorCodeT() : last_socket_error();
-}
-
-// int SocketDevice::connect(const ResolveIterator &_rai){
-// #ifdef SOLID_ON_WINDOWS
-//  int rv = ::connect(descriptor(), _rai.addr(), _rai.size());
-//  if (rv < 0) { // sau rv == -1 ...
-//      if(WSAGetLastError() == WSAEWOULDBLOCK) return NOK;
-//      edbgx(Debug::system, "socket connect");
-//      close();
-//      return BAD;
-//  }
-//  return OK;
-// #else
-//  int rv = ::connect(descriptor(), _rai.addr(), _rai.size());
-//  if (rv < 0) { // sau rv == -1 ...
-//      if(errno == EINPROGRESS) return NOK;
-//      edbgx(Debug::system, "socket connect: "<<strerror(errno));
-//      close();
-//      return BAD;
-//  }
-//  return OK;
-// #endif
-// }
-ErrorCodeT SocketDevice::prepareAccept(const SocketAddressStub& _rsas, size_t _listencnt)
-{
-#ifdef SOLID_ON_WINDOWS
     int yes = 1;
-    int rv  = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char*)&yes, sizeof(yes));
-    if (rv < 0) {
-        return last_socket_error();
+    if (::setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&yes), sizeof(yes)) < 0) {
+        return std::unexpected(last_socket_error());
     }
 
-    rv = ::bind(descriptor(), _rsas.sockAddr(), _rsas.size());
-    if (rv < 0) {
-        return last_socket_error();
+    if (::bind(descriptor(), _rsas.sockAddr(), _rsas.size()) < 0) {
+        return std::unexpected(last_socket_error());
     }
 
-    rv = listen(descriptor(), static_cast<int>(_listencnt));
-    if (rv < 0) {
-        return last_socket_error();
+    if (::listen(descriptor(), static_cast<int>(_listencnt)) < 0) {
+        return std::unexpected(last_socket_error());
     }
-    return last_socket_error();
-#else
-    int yes = 1;
-    int rv  = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&yes), sizeof(yes));
-    if (rv < 0) {
-        return last_socket_error();
-    }
-
-    rv = ::bind(descriptor(), _rsas.sockAddr(), _rsas.size());
-    if (rv < 0) {
-        return last_socket_error();
-    }
-    rv = listen(descriptor(), static_cast<int>(_listencnt));
-    if (rv < 0) {
-        return last_socket_error();
-    }
-    return ErrorCodeT();
-#endif
+    return {};
 }
 
-ErrorCodeT SocketDevice::accept(SocketDevice& _dev, bool& _rcan_retry)
+std::expected<SocketDevice, std::error_code>
+SocketDevice::accept()
 {
+    SocketDevice dev;
 #if defined(SOLID_ON_WINDOWS)
     const SOCKET rv = ::accept(descriptor(), nullptr, nullptr);
-    _rcan_retry     = (WSAGetLastError() == WSAEWOULDBLOCK);
-    _dev.Device::descriptor((HANDLE)rv);
-    _dev.enableLoopbackFastPath();
-    return _dev ? ErrorCodeT() : last_socket_error();
-#elif defined(SOLID_ON_DARWIN) || defined(SOLID_ON_FREEBSD)
-    const int rv = ::accept(descriptor(), nullptr, nullptr);
-    _rcan_retry  = (errno == EAGAIN || errno == ENETDOWN || errno == EPROTO || errno == ENOPROTOOPT || errno == EHOSTDOWN || errno == EHOSTUNREACH || errno == EOPNOTSUPP || errno == ENETUNREACH);
-    _dev.Device::descriptor(rv);
-
-    return rv > 0 ? ErrorCodeT() : last_socket_error();
+    if (rv == INVALID_SOCKET) {
+        return std::unexpected(last_socket_error());
+    }
+    dev.Device::descriptor((HANDLE)rv);
+    std::ignore = dev.enableLoopbackFastPath();
 #else
     const int rv = ::accept(descriptor(), nullptr, nullptr);
-    _rcan_retry  = (errno == EAGAIN || errno == ENETDOWN || errno == EPROTO || errno == ENOPROTOOPT || errno == EHOSTDOWN || errno == ENONET || errno == EHOSTUNREACH || errno == EOPNOTSUPP || errno == ENETUNREACH);
-    _dev.Device::descriptor(rv);
-
-    return rv > 0 ? ErrorCodeT() : last_socket_error();
+    if (rv < 0) {
+        return std::unexpected(last_socket_error());
+    }
+    dev.Device::descriptor(rv);
 #endif
+    return dev;
 }
 
-ErrorCodeT SocketDevice::accept(SocketDevice& _dev)
+std::expected<void, std::error_code>
+SocketDevice::bind(const SocketAddressStub& _rsa)
 {
-#ifdef SOLID_ON_WINDOWS
-    SocketAddress sa;
-    SOCKET        rv = ::accept(descriptor(), sa, &sa.sz);
-    _dev.Device::descriptor((HANDLE)rv);
-    _dev.enableLoopbackFastPath();
-    return last_socket_error();
-#else
-    int rv = ::accept(descriptor(), nullptr, nullptr);
-    _dev.Device::descriptor(rv);
-    return rv > 0 ? ErrorCodeT() : last_socket_error();
-#endif
+    if (::bind(descriptor(), _rsa.sockAddr(), _rsa.size()) == 0) {
+        return {};
+    }
+    return std::unexpected(last_socket_error());
 }
 
-ErrorCodeT SocketDevice::bind(const SocketAddressStub& _rsa)
-{
-#ifdef SOLID_ON_WINDOWS
-    /*int rv = */ ::bind(descriptor(), _rsa.sockAddr(), _rsa.size());
-    return last_socket_error();
-#else
-    int rv = ::bind(descriptor(), _rsa.sockAddr(), _rsa.size());
-    return rv == 0 ? ErrorCodeT() : last_socket_error();
-#endif
-}
-
-ErrorCodeT SocketDevice::makeBlocking()
+std::expected<void, std::error_code>
+SocketDevice::makeBlocking()
 {
 #ifdef SOLID_ON_WINDOWS
     u_long mode = 0;
-    int    rv   = ioctlsocket(descriptor(), FIONBIO, &mode);
-    if (rv != NO_ERROR) {
-        return last_socket_error();
+    if (ioctlsocket(descriptor(), FIONBIO, &mode) != NO_ERROR) {
+        return std::unexpected(last_socket_error());
     }
-    return ErrorCodeT();
+    return {};
 #else
-    int rv = fcntl(descriptor(), F_GETFL);
-    if (rv < 0) {
-        return last_socket_error();
+    const int flg = fcntl(descriptor(), F_GETFL);
+    if (flg < 0) {
+        return std::unexpected(last_socket_error());
     }
-    rv &= ~O_NONBLOCK;
-    rv = fcntl(descriptor(), F_SETFL, rv);
-    if (rv < 0) {
-        return last_socket_error();
+    if (fcntl(descriptor(), F_SETFL, flg & ~O_NONBLOCK) < 0) {
+        return std::unexpected(last_socket_error());
     }
-    return ErrorCodeT();
+    return {};
 #endif
 }
 
-ErrorCodeT SocketDevice::makeBlocking(size_t _msec)
+std::expected<void, std::error_code>
+SocketDevice::makeBlocking(size_t _msec)
 {
-#ifdef SOLID_ON_WINDOWS
-    u_long mode = 0;
-    int    rv   = ioctlsocket(descriptor(), FIONBIO, &mode);
-    if (rv != NO_ERROR) {
-        return last_socket_error();
+    if (const auto rv = makeBlocking(); !rv) {
+        return rv;
     }
+#ifdef SOLID_ON_WINDOWS
     DWORD tout(static_cast<DWORD>(_msec));
-    rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVTIMEO, (char*)&tout, sizeof(tout));
-    if (rv == SOCKET_ERROR) {
-        return last_socket_error();
+    if (setsockopt(descriptor(), SOL_SOCKET, SO_RCVTIMEO, (char*)&tout, sizeof(tout)) == SOCKET_ERROR) {
+        return std::unexpected(last_socket_error());
     }
     tout = static_cast<DWORD>(_msec);
-    rv   = setsockopt(descriptor(), SOL_SOCKET, SO_SNDTIMEO, (char*)&tout, sizeof(tout));
-    if (rv == SOCKET_ERROR) {
-        return last_socket_error();
+    if (setsockopt(descriptor(), SOL_SOCKET, SO_SNDTIMEO, (char*)&tout, sizeof(tout)) == SOCKET_ERROR) {
+        return std::unexpected(last_socket_error());
     }
-    return ErrorCodeT();
+    return {};
 #else
-    int flg = fcntl(descriptor(), F_GETFL);
-    if (flg == -1) {
-        return last_socket_error();
-    }
-    flg &= ~O_NONBLOCK;
-    int rv = fcntl(descriptor(), F_SETFL, flg);
-    if (rv < 0) {
-        return last_socket_error();
-    }
     struct timeval timeout;
-    timeout.tv_sec  = _msec / 1000;
-    timeout.tv_usec = _msec % 1000;
-    rv              = setsockopt(descriptor(), SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char*>(&timeout), sizeof(timeout));
-    if (rv != 0) {
-        return last_socket_error();
+    timeout.tv_sec  = static_cast<decltype(timeout.tv_sec)>(_msec / 1000);
+    timeout.tv_usec = static_cast<decltype(timeout.tv_usec)>((_msec % 1000) * 1000);
+    if (setsockopt(descriptor(), SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeout), sizeof(timeout)) != 0) {
+        return std::unexpected(last_socket_error());
     }
-    rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<char*>(&timeout), sizeof(timeout));
-    if (rv != 0) {
-        return last_socket_error();
+    if (setsockopt(descriptor(), SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char*>(&timeout), sizeof(timeout)) != 0) {
+        return std::unexpected(last_socket_error());
     }
-    return ErrorCodeT();
+    return {};
 #endif
 }
 
-ErrorCodeT SocketDevice::makeNonBlocking()
+std::expected<void, std::error_code>
+SocketDevice::makeNonBlocking()
 {
 #ifdef SOLID_ON_WINDOWS
     u_long mode = 1;
-    int    rv   = ioctlsocket(descriptor(), FIONBIO, &mode);
-
-    if (rv == NO_ERROR) {
-        return ErrorCodeT();
+    if (ioctlsocket(descriptor(), FIONBIO, &mode) == NO_ERROR) {
+        return {};
     }
-    return last_socket_error();
+    return std::unexpected(last_socket_error());
 #else
-    int flg = fcntl(descriptor(), F_GETFL);
-    if (flg == -1) {
-        return last_socket_error();
+    const int flg = fcntl(descriptor(), F_GETFL);
+    if (flg < 0) {
+        return std::unexpected(last_socket_error());
     }
-    int rv = fcntl(descriptor(), F_SETFL, flg | O_NONBLOCK);
-    if (rv >= 0) {
-        return ErrorCodeT();
+    if (fcntl(descriptor(), F_SETFL, flg | O_NONBLOCK) >= 0) {
+        return {};
     }
-    return last_socket_error();
+    return std::unexpected(last_socket_error());
 #endif
 }
 
-ErrorCodeT SocketDevice::isBlocking(bool& _rrv) const
+std::expected<bool, std::error_code>
+SocketDevice::isBlocking() const
 {
 #ifdef SOLID_ON_WINDOWS
-    return solid::error_not_implemented;
+    return std::unexpected(solid::error_not_implemented);
 #else
-
     const int flg = fcntl(descriptor(), F_GETFL);
 
-    if (flg != -1) {
-        _rrv = ((flg & O_NONBLOCK) == 0);
-        return ErrorCodeT();
+    if (flg < 0) {
+        return std::unexpected(last_socket_error());
     }
-    return last_socket_error();
+    return (flg & O_NONBLOCK) == 0;
 #endif
 }
 
-ssize_t SocketDevice::send(const char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT& _rerr, unsigned)
+std::expected<std::size_t, std::error_code>
+SocketDevice::send(std::span<const std::byte> _buf, unsigned _flags)
 {
-#ifdef SOLID_ON_WINDOWS
-#if 1
-    ssize_t rv  = ::send(descriptor(), _pb, static_cast<int>(_ul), 0);
-    _rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
-    _rerr       = last_socket_error();
-    return rv;
-#else
-    DWORD  bytes_sent = 0;
-    int    status;
-    WSABUF buffer;
-    buffer.len  = _ul;
-    buffer.buf  = (char*)_pb;
-    status      = WSASend(descriptor(), &buffer, 1, &bytes_sent, 0, NULL, NULL);
-    _rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
-    _rerr       = last_socket_error();
-    if (bytes_sent)
-        return bytes_sent;
-    return -1;
-#endif
-#else
-    ssize_t rv  = ::send(descriptor(), _pb, _ul, 0);
-    _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
-    _rerr       = last_socket_error();
-    return rv;
-#endif
-}
-ssize_t SocketDevice::recv(char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT& _rerr, unsigned)
-{
-#ifdef SOLID_ON_WINDOWS
-#if 1
-    ssize_t rv  = ::recv(descriptor(), _pb, static_cast<int>(_ul), 0);
-    _rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
-    _rerr       = last_socket_error();
-    return rv;
-#else
-    WSABUF buffer;
-    DWORD  flags     = 0;
-    buffer.buf       = _pb;
-    buffer.len       = _ul;
-    DWORD bytes_read = 0;
-    int   rv         = WSARecv(descriptor(), &buffer, 1, &bytes_read, &flags, NULL, NULL);
-    _rcan_retry      = (WSAGetLastError() == WSAEWOULDBLOCK);
-    _rerr            = last_socket_error();
-    if (bytes_read)
-        return bytes_read;
-    return -1;
-#endif
-#else
-    ssize_t rv  = ::recv(descriptor(), _pb, _ul, 0);
-    _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
-    _rerr       = last_socket_error();
-    return rv;
-#endif
-}
-ssize_t SocketDevice::send(const char* _pb, size_t _ul, const SocketAddressStub& _sap, bool& _rcan_retry, ErrorCodeT& _rerr)
-{
-#ifdef SOLID_ON_WINDOWS
-    ssize_t rv  = ::sendto(descriptor(), _pb, static_cast<int>(_ul), 0, _sap.sockAddr(), _sap.size());
-    _rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
-    _rerr       = last_socket_error();
-    return rv;
-#else
-    ssize_t rv  = ::sendto(descriptor(), _pb, _ul, 0, _sap.sockAddr(), _sap.size());
-    _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
-    _rerr       = last_socket_error();
-    return rv;
-#endif
-}
-ssize_t SocketDevice::recv(char* _pb, size_t _ul, SocketAddress& _rsa, bool& _rcan_retry, ErrorCodeT& _rerr)
-{
-#ifdef SOLID_ON_WINDOWS
-    _rsa.clear();
-    _rsa.sz     = SocketAddress::Capacity;
-    ssize_t rv  = ::recvfrom(descriptor(), _pb, static_cast<int>(_ul), 0, _rsa.sockAddr(), &_rsa.sz);
-    _rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
-    _rerr       = last_socket_error();
-    return rv;
-#else
-    _rsa.clear();
-    _rsa.sz     = SocketAddress::Capacity;
-    ssize_t rv  = ::recvfrom(descriptor(), _pb, _ul, 0, _rsa.sockAddr(), &_rsa.sz);
-    _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
-    _rerr       = last_socket_error();
-    return rv;
-#endif
+    const auto rv = ::send(descriptor(), sock_buf(_buf), sock_len(_buf.size()), static_cast<int>(_flags));
+    if (rv < 0) {
+        return std::unexpected(last_socket_error());
+    }
+    return static_cast<std::size_t>(rv);
 }
 
-ErrorCodeT SocketDevice::remoteAddress(SocketAddress& _rsa) const
+std::expected<std::size_t, std::error_code>
+SocketDevice::recv(std::span<std::byte> _buf, unsigned _flags)
 {
-#ifdef SOLID_ON_WINDOWS
-    _rsa.clear();
-    _rsa.sz = SocketAddress::Capacity;
-    int rv  = getpeername(descriptor(), _rsa.sockAddr(), &_rsa.sz);
-    if (rv == 0) {
-        return ErrorCodeT();
+    const auto rv = ::recv(descriptor(), sock_buf(_buf), sock_len(_buf.size()), static_cast<int>(_flags));
+    if (rv < 0) {
+        return std::unexpected(last_socket_error());
     }
-    return last_socket_error();
-#else
-    _rsa.clear();
-    _rsa.sz = SocketAddress::Capacity;
-    int rv  = getpeername(descriptor(), _rsa.sockAddr(), &_rsa.sz);
-    if (rv == 0) {
-        return ErrorCodeT();
-    }
-    return last_socket_error();
-#endif
+    return static_cast<std::size_t>(rv);
 }
 
-ErrorCodeT SocketDevice::localAddress(SocketAddress& _rsa) const
+std::expected<std::size_t, std::error_code>
+SocketDevice::send(std::span<const std::byte> _buf, const SocketAddressStub& _sap)
 {
-#ifdef SOLID_ON_WINDOWS
-    _rsa.clear();
-    _rsa.sz = SocketAddress::Capacity;
-    int rv  = getsockname(descriptor(), _rsa.sockAddr(), &_rsa.sz);
-    if (rv == 0) {
-        return ErrorCodeT();
+    const auto rv = ::sendto(descriptor(), sock_buf(_buf), sock_len(_buf.size()), 0, _sap.sockAddr(), _sap.size());
+    if (rv < 0) {
+        return std::unexpected(last_socket_error());
     }
-    return last_socket_error();
-#else
-    _rsa.clear();
-    _rsa.sz = SocketAddress::Capacity;
-    int rv  = getsockname(descriptor(), _rsa.sockAddr(), &_rsa.sz);
-    if (rv == 0) {
-        return ErrorCodeT();
-    }
-    return last_socket_error();
-#endif
+    return static_cast<std::size_t>(rv);
 }
 
-ErrorCodeT SocketDevice::type(int& _rrv) const
+std::expected<std::size_t, std::error_code>
+SocketDevice::recv(std::span<std::byte> _buf, SocketAddress& _rsa)
+{
+    _rsa.clear();
+    _rsa.sz       = SocketAddress::capacity;
+    const auto rv = ::recvfrom(descriptor(), sock_buf(_buf), sock_len(_buf.size()), 0, _rsa.sockAddr(), &_rsa.sz);
+    if (rv < 0) {
+        return std::unexpected(last_socket_error());
+    }
+    return static_cast<std::size_t>(rv);
+}
+
+std::expected<SocketAddress, std::error_code>
+SocketDevice::remoteAddress() const
+{
+    SocketAddress sa;
+    sa.sz = SocketAddress::capacity;
+    if (getpeername(descriptor(), sa.sockAddr(), &sa.sz) != 0) {
+        return std::unexpected(last_socket_error());
+    }
+    return sa;
+}
+
+std::expected<SocketAddress, std::error_code>
+SocketDevice::localAddress() const
+{
+    SocketAddress sa;
+    sa.sz = SocketAddress::capacity;
+    if (getsockname(descriptor(), sa.sockAddr(), &sa.sz) != 0) {
+        return std::unexpected(last_socket_error());
+    }
+    return sa;
+}
+
+std::expected<int, std::error_code>
+SocketDevice::type() const
 {
 #ifdef SOLID_ON_WINDOWS
-    return solid::error_not_implemented;
+    return std::unexpected(solid::error_not_implemented);
 #else
     int       val   = 0;
     socklen_t valsz = sizeof(int);
-    int       rv    = getsockopt(descriptor(), SOL_SOCKET, SO_TYPE, &val, &valsz);
-    if (rv == 0) {
-        _rrv = val;
-        return ErrorCodeT();
+    if (getsockopt(descriptor(), SOL_SOCKET, SO_TYPE, &val, &valsz) != 0) {
+        return std::unexpected(last_socket_error());
     }
-
-    return last_socket_error();
+    return val;
 #endif
 }
 
-// SocketDevice::RetValE SocketDevice::isListening(ErrorCodeT &_rerr)const{
-// #ifdef SOLID_ON_WINDOWS
-//  return Error;
-// #else
-//  int val = 0;
-//  socklen_t valsz = sizeof(int);
-//  int rv = getsockopt(descriptor(), SOL_SOCKET, SO_ACCEPTCONN, &val, &valsz);
-//  if(rv == 0){
-//      _rerr = last_error();
-//      return val != 0 ? Success : Failure;
-//  }
-//
-//  if(this->type() == SocketInfo::Datagram){
-//      return Failure;
-//  }
-//  return Error;
-// #endif
-// }
-
-ErrorCodeT SocketDevice::enableLoopbackFastPath()
+std::expected<void, std::error_code>
+SocketDevice::enableLoopbackFastPath()
 {
 #if defined(SOLID_ON_WINDOWS)
     uint32_t param = 1;
     DWORD    ret;
     int      rv = WSAIoctl(descriptor(), SIO_LOOPBACK_FAST_PATH /*_WSAIOW(IOC_VENDOR, 16)*/,
-             &param, sizeof(param), NULL, 0, &ret, 0, 0);
+        &param, sizeof(param), NULL, 0, &ret, 0, 0);
     if (rv == 0) {
-        return ErrorCodeT();
+        return {};
     }
-    return last_socket_error();
+    return std::unexpected(last_socket_error());
 #else
-    return ErrorCodeT();
+    return {};
 #endif
 }
 
-ErrorCodeT SocketDevice::enableNoDelay()
+namespace {
+
+template <class T>
+std::expected<void, std::error_code>
+set_socket_option(const SocketDevice::DescriptorT _desc, const int _level, const int _option, const T _value)
+{
+    if (setsockopt(_desc, _level, _option, reinterpret_cast<const char*>(&_value), sizeof(_value)) == 0) {
+        return {};
+    }
+    return std::unexpected(last_socket_error());
+}
+
+template <class T>
+std::expected<T, std::error_code>
+get_socket_option(const SocketDevice::DescriptorT _desc, const int _level, const int _option)
+{
+    T         value{};
+    socklen_t sz = sizeof(value);
+    if (getsockopt(_desc, _level, _option, reinterpret_cast<char*>(&value), &sz) == 0) {
+        return value;
+    }
+    return std::unexpected(last_socket_error());
+}
+
+} // namespace
+
+std::expected<void, std::error_code>
+SocketDevice::enableNoDelay()
 {
 #if defined(SOLID_ON_WINDOWS)
-    BOOL flag = true;
-    int  rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&flag), sizeof(flag));
+    return set_socket_option<BOOL>(descriptor(), IPPROTO_TCP, TCP_NODELAY, TRUE);
 #else
-    int flag = 1;
-    int rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&flag), sizeof(flag));
+    return set_socket_option<int>(descriptor(), IPPROTO_TCP, TCP_NODELAY, 1);
 #endif
-    if (rv == 0) {
-        return ErrorCodeT();
-    }
-    return last_socket_error();
 }
 
-ErrorCodeT SocketDevice::disableNoDelay()
+std::expected<void, std::error_code>
+SocketDevice::disableNoDelay()
 {
 #if defined(SOLID_ON_WINDOWS)
-    BOOL flag = false;
-    int  rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&flag), sizeof(flag));
+    return set_socket_option<BOOL>(descriptor(), IPPROTO_TCP, TCP_NODELAY, FALSE);
 #else
-    int flag = 0;
-    int rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&flag), sizeof(flag));
+    return set_socket_option<int>(descriptor(), IPPROTO_TCP, TCP_NODELAY, 0);
 #endif
-    if (rv == 0) {
-        return ErrorCodeT();
-    }
-    return last_socket_error();
 }
 
-ErrorCodeT SocketDevice::enableNoSignal()
+std::expected<bool, std::error_code>
+SocketDevice::hasNoDelay() const
+{
+    return get_socket_option<int>(descriptor(), IPPROTO_TCP, TCP_NODELAY).transform([](const int _flag) { return _flag != 0; });
+}
+
+std::expected<void, std::error_code>
+SocketDevice::enableNoSignal()
 {
 #if defined(SOLID_ON_WINDOWS) || defined(SOLID_ON_DARWIN)
-    return solid::error_not_implemented;
+    return std::unexpected(solid::error_not_implemented);
 #else
-    int flag = 1;
-    int rv   = setsockopt(descriptor(), SOL_SOCKET, MSG_NOSIGNAL, reinterpret_cast<char*>(&flag), sizeof(flag));
-    if (rv == 0) {
-        return ErrorCodeT();
-    }
-    return last_socket_error();
+    return set_socket_option<int>(descriptor(), SOL_SOCKET, MSG_NOSIGNAL, 1);
 #endif
 }
 
-ErrorCodeT SocketDevice::disableNoSignal()
+std::expected<void, std::error_code>
+SocketDevice::disableNoSignal()
 {
 #if defined(SOLID_ON_WINDOWS) || defined(SOLID_ON_DARWIN)
-    return solid::error_not_implemented;
+    return std::unexpected(solid::error_not_implemented);
 #else
-    int flag = 0;
-    int rv   = setsockopt(descriptor(), SOL_SOCKET, MSG_NOSIGNAL, reinterpret_cast<char*>(&flag), sizeof(flag));
-    if (rv == 0) {
-        return ErrorCodeT();
-    }
-    return last_socket_error();
+    return set_socket_option<int>(descriptor(), SOL_SOCKET, MSG_NOSIGNAL, 0);
 #endif
 }
 
-ErrorCodeT SocketDevice::enableLinger()
+std::expected<void, std::error_code>
+SocketDevice::enableLinger()
 {
-    return solid::error_not_implemented;
+    return std::unexpected(solid::error_not_implemented);
 }
 
-ErrorCodeT SocketDevice::disableLinger()
+std::expected<void, std::error_code>
+SocketDevice::disableLinger()
 {
-    return solid::error_not_implemented;
+    return std::unexpected(solid::error_not_implemented);
 }
 
-ErrorCodeT SocketDevice::hasNoDelay(bool& _rrv) const
+std::expected<void, std::error_code>
+SocketDevice::enableCork()
 {
-    int       flag = 0;
-    socklen_t sz(sizeof(flag));
-    int       rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&flag), &sz);
-    if (rv == 0) {
-        _rrv = (flag != 0);
-        return ErrorCodeT();
-    }
-    return last_socket_error();
-}
-
-ErrorCodeT SocketDevice::enableCork()
-{
-#ifdef SOLID_ON_WINDOWS
-    return solid::error_not_implemented;
-#elif defined(SOLID_ON_LINUX)
-    int flag = 1;
-    int rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, reinterpret_cast<char*>(&flag), sizeof(flag));
-    if (rv == 0) {
-        return ErrorCodeT();
-    }
-    return last_socket_error();
+#if defined(SOLID_ON_LINUX)
+    return set_socket_option<int>(descriptor(), IPPROTO_TCP, TCP_CORK, 1);
 #else
-    return solid::error_not_implemented;
+    return std::unexpected(solid::error_not_implemented);
 #endif
 }
 
-ErrorCodeT SocketDevice::disableCork()
+std::expected<void, std::error_code>
+SocketDevice::disableCork()
 {
-#ifdef SOLID_ON_WINDOWS
-    return solid::error_not_implemented;
-#elif defined(SOLID_ON_LINUX)
-    int flag = 0;
-    int rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, reinterpret_cast<char*>(&flag), sizeof(flag));
-    if (rv == 0) {
-        return ErrorCodeT();
-    }
-    return last_socket_error();
+#if defined(SOLID_ON_LINUX)
+    return set_socket_option<int>(descriptor(), IPPROTO_TCP, TCP_CORK, 0);
 #else
-    return solid::error_not_implemented;
+    return std::unexpected(solid::error_not_implemented);
 #endif
 }
 
-ErrorCodeT SocketDevice::hasCork(bool& _rrv) const
+std::expected<bool, std::error_code>
+SocketDevice::hasCork() const
 {
-#ifdef SOLID_ON_WINDOWS
-    return solid::error_not_implemented;
-#elif defined(SOLID_ON_LINUX)
-    int       flag = 0;
-    socklen_t sz(sizeof(flag));
-    int       rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, reinterpret_cast<char*>(&flag), &sz);
-    if (rv == 0) {
-        _rrv = (flag != 0);
-        return ErrorCodeT();
-    }
-    return last_socket_error();
+#if defined(SOLID_ON_LINUX)
+    return get_socket_option<int>(descriptor(), IPPROTO_TCP, TCP_CORK).transform([](const int _flag) { return _flag != 0; });
 #else
-    // TODO:
-    (void)_rrv;
-    return solid::error_not_implemented;
+    return std::unexpected(solid::error_not_implemented);
 #endif
 }
 
-ErrorCodeT SocketDevice::sendBufferSize(int& _rsz)
+std::expected<void, std::error_code>
+SocketDevice::sendBufferSize(int _sz)
 {
-    if (_rsz >= 0) {
-        int sockbufsz(_rsz);
-        int rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&sockbufsz), sizeof(sockbufsz));
-        if (rv == 0) {
-            return ErrorCodeT();
-        }
-        return last_socket_error();
-    }
-    int       sockbufsz(0);
-    socklen_t sz(sizeof(sockbufsz));
-    int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&sockbufsz), &sz);
-
-    if (rv == 0) {
-        _rsz = sockbufsz;
-        return ErrorCodeT();
-    }
-    return last_socket_error();
+    return set_socket_option<int>(descriptor(), SOL_SOCKET, SO_SNDBUF, _sz);
 }
 
-ErrorCodeT SocketDevice::recvBufferSize(int& _rsz)
+std::expected<void, std::error_code>
+SocketDevice::recvBufferSize(int _sz)
 {
-    if (_rsz >= 0) {
-        int sockbufsz(_rsz);
-        int rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, reinterpret_cast<char*>(&sockbufsz), sizeof(sockbufsz));
-        if (rv == 0) {
-            return ErrorCodeT();
-        }
-    } else {
-        int       sockbufsz(0);
-        socklen_t sz(sizeof(sockbufsz));
-        int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, reinterpret_cast<char*>(&sockbufsz), &sz);
-        if (rv == 0) {
-            _rsz = sockbufsz;
-            return ErrorCodeT();
-        }
-    }
-    return last_socket_error();
+    return set_socket_option<int>(descriptor(), SOL_SOCKET, SO_RCVBUF, _sz);
 }
 
-ErrorCodeT SocketDevice::sendBufferSize(int& _rsz) const
+std::expected<int, std::error_code>
+SocketDevice::sendBufferSize() const
 {
-    int       sockbufsz(0);
-    socklen_t sz(sizeof(sockbufsz));
-    int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&sockbufsz), &sz);
-
-    if (rv == 0) {
-        _rsz = sockbufsz;
-        return ErrorCodeT();
-    }
-    return last_socket_error();
+    return get_socket_option<int>(descriptor(), SOL_SOCKET, SO_SNDBUF);
 }
 
-ErrorCodeT SocketDevice::recvBufferSize(int& _rsz) const
+std::expected<int, std::error_code>
+SocketDevice::recvBufferSize() const
 {
-    int       sockbufsz(0);
-    socklen_t sz(sizeof(sockbufsz));
-    int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, reinterpret_cast<char*>(&sockbufsz), &sz);
-    if (rv == 0) {
-        _rsz = sockbufsz;
-        return ErrorCodeT();
-    }
-    return last_socket_error();
+    return get_socket_option<int>(descriptor(), SOL_SOCKET, SO_RCVBUF);
 }
 
-ErrorCodeT SocketDevice::error() const
+std::error_code
+SocketDevice::error() const
+{
+    return error(descriptor());
+}
+
+/*static*/ std::error_code
+SocketDevice::error(const DescriptorT _des)
 {
     int       val   = 0;
     socklen_t valsz = sizeof(int);
-    int       rv    = getsockopt(descriptor(), SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&val), &valsz);
-    if (rv == 0) {
-        return ErrorCodeT(val, std::system_category());
+    if (getsockopt(_des, SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&val), &valsz) == 0) {
+        return std::error_code(val, std::system_category());
     }
     return last_socket_error();
 }
 
-/*static*/ ErrorCodeT SocketDevice::error(const DescriptorT _des)
+/*static*/ bool
+SocketDevice::can_wait_connect(const std::error_code& _err) noexcept
 {
-    int       val   = 0;
-    socklen_t valsz = sizeof(int);
-    int       rv    = getsockopt(_des, SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&val), &valsz);
-    if (rv == 0) {
-        return ErrorCodeT(val, std::system_category());
+#ifdef SOLID_ON_WINDOWS
+    return is_system_error(_err) && _err.value() == WSAEWOULDBLOCK;
+#else
+    return _err == std::errc::operation_in_progress;
+#endif
+}
+
+/*static*/ bool
+SocketDevice::can_retry_io(const std::error_code& _err) noexcept
+{
+#ifdef SOLID_ON_WINDOWS
+    return is_system_error(_err) && _err.value() == WSAEWOULDBLOCK;
+#else
+    return _err == std::errc::resource_unavailable_try_again || _err == std::errc::operation_would_block;
+#endif
+}
+
+/*static*/ bool
+SocketDevice::can_retry_accept(const std::error_code& _err) noexcept
+{
+#ifdef SOLID_ON_WINDOWS
+    return is_system_error(_err) && _err.value() == WSAEWOULDBLOCK;
+#else
+    if (!is_system_error(_err)) {
+        return false;
     }
-    return last_socket_error();
+    switch (_err.value()) {
+    case EAGAIN:
+#if EWOULDBLOCK != EAGAIN
+    case EWOULDBLOCK:
+#endif
+    case ENETDOWN:
+    case EPROTO:
+    case ENOPROTOOPT:
+    case EHOSTDOWN:
+#ifdef ENONET
+    case ENONET:
+#endif
+    case EHOSTUNREACH:
+    case EOPNOTSUPP:
+    case ENETUNREACH:
+        return true;
+    default:
+        return false;
+    }
+#endif
 }
 
-std::ostream& operator<<(std::ostream& _ros, const LocalAddressPlot& _ra)
+std::ostream&
+operator<<(std::ostream& _ros, const LocalAddressPlot& _ra)
 {
-    SocketAddress sa;
-    _ra.rsd.localAddress(sa);
-    _ros << sa;
+    if (const auto sa = _ra.rsd.localAddress()) {
+        _ros << *sa;
+    }
     return _ros;
 }
 
-std::ostream& operator<<(std::ostream& _ros, const RemoteAddressPlot& _ra)
+std::ostream&
+operator<<(std::ostream& _ros, const RemoteAddressPlot& _ra)
 {
-    SocketAddress sa;
-    _ra.rsd.remoteAddress(sa);
-    _ros << sa;
+    if (const auto sa = _ra.rsd.remoteAddress()) {
+        _ros << *sa;
+    }
     return _ros;
 }
 
-std::ostream& operator<<(std::ostream& _ros, const LocalEndpointPlot& _ra)
+std::ostream&
+operator<<(std::ostream& _ros, const LocalEndpointPlot& _ra)
 {
-    SocketAddress sa;
-    _ra.rsd.localAddress(sa);
-    _ros << sa << ':' << sa.port();
+    if (const auto sa = _ra.rsd.localAddress()) {
+        _ros << *sa << ':' << sa->port();
+    }
     return _ros;
 }
 
-std::ostream& operator<<(std::ostream& _ros, const RemoteEndpointPlot& _ra)
+std::ostream&
+operator<<(std::ostream& _ros, const RemoteEndpointPlot& _ra)
 {
-    SocketAddress sa;
-    _ra.rsd.remoteAddress(sa);
-    _ros << sa << ':' << sa.port();
+    if (const auto sa = _ra.rsd.remoteAddress()) {
+        _ros << *sa << ':' << sa->port();
+    }
     return _ros;
 }
 
-/*static*/ size_t SocketInfo::max_listen_backlog_size()
+/*static*/ size_t
+SocketInfo::max_listen_backlog_size()
 {
     return 128; // TODO: try take the value from the system
 }

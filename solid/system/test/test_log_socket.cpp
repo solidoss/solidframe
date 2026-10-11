@@ -31,12 +31,11 @@ int test_log_socket(int argc, char* argv[])
     int count = 1000 * 1000;
 
     if (argc > 3) {
-        count = atoi(argv[2]);
+        count = atoi(argv[3]);
     }
 
-    auto err = solid::log_start(host, port, {".*:VIEW"});
-    if (err) {
-        cout << "Log start error: " << err.message() << endl;
+    if (const auto rv = solid::log_start(host, port, {".*:VIEW"}); !rv) {
+        cout << "Log start error: " << rv.error().message() << endl;
         return 0;
     }
 

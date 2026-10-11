@@ -1,6 +1,8 @@
 #include "solid/frame/manager.hpp"
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
+#include <span>
+#include <tuple>
 
 #include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aiodatagram.hpp"
@@ -86,10 +88,8 @@ private:
 
 private:
     using StreamSocketT = frame::aio::Stream<frame::aio::Socket>;
-    enum { BufferCapacity = 1024 * 2 };
-
-    char          buf[BufferCapacity];
-    StreamSocketT sock;
+    std::array<std::byte, 1024 * 2> buf;
+    StreamSocketT                   sock;
 };
 
 class Talker : public frame::aio::Actor {
@@ -107,10 +107,8 @@ private:
 private:
     using DatagramSocketT = frame::aio::Datagram<frame::aio::Socket>;
 
-    enum { BufferCapacity = 1024 * 2 };
-
-    char            buf[BufferCapacity];
-    DatagramSocketT sock;
+    std::array<std::byte, 1024 * 2> buf;
+    DatagramSocketT                 sock;
 };
 
 bool parseArguments(Params& _par, int argc, char* argv[]);
@@ -131,12 +129,11 @@ int main(int argc, char* argv[])
     scheduler.start(thread::hardware_concurrency());
 
     {
-        ResolveData  rd = synchronous_resolve("0.0.0.0", p.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+        ResolveData  rd = synchronous_resolve("0.0.0.0", p.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream).value();
         SocketDevice sd;
 
-        sd.create(rd.begin());
-        sd.prepareAccept(rd.begin(), Listener::backlog_size());
-
+        std::ignore = sd.create(rd.begin());
+        std::ignore = sd.prepareAccept(rd.begin(), Listener::backlog_size());
         if (sd) {
             cout << "Listening for TCP connections on endpoint: " << local_endpoint(sd) << endl;
 
@@ -152,12 +149,11 @@ int main(int argc, char* argv[])
     }
 
     {
-        ResolveData  rd = synchronous_resolve("0.0.0.0", p.talker_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+        ResolveData  rd = synchronous_resolve("0.0.0.0", p.talker_port, 0, SocketInfo::Inet4, SocketInfo::Datagram).value();
         SocketDevice sd;
 
-        sd.create(rd.begin());
-        sd.bind(rd.begin());
-
+        std::ignore = sd.create(rd.begin());
+        std::ignore = sd.bind(rd.begin());
         if (sd) {
 
             cout << "Listening for UDP datagrams on endpoint: " << local_endpoint(sd) << endl;
@@ -248,7 +244,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent)
 {
     if (generic_event<GenericEventE::Start> == _revent) {
-        sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); // fully asynchronous call
+        sock.postRecvSome(_rctx, buf, Connection::onRecv); // fully asynchronous call
     } else if (generic_event<GenericEventE::Kill> == _revent) {
         sock.shutdown(_rctx);
         postStop(_rctx);
@@ -261,7 +257,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     Connection& rthis     = static_cast<Connection&>(_rctx.actor());
     do {
         if (!_rctx.error()) {
-            if (rthis.sock.sendAll(_rctx, rthis.buf, _sz, Connection::onSend)) {
+            if (rthis.sock.sendAll(_rctx, std::span{rthis.buf}.first(_sz), Connection::onSend)) {
                 if (_rctx.error()) {
                     rthis.postStop(_rctx);
                     break;
@@ -274,10 +270,10 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             break;
         }
         --repeatcnt;
-    } while (repeatcnt && rthis.sock.recvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv, _sz));
+    } while (repeatcnt != 0 && rthis.sock.recvSome(_rctx, rthis.buf, Connection::onRecv, _sz));
 
     if (repeatcnt == 0) {
-        bool rv = rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); // fully asynchronous call
+        bool rv = rthis.sock.postRecvSome(_rctx, rthis.buf, Connection::onRecv); // fully asynchronous call
         solid_assert(!rv);
         (void)rv;
     }
@@ -287,7 +283,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
     Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
-        rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); // fully asynchronous call
+        rthis.sock.postRecvSome(_rctx, rthis.buf, Connection::onRecv); // fully asynchronous call
     } else {
         rthis.postStop(_rctx);
     }
@@ -300,9 +296,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 /*virtual*/ void Talker::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _revent)
 {
     if (generic_event<GenericEventE::Start> == _revent) {
-        sock.postRecvFrom(
-            _rctx, buf, BufferCapacity,
-            [this](frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz) { onRecv(_rctx, _raddr, _sz); }); // fully asynchronous call
+        sock.postRecvFrom(_rctx, buf, [this](frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz) { onRecv(_rctx, _raddr, _sz); }); // fully asynchronous call
     } else if (generic_event<GenericEventE::Kill> == _revent) {
         postStop(_rctx);
     }
@@ -313,7 +307,7 @@ void Talker::onRecv(frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, si
     unsigned repeatcnt = 10;
     do {
         if (!_rctx.error()) {
-            if (sock.sendTo(_rctx, buf, _sz, _raddr, [this](frame::aio::ReactorContext& _rctx) { onSend(_rctx); })) {
+            if (sock.sendTo(_rctx, std::span{buf}.first(_sz), _raddr, [this](frame::aio::ReactorContext& _rctx) { onSend(_rctx); })) {
                 if (_rctx.error()) {
                     postStop(_rctx);
                     break;
@@ -327,21 +321,17 @@ void Talker::onRecv(frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, si
         }
         --repeatcnt;
     } while (
-        repeatcnt && sock.recvFrom(_rctx, buf, BufferCapacity, [this](frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz) { onRecv(_rctx, _raddr, _sz); }, _raddr, _sz));
+        repeatcnt && sock.recvFrom(_rctx, buf, [this](frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz) { onRecv(_rctx, _raddr, _sz); }, _raddr, _sz));
 
     if (repeatcnt == 0) {
-        sock.postRecvFrom(
-            _rctx, buf, BufferCapacity,
-            [this](frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz) { onRecv(_rctx, _raddr, _sz); }); // fully asynchronous call
+        sock.postRecvFrom(_rctx, buf, [this](frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz) { onRecv(_rctx, _raddr, _sz); }); // fully asynchronous call
     }
 }
 
 void Talker::onSend(frame::aio::ReactorContext& _rctx)
 {
     if (!_rctx.error()) {
-        sock.postRecvFrom(
-            _rctx, buf, BufferCapacity,
-            [this](frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz) { onRecv(_rctx, _raddr, _sz); }); // fully asynchronous call
+        sock.postRecvFrom(_rctx, buf, [this](frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz) { onRecv(_rctx, _raddr, _sz); }); // fully asynchronous call
     } else {
         postStop(_rctx);
     }

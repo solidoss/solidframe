@@ -11,6 +11,7 @@
 #include "mprpcconnection.hpp"
 #include "solid/frame/mprpc/mprpcerror.hpp"
 #include "solid/frame/mprpc/mprpcsocketstub_plain.hpp"
+#include <tuple>
 
 #include "solid/system/cassert.hpp"
 #include "solid/system/exception.hpp"
@@ -18,9 +19,7 @@
 
 #include <cstring>
 
-namespace solid {
-namespace frame {
-namespace mprpc {
+namespace solid::frame::mprpc {
 //-----------------------------------------------------------------------------
 
 std::ostream& operator<<(std::ostream& _ros, const RelayDataFlagsT& _flags)
@@ -121,8 +120,8 @@ SocketStubPtrT default_create_server_socket(Configuration const& _rcfg, frame::a
 
 bool default_setup_socket_device(SocketDevice& _rsd)
 {
-    _rsd.enableNoDelay();
-    _rsd.enableNoSignal();
+    std::ignore = _rsd.enableNoDelay();
+    std::ignore = _rsd.enableNoSignal();
     return true;
 }
 
@@ -367,15 +366,15 @@ void Configuration::createListenerDevice(SocketDevice& _rsd) const
             svc_name = server.listener_service_str.c_str();
         }
 
-        ResolveData rd = synchronous_resolve(hst_name, svc_name, 0, -1, SocketInfo::Stream);
+        const auto rd = synchronous_resolve(hst_name, svc_name, 0, -1, SocketInfo::Stream);
 
-        for (auto it = rd.begin(); it != rd.end(); ++it) {
-            SocketDevice sd;
-            sd.create(it);
-            const auto err = sd.prepareAccept(it, SocketInfo::max_listen_backlog_size());
-            if (!err) {
-                _rsd = std::move(sd);
-                return; // SUCCESS
+        if (rd) {
+            for (auto it = rd->begin(); it != rd->end(); ++it) {
+                SocketDevice sd;
+                if (sd.create(it) && sd.prepareAccept(it, SocketInfo::max_listen_backlog_size())) {
+                    _rsd = std::move(sd);
+                    return; // SUCCESS
+                }
             }
         }
 
@@ -394,6 +393,4 @@ MutableSharedBuffer Configuration::allocateSendBuffer() const
     return connection_send_buffer_allocate_fnc(send_buffer_capacity);
 }
 //-----------------------------------------------------------------------------
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc

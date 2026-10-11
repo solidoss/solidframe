@@ -21,6 +21,12 @@
 #include "openssl/ssl.h"
 #include "solid/system/error.hpp"
 #include "solid/utility/function.hpp"
+#include <cstddef>
+#include <expected>
+#include <span>
+#include <string>
+#include <string_view>
+#include <system_error>
 
 namespace solid::frame::aio::openssl {
 
@@ -56,29 +62,28 @@ public:
 
     bool empty() const;
 
-    // ErrorCodeT configure(const char *_filename = nullptr, const char *_appname = nullptr);
+    //! Add a PEM encoded certificate authority to the verify store
+    [[nodiscard]] std::expected<void, std::error_code> addVerifyAuthority(std::span<const std::byte> _data);
+    [[nodiscard]] std::expected<void, std::error_code> addVerifyAuthority(std::string_view _str);
 
-    ErrorCodeT addVerifyAuthority(const unsigned char* _data, const size_t _data_size);
-    ErrorCodeT addVerifyAuthority(const std::string& _str);
-
-    ErrorCodeT loadDefaultVerifyPaths();
+    [[nodiscard]] std::expected<void, std::error_code> loadDefaultVerifyPaths();
 
     //! Use it on client side to load the certificates
-    ErrorCodeT loadVerifyFile(const char* _path);
+    [[nodiscard]] std::expected<void, std::error_code> loadVerifyFile(std::string_view _path);
     //! Use it on client side to load the certificates
-    ErrorCodeT loadVerifyPath(const char* _path);
+    [[nodiscard]] std::expected<void, std::error_code> loadVerifyPath(std::string_view _path);
 
     //! Use it on client/server side to load the certificates
-    ErrorCodeT loadCertificateFile(const char* _path, const FileFormat _fformat = FileFormat::Pem);
-    ErrorCodeT loadCertificate(const unsigned char* _data, const size_t _data_size, const FileFormat _fformat = FileFormat::Pem);
-    ErrorCodeT loadCertificate(const std::string& _str, const FileFormat _fformat = FileFormat::Pem);
-    //! Use it on client/server side to load the certificates
-    ErrorCodeT loadPrivateKeyFile(const char* _path, const FileFormat _fformat = FileFormat::Pem);
-    ErrorCodeT loadPrivateKey(const unsigned char* _data, const size_t _data_size, const FileFormat _fformat = FileFormat::Pem);
-    ErrorCodeT loadPrivateKey(const std::string& _str, const FileFormat _fformat = FileFormat::Pem);
+    [[nodiscard]] std::expected<void, std::error_code> loadCertificateFile(std::string_view _path, const FileFormat _fformat = FileFormat::Pem);
+    [[nodiscard]] std::expected<void, std::error_code> loadCertificate(std::span<const std::byte> _data, const FileFormat _fformat = FileFormat::Pem);
+    [[nodiscard]] std::expected<void, std::error_code> loadCertificate(std::string_view _str, const FileFormat _fformat = FileFormat::Pem);
+    //! Use it on client/server side to load the private key
+    [[nodiscard]] std::expected<void, std::error_code> loadPrivateKeyFile(std::string_view _path, const FileFormat _fformat = FileFormat::Pem);
+    [[nodiscard]] std::expected<void, std::error_code> loadPrivateKey(std::span<const std::byte> _data, const FileFormat _fformat = FileFormat::Pem);
+    [[nodiscard]] std::expected<void, std::error_code> loadPrivateKey(std::string_view _str, const FileFormat _fformat = FileFormat::Pem);
 
     template <typename F>
-    ErrorCodeT passwordCallback(F _f)
+    [[nodiscard]] std::expected<void, std::error_code> passwordCallback(F _f)
     {
         pwdfnc = _f;
         return doSetPasswordCallback();
@@ -90,8 +95,8 @@ public:
     }
 
 private:
-    static int on_password_cb(char* buf, int size, int rwflag, void* u);
-    ErrorCodeT doSetPasswordCallback();
+    static int                           on_password_cb(char* buf, int size, int rwflag, void* u);
+    std::expected<void, std::error_code> doSetPasswordCallback();
 
 private:
     using PasswordFunctionT = Function<std::string(std::size_t, PasswordPurpose)>;

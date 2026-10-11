@@ -2,6 +2,8 @@
 #include "solid/system/exception.hpp"
 #include "test_protocol_common.hpp"
 #include <iostream>
+#include <span>
+#include <tuple>
 
 using namespace solid;
 

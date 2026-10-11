@@ -850,9 +850,7 @@ void Service::doFinalizeStart(ServiceStartStatus& _status, Configuration&& _ucfg
     }
 
     if (_usd) {
-        SocketAddress local_address;
-
-        _usd.localAddress(local_address); // socket is moved onto listener
+        SocketAddress local_address = _usd.localAddress().value_or(SocketAddress{}); // socket is moved onto listener
 
         _lock.unlock(); // temporary unlock the mutex so we can create the listener Actor
 
@@ -878,9 +876,7 @@ void Service::doFinalizeStart(ServiceStartStatus& _status, std::unique_lock<std:
     solid_check(pimpl_->pool_dq_.size() == pimpl_->pool_free_list_.size() && !pimpl_->pool_dq_.empty());
 
     if (sd) {
-        SocketAddress local_address;
-
-        sd.localAddress(local_address);
+        SocketAddress local_address = sd.localAddress().value_or(SocketAddress{});
 
         _lock.unlock();
 
@@ -2699,16 +2695,16 @@ void Service::onLockedStoppingBeforeActors()
 struct ResolveF {
     ResolveCompleteFunctionT cbk;
 
-    void operator()(ResolveData& _rrd, ErrorCodeT const& _rerror)
+    void operator()(std::expected<ResolveData, std::error_code>&& _rrd)
     {
         AddressVectorT addrvec;
-        if (!_rerror) {
-            for (auto it = _rrd.begin(); it != _rrd.end(); ++it) {
+        if (_rrd) {
+            for (auto it = _rrd->begin(); it != _rrd->end(); ++it) {
                 addrvec.push_back(SocketAddressStub(it));
                 solid_log(logger, Info, "add resolved endpoint: " << addrvec.back() << ':' << addrvec.back().port());
             }
         }
-        std::reverse(addrvec.begin(), addrvec.end());
+        std::ranges::reverse(addrvec);
         cbk(std::move(addrvec));
     }
 };

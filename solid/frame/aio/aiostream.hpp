@@ -15,6 +15,11 @@
 #include "solid/system/common.hpp"
 #include "solid/system/socketdevice.hpp"
 #include <cassert>
+#include <cstddef>
+#include <expected>
+#include <span>
+#include <string_view>
+#include <system_error>
 
 namespace solid::frame::aio {
 
@@ -72,7 +77,7 @@ class Stream : public CompletionHandler {
     static void on_posted_recv_some(ReactorContext& _rctx, EventBase const&)
     {
         ThisT& rthis = static_cast<ThisT&>(*completion_handler(_rctx));
-        solid_log(logger, Verbose, "");
+        solid_dbg(logger, Verbose, "");
         rthis.recv_is_posted = false;
         rthis.doRecv(_rctx);
     }
@@ -80,7 +85,7 @@ class Stream : public CompletionHandler {
     static void on_posted_send_all(ReactorContext& _rctx, EventBase const&)
     {
         ThisT& rthis = static_cast<ThisT&>(*completion_handler(_rctx));
-        solid_log(logger, Verbose, "");
+        solid_dbg(logger, Verbose, "");
         rthis.send_is_posted = false;
         rthis.doSend(_rctx);
     }
@@ -122,7 +127,7 @@ class Stream : public CompletionHandler {
         void operator()(ThisT& _rthis, ReactorContext& _rctx)
         {
             while (_rctx.error() || _rthis.doTrySend(_rctx)) {
-                if (_rthis.send_buf_sz == _rthis.send_buf_cp) {
+                if (_rthis.send_buf_sz == _rthis.send_buf.size()) {
                     F tmp{std::forward<F>(f)};
                     _rthis.doClearSend(_rctx);
                     tmp(_rctx);
@@ -162,18 +167,9 @@ class Stream : public CompletionHandler {
         void operator()(ThisT& _rthis, ReactorContext& _rctx)
         {
             _rthis.errorClear(_rctx);
-            //_rthis.contextBind(_rctx);
 
-            bool       can_retry;
-            ErrorCodeT err;
-
-            if (_rthis.s.secureConnect(_rctx, can_retry, err)) {
-            } else if (can_retry) {
+            if (!_rthis.doHandleSecureResult(_rctx, _rthis.s.secureConnect(_rctx))) {
                 return;
-            } else {
-                _rthis.error(_rctx, error_stream_system);
-                _rthis.systemError(_rctx, err);
-                solid_assert_log(err, generic_logger);
             }
             F tmp{std::forward<F>(f)};
             _rthis.doClearSend(_rctx);
@@ -193,18 +189,9 @@ class Stream : public CompletionHandler {
         void operator()(ThisT& _rthis, ReactorContext& _rctx)
         {
             _rthis.errorClear(_rctx);
-            //_rthis.contextBind(_rctx);
 
-            bool       can_retry;
-            ErrorCodeT err;
-
-            if (_rthis.s.secureAccept(_rctx, can_retry, err)) {
-            } else if (can_retry) {
+            if (!_rthis.doHandleSecureResult(_rctx, _rthis.s.secureAccept(_rctx))) {
                 return;
-            } else {
-                _rthis.error(_rctx, error_stream_system);
-                _rthis.systemError(_rctx, err);
-                solid_assert_log(err, generic_logger);
             }
             F tmp{std::forward<F>(f)};
             _rthis.doClearRecv(_rctx);
@@ -224,20 +211,10 @@ class Stream : public CompletionHandler {
         void operator()(ThisT& _rthis, ReactorContext& _rctx)
         {
             _rthis.errorClear(_rctx);
-            //_rthis.contextBind(_rctx);
 
-            bool       can_retry;
-            ErrorCodeT err;
-
-            if (_rthis.s.secureShutdown(_rctx, can_retry, err)) {
-            } else if (can_retry) {
+            if (!_rthis.doHandleSecureResult(_rctx, _rthis.s.secureShutdown(_rctx))) {
                 return;
-            } else {
-                _rthis.error(_rctx, error_stream_system);
-                _rthis.systemError(_rctx, err);
-                solid_assert_log(err, generic_logger);
             }
-
             F tmp{std::move(f)};
             _rthis.doClearSend(_rctx);
             tmp(_rctx);
@@ -264,14 +241,6 @@ public:
         ActorProxy const& _ract, SocketDevice&& _rsd)
         : CompletionHandler(_ract, on_init_completion)
         , s(std::move(_rsd))
-        , recv_buf(nullptr)
-        , recv_buf_sz(0)
-        , recv_buf_cp(0)
-        , recv_is_posted(false)
-        , send_buf(nullptr)
-        , send_buf_sz(0)
-        , send_buf_cp(0)
-        , send_is_posted(false)
     {
     }
 
@@ -280,28 +249,12 @@ public:
         ActorProxy const& _ract, SocketDevice&& _rsd, const Ctx& _rctx)
         : CompletionHandler(_ract, on_init_completion)
         , s(_rctx, std::move(_rsd))
-        , recv_buf(nullptr)
-        , recv_buf_sz(0)
-        , recv_buf_cp(0)
-        , recv_is_posted(false)
-        , send_buf(nullptr)
-        , send_buf_sz(0)
-        , send_buf_cp(0)
-        , send_is_posted(false)
     {
     }
 
     Stream(
         ActorProxy const& _ract)
         : CompletionHandler(_ract, on_dummy_completion)
-        , recv_buf(nullptr)
-        , recv_buf_sz(0)
-        , recv_buf_cp(0)
-        , recv_is_posted(false)
-        , send_buf(nullptr)
-        , send_buf_sz(0)
-        , send_buf_cp(0)
-        , send_is_posted(false)
     {
     }
 
@@ -310,14 +263,6 @@ public:
         ActorProxy const& _ract, const Ctx& _rctx)
         : CompletionHandler(_ract, on_dummy_completion)
         , s(_rctx)
-        , recv_buf(nullptr)
-        , recv_buf_sz(0)
-        , recv_buf_cp(0)
-        , recv_is_posted(false)
-        , send_buf(nullptr)
-        , send_buf_sz(0)
-        , send_buf_cp(0)
-        , send_is_posted(false)
     {
     }
 
@@ -340,7 +285,7 @@ public:
     {
         return s.device();
     }
-    SocketDevice const& device() const
+    [[nodiscard]] SocketDevice const& device() const
     {
         return s.device();
     }
@@ -365,14 +310,15 @@ public:
         return sd;
     }
 
+    // Returns false when the operation is scheduled for completion. On completion _f(_rctx, _received_size) will be called.
+    // Returns true when the operation could not be scheduled - e.g. a receive is already in progress.
     template <typename F>
-    bool postRecvSome(ReactorContext& _rctx, char* _buf, size_t _bufcp, F&& _f)
+    bool postRecvSome(ReactorContext& _rctx, std::span<std::byte> _buf, F&& _f)
     {
         if (not recv_fnc) {
             using RealF    = typename std::decay<F>::type;
             recv_fnc       = RecvSomeFunctor<RealF>{std::forward<RealF>(_f)};
             recv_buf       = _buf;
-            recv_buf_cp    = _bufcp;
             recv_buf_sz    = 0;
             recv_is_posted = true;
             doPostRecvSome(_rctx);
@@ -384,15 +330,16 @@ public:
         }
     }
 
+    // Returns true when the operation completed - _sz holds the received size, check _rctx.error() for failure.
+    // Returns false when the operation is scheduled for completion. On completion _f(_rctx, _received_size) will be called.
     template <typename F>
-    bool recvSome(ReactorContext& _rctx, char* _buf, size_t _bufcp, F&& _f, size_t& _sz)
+    bool recvSome(ReactorContext& _rctx, std::span<std::byte> _buf, F&& _f, size_t& _sz)
     {
         if (not recv_fnc) {
             errorClear(_rctx);
             contextBind(_rctx);
 
             recv_buf    = _buf;
-            recv_buf_cp = _bufcp;
             recv_buf_sz = 0;
 
             if (doTryRecv(_rctx)) {
@@ -415,14 +362,15 @@ public:
         doClearRecv(_rctx);
     }
 
+    // Returns false when the operation is scheduled for completion. On completion _f(_rctx) will be called.
+    // Returns true when the operation could not be scheduled - e.g. a send is already in progress.
     template <typename F>
-    bool postSendAll(ReactorContext& _rctx, const char* _buf, size_t _bufcp, F&& _f)
+    bool postSendAll(ReactorContext& _rctx, std::span<const std::byte> _buf, F&& _f)
     {
         if (not send_fnc) {
             using RealF    = typename std::decay<F>::type;
             send_fnc       = SendAllFunctor<RealF>{std::forward<RealF>(_f)};
             send_buf       = _buf;
-            send_buf_cp    = _bufcp;
             send_buf_sz    = 0;
             send_is_posted = true;
             doPostSendAll(_rctx);
@@ -434,19 +382,20 @@ public:
         }
     }
 
+    // Returns true when the operation completed - check _rctx.error() for failure.
+    // Returns false when the operation is scheduled for completion. On completion _f(_rctx) will be called.
     template <typename F>
-    bool sendAll(ReactorContext& _rctx, const char* _buf, size_t _bufcp, F&& _f)
+    bool sendAll(ReactorContext& _rctx, std::span<const std::byte> _buf, F&& _f)
     {
         if (not send_fnc) {
             errorClear(_rctx);
             contextBind(_rctx);
 
             send_buf    = _buf;
-            send_buf_cp = _bufcp;
             send_buf_sz = 0;
 
             if (doTrySend(_rctx)) {
-                if (send_buf_sz == send_buf_cp) {
+                if (send_buf_sz == send_buf.size()) {
                     return true;
                 }
             }
@@ -459,6 +408,8 @@ public:
         return true;
     }
 
+    // Returns true when the operation completed - check _rctx.error() for failure.
+    // Returns false when the operation is scheduled for completion. On completion _f(_rctx) will be called.
     template <typename F>
     bool connect(ReactorContext& _rctx, SocketAddressStub const& _rsas, F&& _f)
     {
@@ -466,29 +417,23 @@ public:
             errorClear(_rctx);
             contextBind(_rctx);
 
-            ErrorCodeT err;
-
-            if (s.create(_rctx, _rsas, err)) {
+            if (const auto crv = s.create(_rctx, _rsas); crv) {
                 completionCallback(&on_completion);
 
-                bool can_retry;
-                bool rv = s.connect(_rctx, _rsas, can_retry, err);
-                if (rv) {
+                if (const auto rv = s.connect(_rctx, _rsas); rv) {
                     doCheckConnect(_rctx);
-                } else if (can_retry) {
+                } else if (SocketDevice::can_wait_connect(rv.error())) {
                     using RealF = typename std::decay<F>::type;
                     send_fnc    = ConnectFunctor<RealF>{std::forward<RealF>(_f)};
                     return false;
-                } else if (err) {
-                    error(_rctx, error_stream_system);
-                    systemError(_rctx, err);
                 } else {
-                    error(_rctx, error_stream_shutdown);
+                    error(_rctx, error_stream_system);
+                    systemError(_rctx, rv.error());
                 }
             } else {
                 error(_rctx, error_stream_system);
-                systemError(_rctx, err);
-                solid_assert_log(err, generic_logger);
+                systemError(_rctx, crv.error());
+                solid_assert_log(crv.error(), generic_logger);
             }
 
         } else {
@@ -509,19 +454,10 @@ public:
             errorClear(_rctx);
             contextBind(_rctx);
 
-            bool       can_retry;
-            ErrorCodeT err;
-
-            if (s.secureConnect(_rctx, can_retry, err)) {
-            } else if (can_retry) {
+            if (!doHandleSecureResult(_rctx, s.secureConnect(_rctx))) {
                 using RealF = typename std::decay<F>::type;
                 send_fnc    = SecureConnectFunctor<RealF>{std::forward<RealF>(_f)};
                 return false;
-            } else if (err) {
-                error(_rctx, error_stream_system);
-                systemError(_rctx, err);
-            } else {
-                error(_rctx, error_stream_shutdown);
             }
         }
         return true;
@@ -534,19 +470,10 @@ public:
             errorClear(_rctx);
             contextBind(_rctx);
 
-            bool       can_retry;
-            ErrorCodeT err;
-
-            if (s.secureAccept(_rctx, can_retry, err)) {
-            } else if (can_retry) {
+            if (!doHandleSecureResult(_rctx, s.secureAccept(_rctx))) {
                 using RealF = typename std::decay<F>::type;
                 recv_fnc    = SecureAcceptFunctor<RealF>{std::forward<RealF>(_f)};
                 return false;
-            } else if (err) {
-                error(_rctx, error_stream_system);
-                systemError(_rctx, err);
-            } else {
-                error(_rctx, error_stream_shutdown);
             }
         }
         return true;
@@ -559,19 +486,10 @@ public:
             errorClear(_rctx);
             contextBind(_rctx);
 
-            bool       can_retry;
-            ErrorCodeT err;
-
-            if (s.secureShutdown(_rctx, can_retry, err)) {
-            } else if (can_retry) {
+            if (!doHandleSecureResult(_rctx, s.secureShutdown(_rctx))) {
                 using RealF = typename std::decay<F>::type;
                 send_fnc    = SecureShutdownFunctor<RealF>{std::forward<RealF>(_f)};
                 return false;
-            } else if (err) {
-                error(_rctx, error_stream_system);
-                systemError(_rctx, err);
-            } else {
-                error(_rctx, error_stream_shutdown);
             }
         }
         return true;
@@ -579,11 +497,10 @@ public:
 
     void secureRenegotiate(ReactorContext& _rctx)
     {
-        ErrorCodeT err = s.renegotiate();
-        if (err) {
+        if (const auto rv = s.renegotiate(); !rv) {
             error(_rctx, error_stream_system);
-            systemError(_rctx, err);
-            solid_assert_log(err, generic_logger);
+            systemError(_rctx, rv.error());
+            solid_assert_log(rv.error(), generic_logger);
         }
     }
 
@@ -592,37 +509,33 @@ public:
     {
         using RealF = typename std::decay<F>::type;
         SecureVerifyFunctor<RealF> fnc_wrap{std::forward<RealF>(_f)};
-        ErrorCodeT                 err = s.setVerifyCallback(_mode, fnc_wrap);
-        if (err) {
+        if (const auto rv = s.setVerifyCallback(_mode, fnc_wrap); !rv) {
             error(_rctx, error_stream_system);
-            systemError(_rctx, err);
+            systemError(_rctx, rv.error());
         }
     }
 
     void secureSetVerifyDepth(ReactorContext& _rctx, const int _depth)
     {
-        ErrorCodeT err = s.setVerifyDepth(_depth);
-        if (err) {
+        if (const auto rv = s.setVerifyDepth(_depth); !rv) {
             error(_rctx, error_stream_system);
-            systemError(_rctx, err);
+            systemError(_rctx, rv.error());
         }
     }
 
     void secureSetVerifyMode(ReactorContext& _rctx, typename Sock::VerifyMaskT _mode)
     {
-        ErrorCodeT err = s.setVerifyMode(_mode);
-        if (err) {
+        if (const auto rv = s.setVerifyMode(_mode); !rv) {
             error(_rctx, error_stream_system);
-            systemError(_rctx, err);
+            systemError(_rctx, rv.error());
         }
     }
 
-    void secureSetCheckHostName(ReactorContext& _rctx, const std::string& _val)
+    void secureSetCheckHostName(ReactorContext& _rctx, std::string_view _val)
     {
-        ErrorCodeT err = s.setCheckHostName(_val);
-        if (err) {
+        if (const auto rv = s.setCheckHostName(_val); !rv) {
             error(_rctx, error_stream_system);
-            systemError(_rctx, err);
+            systemError(_rctx, rv.error());
         }
     }
 
@@ -639,7 +552,7 @@ private:
     void doRecv(ReactorContext& _rctx)
     {
         if (!recv_is_posted && recv_fnc) {
-            solid_log(logger, Verbose, "");
+            solid_dbg(logger, Verbose, "");
             errorClear(_rctx);
 
             recv_fnc(*this, _rctx);
@@ -655,71 +568,82 @@ private:
         }
     }
 
+    // Returns true when the receive completed (with data, peer shutdown or error) and false when it should be retried
     bool doTryRecv(ReactorContext& _rctx)
     {
-        bool       can_retry;
-        ErrorCodeT err;
+        const auto rv = s.recv(_rctx, recv_buf.subspan(recv_buf_sz));
 
-        ssize_t rv = s.recv(_rctx, recv_buf, recv_buf_cp - recv_buf_sz, can_retry, err);
+        solid_dbg(logger, Verbose, "recv (" << (recv_buf.size() - recv_buf_sz) << ") = " << (rv ? static_cast<std::ptrdiff_t>(*rv) : -1));
 
-        solid_log(logger, Verbose, "recv (" << (recv_buf_cp - recv_buf_sz) << ") = " << rv);
-
-        if (rv > 0) {
-            recv_buf_sz += rv;
-            recv_buf += rv;
-        } else if (rv == 0) {
-            error(_rctx, error_stream_shutdown);
-            recv_buf_sz = recv_buf_cp = 0;
-        } else if (rv < 0) {
-            if (can_retry) {
-                return false;
-            } else if (err) {
-                recv_buf_sz = recv_buf_cp = 0;
-                error(_rctx, error_stream_system);
-                systemError(_rctx, err);
+        if (rv) {
+            if (*rv > 0) {
+                recv_buf_sz += *rv;
             } else {
-                recv_buf_sz = recv_buf_cp = 0;
                 error(_rctx, error_stream_shutdown);
+                recv_buf    = {};
+                recv_buf_sz = 0;
             }
+        } else if (Sock::can_retry(rv.error())) {
+            return false;
+        } else {
+            recv_buf    = {};
+            recv_buf_sz = 0;
+            error(_rctx, error_stream_system);
+            systemError(_rctx, rv.error());
         }
         return true;
     }
 
+    // Returns true when the send completed (fully or partially, peer shutdown or error) and false when it should be retried
     bool doTrySend(ReactorContext& _rctx)
     {
-        bool       can_retry;
-        ErrorCodeT err;
-        ssize_t    rv = s.send(_rctx, send_buf, send_buf_cp - send_buf_sz, can_retry, err);
+        const auto rv = s.send(_rctx, send_buf.subspan(send_buf_sz));
 
-        solid_log(logger, Verbose, "send (" << (send_buf_cp - send_buf_sz) << ") = " << rv << ' ' << can_retry);
+        solid_dbg(logger, Verbose, "send (" << (send_buf.size() - send_buf_sz) << ") = " << (rv ? static_cast<std::ptrdiff_t>(*rv) : -1));
 
-        if (rv > 0) {
-            send_buf_sz += rv;
-            send_buf += rv;
-        } else if (rv == 0) {
-            error(_rctx, error_stream_shutdown);
-            send_buf_sz = send_buf_cp = 0;
-        } else if (rv < 0) {
-            if (can_retry) {
-                return false;
-            } else if (err) {
-                send_buf_sz = send_buf_cp = 0;
-                error(_rctx, error_stream_system);
-                systemError(_rctx, err);
+        if (rv) {
+            if (*rv > 0) {
+                send_buf_sz += *rv;
             } else {
-                send_buf_sz = send_buf_cp = 0;
                 error(_rctx, error_stream_shutdown);
+                send_buf    = {};
+                send_buf_sz = 0;
             }
+        } else if (Sock::can_retry(rv.error())) {
+            return false;
+        } else {
+            send_buf    = {};
+            send_buf_sz = 0;
+            error(_rctx, error_stream_system);
+            systemError(_rctx, rv.error());
+        }
+        return true;
+    }
+
+    // Returns true when the secure operation completed (successfully or with the error set on the context)
+    // and false when it should be retried once the socket becomes ready
+    bool doHandleSecureResult(ReactorContext& _rctx, const std::expected<void, std::error_code>& _rv)
+    {
+        if (_rv) {
+            return true;
+        }
+        if (Sock::can_retry(_rv.error())) {
+            return false;
+        }
+        if (_rv.error() == error_stream_shutdown) {
+            error(_rctx, error_stream_shutdown);
+        } else {
+            error(_rctx, error_stream_system);
+            systemError(_rctx, _rv.error());
         }
         return true;
     }
 
     void doCheckConnect(ReactorContext& _rctx)
     {
-        ErrorCodeT err = s.checkConnect(_rctx);
-        if (err) {
+        if (const auto rv = s.checkConnect(_rctx); !rv) {
             error(_rctx, error_stream_system);
-            systemError(_rctx, err);
+            systemError(_rctx, rv.error());
         }
     }
 
@@ -729,11 +653,13 @@ private:
         systemError(_rctx, s.device().error());
 
         if (send_fnc) {
-            send_buf_sz = send_buf_cp = 0;
+            send_buf    = {};
+            send_buf_sz = 0;
             send_fnc(*this, _rctx);
         }
         if (recv_fnc) {
-            recv_buf_sz = recv_buf_cp = 0;
+            recv_buf    = {};
+            recv_buf_sz = 0;
             recv_fnc(*this, _rctx);
         }
     }
@@ -742,16 +668,16 @@ private:
     {
         recv_fnc = nullptr;
         solid_assert_log(not recv_fnc, generic_logger);
-        recv_buf    = nullptr;
-        recv_buf_sz = recv_buf_cp = 0;
+        recv_buf    = {};
+        recv_buf_sz = 0;
     }
 
     void doClearSend(ReactorContext& _rctx)
     {
         send_fnc = nullptr;
         solid_assert_log(not send_fnc, generic_logger);
-        send_buf    = nullptr;
-        send_buf_sz = send_buf_cp = 0;
+        send_buf    = {};
+        send_buf_sz = 0;
     }
 
     void doClear(ReactorContext& _rctx)
@@ -766,17 +692,15 @@ private:
 private:
     Sock s;
 
-    char*         recv_buf;
-    size_t        recv_buf_sz;
-    size_t        recv_buf_cp;
-    RecvFunctionT recv_fnc;
-    bool          recv_is_posted;
+    std::span<std::byte> recv_buf;
+    size_t               recv_buf_sz = 0;
+    RecvFunctionT        recv_fnc;
+    bool                 recv_is_posted = false;
 
-    const char*   send_buf;
-    size_t        send_buf_sz;
-    size_t        send_buf_cp;
-    SendFunctionT send_fnc;
-    bool          send_is_posted;
+    std::span<const std::byte> send_buf;
+    size_t                     send_buf_sz = 0;
+    SendFunctionT              send_fnc;
+    bool                       send_is_posted = false;
 };
 
 } // namespace solid::frame::aio

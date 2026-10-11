@@ -11,21 +11,17 @@
 #include "solid/frame/aio/aioresolver.hpp"
 #include <memory>
 
-namespace solid {
-namespace frame {
-namespace aio {
+namespace solid::frame::aio {
 
 //-----------------------------------------------------------------------------
-ResolveData DirectResolve::doRun()
+std::expected<ResolveData, std::error_code> DirectResolve::doRun()
 {
-    return synchronous_resolve(host.c_str(), srvc.c_str(), flags, family, type, proto);
+    return synchronous_resolve(host, srvc, flags, family, type, proto);
 }
 //-----------------------------------------------------------------------------
-void ReverseResolve::doRun(std::string& _rhost, std::string& _rsrvc)
+std::expected<ReverseResolveData, std::error_code> ReverseResolve::doRun()
 {
-    synchronous_resolve(_rhost, _rsrvc, addr, flags);
+    return synchronous_resolve(addr, flags);
 }
 //-----------------------------------------------------------------------------
-} // namespace aio
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::aio

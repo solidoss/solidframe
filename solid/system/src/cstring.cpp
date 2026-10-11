@@ -8,10 +8,9 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "solid/system/cstring.hpp"
+#include <algorithm>
+#include <cctype>
 #include <cstring>
-#ifndef SOLID_ON_WINDOWS
-#include <strings.h>
-#endif
 
 namespace solid {
 
@@ -45,6 +44,11 @@ const char* strs[] = {
     "OxF0", "OxF1", "OxF2", "OxF3", "OxF4", "OxF5", "OxF6", "OxF7", "OxF8", "OxF9",
     "OxFA", "OxFB", "OxFC", "OxFD", "OxFE", "OxFF"};
 
+int to_lower(const char _c) noexcept
+{
+    return std::tolower(static_cast<unsigned char>(_c));
+}
+
 } // namespace
 
 const char* char_to_cstring(unsigned _c)
@@ -52,41 +56,41 @@ const char* char_to_cstring(unsigned _c)
     return strs[_c & 255];
 }
 
-/*static*/ int cstring::cmp(const char* _s1, const char* _s2)
+/*static*/ int cstring::cmp(std::string_view _s1, std::string_view _s2) noexcept
 {
-    return ::strcmp(_s1, _s2);
+    return _s1.compare(_s2);
 }
 
-/*static*/ int cstring::ncmp(const char* _s1, const char* _s2, size_t _len)
+/*static*/ int cstring::ncmp(std::string_view _s1, std::string_view _s2, size_t _len) noexcept
 {
-    return ::strncmp(_s1, _s2, _len);
+    return _s1.substr(0, _len).compare(_s2.substr(0, _len));
 }
 
-/*static*/ int cstring::casecmp(const char* _s1, const char* _s2)
+/*static*/ int cstring::casecmp(std::string_view _s1, std::string_view _s2) noexcept
 {
-#ifdef SOLID_ON_WINDOWS
-    return _stricmp(_s1, _s2);
-#else
-    return ::strcasecmp(_s1, _s2);
-#endif
+    const size_t len = std::min(_s1.size(), _s2.size());
+    for (size_t i = 0; i < len; ++i) {
+        const int c1 = to_lower(_s1[i]);
+        const int c2 = to_lower(_s2[i]);
+        if (c1 != c2) {
+            return c1 - c2;
+        }
+    }
+    if (_s1.size() == _s2.size()) {
+        return 0;
+    }
+    return _s1.size() < _s2.size() ? -1 : 1;
 }
 
-/*static*/ int cstring::ncasecmp(const char* _s1, const char* _s2, size_t _len)
+/*static*/ int cstring::ncasecmp(std::string_view _s1, std::string_view _s2, size_t _len) noexcept
 {
-#ifdef SOLID_ON_WINDOWS
-    return _strnicmp(_s1, _s2, _len);
-#else
-    return strncasecmp(_s1, _s2, _len);
-#endif
+    return casecmp(_s1.substr(0, _len), _s2.substr(0, _len));
 }
 
-/*static*/ size_t cstring::nlen(const char* s, size_t maxlen)
+/*static*/ size_t cstring::nlen(const char* _s, size_t _maxlen) noexcept
 {
-#ifdef SOLID_ON_DARWIN
-    return strlen(s);
-#else
-    return strnlen(s, maxlen);
-#endif
+    const char* const end = static_cast<const char*>(std::memchr(_s, 0, _maxlen));
+    return end != nullptr ? static_cast<size_t>(end - _s) : _maxlen;
 }
 
 } // namespace solid

@@ -49,7 +49,6 @@ public:
     using reference       = T&;
     using const_reference = T const&;
 
-public:
     Stack()
     {
     }
@@ -88,8 +87,8 @@ public:
         return *this;
     }
 
-    bool   empty() const { return !size_; }
-    size_t size() const { return size_; }
+    [[nodiscard]] bool   empty() const { return !size_; }
+    [[nodiscard]] size_t size() const { return size_; }
 
     void push(const T& _value)
     {
@@ -164,7 +163,6 @@ private:
         }
     }
 
-private:
     Stack(const Stack&);
     Stack& operator=(const Stack&);
 };

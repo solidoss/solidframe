@@ -18,7 +18,12 @@
 #endif
 
 #include <array>
+#include <cstring>
+#include <expected>
 #include <ostream>
+#include <string>
+#include <string_view>
+#include <system_error>
 
 #include "solid/system/socketinfo.hpp"
 
@@ -87,17 +92,17 @@ struct ResolveData {
     ResolveData() = default;
     ResolveData(addrinfo* _pai);
     ResolveData(const ResolveData& _rai);
-    ResolveData(ResolveData&& _rai);
+    ResolveData(ResolveData&& _rai) noexcept;
 
     ~ResolveData();
     //! Get an iterator to he first resolved ip address
-    const_iterator begin() const;
-    const_iterator end() const;
+    [[nodiscard]] const_iterator begin() const;
+    [[nodiscard]] const_iterator end() const;
     //! Check if the returned list of ip addresses is empty
-    bool         empty() const;
-    void         clear();
-    ResolveData& operator=(const ResolveData& _rrd);
-    ResolveData& operator=(ResolveData&& _rrd);
+    [[nodiscard]] bool empty() const;
+    void               clear();
+    ResolveData&       operator=(const ResolveData& _rrd);
+    ResolveData&       operator=(ResolveData&& _rrd) noexcept;
 
 private:
     static void                       delete_addrinfo(void* _pv);
@@ -105,23 +110,27 @@ private:
     AddrInfoSharedPtrT                aiptr;
 };
 
-ResolveData synchronous_resolve(const char* _node, const char* _service);
-ResolveData synchronous_resolve(
-    const char* _node,
-    const char* _service,
-    int         _flags,
-    int         _family = -1,
-    int         _type   = -1,
-    int         _proto  = -1);
+//! The error category for name resolution errors (getaddrinfo/getnameinfo)
+const std::error_category& resolve_category() noexcept;
 
-ResolveData synchronous_resolve(const char* _node, int _port);
-ResolveData synchronous_resolve(
-    const char* _node,
-    int         _port,
-    int         _flags,
-    int         _family = -1,
-    int         _type   = -1,
-    int         _proto  = -1);
+//! Resolve a node (host) and service (port) - on failure returns an error from resolve_category() or the system category
+[[nodiscard]] std::expected<ResolveData, std::error_code> synchronous_resolve(std::string_view _node, std::string_view _service);
+[[nodiscard]] std::expected<ResolveData, std::error_code> synchronous_resolve(
+    std::string_view _node,
+    std::string_view _service,
+    int              _flags,
+    int              _family = -1,
+    int              _type   = -1,
+    int              _proto  = -1);
+
+[[nodiscard]] std::expected<ResolveData, std::error_code> synchronous_resolve(std::string_view _node, int _port);
+[[nodiscard]] std::expected<ResolveData, std::error_code> synchronous_resolve(
+    std::string_view _node,
+    int              _port,
+    int              _flags,
+    int              _family = -1,
+    int              _type   = -1,
+    int              _proto  = -1);
 struct SocketAddressStub;
 struct ReverseResolveInfo {
     enum FlagsE {
@@ -141,7 +150,13 @@ struct ReverseResolveInfo {
         Numeric = NumericHost | NumericService,
     };
 };
-bool synchronous_resolve(std::string& _rhost, std::string& _rserv, const SocketAddressStub& _rsa, int _flags = 0);
+//! The result of a reverse resolve: the host and the service names
+struct ReverseResolveData {
+    std::string host;
+    std::string service;
+};
+//! Reverse resolve a socket address into host and service names
+[[nodiscard]] std::expected<ReverseResolveData, std::error_code> synchronous_resolve(const SocketAddressStub& _rsa, int _flags = 0);
 //==================================================================
 struct SocketAddress;
 struct SocketAddressInet;
@@ -178,16 +193,16 @@ struct SocketAddressStub {
 
     void clear();
 
-    SocketInfo::Family family() const;
+    [[nodiscard]] SocketInfo::Family family() const;
 
-    bool isInet4() const;
-    bool isInet6() const;
-    bool isLocal() const;
+    [[nodiscard]] bool isInet4() const;
+    [[nodiscard]] bool isInet6() const;
+    [[nodiscard]] bool isLocal() const;
 
-    socklen_t size() const;
-    int       port() const;
+    [[nodiscard]] socklen_t size() const;
+    [[nodiscard]] int       port() const;
 
-    const sockaddr* sockAddr() const;
+    [[nodiscard]] const sockaddr* sockAddr() const;
 
 private:
     const sockaddr* addr = nullptr;
@@ -210,46 +225,46 @@ private:
     };
 
 public:
-    enum { Capacity = sizeof(AddrUnion) };
+    static constexpr std::size_t capacity{sizeof(AddrUnion)};
 
     SocketAddress();
     SocketAddress(const SocketAddressStub&);
-    SocketAddress(const char* _addr, int _port);
-    SocketAddress(const char* _path);
+    SocketAddress(std::string_view _addr, int _port);
+    SocketAddress(std::string_view _path);
 
     SocketAddress& operator=(const SocketAddressStub&);
 
-    SocketInfo::Family family() const;
+    [[nodiscard]] SocketInfo::Family family() const;
 
-    bool isInet4() const;
-    bool isInet6() const;
-    bool isLocal() const;
+    [[nodiscard]] bool isInet4() const;
+    [[nodiscard]] bool isInet6() const;
+    [[nodiscard]] bool isLocal() const;
 
-    bool isLoopback() const;
-    bool isInvalid() const;
+    [[nodiscard]] bool isLoopback() const;
+    [[nodiscard]] bool isInvalid() const;
 
-    bool empty() const;
+    [[nodiscard]] bool empty() const;
 
-    const socklen_t& size() const;
+    [[nodiscard]] const socklen_t& size() const;
 
-    const sockaddr* sockAddr() const;
-                    operator const sockaddr*() const;
+    [[nodiscard]] const sockaddr* sockAddr() const;
+                                  operator const sockaddr*() const;
 
     bool operator<(const SocketAddress& _raddr) const;
     bool operator==(const SocketAddress& _raddr) const;
 
-    void address(const char* _str);
+    void address(std::string_view _str);
 
-    const in_addr&  address4() const;
-    const in6_addr& address6() const;
-    int             port() const;
-    bool            port(int _port);
-    void            clear();
-    size_t          hash() const;
-    size_t          addressHash() const;
+    [[nodiscard]] const in_addr&  address4() const;
+    [[nodiscard]] const in6_addr& address6() const;
+    [[nodiscard]] int             port() const;
+    bool                          port(int _port);
+    void                          clear();
+    [[nodiscard]] size_t          hash() const;
+    [[nodiscard]] size_t          addressHash() const;
 
-    void        path(const char* _pth);
-    const char* path() const;
+    void             path(std::string_view _pth);
+    std::string_view path() const;
 
 private:
     friend class SocketDevice;
@@ -268,31 +283,31 @@ private:
     };
 
 public:
-    enum { Capacity = sizeof(AddrUnion) };
+    static constexpr std::size_t capacity{sizeof(AddrUnion)};
 
     typedef std::array<uint8_t, 4>  DataArray4T;
     typedef std::array<uint8_t, 16> DataArray6T;
 
     SocketAddressInet();
     SocketAddressInet(const SocketAddressStub&);
-    SocketAddressInet(const char* _addr, int _port = 0);
+    SocketAddressInet(std::string_view _addr, int _port = 0);
 
     SocketAddressInet& operator=(const SocketAddressStub&);
 
-    SocketInfo::Family family() const;
+    [[nodiscard]] SocketInfo::Family family() const;
 
-    bool isInet4() const;
-    bool isInet6() const;
+    [[nodiscard]] bool isInet4() const;
+    [[nodiscard]] bool isInet6() const;
 
-    bool isLoopback() const;
-    bool isInvalid() const;
+    [[nodiscard]] bool isLoopback() const;
+    [[nodiscard]] bool isInvalid() const;
 
-    bool empty() const;
+    [[nodiscard]] bool empty() const;
 
-    const socklen_t& size() const;
+    [[nodiscard]] const socklen_t& size() const;
 
-    const sockaddr* sockAddr() const;
-                    operator const sockaddr*() const;
+    [[nodiscard]] const sockaddr* sockAddr() const;
+                                  operator const sockaddr*() const;
 
     bool toBinary(DataArray4T& _bin, uint16_t& _port) const;
     bool toBinary(DataArray6T& _bin, uint16_t& _port) const;
@@ -302,16 +317,16 @@ public:
     bool operator<(const SocketAddressInet& _raddr) const;
     bool operator==(const SocketAddressInet& _raddr) const;
 
-    void address(const char* _str);
+    void address(std::string_view _str);
 
-    const in_addr&  address4() const;
-    const in6_addr& address6() const;
+    [[nodiscard]] const in_addr&  address4() const;
+    [[nodiscard]] const in6_addr& address6() const;
 
-    int    port() const;
-    bool   port(int _port);
-    void   clear();
-    size_t hash() const;
-    size_t addressHash() const;
+    [[nodiscard]] int    port() const;
+    bool                 port(int _port);
+    void                 clear();
+    [[nodiscard]] size_t hash() const;
+    [[nodiscard]] size_t addressHash() const;
 
 private:
     friend class SocketDevice;
@@ -329,27 +344,27 @@ private:
     };
 
 public:
-    enum { Capacity = sizeof(AddrUnion) };
+    static constexpr std::size_t   capacity{sizeof(AddrUnion)};
     typedef std::array<uint8_t, 4> DataArrayT;
 
     SocketAddressInet4();
     SocketAddressInet4(const SocketAddressStub&);
-    SocketAddressInet4(const char* _addr, int _port = 0);
+    SocketAddressInet4(std::string_view _addr, int _port = 0);
     SocketAddressInet4(uint32_t _addr, int _port);
     SocketAddressInet4(const DataArrayT& _addr, int _port = 0);
 
     // SocketAddressInet4& operator=(const ResolveIterator &);
     SocketAddressInet4& operator=(const SocketAddressStub&);
 
-    SocketInfo::Family family() const;
-    bool               isInet4() const;
+    [[nodiscard]] SocketInfo::Family family() const;
+    [[nodiscard]] bool               isInet4() const;
 
-    bool isLoopback() const;
-    bool isInvalid() const;
+    [[nodiscard]] bool isLoopback() const;
+    [[nodiscard]] bool isInvalid() const;
 
-    socklen_t size() const;
+    [[nodiscard]] socklen_t size() const;
 
-    const sockaddr* sockAddr() const;
+    [[nodiscard]] const sockaddr* sockAddr() const;
     // operator sockaddr*(){return sockAddr();}
     operator const sockaddr*() const;
 
@@ -363,15 +378,15 @@ public:
     bool operator<(const SocketAddressInet4& _raddr) const;
     bool operator==(const SocketAddressInet4& _raddr) const;
 
-    void address(const char* _str);
+    void address(std::string_view _str);
 
-    const in_addr& address() const;
+    [[nodiscard]] const in_addr& address() const;
 
-    int    port() const;
-    void   port(int _port);
-    void   clear();
-    size_t hash() const;
-    size_t addressHash() const;
+    [[nodiscard]] int    port() const;
+    void                 port(int _port);
+    void                 clear();
+    [[nodiscard]] size_t hash() const;
+    [[nodiscard]] size_t addressHash() const;
 
 private:
     friend class SocketDevice;
@@ -388,28 +403,28 @@ private:
     };
 
 public:
-    enum { Capacity = sizeof(AddrUnion) };
+    static constexpr std::size_t    capacity{sizeof(AddrUnion)};
     typedef std::array<uint8_t, 16> DataArrayT;
 
     SocketAddressInet6();
     SocketAddressInet6(const SocketAddressStub&);
-    SocketAddressInet6(const char* _addr, int _port = 0);
+    SocketAddressInet6(std::string_view _addr, int _port = 0);
     SocketAddressInet6(const DataArrayT& _addr, int _port = 0);
 
     SocketAddressInet6& operator=(const SocketAddressStub&);
 
-    SocketInfo::Family family() const;
-    bool               isInet6() const;
+    [[nodiscard]] SocketInfo::Family family() const;
+    [[nodiscard]] bool               isInet6() const;
 
-    bool isLoopback() const;
-    bool isInvalid() const;
+    [[nodiscard]] bool isLoopback() const;
+    [[nodiscard]] bool isInvalid() const;
 
-    bool empty() const;
+    [[nodiscard]] bool empty() const;
 
-    socklen_t size() const;
+    [[nodiscard]] socklen_t size() const;
 
-    const sockaddr* sockAddr() const;
-                    operator const sockaddr*() const;
+    [[nodiscard]] const sockaddr* sockAddr() const;
+                                  operator const sockaddr*() const;
 
     void toBinary(DataArrayT& _bin, uint16_t& _port) const;
 
@@ -418,15 +433,15 @@ public:
     bool operator<(const SocketAddressInet6& _raddr) const;
     bool operator==(const SocketAddressInet6& _raddr) const;
 
-    void address(const char* _str);
+    void address(std::string_view _str);
 
-    const in6_addr& address() const;
+    [[nodiscard]] const in6_addr& address() const;
 
-    int    port() const;
-    void   port(int _port);
-    void   clear();
-    size_t hash() const;
-    size_t addressHash() const;
+    [[nodiscard]] int    port() const;
+    void                 port(int _port);
+    void                 clear();
+    [[nodiscard]] size_t hash() const;
+    [[nodiscard]] size_t addressHash() const;
 
 private:
     friend class SocketDevice;
@@ -463,31 +478,31 @@ private:
     };
 
 public:
-    enum { Capacity = sizeof(AddrUnion) };
+    static constexpr std::size_t capacity{sizeof(AddrUnion)};
 
     SocketAddressLocal();
-    SocketAddressLocal(const char* _path);
+    SocketAddressLocal(std::string_view _path);
 
     SocketAddressLocal& operator=(const SocketAddressStub&);
 
-    SocketInfo::Family family() const;
+    [[nodiscard]] SocketInfo::Family family() const;
 
-    bool empty() const;
+    [[nodiscard]] bool empty() const;
 
-    const socklen_t& size() const;
+    [[nodiscard]] const socklen_t& size() const;
 
-    const sockaddr* sockAddr() const;
-                    operator const sockaddr*() const;
+    [[nodiscard]] const sockaddr* sockAddr() const;
+                                  operator const sockaddr*() const;
 
     bool operator<(const SocketAddressLocal& _raddr) const;
     bool operator==(const SocketAddressLocal& _raddr) const;
 
-    void   clear();
-    size_t hash() const;
-    size_t addressHash() const;
+    void                 clear();
+    [[nodiscard]] size_t hash() const;
+    [[nodiscard]] size_t addressHash() const;
 
-    void        path(const char* _pth);
-    const char* path() const;
+    void             path(std::string_view _pth);
+    std::string_view path() const;
 
 private:
     friend class SocketDevice;

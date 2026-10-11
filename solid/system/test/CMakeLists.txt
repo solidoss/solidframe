@@ -10,6 +10,8 @@ set( MyTests
     test_crashhandler.cpp
     test_chunkedstream.cpp
     test_pimpl.cpp
+    test_filedevice.cpp
+    test_socketdevice.cpp
 )
 
 create_test_sourcelist( Tests test_system.cpp ${MyTests})
@@ -26,3 +28,5 @@ add_test(NAME TestSystemLogBasic        COMMAND  test_system test_log_basic)
 add_test(NAME TestSystemLogRecorder     COMMAND  test_system test_log_recorder)
 add_test(NAME TestSystemChunkedStream   COMMAND  test_system test_chunkedstream)
 add_test(NAME TestSystemPimpl           COMMAND  test_system test_pimpl)
+add_test(NAME TestSystemFileDevice      COMMAND  test_system test_filedevice)
+add_test(NAME TestSystemSocketDevice    COMMAND  test_system test_socketdevice)

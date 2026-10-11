@@ -105,14 +105,12 @@ void Listener::doPostAccept(ReactorContext& _rctx)
 
 bool Listener::doTryAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 {
-    bool       can_retry;
-    ErrorCodeT err = s_.accept(_rctx, _rsd, can_retry);
-
-    if (!err) {
-    } else if (can_retry) {
+    if (auto rv = s_.accept(_rctx); rv) {
+        _rsd = std::move(*rv);
+    } else if (SocketDevice::can_retry_accept(rv.error())) {
         return false;
     } else {
-        systemError(_rctx, err);
+        systemError(_rctx, rv.error());
         error(_rctx, error_listener_system);
     }
     return true;
@@ -120,14 +118,12 @@ bool Listener::doTryAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 
 void Listener::doAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 {
-    bool       can_retry;
-    ErrorCodeT err = s_.accept(_rctx, _rsd, can_retry);
-
-    if (!err) {
-    } else if (can_retry) {
+    if (auto rv = s_.accept(_rctx); rv) {
+        _rsd = std::move(*rv);
+    } else if (SocketDevice::can_retry_accept(rv.error())) {
         solid_assert_log(false, logger);
     } else {
-        systemError(_rctx, err);
+        systemError(_rctx, rv.error());
         error(_rctx, error_listener_system);
     }
 }

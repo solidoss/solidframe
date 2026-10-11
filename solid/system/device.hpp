@@ -11,6 +11,10 @@
 #pragma once
 
 #include "solid/system/common.hpp"
+#include <cstddef>
+#include <expected>
+#include <span>
+#include <system_error>
 
 namespace solid {
 
@@ -18,48 +22,48 @@ namespace solid {
 class Device {
 public:
 #ifdef SOLID_ON_WINDOWS
-    typedef void* DescriptorT;
+    using DescriptorT = void*;
 #else
-    typedef int DescriptorT;
+    using DescriptorT = int;
 #endif
     static constexpr DescriptorT invalidDescriptor();
     Device(Device&& _dev) noexcept;
-    //! The copy constructor which will grab the desc from the given device (like std::autoptr)
+    //! The constructor which will take ownership of the given descriptor
     Device(DescriptorT _desc = invalidDescriptor());
     ~Device();
-    //! Read call
-    ssize_t read(char* _pb, size_t _bl);
-    //! Write call
-    ssize_t write(const char* _pb, size_t _bl);
+
+    Device(const Device&)            = delete;
+    Device& operator=(const Device&) = delete;
+
+    //! Read call - returns the number of bytes read (0 on end of stream) or the system error
+    [[nodiscard]] std::expected<std::size_t, std::error_code> read(std::span<std::byte> _buf);
+    //! Write call - returns the number of bytes written or the system error
+    [[nodiscard]] std::expected<std::size_t, std::error_code> write(std::span<const std::byte> _buf);
     //! Cancels existing io operations
-    bool cancel();
+    [[nodiscard]] std::expected<void, std::error_code> cancel();
     //! Close the device
     void close();
     //! Flush the device
-    void flush();
+    [[nodiscard]] std::expected<void, std::error_code> flush();
     //! Check if the device is valid
     explicit operator bool() const noexcept
     {
         return ok();
     }
     Device& operator=(Device&& _dev) noexcept;
-    //! The native descriptor associated to the socket
-    DescriptorT descriptor() const;
+    //! The native descriptor associated to the device
+    [[nodiscard]] DescriptorT descriptor() const noexcept;
 
 protected:
-    void descriptor(const DescriptorT _desc);
-    void descriptor(const DescriptorT _desc, bool);
-    bool ok() const noexcept;
-
-private:
-    Device(const Device& _dev);
-    Device& operator=(const Device& _dev);
+    void               descriptor(DescriptorT _desc);
+    void               descriptor(DescriptorT _desc, bool);
+    [[nodiscard]] bool ok() const noexcept;
 
 private:
     DescriptorT desc_;
 };
 
-inline constexpr Device::DescriptorT Device::invalidDescriptor()
+constexpr Device::DescriptorT Device::invalidDescriptor()
 {
 #ifdef SOLID_ON_WINDOWS
     return reinterpret_cast<DescriptorT>(static_cast<ptrdiff_t>(-1));
@@ -73,8 +77,9 @@ inline bool Device::ok() const noexcept
     return desc_ != invalidDescriptor();
 }
 
-inline Device::DescriptorT Device::descriptor() const { return desc_; }
-inline void                Device::descriptor(const DescriptorT _desc)
+inline Device::DescriptorT Device::descriptor() const noexcept { return desc_; }
+
+inline void Device::descriptor(const DescriptorT _desc)
 {
     close();
     desc_ = _desc;

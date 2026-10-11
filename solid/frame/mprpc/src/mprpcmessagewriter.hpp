@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <span>
 #include <vector>
 
 #include "solid/system/common.hpp"
@@ -30,8 +31,12 @@ struct WriteBuffer {
         , size_(_size)
     {
     }
-    [[nodiscard]] char*  data() const noexcept { return data_; }
-    [[nodiscard]] size_t size() const noexcept { return size_; }
+    [[nodiscard]] char*                data() const noexcept { return data_; }
+    [[nodiscard]] size_t               size() const noexcept { return size_; }
+    [[nodiscard]] std::span<std::byte> span() const noexcept
+    {
+        return std::as_writable_bytes(std::span{data(), size()});
+    }
 
     void resize(const size_t _size) noexcept { size_ = _size; }
 

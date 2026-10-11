@@ -10,19 +10,23 @@
 
 #pragma once
 
+#include <expected>
+#include <string_view>
+#include <system_error>
+
 namespace solid {
 
-//! A wrapper for filesystem directory opperations
+//! A wrapper for filesystem directory operations
 class Directory {
 public:
     //! Create a new directory
-    static bool create(const char*);
-    //! Create a new path of directories
-    static bool create_all(const char*);
+    [[nodiscard]] static std::expected<void, std::error_code> create(std::string_view _path);
+    //! Create a new path of directories - an already existing directory is not an error
+    [[nodiscard]] static std::expected<void, std::error_code> create_all(std::string_view _path);
     //! Erase a file
-    static bool eraseFile(const char*);
+    [[nodiscard]] static std::expected<void, std::error_code> erase_file(std::string_view _path);
     //! Rename a file
-    static bool renameFile(const char* _from, const char* _to);
+    [[nodiscard]] static std::expected<void, std::error_code> rename_file(std::string_view _from, std::string_view _to);
 };
 
 } // namespace solid

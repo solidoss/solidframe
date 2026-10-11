@@ -3,7 +3,9 @@
 #include <future>
 #include <iostream>
 #include <mutex>
+#include <span>
 #include <thread>
+#include <tuple>
 
 #include "solid/system/crashhandler.hpp"
 #include "solid/system/exception.hpp"

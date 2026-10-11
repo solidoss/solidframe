@@ -14,10 +14,11 @@
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aioreactorcontext.hpp"
 #include "solid/system/socketdevice.hpp"
+#include <expected>
+#include <system_error>
+#include <tuple>
 
-namespace solid {
-namespace frame {
-namespace aio {
+namespace solid::frame::aio {
 
 class SocketBase {
 public:
@@ -25,13 +26,11 @@ public:
         : dev_(std::move(_rsd))
     {
         if (device()) {
-            device().makeNonBlocking();
+            solid_check(auto const ret_val{device().makeNonBlocking()}, " unexpected " << ret_val.error() << ": " << ret_val.error().message());
         }
     }
 
-    SocketBase()
-    {
-    }
+    SocketBase() = default;
 
     SocketDevice reset(ReactorContext& _rctx, SocketDevice&& _rsd)
     {
@@ -39,7 +38,7 @@ public:
         dev_               = std::move(_rsd);
 
         if (device()) {
-            device().makeNonBlocking();
+            solid_check(auto const ret_val{device().makeNonBlocking()}, " unexpected " << ret_val.error() << ": " << ret_val.error().message());
             init(_rctx);
         }
         return tmpsd;
@@ -51,7 +50,7 @@ public:
         dev_               = std::move(_rsd);
 
         if (device()) {
-            device().makeNonBlocking();
+            solid_check(auto const ret_val{device().makeNonBlocking()}, " unexpected " << ret_val.error() << ": " << ret_val.error().message());
             initAccept(_rctx);
         }
         return tmpsd;
@@ -59,9 +58,7 @@ public:
 
     void shutdown()
     {
-        if (device()) {
-            device().shutdownReadWrite();
-        }
+        solid_check(auto const ret_val{device().makeNonBlocking()}, " unexpected " << ret_val.error() << ": " << ret_val.error().message());
     }
 
     void initAccept(ReactorContext& _rctx)
@@ -82,57 +79,79 @@ public:
 #endif
     }
 
-    ErrorCodeT accept(ReactorContext& _rctx, SocketDevice& _rsd, bool& _can_retry)
+    //! Accept a new connection
+    /*!
+        On failure, use SocketDevice::can_retry_accept(error) to check whether
+        the accept should be retried once the socket becomes readable.
+    */
+    [[nodiscard]] std::expected<SocketDevice, std::error_code> accept(ReactorContext& _rctx)
     {
-        ErrorCodeT err = device().accept(_rsd, _can_retry);
+        auto rv = device().accept();
 #if defined(SOLID_USE_WSAPOLL)
-        if (err && _can_retry) {
+        if (!rv && SocketDevice::can_retry_accept(rv.error())) {
             modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
         }
-#endif
-        return err;
-    }
-
-    bool create(ReactorContext& _rctx, SocketAddressStub const& _rsas, ErrorCodeT& _rerr)
-    {
-        _rerr = device().create(_rsas.family());
-        if (!_rerr) {
-            _rerr = device().makeNonBlocking();
-#if defined(SOLID_USE_WSAPOLL)
-            addReactorRequestEvents(_rctx, ReactorWaitRequestE::None);
 #else
-            addReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
+        (void)_rctx;
 #endif
-        }
-        return !_rerr;
+        return rv;
     }
 
-    bool connect(ReactorContext& _rctx, SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr)
+    //! Create the socket for the given address family, make it non-blocking and register it with the reactor
+    [[nodiscard]] std::expected<void, std::error_code> create(ReactorContext& _rctx, SocketAddressStub const& _rsas)
     {
-        _rerr = device().connect(_rsas, _can_retry);
+        if (const auto rv = device().create(_rsas.family()); !rv) {
+            return rv;
+        }
+        const auto rv = device().makeNonBlocking();
 #if defined(SOLID_USE_WSAPOLL)
-        if (_rerr && _can_retry) {
+        addReactorRequestEvents(_rctx, ReactorWaitRequestE::None);
+#else
+        addReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
+#endif
+        return rv;
+    }
+
+    //! Connect the socket
+    /*!
+        On failure, use SocketDevice::can_wait_connect(error) to check whether the
+        connection is in progress - use checkConnect once the socket becomes writable.
+    */
+    [[nodiscard]] std::expected<void, std::error_code> connect(ReactorContext& _rctx, SocketAddressStub const& _rsas)
+    {
+        const auto rv = device().connect(_rsas);
+#if defined(SOLID_USE_WSAPOLL)
+        if (!rv && SocketDevice::can_wait_connect(rv.error())) {
             modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
             addReactorConnect(_rctx);
         }
-#endif
-        return !_rerr;
-    }
-
-    ErrorCodeT checkConnect(ReactorContext& _rctx) const
-    {
-        ErrorCodeT err = device().error();
-        if (!err) {
-#if defined(SOLID_USE_EPOLL) || defined(SOLID_USE_KQUEUE)
-            modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::ReadOrWrite);
 #else
-            modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::None);
+        (void)_rctx;
 #endif
-        }
-        return err;
+        return rv;
     }
 
-    SocketDevice const& device() const
+    //! Check the outcome of an asynchronous connect
+    [[nodiscard]] std::expected<void, std::error_code> checkConnect(ReactorContext& _rctx) const
+    {
+        if (const auto err = device().error()) {
+            return std::unexpected(err);
+        }
+#if defined(SOLID_USE_EPOLL) || defined(SOLID_USE_KQUEUE)
+        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::ReadOrWrite);
+#else
+        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::None);
+#endif
+        return {};
+    }
+
+    //! Check if a failed recv/send/secure operation should be retried once the socket becomes ready
+    static bool can_retry(const std::error_code& _err) noexcept
+    {
+        return SocketDevice::can_retry_io(_err);
+    }
+
+    [[nodiscard]] SocketDevice const& device() const
     {
         return dev_;
     }
@@ -164,6 +183,4 @@ private:
     SocketDevice dev_;
 };
 
-} // namespace aio
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::aio

@@ -10,14 +10,16 @@
 
 #pragma once
 
+#include <span>
+#include <tuple>
+
 #include "solid/frame/file/tempbase.hpp"
 #include "solid/frame/sharedstore.hpp"
 #include "solid/system/filedevice.hpp"
 #include "solid/system/log.hpp"
 #include "solid/system/pimpl.hpp"
 
-namespace solid {
-namespace frame {
+namespace solid::frame {
 
 class Manager;
 
@@ -83,7 +85,7 @@ struct File {
     }
     bool open(const char* _path, const int _openflags)
     {
-        return fd.open(_path, _openflags);
+        return fd.open(_path, _openflags).has_value();
     }
 
     // We only offer offset based io because in case of shared use
@@ -92,7 +94,8 @@ struct File {
     ssize_t read(char* _pb, size_t _bl, int64_t _off)
     {
         if (!ptmp) {
-            return fd.read(_pb, _bl, _off);
+            const auto rv = fd.read(std::as_writable_bytes(std::span{_pb, _bl}), _off);
+            return rv ? static_cast<ssize_t>(*rv) : -1;
         } else {
             return ptmp->read(_pb, _bl, _off);
         }
@@ -100,15 +103,16 @@ struct File {
     ssize_t write(const char* _pb, size_t _bl, int64_t _off)
     {
         if (!ptmp) {
-            return fd.write(_pb, _bl, _off);
+            const auto rv = fd.write(std::as_bytes(std::span{_pb, _bl}), _off);
+            return rv ? static_cast<ssize_t>(*rv) : -1;
         } else {
             return ptmp->write(_pb, _bl, _off);
         }
     }
-    int64_t size() const
+    [[nodiscard]] int64_t size() const
     {
         if (!ptmp) {
-            return fd.size();
+            return fd.size().value_or(-1);
         } else {
             return ptmp->size();
         }
@@ -116,12 +120,12 @@ struct File {
     bool truncate(int64_t _len = 0)
     {
         if (!ptmp) {
-            return fd.truncate(_len);
+            return fd.truncate(_len).has_value();
         } else {
             return ptmp->truncate(_len);
         }
     }
-    int64_t capacity() const
+    [[nodiscard]] int64_t capacity() const
     {
         if (!ptmp) {
             return -1;
@@ -133,17 +137,17 @@ struct File {
     {
         if (!ptmp) {
             if (fd) {
-                fd.flush();
+                std::ignore = fd.flush();
             }
         } else {
             ptmp->flush();
         }
     }
-    bool isTemp() const
+    [[nodiscard]] bool isTemp() const
     {
         return ptmp != nullptr;
     }
-    TempBase* temp() const
+    [[nodiscard]] TempBase* temp() const
     {
         return ptmp;
     }
@@ -359,5 +363,4 @@ inline void CreateTempCommandBase::openTemp(Utf8Controller& _rstore, FilePointer
 }
 
 } // namespace file
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame

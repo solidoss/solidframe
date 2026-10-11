@@ -13,10 +13,9 @@
 #include "solid/frame/aio/aiosocketbase.hpp"
 #include "solid/system/socketdevice.hpp"
 #include <cerrno>
+#include <span>
 
-namespace solid {
-namespace frame {
-namespace aio {
+namespace solid::frame::aio {
 
 class Socket : public SocketBase {
 public:
@@ -27,59 +26,69 @@ public:
     {
     }
 
-    Socket() {}
+    Socket() = default;
 
-    ReactorEventE filterReactorEvents(
+    [[nodiscard]] ReactorEventE filterReactorEvents(
         const ReactorEventE _evt) const
     {
         return _evt;
     }
 
-    ssize_t recv(ReactorContext& _rctx, char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
+    //! Receive data - on failure use can_retry(error) to check whether the operation should be retried
+    [[nodiscard]] std::expected<std::size_t, std::error_code> recv(ReactorContext& _rctx, std::span<std::byte> _buf)
     {
-        const ssize_t rv = device().recv(_pb, _bl, _can_retry, _rerr);
+        const auto rv = device().recv(_buf);
 #if defined(SOLID_USE_WSAPOLL)
-        if (rv < 0 && _can_retry) {
+        if (!rv && can_retry(rv.error())) {
             modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
         }
+#else
+        (void)_rctx;
 #endif
         return rv;
     }
 
-    ssize_t send(ReactorContext& _rctx, const char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
+    //! Send data - on failure use can_retry(error) to check whether the operation should be retried
+    [[nodiscard]] std::expected<std::size_t, std::error_code> send(ReactorContext& _rctx, std::span<const std::byte> _buf)
     {
-        const ssize_t rv = device().send(_pb, _bl, _can_retry, _rerr);
+        const auto rv = device().send(_buf);
 #if defined(SOLID_USE_WSAPOLL)
-        if (rv < 0 && _can_retry) {
+        if (!rv && can_retry(rv.error())) {
             modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
         }
+#else
+        (void)_rctx;
 #endif
         return rv;
     }
 
-    ssize_t recvFrom(ReactorContext& _rctx, char* _pb, size_t _bl, SocketAddress& _addr, bool& _can_retry, ErrorCodeT& _rerr)
+    //! Receive a datagram - on failure use can_retry(error) to check whether the operation should be retried
+    [[nodiscard]] std::expected<std::size_t, std::error_code> recvFrom(ReactorContext& _rctx, std::span<std::byte> _buf, SocketAddress& _raddr)
     {
-        const ssize_t rv = device().recv(_pb, _bl, _addr, _can_retry, _rerr);
+        const auto rv = device().recv(_buf, _raddr);
 #if defined(SOLID_USE_WSAPOLL)
-        if (rv < 0 && _can_retry) {
+        if (!rv && can_retry(rv.error())) {
             modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
         }
+#else
+        (void)_rctx;
 #endif
         return rv;
     }
 
-    ssize_t sendTo(ReactorContext& _rctx, const char* _pb, size_t _bl, SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr)
+    //! Send a datagram - on failure use can_retry(error) to check whether the operation should be retried
+    [[nodiscard]] std::expected<std::size_t, std::error_code> sendTo(ReactorContext& _rctx, std::span<const std::byte> _buf, SocketAddressStub const& _rsas)
     {
-        const ssize_t rv = device().send(_pb, _bl, _rsas, _can_retry, _rerr);
+        const auto rv = device().send(_buf, _rsas);
 #if defined(SOLID_USE_WSAPOLL)
-        if (rv < 0 && _can_retry) {
+        if (!rv && can_retry(rv.error())) {
             modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
         }
+#else
+        (void)_rctx;
 #endif
         return rv;
     }
 };
 
-} // namespace aio
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::aio

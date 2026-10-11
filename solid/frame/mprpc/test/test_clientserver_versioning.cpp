@@ -1,4 +1,6 @@
 #include "solid/frame/mprpc/mprpcsocketstub_openssl.hpp"
+#include <span>
+#include <tuple>
 
 #include "solid/frame/mprpc/mprpccompression_snappy.hpp"
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
@@ -146,10 +148,10 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
         solid_log(logger, Info, "Connection start");
         auto req_ptr = frame::mprpc::make_message<InitRequest>();
         auto lambda  = [](
-                          frame::mprpc::ConnectionContext& _rctx,
-                          InitRequestPointerT&             _rsent_msg_ptr,
-                          InitResponsePointerT&            _rrecv_msg_ptr,
-                          ErrorConditionT const&           _rerror) {
+                           frame::mprpc::ConnectionContext& _rctx,
+                           InitRequestPointerT&             _rsent_msg_ptr,
+                           InitResponsePointerT&            _rrecv_msg_ptr,
+                           ErrorConditionT const&           _rerror) {
             if (_rrecv_msg_ptr) {
                 if (_rrecv_msg_ptr->error_ == 0) {
                     solid_log(logger, Info, "Activate v1 connection");
@@ -216,10 +218,10 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
         solid_log(logger, Info, "Connection start");
         auto req_ptr = frame::mprpc::make_message<InitRequest>();
         auto lambda  = [](
-                          frame::mprpc::ConnectionContext& _rctx,
-                          InitRequestPointerT&             _rsent_msg_ptr,
-                          InitResponsePointerT&            _rrecv_msg_ptr,
-                          ErrorConditionT const&           _rerror) {
+                           frame::mprpc::ConnectionContext& _rctx,
+                           InitRequestPointerT&             _rsent_msg_ptr,
+                           InitResponsePointerT&            _rrecv_msg_ptr,
+                           ErrorConditionT const&           _rerror) {
             if (_rrecv_msg_ptr) {
                 if (_rrecv_msg_ptr->error_ == 0) {
                     solid_log(logger, Info, "Activate v2 connection");
@@ -291,10 +293,10 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
         solid_log(logger, Info, "Connection start");
         auto req_ptr = frame::mprpc::make_message<InitRequest>();
         auto lambda  = [](
-                          frame::mprpc::ConnectionContext& _rctx,
-                          SendInitRequestPointerT&         _rsent_msg_ptr,
-                          InitResponsePointerT&            _rrecv_msg_ptr,
-                          ErrorConditionT const&           _rerror) {
+                           frame::mprpc::ConnectionContext& _rctx,
+                           SendInitRequestPointerT&         _rsent_msg_ptr,
+                           InitResponsePointerT&            _rrecv_msg_ptr,
+                           ErrorConditionT const&           _rerror) {
             if (_rrecv_msg_ptr) {
                 if (_rrecv_msg_ptr->error_ == 0) {
                     solid_log(logger, Info, "Activate v3 connection");
@@ -366,10 +368,10 @@ void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, fram
         solid_log(logger, Info, "Connection start");
         auto req_ptr = frame::mprpc::make_message<InitRequest>();
         auto lambda  = [](
-                          frame::mprpc::ConnectionContext& _rctx,
-                          SendInitRequestPointerT&         _rsent_msg_ptr,
-                          InitResponsePointerT&            _rrecv_msg_ptr,
-                          ErrorConditionT const&           _rerror) {
+                           frame::mprpc::ConnectionContext& _rctx,
+                           SendInitRequestPointerT&         _rsent_msg_ptr,
+                           InitResponsePointerT&            _rrecv_msg_ptr,
+                           ErrorConditionT const&           _rerror) {
             if (_rrecv_msg_ptr) {
                 if (_rrecv_msg_ptr->error_ == 0) {
                     solid_log(logger, Info, "Activate v4 connection");

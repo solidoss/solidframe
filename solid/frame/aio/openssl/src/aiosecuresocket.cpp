@@ -26,6 +26,8 @@
 #include "solid/system/exception.hpp"
 #include "solid/system/log.hpp"
 #include <mutex>
+#include <span>
+#include <string>
 #include <thread>
 
 // #include <cstdio>
@@ -45,13 +47,13 @@ namespace {
 class OpenSSLErrorCategory : public solid::ErrorCategoryT {
 public:
     OpenSSLErrorCategory() {}
-    const char* name() const noexcept override
+    [[nodiscard]] const char* name() const noexcept override
     {
         return "OpenSSL";
     }
-    std::string message(int _ev) const override;
+    [[nodiscard]] std::string message(int _ev) const override;
 
-    solid::ErrorCodeT makeError(unsigned long _err) const
+    [[nodiscard]] solid::ErrorCodeT makeError(unsigned long _err) const
     {
         return solid::ErrorCodeT(static_cast<int>(_err), *this);
     }
@@ -80,13 +82,13 @@ enum struct WrapperError : int {
 class ErrorCategory : public solid::ErrorCategoryT {
 public:
     ErrorCategory() {}
-    const char* name() const noexcept override
+    [[nodiscard]] const char* name() const noexcept override
     {
         return "solid::frame::aio::openssl";
     }
-    std::string message(int _ev) const override;
+    [[nodiscard]] std::string message(int _ev) const override;
 
-    solid::ErrorCodeT makeError(WrapperError _err) const
+    [[nodiscard]] solid::ErrorCodeT makeError(WrapperError _err) const
     {
         return solid::ErrorCodeT(static_cast<int>(_err), *this);
     }
@@ -253,12 +255,37 @@ void evp_pkey_deleter(EVP_PKEY* _pkey)
 
 } // namespace
 
-ErrorCodeT Context::addVerifyAuthority(const unsigned char* _data, const size_t _data_size)
+namespace {
+
+inline std::error_code ssl_error()
 {
-    ErrorCodeT err;
+    return ssl_category.makeError(::ERR_get_error());
+}
+
+inline std::span<const std::byte> as_bytes(std::string_view _str)
+{
+    return std::as_bytes(std::span<const char>{_str.data(), _str.size()});
+}
+
+//! An error equivalent to the error_stream_shutdown condition - reported when the peer shuts down during a handshake
+inline std::error_code peer_shutdown_error()
+{
+    return std::error_code(error_stream_shutdown.value(), error_stream_shutdown.category());
+}
+
+//! The error reported when an operation must be retried once the socket becomes ready
+inline std::error_code would_block_error()
+{
+    return std::make_error_code(std::errc::operation_would_block);
+}
+
+} // namespace
+
+std::expected<void, std::error_code> Context::addVerifyAuthority(std::span<const std::byte> _data)
+{
     ::ERR_clear_error();
 
-    std::unique_ptr<::BIO, BIODeleter> bio_ptr(::BIO_new_mem_buf(_data, static_cast<int>(_data_size)), bio_deleter);
+    std::unique_ptr<::BIO, BIODeleter> bio_ptr(::BIO_new_mem_buf(_data.data(), static_cast<int>(_data.size())), bio_deleter);
 
     if (bio_ptr) {
 
@@ -267,108 +294,107 @@ ErrorCodeT Context::addVerifyAuthority(const unsigned char* _data, const size_t 
         if (cert_ptr) {
             if (X509_STORE* store = ::SSL_CTX_get_cert_store(pctx)) {
                 if (::X509_STORE_add_cert(store, cert_ptr.get()) == 1) {
-                    return err;
+                    return {};
                 }
             }
         }
     }
-    return ssl_category.makeError(::ERR_get_error());
+    return std::unexpected(ssl_error());
 }
 
-ErrorCodeT Context::addVerifyAuthority(const std::string& _str)
+std::expected<void, std::error_code> Context::addVerifyAuthority(std::string_view _str)
 {
-    return addVerifyAuthority(reinterpret_cast<const unsigned char*>(_str.data()), _str.size());
+    return addVerifyAuthority(as_bytes(_str));
 }
 
-ErrorCodeT Context::loadDefaultVerifyPaths()
+std::expected<void, std::error_code> Context::loadDefaultVerifyPaths()
 {
     if (SSL_CTX_set_default_verify_paths(pctx) != 0) {
-        return ErrorCodeT();
+        return {};
     }
-    return wrapper_category.makeError(WrapperError::Call);
+    return std::unexpected(wrapper_category.makeError(WrapperError::Call));
 }
 
-ErrorCodeT Context::loadVerifyFile(const char* _path)
+std::expected<void, std::error_code> Context::loadVerifyFile(std::string_view _path)
 {
-    ErrorCodeT err;
+    const std::string path{_path};
     ::ERR_clear_error();
-    if (SSL_CTX_load_verify_locations(pctx, _path, nullptr) != 1) {
-        err = ssl_category.makeError(::ERR_get_error());
+    if (SSL_CTX_load_verify_locations(pctx, path.c_str(), nullptr) != 1) {
+        return std::unexpected(ssl_error());
     }
-    return err;
-}
-ErrorCodeT Context::loadVerifyPath(const char* _path)
-{
-    ErrorCodeT err;
-    ::ERR_clear_error();
-    if (SSL_CTX_load_verify_locations(pctx, nullptr, _path) != 1) {
-        err = ssl_category.makeError(::ERR_get_error());
-    }
-    return err;
+    return {};
 }
 
-ErrorCodeT Context::loadCertificateFile(const char* _path, const FileFormat _fformat /* = FileFormat::Pem*/)
+std::expected<void, std::error_code> Context::loadVerifyPath(std::string_view _path)
 {
-    ErrorCodeT err;
+    const std::string path{_path};
     ::ERR_clear_error();
-    if (SSL_CTX_use_certificate_file(pctx, _path, _fformat == FileFormat::Pem ? SSL_FILETYPE_PEM : SSL_FILETYPE_ASN1) != 1) {
-        err = ssl_category.makeError(::ERR_get_error());
+    if (SSL_CTX_load_verify_locations(pctx, nullptr, path.c_str()) != 1) {
+        return std::unexpected(ssl_error());
     }
-    return err;
+    return {};
 }
 
-ErrorCodeT Context::loadCertificate(const unsigned char* _data, const size_t _data_size, const FileFormat _fformat /* = FileFormat::Pem*/)
+std::expected<void, std::error_code> Context::loadCertificateFile(std::string_view _path, const FileFormat _fformat /* = FileFormat::Pem*/)
 {
-    ErrorCodeT err;
+    const std::string path{_path};
+    ::ERR_clear_error();
+    if (SSL_CTX_use_certificate_file(pctx, path.c_str(), _fformat == FileFormat::Pem ? SSL_FILETYPE_PEM : SSL_FILETYPE_ASN1) != 1) {
+        return std::unexpected(ssl_error());
+    }
+    return {};
+}
+
+std::expected<void, std::error_code> Context::loadCertificate(std::span<const std::byte> _data, const FileFormat _fformat /* = FileFormat::Pem*/)
+{
     ::ERR_clear_error();
 
     if (_fformat == FileFormat::Asn1) {
         if (
             ::SSL_CTX_use_certificate_ASN1(
                 pctx,
-                static_cast<int>(_data_size),
-                _data)
+                static_cast<int>(_data.size()),
+                reinterpret_cast<const unsigned char*>(_data.data()))
             == 1) {
-            return err;
+            return {};
         }
     } else if (_fformat == FileFormat::Pem) {
-        std::unique_ptr<::BIO, BIODeleter> bio_ptr(::BIO_new_mem_buf(_data, static_cast<int>(_data_size)), bio_deleter);
+        std::unique_ptr<::BIO, BIODeleter> bio_ptr(::BIO_new_mem_buf(_data.data(), static_cast<int>(_data.size())), bio_deleter);
         if (bio_ptr) {
             std::unique_ptr<::X509, X509Deleter> cert_ptr(::PEM_read_bio_X509(bio_ptr.get(), nullptr, nullptr, nullptr), x509_deleter);
             if (cert_ptr) {
                 if (::SSL_CTX_use_certificate(pctx, cert_ptr.get()) == 1) {
-                    return err;
+                    return {};
                 }
             }
         }
     } else {
-        return wrapper_category.makeError(WrapperError::Call);
+        return std::unexpected(wrapper_category.makeError(WrapperError::Call));
     }
-    return ssl_category.makeError(::ERR_get_error());
+    return std::unexpected(ssl_error());
 }
 
-ErrorCodeT Context::loadCertificate(const std::string& _str, const FileFormat _fformat)
+std::expected<void, std::error_code> Context::loadCertificate(std::string_view _str, const FileFormat _fformat)
 {
-    return loadCertificate(reinterpret_cast<const unsigned char*>(_str.data()), _str.size(), _fformat);
+    return loadCertificate(as_bytes(_str), _fformat);
 }
 
-ErrorCodeT Context::loadPrivateKeyFile(const char* _path, const FileFormat _fformat /* = FileFormat::Pem*/)
+std::expected<void, std::error_code> Context::loadPrivateKeyFile(std::string_view _path, const FileFormat _fformat /* = FileFormat::Pem*/)
 {
-    ErrorCodeT err;
+    const std::string path{_path};
     ::ERR_clear_error();
-    if (SSL_CTX_use_PrivateKey_file(pctx, _path, _fformat == FileFormat::Pem ? SSL_FILETYPE_PEM : SSL_FILETYPE_ASN1) != 1) {
-        err = ssl_category.makeError(::ERR_get_error());
+    if (SSL_CTX_use_PrivateKey_file(pctx, path.c_str(), _fformat == FileFormat::Pem ? SSL_FILETYPE_PEM : SSL_FILETYPE_ASN1) != 1) {
+        return std::unexpected(ssl_error());
     }
     solid_assert_log(SSL_CTX_check_private_key(pctx), logger);
-    return err;
+    return {};
 }
 
-ErrorCodeT Context::loadPrivateKey(const unsigned char* _data, const size_t _data_size, const FileFormat _fformat /* = FileFormat::Pem*/)
+std::expected<void, std::error_code> Context::loadPrivateKey(std::span<const std::byte> _data, const FileFormat _fformat /* = FileFormat::Pem*/)
 {
-    ErrorCodeT err;
     ::ERR_clear_error();
 
-    std::unique_ptr<::BIO, BIODeleter>           bio_ptr(::BIO_new_mem_buf(_data, static_cast<int>(_data_size)), bio_deleter);
+    std::unique_ptr<::BIO, BIODeleter>           bio_ptr(::BIO_new_mem_buf(_data.data(), static_cast<int>(_data.size())), bio_deleter);
     std::unique_ptr<::EVP_PKEY, EVP_PKEYDeleter> key_ptr(nullptr, evp_pkey_deleter);
 
     if (_fformat == FileFormat::Asn1) {
@@ -387,22 +413,26 @@ ErrorCodeT Context::loadPrivateKey(const unsigned char* _data, const size_t _dat
                 cb_userdata),
             evp_pkey_deleter);
     } else {
-        return wrapper_category.makeError(WrapperError::Call);
+        return std::unexpected(wrapper_category.makeError(WrapperError::Call));
     }
-    return ssl_category.makeError(::ERR_get_error());
+
+    if (key_ptr && ::SSL_CTX_use_PrivateKey(pctx, key_ptr.get()) == 1) {
+        return {};
+    }
+    return std::unexpected(ssl_error());
 }
 
-ErrorCodeT Context::loadPrivateKey(const std::string& _str, const FileFormat _fformat)
+std::expected<void, std::error_code> Context::loadPrivateKey(std::string_view _str, const FileFormat _fformat)
 {
-    return loadPrivateKey(reinterpret_cast<const unsigned char*>(_str.data()), _str.size(), _fformat);
+    return loadPrivateKey(as_bytes(_str), _fformat);
 }
 
-ErrorCodeT Context::doSetPasswordCallback()
+std::expected<void, std::error_code> Context::doSetPasswordCallback()
 {
     SSL_CTX_set_default_passwd_cb(pctx, on_password_cb);
     SSL_CTX_set_default_passwd_cb_userdata(pctx, this);
 
-    return ErrorCodeT();
+    return {};
 }
 
 /*static*/ int Context::on_password_cb(char* buf, int size, int rwflag, void* u)
@@ -485,9 +515,9 @@ SocketDevice Socket::reset(ReactorContext& _rctx, SocketDevice&& _rsd)
     return sd;
 }
 
-bool Socket::create(ReactorContext& _rctx, SocketAddressStub const& _rsas, ErrorCodeT& _rerr)
+std::expected<void, std::error_code> Socket::create(ReactorContext& _rctx, SocketAddressStub const& _rsas)
 {
-    bool rv = SocketBase::create(_rctx, _rsas, _rerr);
+    const auto rv = SocketBase::create(_rctx, _rsas);
 
     if (rv) {
         SSL_set_fd(pssl, device().descriptor());
@@ -495,12 +525,13 @@ bool Socket::create(ReactorContext& _rctx, SocketAddressStub const& _rsas, Error
     return rv;
 }
 
-ErrorCodeT Socket::renegotiate(bool& /*_can_retry*/)
+std::expected<void, std::error_code> Socket::renegotiate()
 {
-    const int           retval   = ::SSL_renegotiate(pssl);
-    const unsigned long err_code = ::ERR_get_error();
-    (void)retval;
-    return ssl_category.makeError(err_code);
+    ::ERR_clear_error();
+    if (::SSL_renegotiate(pssl) == 1) {
+        return {};
+    }
+    return std::unexpected(ssl_error());
 }
 
 ReactorEventE Socket::filterReactorEvents(
@@ -545,7 +576,48 @@ ReactorEventE Socket::filterReactorEvents(
     return _evt;
 }
 
-ssize_t Socket::recv(ReactorContext& _rctx, char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
+std::expected<int, std::error_code> Socket::doMapSslResult(ReactorContext& _rctx, const int _retval, const std::error_code& _err_sys, const bool _on_recv, const std::error_code& _default_err)
+{
+    const int           err_cond   = ::SSL_get_error(pssl, _retval);
+    const unsigned long err_code   = ::ERR_get_error();
+    bool&               want_read  = _on_recv ? want_read_on_recv : want_read_on_send;
+    bool&               want_write = _on_recv ? want_write_on_recv : want_write_on_send;
+
+    switch (err_cond) {
+    case SSL_ERROR_NONE:
+        return _retval;
+    case SSL_ERROR_ZERO_RETURN:
+        return std::unexpected(peer_shutdown_error());
+    case SSL_ERROR_WANT_READ:
+        want_read = true;
+#if defined(SOLID_USE_WSAPOLL)
+        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
+#else
+        (void)_rctx;
+#endif
+        return std::unexpected(would_block_error());
+    case SSL_ERROR_WANT_WRITE:
+        want_write = true;
+#if defined(SOLID_USE_WSAPOLL)
+        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
+#endif
+        return std::unexpected(would_block_error());
+    case SSL_ERROR_SYSCALL:
+        if (_err_sys) {
+            return std::unexpected(_err_sys);
+        }
+        return std::unexpected(solid::error_system);
+    case SSL_ERROR_SSL:
+        return std::unexpected(ssl_category.makeError(err_code));
+    case SSL_ERROR_WANT_X509_LOOKUP:
+    default:
+        solid_assert_log(false, logger);
+        break;
+    }
+    return std::unexpected(_default_err);
+}
+
+std::expected<std::size_t, std::error_code> Socket::recv(ReactorContext& _rctx, std::span<std::byte> _buf)
 {
     want_read_on_recv = want_write_on_recv = false;
 
@@ -554,59 +626,25 @@ ssize_t Socket::recv(ReactorContext& _rctx, char* _pb, size_t _bl, bool& _can_re
 
     ::ERR_clear_error();
 
-    const int           retval   = ::SSL_read(pssl, _pb, static_cast<int>(_bl));
-    const ErrorCodeT    err_sys  = last_socket_error();
-    const int           err_cond = ::SSL_get_error(pssl, retval);
-    const unsigned long err_code = ::ERR_get_error();
+    const int             retval  = ::SSL_read(pssl, _buf.data(), static_cast<int>(_buf.size()));
+    const std::error_code err_sys = last_socket_error();
 
     clearThisPointer();
     clearContextPointer();
 
-    switch (err_cond) {
-    case SSL_ERROR_NONE:
-        _can_retry = false;
-        solid_assert_log(retval >= 0, logger);
-        return retval;
-    case SSL_ERROR_ZERO_RETURN:
-        _can_retry = false;
-        return 0;
-    case SSL_ERROR_WANT_READ:
-        _can_retry        = true;
-        want_read_on_recv = true;
-#if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
-#endif
-        return -1;
-    case SSL_ERROR_WANT_WRITE:
-        _can_retry         = true;
-        want_write_on_recv = true;
-#if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
-#endif
-        return -1;
-    case SSL_ERROR_SYSCALL:
-        _can_retry = false;
-        if (err_sys) {
-            _rerr = err_sys;
-        } else {
-            _rerr = solid::error_system;
-        }
-        solid_assert_log(_rerr, logger);
-        break;
-    case SSL_ERROR_SSL:
-        _can_retry = false;
-        _rerr      = ssl_category.makeError(err_code);
-        break;
-    case SSL_ERROR_WANT_X509_LOOKUP:
-    // for reschedule, we can return -1 but not set the _rerr
-    default:
-        solid_assert_log(false, logger);
-        break;
+    const auto rv = doMapSslResult(_rctx, retval, err_sys, true, error_secure_recv);
+
+    if (rv) {
+        solid_assert_log(*rv >= 0, logger);
+        return static_cast<std::size_t>(*rv);
     }
-    return -1;
+    if (rv.error() == error_stream_shutdown) {
+        return 0;
+    }
+    return std::unexpected(rv.error());
 }
 
-ssize_t Socket::send(ReactorContext& _rctx, const char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
+std::expected<std::size_t, std::error_code> Socket::send(ReactorContext& _rctx, std::span<const std::byte> _buf)
 {
     want_read_on_send = want_write_on_send = false;
 
@@ -615,57 +653,25 @@ ssize_t Socket::send(ReactorContext& _rctx, const char* _pb, size_t _bl, bool& _
 
     ::ERR_clear_error();
 
-    const int           retval   = ::SSL_write(pssl, _pb, static_cast<int>(_bl));
-    const ErrorCodeT    err_sys  = last_socket_error();
-    const int           err_cond = ::SSL_get_error(pssl, retval);
-    const unsigned long err_code = ::ERR_get_error();
+    const int             retval  = ::SSL_write(pssl, _buf.data(), static_cast<int>(_buf.size()));
+    const std::error_code err_sys = last_socket_error();
 
     clearThisPointer();
     clearContextPointer();
 
-    switch (err_cond) {
-    case SSL_ERROR_NONE:
-        _can_retry = false;
-        return retval;
-    case SSL_ERROR_ZERO_RETURN:
-        _can_retry = false;
-        return 0;
-    case SSL_ERROR_WANT_READ:
-        _can_retry        = true;
-        want_read_on_send = true;
-#if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
-#endif
-        return -1;
-    case SSL_ERROR_WANT_WRITE:
-        _can_retry         = true;
-        want_write_on_send = true;
-#if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
-#endif
-        return -1;
-    case SSL_ERROR_SYSCALL:
-        _can_retry = false;
-        if (err_sys) {
-            _rerr = err_sys;
-        } else {
-            _rerr = solid::error_system;
-        }
-        break;
-    case SSL_ERROR_SSL:
-        _can_retry = false;
-        _rerr      = ssl_category.makeError(err_code);
-        break;
-    case SSL_ERROR_WANT_X509_LOOKUP:
-    // for reschedule, we can return -1 but not set the _rerr
-    default:
-        solid_assert_log(false, logger);
-        break;
+    const auto rv = doMapSslResult(_rctx, retval, err_sys, false, error_secure_send);
+
+    if (rv) {
+        solid_assert_log(*rv >= 0, logger);
+        return static_cast<std::size_t>(*rv);
     }
-    return -1;
+    if (rv.error() == error_stream_shutdown) {
+        return 0;
+    }
+    return std::unexpected(rv.error());
 }
 
-bool Socket::secureAccept(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& _rerr)
+std::expected<void, std::error_code> Socket::secureAccept(ReactorContext& _rctx)
 {
     want_read_on_recv = want_write_on_recv = false;
 
@@ -674,57 +680,19 @@ bool Socket::secureAccept(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& _
 
     ::ERR_clear_error();
 
-    const int           retval   = ::SSL_accept(pssl);
-    const ErrorCodeT    err_sys  = last_socket_error();
-    const int           err_cond = ::SSL_get_error(pssl, retval);
-    const unsigned long err_code = ::ERR_get_error();
+    const int             retval  = ::SSL_accept(pssl);
+    const std::error_code err_sys = last_socket_error();
 
     clearThisPointer();
     clearContextPointer();
 
-    switch (err_cond) {
-    case SSL_ERROR_NONE:
-        _can_retry = false;
-        return true;
-    case SSL_ERROR_ZERO_RETURN:
-        _can_retry = false;
-        return false;
-    case SSL_ERROR_WANT_READ:
-        _can_retry        = true;
-        want_read_on_recv = true;
-#if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
-#endif
-        return false;
-    case SSL_ERROR_WANT_WRITE:
-        _can_retry         = true;
-        want_write_on_recv = true;
-#if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
-#endif
-        return false;
-    case SSL_ERROR_SYSCALL:
-        _can_retry = false;
-        if (err_sys) {
-            _rerr = err_sys;
-        } else {
-            _rerr = solid::error_system;
-        }
-        break;
-    case SSL_ERROR_SSL:
-        _can_retry = false;
-        _rerr      = ssl_category.makeError(err_code);
-        break;
-    case SSL_ERROR_WANT_X509_LOOKUP:
-    // for reschedule, we can return -1 but not set the _rerr
-    default:
-        solid_assert_log(false, logger);
-        break;
+    if (const auto rv = doMapSslResult(_rctx, retval, err_sys, true, error_secure_accept); !rv) {
+        return std::unexpected(rv.error());
     }
-    return false;
+    return {};
 }
 
-bool Socket::secureConnect(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& _rerr)
+std::expected<void, std::error_code> Socket::secureConnect(ReactorContext& _rctx)
 {
     want_read_on_send = want_write_on_send = false;
 
@@ -733,59 +701,21 @@ bool Socket::secureConnect(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& 
 
     ::ERR_clear_error();
 
-    const int           retval   = ::SSL_connect(pssl);
-    const ErrorCodeT    err_sys  = last_socket_error();
-    const int           err_cond = ::SSL_get_error(pssl, retval);
-    const unsigned long err_code = ::ERR_get_error();
+    const int             retval  = ::SSL_connect(pssl);
+    const std::error_code err_sys = last_socket_error();
 
     clearThisPointer();
     clearContextPointer();
 
-    solid_log(logger, Verbose, "ssl_connect rv = " << retval << " ssl_error " << err_cond);
+    solid_log(logger, Verbose, "ssl_connect rv = " << retval);
 
-    switch (err_cond) {
-    case SSL_ERROR_NONE:
-        _can_retry = false;
-        return true;
-    case SSL_ERROR_ZERO_RETURN:
-        _can_retry = false;
-        return false;
-    case SSL_ERROR_WANT_READ:
-        _can_retry        = true;
-        want_read_on_send = true;
-#if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
-#endif
-        return false;
-    case SSL_ERROR_WANT_WRITE:
-        _can_retry         = true;
-        want_write_on_send = true;
-#if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
-#endif
-        return false;
-    case SSL_ERROR_SYSCALL:
-        _can_retry = false;
-        if (err_sys) {
-            _rerr = err_sys;
-        } else {
-            _rerr = solid::error_system;
-        }
-        break;
-    case SSL_ERROR_SSL:
-        _can_retry = false;
-        _rerr      = ssl_category.makeError(err_code);
-        break;
-    case SSL_ERROR_WANT_X509_LOOKUP:
-    // for reschedule, we can return -1 but not set the _rerr
-    default:
-        solid_assert_log(false, logger);
-        break;
+    if (const auto rv = doMapSslResult(_rctx, retval, err_sys, false, error_secure_connect); !rv) {
+        return std::unexpected(rv.error());
     }
-    return false;
+    return {};
 }
 
-bool Socket::secureShutdown(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& _rerr)
+std::expected<void, std::error_code> Socket::secureShutdown(ReactorContext& _rctx)
 {
     want_read_on_send = want_write_on_send = false;
 
@@ -794,64 +724,26 @@ bool Socket::secureShutdown(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT&
 
     ::ERR_clear_error();
 
-    const int           retval   = ::SSL_shutdown(pssl);
-    const ErrorCodeT    err_sys  = last_socket_error();
-    const int           err_cond = ::SSL_get_error(pssl, retval);
-    const unsigned long err_code = ::ERR_get_error();
+    const int             retval  = ::SSL_shutdown(pssl);
+    const std::error_code err_sys = last_socket_error();
 
     clearThisPointer();
     clearContextPointer();
 
-    switch (err_cond) {
-    case SSL_ERROR_NONE:
-        _can_retry = false;
-        return true;
-    case SSL_ERROR_ZERO_RETURN:
-        _can_retry = false;
-        return false;
-    case SSL_ERROR_WANT_READ:
-        _can_retry        = true;
-        want_read_on_send = true;
-#if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Read);
-#endif
-        return false;
-    case SSL_ERROR_WANT_WRITE:
-        _can_retry         = true;
-        want_write_on_send = true;
-#if defined(SOLID_USE_WSAPOLL)
-        modifyReactorRequestEvents(_rctx, ReactorWaitRequestE::Write);
-#endif
-        return false;
-    case SSL_ERROR_SYSCALL:
-        _can_retry = false;
-        if (err_sys) {
-            _rerr = err_sys;
-        } else {
-            _rerr = solid::error_system;
-        }
-        break;
-    case SSL_ERROR_SSL:
-        _can_retry = false;
-        _rerr      = ssl_category.makeError(err_code);
-        break;
-    case SSL_ERROR_WANT_X509_LOOKUP:
-    // for reschedule, we can return -1 but not set the _rerr
-    default:
-        solid_assert_log(false, logger);
-        break;
+    if (const auto rv = doMapSslResult(_rctx, retval, err_sys, false, error_secure_shutdown); !rv) {
+        return std::unexpected(rv.error());
     }
-    return false;
+    return {};
 }
 
-ssize_t Socket::recvFrom(ReactorContext& /*_rctx*/, char* /*_pb*/, size_t /*_bl*/, SocketAddress& /*_addr*/, bool& /*_can_retry*/, ErrorCodeT& /*_rerr*/)
+std::expected<std::size_t, std::error_code> Socket::recvFrom(ReactorContext& /*_rctx*/, std::span<std::byte> /*_buf*/, SocketAddress& /*_raddr*/)
 {
-    return -1;
+    return std::unexpected(solid::error_not_implemented);
 }
 
-ssize_t Socket::sendTo(ReactorContext& /*_rctx*/, const char* /*_pb*/, size_t /*_bl*/, SocketAddressStub const& /*_rsas*/, bool& /*_can_retry*/, ErrorCodeT& /*_rerr*/)
+std::expected<std::size_t, std::error_code> Socket::sendTo(ReactorContext& /*_rctx*/, std::span<const std::byte> /*_buf*/, SocketAddressStub const& /*_rsas*/)
 {
-    return -1;
+    return std::unexpected(solid::error_not_implemented);
 }
 
 void Socket::storeContextPointer(void* _pctx)
@@ -896,11 +788,11 @@ static int convertMask(const VerifyMaskT _verify_mask)
     return rv;
 }
 
-ErrorCodeT Socket::doPrepareVerifyCallback(VerifyMaskT _verify_mask)
+std::expected<void, std::error_code> Socket::doPrepareVerifyCallback(VerifyMaskT _verify_mask)
 {
     SSL_set_verify(pssl, convertMask(_verify_mask), on_verify);
 
-    return ErrorCodeT();
+    return {};
 }
 
 /*static*/ int Socket::on_verify(int preverify_ok, X509_STORE_CTX* x509_ctx)
@@ -920,51 +812,51 @@ ErrorCodeT Socket::doPrepareVerifyCallback(VerifyMaskT _verify_mask)
     return preverify_ok;
 }
 
-ErrorCodeT Socket::setVerifyDepth(const int _depth)
+std::expected<void, std::error_code> Socket::setVerifyDepth(const int _depth)
 {
     SSL_set_verify_depth(pssl, _depth);
     X509_VERIFY_PARAM* param = SSL_get0_param(pssl);
-    ;
     X509_VERIFY_PARAM_set_depth(param, _depth);
-    return ErrorCodeT();
+    return {};
 }
 
-ErrorCodeT Socket::setVerifyMode(VerifyMaskT _verify_mask)
+std::expected<void, std::error_code> Socket::setVerifyMode(VerifyMaskT _verify_mask)
 {
     SSL_set_verify(pssl, convertMask(_verify_mask), on_verify);
-    return ErrorCodeT();
+    return {};
 }
 
-ErrorCodeT Socket::setCheckHostName(const std::string& _hostname)
+std::expected<void, std::error_code> Socket::setCheckHostName(std::string_view _hostname)
 {
     X509_VERIFY_PARAM* param = SSL_get0_param(pssl);
 
     // X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
-    if (X509_VERIFY_PARAM_set1_host(param, _hostname.c_str(), _hostname.size()) != 0) { // boringssl requires namelen to be nonzero
-        return ErrorCodeT();
+    if (X509_VERIFY_PARAM_set1_host(param, _hostname.data(), _hostname.size()) != 0) { // boringssl requires namelen to be nonzero
+        return {};
     }
-    return wrapper_category.makeError(WrapperError::SetCheckHostName);
+    return std::unexpected(wrapper_category.makeError(WrapperError::SetCheckHostName));
 }
 
-ErrorCodeT Socket::setCheckEmail(const std::string& _email)
+std::expected<void, std::error_code> Socket::setCheckEmail(std::string_view _email)
 {
     X509_VERIFY_PARAM* param = SSL_get0_param(pssl);
 
-    if (X509_VERIFY_PARAM_set1_email(param, _email.c_str(), _email.size()) != 0) { // boringssl requires emaillen to be nonzero
-        return ErrorCodeT();
+    if (X509_VERIFY_PARAM_set1_email(param, _email.data(), _email.size()) != 0) { // boringssl requires emaillen to be nonzero
+        return {};
     }
-    return wrapper_category.makeError(WrapperError::SetCheckEmail);
+    return std::unexpected(wrapper_category.makeError(WrapperError::SetCheckEmail));
 }
 
-ErrorCodeT Socket::setCheckIP(const std::string& _ip)
+std::expected<void, std::error_code> Socket::setCheckIP(std::string_view _ip)
 {
     X509_VERIFY_PARAM* param = SSL_get0_param(pssl);
-    ;
-    if (X509_VERIFY_PARAM_set1_ip_asc(param, _ip.c_str()) != 0) {
-        return ErrorCodeT();
+    const std::string  ip{_ip};
+
+    if (X509_VERIFY_PARAM_set1_ip_asc(param, ip.c_str()) != 0) {
+        return {};
     }
 
-    return wrapper_category.makeError(WrapperError::SetCheckIP);
+    return std::unexpected(wrapper_category.makeError(WrapperError::SetCheckIP));
 }
 
 } // namespace solid::frame::aio::openssl

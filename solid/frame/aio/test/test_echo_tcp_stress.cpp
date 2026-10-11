@@ -1,5 +1,8 @@
 #include "solid/frame/aio/openssl/aiosecurecontext.hpp"
 #include "solid/frame/aio/openssl/aiosecuresocket.hpp"
+#include <cstddef>
+#include <span>
+#include <tuple>
 
 #include "solid/frame/manager.hpp"
 #include "solid/frame/scheduler.hpp"
@@ -107,12 +110,10 @@ protected:
     static void onSend(frame::aio::ReactorContext& _rctx);
 
 protected:
-    enum { BufferCapacity = 1024 * 2 };
-
-    char     buf[BufferCapacity];
-    uint64_t recvcnt = 0;
-    uint64_t sendcnt = 0;
-    size_t   sendcrt = 0;
+    std::array<std::byte, 1024 * 2> buf;
+    uint64_t                        recvcnt = 0;
+    uint64_t                        sendcnt = 0;
+    size_t                          sendcrt = 0;
 };
 
 class PlainConnection final : public Connection {
@@ -125,15 +126,15 @@ public:
 private:
     void postRecvSome(frame::aio::ReactorContext& _rctx) override
     {
-        sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv);
+        sock.postRecvSome(_rctx, buf, Connection::onRecv);
     }
     bool sendAll(frame::aio::ReactorContext& _rctx, size_t _sz) override
     {
-        return sock.sendAll(_rctx, buf, _sz, Connection::onSend);
+        return sock.sendAll(_rctx, std::span(buf).first(_sz), Connection::onSend);
     }
     bool recvSome(frame::aio::ReactorContext& _rctx, size_t& _rsz) override
     {
-        return sock.recvSome(_rctx, buf, BufferCapacity, Connection::onRecv, _rsz);
+        return sock.recvSome(_rctx, buf, Connection::onRecv, _rsz);
     }
     void start(frame::aio::ReactorContext& _rctx) override
     {
@@ -155,15 +156,15 @@ public:
 private:
     void postRecvSome(frame::aio::ReactorContext& _rctx) override
     {
-        sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv);
+        sock.postRecvSome(_rctx, std::span{buf}, Connection::onRecv);
     }
     bool sendAll(frame::aio::ReactorContext& _rctx, size_t _sz) override
     {
-        return sock.sendAll(_rctx, buf, _sz, Connection::onSend);
+        return sock.sendAll(_rctx, std::span{buf}.first(_sz), Connection::onSend);
     }
     bool recvSome(frame::aio::ReactorContext& _rctx, size_t& _rsz) override
     {
-        return sock.recvSome(_rctx, buf, BufferCapacity, Connection::onRecv, _rsz);
+        return sock.recvSome(_rctx, buf, Connection::onRecv, _rsz);
     }
     void start(frame::aio::ReactorContext& _rctx) override
     {
@@ -171,7 +172,7 @@ private:
         sock.secureSetVerifyCallback(_rctx, frame::aio::openssl::VerifyModePeer, onSecureVerify);
         if (sock.secureAccept(_rctx, onSecureAccept)) {
             if (!_rctx.error()) {
-                sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); // fully asynchronous call
+                sock.postRecvSome(_rctx, buf, Connection::onRecv); // fully asynchronous call
             } else {
                 solid_dbg(generic_logger, Error, this << " postStop: " << _rctx.systemError().message());
                 postStop(_rctx);
@@ -252,9 +253,7 @@ protected:
     static void onConnect(frame::aio::ReactorContext& _rctx);
 
 protected:
-    enum { BufferCapacity = 1024 * 2 };
-
-    char buf[BufferCapacity];
+    std::array<std::byte, 1024 * 2> buf;
 
 private:
     uint64_t     recvcnt;
@@ -283,11 +282,11 @@ private:
     }
     void postRecvSome(frame::aio::ReactorContext& _rctx) override
     {
-        sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv);
+        sock.postRecvSome(_rctx, buf, Connection::onRecv);
     }
     void postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, const size_t _sz) override
     {
-        sock.postSendAll(_rctx, _pbuf, _sz, Connection::onSend);
+        sock.postSendAll(_rctx, std::as_bytes(std::span{_pbuf, _sz}), Connection::onSend);
     }
     void onConnect(frame::aio::ReactorContext& _rctx)
     {
@@ -295,17 +294,15 @@ private:
             int rcvsz = 1062000;
             int sndsz = 2626560;
 
-            sock.device().recvBufferSize(rcvsz);
-            sock.device().sendBufferSize(sndsz);
-
+            std::ignore = sock.device().recvBufferSize(rcvsz);
+            std::ignore = sock.device().sendBufferSize(sndsz);
             rcvsz = sndsz = -1;
-            sock.device().recvBufferSize(rcvsz);
-            sock.device().sendBufferSize(sndsz);
-
+            std::ignore   = sock.device().recvBufferSize(rcvsz);
+            std::ignore   = sock.device().sendBufferSize(sndsz);
             solid_log(generic_logger, Error, "recvbufsz = " << rcvsz << " sendbufsz = " << sndsz);
         }
         if (enable_no_delay) {
-            sock.device().enableNoDelay();
+            std::ignore = sock.device().enableNoDelay();
         }
         Connection::onConnect(_rctx);
     }
@@ -335,12 +332,12 @@ private:
 
     void postRecvSome(frame::aio::ReactorContext& _rctx) override
     {
-        sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv);
+        sock.postRecvSome(_rctx, buf, Connection::onRecv);
     }
 
     void postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, const size_t _sz) override
     {
-        sock.postSendAll(_rctx, _pbuf, _sz, Connection::onSend);
+        sock.postSendAll(_rctx, std::as_bytes(std::span{_pbuf, _sz}), Connection::onSend);
     }
 
     void onConnect(frame::aio::ReactorContext& _rctx)
@@ -348,7 +345,7 @@ private:
         if (!_rctx.error()) {
             solid_dbg(generic_logger, Info, this << " Connected");
             if (enable_no_delay) {
-                sock.device().enableNoDelay();
+                std::ignore = sock.device().enableNoDelay();
             }
             sock.secureSetVerifyDepth(_rctx, 10);
             sock.secureSetCheckHostName(_rctx, "echo-server");
@@ -433,17 +430,17 @@ protected:
     void onConnect(frame::aio::ReactorContext& _rctx);
 
 protected:
-    typedef frame::aio::Stream<frame::aio::Socket> StreamSocketT;
-    enum { BufferCapacity = 1024 * 4 };
+    using StreamSocketT = frame::aio::Stream<frame::aio::Socket>;
+    static constexpr size_t buffer_capacity{1024 * 4};
 
-    char          buf1[BufferCapacity];
-    char          buf2[BufferCapacity];
-    StreamSocketT sock1;
-    StreamSocketT sock2;
-    uint64_t      recvcnt;
-    uint64_t      sendcnt;
-    size_t        sendcrt;
-    uint32_t      crtid;
+    std::array<std::byte, 1024 * 4> buf1;
+    std::array<std::byte, 1024 * 4> buf2;
+    StreamSocketT                   sock1;
+    StreamSocketT                   sock2;
+    uint64_t                        recvcnt;
+    uint64_t                        sendcnt;
+    size_t                          sendcrt;
+    uint32_t                        crtid;
 };
 } // namespace relay
 
@@ -493,30 +490,29 @@ int test_echo_tcp_stress(int argc, char* argv[])
 
         if (be_secure) {
             ErrorCodeT err;
-            err = srv_secure_ctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
+            err = srv_secure_ctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/).error_or(std::error_code{});
             solid_check(!err, "failed loadVerifyFile " << err.message());
-            err = srv_secure_ctx.loadCertificateFile("echo-server-cert.pem");
+            err = srv_secure_ctx.loadCertificateFile("echo-server-cert.pem").error_or(std::error_code{});
             solid_check(!err, "failed loadCertificateFile " << err.message());
-            err = srv_secure_ctx.loadPrivateKeyFile("echo-server-key.pem");
+            err = srv_secure_ctx.loadPrivateKeyFile("echo-server-key.pem").error_or(std::error_code{});
             solid_check(!err, "failed loadPrivateKeyFile " << err.message());
         }
 
         srv_sch.start(thread::hardware_concurrency());
 
         {
-            ResolveData rd = synchronous_resolve("0.0.0.0", "0", 0, SocketInfo::Inet4, SocketInfo::Stream);
+            ResolveData rd = synchronous_resolve("0.0.0.0", "0", 0, SocketInfo::Inet4, SocketInfo::Stream).value();
 
             SocketDevice sd;
 
-            sd.create(rd.begin());
-            sd.prepareAccept(rd.begin(), server::Listener::backlog_size());
-
+            std::ignore = sd.create(rd.begin());
+            std::ignore = sd.prepareAccept(rd.begin(), server::Listener::backlog_size());
             if (sd) {
                 {
                     SocketAddress local_address;
                     ostringstream oss;
 
-                    sd.localAddress(local_address);
+                    local_address = sd.localAddress().value_or(SocketAddress{});
 
                     int srv_port = local_address.port();
                     oss << srv_port;
@@ -542,19 +538,18 @@ int test_echo_tcp_stress(int argc, char* argv[])
         if (use_relay) {
             rly_sch.start(thread::hardware_concurrency());
             {
-                ResolveData rd = synchronous_resolve("0.0.0.0", "0", 0, SocketInfo::Inet4, SocketInfo::Stream);
+                ResolveData rd = synchronous_resolve("0.0.0.0", "0", 0, SocketInfo::Inet4, SocketInfo::Stream).value();
 
                 SocketDevice sd;
 
-                sd.create(rd.begin());
-                sd.prepareAccept(rd.begin(), SocketInfo::max_listen_backlog_size());
-
+                std::ignore = sd.create(rd.begin());
+                std::ignore = sd.prepareAccept(rd.begin(), SocketInfo::max_listen_backlog_size());
                 if (sd) {
                     {
                         SocketAddress local_address;
                         ostringstream oss;
 
-                        sd.localAddress(local_address);
+                        local_address = sd.localAddress().value_or(SocketAddress{});
 
                         int srv_port = local_address.port();
                         oss << srv_port;
@@ -578,11 +573,11 @@ int test_echo_tcp_stress(int argc, char* argv[])
         frame::ServiceT clt_svc{clt_mgr};
 
         if (be_secure) {
-            ErrorCodeT err = clt_secure_ctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
+            ErrorCodeT err = clt_secure_ctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/).error_or(std::error_code{});
             solid_check(!err, "failed loadVerifyFile " << err.message());
-            err = clt_secure_ctx.loadCertificateFile("echo-client-cert.pem");
+            err = clt_secure_ctx.loadCertificateFile("echo-client-cert.pem").error_or(std::error_code{});
             solid_check(!err, "failed loadCertificateFile " << err.message());
-            err = clt_secure_ctx.loadPrivateKeyFile("echo-client-key.pem");
+            err = clt_secure_ctx.loadPrivateKeyFile("echo-client-key.pem").error_or(std::error_code{});
             solid_check(!err, "failed loadPrivateKeyFile " << err.message());
         }
 
@@ -671,17 +666,15 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
                 int rcvsz = 1062000;
                 int sndsz = 2626560;
 
-                _rsd.recvBufferSize(rcvsz);
-                _rsd.sendBufferSize(sndsz);
-
+                std::ignore = _rsd.recvBufferSize(rcvsz);
+                std::ignore = _rsd.sendBufferSize(sndsz);
                 rcvsz = sndsz = -1;
-                _rsd.recvBufferSize(rcvsz);
-                _rsd.sendBufferSize(sndsz);
-
+                std::ignore   = _rsd.recvBufferSize(rcvsz);
+                std::ignore   = _rsd.sendBufferSize(sndsz);
                 solid_log(generic_logger, Error, "recvbufsz = " << rcvsz << " sendbufsz = " << sndsz);
             }
             if (enable_no_delay) {
-                _rsd.enableNoDelay();
+                std::ignore = _rsd.enableNoDelay();
             }
             shared_ptr<frame::aio::Actor> actptr;
             solid::ErrorConditionT        err;
@@ -850,8 +843,9 @@ struct ResolvFunc {
     {
     }
 
-    void operator()(ResolveData& _rrd, ErrorCodeT const& /*_rerr*/)
+    void operator()(std::expected<ResolveData, std::error_code>&& _rrd_exp)
     {
+        ResolveData           _rrd = std::move(_rrd_exp).value_or(ResolveData{});
         AioSchedulerT::EventT ev(make_event(GenericEventE::Message));
 
         ev = std::move(_rrd);
@@ -965,7 +959,7 @@ bool Connection::checkRecvData(const size_t _sz) const
     size_t      sendidx = (crt_send_idx + idx) % send_data_vec.size();
     const auto& str     = send_data_vec[sendidx];
     const char* pbuf    = str.data() + (str.size() - expect_recvcnt);
-    return memcmp(buf, pbuf, _sz) == 0;
+    return memcmp(buf.data(), pbuf, _sz) == 0;
 }
 
 } // namespace client
@@ -995,7 +989,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     do {
         if (!_rctx.error()) {
             if (enable_no_delay) {
-                _rsd.enableNoDelay();
+                std::ignore = _rsd.enableNoDelay();
             }
             solid::ErrorConditionT err;
 
@@ -1029,8 +1023,9 @@ struct ResolvFunc {
     {
     }
 
-    void operator()(ResolveData& _rrd, ErrorCodeT const& /*_rerr*/)
+    void operator()(std::expected<ResolveData, std::error_code>&& _rrd_exp)
     {
+        ResolveData           _rrd = std::move(_rrd_exp).value_or(ResolveData{});
         AioSchedulerT::EventT ev(make_event(GenericEventE::Message));
 
         ev = std::move(_rrd);
@@ -1049,7 +1044,7 @@ struct ResolvFunc {
                                                            << " " << srv_port_str);
         async_resolver().requestResolve(
             ResolvFunc(_rctx.manager(), _rctx.manager().id(*this)), "127.0.0.1",
-            srv_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
+            srv_port_str, 0, SocketInfo::Inet4, SocketInfo::Stream);
     } else if (generic_event<GenericEventE::Kill> == _revent) {
         solid_dbg(generic_logger, Error, this << " postStop");
         postStop(_rctx);
@@ -1074,10 +1069,10 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
     if (!_rctx.error()) {
         solid_dbg(generic_logger, Info, this << " SUCCESS");
         if (enable_no_delay) {
-            sock2.device().enableNoDelay();
+            std::ignore = sock2.device().enableNoDelay();
         }
-        sock1.postRecvSome(_rctx, buf1, BufferCapacity, Connection::onRecvSock1);
-        sock2.postRecvSome(_rctx, buf2, BufferCapacity, Connection::onRecvSock2);
+        sock1.postRecvSome(_rctx, buf1, Connection::onRecvSock1);
+        sock2.postRecvSome(_rctx, buf2, Connection::onRecvSock2);
     } else {
         solid_dbg(generic_logger, Error, this << " postStop " << recvcnt << " " << sendcnt << " " << _rctx.systemError().message());
         postStop(_rctx);
@@ -1091,7 +1086,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
     solid_dbg(generic_logger, Info, &rthis << " " << _sz);
     do {
         if (!_rctx.error()) {
-            bool rv = rthis.sock2.sendAll(_rctx, rthis.buf1, _sz, Connection::onSendSock2);
+            bool rv = rthis.sock2.sendAll(_rctx, std::span{rthis.buf1}.first(_sz), Connection::onSendSock2);
             if (rv) {
                 if (_rctx.error()) {
                     solid_dbg(generic_logger, Error, &rthis << " postStop");
@@ -1107,10 +1102,10 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
             break;
         }
         --repeatcnt;
-    } while (repeatcnt != 0u && rthis.sock1.recvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1, _sz));
+    } while (repeatcnt != 0u && rthis.sock1.recvSome(_rctx, rthis.buf1, Connection::onRecvSock1, _sz));
 
     if (repeatcnt == 0) {
-        bool rv = rthis.sock1.postRecvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1); // fully asynchronous call
+        bool rv = rthis.sock1.postRecvSome(_rctx, rthis.buf1, Connection::onRecvSock1); // fully asynchronous call
         solid_assert(!rv);
         (void)rv;
     }
@@ -1123,7 +1118,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
     solid_dbg(generic_logger, Info, &rthis << " " << _sz);
     do {
         if (!_rctx.error()) {
-            bool rv = rthis.sock1.sendAll(_rctx, rthis.buf2, _sz, Connection::onSendSock1);
+            bool rv = rthis.sock1.sendAll(_rctx, std::span{rthis.buf2}.first(_sz), Connection::onSendSock1);
             if (rv) {
                 if (_rctx.error()) {
                     solid_dbg(generic_logger, Error, &rthis << " postStop");
@@ -1139,10 +1134,10 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
             break;
         }
         --repeatcnt;
-    } while (repeatcnt != 0u && rthis.sock2.recvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2, _sz));
+    } while (repeatcnt != 0u && rthis.sock2.recvSome(_rctx, rthis.buf2, Connection::onRecvSock2, _sz));
 
     if (repeatcnt == 0) {
-        bool rv = rthis.sock2.postRecvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2); // fully asynchronous call
+        bool rv = rthis.sock2.postRecvSome(_rctx, rthis.buf2, Connection::onRecvSock2); // fully asynchronous call
         solid_assert(!rv);
         (void)rv;
     }
@@ -1152,7 +1147,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 {
     Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
-        rthis.sock2.postRecvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2);
+        rthis.sock2.postRecvSome(_rctx, rthis.buf2, Connection::onRecvSock2);
     } else {
         solid_dbg(generic_logger, Error, &rthis << " postStop");
         rthis.postStop(_rctx);
@@ -1163,7 +1158,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 {
     Connection& rthis = static_cast<Connection&>(_rctx.actor());
     if (!_rctx.error()) {
-        rthis.sock1.postRecvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1);
+        rthis.sock1.postRecvSome(_rctx, rthis.buf1, Connection::onRecvSock1);
     } else {
         solid_dbg(generic_logger, Error, &rthis << " postStop");
         rthis.postStop(_rctx);

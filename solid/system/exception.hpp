@@ -13,9 +13,12 @@
 #include "solid/system/error.hpp"
 #include "solid/system/log.hpp"
 #include <exception>
+#include <expected>
 #include <iosfwd>
 #include <sstream>
 #include <string>
+#include <system_error>
+#include <type_traits>
 
 // struct solid_oss_str {
 // };
@@ -52,37 +55,37 @@ public:
     {
     }
 
-    const ErrorConditionT& error() const noexcept
+    [[nodiscard]] const ErrorConditionT& error() const noexcept
     {
         return err_;
     }
 };
 
-#define solid_throw(x)                                                          \
-    throw solid::RuntimeError(                                                  \
-        [&](const char* const _file, const int _line, const char* const _fnc) { \
-            std::ostringstream os;                                              \
-            os << '[' << _file << '(' << _line << ")][" << _fnc << "] " << x;   \
-            return os.str();                                                    \
-        },                                                                      \
+#define solid_throw(x)                                                            \
+    throw solid::RuntimeError(                                                    \
+        [&](const char* const _file, const int _line, const char* const _fnc) {   \
+            std::ostringstream __os__;                                            \
+            __os__ << '[' << _file << '(' << _line << ")][" << _fnc << "] " << x; \
+            return __os__.str();                                                  \
+        },                                                                        \
         __FILE__, __LINE__, static_cast<const char*>((SOLID_FUNCTION_NAME)))
 
-#define solid_throw_log(l, x)                                                   \
-    solid_log(l, Exception, x);                                                 \
-    throw solid::RuntimeError(                                                  \
-        [&](const char* const _file, const int _line, const char* const _fnc) { \
-            std::ostringstream os;                                              \
-            os << '[' << _file << '(' << _line << ")][" << _fnc << "] " << x;   \
-            return os.str();                                                    \
-        },                                                                      \
+#define solid_throw_log(l, x)                                                     \
+    solid_log(l, Exception, x);                                                   \
+    throw solid::RuntimeError(                                                    \
+        [&](const char* const _file, const int _line, const char* const _fnc) {   \
+            std::ostringstream __os__;                                            \
+            __os__ << '[' << _file << '(' << _line << ")][" << _fnc << "] " << x; \
+            return __os__.str();                                                  \
+        },                                                                        \
         __FILE__, __LINE__, static_cast<const char*>((SOLID_FUNCTION_NAME)))
 
 #define solid_throw_error(c)                                                                                        \
     throw solid::RuntimeError((c),                                                                                  \
         [&](const char* const _file, const int _line, const char* const _fnc, const solid::ErrorConditionT& _err) { \
-            std::ostringstream os;                                                                                  \
-            os << '[' << _file << '(' << _line << ")][" << _fnc << "] " #c ":" << _err.message();                   \
-            return os.str();                                                                                        \
+            std::ostringstream __os__;                                                                              \
+            __os__ << '[' << _file << '(' << _line << ")][" << _fnc << "] " #c ":" << _err.message();               \
+            return __os__.str();                                                                                    \
         },                                                                                                          \
         __FILE__, __LINE__, SOLID_FUNCTION_NAME)
 
@@ -90,27 +93,40 @@ public:
     if (not(a)) [[unlikely]]    \
         solid_throw_error(c);
 
-#define solid_check1(a)                       \
-    if (!(a)) [[unlikely]] {                  \
-        solid_throw("(" #a ") check failed"); \
-    }
+#define solid_check1(a)                           \
+    do {                                          \
+        if (a) {                                  \
+        } else [[unlikely]] {                     \
+            solid_throw("(" #a ") check failed"); \
+        }                                         \
+    } while (false)
 
-#define solid_check2(a, msg)                           \
-    if (!(a)) [[unlikely]] {                           \
-        solid_throw("(" #a ") check failed: " << msg); \
-    }
+#define solid_check2(a, msg)                               \
+    do {                                                   \
+        if (a) {                                           \
+        } else [[unlikely]] {                              \
+            solid_throw("(" #a ") check failed: " << msg); \
+        }                                                  \
+    } while (false)
 
-#define solid_check_log2(a, l)                       \
-    if (!(a)) [[unlikely]] {                         \
-        solid_throw_log(l, "(" #a ") check failed"); \
-    }
+#define solid_check_log2(a, l)                           \
+    do {                                                 \
+        if (a) {                                         \
+        } else [[unlikely]] {                            \
+            solid_throw_log(l, "(" #a ") check failed"); \
+        }                                                \
+    } while (false)
 
-#define solid_check_log3(a, l, msg)                           \
-    if (!(a)) [[unlikely]] {                                  \
-        solid_throw_log(l, "(" #a ") check failed: " << msg); \
-    }
+#define solid_check_log3(a, l, msg)                               \
+    do {                                                          \
+        if (a) {                                                  \
+        } else [[unlikely]] {                                     \
+            solid_throw_log(l, "(" #a ") check failed: " << msg); \
+        }                                                         \
+    } while (false)
 
 // adapted from: https://stackoverflow.com/questions/9183993/msvc-variadic-macro-expansion/9338429#9338429
 #define solid_check(...) SOLID_CALL_OVERLOAD(solid_check, __VA_ARGS__)
 #define solid_check_log(...) SOLID_CALL_OVERLOAD(solid_check_log, __VA_ARGS__)
+
 } // namespace solid

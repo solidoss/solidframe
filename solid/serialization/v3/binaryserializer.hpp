@@ -27,7 +27,7 @@
 #include "solid/utility/innerlist.hpp"
 #include "solid/utility/ioformat.hpp"
 
-namespace solid::serialization::v3::binary {
+namespace solid::serialization::inline v3::binary {
 
 class SerializerBase : public Base {
     struct Runnable;
@@ -978,4 +978,4 @@ std::ostream& operator>>(std::ostream& _ros, std::pair<S&, typename S::ContextT&
     return _ser.first.run(_ros, _ser.second);
 }
 
-} // namespace solid::serialization::v3::binary
+} // namespace solid::serialization::inline v3::binary

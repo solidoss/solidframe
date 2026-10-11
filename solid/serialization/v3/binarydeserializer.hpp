@@ -22,7 +22,7 @@
 #include "solid/utility/common.hpp"
 #include "solid/utility/function.hpp"
 
-namespace solid::serialization::v3::binary {
+namespace solid::serialization::inline v3::binary {
 
 class DeserializerBase : public Base {
     struct Runnable;
@@ -1170,4 +1170,4 @@ std::istream& operator>>(std::istream& _ris, std::pair<D&, typename D::ContextT&
     return _des.first.run(_ris, _des.second);
 }
 
-} // namespace solid::serialization::v3::binary
+} // namespace solid::serialization::inline v3::binary

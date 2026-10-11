@@ -1,4 +1,6 @@
 #include "solid/frame/mprpc/mprpcsocketstub_openssl.hpp"
+#include <span>
+#include <tuple>
 
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
 #include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
@@ -253,9 +255,15 @@ int test_clientserver_noserver(int argc, char* argv[])
                 frame::mprpc::openssl::setup_client(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
-                        _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-                        _rctx.loadCertificateFile("echo-client-cert.pem");
-                        _rctx.loadPrivateKeyFile("echo-client-key.pem");
+                        if (const auto rv = _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/); !rv) {
+                            return rv.error();
+                        }
+                        if (const auto rv = _rctx.loadCertificateFile("echo-client-cert.pem"); !rv) {
+                            return rv.error();
+                        }
+                        if (const auto rv = _rctx.loadPrivateKeyFile("echo-client-key.pem"); !rv) {
+                            return rv.error();
+                        }
                         return ErrorCodeT();
                     },
                     frame::mprpc::openssl::NameCheckSecureStart{"echo-server"});

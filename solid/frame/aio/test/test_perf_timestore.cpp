@@ -3,7 +3,9 @@
 #include "solid/system/log.hpp"
 #include <chrono>
 #include <iostream>
+#include <span>
 #include <thread>
+#include <tuple>
 
 using namespace std;
 using namespace solid;

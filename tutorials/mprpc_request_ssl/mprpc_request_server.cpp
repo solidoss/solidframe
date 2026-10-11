@@ -348,9 +348,15 @@ int main(int argc, char* argv[])
             frame::mprpc::openssl::setup_server(
                 cfg,
                 [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
-                    _rctx.loadVerifyFile("echo-ca-cert.pem");
-                    _rctx.loadCertificateFile("echo-server-cert.pem");
-                    _rctx.loadPrivateKeyFile("echo-server-key.pem");
+                    if (const auto rv = _rctx.loadVerifyFile("echo-ca-cert.pem"); !rv) {
+                        return rv.error();
+                    }
+                    if (const auto rv = _rctx.loadCertificateFile("echo-server-cert.pem"); !rv) {
+                        return rv.error();
+                    }
+                    if (const auto rv = _rctx.loadPrivateKeyFile("echo-server-key.pem"); !rv) {
+                        return rv.error();
+                    }
                     return ErrorCodeT();
                 },
                 frame::mprpc::openssl::NameCheckSecureStart{"echo-client"} // does nothing - OpenSSL does not check for hostname on SSL_accept

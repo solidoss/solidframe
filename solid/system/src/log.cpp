@@ -17,11 +17,15 @@
 #include "solid/system/socketdevice.hpp"
 #include <chrono>
 #include <cstring>
+#include <expected>
 #include <iostream>
 #include <mutex>
 #include <regex>
+#include <span>
 #include <sstream>
+#include <string_view>
 #include <thread>
+#include <tuple>
 
 using namespace std;
 using namespace std::chrono;
@@ -45,59 +49,6 @@ void LogStreamRecorder::recordLine(const solid::LogLineBase& _rlog_line)
 }
 
 namespace {
-
-enum {
-    ErrorResolveE = 1,
-    ErrorNoServerE,
-    ErrorFileOpenE,
-    ErrorPathE
-};
-
-class ErrorCategory : public ErrorCategoryT {
-public:
-    ErrorCategory() {}
-    const char* name() const noexcept override
-    {
-        return "solid::log";
-    }
-    std::string message(int _ev) const override;
-};
-
-std::string ErrorCategory::message(int _ev) const
-{
-    std::ostringstream oss;
-
-    oss << "(" << name() << ":" << _ev << "): ";
-
-    switch (_ev) {
-    case 0:
-        oss << "Success";
-        break;
-    case ErrorResolveE:
-        oss << "Resolve";
-        break;
-    case ErrorNoServerE:
-        oss << "No Server";
-        break;
-    case ErrorFileOpenE:
-        oss << "File Open";
-        break;
-    case ErrorPathE:
-        oss << "Invalid Path";
-        break;
-    default:
-        oss << "Unknown";
-        break;
-    }
-    return oss.str();
-}
-
-const ErrorCategory category;
-
-const ErrorConditionT error_resolve(ErrorResolveE, category);
-const ErrorConditionT error_no_server(ErrorNoServerE, category);
-const ErrorConditionT error_file_open(ErrorFileOpenE, category);
-const ErrorConditionT error_path(ErrorPathE, category);
 
 //-----------------------------------------------------------------------------
 //  DeviceBasicStream
@@ -124,16 +75,15 @@ public:
 protected:
     bool writeAll(const char* _s, size_t _n)
     {
-        do {
-            ssize_t written = dev_.write(_s, _n);
-            if (written >= 0) {
-                _n -= written;
-                _s += written;
-                rsz_ += written;
-            } else {
+        std::span<const std::byte> buf = std::as_bytes(std::span<const char>{_s, _n});
+        while (!buf.empty()) {
+            const auto rv = dev_.write(buf);
+            if (!rv) {
                 return false;
             }
-        } while (_n != 0);
+            buf = buf.subspan(*rv);
+            rsz_ += *rv;
+        }
         return true;
     }
 
@@ -141,11 +91,10 @@ protected:
     int_type overflow(int_type c) override
     {
         if (c != EOF) {
-            char z = c;
+            const char z = static_cast<char>(c);
             if (!writeAll(&z, 1)) {
                 return EOF;
             }
-            ++rsz_;
         }
         return c;
     }
@@ -225,15 +174,14 @@ protected:
 private:
     bool writeAll(const char* _s, size_t _n)
     {
-        do {
-            ssize_t written = dev_.write(_s, _n);
-            if (written >= 0) {
-                _n -= written;
-                _s += written;
-            } else {
+        std::span<const std::byte> buf = std::as_bytes(std::span<const char>{_s, _n});
+        while (!buf.empty()) {
+            const auto rv = dev_.write(buf);
+            if (!rv) {
                 return false;
             }
-        } while (_n != 0);
+            buf = buf.subspan(*rv);
+        }
         return true;
     }
 
@@ -270,29 +218,33 @@ std::streambuf::int_type DeviceBuffer::overflow(int_type c)
 // write multiple characters
 std::streamsize DeviceBuffer::xsputn(const char* s, std::streamsize num)
 {
-    // we can safely put BUFF_FLUSH into the buffer
-    long towrite = buffer_capacity - buffer_flush;
-    if (towrite > static_cast<int>(num)) {
-        towrite = static_cast<int>(num);
+    const std::streamsize total = num;
+    // fill the buffer with as much as it can hold
+    std::streamsize towrite = static_cast<std::streamsize>(buffer_capacity - static_cast<size_t>(bpos - bbeg));
+    if (towrite > num) {
+        towrite = num;
     }
-    memcpy(bpos, s, towrite);
+    memcpy(bpos, s, static_cast<size_t>(towrite));
     bpos += towrite;
     if (static_cast<size_t>(bpos - bbeg) > buffer_flush && !flush()) {
         return -1;
     }
-    if (num == towrite) {
-        return num;
-    }
     num -= towrite;
     s += towrite;
+    if (num == 0) {
+        return total;
+    }
+    // the buffer was filled to capacity and flushed above, so it is empty now
     if (num >= static_cast<std::streamsize>(buffer_flush)) {
-        std::streamsize retv = dev_.write(s, static_cast<uint32_t>(num));
-        solid_assert(retv != num);
-        return retv;
+        if (!writeAll(s, static_cast<size_t>(num))) {
+            return -1;
+        }
+        rsz_ += num;
+        return total;
     }
     memcpy(bpos, s, static_cast<size_t>(num));
     bpos += num;
-    return num;
+    return total;
 }
 
 class DeviceStream : public std::ostream {
@@ -351,7 +303,7 @@ struct SocketRecorder : LogRecorder {
         if (!sd) {
             buffered_stream_.swapDevice(sd);
         }
-        sd.shutdownReadWrite();
+        std::ignore = sd.shutdownReadWrite();
     }
 
     void recordLine(const solid::LogLineBase& _rlog_line) override
@@ -382,14 +334,14 @@ void filePath(string& _out, uint32_t _pos, const string& _path, const string& _n
     _out += buf;
 }
 
-void splitPrefix(string& _path, string& _name, const char* _prefix)
+void splitPrefix(string& _path, string& _name, string_view _prefix)
 {
-    const char* p = strrchr(_prefix, path_separator);
-    if (p == nullptr) {
+    const auto p = _prefix.rfind(path_separator);
+    if (p == string_view::npos) {
         _name = _prefix;
     } else {
-        _path.assign(_prefix, (p - _prefix) + 1);
-        _name = (p + 1);
+        _path = _prefix.substr(0, p + 1);
+        _name = _prefix.substr(p + 1);
     }
 }
 
@@ -420,7 +372,7 @@ struct FileRecorder : LogRecorder {
         const uint64_t _respinsize,
         const uint32_t _respincnt,
         const bool     _buffered)
-        : current_size_(_rfd.size()) // inherit the current size of the file
+        : current_size_(static_cast<uint64_t>(_rfd.size().value_or(0))) // inherit the current size of the file
         , unbuffered_stream_(current_size_)
         , buffered_stream_(current_size_)
         , ros_(stream(_buffered, std::move(_rfd)))
@@ -439,7 +391,7 @@ struct FileRecorder : LogRecorder {
         if (!fd) {
             buffered_stream_.swapDevice(fd);
         }
-        fd.flush();
+        std::ignore = fd.flush();
     }
 
     bool shouldRespin(const size_t _sz) const
@@ -460,13 +412,13 @@ struct FileRecorder : LogRecorder {
             buffered_stream_.swapDevice(fd);
             buffered = true;
         }
-        fd.flush();
+        std::ignore = fd.flush();
         fd.close();
 
         // find the last file
         if (respin_count_ == 0) {
             filePath(fname, 0, path_, name_);
-            Directory::eraseFile(fname.c_str());
+            std::ignore = Directory::erase_file(fname);
         } else {
             uint32_t lastpos = respin_count_;
             bool     do_move = false;
@@ -474,7 +426,7 @@ struct FileRecorder : LogRecorder {
             while (lastpos > 1) {
                 filePath(fname, lastpos, path_, name_);
                 if (!do_move) {
-                    if (FileDevice::size(fname.c_str()) == 0) {
+                    if (FileDevice::size(fname).value_or(-1) == 0) {
                         --lastpos;
                         continue;
                     } else {
@@ -490,7 +442,7 @@ struct FileRecorder : LogRecorder {
                     auto&  from_path = fname;
                     string to_path;
                     filePath(to_path, lastpos - 1, path_, name_);
-                    Directory::renameFile(from_path.c_str(), to_path.c_str());
+                    std::ignore = Directory::rename_file(from_path, to_path);
                     --lastpos;
                 }
             }
@@ -501,13 +453,13 @@ struct FileRecorder : LogRecorder {
             string to_path;
             filePath(from_path, 0, path_, name_);
             filePath(to_path, lastpos, path_, name_);
-            Directory::renameFile(from_path.c_str(), to_path.c_str());
-            fname = std::move(from_path);
+            std::ignore = Directory::rename_file(from_path, to_path);
+            fname       = std::move(from_path);
         }
 
-        if (!fd.create(fname.c_str(), FileDevice::WriteOnlyE)) {
-            cerr << "Cannot create log file: " << fname << ": " << last_system_error().message() << endl;
-            solid_throw("Cannot create log file: " << fname << ": " << last_system_error().message());
+        if (const auto rv = fd.create(fname, FileDevice::WriteOnlyE); !rv) {
+            cerr << "Cannot create log file: " << fname << ": " << rv.error().message() << endl;
+            solid_throw("Cannot create log file: " << fname << ": " << rv.error().message());
         }
         stream(buffered, std::move(fd));
     }
@@ -581,7 +533,7 @@ public:
 
     void log(size_t _idx, const LogLineBase& _log_ros);
 
-    ErrorConditionT configure(LogRecorderPtrT&& _recorder_ptr, const std::vector<std::string>& _rmodule_mask_vec);
+    void configure(LogRecorderPtrT&& _recorder_ptr, const std::vector<std::string>& _rmodule_mask_vec);
 
     void close()
     {
@@ -616,12 +568,11 @@ void Engine::log(const size_t /*_idx*/, const LogLineBase& _log_ros)
     recorder_ptr_->recordLine(_log_ros);
 }
 
-ErrorConditionT Engine::configure(LogRecorderPtrT&& _recorder_ptr, const std::vector<std::string>& _rmodule_mask_vec)
+void Engine::configure(LogRecorderPtrT&& _recorder_ptr, const std::vector<std::string>& _rmodule_mask_vec)
 {
     lock_guard<mutex> lock(mtx_);
     doConfigureMasks(_rmodule_mask_vec);
     recorder_ptr_ = std::move(_recorder_ptr);
-    return ErrorConditionT();
 }
 
 void Engine::doConfigureMasks(const std::vector<std::string>& _rmodule_mask_vec)
@@ -827,75 +778,87 @@ void log_stop()
     Engine::the().close();
 }
 
-ErrorConditionT log_start(LogRecorderPtrT&& _rec_ptr, const std::vector<std::string>& _rmodule_mask_vec)
+void log_start(LogRecorderPtrT&& _rec_ptr, const std::vector<std::string>& _rmodule_mask_vec)
 {
-    return Engine::the().configure(std::move(_rec_ptr), _rmodule_mask_vec);
+    Engine::the().configure(std::move(_rec_ptr), _rmodule_mask_vec);
 }
 
-ErrorConditionT log_start(std::ostream& _ros, const std::vector<std::string>& _rmodule_mask_vec)
+void log_start(std::ostream& _ros, const std::vector<std::string>& _rmodule_mask_vec)
 {
-    return Engine::the().configure(std::make_shared<LogStreamRecorder>(_ros), _rmodule_mask_vec);
+    Engine::the().configure(std::make_shared<LogStreamRecorder>(_ros), _rmodule_mask_vec);
 }
 
-ErrorConditionT log_start(
-    const char*                     _prefix,
+std::expected<void, std::error_code> log_start(
+    std::string_view                _prefix,
     const std::vector<std::string>& _rmodule_mask_vec,
     bool                            _buffered,
     uint32_t                        _respincnt,
     uint64_t                        _respinsize)
 {
-    FileDevice  fd;
+    if (_prefix.empty()) {
+        return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+    }
+
     std::string path;
     std::string name;
 
-    if (_prefix != nullptr && (*_prefix != 0)) {
-        splitPrefix(path, name, _prefix);
-        if (path.empty()) {
-            path = "log";
-            path += path_separator;
-        }
-        Directory::create_all(path.c_str());
-        string fpath;
+    splitPrefix(path, name, _prefix);
 
-        filePath(fpath, 0, path, name);
-
-        if (!fd.open(fpath.c_str(), FileDevice::WriteOnlyE | FileDevice::CreateE | FileDevice::AppendE)) {
-            return error_file_open;
-        }
-    } else {
-        return error_path;
+    if (path.empty()) {
+        path = "log";
+        path += path_separator;
     }
 
-    return Engine::the().configure(std::make_shared<FileRecorder>(std::move(fd), std::move(path), std::move(name), _respinsize, _respincnt, _buffered), _rmodule_mask_vec);
+    if (const auto rv = Directory::create_all(path); !rv) {
+        return std::unexpected(rv.error());
+    }
+
+    string fpath;
+    filePath(fpath, 0, path, name);
+
+    FileDevice fd;
+    if (const auto rv = fd.open(fpath, FileDevice::WriteOnlyE | FileDevice::CreateE | FileDevice::AppendE); !rv) {
+        return std::unexpected(rv.error());
+    }
+
+    Engine::the().configure(std::make_shared<FileRecorder>(std::move(fd), std::move(path), std::move(name), _respinsize, _respincnt, _buffered), _rmodule_mask_vec);
+    return {};
 }
 
-ErrorConditionT log_start(
-    const char*                     _addr,
-    const char*                     _port,
+std::expected<void, std::error_code> log_start(
+    std::string_view                _addr,
+    std::string_view                _port,
     const std::vector<std::string>& _rmodule_mask_vec,
     bool                            _buffered)
 {
+    const auto rd = synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 
-    ResolveData  rd = synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-    SocketDevice sd;
-
-    if (!rd.empty()) {
-        auto it = rd.begin();
-        while (it != rd.end()) {
-            if (!sd.create(it) && !sd.connect(it)) {
-                break;
-            }
-            sd.close();
-            ++it;
-        }
-        if (!sd) {
-            return error_no_server;
-        }
-    } else {
-        return error_resolve;
+    if (!rd) {
+        return std::unexpected(rd.error());
     }
 
-    return Engine::the().configure(std::make_shared<SocketRecorder>(std::move(sd), _buffered), _rmodule_mask_vec);
+    SocketDevice    sd;
+    std::error_code err = std::make_error_code(std::errc::host_unreachable);
+
+    for (auto it = rd->begin(); it != rd->end(); ++it) {
+        if (const auto rv = sd.create(it); !rv) {
+            err = rv.error();
+            continue;
+        }
+        if (const auto rv = sd.connect(it); rv) {
+            break;
+        } else {
+            err = rv.error();
+        }
+        sd.close();
+    }
+
+    if (!sd) {
+        return std::unexpected(err);
+    }
+
+    Engine::the().configure(std::make_shared<SocketRecorder>(std::move(sd), _buffered), _rmodule_mask_vec);
+    return {};
 }
 
 solid::impl::LogLineStream<solid::log_buffer_size>& impl::local_line_stream()

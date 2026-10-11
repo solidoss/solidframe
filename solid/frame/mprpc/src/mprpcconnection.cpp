@@ -812,7 +812,7 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Eve
 
             if (!isStopping()) {
                 // start receiving messages
-                this->postRecvSome<Ctx>(_rctx, recv_buf_.mdata(), recv_buf_.msize());
+                this->postRecvSome<Ctx>(_rctx, recv_buf_.mspan());
 
                 if (rconfig.hasConnectionTimeoutRecv()) {
                     timeout_recv_ = _rctx.nanoTime() + rconfig.connection_timeout_recv;
@@ -874,7 +874,7 @@ void Connection::doHandleEventEnterPassive(frame::aio::ReactorContext& _rctx, Ev
             });
 
         // start receiving messages
-        this->postRecvSome<Ctx>(_rctx, recv_buf_.mdata(), recv_buf_.msize());
+        this->postRecvSome<Ctx>(_rctx, recv_buf_.mspan());
 
         if (isServer() && config.server.hasConnectionTimeoutActive()) {
             timeout_active_ = _rctx.nanoTime() + config.server.connection_timeout_active;
@@ -1050,7 +1050,7 @@ void Connection::doHandleEventSendRaw(frame::aio::ReactorContext& _rctx, EventBa
 
         if (tocopy != 0u) {
             pdata->offset = tocopy;
-            if (this->postSendAll(_rctx, send_buf_.mdata(), tocopy, _revent)) {
+            if (this->postSendAll(_rctx, send_buf_.mspan().first(tocopy), _revent)) {
                 pdata->complete_fnc(conctx, _rctx.error());
             }
         } else {
@@ -1074,7 +1074,7 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, EventBa
 
     if (this->isRawState() && pdata != nullptr) {
         if (recv_buf_.csize() == 0U) {
-            if (this->postRecvSome(_rctx, recv_buf_.mdata(), recv_buf_.msize(), _revent)) {
+            if (this->postRecvSome(_rctx, recv_buf_.mspan(), _revent)) {
 
                 pdata->complete_fnc(conctx, nullptr, consume_size, _rctx.error());
             }
@@ -1192,7 +1192,7 @@ template <class Ctx>
 
             if (tocopy != 0u) {
                 pdata->offset += tocopy;
-                if (rthis.postSendAll(_rctx, rthis.send_buf_.mdata(), tocopy, _revent)) {
+                if (rthis.postSendAll(_rctx, rthis.send_buf_.mspan().first(tocopy), _revent)) {
                     pdata->complete_fnc(conctx, _rctx.error());
                 }
             } else {
@@ -1385,7 +1385,7 @@ template <class Ctx>
             .optimizeDuration(duration);
         solid_check(rrecvbuf.msize());
 
-    } while (repeatcnt != 0U && !rthis.flags_.isSet(FlagsE::PauseRecv) && rthis.recvSome<Ctx>(_rctx, rrecvbuf.mdata(), rrecvbuf.msize(), _sz));
+    } while (repeatcnt != 0U && !rthis.flags_.isSet(FlagsE::PauseRecv) && rthis.recvSome<Ctx>(_rctx, rrecvbuf.mspan(), _sz));
 
     if (rconfig.hasConnectionTimeoutRecv()) {
         rthis.timeout_recv_ = _rctx.nanoTime() + rconfig.connection_timeout_recv;
@@ -1394,7 +1394,7 @@ template <class Ctx>
     }
 
     if (repeatcnt == 0 && !rthis.flags_.isSet(FlagsE::PauseRecv)) {
-        const bool rv = rthis.postRecvSome<Ctx>(_rctx, rthis.recv_buf_.mdata(), rthis.recv_buf_.msize()); // fully asynchronous call
+        const bool rv = rthis.postRecvSome<Ctx>(_rctx, rthis.recv_buf_.mspan()); // fully asynchronous call
         solid_assert_log(!rv, logger);
         (void)rv;
     }
@@ -1455,7 +1455,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
 
                 service(_rctx).wstatistic().connectionSendBufferSize(buffer.size(), send_buf_.msize());
 
-                if (!buffer.empty() && this->sendAll<Ctx>(_rctx, buffer.data(), buffer.size())) {
+                if (!buffer.empty() && this->sendAll<Ctx>(_rctx, buffer.span())) {
                     sent_something = true;
                     if (_rctx.error()) {
                         solid_log(logger, Error, this << ' ' << id() << " sending " << buffer.size() << ": " << _rctx.error().message());
@@ -1480,7 +1480,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                 solid_log(logger, Error, this << ' ' << id() << " size to send " << buffer.size() << " error " << error.message());
 
                 if (!buffer.empty()) {
-                    this->sendAll<Ctx>(_rctx, buffer.data(), buffer.size());
+                    this->sendAll<Ctx>(_rctx, buffer.span());
                 }
 
                 doStop<Ctx>(_rctx, error);
@@ -1782,20 +1782,20 @@ ResponseStateE Connection::doCheckResponseState(frame::aio::ReactorContext& _rct
     return rv;
 }
 //-----------------------------------------------------------------------------
-bool Connection::postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, EventBase& _revent)
+bool Connection::postSendAll(frame::aio::ReactorContext& _rctx, std::span<const std::byte> _buf, EventBase& _revent)
 {
-    return sock_ptr_->postSendAll(_rctx, Connection::onSendAllRaw, _pbuf, _bufcp, _revent);
+    return sock_ptr_->postSendAll(_rctx, Connection::onSendAllRaw, _buf, _revent);
 }
 //-----------------------------------------------------------------------------
-bool Connection::postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp, EventBase& _revent)
+bool Connection::postRecvSome(frame::aio::ReactorContext& _rctx, std::span<std::byte> _buf, EventBase& _revent)
 {
-    return sock_ptr_->postRecvSome(_rctx, Connection::onRecvSomeRaw, _pbuf, _bufcp, _revent);
+    return sock_ptr_->postRecvSome(_rctx, Connection::onRecvSomeRaw, _buf, _revent);
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-bool Connection::postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp)
+bool Connection::postRecvSome(frame::aio::ReactorContext& _rctx, std::span<std::byte> _buf)
 {
-    return sock_ptr_->postRecvSome(_rctx, Connection::onRecv<Ctx>, _pbuf, _bufcp);
+    return sock_ptr_->postRecvSome(_rctx, Connection::onRecv<Ctx>, _buf);
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
@@ -1805,16 +1805,16 @@ bool Connection::connect(frame::aio::ReactorContext& _rctx, const SocketAddressI
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-bool Connection::recvSome(frame::aio::ReactorContext& _rctx, char* _buf, size_t _bufcp, size_t& _sz)
+bool Connection::recvSome(frame::aio::ReactorContext& _rctx, std::span<std::byte> _buf, size_t& _sz)
 {
-    return sock_ptr_->recvSome(_rctx, Connection::onRecv<Ctx>, _buf, _bufcp, _sz);
+    return sock_ptr_->recvSome(_rctx, Connection::onRecv<Ctx>, _buf, _sz);
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-bool Connection::sendAll(frame::aio::ReactorContext& _rctx, char const* _buf, size_t _bufcp)
+bool Connection::sendAll(frame::aio::ReactorContext& _rctx, std::span<const std::byte> _buf)
 {
     solid_check(!isStopping());
-    return sock_ptr_->sendAll(_rctx, Connection::onSend<Ctx>, _buf, _bufcp);
+    return sock_ptr_->sendAll(_rctx, Connection::onSend<Ctx>, _buf);
 }
 //-----------------------------------------------------------------------------
 void Connection::prepareSocket(frame::aio::ReactorContext& _rctx)
@@ -1837,7 +1837,7 @@ void Connection::doResumeRead(frame::aio::ReactorContext& _rctx)
     if (flags_.isSet(FlagsE::PauseRecv)) {
         flags_.reset(FlagsE::PauseRecv);
 
-        const bool rv = postRecvSome<Ctx>(_rctx, recv_buf_.mdata(), recv_buf_.msize()); // fully asynchronous call
+        const bool rv = postRecvSome<Ctx>(_rctx, recv_buf_.mspan()); // fully asynchronous call
 
         solid_assert_log(!rv, logger);
         (void)rv;

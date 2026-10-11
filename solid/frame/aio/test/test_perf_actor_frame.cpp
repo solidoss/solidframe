@@ -3,7 +3,9 @@
 #include <future>
 #include <iostream>
 #include <mutex>
+#include <span>
 #include <thread>
+#include <tuple>
 
 #include "solid/frame/actor.hpp"
 #include "solid/frame/reactor.hpp"

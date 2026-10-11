@@ -10,21 +10,20 @@
 
 #pragma once
 
+#include <expected>
 #include <functional>
 #include <string>
+#include <string_view>
+#include <system_error>
 
 #include "aioerror.hpp"
 #include "solid/system/pimpl.hpp"
 #include "solid/system/socketaddress.hpp"
 
-namespace solid {
-namespace frame {
-namespace aio {
+namespace solid::frame::aio {
 
 struct ResolveBase {
-
-    ErrorCodeT error;
-    int        flags;
+    int flags;
 
     ResolveBase(int _flags)
         : flags(_flags)
@@ -41,12 +40,12 @@ struct DirectResolve : ResolveBase {
     int         proto;
 
     DirectResolve(
-        const char* _host,
-        const char* _srvc,
-        int         _flags,
-        int         _family,
-        int         _type,
-        int         _proto)
+        std::string_view _host,
+        std::string_view _srvc,
+        int              _flags,
+        int              _family,
+        int              _type,
+        int              _proto)
         : ResolveBase(_flags)
         , host(_host)
         , srvc(_srvc)
@@ -56,7 +55,7 @@ struct DirectResolve : ResolveBase {
     {
     }
 
-    ResolveData doRun();
+    [[nodiscard]] std::expected<ResolveData, std::error_code> doRun();
 };
 
 struct ReverseResolve : ResolveBase {
@@ -71,22 +70,23 @@ struct ReverseResolve : ResolveBase {
     {
     }
 
-    void doRun(std::string& _rhost, std::string& _rsrvc);
+    [[nodiscard]] std::expected<ReverseResolveData, std::error_code> doRun();
 };
 
+//! Calls the callback with the std::expected<ResolveData, std::error_code> result of the resolve
 template <class Cbk>
 struct DirectResolveCbk : DirectResolve {
 
     Cbk cbk;
 
     DirectResolveCbk(
-        Cbk         _cbk,
-        const char* _host,
-        const char* _srvc,
-        int         _flags,
-        int         _family,
-        int         _type,
-        int         _proto)
+        Cbk              _cbk,
+        std::string_view _host,
+        std::string_view _srvc,
+        int              _flags,
+        int              _family,
+        int              _type,
+        int              _proto)
         : DirectResolve(_host, _srvc, _flags, _family, _type, _proto)
         , cbk(std::move(_cbk))
     {
@@ -94,13 +94,11 @@ struct DirectResolveCbk : DirectResolve {
 
     void operator()()
     {
-        ResolveData rd;
-
-        rd = this->doRun();
-        cbk(rd, this->error);
+        cbk(this->doRun());
     }
 };
 
+//! Calls the callback with the std::expected<ReverseResolveData, std::error_code> result of the reverse resolve
 template <class Cbk>
 struct ReverseResolveCbk : ReverseResolve {
 
@@ -111,14 +109,13 @@ struct ReverseResolveCbk : ReverseResolve {
         const SocketAddressStub& _rsa,
         int                      _flags)
         : ReverseResolve(_rsa, _flags)
-        , cbk(_cbk)
+        , cbk(std::move(_cbk))
     {
     }
 
     void operator()()
     {
-        this->doRun(cbk.hostString(), cbk.serviceString());
-        cbk(this->error);
+        cbk(this->doRun());
     }
 };
 
@@ -134,29 +131,29 @@ public:
     }
     ~Resolver() {}
 
+    //! Asynchronously resolve the host and service - _cbk is called with a std::expected<ResolveData, std::error_code>
     template <class Cbk>
     void requestResolve(
-        Cbk         _cbk,
-        const char* _host,
-        const char* _srvc,
-        int         _flags  = 0,
-        int         _family = -1,
-        int         _type   = -1,
-        int         _proto  = -1)
+        Cbk              _cbk,
+        std::string_view _host,
+        std::string_view _srvc,
+        int              _flags  = 0,
+        int              _family = -1,
+        int              _type   = -1,
+        int              _proto  = -1)
     {
         push_fnc_(DirectResolveCbk<Cbk>(std::move(_cbk), _host, _srvc, _flags, _family, _type, _proto));
     }
 
+    //! Asynchronously reverse resolve the address - _cbk is called with a std::expected<ReverseResolveData, std::error_code>
     template <class Cbk>
     void requestResolve(
         Cbk                      _cbk,
         const SocketAddressStub& _rsa,
         int                      _flags = 0)
     {
-        push_fnc_(ReverseResolveCbk<Cbk>(_rsa, _flags));
+        push_fnc_(ReverseResolveCbk<Cbk>(std::move(_cbk), _rsa, _flags));
     }
 };
 
-} // namespace aio
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::aio

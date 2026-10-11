@@ -38,6 +38,8 @@
 #include <cstring>
 #include <deque>
 #include <queue>
+#include <span>
+#include <tuple>
 #include <vector>
 
 #include "solid/system/device.hpp"
@@ -1329,7 +1331,7 @@ void EventHandler::write(impl::Reactor& _rreactor)
 {
 #if defined(SOLID_USE_EPOLL)
     const uint64_t v = 1;
-    dev_.write(reinterpret_cast<const char*>(&v), sizeof(v));
+    std::ignore      = dev_.write(std::as_bytes(std::span{&v, 1}));
 #elif defined(SOLID_USE_KQUEUE)
     struct kevent ev;
 
@@ -1345,7 +1347,7 @@ void EventHandler::write(impl::Reactor& _rreactor)
     const uint32_t v = 1;
     bool           can_retry;
     ErrorCodeT     err;
-    dev_.send(reinterpret_cast<const char*>(&v), sizeof(v), can_retry, err);
+    std::ignore = dev_.send(reinterpret_cast<const char*>(&v), sizeof(v), can_retry, err);
 #endif
 }
 
@@ -1371,19 +1373,17 @@ void EventHandler::write(impl::Reactor& _rreactor)
 {
     [[maybe_unused]] EventHandler& rthis = static_cast<EventHandler&>(_rch);
 #if defined(SOLID_USE_EPOLL)
-    uint64_t v = -1;
-    ssize_t  rv;
+    uint64_t                                    v = -1;
+    std::expected<std::size_t, std::error_code> rv;
 
     do {
-        rv = rthis.dev_.read(reinterpret_cast<char*>(&v), sizeof(v));
-        solid_log(logger, Info, "Read from event " << rv << " value = " << v);
-    } while (rv == sizeof(v));
+        rv = rthis.dev_.read(std::as_writable_bytes(std::span{&v, 1}));
+        solid_log(logger, Info, "Read from event " << (rv ? static_cast<std::ptrdiff_t>(*rv) : -1) << " value = " << v);
+    } while (rv && *rv == sizeof(v));
 #elif defined(SOLID_USE_WSAPOLL)
     constexpr size_t buf_sz = 64;
-    char             buf[buf_sz];
-    bool             can_retry;
-    ErrorCodeT       err;
-    rthis.dev_.recv(buf, buf_sz, can_retry, err);
+    std::byte        buf[buf_sz];
+    std::ignore = rthis.dev_.recv(std::span{buf});
     rthis.contextBind(_rctx);
     rthis.reactor(_rctx).modDevice(_rctx, rthis.dev_, ReactorWaitRequestE::Read);
 #endif
@@ -1401,25 +1401,21 @@ bool EventHandler::init()
         return false;
     }
 #elif defined(SOLID_USE_WSAPOLL)
-    ErrorCodeT err;
-    err = dev_.create(SocketInfo::Inet4, SocketInfo::Datagram);
-    if (err)
+    if (!dev_.create(SocketInfo::Inet4, SocketInfo::Datagram)) {
         return false;
-
-    err = dev_.bind(SocketAddressInet4("127.0.0.1", 0));
-    if (err)
+    }
+    if (!dev_.bind(SocketAddressInet4("127.0.0.1", 0))) {
         return false;
-
-    SocketAddress sa;
-    err = dev_.localAddress(sa);
-    if (err)
+    }
+    const auto sa = dev_.localAddress();
+    if (!sa) {
         return false;
-    dev_.enableLoopbackFastPath();
-    err = dev_.connect(SocketAddressInet4("127.0.0.1", sa.port()));
-    if (err)
+    }
+    std::ignore = dev_.enableLoopbackFastPath();
+    if (!dev_.connect(SocketAddressInet4("127.0.0.1", sa->port()))) {
         return false;
-
-    dev_.makeNonBlocking();
+    }
+    std::ignore = dev_.makeNonBlocking();
 #endif
     return true;
 }

@@ -11,12 +11,26 @@
 #define inline
 #endif
 
+namespace impl {
+//! inet_pton for a not necessarily null terminated string
+inline int inet_pton(const int _family, std::string_view _str, void* _dst)
+{
+    char buf[128];
+    if (_str.size() >= sizeof(buf)) {
+        return 0;
+    }
+    memcpy(buf, _str.data(), _str.size());
+    buf[_str.size()] = '\0';
+    return ::inet_pton(_family, buf, _dst);
+}
+} // namespace impl
+
 //-----------------------------------------------------------------------
 //          ResolveIterator
 //-----------------------------------------------------------------------
 
 inline ResolveIterator::ResolveIterator()
-    : paddr(NULL)
+    : paddr(nullptr)
 {
 }
 inline ResolveIterator& ResolveIterator::next()
@@ -72,7 +86,7 @@ inline ResolveData::ResolveData(const ResolveData& _rai)
     : aiptr(_rai.aiptr)
 {
 }
-inline ResolveData::ResolveData(ResolveData&& _rai)
+inline ResolveData::ResolveData(ResolveData&& _rai) noexcept
     : aiptr(std::move(_rai.aiptr))
 {
 }
@@ -105,7 +119,7 @@ inline ResolveData& ResolveData::operator=(const ResolveData& _rrd)
     aiptr = _rrd.aiptr;
     return *this;
 }
-inline ResolveData& ResolveData::operator=(ResolveData&& _rrd)
+inline ResolveData& ResolveData::operator=(ResolveData&& _rrd) noexcept
 {
     aiptr = std::move(_rrd.aiptr);
     return *this;
@@ -276,14 +290,14 @@ inline SocketAddress::SocketAddress(const SocketAddressStub& _rsas)
     memcpy(&d.addr, _rsas.sockAddr(), _rsas.size());
     sz = _rsas.size();
 }
-inline SocketAddress::SocketAddress(const char* _addr, int _port)
+inline SocketAddress::SocketAddress(std::string_view _addr, int _port)
     : sz(0)
 {
     clear();
     address(_addr);
     port(_port);
 }
-inline SocketAddress::SocketAddress(const char* _path)
+inline SocketAddress::SocketAddress(std::string_view _path)
     : sz(0)
 {
     clear();
@@ -415,18 +429,18 @@ inline bool SocketAddress::operator==(const SocketAddress& _raddr) const
     }
 }
 
-inline void SocketAddress::address(const char* _str)
+inline void SocketAddress::address(std::string_view _str)
 {
     d.addr.sa_family          = 0;
     d.inaddr4.sin_addr.s_addr = 0;
     sz                        = 0;
-    int rv                    = inet_pton(AF_INET6, _str, (void*)&this->d.inaddr6.sin6_addr.s6_addr);
+    int rv                    = impl::inet_pton(AF_INET6, _str, (void*)&this->d.inaddr6.sin6_addr.s6_addr);
     if (rv == 1) {
         sockAddr()->sa_family = AF_INET6;
         sz                    = sizeof(d.inaddr6);
         return;
     }
-    rv = inet_pton(AF_INET, _str, (void*)&this->d.inaddr4.sin_addr.s_addr);
+    rv = impl::inet_pton(AF_INET, _str, (void*)&this->d.inaddr4.sin_addr.s_addr);
     if (rv == 1) {
         sockAddr()->sa_family = AF_INET;
         sz                    = sizeof(d.inaddr4);
@@ -483,14 +497,14 @@ inline size_t SocketAddress::addressHash() const
     return in_addr_hash(address4());
 }
 
-inline void SocketAddress::path(const char* /*_pth*/)
+inline void SocketAddress::path(std::string_view /*_pth*/)
 {
     // TODO
 }
-inline const char* SocketAddress::path() const
+inline std::string_view SocketAddress::path() const
 {
     // TODO
-    return NULL;
+    return {};
 }
 inline SocketAddress::operator sockaddr*()
 {
@@ -519,7 +533,7 @@ inline SocketAddressInet::SocketAddressInet(const SocketAddressStub& _rsas)
         sz = _rsas.size();
     }
 }
-inline SocketAddressInet::SocketAddressInet(const char* _addr, int _port)
+inline SocketAddressInet::SocketAddressInet(std::string_view _addr, int _port)
     : sz(0)
 {
     clear();
@@ -687,18 +701,18 @@ inline bool SocketAddressInet::operator==(const SocketAddressInet& _raddr) const
     }
 }
 
-inline void SocketAddressInet::address(const char* _str)
+inline void SocketAddressInet::address(std::string_view _str)
 {
     d.addr.sa_family          = 0;
     d.inaddr4.sin_addr.s_addr = 0;
     sz                        = 0;
-    int rv                    = inet_pton(AF_INET6, _str, (void*)&this->d.inaddr6.sin6_addr.s6_addr);
+    int rv                    = impl::inet_pton(AF_INET6, _str, (void*)&this->d.inaddr6.sin6_addr.s6_addr);
     if (rv == 1) {
         sockAddr()->sa_family = AF_INET6;
         sz                    = sizeof(d.inaddr6);
         return;
     }
-    rv = inet_pton(AF_INET, _str, (void*)&this->d.inaddr4.sin_addr.s_addr);
+    rv = impl::inet_pton(AF_INET, _str, (void*)&this->d.inaddr4.sin_addr.s_addr);
     if (rv == 1) {
         sockAddr()->sa_family = AF_INET;
         sz                    = sizeof(d.inaddr4);
@@ -779,7 +793,7 @@ inline SocketAddressInet4::SocketAddressInet4(const SocketAddressStub& _rsas)
         memcpy(&d.addr, _rsas.sockAddr(), _rsas.size());
     }
 }
-inline SocketAddressInet4::SocketAddressInet4(const char* _addr, int _port)
+inline SocketAddressInet4::SocketAddressInet4(std::string_view _addr, int _port)
 {
     clear();
     address(_addr);
@@ -881,11 +895,11 @@ inline bool SocketAddressInet4::operator==(const SocketAddressInet4& _raddr) con
     return (address().s_addr == _raddr.address().s_addr) && (d.inaddr4.sin_port == _raddr.d.inaddr4.sin_port);
 }
 
-inline void SocketAddressInet4::address(const char* _str)
+inline void SocketAddressInet4::address(std::string_view _str)
 {
     d.addr.sa_family          = AF_INET;
     d.inaddr4.sin_addr.s_addr = 0;
-    int rv                    = inet_pton(AF_INET, _str, (void*)&this->d.inaddr4.sin_addr.s_addr);
+    int rv                    = impl::inet_pton(AF_INET, _str, (void*)&this->d.inaddr4.sin_addr.s_addr);
     if (rv == 1) {
         sockAddr()->sa_family = AF_INET;
         return;
@@ -942,7 +956,7 @@ inline SocketAddressInet6::SocketAddressInet6(const SocketAddressStub& _rsas)
         memcpy(&d.addr, _rsas.sockAddr(), _rsas.size());
     }
 }
-inline SocketAddressInet6::SocketAddressInet6(const char* _addr, int _port)
+inline SocketAddressInet6::SocketAddressInet6(std::string_view _addr, int _port)
 {
     clear();
     address(_addr);
@@ -1047,11 +1061,11 @@ inline bool SocketAddressInet6::operator==(const SocketAddressInet6& _raddr) con
         && (d.inaddr6.sin6_port == _raddr.d.inaddr6.sin6_port);
 }
 
-inline void SocketAddressInet6::address(const char* _str)
+inline void SocketAddressInet6::address(std::string_view _str)
 {
     d.addr.sa_family = AF_INET6;
     memset(d.inaddr6.sin6_addr.s6_addr, 0, sizeof(d.inaddr6.sin6_addr.s6_addr));
-    int rv = inet_pton(AF_INET6, _str, (void*)&this->d.inaddr6.sin6_addr.s6_addr);
+    int rv = impl::inet_pton(AF_INET6, _str, (void*)&this->d.inaddr6.sin6_addr.s6_addr);
     if (rv == 1) {
         sockAddr()->sa_family = AF_INET6;
         return;
@@ -1158,7 +1172,7 @@ inline size_t in_addr_hash(const in6_addr& _inaddr)
 inline SocketAddressLocal::SocketAddressLocal()
 {
 }
-inline SocketAddressLocal::SocketAddressLocal(const char* /*_path*/)
+inline SocketAddressLocal::SocketAddressLocal(std::string_view /*_path*/)
 {
     // TODO:
 }
@@ -1218,14 +1232,14 @@ inline size_t SocketAddressLocal::addressHash() const
     return 0;
 }
 
-inline void SocketAddressLocal::path(const char* /*_pth*/)
+inline void SocketAddressLocal::path(std::string_view /*_pth*/)
 {
     // TODO
 }
-inline const char* SocketAddressLocal::path() const
+inline std::string_view SocketAddressLocal::path() const
 {
     // TODO
-    return NULL;
+    return {};
 }
 inline SocketAddressLocal::operator sockaddr*()
 {

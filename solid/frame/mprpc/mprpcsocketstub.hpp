@@ -15,9 +15,7 @@
 #include "solid/frame/aio/aioreactorcontext.hpp"
 #include "solid/frame/common.hpp"
 
-namespace solid {
-namespace frame {
-namespace mprpc {
+namespace solid::frame::mprpc {
 
 class ConnectionContext;
 
@@ -45,35 +43,35 @@ public:
     {
     }
 
-    virtual SocketDevice const& device() const = 0;
-    virtual SocketDevice&       device()       = 0;
+    [[nodiscard]] virtual SocketDevice const& device() const = 0;
+    virtual SocketDevice&                     device()       = 0;
 
     virtual bool postSendAll(
-        frame::aio::ReactorContext& _rctx, OnSendAllRawF _pf, const char* _pbuf, size_t _bufcp, EventBase& _revent)
+        frame::aio::ReactorContext& _rctx, OnSendAllRawF _pf, std::span<const std::byte>, EventBase& _revent)
         = 0;
 
     virtual bool postRecvSome(
-        frame::aio::ReactorContext& _rctx, OnRecvF _pf, char* _pbuf, size_t _bufcp)
+        frame::aio::ReactorContext& _rctx, OnRecvF _pf, std::span<std::byte>)
         = 0;
 
     virtual bool postRecvSome(
-        frame::aio::ReactorContext& _rctx, OnRecvSomeRawF _pf, char* _pbuf, size_t _bufcp, EventBase& _revent)
+        frame::aio::ReactorContext& _rctx, OnRecvSomeRawF _pf, std::span<std::byte>, EventBase& _revent)
         = 0;
 
-    virtual bool hasValidSocket() const = 0;
+    [[nodiscard]] virtual bool hasValidSocket() const = 0;
 
     virtual bool connect(
         frame::aio::ReactorContext& _rctx, OnConnectF _pf, const SocketAddressInet& _raddr)
         = 0;
 
     virtual bool recvSome(
-        frame::aio::ReactorContext& _rctx, OnRecvF _pf, char* _buf, size_t _bufcp, size_t& _sz)
+        frame::aio::ReactorContext& _rctx, OnRecvF _pf, std::span<std::byte>, size_t& _sz)
         = 0;
 
-    virtual bool hasPendingSend() const = 0;
+    [[nodiscard]] virtual bool hasPendingSend() const = 0;
 
     virtual bool sendAll(
-        frame::aio::ReactorContext& _rctx, OnSendF _pf, char const* _buf, size_t _bufcp)
+        frame::aio::ReactorContext& _rctx, OnSendF _pf, std::span<const std::byte>)
         = 0;
 
     virtual void prepareSocket(
@@ -95,6 +93,4 @@ typedef void (*SocketStubDeleteF)(SocketStub*);
 
 using SocketStubPtrT = std::unique_ptr<SocketStub, SocketStubDeleteF>;
 
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc

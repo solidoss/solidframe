@@ -15,9 +15,7 @@
 #include "solid/system/error.hpp"
 #include <deque>
 
-namespace solid {
-namespace frame {
-namespace mprpc {
+namespace solid::frame::mprpc {
 
 struct ReaderConfiguration;
 
@@ -43,10 +41,10 @@ struct MessageReaderReceiver {
     {
     }
 
-    inline ReaderConfiguration const& configuration() const noexcept { return rconfig_; }
-    inline Protocol const&            protocol() const noexcept { return rproto_; }
-    inline ConnectionContext&         context() const noexcept { return rconctx_; }
-    inline bool                       isRelayEnabled() const noexcept { return is_relay_enabled_; }
+    [[nodiscard]] ReaderConfiguration const& configuration() const noexcept { return rconfig_; }
+    [[nodiscard]] Protocol const&            protocol() const noexcept { return rproto_; }
+    [[nodiscard]] ConnectionContext&         context() const noexcept { return rconctx_; }
+    [[nodiscard]] bool                       isRelayEnabled() const noexcept { return is_relay_enabled_; }
 
     virtual ~MessageReaderReceiver();
 
@@ -205,6 +203,4 @@ private:
     Deserializer::PointerT createDeserializer(MessageReaderReceiver& _receiver);
 };
 
-} // namespace mprpc
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::mprpc

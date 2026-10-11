@@ -124,9 +124,9 @@ int main(int argc, char* argv[])
             frame::mprpc::openssl::setup_client(
                 cfg,
                 [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
-                    _rctx.addVerifyAuthority(loadFile("echo-ca-cert.pem"));
-                    _rctx.loadCertificate(loadFile("echo-client-cert.pem"));
-                    _rctx.loadPrivateKey(loadFile("echo-client-key.pem"));
+                    std::ignore = _rctx.addVerifyAuthority(loadFile("echo-ca-cert.pem"));
+                    std::ignore = _rctx.loadCertificate(loadFile("echo-client-cert.pem"));
+                    std::ignore = _rctx.loadPrivateKey(loadFile("echo-client-key.pem"));
                     return ErrorCodeT();
                 },
                 frame::mprpc::openssl::NameCheckSecureStart{"echo-server"});

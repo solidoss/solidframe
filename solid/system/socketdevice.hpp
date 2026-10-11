@@ -20,88 +20,122 @@ namespace solid {
 class SocketDevice : public Device {
 public:
 #ifdef SOLID_ON_WINDOWS
-    typedef SOCKET DescriptorT;
+    using DescriptorT = SOCKET;
 #else
-    typedef int DescriptorT;
+    using DescriptorT = int;
 #endif
 
-    //! Copy constructor
+    //! Move constructor
     SocketDevice(SocketDevice&& _sd) noexcept;
     //! Basic constructor
     SocketDevice();
     //! Destructor
     ~SocketDevice();
-    //! Assign operator
+    //! Move assign operator
     SocketDevice& operator=(SocketDevice&& _dev) noexcept;
+
+    SocketDevice(const SocketDevice&)            = delete;
+    SocketDevice& operator=(const SocketDevice&) = delete;
+
     //! Shutdown reading
-    void shutdownRead();
+    [[nodiscard]] std::expected<void, std::error_code> shutdownRead();
     //! Shutdown writing
-    void shutdownWrite();
+    [[nodiscard]] std::expected<void, std::error_code> shutdownWrite();
     //! Shutdown reading and writing
-    void shutdownReadWrite();
+    [[nodiscard]] std::expected<void, std::error_code> shutdownReadWrite();
     //! Create a socket based ResolveIterator
-    ErrorCodeT create(const ResolveIterator& _rri);
+    [[nodiscard]] std::expected<void, std::error_code> create(const ResolveIterator& _rri);
     //! Create a socket given its family, its type and its protocol type
-    ErrorCodeT create(
+    [[nodiscard]] std::expected<void, std::error_code> create(
         SocketInfo::Family      = SocketInfo::Inet4,
         SocketInfo::Type _type  = SocketInfo::Stream,
         int              _proto = 0);
     //! Connect the socket
-    ErrorCodeT connect(const SocketAddressStub& _rsas, bool& _can_wait);
-    ErrorCodeT connect(const SocketAddressStub& _rsas);
+    /*!
+        On failure, use can_wait_connect(error) to check whether the connection
+        is in progress (non-blocking socket) and can be waited for.
+    */
+    [[nodiscard]] std::expected<void, std::error_code> connect(const SocketAddressStub& _rsas);
     //! Bind the socket to a specific addr:port
-    ErrorCodeT bind(const SocketAddressStub& _rsa);
+    [[nodiscard]] std::expected<void, std::error_code> bind(const SocketAddressStub& _rsa);
     //! Prepares the socket for accepting
-    ErrorCodeT prepareAccept(const SocketAddressStub& _rsas, size_t _listencnt = 10);
+    [[nodiscard]] std::expected<void, std::error_code> prepareAccept(const SocketAddressStub& _rsas, size_t _listencnt = 10);
     //! Accept an incoming connection
-    ErrorCodeT accept(SocketDevice& _dev, bool& _can_retry);
-    ErrorCodeT accept(SocketDevice& _dev);
+    /*!
+        On failure, use can_retry_accept(error) to check whether the accept can be retried.
+    */
+    [[nodiscard]] std::expected<SocketDevice, std::error_code> accept();
     //! Make a connection blocking
     /*!
-        \param _msec if _msec > 0 will make socket blocking with the given amount of milliseconds
+        \param _msec will make socket blocking with the given amount of milliseconds as timeout
     */
-    ErrorCodeT makeBlocking(size_t _msec);
-    ErrorCodeT makeBlocking();
+    [[nodiscard]] std::expected<void, std::error_code> makeBlocking(size_t _msec);
+    [[nodiscard]] std::expected<void, std::error_code> makeBlocking();
     //! Make the socket nonblocking
-    ErrorCodeT makeNonBlocking();
+    [[nodiscard]] std::expected<void, std::error_code> makeNonBlocking();
     //! Check if its blocking
-    ErrorCodeT isBlocking(bool& _rrv) const;
-    ErrorCodeT enableNoDelay();
-    ErrorCodeT disableNoDelay();
+    [[nodiscard]] std::expected<bool, std::error_code> isBlocking() const;
 
-    ErrorCodeT enableNoSignal();
-    ErrorCodeT disableNoSignal();
+    [[nodiscard]] std::expected<void, std::error_code> enableNoDelay();
+    [[nodiscard]] std::expected<void, std::error_code> disableNoDelay();
+    [[nodiscard]] std::expected<bool, std::error_code> hasNoDelay() const;
 
-    ErrorCodeT enableLinger();
-    ErrorCodeT disableLinger();
+    [[nodiscard]] std::expected<void, std::error_code> enableNoSignal();
+    [[nodiscard]] std::expected<void, std::error_code> disableNoSignal();
 
-    ErrorCodeT hasNoDelay(bool& _rrv) const;
+    [[nodiscard]] std::expected<void, std::error_code> enableLinger();
+    [[nodiscard]] std::expected<void, std::error_code> disableLinger();
 
-    ErrorCodeT enableCork(); // TCP_CORK - only on linux, TCP_NOPUSH on FreeBSD
-    ErrorCodeT disableCork();
-    ErrorCodeT hasCork(bool& _rrv) const;
+    [[nodiscard]] std::expected<void, std::error_code> enableCork(); // TCP_CORK - only on linux, TCP_NOPUSH on FreeBSD
+    [[nodiscard]] std::expected<void, std::error_code> disableCork();
+    [[nodiscard]] std::expected<bool, std::error_code> hasCork() const;
 
-    ErrorCodeT enableLoopbackFastPath();
+    [[nodiscard]] std::expected<void, std::error_code> enableLoopbackFastPath();
 
-    // ErrorCodeT sendBufferSize(size_t _sz);
-    // ErrorCodeT recvBufferSize(size_t _sz);
-    ErrorCodeT sendBufferSize(int& _rrv);
-    ErrorCodeT recvBufferSize(int& _rrv);
+    //! Set the send buffer size
+    [[nodiscard]] std::expected<void, std::error_code> sendBufferSize(int _sz);
+    //! Set the receive buffer size
+    [[nodiscard]] std::expected<void, std::error_code> recvBufferSize(int _sz);
+    //! Get the send buffer size
+    [[nodiscard]] std::expected<int, std::error_code> sendBufferSize() const;
+    //! Get the receive buffer size
+    [[nodiscard]] std::expected<int, std::error_code> recvBufferSize() const;
 
-    ErrorCodeT sendBufferSize(int& _rrv) const;
-    ErrorCodeT recvBufferSize(int& _rrv) const;
-    //! Write data on socket
-    ssize_t send(const char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT& _rerr, unsigned _flags = 0);
-    //! Reads data from a socket
-    ssize_t recv(char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT& _rerr, unsigned _flags = 0);
-    //! Send a datagram to a socket
-    ssize_t send(const char* _pb, size_t _ul, const SocketAddressStub& _sap, bool& _rcan_retry, ErrorCodeT& _rerr);
-    //! Recv data from a socket
-    ssize_t recv(char* _pb, size_t _ul, SocketAddress& _rsa, bool& _rcan_retry, ErrorCodeT& _rerr);
+    //! Write data on socket - returns the number of bytes sent
+    /*!
+        On failure, use can_retry_io(error) to check whether the operation can be retried.
+    */
+    [[nodiscard]] std::expected<std::size_t, std::error_code> send(std::span<const std::byte> _buf, unsigned _flags = 0);
+    //! Reads data from a socket - returns the number of bytes received (0 on orderly shutdown)
+    /*!
+        On failure, use can_retry_io(error) to check whether the operation can be retried.
+    */
+    [[nodiscard]] std::expected<std::size_t, std::error_code> recv(std::span<std::byte> _buf, unsigned _flags = 0);
+    //! Send a datagram to a socket - returns the number of bytes sent
+    [[nodiscard]] std::expected<std::size_t, std::error_code> send(std::span<const std::byte> _buf, const SocketAddressStub& _sap);
+    //! Receive a datagram from a socket - returns the number of bytes received and fills _rsa with the sender address
+    [[nodiscard]] std::expected<std::size_t, std::error_code> recv(std::span<std::byte> _buf, SocketAddress& _rsa);
     //! Gets the remote address for a connected socket
-    ErrorCodeT remoteAddress(SocketAddress& _rsa) const;
+    [[nodiscard]] std::expected<SocketAddress, std::error_code> remoteAddress() const;
     //! Gets the local address for a socket
-    ErrorCodeT localAddress(SocketAddress& _rsa) const;
+    [[nodiscard]] std::expected<SocketAddress, std::error_code> localAddress() const;
+
+    void close();
+
+    //! The pending socket error (SO_ERROR) for the given descriptor
+    static std::error_code error(DescriptorT _des);
+    //! The pending socket error (SO_ERROR)
+    [[nodiscard]] std::error_code error() const;
+
+    //! Get the socket type
+    [[nodiscard]] std::expected<int, std::error_code> type() const;
+
+    //! Check if a failed connect is actually in progress and can be waited for
+    static bool can_wait_connect(const std::error_code& _err) noexcept;
+    //! Check if a failed accept may succeed on retry
+    static bool can_retry_accept(const std::error_code& _err) noexcept;
+    //! Check if a failed send/recv may succeed on retry (i.e. would block)
+    static bool can_retry_io(const std::error_code& _err) noexcept;
 #ifdef SOLID_ON_WINDOWS
     static const DescriptorT invalidDescriptor()
     {
@@ -113,20 +147,6 @@ public:
         return descriptor() != invalidDescriptor();
     }
 #endif
-    void close();
-
-    static ErrorCodeT error(const DescriptorT _des);
-
-    ErrorCodeT error() const;
-
-    //! Get the socket type
-    ErrorCodeT type(int& _rrv) const;
-    //! Return true if the socket is listening
-    // bool isListening()const;
-
-private:
-    SocketDevice(const SocketDevice& _dev);
-    SocketDevice& operator=(const SocketDevice& _dev);
 };
 
 struct LocalAddressPlot {

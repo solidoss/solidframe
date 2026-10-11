@@ -1,4 +1,6 @@
 #include "solid/frame/mprpc/mprpcsocketstub_openssl.hpp"
+#include <span>
+#include <tuple>
 
 #include "solid/frame/mprpc/mprpccompression_snappy.hpp"
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
@@ -326,8 +328,8 @@ int test_clientfrontback_upload(int argc, char* argv[])
     rv      = system("rm -rf server_storage");
     (void)rv;
 
-    Directory::create("client_storage");
-    Directory::create("server_storage");
+    std::ignore = Directory::create("client_storage");
+    std::ignore = Directory::create("server_storage");
 
     vector<string> file_vec;
     create_files(file_vec, "client_storage", count, start_size, increment_size);
@@ -373,9 +375,15 @@ int test_clientfrontback_upload(int argc, char* argv[])
                 frame::mprpc::openssl::setup_server(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
-                        _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-                        _rctx.loadCertificateFile("echo-server-cert.pem");
-                        _rctx.loadPrivateKeyFile("echo-server-key.pem");
+                        if (const auto rv = _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/); !rv) {
+                            return rv.error();
+                        }
+                        if (const auto rv = _rctx.loadCertificateFile("echo-server-cert.pem"); !rv) {
+                            return rv.error();
+                        }
+                        if (const auto rv = _rctx.loadPrivateKeyFile("echo-server-key.pem"); !rv) {
+                            return rv.error();
+                        }
                         return ErrorCodeT();
                     },
                     frame::mprpc::openssl::NameCheckSecureStart{"echo-client"});
@@ -415,9 +423,15 @@ int test_clientfrontback_upload(int argc, char* argv[])
                 frame::mprpc::openssl::setup_client(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
-                        _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-                        _rctx.loadCertificateFile("echo-client-cert.pem");
-                        _rctx.loadPrivateKeyFile("echo-client-key.pem");
+                        if (const auto rv = _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/); !rv) {
+                            return rv.error();
+                        }
+                        if (const auto rv = _rctx.loadCertificateFile("echo-client-cert.pem"); !rv) {
+                            return rv.error();
+                        }
+                        if (const auto rv = _rctx.loadPrivateKeyFile("echo-client-key.pem"); !rv) {
+                            return rv.error();
+                        }
                         return ErrorCodeT();
                     },
                     frame::mprpc::openssl::NameCheckSecureStart{"echo-server"});
@@ -451,9 +465,15 @@ int test_clientfrontback_upload(int argc, char* argv[])
                 frame::mprpc::openssl::setup_server(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
-                        _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-                        _rctx.loadCertificateFile("echo-server-cert.pem");
-                        _rctx.loadPrivateKeyFile("echo-server-key.pem");
+                        if (const auto rv = _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/); !rv) {
+                            return rv.error();
+                        }
+                        if (const auto rv = _rctx.loadCertificateFile("echo-server-cert.pem"); !rv) {
+                            return rv.error();
+                        }
+                        if (const auto rv = _rctx.loadPrivateKeyFile("echo-server-key.pem"); !rv) {
+                            return rv.error();
+                        }
                         return ErrorCodeT();
                     },
                     frame::mprpc::openssl::NameCheckSecureStart{"echo-client"});
@@ -494,9 +514,15 @@ int test_clientfrontback_upload(int argc, char* argv[])
                 frame::mprpc::openssl::setup_client(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
-                        _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-                        _rctx.loadCertificateFile("echo-client-cert.pem");
-                        _rctx.loadPrivateKeyFile("echo-client-key.pem");
+                        if (const auto rv = _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/); !rv) {
+                            return rv.error();
+                        }
+                        if (const auto rv = _rctx.loadCertificateFile("echo-client-cert.pem"); !rv) {
+                            return rv.error();
+                        }
+                        if (const auto rv = _rctx.loadPrivateKeyFile("echo-client-key.pem"); !rv) {
+                            return rv.error();
+                        }
                         return ErrorCodeT();
                     },
                     frame::mprpc::openssl::NameCheckSecureStart{"echo-server"});
@@ -849,7 +875,7 @@ void on_server_receive_request(
             _rsent_msg_ptr->send_response_ = true;
         }
     } else {
-        _rsent_msg_ptr->req_ptr_->ofs_.flush();
+        std::ignore     = _rsent_msg_ptr->req_ptr_->ofs_.flush();
         auto res_ptr    = frame::mprpc::make_message<Response>(*_rrecv_msg_ptr);
         res_ptr->error_ = 0;
         auto err        = _rctx.service().sendMessage(_rctx.recipientId(), std::move(res_ptr), {frame::mprpc::MessageFlagsE::Response});

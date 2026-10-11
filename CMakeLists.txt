@@ -438,7 +438,6 @@ install(
 )
 
 if(NOT ON_CROSS)
-    add_subdirectory (examples)
     add_subdirectory (tutorials)
 endif()
 

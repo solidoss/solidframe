@@ -3,7 +3,9 @@
 #include <future>
 #include <iostream>
 #include <mutex>
+#include <span>
 #include <thread>
+#include <tuple>
 
 #include "solid/frame/aio/aioactor.hpp"
 #include "solid/frame/aio/aioreactor.hpp"

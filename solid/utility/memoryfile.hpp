@@ -29,11 +29,38 @@ class MemoryFile {
 public:
     struct Allocator {
         virtual ~Allocator() {}
-        virtual uint     bufferSize() const            = 0;
-        virtual char*    allocate()                    = 0;
-        virtual void     release(char*)                = 0;
-        virtual uint64_t computeCapacity(uint64_t _cp) = 0;
+        [[nodiscard]] virtual uint bufferSize() const            = 0;
+        virtual char*              allocate()                    = 0;
+        virtual void               release(char*)                = 0;
+        virtual uint64_t           computeCapacity(uint64_t _cp) = 0;
     };
+
+private:
+    struct Buffer {
+        Buffer(const size_t _idx = 0, char* _data = nullptr)
+            : idx(_idx)
+            , data(_data)
+        {
+        }
+        size_t idx;
+        char*  data;
+    };
+
+    static int64_t compute_capacity(int64_t _cp, Allocator& _ral);
+
+    struct BuffCmp;
+    friend struct BuffCmp;
+    typedef std::deque<Buffer> BufferVectorT;
+
+    const int64_t  cp;
+    int64_t        sz;
+    int64_t        off;
+    mutable size_t crtbuffidx;
+    const size_t   bufsz;
+    Allocator&     ra;
+    BufferVectorT  bv;
+
+public:
     template <uint Sz = 4096>
     struct BasicAllocator : Allocator {
         static BasicAllocator<Sz>& instance()
@@ -41,24 +68,23 @@ public:
             static BasicAllocator<Sz> ba;
             return ba;
         }
-        /*virtual*/ uint  bufferSize() const { return Sz; }
-        /*virtual*/ char* allocate()
+        /*virtual*/ [[nodiscard]] uint bufferSize() const override { return Sz; }
+        /*virtual*/ char*              allocate() override
         {
             return new char[Sz];
         }
-        /*virtual*/ void release(char* _p)
+        /*virtual*/ void release(char* _p) override
         {
             delete[] _p;
         }
-        /*virtual*/ uint64_t computeCapacity(uint64_t _cp)
+        /*virtual*/ uint64_t computeCapacity(uint64_t _cp) override
         {
             return ((_cp / Sz) + 1) * Sz;
         }
     };
 
-public:
     //! Constructor with the file capacity and the allocator
-    MemoryFile(const int64_t _cp = 0, Allocator& _ral = BasicAllocator<>::instance());
+    MemoryFile(int64_t _cp = 0, Allocator& _ral = BasicAllocator<>::instance());
     //! Destructor
     ~MemoryFile();
     //! Read data from file from offset
@@ -78,35 +104,10 @@ public:
     int64_t capacity() const;
 
 private:
-    binary_search_result_t doFindBuffer(const size_t _idx) const;
-    binary_search_result_t doLocateBuffer(const size_t _idx) const;
-    char*                  doGetBuffer(const size_t _idx) const;
-    char*                  doCreateBuffer(const size_t _idx, bool& _created);
-
-private:
-    struct Buffer {
-        Buffer(const size_t _idx = 0, char* _data = nullptr)
-            : idx(_idx)
-            , data(_data)
-        {
-        }
-        size_t idx;
-        char*  data;
-    };
-
-    static int64_t compute_capacity(const int64_t _cp, Allocator& _ral);
-
-    struct BuffCmp;
-    friend struct BuffCmp;
-    typedef std::deque<Buffer> BufferVectorT;
-
-    const int64_t  cp;
-    int64_t        sz;
-    int64_t        off;
-    mutable size_t crtbuffidx;
-    const size_t   bufsz;
-    Allocator&     ra;
-    BufferVectorT  bv;
+    binary_search_result_t doFindBuffer(size_t _idx) const;
+    binary_search_result_t doLocateBuffer(size_t _idx) const;
+    char*                  doGetBuffer(size_t _idx) const;
+    char*                  doCreateBuffer(size_t _idx, bool& _created);
 };
 
 } // namespace solid

@@ -258,14 +258,14 @@ protected:
     void doResumeRead(frame::aio::ReactorContext& _rctx);
 
 private:
-    bool postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, EventBase& _revent);
+    bool postSendAll(frame::aio::ReactorContext& _rctx, std::span<const std::byte>, EventBase& _revent);
     template <class Ctx>
-    bool postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp);
-    bool postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp, EventBase& _revent);
+    bool postRecvSome(frame::aio::ReactorContext& _rctx, std::span<std::byte>);
+    bool postRecvSome(frame::aio::ReactorContext& _rctx, std::span<std::byte>, EventBase& _revent);
     template <class Ctx>
-    bool recvSome(frame::aio::ReactorContext& _rctx, char* _buf, size_t _bufcp, size_t& _sz);
+    bool recvSome(frame::aio::ReactorContext& _rctx, std::span<std::byte>, size_t& _sz);
     template <class Ctx>
-    bool sendAll(frame::aio::ReactorContext& _rctx, char const* _buf, size_t _bufcp);
+    bool sendAll(frame::aio::ReactorContext& _rctx, std::span<const std::byte>);
     void prepareSocket(frame::aio::ReactorContext& _rctx);
 
     const NanoTime& minTimeout() const;
@@ -282,7 +282,7 @@ private:
 
     static bool notify(Manager& _rm, const ActorIdT&, const RelayEngineNotification);
 
-    virtual void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _uevent) = 0;
+    void onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _uevent) override = 0;
 
     bool shouldSendKeepAlive() const;
     bool shouldPollPool() const;

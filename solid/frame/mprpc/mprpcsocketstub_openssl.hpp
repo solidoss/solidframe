@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include <span>
+
 // NOTE: on Windows, when compiling against BoringSSL
 // we need to include "openssl/ssl.hpp" before any
 // inclusion of Windows.h
@@ -80,18 +82,18 @@ private:
     {
     }
 
-    SocketDevice const& device() const override final
+    SocketDevice const& device() const final
     {
         return sock.device();
     }
 
-    SocketDevice& device() override final
+    SocketDevice& device() final
     {
         return sock.device();
     }
 
     bool postSendAll(
-        frame::aio::ReactorContext& _rctx, OnSendAllRawF _pf, const char* _pbuf, size_t _bufcp, EventBase& _revent) override final
+        frame::aio::ReactorContext& _rctx, OnSendAllRawF _pf, std::span<const std::byte> buf, EventBase& _revent) final
     {
         struct Closure {
             OnSendAllRawF pf;
@@ -110,17 +112,17 @@ private:
 
         } lambda(_pf, _revent);
 
-        return sock.postSendAll(_rctx, _pbuf, _bufcp, lambda);
+        return sock.postSendAll(_rctx, buf, lambda);
     }
 
     bool postRecvSome(
-        frame::aio::ReactorContext& _rctx, OnRecvF _pf, char* _pbuf, size_t _bufcp) override final
+        frame::aio::ReactorContext& _rctx, OnRecvF _pf, std::span<std::byte> buf) final
     {
-        return sock.postRecvSome(_rctx, _pbuf, _bufcp, _pf);
+        return sock.postRecvSome(_rctx, buf, _pf);
     }
 
     bool postRecvSome(
-        frame::aio::ReactorContext& _rctx, OnRecvSomeRawF _pf, char* _pbuf, size_t _bufcp, EventBase& _revent) override final
+        frame::aio::ReactorContext& _rctx, OnRecvSomeRawF _pf, std::span<std::byte> buf, EventBase& _revent) final
     {
         struct Closure {
             OnRecvSomeRawF pf;
@@ -139,44 +141,44 @@ private:
 
         } lambda(_pf, _revent);
 
-        return sock.postRecvSome(_rctx, _pbuf, _bufcp, lambda);
+        return sock.postRecvSome(_rctx, buf, lambda);
     }
 
-    bool hasValidSocket() const override final
+    bool hasValidSocket() const final
     {
         return static_cast<bool>(sock.device());
     }
 
     bool connect(
-        frame::aio::ReactorContext& _rctx, OnConnectF _pf, const SocketAddressInet& _raddr) override final
+        frame::aio::ReactorContext& _rctx, OnConnectF _pf, const SocketAddressInet& _raddr) final
     {
         return sock.connect(_rctx, _raddr, _pf);
     }
 
     bool recvSome(
-        frame::aio::ReactorContext& _rctx, OnRecvF _pf, char* _buf, size_t _bufcp, size_t& _sz) override final
+        frame::aio::ReactorContext& _rctx, OnRecvF _pf, std::span<std::byte> buf, size_t& _sz) final
     {
-        return sock.recvSome(_rctx, _buf, _bufcp, _pf, _sz);
+        return sock.recvSome(_rctx, buf, _pf, _sz);
     }
 
-    bool hasPendingSend() const override final
+    bool hasPendingSend() const final
     {
         return sock.hasPendingSend();
     }
 
     bool sendAll(
-        frame::aio::ReactorContext& _rctx, OnSendF _pf, char const* _buf, size_t _bufcp) override final
+        frame::aio::ReactorContext& _rctx, OnSendF _pf, std::span<const std::byte> buf) final
     {
-        return sock.sendAll(_rctx, _buf, _bufcp, _pf);
+        return sock.sendAll(_rctx, buf, _pf);
     }
 
     void prepareSocket(
-        frame::aio::ReactorContext& _rctx) override final
+        frame::aio::ReactorContext& _rctx) final
     {
     }
 
     bool secureAccept(
-        frame::aio::ReactorContext& _rctx, ConnectionContext& _rconctx, OnSecureAcceptF _pf, ErrorConditionT& _rerror) override final
+        frame::aio::ReactorContext& _rctx, ConnectionContext& _rconctx, OnSecureAcceptF _pf, ErrorConditionT& _rerror) final
     {
         Service&                   rservice = static_cast<Service&>(_rctx.service());
         const ServerConfiguration& rconfig  = *rservice.configuration().server.secure_any.cast<ServerConfiguration>();
@@ -197,7 +199,7 @@ private:
     }
 
     bool secureConnect(
-        frame::aio::ReactorContext& _rctx, ConnectionContext& _rconctx, OnSecureConnectF _pf, ErrorConditionT& _rerror) override final
+        frame::aio::ReactorContext& _rctx, ConnectionContext& _rconctx, OnSecureConnectF _pf, ErrorConditionT& _rerror) final
     {
         Service&                   rservice = static_cast<Service&>(_rctx.service());
         const ClientConfiguration& rconfig  = *rservice.configuration().client.secure_any.cast<ClientConfiguration>();

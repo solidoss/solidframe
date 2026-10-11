@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <functional>
 #include <limits>
+#include <span>
 #include <thread>
 #include <type_traits>
 
@@ -392,6 +393,11 @@ public:
         return capacity() - size();
     }
 
+    [[nodiscard]] std::span<std::byte> mspan() const
+    {
+        return std::as_writable_bytes(std::span{mdata(), msize()});
+    }
+
     void append(const std::size_t _size)
     {
         solid_check(_size <= msize());
@@ -464,6 +470,11 @@ public:
     [[nodiscard]] size_t csize() const
     {
         return size() - consume_offset_;
+    }
+
+    [[nodiscard]] std::span<const std::byte> cspan() const
+    {
+        return std::as_bytes(std::span{cdata(), csize()});
     }
 
     void consume(size_t const _size)

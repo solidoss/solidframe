@@ -1,7 +1,9 @@
 #include <condition_variable>
 #include <iostream>
 #include <mutex>
+#include <span>
 #include <thread>
+#include <tuple>
 
 #include "solid/frame/mprpc/mprpcsocketstub_openssl.hpp"
 
@@ -359,9 +361,15 @@ int test_clientserver_pause_read(int argc, char* argv[])
                 frame::mprpc::openssl::setup_server(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
-                        _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-                        _rctx.loadCertificateFile("echo-server-cert.pem");
-                        _rctx.loadPrivateKeyFile("echo-server-key.pem");
+                        if (const auto rv = _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/); !rv) {
+                            return rv.error();
+                        }
+                        if (const auto rv = _rctx.loadCertificateFile("echo-server-cert.pem"); !rv) {
+                            return rv.error();
+                        }
+                        if (const auto rv = _rctx.loadPrivateKeyFile("echo-server-key.pem"); !rv) {
+                            return rv.error();
+                        }
                         return ErrorCodeT();
                     },
                     frame::mprpc::openssl::NameCheckSecureStart{"echo-client"});
@@ -405,9 +413,15 @@ int test_clientserver_pause_read(int argc, char* argv[])
                 frame::mprpc::openssl::setup_client(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
-                        _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-                        _rctx.loadCertificateFile("echo-client-cert.pem");
-                        _rctx.loadPrivateKeyFile("echo-client-key.pem");
+                        if (const auto rv = _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/); !rv) {
+                            return rv.error();
+                        }
+                        if (const auto rv = _rctx.loadCertificateFile("echo-client-cert.pem"); !rv) {
+                            return rv.error();
+                        }
+                        if (const auto rv = _rctx.loadPrivateKeyFile("echo-client-key.pem"); !rv) {
+                            return rv.error();
+                        }
                         return ErrorCodeT();
                     },
                     frame::mprpc::openssl::NameCheckSecureStart{"echo-server"});

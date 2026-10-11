@@ -1,4 +1,6 @@
 #include "solid/frame/mprpc/mprpcsocketstub_openssl.hpp"
+#include <span>
+#include <tuple>
 
 #include "solid/frame/mprpc/mprpccompression_snappy.hpp"
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
@@ -104,8 +106,7 @@ void server_complete_message(
 }
 
 class Connection : public frame::aio::Actor {
-    enum { BufferCapacity = 1024 * 2 };
-    char buf[BufferCapacity];
+    std::array<std::byte, 1024 * 2> buf;
     using StreamSocketT = frame::aio::Stream<frame::aio::Socket>;
     StreamSocketT sock;
 
@@ -132,7 +133,8 @@ private:
             solid_dbg(generic_logger, Info, "async_resolve = " << "127.0.0.1"
                                                                << " " << server_port);
             async_resolver().requestResolve(
-                [&rm = _rctx.service().manager(), actor_id = _rctx.service().manager().id(*this), this](ResolveData& _rrd, ErrorCodeT const& /*_rerr*/) {
+                [&rm = _rctx.service().manager(), actor_id = _rctx.service().manager().id(*this), this](std::expected<ResolveData, std::error_code>&& _rrd_exp) {
+                    ResolveData _rrd = std::move(_rrd_exp).value_or(ResolveData{});
                     solid_dbg(generic_logger, Info, this << " send resolv_message");
                     rm.notify(actor_id, make_event(GenericEventE::Message, std::move(_rrd)));
                 },
@@ -158,7 +160,7 @@ private:
 
         if (!_rctx.error()) {
             solid_dbg(generic_logger, Error, &rthis << " SUCCESS");
-            rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);
+            rthis.sock.postRecvSome(_rctx, rthis.buf, Connection::onRecv);
         } else {
             solid_dbg(generic_logger, Error, &rthis << " postStop " << _rctx.systemError().message());
             solid_check(false);
@@ -246,9 +248,15 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
                 frame::mprpc::openssl::setup_server(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
-                        _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-                        _rctx.loadCertificateFile("echo-server-cert.pem");
-                        _rctx.loadPrivateKeyFile("echo-server-key.pem");
+                        if (const auto rv = _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/); !rv) {
+                            return rv.error();
+                        }
+                        if (const auto rv = _rctx.loadCertificateFile("echo-server-cert.pem"); !rv) {
+                            return rv.error();
+                        }
+                        if (const auto rv = _rctx.loadPrivateKeyFile("echo-server-key.pem"); !rv) {
+                            return rv.error();
+                        }
                         return ErrorCodeT();
                     },
                     frame::mprpc::openssl::NameCheckSecureStart{"echo-client"});

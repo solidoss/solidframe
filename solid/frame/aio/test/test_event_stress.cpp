@@ -1,6 +1,8 @@
 #include "solid/frame/manager.hpp"
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
+#include <span>
+#include <tuple>
 
 #include "solid/frame/actor.hpp"
 #include "solid/frame/reactor.hpp"

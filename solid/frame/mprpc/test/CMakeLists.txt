@@ -153,6 +153,15 @@ if(OPENSSL_FOUND)
     add_test(NAME TestClientServerUpload                COMMAND  test_mprpc_clientserver test_clientserver_upload)
     add_test(NAME TestClientServerUploadSingle          COMMAND  test_mprpc_clientserver test_clientserver_upload_single)
     add_test(NAME TestClientServerDownload              COMMAND  test_mprpc_clientserver test_clientserver_download)
+
+    # These tests share the on-disk client_storage/server_storage directories in the
+    # working directory, so they must not run concurrently with one another.
+    set_tests_properties(
+        TestClientServerUpload
+        TestClientServerUploadSingle
+        TestClientServerDownload
+        PROPERTIES RESOURCE_LOCK mprpc_disk_storage
+    )
     add_test(NAME TestClientServerTimeoutSecureS        COMMAND  test_mprpc_clientserver test_clientserver_timeout_secure 10 s)
     add_test(NAME TestClientServerTimeoutSecureP        COMMAND  test_mprpc_clientserver test_clientserver_timeout_secure 10 p)
     add_test(NAME TestClientServerTimeoutSecureA        COMMAND  test_mprpc_clientserver test_clientserver_timeout_secure 10 a)
@@ -495,6 +504,14 @@ if(OPENSSL_FOUND)
 
     add_test(NAME TestClientFrontBackUpload        COMMAND  test_mprpc_clientfrontback test_clientfrontback_upload)
     add_test(NAME TestClientFrontBackDownload      COMMAND  test_mprpc_clientfrontback test_clientfrontback_download)
+
+    # Share the on-disk client_storage/server_storage directories with the
+    # clientserver upload/download tests above - serialize them all.
+    set_tests_properties(
+        TestClientFrontBackUpload
+        TestClientFrontBackDownload
+        PROPERTIES RESOURCE_LOCK mprpc_disk_storage
+    )
 
     set_tests_properties(
         TestClientFrontBackUpload

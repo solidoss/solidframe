@@ -1,4 +1,6 @@
 #include "solid/frame/mprpc/mprpcsocketstub_openssl.hpp"
+#include <span>
+#include <tuple>
 
 #include "solid/frame/manager.hpp"
 #include "solid/frame/scheduler.hpp"

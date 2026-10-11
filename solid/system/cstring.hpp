@@ -11,6 +11,7 @@
 #pragma once
 
 #include "solid/system/common.hpp"
+#include <string_view>
 
 namespace solid {
 
@@ -19,14 +20,15 @@ const char* char_to_cstring(unsigned _c);
 //! Some cross platform cstring utility functions
 struct cstring {
     //! Equivalent to strcmp
-    static int cmp(const char* _s1, const char* _s2);
+    static int cmp(std::string_view _s1, std::string_view _s2) noexcept;
     //! Equivalent to strncmp
-    static int ncmp(const char* _s1, const char* _s2, size_t _len);
+    static int ncmp(std::string_view _s1, std::string_view _s2, size_t _len) noexcept;
     //! Equivalent to strcasecmp
-    static int casecmp(const char* _s1, const char* _s2);
+    static int casecmp(std::string_view _s1, std::string_view _s2) noexcept;
     //! Equivalent to strncasecmp
-    static int    ncasecmp(const char* _s1, const char* _s2, size_t _len);
-    static size_t nlen(const char* s, size_t maxlen);
+    static int ncasecmp(std::string_view _s1, std::string_view _s2, size_t _len) noexcept;
+    //! Equivalent to strnlen - the length of a possibly not null terminated character buffer
+    static size_t nlen(const char* _s, size_t _maxlen) noexcept;
     template <class T, T C1>
     static T* find(T* _pc)
     {

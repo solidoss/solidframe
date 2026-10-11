@@ -16,9 +16,7 @@
 #include <ostream>
 #include <streambuf>
 
-namespace solid {
-namespace frame {
-namespace file {
+namespace solid::frame::file {
 
 class FileBuf : public std::streambuf {
 public:
@@ -38,8 +36,8 @@ protected:
     /*virtual*/ int_type        pbackfail(int_type _c = traits_type::eof());
     /*virtual*/ int_type        overflow(int_type __c = traits_type::eof());
     /*virtual*/ pos_type        seekoff(
-               off_type _off, std::ios_base::seekdir _way,
-               std::ios_base::openmode _mode = std::ios_base::in | std::ios_base::out);
+        off_type _off, std::ios_base::seekdir _way,
+        std::ios_base::openmode _mode = std::ios_base::in | std::ios_base::out);
     /*virtual*/ pos_type seekpos(
         pos_type                _pos,
         std::ios_base::openmode _mode = std::ios_base::in | std::ios_base::out);
@@ -327,6 +325,4 @@ private:
     FileBuf buf;
 };
 
-} // namespace file
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::file

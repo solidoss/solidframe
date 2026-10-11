@@ -9,6 +9,8 @@
 //
 
 #include "solid/frame/file/filestore.hpp"
+#include <span>
+#include <tuple>
 
 #include "solid/system/directory.hpp"
 #include "solid/system/log.hpp"
@@ -27,9 +29,7 @@
 
 using namespace std;
 
-namespace solid {
-namespace frame {
-namespace file {
+namespace solid::frame::file {
 
 const LoggerT logger("solid::frame::file");
 
@@ -670,7 +670,7 @@ bool prepare_temp_file_path(std::string& _rpath, const char* _prefix, const uint
         std::snprintf(filebuf, bufsz, "/%4.4x.tmp", static_cast<unsigned int>(fileid));
     }
     _rpath.append(fldrbuf);
-    Directory::create_all(_rpath.c_str());
+    std::ignore = Directory::create_all(_rpath);
     _rpath.append(filebuf);
     return true;
 }
@@ -684,15 +684,15 @@ bool prepare_temp_file_path(std::string& _rpath, const char* _prefix, const uint
 
     prepare_temp_file_path(path, _path, tempid);
 
-    bool rv = fd.open(path.c_str(), FileDevice::CreateE | FileDevice::TruncateE | FileDevice::ReadWriteE);
+    const auto rv = fd.open(path, FileDevice::CreateE | FileDevice::TruncateE | FileDevice::ReadWriteE);
     if (!rv) {
-        _rerr = last_system_error();
+        _rerr = rv.error();
     } else {
         if (_remove) {
-            Directory::eraseFile(path.c_str());
+            std::ignore = Directory::erase_file(path);
         }
     }
-    return rv;
+    return rv.has_value();
 }
 
 /*virtual*/ void TempFile::close(const char* _path, bool _remove)
@@ -701,7 +701,7 @@ bool prepare_temp_file_path(std::string& _rpath, const char* _prefix, const uint
     if (_remove) {
         std::string path;
         prepare_temp_file_path(path, _path, tempid);
-        Directory::eraseFile(path.c_str());
+        std::ignore = Directory::erase_file(path);
     }
 }
 /*virtual*/ ssize_t TempFile::read(char* _pb, size_t _bl, int64_t _off)
@@ -714,7 +714,8 @@ bool prepare_temp_file_path(std::string& _rpath, const char* _prefix, const uint
             return -1;
         }
     }
-    return fd.read(_pb, _bl, _off);
+    const auto rv = fd.read(std::as_writable_bytes(std::span{_pb, _bl}), _off);
+    return rv ? static_cast<ssize_t>(*rv) : -1;
 }
 /*virtual*/ ssize_t TempFile::write(const char* _pb, size_t _bl, int64_t _off)
 {
@@ -727,20 +728,21 @@ bool prepare_temp_file_path(std::string& _rpath, const char* _prefix, const uint
             return -1;
         }
     }
-    return fd.write(_pb, _bl, _off);
+    const auto rv = fd.write(std::as_bytes(std::span{_pb, _bl}), _off);
+    return rv ? static_cast<ssize_t>(*rv) : -1;
 }
 /*virtual*/ int64_t TempFile::size() const
 {
-    return fd.size();
+    return fd.size().value_or(-1);
 }
 
 /*virtual*/ bool TempFile::truncate(int64_t _len)
 {
-    return fd.truncate(_len);
+    return fd.truncate(_len).has_value();
 }
 /*virtual*/ void TempFile::flush()
 {
-    fd.flush();
+    std::ignore = fd.flush();
 }
 
 //--------------------------------------------------------------------------
@@ -791,6 +793,4 @@ TempMemory::TempMemory(
     return mf.truncate(_len) == 0;
 }
 
-} // namespace file
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::file

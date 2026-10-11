@@ -1,6 +1,8 @@
 #include "solid/frame/manager.hpp"
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
+#include <span>
+#include <tuple>
 
 #include "solid/frame/aio/aioresolver.hpp"
 
@@ -69,8 +71,9 @@ int main(int argc, char* argv[])
 
     solid::log_start(std::cerr, {"solid::frame::mprpc:VIEW", "\\*:VIEW" /*, ".*:VIEW"*/});
 
-    if (!parseArguments(p, argc, argv))
+    if (!parseArguments(p, argc, argv)) {
         return 0;
+    }
 
     {
 
@@ -102,7 +105,7 @@ int main(int argc, char* argv[])
         }
 
         frame::mprpc::RecipientId recipient_id;
-        rpcservice.createConnectionPool(
+        std::ignore = rpcservice.createConnectionPool(
             {p.server_addr},
             recipient_id,
             [](frame::mprpc::ConnectionContext& _rctx, EventBase&& _revt, const ErrorConditionT& _rerr) {
@@ -116,7 +119,7 @@ int main(int argc, char* argv[])
             if (line == "q" || line == "Q" || line == "quit") {
                 break;
             }
-            rpcservice.sendMessage(recipient_id, frame::mprpc::make_message<rpc_echo::Message>(std::move(line)), {frame::mprpc::MessageFlagsE::AwaitResponse});
+            std::ignore = rpcservice.sendMessage(recipient_id, frame::mprpc::make_message<rpc_echo::Message>(std::move(line)), {frame::mprpc::MessageFlagsE::AwaitResponse});
         }
     }
     return 0;
