@@ -445,8 +445,8 @@ public:
     ~MutableIntrusivePtr()
     {
         if constexpr (is_poolable_v<T>) {
-            if (BaseT::ptr_) {
-                if (BaseT::ptr_->ppool_ and impl::intrusive_ptr_release(*BaseT::ptr_)) {
+            if (BaseT::ptr_ and BaseT::ptr_->ppool_) {
+                if (impl::intrusive_ptr_release(*BaseT::ptr_)) {
                     impl::intrusive_ptr_acquire(*BaseT::ptr_);
                     BaseT::doPushToPool(BaseT::ptr_->ppool_);
                     return;
@@ -568,8 +568,8 @@ public:
     ~ConstIntrusivePtr()
     {
         if constexpr (is_poolable_v<T>) {
-            if (BaseT::ptr_) {
-                if (BaseT::ptr_->ppool_ and impl::intrusive_ptr_release(*BaseT::ptr_)) {
+            if (BaseT::ptr_ and BaseT::ptr_->ppool_) {
+                if (impl::intrusive_ptr_release(*BaseT::ptr_)) {
                     impl::intrusive_ptr_acquire(*BaseT::ptr_);
                     BaseT::doPushToPool(BaseT::ptr_->ppool_);
                     return;
