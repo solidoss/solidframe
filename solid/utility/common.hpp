@@ -148,8 +148,8 @@ inline constexpr uint32_t pack(const uint16_t _v1, const uint16_t _v2)
 
 inline constexpr void unpack(uint16_t& _v1, uint16_t& _v2, const uint32_t _v)
 {
-    _v1 = _v & 0xffffUL;
-    _v2 = (_v >> 16) & 0xffffUL;
+    _v1 = static_cast<uint16_t>(_v & 0xffffUL);
+    _v2 = static_cast<uint16_t>((_v >> 16) & 0xffffUL);
 }
 
 extern const uint8_t reverted_chars[];

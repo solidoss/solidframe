@@ -191,7 +191,7 @@ template <typename T>
 auto lin_value(T _from, T _to, const size_t _index, const size_t _n)
 {
     assert(_n > 1 && _index < _n);
-    const auto amount = static_cast<T>(_index) / (_n - 1);
+    const auto amount = static_cast<T>(_index) / static_cast<T>(_n - 1);
     const auto v      = std::lerp(_from, _to, amount);
     return v;
 }
@@ -491,7 +491,7 @@ int test_clientserver_topic(int argc, char* argv[])
             }
             solid_log(logger, Warning, "========== DONE sending messages ========== " << (microseconds_since_epoch() - startms) << "us");
         } else {
-            const double   stop    = test_duration.count();
+            const double   stop    = static_cast<double>(test_duration.count());
             const uint64_t startms = microseconds_since_epoch();
 
             const auto start = chrono::high_resolution_clock::now();

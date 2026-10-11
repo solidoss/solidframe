@@ -13,9 +13,7 @@
 
 using namespace std;
 
-namespace solid {
-namespace frame {
-namespace file {
+namespace solid::frame::file {
 
 extern const LoggerT logger;
 
@@ -153,15 +151,15 @@ ssize_t FileBuf::writeAll(const char* _s, size_t _n)
             }
             resetPut();
             if (_c != traits_type::eof()) {
-                *pptr() = _c;
+                *pptr() = traits_type::to_char_type(_c);
                 pbump(1);
             }
-            return traits_type::to_int_type(_c);
+            return traits_type::not_eof(_c);
         }
 
         char* endp = pptr();
         if (_c != traits_type::eof()) {
-            *endp = _c;
+            *endp = traits_type::to_char_type(_c);
             ++endp;
         }
 
@@ -174,7 +172,7 @@ ssize_t FileBuf::writeAll(const char* _s, size_t _n)
             setp(nullptr, nullptr);
         }
     } else {
-        const char    c  = _c;
+        const char    c  = traits_type::to_char_type(_c);
         const ssize_t rv = dev->write(&c, 1, off);
         if (rv == 1) {
             return traits_type::to_int_type(c);
@@ -370,6 +368,4 @@ bool FileBuf::flushPut()
     return 0;
 }
 
-} // namespace file
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame::file

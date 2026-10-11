@@ -206,7 +206,7 @@ private:
 std::streambuf::int_type DeviceBuffer::overflow(int_type c)
 {
     if (c != EOF) {
-        *bpos = c;
+        *bpos = traits_type::to_char_type(c);
         ++bpos;
         if (static_cast<size_t>(bpos - bbeg) > buffer_flush && !flush()) {
             return EOF;

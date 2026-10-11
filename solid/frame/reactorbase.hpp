@@ -51,9 +51,9 @@ using AtomicCounterT      = std::atomic<uint8_t>;
 using AtomicCounterValueT = AtomicCounterT::value_type;
 
 template <class IndexT>
-inline constexpr static auto computeCounter(const IndexT _index, const size_t _capacity) noexcept
+constexpr static auto computeCounter(const IndexT _index, const size_t _capacity) noexcept
 {
-    return (_index / _capacity) & std::numeric_limits<AtomicCounterValueT>::max();
+    return static_cast<AtomicCounterValueT>((_index / _capacity) & std::numeric_limits<AtomicCounterValueT>::max());
 }
 
 class WakeStubBase {

@@ -347,20 +347,20 @@ public:
     void init()
     {
         set_v1(1111);
-        set_secret_key({1, 2, 3, 4, 5, 6, 7, 8});
+        set_secret_key(std::array<std::uint8_t, kSecretKeySize>{1, 2, 3, 4, 5, 6, 7, 8});
         set_description("some description"sv);
         set_max_depth(4);
         for (size_t i{0}; i < max_depth(); ++i) {
             buy()[i].set_is_encrypted(false);
-            buy()[i].set_encryption_key_id(i);
+            buy()[i].set_encryption_key_id(static_cast<ElementId>(i));
             buy()[i].set_encryption_offset(i);
-            buy()[i].set_order_count(i);
+            buy()[i].set_order_count(static_cast<OrderCount>(i));
             buy()[i].set_quantity(i * 100);
 
             sell()[i].set_is_encrypted(true);
-            sell()[i].set_encryption_key_id(4 - i);
+            sell()[i].set_encryption_key_id(static_cast<ElementId>(4 - i));
             sell()[i].set_encryption_offset(4 - i);
-            sell()[i].set_order_count(4 - i);
+            sell()[i].set_order_count(static_cast<OrderCount>(4 - i));
             sell()[i].set_quantity(i * 200);
         }
     }
@@ -607,8 +607,8 @@ int test_json(int /*argc*/, char* /*argv*/[])
             total_from_is += from_is;
         }
 
-        cout << "total: to_json=" << total_to / 1000.0 << "ms, from_json=" << total_from / 1000.0
-             << "ms, from_json(istream)=" << total_from_is / 1000.0 << "ms\n";
+        cout << "total: to_json=" << static_cast<double>(total_to) / 1000.0 << "ms, from_json=" << static_cast<double>(total_from) / 1000.0
+             << "ms, from_json(istream)=" << static_cast<double>(total_from_is) / 1000.0 << "ms\n";
         cout << flush;
     }
     return 0;

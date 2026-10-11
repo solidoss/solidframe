@@ -100,7 +100,7 @@ ErrorConditionT start(
             return err;
         }
         err = mprpcclient_ptr->sendMessage(
-            {"localhost"}, frame::mprpc::make_message<gamma_protocol::ThirdMessage>(30000UL, make_string(30000)),
+            {"localhost"}, frame::mprpc::make_message<gamma_protocol::ThirdMessage>(static_cast<uint16_t>(30000), make_string(30000)),
             {frame::mprpc::MessageFlagsE::AwaitResponse});
         if (err) {
             return err;

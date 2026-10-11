@@ -131,7 +131,7 @@ public:
                 object([&_f, &_rc](auto&& _rv) { _f.with_if(_rv, _rc); }, _rc);
             } else {
                 // Scalar/container content arrives as a single descriptor.
-                _f.with_if([this](auto, auto&& _e, Ctx& _rctx) { value(_e, _rctx); }, _rc);
+                _f.with_if([&](auto, auto&& _e, Ctx& _rctx) { value(_e, _rctx); }, _rc);
             }
         } else if constexpr (FieldT::type_id == TypeIdE::Variant) {
             out += '[';
@@ -151,7 +151,7 @@ public:
                         } else if constexpr (reflection::detail::to_type_id<AltT>() == TypeIdE::Reflectable) {
                             object([&_f, &_rc](auto&& _rv) { _f.with_if(_rv, _rc); }, _rc);
                         } else {
-                            _f.with_if([this](auto, auto&& _e, Ctx& _rctx) { value(_e, _rctx); }, _rc);
+                            _f.with_if([&](auto, auto&& _e, Ctx& _rctx) { value(_e, _rctx); }, _rc);
                         }
                         return true;
                     };

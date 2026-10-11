@@ -472,7 +472,7 @@ private:
     template <class IndexT>
     constexpr static auto computeCounter(const IndexT _index, const size_t _capacity) noexcept
     {
-        return (_index / _capacity) & std::numeric_limits<AtomicCounterValueT>::max();
+        return static_cast<AtomicCounterValueT>((_index / _capacity) & std::numeric_limits<AtomicCounterValueT>::max());
     }
 
     struct OneStub {

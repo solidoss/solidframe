@@ -121,7 +121,7 @@ auto make(std::string_view _name, Val& _ref, Args&&... _args)
             // The if constexpr guard keeps the assignment well-formed when _ref is a
             // const reference (the const serialization path instantiates make, and
             // thus this closure, even though it never calls set).
-            auto set_sv = [&_ref](std::string_view _sv) -> bool {
+            auto set_sv = [&](std::string_view _sv) -> bool {
                 if constexpr (!std::is_const_v<std::remove_reference_t<decltype(_ref)>>) {
                     if (auto val = from_string(std::type_identity<ValT>{}, _sv)) {
                         _ref = *val;

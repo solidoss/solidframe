@@ -240,7 +240,7 @@ void Test::init()
     sa_sz = 100;
 
     for (size_t i = 0; i < 500; ++i) {
-        u8a[i] = i % std::numeric_limits<uint8_t>::max();
+        u8a[i] = static_cast<uint8_t>(i % std::numeric_limits<uint8_t>::max());
     }
     u8a_sz = 500;
 

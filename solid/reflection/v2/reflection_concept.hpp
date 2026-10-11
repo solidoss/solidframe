@@ -201,9 +201,9 @@ concept KeyValueContainerC = requires(T& t) {
 
 template <typename T>
 concept ContainerC = requires(T& t) {
+    // no const_iterator requirement: libc++ std::span does not provide it
     typename T::value_type;
     typename T::iterator;
-    typename T::const_iterator;
     t.begin();
     t.end();
     { t.size() } -> std::convertible_to<std::size_t>;

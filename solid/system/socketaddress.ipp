@@ -468,9 +468,9 @@ inline int SocketAddress::port() const
 inline bool SocketAddress::port(int _port)
 {
     if (isInet4()) {
-        d.inaddr4.sin_port = ntohs(_port);
+        d.inaddr4.sin_port = ntohs(static_cast<uint16_t>(_port));
     } else if (isInet6()) {
-        d.inaddr6.sin6_port = ntohs(_port);
+        d.inaddr6.sin6_port = ntohs(static_cast<uint16_t>(_port));
     } else
         return false;
     return true;
@@ -740,9 +740,9 @@ inline int SocketAddressInet::port() const
 inline bool SocketAddressInet::port(int _port)
 {
     if (isInet4()) {
-        d.inaddr4.sin_port = ntohs(_port);
+        d.inaddr4.sin_port = ntohs(static_cast<uint16_t>(_port));
     } else if (isInet6()) {
-        d.inaddr6.sin6_port = ntohs(_port);
+        d.inaddr6.sin6_port = ntohs(static_cast<uint16_t>(_port));
     } else
         return false;
     return true;
@@ -802,12 +802,12 @@ inline SocketAddressInet4::SocketAddressInet4(std::string_view _addr, int _port)
 inline SocketAddressInet4::SocketAddressInet4(uint32_t _addr, int _port)
 {
     clear();
-    fromUInt(_addr, _port);
+    fromUInt(_addr, static_cast<uint16_t>(_port));
 }
 inline SocketAddressInet4::SocketAddressInet4(const DataArrayT& _addr, int _port)
 {
     clear();
-    fromBinary(_addr, _port);
+    fromBinary(_addr, static_cast<uint16_t>(_port));
 }
 
 inline SocketAddressInet4& SocketAddressInet4::operator=(const SocketAddressStub& _rsas)
@@ -916,7 +916,7 @@ inline int SocketAddressInet4::port() const
 }
 inline void SocketAddressInet4::port(int _port)
 {
-    d.inaddr4.sin_port = ntohs(_port);
+    d.inaddr4.sin_port = ntohs(static_cast<uint16_t>(_port));
 }
 inline void SocketAddressInet4::clear()
 {
@@ -966,7 +966,7 @@ inline SocketAddressInet6::SocketAddressInet6(std::string_view _addr, int _port)
 inline SocketAddressInet6::SocketAddressInet6(const DataArrayT& _addr, int _port)
 {
     clear();
-    fromBinary(_addr, _port);
+    fromBinary(_addr, static_cast<uint16_t>(_port));
 }
 
 inline SocketAddressInet6& SocketAddressInet6::operator=(const SocketAddressStub& _rsas)
@@ -1082,7 +1082,7 @@ inline int SocketAddressInet6::port() const
 }
 inline void SocketAddressInet6::port(int _port)
 {
-    d.inaddr6.sin6_port = ntohs(_port);
+    d.inaddr6.sin6_port = ntohs(static_cast<uint16_t>(_port));
 }
 inline void SocketAddressInet6::clear()
 {

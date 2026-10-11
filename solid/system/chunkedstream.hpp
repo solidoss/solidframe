@@ -157,7 +157,7 @@ private:
             if (pcrt_ == pend_) {
                 allocate();
             }
-            *pcrt_ = c;
+            *pcrt_ = traits_type::to_char_type(c);
             ++pcrt_;
             ++size_;
         }

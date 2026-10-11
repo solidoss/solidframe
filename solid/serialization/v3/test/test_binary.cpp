@@ -131,7 +131,7 @@ class Test {
             m[to_string(i)]  = a;
             a1[i]            = a;
             a2[i]            = a;
-            a3[i]            = i;
+            a3[i]            = static_cast<uint8_t>(i);
             um[to_string(i)] = std::move(a);
         }
         a2_sz = 10;
