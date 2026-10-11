@@ -164,8 +164,7 @@ struct Message : frame::mprpc::Message {
                 if (back_on_sender_count == writecount) {
                     lock_guard<mutex> lock(mtx);
                     solid_dbg(generic_logger, Info, "Close connection: " << _rthis.idx << " " << msgid_vec[_rthis.idx].first);
-                    // we're on the peerb,
-                    // we now cancel the message on peer a
+                    // we are back on the peera
                     pmprpcpeera->forceCloseConnectionPool(
                         msgid_vec[_rthis.idx].first,
                         [](frame::mprpc::ConnectionContext& _rctx) {
@@ -249,7 +248,13 @@ void peera_complete_message(
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
 
-    solid_check(_rsent_msg_ptr, "Error: there should be a request message");
+    if (!_rsent_msg_ptr) {
+        // A response that was already in flight when forceCloseConnectionPool
+        // canceled its request: mprpc delivers it without the request message.
+        solid_check(_rrecv_msg_ptr, "Error: there should be a request message");
+        solid_log(generic_logger, Warning, "late response for canceled request: " << _rrecv_msg_ptr->idx);
+        return;
+    }
     if (_rerror) {
         solid_check(!_rrecv_msg_ptr, "Error: there should be no response");
         ++canceled_count;
@@ -593,7 +598,7 @@ int test_relay_close_response(int argc, char* argv[])
             msgid_vec.emplace_back();
             auto& back_msg_id = msgid_vec.back();
             mtx.unlock();
-            mprpcpeera.sendMessage(
+            std::ignore = mprpcpeera.sendMessage(
                 {"localhost", 0}, frame::mprpc::make_message<Message>(crtwriteidx++),
                 back_msg_id.first,
                 back_msg_id.second,

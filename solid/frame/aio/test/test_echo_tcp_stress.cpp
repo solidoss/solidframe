@@ -624,10 +624,17 @@ int test_echo_tcp_stress(int argc, char* argv[])
         return 0;
     };
 
-    auto fut = async(launch::async, lambda);
+    // Use a joined thread instead of std::async: the async future becomes ready
+    // before the worker thread exits, so OpenSSL's thread-local state (freed on
+    // thread exit) may still be alive when LeakSanitizer checks at process exit.
+    packaged_task<int()> task{lambda};
+    auto                 fut = task.get_future();
+    thread               thr{std::move(task)};
     if (fut.wait_for(chrono::seconds(wait_seconds + 10)) != future_status::ready) {
+        thr.detach();
         solid_throw(" Test is taking too long - waited " << wait_seconds + 10 << " secs");
     }
+    thr.join();
 
     return fut.get();
 }

@@ -149,6 +149,19 @@ if(OPENSSL_FOUND)
     add_test(NAME TestClientServerDelayedS              COMMAND  test_mprpc_clientserver test_clientserver_delayed 1 s)
     add_test(NAME TestClientServerIdempontent           COMMAND  test_mprpc_clientserver test_clientserver_idempotent)
     add_test(NAME TestClientServerIdempontentS          COMMAND  test_mprpc_clientserver test_clientserver_idempotent 1 s)
+
+    # These tests listen on a hardcoded port (the client must know it before the
+    # server starts), so the plain and secure variants must not run concurrently.
+    set_tests_properties(
+        TestClientServerDelayed
+        TestClientServerDelayedS
+        PROPERTIES RESOURCE_LOCK mprpc_port_8888
+    )
+    set_tests_properties(
+        TestClientServerIdempontent
+        TestClientServerIdempontentS
+        PROPERTIES RESOURCE_LOCK mprpc_port_39999
+    )
     add_test(NAME TestClientServerSplit1                COMMAND  test_mprpc_clientserver test_clientserver_split 1)
     add_test(NAME TestClientServerUpload                COMMAND  test_mprpc_clientserver test_clientserver_upload)
     add_test(NAME TestClientServerUploadSingle          COMMAND  test_mprpc_clientserver test_clientserver_upload_single)
