@@ -52,3 +52,27 @@ CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_USE_PTHREAD_SPINLOCK)
 file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/stringstream_view.cpp" source_code)
 
 CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_USE_STRINGSTREAM_VIEW)
+
+# check for C++26 static reflection (P2996) - some compilers (e.g. GCC 16) need -freflection
+if(CMAKE_CXX_STANDARD GREATER_EQUAL 26)
+    file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/reflection.cpp" source_code)
+
+    CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_COMPILE_REFLECTION)
+
+    if(SOLID_COMPILE_REFLECTION)
+        set(SOLID_USE_REFLECTION TRUE)
+    else()
+        CHECK_CXX_COMPILER_FLAG("-freflection" SOLID_HAS_FREFLECTION_FLAG)
+        if(SOLID_HAS_FREFLECTION_FLAG)
+            set(CMAKE_REQUIRED_FLAGS "-freflection")
+            CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_COMPILE_REFLECTION_WITH_FLAG)
+            unset(CMAKE_REQUIRED_FLAGS)
+            if(SOLID_COMPILE_REFLECTION_WITH_FLAG)
+                set(SOLID_USE_REFLECTION TRUE)
+                add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-freflection>)
+            endif()
+        endif()
+    endif()
+endif()
+
+message("C++26 Reflection: ${SOLID_USE_REFLECTION}")

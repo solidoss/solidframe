@@ -12,28 +12,109 @@
 #include "solid/reflection/v2/reflection_concept.hpp"
 #include "solid/reflection/v2/reflection_metadata.hpp"
 
+#include "solid/system/configuration_impl.hpp"
+
 #include <tuple>
 #include <utility>
 
+#ifdef SOLID_USE_REFLECTION
+#include <concepts>
+#include <meta>
+#include <type_traits>
+#endif
+
 namespace solid::reflection::v2 {
 
-template <typename F, typename S, typename R, typename Ctx>
-void reflect(std::pair<F, S>& _rv, R&& _rr, Ctx& _rc, std::string_view = {})
+#ifdef SOLID_USE_REFLECTION
+// C++26 annotations for natively reflected members - the declarative
+// counterpart of the descriptor setters used inside solidReflectV2:
+//
+//     struct Item {
+//         [[=annotate::max_size(64)]] std::string name_;
+//         [[=annotate::min(1), =annotate::max(100)]] uint32_t count_;
+//     };
+//
+// native_reflect forwards them to the member's descriptor (with_max_size /
+// set_max_size, with_min / set_min, with_max / set_max). Annotations of other
+// types are ignored, so members may carry user-defined ones as well.
+namespace annotate {
+
+struct max_size_t {
+    size_t value;
+};
+
+template <std::integral T>
+struct min_t {
+    T value;
+};
+
+template <std::integral T>
+struct max_t {
+    T value;
+};
+
+consteval max_size_t max_size(size_t const _value)
+{
+    return {_value};
+}
+
+template <std::integral T>
+consteval min_t<T> min(T const _value)
+{
+    return {_value};
+}
+
+template <std::integral T>
+consteval max_t<T> max(T const _value)
+{
+    return {_value};
+}
+
+} // namespace annotate
+#endif
+
+template <typename F,
+    typename S,
+    typename R,
+    typename Ctx>
+void
+reflect(
+    std::pair<F,
+        S>& _rv,
+    R&&     _rr,
+    Ctx&    _rc,
+    std::string_view = {})
 {
     _rr(id<1>, make("first"sv, _rv.first), _rc);
     _rr(id<2>, make("second"sv, _rv.second), _rc);
 }
 
-template <typename F, typename S, typename R, typename Ctx>
-void reflect(std::pair<F, S> const& _rv, R&& _rr, Ctx& _rc, std::string_view = {})
+template <typename F,
+    typename S,
+    typename R,
+    typename Ctx>
+void
+reflect(
+    std::pair<F,
+        S> const& _rv,
+    R&&           _rr,
+    Ctx&          _rc,
+    std::string_view = {})
 {
     _rr(id<1>, make("first"sv, _rv.first), _rc);
     _rr(id<2>, make("second"sv, _rv.second), _rc);
 }
 
 namespace detail {
-template <class R, class Ctx, class Tup, size_t Index = 0>
-void reflect(Tup const& _rt, R& _rr, Ctx& _rctx)
+template <class R,
+    class Ctx,
+    class Tup,
+    size_t Index = 0>
+void
+reflect(
+    Tup const& _rt,
+    R&         _rr,
+    Ctx&       _rctx)
 {
     if constexpr (Index < std::tuple_size_v<Tup>) {
         _rr(id<Index>, make(""sv, std::get<Index>(_rt)), _rctx);
@@ -41,8 +122,15 @@ void reflect(Tup const& _rt, R& _rr, Ctx& _rctx)
     }
 }
 
-template <class R, class Ctx, class Tup, size_t Index = 0>
-void reflect(Tup& _rt, R& _rr, Ctx& _rctx)
+template <class R,
+    class Ctx,
+    class Tup,
+    size_t Index = 0>
+void
+reflect(
+    Tup& _rt,
+    R&   _rr,
+    Ctx& _rctx)
 {
     if constexpr (Index < std::tuple_size_v<Tup>) {
         _rr(id<Index>, make(""sv, std::get<Index>(_rt)), _rctx);
@@ -52,40 +140,172 @@ void reflect(Tup& _rt, R& _rr, Ctx& _rctx)
 
 } // namespace detail
 
-template <class R, class Ctx, class... Args>
-void reflect(std::tuple<Args...>& _rt, R&& _rr, Ctx& _rctx, std::string_view = {})
+template <class R,
+    class Ctx,
+    class... Args>
+void
+reflect(
+    std::tuple<Args...>& _rt,
+    R&&                  _rr,
+    Ctx&                 _rctx,
+    std::string_view = {})
 {
     detail::reflect(_rt, _rr, _rctx);
 }
 
-template <class R, class Ctx, class... Args>
-void reflect(std::tuple<Args...> const& _rt, R&& _rr, Ctx& _rctx, std::string_view = {})
+template <class R,
+    class Ctx,
+    class... Args>
+void
+reflect(
+    std::tuple<Args...> const& _rt,
+    R&&                        _rr,
+    Ctx&                       _rctx,
+    std::string_view = {})
 {
     detail::reflect(_rt, _rr, _rctx);
 }
 
-template <detail::IntrusiveReflectableC T, typename R, typename Ctx>
-void reflect(T& _rv, R&& _rr, Ctx& _rc, std::string_view = {})
+namespace detail {
+#ifdef SOLID_USE_REFLECTION
+// A solidReflectV2 written as `this auto&` is inherited, so a derived class
+// would satisfy IntrusiveReflectableC through its base and lose its own
+// members. With native reflection available, only a class declaring
+// solidReflectV2 itself is walked intrusively; a derived one goes through
+// native_reflect, which reflects its bases (the base's solidReflectV2
+// included) and then its own members.
+consteval bool declares_solid_reflect_v2(std::meta::info _type)
+{
+    for (auto member : std::meta::members_of(_type, std::meta::access_context::unchecked())) {
+        if (std::meta::has_identifier(member) && std::meta::identifier_of(member) == "solidReflectV2") {
+            return true;
+        }
+    }
+    return false;
+}
+
+template <typename T>
+concept SelfReflectableC = IntrusiveReflectableC<T> && declares_solid_reflect_v2(^^std::remove_const_t<T>);
+#else
+template <typename T>
+concept SelfReflectableC = IntrusiveReflectableC<T>;
+#endif
+} // namespace detail
+
+template <detail::SelfReflectableC T,
+    typename R,
+    typename Ctx>
+void
+reflect(
+    T&   _rv,
+    R&&  _rr,
+    Ctx& _rc,
+    std::string_view = {})
 {
     _rv.solidReflectV2(std::forward<R>(_rr), _rc);
 }
 
-template <detail::IntrusiveReflectableC T, typename R, typename Ctx>
-void reflect(T const& _rv, R&& _rr, Ctx& _rc, std::string_view = {})
+template <detail::SelfReflectableC T,
+    typename R,
+    typename Ctx>
+void
+reflect(
+    T const& _rv,
+    R&&      _rr,
+    Ctx&     _rc,
+    std::string_view = {})
 {
     _rv.solidReflectV2(std::forward<R>(_rr), _rc);
 }
 
-template <typename T, typename R, typename Ctx>
-void reflect(T& _rv, R&& _rr, Ctx& _rc, std::string_view _name = {})
+#ifdef SOLID_USE_REFLECTION
+namespace detail {
+// Class types without solidReflectV2 are walked through C++26 static
+// reflection. Each accessible base class is reflected first through
+// reflect() - so a base keeps its own way of being walked (solidReflectV2,
+// or native reflection again) - followed by one descriptor per accessible
+// non-static data member of the class itself, named after it.
+template <typename T>
+concept NativeReflectableC = std::is_class_v<T> && !SelfReflectableC<T> && to_type_id<T>() == TypeIdE::Reflectable;
+
+// defined after all the reflect overloads, which it calls for the bases
+template <typename T,
+    typename R,
+    typename Ctx>
+void
+native_reflect(
+    T&   _rv,
+    R&   _rr,
+    Ctx& _rc);
+} // namespace detail
+
+template <detail::NativeReflectableC T,
+    typename R,
+    typename Ctx>
+void
+reflect(
+    T&   _rv,
+    R&&  _rr,
+    Ctx& _rc,
+    std::string_view = {})
 {
-    _rr(id<0>, make(_name, _rv), _rc);
+    detail::native_reflect(_rv, _rr, _rc);
 }
 
-template <typename T, typename R, typename Ctx>
-void reflect(T const& _rv, R&& _rr, Ctx& _rc, std::string_view _name = {})
+template <detail::NativeReflectableC T,
+    typename R,
+    typename Ctx>
+void
+reflect(
+    T const& _rv,
+    R&&      _rr,
+    Ctx&     _rc,
+    std::string_view = {})
 {
-    _rr(id<0>, make(_name, _rv), _rc);
+    detail::native_reflect(_rv, _rr, _rc);
+}
+#endif
+
+// A struct-like type reaching the generic overloads has no way to be walked:
+// wrapping it in a Reflectable descriptor would only lead back here
+// (Reflectable::reflect -> reflect -> make -> Reflectable ...), so it is
+// rejected at compile time unless it is empty.
+template <typename T,
+    typename R,
+    typename Ctx>
+void
+reflect(
+    T&               _rv,
+    R&&              _rr,
+    Ctx&             _rc,
+    std::string_view _name = {})
+{
+    if constexpr (detail::to_type_id<T>() != TypeIdE::Reflectable) {
+        _rr(id<0>, make(_name, _rv), _rc);
+    } else {
+        // empty types (e.g. std::monostate) simply have no fields
+        static_assert(std::is_empty_v<T>,
+            "type is not reflectable: provide solidReflectV2 (or build with C++26 reflection support)");
+    }
+}
+
+template <typename T,
+    typename R,
+    typename Ctx>
+void
+reflect(
+    T const&         _rv,
+    R&&              _rr,
+    Ctx&             _rc,
+    std::string_view _name = {})
+{
+    if constexpr (detail::to_type_id<T>() != TypeIdE::Reflectable) {
+        _rr(id<0>, make(_name, _rv), _rc);
+    } else {
+        // empty types (e.g. std::monostate) simply have no fields
+        static_assert(std::is_empty_v<T>,
+            "type is not reflectable: provide solidReflectV2 (or build with C++26 reflection support)");
+    }
 }
 
 template <typename T>
@@ -94,8 +314,13 @@ concept ReflectableC = requires(T& t, std::nullopt_t& ctx) {
     solid::reflection::v2::reflect(static_cast<T const&>(t), [](auto, auto&&, auto&) {}, ctx, {});
 };
 
-template <typename Val, typename... Args>
-auto make(std::string_view _name, Val& _ref, Args&&... _args)
+template <typename Val,
+    typename... Args>
+auto
+make(
+    std::string_view _name,
+    Val&             _ref,
+    Args&&... _args)
 {
     using ValT = std::decay_t<Val>;
     static constexpr auto type_id{detail::to_type_id<ValT>()};
@@ -161,7 +386,10 @@ auto make(std::string_view _name, Val& _ref, Args&&... _args)
 
 template <typename Val>
     requires detail::CallableC<std::decay_t<Val>>
-auto make(std::string_view _name, Val&& _ref)
+auto
+make(
+    std::string_view _name,
+    Val&&            _ref)
 {
     return Callable<Val>{_name, std::forward<Val>(_ref)};
 }
@@ -169,8 +397,15 @@ auto make(std::string_view _name, Val&& _ref)
 // Function-based counterpart of make: the reflected value is only reachable
 // through the accessor closures, no reference is stored. The descriptor kind
 // is deduced from the getter's return type.
-template <typename GetF, typename SetF, typename... ArgsF>
-auto makef(std::string_view _name, GetF&& _get, SetF&& _set, ArgsF&&... _args)
+template <typename GetF,
+    typename SetF,
+    typename... ArgsF>
+auto
+makef(
+    std::string_view _name,
+    GetF&&           _get,
+    SetF&&           _set,
+    ArgsF&&... _args)
 {
     using RetT = std::invoke_result_t<GetF>;
     using ValT = std::decay_t<RetT>;
@@ -223,8 +458,16 @@ auto makef(std::string_view _name, GetF&& _get, SetF&& _set, ArgsF&&... _args)
 }
 
 template <detail::AnyContainerC ValT>
-template <typename T, typename V, typename C, typename... Args>
-void Container<ValT>::emplace_back_with(this T& rthis, V&& _rv, C& _rc, Args&&... args)
+template <typename T,
+    typename V,
+    typename C,
+    typename... Args>
+void
+Container<ValT>::emplace_back_with(
+    this T& rthis,
+    V&&     _rv,
+    C&      _rc,
+    Args&&... args)
     requires detail::ContainerC<ValT>
 {
     rthis.ref.emplace_back(std::forward<Args>(args)...);
@@ -235,8 +478,14 @@ void Container<ValT>::emplace_back_with(this T& rthis, V&& _rv, C& _rc, Args&&..
 // descriptor with an empty name), so element boundaries stay visible to the
 // visitor and the walked elements are never exposed directly.
 template <detail::AnyContainerC ValT>
-template <typename T, typename V, typename C>
-void Container<ValT>::for_each(this T& rthis, V&& _rv, C& _rc)
+template <typename T,
+    typename V,
+    typename C>
+void
+Container<ValT>::for_each(
+    this T& rthis,
+    V&&     _rv,
+    C&      _rc)
 {
     for (auto& re : rthis.ref) {
         std::invoke(_rv, solid::reflection::v2::id<0>, solid::reflection::v2::make(""sv, re), _rc);
@@ -244,8 +493,14 @@ void Container<ValT>::for_each(this T& rthis, V&& _rv, C& _rc)
 }
 
 template <detail::StdArrayC ValT>
-template <typename T, typename V, typename C>
-void Container<ValT>::for_each(this T& rthis, V&& _rv, C& _rc)
+template <typename T,
+    typename V,
+    typename C>
+void
+Container<ValT>::for_each(
+    this T& rthis,
+    V&&     _rv,
+    C&      _rc)
 {
     for (auto& re : rthis.ref) {
         std::invoke(_rv, solid::reflection::v2::id<0>, solid::reflection::v2::make(""sv, re), _rc);
@@ -253,8 +508,16 @@ void Container<ValT>::for_each(this T& rthis, V&& _rv, C& _rc)
 }
 
 template <detail::StdArrayC ValT>
-template <typename T, typename V, typename C, typename... Args>
-void Container<ValT>::emplace_back_with(this T& rthis, V&& _rv, C& _rc, Args&&... args)
+template <typename T,
+    typename V,
+    typename C,
+    typename... Args>
+void
+Container<ValT>::emplace_back_with(
+    this T& rthis,
+    V&&     _rv,
+    C&      _rc,
+    Args&&... args)
 {
     auto& item = rthis.ref.at(rthis.offset++);
     item       = {std::forward<Args>(args)...};
@@ -264,8 +527,14 @@ void Container<ValT>::emplace_back_with(this T& rthis, V&& _rv, C& _rc, Args&&..
 // Bits are visited through a Boolean descriptor over a local copy; a mutation
 // made by the visitor is written back on the non-const path.
 template <detail::BitsetC ValT>
-template <typename T, typename V, typename C>
-void Container<ValT>::for_each(this T& rthis, V&& _rv, C& _rc)
+template <typename T,
+    typename V,
+    typename C>
+void
+Container<ValT>::for_each(
+    this T& rthis,
+    V&&     _rv,
+    C&      _rc)
 {
     for (size_t i = 0; i < rthis.ref.size(); ++i) {
         bool val = rthis.ref[i];
@@ -277,8 +546,14 @@ void Container<ValT>::for_each(this T& rthis, V&& _rv, C& _rc)
 }
 
 template <detail::BitVectorC ValT>
-template <typename T, typename V, typename C>
-void Container<ValT>::for_each(this T& rthis, V&& _rv, C& _rc)
+template <typename T,
+    typename V,
+    typename C>
+void
+Container<ValT>::for_each(
+    this T& rthis,
+    V&&     _rv,
+    C&      _rc)
 {
     for (size_t i = 0; i < rthis.ref.size(); ++i) {
         bool val = rthis.ref[i];
@@ -290,8 +565,14 @@ void Container<ValT>::for_each(this T& rthis, V&& _rv, C& _rc)
 }
 
 template <typename ValT>
-template <typename T, typename V, typename C>
-bool Pointer<ValT>::with_if(this T& rthis, V&& _rv, C& _rc)
+template <typename T,
+    typename V,
+    typename C>
+bool
+Pointer<ValT>::with_if(
+    this T& rthis,
+    V&&     _rv,
+    C&      _rc)
 {
     if (rthis.has_value()) {
         solid::reflection::v2::reflect(*rthis.ref, std::forward<V>(_rv), _rc);
@@ -301,8 +582,14 @@ bool Pointer<ValT>::with_if(this T& rthis, V&& _rv, C& _rc)
 }
 
 template <typename ValT>
-template <typename T, typename V, typename C>
-bool Optional<ValT>::with_if(this T& rthis, V&& _rv, C& _rc)
+template <typename T,
+    typename V,
+    typename C>
+bool
+Optional<ValT>::with_if(
+    this T& rthis,
+    V&&     _rv,
+    C&      _rc)
 {
     if (rthis.has_value()) {
         solid::reflection::v2::reflect(*rthis.ref, std::forward<V>(_rv), _rc);
@@ -312,16 +599,29 @@ bool Optional<ValT>::with_if(this T& rthis, V&& _rv, C& _rc)
 }
 
 template <typename ValT>
-template <typename T, typename V, typename C>
-void Reflectable<ValT>::reflect(this T& rthis, V&& _rv, C& _rc)
+template <typename T,
+    typename V,
+    typename C>
+void
+Reflectable<ValT>::reflect(
+    this T& rthis,
+    V&&     _rv,
+    C&      _rc)
 {
     solid::reflection::v2::reflect(rthis.ref, std::forward<V>(_rv), _rc, rthis.name);
 }
 
 // Invokes _rr(descriptor, ctx) for the field whose id matches Id; ids of
 // different kinds (integral vs enumerator) compare through their size_t value.
-template <detail::FieldIdC auto Id, typename T, typename R, typename Ctx>
-void reflect_at(T& rt, R&& _rr, Ctx& _rc)
+template <detail::FieldIdC auto Id,
+    typename T,
+    typename R,
+    typename Ctx>
+void
+reflect_at(
+    T&   rt,
+    R&&  _rr,
+    Ctx& _rc)
 {
     auto ref = [&_rr](auto _id, auto&& _field, Ctx& _rc) {
         if constexpr (static_cast<size_t>(_id.value) == static_cast<size_t>(Id)) {
@@ -332,24 +632,48 @@ void reflect_at(T& rt, R&& _rr, Ctx& _rc)
 }
 
 template <typename ValT>
-template <typename This, typename T, typename V, typename C, typename... Args>
-void Variant<ValT>::emplace_with(this This& rthis, V&& _rv, C& _rc, Args&&... args)
+template <typename This,
+    typename T,
+    typename V,
+    typename C,
+    typename... Args>
+void
+Variant<ValT>::emplace_with(
+    this This& rthis,
+    V&&        _rv,
+    C&         _rc,
+    Args&&... args)
 {
     auto& rval{rthis.ref.template emplace<T>(std::forward<Args>(args)...)};
     solid::reflection::v2::reflect(rval, std::forward<V>(_rv), _rc);
 }
 
 template <typename ValT>
-template <typename This, size_t I, typename V, typename C, typename... Args>
-void Variant<ValT>::emplace_with(this This& rthis, V&& _rv, C& _rc, Args&&... args)
+template <typename This,
+    size_t I,
+    typename V,
+    typename C,
+    typename... Args>
+void
+Variant<ValT>::emplace_with(
+    this This& rthis,
+    V&&        _rv,
+    C&         _rc,
+    Args&&... args)
 {
     auto& rval{rthis.ref.template emplace<I>(std::forward<Args>(args)...)};
     solid::reflection::v2::reflect(rval, std::forward<V>(_rv), _rc);
 }
 
 template <typename ValT>
-template <typename This, typename V, typename C>
-bool Variant<ValT>::with_if(this This& rthis, V&& _rv, C& _rc)
+template <typename This,
+    typename V,
+    typename C>
+bool
+Variant<ValT>::with_if(
+    this This& rthis,
+    V&&        _rv,
+    C&         _rc)
 {
     if (rthis.has_value()) {
         std::visit([&_rv, &_rc](auto& rval) {
@@ -360,6 +684,94 @@ bool Variant<ValT>::with_if(this This& rthis, V&& _rv, C& _rc)
     }
     return false;
 }
+
+#ifdef SOLID_USE_REFLECTION
+namespace detail {
+template <typename T>
+constexpr bool is_annotate_min_v = false;
+template <typename T>
+constexpr bool is_annotate_min_v<annotate::min_t<T>> = true;
+
+template <typename T>
+constexpr bool is_annotate_max_v = false;
+template <typename T>
+constexpr bool is_annotate_max_v<annotate::max_t<T>> = true;
+
+// Applies one annotation value to a member's descriptor, through the
+// descriptor's own setters only.
+template <auto Ann, typename Field>
+void apply_annotation(Field& _rfield)
+{
+    using AnnT = decltype(Ann);
+    if constexpr (std::is_same_v<AnnT, annotate::max_size_t>) {
+        if constexpr (requires { _rfield.with_max_size(Ann.value); }) {
+            _rfield.with_max_size(Ann.value);
+        } else if constexpr (requires { _rfield.set_max_size(Ann.value); }) {
+            _rfield.set_max_size(Ann.value);
+        } else {
+            static_assert(false, "annotate::max_size is not supported on this member kind");
+        }
+    } else if constexpr (is_annotate_min_v<AnnT> || is_annotate_max_v<AnnT>) {
+        using ValueT = typename Field::value_type;
+        static_assert(std::is_integral_v<ValueT>, "annotate::min/max need an integral member");
+        static_assert(std::in_range<ValueT>(Ann.value), "annotate::min/max value is out of the member's range");
+        constexpr auto value = static_cast<ValueT>(Ann.value);
+        if constexpr (is_annotate_min_v<AnnT>) {
+            if constexpr (requires { _rfield.with_min(value); }) {
+                _rfield.with_min(value);
+            } else {
+                _rfield.set_min(value);
+            }
+        } else {
+            if constexpr (requires { _rfield.with_max(value); }) {
+                _rfield.with_max(value);
+            } else {
+                _rfield.set_max(value);
+            }
+        }
+    }
+}
+
+template <std::meta::info Member,
+    size_t Id,
+    typename T,
+    typename R,
+    typename Ctx>
+void native_reflect_member(T& _rv, R& _rr, Ctx& _rc)
+{
+    auto field = make(std::meta::identifier_of(Member), _rv.[:Member:]);
+    template for (constexpr auto annotation : std::define_static_array(std::meta::annotations_of(Member))) {
+        using AnnT = std::remove_cvref_t<typename[:std::meta::type_of(annotation):]>;
+        apply_annotation<std::meta::extract<AnnT>(annotation)>(field);
+    }
+    _rr(id<Id>, field, _rc);
+}
+} // namespace detail
+
+template <typename T,
+    typename R,
+    typename Ctx>
+void
+detail::native_reflect(
+    T&   _rv,
+    R&   _rr,
+    Ctx& _rc)
+{
+    using ValueT                    = std::remove_const_t<T>;
+    static constexpr auto ctx       = std::meta::access_context::current();
+    static constexpr auto bases     = std::define_static_array(std::meta::bases_of(^^ValueT, ctx));
+    static constexpr auto members   = std::define_static_array(std::meta::nonstatic_data_members_of(^^ValueT, ctx));
+
+    template for (constexpr auto base : bases) {
+        using BaseT = typename[:std::meta::type_of(base):];
+        solid::reflection::v2::reflect(static_cast<std::conditional_t<std::is_const_v<T>, BaseT const, BaseT>&>(_rv), _rr, _rc);
+    }
+
+    [&]<size_t... I>(std::index_sequence<I...>) {
+        (detail::native_reflect_member<members[I], I + 1>(_rv, _rr, _rc), ...);
+    }(std::make_index_sequence<members.size()>{});
+}
+#endif
 
 } // namespace solid::reflection::v2
 

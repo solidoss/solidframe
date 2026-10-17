@@ -92,65 +92,84 @@ const EventCategory<ConnectionEvents> connection_event_category{
 
 } // namespace
 
-void ResolveMessage::popAddress()
+void
+ResolveMessage::popAddress()
 {
     solid_assert_log(addrvec.size(), logger);
     addrvec.pop_back();
 }
 
 //-----------------------------------------------------------------------------
-inline Service& Connection::service(frame::aio::ReactorContext& _rctx) const
+inline Service&
+Connection::service(
+    frame::aio::ReactorContext& _rctx) const
 {
     return static_cast<Service&>(_rctx.service());
 }
 //-----------------------------------------------------------------------------
-inline ActorIdT Connection::uid(frame::aio::ReactorContext& _rctx) const
+inline ActorIdT
+Connection::uid(
+    frame::aio::ReactorContext& _rctx) const
 {
     return service(_rctx).id(*this);
 }
 //-----------------------------------------------------------------------------
-inline const Configuration& Connection::configuration(frame::aio::ReactorContext& _rctx) const
+inline const Configuration&
+Connection::configuration(
+    frame::aio::ReactorContext& _rctx) const
 {
     return service(_rctx).configuration();
 }
 //-----------------------------------------------------------------------------
 
-/*static*/ EventT Connection::eventResolve()
+/*static*/ EventT
+Connection::eventResolve()
 {
     return make_event(connection_event_category, ConnectionEvents::Resolve);
 }
 //-----------------------------------------------------------------------------
-/*static*/ EventT Connection::eventNewMessage()
+/*static*/ EventT
+Connection::eventNewMessage()
 {
     return make_event(connection_event_category, ConnectionEvents::NewPoolMessage);
 }
 //-----------------------------------------------------------------------------
-/*static*/ EventT Connection::eventNewQueueMessage()
+/*static*/ EventT
+Connection::eventNewQueueMessage()
 {
     return make_event(connection_event_category, ConnectionEvents::NewPoolQueueMessage);
 }
 //-----------------------------------------------------------------------------
-/*static*/ EventT Connection::eventNewMessage(const MessageId& _rmsgid)
+/*static*/ EventT
+Connection::eventNewMessage(
+    const MessageId& _rmsgid)
 {
     return make_event(connection_event_category, ConnectionEvents::NewConnMessage, _rmsgid);
 }
 //-----------------------------------------------------------------------------
-/*static*/ EventT Connection::eventCancelConnMessage(const MessageId& _rmsgid)
+/*static*/ EventT
+Connection::eventCancelConnMessage(
+    const MessageId& _rmsgid)
 {
     return make_event(connection_event_category, ConnectionEvents::CancelConnMessage, _rmsgid);
 }
 //-----------------------------------------------------------------------------
-/*static*/ EventT Connection::eventCancelPoolMessage(const MessageId& _rmsgid)
+/*static*/ EventT
+Connection::eventCancelPoolMessage(
+    const MessageId& _rmsgid)
 {
     return make_event(connection_event_category, ConnectionEvents::CancelPoolMessage, _rmsgid);
 }
 //-----------------------------------------------------------------------------
-/*static*/ EventT Connection::eventClosePoolMessage(const MessageId& _rmsgid)
+/*static*/ EventT
+Connection::eventClosePoolMessage(
+    const MessageId& _rmsgid)
 {
     return make_event(connection_event_category, ConnectionEvents::ClosePoolMessage, _rmsgid);
 }
 //-----------------------------------------------------------------------------
-/*static*/ EventT Connection::eventStopping()
+/*static*/ EventT
+Connection::eventStopping()
 {
     return make_event(connection_event_category, ConnectionEvents::Stopping);
 }
@@ -167,7 +186,10 @@ struct EnterActive {
     ConnectionEnterActiveCompleteFunctionT complete_fnc;
     const size_t                           send_buffer_capacity;
 };
-/*static*/ EventT Connection::eventEnterActive(ConnectionEnterActiveCompleteFunctionT&& _ucomplete_fnc, const size_t _send_buffer_capacity)
+/*static*/ EventT
+Connection::eventEnterActive(
+    ConnectionEnterActiveCompleteFunctionT&& _ucomplete_fnc,
+    const size_t                             _send_buffer_capacity)
 {
     return make_event(connection_event_category, ConnectionEvents::EnterActive, EnterActive(std::move(_ucomplete_fnc), _send_buffer_capacity));
 }
@@ -181,7 +203,9 @@ struct EnterPassive {
 
     ConnectionEnterPassiveCompleteFunctionT complete_fnc;
 };
-/*static*/ EventT Connection::eventEnterPassive(ConnectionEnterPassiveCompleteFunctionT&& _ucomplete_fnc)
+/*static*/ EventT
+Connection::eventEnterPassive(
+    ConnectionEnterPassiveCompleteFunctionT&& _ucomplete_fnc)
 {
     return make_event(connection_event_category, ConnectionEvents::EnterPassive, EnterPassive(std::move(_ucomplete_fnc)));
 }
@@ -195,12 +219,16 @@ struct StartSecure {
 
     ConnectionSecureHandhakeCompleteFunctionT complete_fnc;
 };
-/*static*/ EventT Connection::eventStartSecure(ConnectionSecureHandhakeCompleteFunctionT&& _ucomplete_fnc)
+/*static*/ EventT
+Connection::eventStartSecure(
+    ConnectionSecureHandhakeCompleteFunctionT&& _ucomplete_fnc)
 {
     return make_event(connection_event_category, ConnectionEvents::StartSecure, StartSecure(std::move(_ucomplete_fnc)));
 }
 //-----------------------------------------------------------------------------
-/*static*/ EventT Connection::eventPost(ConnectionPostCompleteFunctionT&& _ucomplete_fnc)
+/*static*/ EventT
+Connection::eventPost(
+    ConnectionPostCompleteFunctionT&& _ucomplete_fnc)
 {
     return make_event(connection_event_category, ConnectionEvents::Post, ConnectionPostCompleteFunctionT(std::move(_ucomplete_fnc)));
 }
@@ -219,7 +247,10 @@ struct SendRaw {
     std::string                            data;
     size_t                                 offset;
 };
-/*static*/ EventT Connection::eventSendRaw(ConnectionSendRawDataCompleteFunctionT&& _ucomplete_fnc, std::string&& _udata)
+/*static*/ EventT
+Connection::eventSendRaw(
+    ConnectionSendRawDataCompleteFunctionT&& _ucomplete_fnc,
+    std::string&&                            _udata)
 {
     return make_event(connection_event_category, ConnectionEvents::SendRaw, SendRaw(std::move(_ucomplete_fnc), std::move(_udata)));
 }
@@ -233,12 +264,15 @@ struct RecvRaw {
 
     ConnectionRecvRawDataCompleteFunctionT complete_fnc;
 };
-/*static*/ EventT Connection::eventRecvRaw(ConnectionRecvRawDataCompleteFunctionT&& _ucomplete_fnc)
+/*static*/ EventT
+Connection::eventRecvRaw(
+    ConnectionRecvRawDataCompleteFunctionT&& _ucomplete_fnc)
 {
     return make_event(connection_event_category, ConnectionEvents::RecvRaw, RecvRaw(std::move(_ucomplete_fnc)));
 }
 //-----------------------------------------------------------------------------
-inline void Connection::doOptimizeRecvBuffer()
+inline void
+Connection::doOptimizeRecvBuffer()
 {
     if (recv_buf_.cempty()) [[likely]] {
         recv_buf_.optimize();
@@ -258,7 +292,9 @@ Connection::Connection(
     , rpool_name_(_rpool_name)
     , timer_(this->proxy())
     , send_relay_free_count_(static_cast<uint8_t>(_rconfiguration.connection_relay_buffer_count))
-    , sock_ptr_(_rconfiguration.client.connection_create_socket_fnc(_rconfiguration, this->proxy(), this->socket_emplace_buf_))
+    , sock_ptr_(_rconfiguration.client.connection_create_socket_fnc(_rconfiguration,
+          this->proxy(),
+          this->socket_emplace_buf_))
 {
     solid_log(logger, Info, this);
 }
@@ -272,7 +308,10 @@ Connection::Connection(
     , rpool_name_(_rpool_name)
     , timer_(this->proxy())
     , send_relay_free_count_(static_cast<uint8_t>(_rconfiguration.connection_relay_buffer_count))
-    , sock_ptr_(_rconfiguration.server.connection_create_socket_fnc(_rconfiguration, this->proxy(), std::move(_rsd), this->socket_emplace_buf_))
+    , sock_ptr_(_rconfiguration.server.connection_create_socket_fnc(_rconfiguration,
+          this->proxy(),
+          std::move(_rsd),
+          this->socket_emplace_buf_))
 {
     solid_log(logger, Info, this << " (" << local_endpoint(sock_ptr_->device()) << ") -> (" << remote_endpoint(sock_ptr_->device()) << ')');
 }
@@ -283,7 +322,8 @@ Connection::~Connection()
 }
 //-----------------------------------------------------------------------------
 // - called under pool's lock
-bool Connection::tryPushMessage(
+bool
+Connection::tryPushMessage(
     Configuration const& _rconfiguration,
     MessageBundle&       _rmsgbundle,
     MessageId&           _rconn_msg_id,
@@ -294,7 +334,9 @@ bool Connection::tryPushMessage(
     return success;
 }
 //-----------------------------------------------------------------------------
-void Connection::doPrepare(frame::aio::ReactorContext& _rctx)
+void
+Connection::doPrepare(
+    frame::aio::ReactorContext& _rctx)
 {
     Configuration const& config = service(_rctx).configuration();
 
@@ -307,7 +349,9 @@ void Connection::doPrepare(frame::aio::ReactorContext& _rctx)
     recv_keepalive_boundary_ = crt_time + config.server.connection_inactivity_keepalive_interval;
 }
 //-----------------------------------------------------------------------------
-void Connection::doUnprepare(frame::aio::ReactorContext& /*_rctx*/)
+void
+Connection::doUnprepare(
+    frame::aio::ReactorContext& /*_rctx*/)
 {
     solid_log(logger, Verbose, this << ' ' << this->id());
     msg_reader_.unprepare();
@@ -315,7 +359,10 @@ void Connection::doUnprepare(frame::aio::ReactorContext& /*_rctx*/)
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doStart(frame::aio::ReactorContext& _rctx, const bool _is_incoming)
+void
+Connection::doStart(
+    frame::aio::ReactorContext& _rctx,
+    const bool                  _is_incoming)
 {
 
     ConnectionContext    conctx(_rctx, service(_rctx), *this);
@@ -398,7 +445,11 @@ void Connection::doStart(frame::aio::ReactorContext& _rctx, const bool _is_incom
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT& _rerr, const ErrorCodeT& _rsyserr)
+void
+Connection::doStop(
+    frame::aio::ReactorContext& _rctx,
+    const ErrorConditionT&      _rerr,
+    const ErrorCodeT&           _rsyserr)
 {
 
     if (!isStopping()) {
@@ -474,7 +525,8 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
     } // if(!isStopping())
 }
 //-----------------------------------------------------------------------------
-void Connection::doContinueStopping(
+void
+Connection::doContinueStopping(
     frame::aio::ReactorContext& _rctx,
     const EventT&               _revent)
 {
@@ -542,14 +594,18 @@ struct ConnectionSender : MessageWriterSender {
         Protocol const&             _rproto,
         ConnectionContext&          _rconctx,
         const ErrorConditionT&      _rerr = ErrorConditionT{})
-        : MessageWriterSender(_rconfig, _rproto, _rconctx)
+        : MessageWriterSender(_rconfig,
+              _rproto,
+              _rconctx)
         , rcon_(_rcon)
         , rctx_(_rctx)
         , err_(_rerr)
     {
     }
 
-    ErrorConditionT completeMessage(MessageBundle& _rmsg_bundle, MessageId const& _rpool_msg_id) override
+    ErrorConditionT completeMessage(
+        MessageBundle&   _rmsg_bundle,
+        MessageId const& _rpool_msg_id) override
     {
         rcon_.doCompleteMessage(rctx_, _rpool_msg_id, _rmsg_bundle, err_);
         if (_rpool_msg_id.isValid()) {
@@ -559,7 +615,9 @@ struct ConnectionSender : MessageWriterSender {
         }
     }
 
-    bool cancelMessage(MessageBundle& _rmsg_bundle, MessageId const& _rpool_msg_id) override
+    bool cancelMessage(
+        MessageBundle&   _rmsg_bundle,
+        MessageId const& _rpool_msg_id) override
     {
         rcon_.doCompleteMessage(rctx_, _rpool_msg_id, _rmsg_bundle, err_);
         return true;
@@ -567,7 +625,8 @@ struct ConnectionSender : MessageWriterSender {
 };
 
 template <class Ctx>
-void Connection::doCompleteAllMessages(
+void
+Connection::doCompleteAllMessages(
     frame::aio::ReactorContext& _rctx,
     size_t                      _offset)
 {
@@ -621,7 +680,8 @@ void Connection::doCompleteAllMessages(
     }
 }
 //-----------------------------------------------------------------------------
-void Connection::onStopped(
+void
+Connection::onStopped(
     frame::aio::ReactorContext& _rctx,
     MessageId const&            _rpool_msg_id,
     MessageBundle&              _rmsg_bundle)
@@ -640,13 +700,19 @@ void Connection::onStopped(
     (void)actuid;
 }
 //-----------------------------------------------------------------------------
-void Connection::doHandleEventGeneric(frame::aio::ReactorContext& _rctx, EventBase& _revent)
+void
+Connection::doHandleEventGeneric(
+    frame::aio::ReactorContext& _rctx,
+    EventBase&                  _revent)
 {
     ConnectionContext conctx(_rctx, service(_rctx), *this);
     configuration(_rctx).connection_on_event_fnc(conctx, _revent);
 }
 //-----------------------------------------------------------------------------
-void Connection::doHandleEventStopping(frame::aio::ReactorContext& _rctx, EventBase& _revent)
+void
+Connection::doHandleEventStopping(
+    frame::aio::ReactorContext& _rctx,
+    EventBase&                  _revent)
 {
     solid_log(logger, Info, this << ' ' << id() << " cancel timer");
     // NOTE: we're trying this way to preserve the
@@ -656,7 +722,8 @@ void Connection::doHandleEventStopping(frame::aio::ReactorContext& _rctx, EventB
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doHandleEventStart(
+void
+Connection::doHandleEventStart(
     frame::aio::ReactorContext& _rctx,
     EventBase& /*_revent*/
 )
@@ -672,7 +739,8 @@ void Connection::doHandleEventStart(
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doHandleEventKill(
+void
+Connection::doHandleEventKill(
     frame::aio::ReactorContext& _rctx,
     EventBase& /*_revent*/
 )
@@ -680,13 +748,18 @@ void Connection::doHandleEventKill(
     doStop<Ctx>(_rctx, error_connection_killed);
 }
 //-----------------------------------------------------------------------------
-bool Connection::willAcceptNewMessage(frame::aio::ReactorContext& /*_rctx*/) const
+bool
+Connection::willAcceptNewMessage(
+    frame::aio::ReactorContext& /*_rctx*/) const
 {
     return !isStopping() /* && waiting_message_vec.empty() && msg_writer.willAcceptNewMessage(service(_rctx).configuration().writer)*/;
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doHandleEventNewPoolQueueMessage(frame::aio::ReactorContext& _rctx, EventBase& _revent)
+void
+Connection::doHandleEventNewPoolQueueMessage(
+    frame::aio::ReactorContext& _rctx,
+    EventBase&                  _revent)
 {
 
     flags_.reset(FlagsE::InPoolWaitQueue); // reset flag
@@ -695,7 +768,10 @@ void Connection::doHandleEventNewPoolQueueMessage(frame::aio::ReactorContext& _r
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doHandleEventNewPoolMessage(frame::aio::ReactorContext& _rctx, EventBase& /*_revent*/)
+void
+Connection::doHandleEventNewPoolMessage(
+    frame::aio::ReactorContext& _rctx,
+    EventBase& /*_revent*/)
 {
 
     if (willAcceptNewMessage(_rctx)) {
@@ -711,7 +787,10 @@ void Connection::doHandleEventNewPoolMessage(frame::aio::ReactorContext& _rctx, 
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doHandleEventNewConnMessage(frame::aio::ReactorContext& _rctx, EventBase& _revent)
+void
+Connection::doHandleEventNewConnMessage(
+    frame::aio::ReactorContext& _rctx,
+    EventBase&                  _revent)
 {
 
     MessageId* pmsgid = _revent.cast<MessageId>();
@@ -736,7 +815,10 @@ void Connection::doHandleEventNewConnMessage(frame::aio::ReactorContext& _rctx, 
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doHandleEventCancelConnMessage(frame::aio::ReactorContext& _rctx, EventBase& _revent)
+void
+Connection::doHandleEventCancelConnMessage(
+    frame::aio::ReactorContext& _rctx,
+    EventBase&                  _revent)
 {
 
     MessageId* pmsgid = _revent.cast<MessageId>();
@@ -750,7 +832,10 @@ void Connection::doHandleEventCancelConnMessage(frame::aio::ReactorContext& _rct
     }
 }
 //-----------------------------------------------------------------------------
-void Connection::doHandleEventCancelPoolMessage(frame::aio::ReactorContext& _rctx, EventBase& _revent)
+void
+Connection::doHandleEventCancelPoolMessage(
+    frame::aio::ReactorContext& _rctx,
+    EventBase&                  _revent)
 {
 
     MessageId* pmsgid = _revent.cast<MessageId>();
@@ -765,7 +850,10 @@ void Connection::doHandleEventCancelPoolMessage(frame::aio::ReactorContext& _rct
     }
 }
 //-----------------------------------------------------------------------------
-void Connection::doHandleEventClosePoolMessage(frame::aio::ReactorContext& _rctx, EventBase& _revent)
+void
+Connection::doHandleEventClosePoolMessage(
+    frame::aio::ReactorContext& _rctx,
+    EventBase&                  _revent)
 {
 
     MessageId* pmsgid = _revent.cast<MessageId>();
@@ -781,7 +869,10 @@ void Connection::doHandleEventClosePoolMessage(frame::aio::ReactorContext& _rctx
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, EventBase& _revent)
+void
+Connection::doHandleEventEnterActive(
+    frame::aio::ReactorContext& _rctx,
+    EventBase&                  _revent)
 {
 
     solid_log(logger, Info, this);
@@ -846,7 +937,10 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Eve
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doHandleEventEnterPassive(frame::aio::ReactorContext& _rctx, EventBase& _revent)
+void
+Connection::doHandleEventEnterPassive(
+    frame::aio::ReactorContext& _rctx,
+    EventBase&                  _revent)
 {
     Configuration const& config = service(_rctx).configuration();
     EnterPassive*        pdata  = _revent.cast<EnterPassive>();
@@ -886,7 +980,10 @@ void Connection::doHandleEventEnterPassive(frame::aio::ReactorContext& _rctx, Ev
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, EventBase& /*_revent*/)
+void
+Connection::doHandleEventStartSecure(
+    frame::aio::ReactorContext& _rctx,
+    EventBase& /*_revent*/)
 {
     solid_log(logger, Verbose, this << "");
     Configuration const& config = service(_rctx).configuration();
@@ -926,7 +1023,9 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-/*static*/ void Connection::onSecureConnect(frame::aio::ReactorContext& _rctx)
+/*static*/ void
+Connection::onSecureConnect(
+    frame::aio::ReactorContext& _rctx)
 {
     Connection&          rthis = static_cast<Connection&>(_rctx.actor());
     ConnectionContext    conctx(_rctx, rthis.service(_rctx), rthis);
@@ -979,7 +1078,9 @@ template <class Ctx>
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-/*static*/ void Connection::onSecureAccept(frame::aio::ReactorContext& _rctx)
+/*static*/ void
+Connection::onSecureAccept(
+    frame::aio::ReactorContext& _rctx)
 {
     Connection&          rthis = static_cast<Connection&>(_rctx.actor());
     ConnectionContext    conctx(_rctx, rthis.service(_rctx), rthis);
@@ -1033,7 +1134,10 @@ template <class Ctx>
     }
 }
 //-----------------------------------------------------------------------------
-void Connection::doHandleEventSendRaw(frame::aio::ReactorContext& _rctx, EventBase& _revent)
+void
+Connection::doHandleEventSendRaw(
+    frame::aio::ReactorContext& _rctx,
+    EventBase&                  _revent)
 {
     SendRaw*          pdata = _revent.cast<SendRaw>();
     ConnectionContext conctx(_rctx, service(_rctx), *this);
@@ -1062,7 +1166,10 @@ void Connection::doHandleEventSendRaw(frame::aio::ReactorContext& _rctx, EventBa
     }
 }
 //-----------------------------------------------------------------------------
-void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, EventBase& _revent)
+void
+Connection::doHandleEventRecvRaw(
+    frame::aio::ReactorContext& _rctx,
+    EventBase&                  _revent)
 {
     RecvRaw*          pdata = _revent.cast<RecvRaw>();
     ConnectionContext conctx(_rctx, service(_rctx), *this);
@@ -1097,7 +1204,10 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, EventBa
     }
 }
 //-----------------------------------------------------------------------------
-void Connection::doHandleEventPost(frame::aio::ReactorContext& _rctx, EventBase& _revent)
+void
+Connection::doHandleEventPost(
+    frame::aio::ReactorContext& _rctx,
+    EventBase&                  _revent)
 {
     ConnectionContext                conctx(_rctx, service(_rctx), *this);
     ConnectionPostCompleteFunctionT* pdata = _revent.cast<ConnectionPostCompleteFunctionT>();
@@ -1106,14 +1216,18 @@ void Connection::doHandleEventPost(frame::aio::ReactorContext& _rctx, EventBase&
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doResetTimer(frame::aio::ReactorContext& _rctx)
+void
+Connection::doResetTimer(
+    frame::aio::ReactorContext& _rctx)
 {
     const auto& min_timeout = minTimeout();
     timer_.waitUntil(_rctx, min_timeout, onTimer<Ctx>);
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-/*static*/ void Connection::onTimer(frame::aio::ReactorContext& _rctx)
+/*static*/ void
+Connection::onTimer(
+    frame::aio::ReactorContext& _rctx)
 {
     Connection&          rthis    = static_cast<Connection&>(_rctx.actor());
     Configuration const& rconfig  = rthis.service(_rctx).configuration();
@@ -1173,7 +1287,10 @@ template <class Ctx>
 }
 
 //-----------------------------------------------------------------------------
-/*static*/ void Connection::onSendAllRaw(frame::aio::ReactorContext& _rctx, EventBase& _revent)
+/*static*/ void
+Connection::onSendAllRaw(
+    frame::aio::ReactorContext& _rctx,
+    EventBase&                  _revent)
 {
 
     Connection&       rthis = static_cast<Connection&>(_rctx.actor());
@@ -1205,7 +1322,11 @@ template <class Ctx>
     }
 }
 //-----------------------------------------------------------------------------
-/*static*/ void Connection::onRecvSomeRaw(frame::aio::ReactorContext& _rctx, const size_t _sz, EventBase& _revent)
+/*static*/ void
+Connection::onRecvSomeRaw(
+    frame::aio::ReactorContext& _rctx,
+    const size_t                _sz,
+    EventBase&                  _revent)
 {
 
     Connection&       rthis = static_cast<Connection&>(_rctx.actor());
@@ -1231,7 +1352,11 @@ template <class Ctx>
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint8_t _request_buffer_ack_count, ErrorConditionT& _rerr)
+void
+Connection::doResetRecvBuffer(
+    frame::aio::ReactorContext& _rctx,
+    const uint8_t               _request_buffer_ack_count,
+    ErrorConditionT&            _rerr)
 {
     if (_request_buffer_ack_count == 0) [[likely]] {
         return;
@@ -1280,13 +1405,18 @@ struct ConnectionReceiver : MessageReaderReceiver {
         Protocol const&             _rproto,
         ConnectionContext&          _rconctx,
         const bool                  _is_relay_enabled = false)
-        : MessageReaderReceiver(_rconfig, _rproto, _rconctx, _is_relay_enabled)
+        : MessageReaderReceiver(_rconfig,
+              _rproto,
+              _rconctx,
+              _is_relay_enabled)
         , rcon_(_rcon)
         , rctx_(_rctx)
     {
     }
 
-    void receiveMessage(RecvMessagePointerT<>& _rmsg_ptr, const size_t _msg_type_id) override
+    void receiveMessage(
+        RecvMessagePointerT<>& _rmsg_ptr,
+        const size_t           _msg_type_id) override
     {
         rcon_.doCompleteMessage<Ctx>(rctx_, _rmsg_ptr, _msg_type_id);
         rcon_.flags_.set(Connection::FlagsE::PollPool);
@@ -1307,16 +1437,19 @@ struct ConnectionReceiver : MessageReaderReceiver {
         rcon_.doCompleteKeepalive<Ctx>(rctx_);
     }
 
-    void receiveAckCount(uint8_t _count) override
+    void receiveAckCount(
+        uint8_t _count) override
     {
         rcon_.doCompleteAckCount<Ctx>(rctx_, _count);
     }
-    void receiveCancelRequest(const RequestId& _reqid) override
+    void receiveCancelRequest(
+        const RequestId& _reqid) override
     {
         rcon_.doCompleteCancelRequest<Ctx>(rctx_, _reqid);
     }
 
-    void pushCancelRequest(const RequestId& _reqid) override
+    void pushCancelRequest(
+        const RequestId& _reqid) override
     {
         solid_log(logger, Info, this << " cancel_remote_msg = " << _reqid);
         rcon_.cancel_remote_msg_vec_.push_back(_reqid);
@@ -1330,14 +1463,20 @@ struct ConnectionReceiver : MessageReaderReceiver {
         }
     }
 
-    ResponseStateE checkResponseState(const MessageHeader& _rmsghdr, MessageId& _rrelay_id, const bool _erase_request) const override
+    ResponseStateE checkResponseState(
+        const MessageHeader& _rmsghdr,
+        MessageId&           _rrelay_id,
+        const bool           _erase_request) const override
     {
         return rcon_.doCheckResponseState<Ctx>(rctx_, _rmsghdr, _rrelay_id, _erase_request);
     }
 };
 
 template <class Ctx>
-/*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
+/*static*/ void
+Connection::onRecv(
+    frame::aio::ReactorContext& _rctx,
+    size_t                      _sz)
 {
     Connection&             rthis = static_cast<Connection&>(_rctx.actor());
     ConnectionContext       conctx(_rctx, rthis.service(_rctx), rthis);
@@ -1401,7 +1540,9 @@ template <class Ctx>
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doSend(frame::aio::ReactorContext& _rctx)
+void
+Connection::doSend(
+    frame::aio::ReactorContext& _rctx)
 {
 
     solid_log(logger, Verbose, this << " isstopping = " << this->isStopping());
@@ -1533,7 +1674,9 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-/*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx)
+/*static*/ void
+Connection::onSend(
+    frame::aio::ReactorContext& _rctx)
 {
     Connection& rthis = static_cast<Connection&>(_rctx.actor());
 
@@ -1558,7 +1701,9 @@ template <class Ctx>
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-/*static*/ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
+/*static*/ void
+Connection::onConnect(
+    frame::aio::ReactorContext& _rctx)
 {
     Connection& rthis = static_cast<Connection&>(_rctx.actor());
 
@@ -1583,12 +1728,18 @@ struct ConnectionSenderResponse : ConnectionSender<Ctx> {
         Protocol const&             _rproto,
         ConnectionContext&          _rconctx,
         RecvMessagePointerT<>&      _rresponse_ptr)
-        : ConnectionSender<Ctx>(_rcon, _rctx, _rconfig, _rproto, _rconctx)
+        : ConnectionSender<Ctx>(_rcon,
+              _rctx,
+              _rconfig,
+              _rproto,
+              _rconctx)
         , rresponse_ptr_(_rresponse_ptr)
     {
     }
 
-    bool cancelMessage(MessageBundle& _rmsg_bundle, MessageId const& _rpool_msg_id) override
+    bool cancelMessage(
+        MessageBundle&   _rmsg_bundle,
+        MessageId const& _rpool_msg_id) override
     {
         this->rcon_.updateContextOnCompleteMessage(this->context(), _rmsg_bundle, _rpool_msg_id, *rresponse_ptr_);
 
@@ -1613,9 +1764,12 @@ struct ConnectionSenderResponse : ConnectionSender<Ctx> {
     }
 };
 
-void Connection::updateContextOnCompleteMessage(
-    ConnectionContext& _rconctx, MessageBundle& _rmsg_bundle,
-    MessageId const& _rpool_msg_id, const Message& _rmsg) const
+void
+Connection::updateContextOnCompleteMessage(
+    ConnectionContext& _rconctx,
+    MessageBundle&     _rmsg_bundle,
+    MessageId const&   _rpool_msg_id,
+    const Message&     _rmsg) const
 {
     _rconctx.message_flags_ = _rmsg_bundle.message_flags;
     _rconctx.request_id_    = _rmsg.requestId();
@@ -1623,7 +1777,11 @@ void Connection::updateContextOnCompleteMessage(
 }
 
 template <class Ctx>
-bool Connection::doCompleteMessage(frame::aio::ReactorContext& _rctx, RecvMessagePointerT<>& _rresponse_ptr, const size_t _response_type_id)
+bool
+Connection::doCompleteMessage(
+    frame::aio::ReactorContext& _rctx,
+    RecvMessagePointerT<>&      _rresponse_ptr,
+    const size_t                _response_type_id)
 {
     ConnectionContext    conctx(_rctx, service(_rctx), *this);
     const Configuration& rconfig = service(_rctx).configuration();
@@ -1647,7 +1805,8 @@ bool Connection::doCompleteMessage(frame::aio::ReactorContext& _rctx, RecvMessag
     return false;
 }
 //-----------------------------------------------------------------------------
-void Connection::doCompleteMessage(
+void
+Connection::doCompleteMessage(
     solid::frame::aio::ReactorContext& _rctx,
     MessageId const&                   _rpool_msg_id,
     MessageBundle&                     _rmsg_bundle,
@@ -1671,7 +1830,11 @@ void Connection::doCompleteMessage(
     }
 }
 //-----------------------------------------------------------------------------
-/*static*/ bool Connection::notify(Manager& _rm, const ActorIdT& _conuid, const RelayEngineNotification _what)
+/*static*/ bool
+Connection::notify(
+    Manager&                      _rm,
+    const ActorIdT&               _conuid,
+    const RelayEngineNotification _what)
 {
     switch (_what) {
     case RelayEngineNotification::NewData:
@@ -1685,7 +1848,9 @@ void Connection::doCompleteMessage(
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doCompleteKeepalive(frame::aio::ReactorContext& _rctx)
+void
+Connection::doCompleteKeepalive(
+    frame::aio::ReactorContext& _rctx)
 {
     if (isServer()) {
         Configuration const& config = service(_rctx).configuration();
@@ -1722,7 +1887,10 @@ void Connection::doCompleteKeepalive(frame::aio::ReactorContext& _rctx)
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _count)
+void
+Connection::doCompleteAckCount(
+    frame::aio::ReactorContext& _rctx,
+    uint8_t                     _count)
 {
     int                  new_count = static_cast<int>(send_relay_free_count_) + _count;
     Configuration const& config    = service(_rctx).configuration();
@@ -1743,7 +1911,10 @@ void Connection::doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _
 }
 // //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, const RequestId& _reqid)
+void
+Connection::doCompleteCancelRequest(
+    frame::aio::ReactorContext& _rctx,
+    const RequestId&            _reqid)
 {
     MessageId             msgid(_reqid);
     MessageBundle         msg_bundle;
@@ -1757,7 +1928,12 @@ void Connection::doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, cons
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-ResponseStateE Connection::doCheckResponseState(frame::aio::ReactorContext& _rctx, const MessageHeader& _rmsghdr, MessageId& _rrelay_id, const bool _erase_request)
+ResponseStateE
+Connection::doCheckResponseState(
+    frame::aio::ReactorContext& _rctx,
+    const MessageHeader&        _rmsghdr,
+    MessageId&                  _rrelay_id,
+    const bool                  _erase_request)
 {
     ResponseStateE rv = msg_writer_.checkResponseState(_rmsghdr.recipient_request_id_, _rrelay_id, _erase_request);
     if (rv == ResponseStateE::Invalid) {
@@ -1782,48 +1958,73 @@ ResponseStateE Connection::doCheckResponseState(frame::aio::ReactorContext& _rct
     return rv;
 }
 //-----------------------------------------------------------------------------
-bool Connection::postSendAll(frame::aio::ReactorContext& _rctx, std::span<const std::byte> _buf, EventBase& _revent)
+bool
+Connection::postSendAll(
+    frame::aio::ReactorContext& _rctx,
+    std::span<const std::byte>  _buf,
+    EventBase&                  _revent)
 {
     return sock_ptr_->postSendAll(_rctx, Connection::onSendAllRaw, _buf, _revent);
 }
 //-----------------------------------------------------------------------------
-bool Connection::postRecvSome(frame::aio::ReactorContext& _rctx, std::span<std::byte> _buf, EventBase& _revent)
+bool
+Connection::postRecvSome(
+    frame::aio::ReactorContext& _rctx,
+    std::span<std::byte>        _buf,
+    EventBase&                  _revent)
 {
     return sock_ptr_->postRecvSome(_rctx, Connection::onRecvSomeRaw, _buf, _revent);
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-bool Connection::postRecvSome(frame::aio::ReactorContext& _rctx, std::span<std::byte> _buf)
+bool
+Connection::postRecvSome(
+    frame::aio::ReactorContext& _rctx,
+    std::span<std::byte>        _buf)
 {
     return sock_ptr_->postRecvSome(_rctx, Connection::onRecv<Ctx>, _buf);
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-bool Connection::connect(frame::aio::ReactorContext& _rctx, const SocketAddressInet& _raddr)
+bool
+Connection::connect(
+    frame::aio::ReactorContext& _rctx,
+    const SocketAddressInet&    _raddr)
 {
     return sock_ptr_->connect(_rctx, Connection::onConnect<Ctx>, _raddr);
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-bool Connection::recvSome(frame::aio::ReactorContext& _rctx, std::span<std::byte> _buf, size_t& _sz)
+bool
+Connection::recvSome(
+    frame::aio::ReactorContext& _rctx,
+    std::span<std::byte>        _buf,
+    size_t&                     _sz)
 {
     return sock_ptr_->recvSome(_rctx, Connection::onRecv<Ctx>, _buf, _sz);
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-bool Connection::sendAll(frame::aio::ReactorContext& _rctx, std::span<const std::byte> _buf)
+bool
+Connection::sendAll(
+    frame::aio::ReactorContext& _rctx,
+    std::span<const std::byte>  _buf)
 {
     solid_check(!isStopping());
     return sock_ptr_->sendAll(_rctx, Connection::onSend<Ctx>, _buf);
 }
 //-----------------------------------------------------------------------------
-void Connection::prepareSocket(frame::aio::ReactorContext& _rctx)
+void
+Connection::prepareSocket(
+    frame::aio::ReactorContext& _rctx)
 {
     sock_ptr_->prepareSocket(_rctx);
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doPauseRead(frame::aio::ReactorContext& _rctx)
+void
+Connection::doPauseRead(
+    frame::aio::ReactorContext& _rctx)
 {
     if (!flags_.isSet(FlagsE::PauseRecv)) {
         flags_.set(FlagsE::PauseRecv);
@@ -1832,7 +2033,9 @@ void Connection::doPauseRead(frame::aio::ReactorContext& _rctx)
 }
 //-----------------------------------------------------------------------------
 template <class Ctx>
-void Connection::doResumeRead(frame::aio::ReactorContext& _rctx)
+void
+Connection::doResumeRead(
+    frame::aio::ReactorContext& _rctx)
 {
     if (flags_.isSet(FlagsE::PauseRecv)) {
         flags_.reset(FlagsE::PauseRecv);
@@ -1853,12 +2056,18 @@ struct ClientContext {
     using ReceiverT       = ConnectionReceiver<ClientContext>;
     using SenderResponseT = ConnectionSenderResponse<ClientContext>;
 
-    static void pollOther(frame::aio::ReactorContext& _rctx, const Configuration& _rconfig, MessageWriter& _rmsgwriter)
+    static void pollOther(
+        frame::aio::ReactorContext& _rctx,
+        const Configuration&        _rconfig,
+        MessageWriter&              _rmsgwriter)
     {
     }
 };
 
-void ClientConnection::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _uevent)
+void
+ClientConnection::onEvent(
+    frame::aio::ReactorContext& _rctx,
+    EventBase&&                 _uevent)
 {
     static const EventHandler<void,
         ClientConnection&,
@@ -1938,7 +2147,8 @@ void ClientConnection::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _u
     event_handler.handle(_uevent, *this, _rctx);
 }
 //-----------------------------------------------------------------------------
-void ClientConnection::doHandleEventResolve(
+void
+ClientConnection::doHandleEventResolve(
     frame::aio::ReactorContext& _rctx,
     EventBase&                  _revent)
 {
@@ -1969,17 +2179,24 @@ void ClientConnection::doHandleEventResolve(
     }
 }
 //-----------------------------------------------------------------------------
-void ClientConnection::stop(frame::aio::ReactorContext& _rctx, const ErrorConditionT& _rerr)
+void
+ClientConnection::stop(
+    frame::aio::ReactorContext& _rctx,
+    const ErrorConditionT&      _rerr)
 {
     doStop<ClientContext>(_rctx, _rerr);
 }
 //-----------------------------------------------------------------------------
-void ClientConnection::pauseRead(frame::aio::ReactorContext& _rctx)
+void
+ClientConnection::pauseRead(
+    frame::aio::ReactorContext& _rctx)
 {
     doPauseRead<ClientContext>(_rctx);
 }
 //-----------------------------------------------------------------------------
-void ClientConnection::resumeRead(frame::aio::ReactorContext& _rctx)
+void
+ClientConnection::resumeRead(
+    frame::aio::ReactorContext& _rctx)
 {
     doResumeRead<ClientContext>(_rctx);
 }
@@ -1991,11 +2208,17 @@ struct ServerContext {
     using ReceiverT       = ConnectionReceiver<ServerContext>;
     using SenderResponseT = ConnectionSenderResponse<ServerContext>;
 
-    static void pollOther(frame::aio::ReactorContext& _rctx, const Configuration& _rconfig, MessageWriter& _rmsgwriter)
+    static void pollOther(
+        frame::aio::ReactorContext& _rctx,
+        const Configuration&        _rconfig,
+        MessageWriter&              _rmsgwriter)
     {
     }
 };
-void ServerConnection::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _uevent)
+void
+ServerConnection::onEvent(
+    frame::aio::ReactorContext& _rctx,
+    EventBase&&                 _uevent)
 {
     static const EventHandler<void,
         ServerConnection&,
@@ -2071,17 +2294,24 @@ void ServerConnection::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _u
     event_handler.handle(_uevent, *this, _rctx);
 }
 //-----------------------------------------------------------------------------
-void ServerConnection::stop(frame::aio::ReactorContext& _rctx, const ErrorConditionT& _rerr)
+void
+ServerConnection::stop(
+    frame::aio::ReactorContext& _rctx,
+    const ErrorConditionT&      _rerr)
 {
     doStop<ServerContext>(_rctx, _rerr);
 }
 //-----------------------------------------------------------------------------
-void ServerConnection::pauseRead(frame::aio::ReactorContext& _rctx)
+void
+ServerConnection::pauseRead(
+    frame::aio::ReactorContext& _rctx)
 {
     doPauseRead<ServerContext>(_rctx);
 }
 //-----------------------------------------------------------------------------
-void ServerConnection::resumeRead(frame::aio::ReactorContext& _rctx)
+void
+ServerConnection::resumeRead(
+    frame::aio::ReactorContext& _rctx)
 {
     doResumeRead<ServerContext>(_rctx);
 }
@@ -2099,16 +2329,25 @@ struct RelaySender : ConnectionSender<RelayContext> {
         Protocol const&             _rproto,
         ConnectionContext&          _rconctx,
         const ErrorConditionT&      _rerr = ErrorConditionT{})
-        : ConnectionSender<RelayContext>(_rcon, _rctx, _rconfig, _rproto, _rconctx, _rerr)
+        : ConnectionSender<RelayContext>(_rcon,
+              _rctx,
+              _rconfig,
+              _rproto,
+              _rconctx,
+              _rerr)
     {
     }
 
-    void completeRelayed(RelayData* _prelay_data, MessageId const& _rmsgid) override
+    void completeRelayed(
+        RelayData*       _prelay_data,
+        MessageId const& _rmsgid) override
     {
         static_cast<RelayConnection&>(rcon_).doCompleteRelayed(rctx_, _prelay_data, _rmsgid);
     }
 
-    void cancelRelayed(RelayData* _prelay_data, MessageId const& _rmsgid) override
+    void cancelRelayed(
+        RelayData*       _prelay_data,
+        MessageId const& _rmsgid) override
     {
         static_cast<RelayConnection&>(rcon_).doCancelRelayed(rctx_, _prelay_data, _rmsgid);
     }
@@ -2122,26 +2361,49 @@ struct RelayReceiver : ConnectionReceiver<RelayContext> {
         ReaderConfiguration const&  _rconfig,
         Protocol const&             _rproto,
         ConnectionContext&          _rconctx)
-        : ConnectionReceiver<RelayContext>(_rcon, _rctx, _rconfig, _rproto, _rconctx, true)
+        : ConnectionReceiver<RelayContext>(_rcon,
+              _rctx,
+              _rconfig,
+              _rproto,
+              _rconctx,
+              true)
     {
     }
 
-    bool receiveRelayStart(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror) override
+    bool receiveRelayStart(
+        MessageHeader&   _rmsghdr,
+        const char*      _pbeg,
+        size_t           _sz,
+        MessageId&       _rrelay_id,
+        const bool       _is_last,
+        ErrorConditionT& _rerror) override
     {
         return static_cast<RelayConnection&>(rcon_).doReceiveRelayStart(rctx_, _rmsghdr, _pbeg, _sz, _rrelay_id, _is_last, _rerror);
     }
 
-    bool receiveRelayBody(const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror) override
+    bool receiveRelayBody(
+        const char*      _pbeg,
+        size_t           _sz,
+        const MessageId& _rrelay_id,
+        const bool       _is_last,
+        ErrorConditionT& _rerror) override
     {
         return static_cast<RelayConnection&>(rcon_).doReceiveRelayBody(rctx_, _pbeg, _sz, _rrelay_id, _is_last, _rerror);
     }
 
-    bool receiveRelayResponse(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror) override
+    bool receiveRelayResponse(
+        MessageHeader&   _rmsghdr,
+        const char*      _pbeg,
+        size_t           _sz,
+        const MessageId& _rrelay_id,
+        const bool       _is_last,
+        ErrorConditionT& _rerror) override
     {
         return static_cast<RelayConnection&>(rcon_).doReceiveRelayResponse(rctx_, _rmsghdr, _pbeg, _sz, _rrelay_id, _is_last, _rerror);
     }
 
-    void cancelRelayed(const solid::frame::mprpc::MessageId& _rrelay_id) override
+    void cancelRelayed(
+        const solid::frame::mprpc::MessageId& _rrelay_id) override
     {
         static_cast<RelayConnection&>(rcon_).doCancelRelayed(rctx_, nullptr, _rrelay_id);
     }
@@ -2152,14 +2414,21 @@ struct RelayContext {
     using ReceiverT       = RelayReceiver;
     using SenderResponseT = ConnectionSenderResponse<RelayContext>;
 
-    static void pollOther(frame::aio::ReactorContext& _rctx, const Configuration& _rconfig, MessageWriter& _rmsgwriter)
+    static void pollOther(
+        frame::aio::ReactorContext& _rctx,
+        const Configuration&        _rconfig,
+        MessageWriter&              _rmsgwriter)
     {
         RelayConnection& rcon = static_cast<RelayConnection&>(_rctx.actor());
         rcon.tryPollRelayEngine(_rctx, _rconfig, _rmsgwriter);
     }
 };
 
-void RelayConnection::tryPollRelayEngine(frame::aio::ReactorContext& _rctx, const Configuration& _rconfig, MessageWriter& _rmsgwriter)
+void
+RelayConnection::tryPollRelayEngine(
+    frame::aio::ReactorContext& _rctx,
+    const Configuration&        _rconfig,
+    MessageWriter&              _rmsgwriter)
 {
     if (shouldPollRelayEngine()) {
         auto relay_poll_push_lambda = [&_rconfig, &_rmsgwriter](
@@ -2178,7 +2447,10 @@ void RelayConnection::tryPollRelayEngine(frame::aio::ReactorContext& _rctx, cons
     }
 }
 
-void RelayConnection::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _uevent)
+void
+RelayConnection::onEvent(
+    frame::aio::ReactorContext& _rctx,
+    EventBase&&                 _uevent)
 {
     static const EventHandler<void,
         RelayConnection&,
@@ -2254,7 +2526,8 @@ void RelayConnection::onEvent(frame::aio::ReactorContext& _rctx, EventBase&& _ue
     event_handler.handle(_uevent, *this, _rctx);
 }
 //-----------------------------------------------------------------------------
-void RelayConnection::doCompleteRelayed(
+void
+RelayConnection::doCompleteRelayed(
     frame::aio::ReactorContext& _rctx,
     RelayData*                  _prelay_data,
     MessageId const&            _rengine_msg_id)
@@ -2274,7 +2547,8 @@ void RelayConnection::doCompleteRelayed(
     }
 }
 //-----------------------------------------------------------------------------
-void RelayConnection::doCancelRelayed(
+void
+RelayConnection::doCancelRelayed(
     frame::aio::ReactorContext& _rctx,
     RelayData*                  _prelay_data,
     MessageId const&            _rengine_msg_id)
@@ -2298,7 +2572,8 @@ void RelayConnection::doCancelRelayed(
     }
 }
 //-----------------------------------------------------------------------------
-bool RelayConnection::doReceiveRelayStart(
+bool
+RelayConnection::doReceiveRelayStart(
     frame::aio::ReactorContext& _rctx,
     MessageHeader&              _rmsghdr,
     const char*                 _pbeg,
@@ -2315,7 +2590,8 @@ bool RelayConnection::doReceiveRelayStart(
     return config.relayEngine().relayStart(uid(_rctx), relayId(), _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
 }
 //-----------------------------------------------------------------------------
-bool RelayConnection::doReceiveRelayBody(
+bool
+RelayConnection::doReceiveRelayBody(
     frame::aio::ReactorContext& _rctx,
     const char*                 _pbeg,
     size_t const                _sz,
@@ -2331,7 +2607,8 @@ bool RelayConnection::doReceiveRelayBody(
     return config.relayEngine().relay(relayId(), std::move(relmsg), _rrelay_id, _rerror);
 }
 //-----------------------------------------------------------------------------
-bool RelayConnection::doReceiveRelayResponse(
+bool
+RelayConnection::doReceiveRelayResponse(
     frame::aio::ReactorContext& _rctx,
     MessageHeader&              _rmsghdr,
     const char*                 _pbeg,
@@ -2349,7 +2626,10 @@ bool RelayConnection::doReceiveRelayResponse(
 }
 
 //-----------------------------------------------------------------------------
-void RelayConnection::doHandleEventRelayNew(frame::aio::ReactorContext& _rctx, EventBase& /*_revent*/)
+void
+RelayConnection::doHandleEventRelayNew(
+    frame::aio::ReactorContext& _rctx,
+    EventBase& /*_revent*/)
 {
     // The connection may get unregistered from RelayEngine (see Service::connectionStopping)
     // after an Relay* event get posted but before it being handled by connection.
@@ -2360,7 +2640,10 @@ void RelayConnection::doHandleEventRelayNew(frame::aio::ReactorContext& _rctx, E
     }
 }
 //-----------------------------------------------------------------------------
-void RelayConnection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, EventBase& /*_revent*/)
+void
+RelayConnection::doHandleEventRelayDone(
+    frame::aio::ReactorContext& _rctx,
+    EventBase& /*_revent*/)
 {
     // The connection may get unregistered from RelayEngine (see Service::connectionStopping)
     // after an Relay* event get posted but before it being handled by connection.
@@ -2395,130 +2678,171 @@ void RelayConnection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, 
     }
 }
 //-----------------------------------------------------------------------------
-void RelayConnection::stop(frame::aio::ReactorContext& _rctx, const ErrorConditionT& _rerr)
+void
+RelayConnection::stop(
+    frame::aio::ReactorContext& _rctx,
+    const ErrorConditionT&      _rerr)
 {
     doStop<RelayContext>(_rctx, _rerr);
 }
 //-----------------------------------------------------------------------------
-void RelayConnection::pauseRead(frame::aio::ReactorContext& _rctx)
+void
+RelayConnection::pauseRead(
+    frame::aio::ReactorContext& _rctx)
 {
     doPauseRead<RelayContext>(_rctx);
 }
 //-----------------------------------------------------------------------------
-void RelayConnection::resumeRead(frame::aio::ReactorContext& _rctx)
+void
+RelayConnection::resumeRead(
+    frame::aio::ReactorContext& _rctx)
 {
     doResumeRead<RelayContext>(_rctx);
 }
 //-----------------------------------------------------------------------------
 //  ConnectionContext
 //-----------------------------------------------------------------------------
-Any<>& ConnectionContext::any()
+Any<>&
+ConnectionContext::any()
 {
     return rconnection_.any();
 }
 //-----------------------------------------------------------------------------
-SendMessagePointerT<> ConnectionContext::fetchRequest(Message const& _rmsg) const
+SendMessagePointerT<>
+ConnectionContext::fetchRequest(
+    Message const& _rmsg) const
 {
     return rconnection_.fetchRequest(_rmsg);
 }
 //-----------------------------------------------------------------------------
-RecipientId ConnectionContext::recipientId() const
+RecipientId
+ConnectionContext::recipientId() const
 {
     return RecipientId(rconnection_.poolId(), rservice_.manager().id(rconnection_));
 }
 //-----------------------------------------------------------------------------
-ActorIdT ConnectionContext::connectionId() const
+ActorIdT
+ConnectionContext::connectionId() const
 {
     return rservice_.manager().id(rconnection_);
 }
 //-----------------------------------------------------------------------------
-const UniqueId& ConnectionContext::relayId() const
+const UniqueId&
+ConnectionContext::relayId() const
 {
     return rconnection_.relayId();
 }
 //-----------------------------------------------------------------------------
-void ConnectionContext::relayId(const UniqueId& _relay_id) const
+void
+ConnectionContext::relayId(
+    const UniqueId& _relay_id) const
 {
     rconnection_.relayId(_relay_id);
 }
 //-----------------------------------------------------------------------------
-const std::string& ConnectionContext::recipientName() const
+const std::string&
+ConnectionContext::recipientName() const
 {
     return rconnection_.poolName();
 }
 //-----------------------------------------------------------------------------
-SocketDevice const& ConnectionContext::device() const
+SocketDevice const&
+ConnectionContext::device() const
 {
     return rconnection_.device();
 }
 //-----------------------------------------------------------------------------
-bool ConnectionContext::isConnectionActive() const
+bool
+ConnectionContext::isConnectionActive() const
 {
     return rconnection_.isActiveState();
 }
 //-----------------------------------------------------------------------------
-bool ConnectionContext::isConnectionServer() const
+bool
+ConnectionContext::isConnectionServer() const
 {
     return rconnection_.isServer();
 }
 //-----------------------------------------------------------------------------
-const ErrorConditionT& ConnectionContext::error() const
+const ErrorConditionT&
+ConnectionContext::error() const
 {
     return rconnection_.error();
 }
 //-----------------------------------------------------------------------------
-const ErrorCodeT& ConnectionContext::systemError() const
+const ErrorCodeT&
+ConnectionContext::systemError() const
 {
     return rconnection_.systemError();
 }
 //-----------------------------------------------------------------------------
-Configuration const& ConnectionContext::configuration() const
+Configuration const&
+ConnectionContext::configuration() const
 {
     return rservice_.configuration();
 }
 //-----------------------------------------------------------------------------
-void ConnectionContext::stop(const ErrorConditionT& _err)
+void
+ConnectionContext::stop(
+    const ErrorConditionT& _err)
 {
     rconnection_.stop(reactorContext(), _err);
 }
 //-----------------------------------------------------------------------------
-void ConnectionContext::pauseRead()
+void
+ConnectionContext::pauseRead()
 {
     rconnection_.pauseRead(reactorContext());
 }
 //-----------------------------------------------------------------------------
-void ConnectionContext::resumeRead()
+void
+ConnectionContext::resumeRead()
 {
     rconnection_.resumeRead(reactorContext());
 }
 //-----------------------------------------------------------------------------
 // SocketStub
 //-----------------------------------------------------------------------------
-/*virtual*/ bool SocketStub::secureAccept(frame::aio::ReactorContext& /*_rctx*/, ConnectionContext& /*_rconctx*/, OnSecureAcceptF /*_pf*/, ErrorConditionT& _rerror)
+/*virtual*/ bool
+SocketStub::secureAccept(
+    frame::aio::ReactorContext& /*_rctx*/,
+    ConnectionContext& /*_rconctx*/,
+    OnSecureAcceptF /*_pf*/,
+    ErrorConditionT& _rerror)
 {
     _rerror = error_connection_logic;
     return true;
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool SocketStub::secureConnect(frame::aio::ReactorContext& /*_rctx*/, ConnectionContext& /*_rconctx*/, OnSecureConnectF /*_pf*/, ErrorConditionT& _rerror)
+/*virtual*/ bool
+SocketStub::secureConnect(
+    frame::aio::ReactorContext& /*_rctx*/,
+    ConnectionContext& /*_rconctx*/,
+    OnSecureConnectF /*_pf*/,
+    ErrorConditionT& _rerror)
 {
     _rerror = error_connection_logic;
     return true;
 }
 //-----------------------------------------------------------------------------
-ConnectionProxy SocketStub::connectionProxy()
+ConnectionProxy
+SocketStub::connectionProxy()
 {
     return ConnectionProxy{};
 }
 //-----------------------------------------------------------------------------
 // ConnectionProxy
 //-----------------------------------------------------------------------------
-Service& ConnectionProxy::service(frame::aio::ReactorContext& _rctx) const
+Service&
+ConnectionProxy::service(
+    frame::aio::ReactorContext& _rctx) const
 {
     return static_cast<Service&>(_rctx.service());
 }
 //-----------------------------------------------------------------------------
-Connection& ConnectionProxy::connection(frame::aio::ReactorContext& _rctx) const
+Connection&
+ConnectionProxy::connection(
+    frame::aio::ReactorContext& _rctx) const
 {
     return static_cast<Connection&>(_rctx.actor());
 }
@@ -2526,7 +2850,9 @@ Connection& ConnectionProxy::connection(frame::aio::ReactorContext& _rctx) const
 // Message
 //-----------------------------------------------------------------------------
 
-void Message::header(frame::mprpc::ConnectionContext& _rctx)
+void
+Message::header(
+    frame::mprpc::ConnectionContext& _rctx)
 {
     header_ = std::move(*_rctx.pmessage_header_);
 }

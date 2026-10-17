@@ -33,13 +33,19 @@ struct Sub {
     uint64_t a_;
     string   b_;
 
-    template <typename Reflector, typename Ctx>
-    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
+    template <typename Reflector,
+        typename Ctx>
+    void solidReflectV2(
+        this auto&  rthis,
+        Reflector&& _rr,
+        Ctx&        _rc)
     {
         using namespace solid::reflection::v2;
         _rr(id<1>, make("a"sv, rthis.a_), _rc);
         _rr(id<2>, make("b"sv, rthis.b_), _rc);
     }
+
+    bool operator==(Sub const&) const = default;
 };
 
 struct SubWrap {
@@ -50,8 +56,12 @@ struct SubWrap {
     std::list<Sub>       sub_lst_;
     std::shared_ptr<Sub> sub_ptr_;
 
-    template <typename Reflector, typename Ctx>
-    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
+    template <typename Reflector,
+        typename Ctx>
+    void solidReflectV2(
+        this auto&  rthis,
+        Reflector&& _rr,
+        Ctx&        _rc)
     {
         using namespace solid::reflection::v2;
         _rr(id<FieldE::sub_lst>, make("sub_lst"sv, rthis.sub_lst_), _rc);
@@ -74,7 +84,9 @@ enum class NumbersE {
     Nine,
 };
 
-std::string_view to_string(NumbersE const _value)
+std::string_view
+to_string(
+    NumbersE const _value)
 {
     switch (_value) {
     case NumbersE::Zero:
@@ -101,7 +113,10 @@ std::string_view to_string(NumbersE const _value)
     return {};
 }
 
-std::optional<NumbersE> from_string(std::type_identity<NumbersE>, std::string_view _value_as_string)
+std::optional<NumbersE>
+from_string(
+    std::type_identity<NumbersE>,
+    std::string_view _value_as_string)
 {
     static const std::unordered_map<std::string_view, NumbersE> mapping{
         {"Zero"sv, NumbersE::Zero},
@@ -155,23 +170,32 @@ public:
     One() = default;
 
     One(
-        bool _b, uint32_t _u32, auto&& _s,
-        Sub&&                                         _sub,
-        std::initializer_list<Sub>                    _subs,
-        std::initializer_list<std::pair<string, Sub>> _subs_map,
-        std::array<Sub, 3> const&                     _sub_arr)
+        bool                       _b,
+        uint32_t                   _u32,
+        auto&&                     _s,
+        Sub&&                      _sub,
+        std::initializer_list<Sub> _subs,
+        std::initializer_list<std::pair<string,
+            Sub>>                  _subs_map,
+        std::array<Sub,
+            3> const&              _sub_arr)
         : vb_{_b}
         , vu32_{_u32}
         , vs_{std::forward<decltype(_s)>(_s)}
         , sub_{std::move(_sub)}
         , sub_dq_{_subs}
-        , sub_map_{_subs_map.begin(), _subs_map.end()}
+        , sub_map_{_subs_map.begin(),
+              _subs_map.end()}
         , sub_arr_{_sub_arr}
     {
     }
 
-    template <typename Reflector, typename Ctx>
-    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
+    template <typename Reflector,
+        typename Ctx>
+    void solidReflectV2(
+        this auto&  rthis,
+        Reflector&& _rr,
+        Ctx&        _rc)
     {
         using namespace solid::reflection::v2;
         _rr(id<1>, make("b"sv, rthis.vb_), _rc);
@@ -206,7 +230,10 @@ namespace detail {
 // View over a fixed-size AnsiChar field, trimmed at the first NUL (the wire
 // representation zero-pads unused trailing bytes).
 template <std::size_t N>
-[[nodiscard]] constexpr std::string_view to_string_view(const std::array<char, N>& buf) noexcept
+[[nodiscard]] constexpr std::string_view
+to_string_view(
+    const std::array<char,
+        N>& buf) noexcept
 {
     std::size_t len = 0;
     while (len < N && buf[len] != '\0') {
@@ -218,7 +245,11 @@ template <std::size_t N>
 // Copy value into a fixed-size AnsiChar field, truncating to N and zero-filling
 // the remainder.
 template <std::size_t N>
-constexpr void assign(std::array<char, N>& buf, std::string_view value) noexcept
+constexpr void
+assign(
+    std::array<char,
+        N>&          buf,
+    std::string_view value) noexcept
 {
     const std::size_t len  = std::min(value.size(), N);
     auto              tail = std::copy_n(value.begin(), len, buf.begin());
@@ -243,30 +274,58 @@ public:
     constexpr PriceLevel() noexcept = default;
 
     [[nodiscard]] constexpr bool is_encrypted() const noexcept { return isEncrypted_; }
-    constexpr void               set_is_encrypted(bool value) noexcept { isEncrypted_ = value; }
+    constexpr void               set_is_encrypted(
+        bool value) noexcept
+    {
+        isEncrypted_ = value;
+    }
 
     [[nodiscard]] constexpr std::uint64_t encryption_offset() const noexcept { return encryptionOffset_; }
-    constexpr void                        set_encryption_offset(std::uint64_t value) noexcept { encryptionOffset_ = value; }
+    constexpr void                        set_encryption_offset(
+        std::uint64_t value) noexcept
+    {
+        encryptionOffset_ = value;
+    }
 
     // Reference to an EncryptionKey message.
     [[nodiscard]] constexpr ElementId encryption_key_id() const noexcept { return encryptionKeyId_; }
-    constexpr void                    set_encryption_key_id(ElementId value) noexcept { encryptionKeyId_ = value; }
+    constexpr void                    set_encryption_key_id(
+        ElementId value) noexcept
+    {
+        encryptionKeyId_ = value;
+    }
 
     // Price level in currency units. Encrypted on the wire when
     // is_encrypted() is true; decrypt using encryption_key_id() first.
     [[nodiscard]] constexpr Price price() const noexcept { return price_; }
-    constexpr void                set_price(Price value) noexcept { price_ = value; }
+    constexpr void                set_price(
+        Price value) noexcept
+    {
+        price_ = value;
+    }
 
     // Quantity of securities available at this price level (encrypted).
     [[nodiscard]] constexpr Quantity quantity() const noexcept { return quantity_; }
-    constexpr void                   set_quantity(Quantity value) noexcept { quantity_ = value; }
+    constexpr void                   set_quantity(
+        Quantity value) noexcept
+    {
+        quantity_ = value;
+    }
 
     // Number of open orders at this price level (encrypted).
     [[nodiscard]] constexpr OrderCount order_count() const noexcept { return orderCount_; }
-    constexpr void                     set_order_count(OrderCount value) noexcept { orderCount_ = value; }
+    constexpr void                     set_order_count(
+        OrderCount value) noexcept
+    {
+        orderCount_ = value;
+    }
 
-    template <typename Reflector, typename Ctx>
-    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
+    template <typename Reflector,
+        typename Ctx>
+    void solidReflectV2(
+        this auto&  rthis,
+        Reflector&& _rr,
+        Ctx&        _rc)
     {
         using solid::reflection::v2::id;
         _rr(id<1>, SFR_V2_MAKEF(rthis, is_encrypted), _rc);
@@ -301,30 +360,66 @@ class Two {
 
 public:
     [[nodiscard]] constexpr auto v1() const noexcept { return v1_; }
-    constexpr void               set_v1(std::uint32_t _v1) noexcept { v1_ = _v1; }
+    constexpr void               set_v1(
+        std::uint32_t _v1) noexcept
+    {
+        v1_ = _v1;
+    }
 
-    [[nodiscard]] constexpr std::span<const std::uint8_t, kSecretKeySize> secret_key() const noexcept { return secretKey_; }
-    [[nodiscard]] constexpr std::span<std::uint8_t, kSecretKeySize>       secret_key() noexcept { return secretKey_; }
-    constexpr void                                                        set_secret_key(std::span<const std::uint8_t> value) noexcept
+    [[nodiscard]] constexpr std::span<const std::uint8_t,
+        kSecretKeySize>
+    secret_key() const noexcept
+    {
+        return secretKey_;
+    }
+    [[nodiscard]] constexpr std::span<std::uint8_t,
+        kSecretKeySize>
+    secret_key() noexcept
+    {
+        return secretKey_;
+    }
+    constexpr void set_secret_key(
+        std::span<const std::uint8_t> value) noexcept
     {
         std::ranges::copy_n(value.begin(), std::min(value.size(), secretKey_.size()), secretKey_.begin());
     }
-    constexpr void set_secret_key(std::array<std::uint8_t, kSecretKeySize> const& value) noexcept
+    constexpr void set_secret_key(
+        std::array<std::uint8_t,
+            kSecretKeySize> const& value) noexcept
     {
         set_secret_key(std::span{value});
     }
 
     [[nodiscard]] constexpr std::string_view description() const noexcept { return detail::to_string_view(description_); }
-    constexpr void                           set_description(std::string_view value) noexcept { detail::assign(description_, value); }
+    constexpr void                           set_description(
+        std::string_view value) noexcept
+    {
+        detail::assign(description_, value);
+    }
 
     // Number of BBO levels actually broadcast in this message (<= kMaxBboLevels).
     [[nodiscard]] constexpr std::uint8_t max_depth() const noexcept { return maxDepth_; }
-    constexpr void                       set_max_depth(std::uint8_t value) noexcept { maxDepth_ = value; }
+    constexpr void                       set_max_depth(
+        std::uint8_t value) noexcept
+    {
+        maxDepth_ = value;
+    }
 
     // Full fixed-size buy-side level array, as laid out on the wire.
-    [[nodiscard]] constexpr std::span<const PriceLevel, kMaxBboLevels> buy() const noexcept { return buy_; }
-    [[nodiscard]] constexpr std::span<PriceLevel, kMaxBboLevels>       buy() noexcept { return buy_; }
-    constexpr void                                                     set_buy(std::span<const PriceLevel> levels) noexcept
+    [[nodiscard]] constexpr std::span<const PriceLevel,
+        kMaxBboLevels>
+    buy() const noexcept
+    {
+        return buy_;
+    }
+    [[nodiscard]] constexpr std::span<PriceLevel,
+        kMaxBboLevels>
+    buy() noexcept
+    {
+        return buy_;
+    }
+    constexpr void set_buy(
+        std::span<const PriceLevel> levels) noexcept
     {
         std::ranges::copy_n(levels.begin(), std::min(levels.size(), buy_.size()), buy_.begin());
     }
@@ -333,9 +428,20 @@ public:
         return std::span<const PriceLevel>(buy_).first(std::min<std::size_t>(maxDepth_, kMaxBboLevels));
     }
 
-    [[nodiscard]] constexpr std::span<const PriceLevel, kMaxBboLevels> sell() const noexcept { return sell_; }
-    [[nodiscard]] constexpr std::span<PriceLevel, kMaxBboLevels>       sell() noexcept { return sell_; }
-    constexpr void                                                     set_sell(std::span<const PriceLevel> levels) noexcept
+    [[nodiscard]] constexpr std::span<const PriceLevel,
+        kMaxBboLevels>
+    sell() const noexcept
+    {
+        return sell_;
+    }
+    [[nodiscard]] constexpr std::span<PriceLevel,
+        kMaxBboLevels>
+    sell() noexcept
+    {
+        return sell_;
+    }
+    constexpr void set_sell(
+        std::span<const PriceLevel> levels) noexcept
     {
         std::ranges::copy_n(levels.begin(), std::min(levels.size(), buy_.size()), buy_.begin());
     }
@@ -373,8 +479,12 @@ public:
         buy,
         sell
     };
-    template <typename Reflector, typename Ctx>
-    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
+    template <typename Reflector,
+        typename Ctx>
+    void solidReflectV2(
+        this auto&  rthis,
+        Reflector&& _rr,
+        Ctx&        _rc)
     {
         using solid::reflection::v2::id;
         _rr(id<FieldE::v1>, SFR_V2_MAKEF(rthis, v1), _rc);
@@ -388,9 +498,61 @@ public:
 
 #pragma pack(pop)
 
+struct TestReflection {
+    std::string      s1_;
+    std::uint64_t    i1_;
+    std::vector<int> v1_;
+
+    bool operator==(TestReflection const&) const = default;
+};
+
+// non-aggregate: walked natively, its TestReflection base first
+struct TestReflectionInheritance : TestReflection {
+    std::string s2_;
+
+    template <typename S2, typename... Args>
+    TestReflectionInheritance(S2&& _s2, Args&&... _args)
+        : TestReflection{std::forward<Args>(_args)...}
+        , s2_{std::forward<S2>(_s2)}
+    {
+    }
+
+    bool operator==(TestReflectionInheritance const&) const = default;
+};
+
+// bases walked recursively, each in its own way: TestReflectionInheritance
+// natively, Sub through its (inherited, not redeclared) solidReflectV2
+struct TestReflectionMulti : TestReflectionInheritance, Sub {
+    std::uint32_t u3_;
+
+    TestReflectionMulti(TestReflectionInheritance&& _inh, Sub&& _sub, std::uint32_t _u3)
+        : TestReflectionInheritance{std::move(_inh)}
+        , Sub{std::move(_sub)}
+        , u3_{_u3}
+    {
+    }
+
+    bool operator==(TestReflectionMulti const&) const = default;
+};
+
+#ifdef SOLID_USE_REFLECTION
+// member limits given through C++26 annotations instead of descriptor setters
+struct TestReflectionAnnotated {
+    [[=solid::reflection::v2::annotate::max_size(16)]] std::string s_;
+    [[=solid::reflection::v2::annotate::min(1), =solid::reflection::v2::annotate::max(100)]] std::uint32_t u_;
+    [[=solid::reflection::v2::annotate::max_size(4)]] std::vector<int> v_;
+    std::uint64_t plain_;
+
+    bool operator==(TestReflectionAnnotated const&) const = default;
+};
+#endif
+
 } // namespace alpha
 
-int test_json(int /*argc*/, char* /*argv*/[])
+int
+test_json(
+    int /*argc*/,
+    char* /*argv*/[])
 {
     size_t item_count{1000};
     size_t repeat_count{3};
@@ -399,6 +561,75 @@ int test_json(int /*argc*/, char* /*argv*/[])
     } ctx;
 
     to_json(cout, 1024, ctx) << endl;
+#ifdef SOLID_USE_REFLECTION
+    to_json(cout, alpha::TestReflection{.s1_ = "something nice", .i1_ = 10, .v1_ = {1, 2, 3, 4}}, ctx) << endl;
+    {
+        alpha::TestReflectionInheritance inh{"s2", "s1", 10u, std::vector<int>{1, 2, 3, 4}};
+
+        std::string str;
+        to_json_str(str, inh, ctx);
+        cout << str << endl;
+        solid_check(str == R"({"s1_":"s1","i1_":10,"v1_":[1,2,3,4],"s2_":"s2"})", "unexpected: " << str);
+
+        // round-trip: from_json(to_json(x)) == x
+        {
+            alpha::TestReflectionInheritance inh_rt{""};
+            auto const                       res = from_json(str, inh_rt, ctx);
+            solid_check(res, "from_json(TestReflectionInheritance): " << res.error().message());
+            solid_check(inh_rt == inh, "TestReflectionInheritance round-trip mismatch");
+        }
+
+        alpha::TestReflectionMulti multi{std::move(inh), {.a_ = 1, .b_ = "sub"}, 3};
+
+        str.clear();
+        to_json_str(str, multi, ctx);
+        cout << str << endl;
+        solid_check(str == R"({"s1_":"s1","i1_":10,"v1_":[1,2,3,4],"s2_":"s2","a":1,"b":"sub","u3_":3})", "unexpected: " << str);
+        {
+            alpha::TestReflectionMulti multi_rt{alpha::TestReflectionInheritance{""}, {}, 0};
+            auto const                 res = from_json(str, multi_rt, ctx);
+            solid_check(res, "from_json(TestReflectionMulti): " << res.error().message());
+            solid_check(multi_rt == multi, "TestReflectionMulti round-trip mismatch");
+        }
+    }
+    {
+        // annotations reach the members' descriptors
+        alpha::TestReflectionAnnotated ann{.s_ = "annotated", .u_ = 50, .v_ = {1, 2}, .plain_ = 7};
+        size_t                         checked = 0;
+
+        solid::reflection::v2::reflect(std::as_const(ann), [&checked](auto, auto&& _field, auto&) {
+            using namespace solid::reflection::v2;
+            using FieldT = std::decay_t<decltype(_field)>;
+            if constexpr (FieldT::type_id == TypeIdE::String) {
+                solid_check(_field.name == "s_" && _field.max_size == 16);
+                ++checked;
+            } else if constexpr (FieldT::type_id == TypeIdE::Integral) {
+                if (_field.name == "u_") {
+                    solid_check(_field.min == 1 && _field.max == 100);
+                } else {
+                    solid_check(_field.name == "plain_");
+                    solid_check(_field.min == std::numeric_limits<std::uint64_t>::min() && _field.max == std::numeric_limits<std::uint64_t>::max());
+                }
+                ++checked;
+            } else if constexpr (FieldT::type_id == TypeIdE::Container) {
+                solid_check(_field.name == "v_" && _field.max_size == 4);
+                ++checked;
+            }
+        },
+            ctx);
+        solid_check(checked == 4, "visited " << checked << " annotated fields");
+
+        std::string str;
+        to_json_str(str, ann, ctx);
+        cout << str << endl;
+        solid_check(str == R"({"s_":"annotated","u_":50,"v_":[1,2],"plain_":7})", "unexpected: " << str);
+
+        alpha::TestReflectionAnnotated ann_rt{};
+        auto const                     res = from_json(str, ann_rt, ctx);
+        solid_check(res, "from_json(TestReflectionAnnotated): " << res.error().message());
+        solid_check(ann_rt == ann, "TestReflectionAnnotated round-trip mismatch");
+    }
+#endif
     std::string json_str;
 
     {
