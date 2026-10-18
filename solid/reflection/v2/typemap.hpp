@@ -305,12 +305,12 @@ protected:
     using CreateFunctionT  = void* (*)(void const* /*_pcreate*/, void* /*_pctx*/, void* /*_pptr*/, CastFunctionT);
 
     struct ReflectorStub {
-        ReflectFunctionT reflect_fnc_       = nullptr;
+        ReflectFunctionT                                        reflect_fnc_ = nullptr;
         std::array<CreateFunctionT, detail::pointer_kind_count> create_fnc_{}; // by PointerKindE
     };
 
     struct CastStub {
-        std::type_info const* ptype_info_ = nullptr;
+        std::type_info const*                                 ptype_info_ = nullptr;
         std::array<CastFunctionT, detail::pointer_kind_count> cast_fnc_{}; // by PointerKindE
     };
 
