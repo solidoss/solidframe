@@ -14,7 +14,7 @@
 
 #include "solid/frame/mprpc/mprpccompression_snappy.hpp"
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v4.hpp"
 #include "solid/frame/mprpc/mprpcrelayengines.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
@@ -101,10 +101,13 @@ struct Register : frame::mprpc::Message {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << this);
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.err_, _rctx, 0, "err").add(_rthis.group_id_, _rctx, 1, "group_id");
-        _rr.add(_rthis.replica_id_, _rctx, 2, "replica_id");
+        using namespace solid::reflection::v2;
+        _rr(id<0>, make("err", _rthis.err_), _rctx);
+        _rr(id<1>, make("group_id", _rthis.group_id_), _rctx);
+        _rr(id<2>, make("replica_id", _rthis.replica_id_), _rctx);
     }
 };
 
@@ -126,10 +129,12 @@ struct DetectCloseMessage : frame::mprpc::Message {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.idx, _rctx, 0, "idx");
-        _rr.add(_rthis.data_, _rctx, 1, "data");
+        using namespace solid::reflection::v2;
+        _rr(id<0>, make("idx", _rthis.idx), _rctx);
+        _rr(id<1>, make("data", _rthis.data_), _rctx);
     }
 };
 
@@ -145,10 +150,12 @@ struct Message : frame::mprpc::Message {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.idx, _rctx, 0, "idx");
-        _rr.add(_rthis.data_, _rctx, 1, "data");
+        using namespace solid::reflection::v2;
+        _rr(id<0>, make("idx", _rthis.idx), _rctx);
+        _rr(id<1>, make("data", _rthis.data_), _rctx);
     }
 };
 
@@ -345,8 +352,7 @@ int test_relay_detect_close_while_response(int argc, char* argv[])
                 }
             };
 
-            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
-                reflection::v1::metadata::factory,
+            auto proto = frame::mprpc::serialization_v4::create_protocol<uint8_t>(
                 [&](auto& _rmap) {
                     _rmap.template registerMessage<Register>(1, "Register", con_register);
                 });
@@ -394,8 +400,7 @@ int test_relay_detect_close_while_response(int argc, char* argv[])
         }
 
         { // mprpc peera initialization
-            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
-                reflection::v1::metadata::factory,
+            auto proto = frame::mprpc::serialization_v4::create_protocol<uint8_t>(
                 [&](auto& _rmap) {
                     _rmap.template registerMessage<Message>(2, "Message", peera_complete_message);
                     _rmap.template registerMessage<DetectCloseMessage>(3, "DetectCloseMessage", peera_complete_detect_close);
@@ -443,8 +448,7 @@ int test_relay_detect_close_while_response(int argc, char* argv[])
         }
 
         { // mprpc peerb initialization
-            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
-                reflection::v1::metadata::factory,
+            auto proto = frame::mprpc::serialization_v4::create_protocol<uint8_t>(
                 [&](auto& _rmap) {
                     _rmap.template registerMessage<Register>(1, "Register", peerb_complete_register);
                     _rmap.template registerMessage<Message>(2, "Message", peerb_complete_message);

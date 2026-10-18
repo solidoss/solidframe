@@ -16,7 +16,7 @@
 #include <array>
 #include <cstring>
 
-namespace solid::serialization::inline v3::binary {
+namespace solid::serialization::v3::binary {
 
 namespace impl {
 inline char* store(char* _pd, const uint8_t _val, std::type_identity<uint8_t> _ff)
@@ -595,4 +595,4 @@ inline bool load_bit_from(const uint8_t* _pbeg, const size_t _bit_idx)
     return b[(*_pbeg >> bit_off) & 1];
 }
 
-} // namespace solid::serialization::inline v3::binary
+} // namespace solid::serialization::v3::binary

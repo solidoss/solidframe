@@ -3,7 +3,7 @@
 
 #include "solid/frame/mprpc/mprpccontext.hpp"
 #include "solid/frame/mprpc/mprpcmessage.hpp"
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v4.hpp"
 #include <map>
 #include <ostream>
 #include <vector>
@@ -88,9 +88,12 @@ struct RequestKeyAnd : Visitable<RequestKeyAnd> {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.first, _rctx, 1, "first").add(_rthis.second, _rctx, 2, "second");
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("first", _rthis.first), _rctx);
+        _rr(id<2>, make("second", _rthis.second), _rctx);
     }
 
     void print(std::ostream& _ros) const override
@@ -120,9 +123,12 @@ struct RequestKeyOr : Visitable<RequestKeyOr> {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.first, _rctx, 1, "first").add(_rthis.second, _rctx, 2, "second");
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("first", _rthis.first), _rctx);
+        _rr(id<2>, make("second", _rthis.second), _rctx);
     }
 
     void print(std::ostream& _ros) const override
@@ -148,9 +154,11 @@ struct RequestKeyAndList : Visitable<RequestKeyAndList> {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.key_vec, _rctx, 1, "key_vec");
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("key_vec", _rthis.key_vec), _rctx);
     }
 
     void print(std::ostream& _ros) const override
@@ -176,9 +184,11 @@ struct RequestKeyOrList : Visitable<RequestKeyOrList> {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.key_vec, _rctx, 1, "key_vec");
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("key_vec", _rthis.key_vec), _rctx);
     }
 
     void print(std::ostream& _ros) const override
@@ -203,9 +213,11 @@ struct RequestKeyUserIdRegex : Visitable<RequestKeyUserIdRegex> {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.regex, _rctx, 1, "regex");
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("regex", _rthis.regex), _rctx);
     }
 
     void print(std::ostream& _ros) const override
@@ -224,9 +236,11 @@ struct RequestKeyEmailRegex : Visitable<RequestKeyEmailRegex> {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.regex, _rctx, 1, "regex");
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("regex", _rthis.regex), _rctx);
     }
 
     void print(std::ostream& _ros) const override
@@ -243,9 +257,11 @@ struct RequestKeyYearLess : Visitable<RequestKeyYearLess> {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.year, _rctx, 1, "year");
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("year", _rthis.year), _rctx);
     }
 
     void print(std::ostream& _ros) const override
@@ -264,9 +280,11 @@ struct Request : solid::frame::mprpc::Message {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.key, _rctx, 1, "key");
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("key", _rthis.key), _rctx);
     }
 };
 
@@ -275,9 +293,13 @@ struct Date {
     uint8_t  month;
     uint16_t year;
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.day, _rctx, 1, "day").add(_rthis.month, _rctx, 2, "month").add(_rthis.year, _rctx, 3, "year");
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("day", _rthis.day), _rctx);
+        _rr(id<2>, make("month", _rthis.month), _rctx);
+        _rr(id<3>, make("year", _rthis.year), _rctx);
     }
 };
 
@@ -288,10 +310,15 @@ struct UserData {
     std::string city;
     Date        birth_date;
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.full_name, _rctx, 1, "full_name").add(_rthis.email, _rctx, 2, "email").add(_rthis.country, _rctx, 3, "country");
-        _rr.add(_rthis.city, _rctx, 4, "city").add(_rthis.birth_date, _rctx, 5, "birth_date");
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("full_name", _rthis.full_name), _rctx);
+        _rr(id<2>, make("email", _rthis.email), _rctx);
+        _rr(id<3>, make("country", _rthis.country), _rctx);
+        _rr(id<4>, make("city", _rthis.city), _rctx);
+        _rr(id<5>, make("birth_date", _rthis.birth_date), _rctx);
     }
 };
 
@@ -307,9 +334,11 @@ struct Response : solid::frame::mprpc::Message {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.user_data_map, _rctx, 1, "user_data_map");
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("user_data_map", _rthis.user_data_map), _rctx);
     }
 };
 

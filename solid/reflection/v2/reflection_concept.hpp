@@ -22,6 +22,8 @@
 #include <variant>
 #include <vector>
 
+#include "solid/utility/typetraits.hpp"
+
 namespace solid::reflection::v2 {
 
 using namespace std::literals;
@@ -125,6 +127,36 @@ inline constexpr bool is_bit_vector_v = is_bit_vector<T>::value;
 
 template <typename T>
 concept BitVectorC = is_bit_vector<std::decay_t<T>>::value;
+
+// solid's intrusive pointers: IntrusivePtr, MutableIntrusivePtr, ConstIntrusivePtr
+template <class T>
+inline constexpr bool is_intrusive_ptr_v = solid::is_intrusive_ptr_v<T> || solid::is_mutable_intrusive_ptr_v<T> || solid::is_const_intrusive_ptr_v<T>;
+
+// The smart pointers reflected as TypeIdE::Pointer.
+template <class T>
+inline constexpr bool is_pointer_v = is_shared_ptr_v<T> || is_unique_ptr_v<T> || is_intrusive_ptr_v<T>;
+
+template <typename T>
+concept PointerC = is_pointer_v<std::decay_t<T>>;
+
+// Stores a new T, created with _args, into _rptr - a smart pointer (see
+// is_pointer_v) to T or to a base of T.
+template <class T, class Ptr, class... Args>
+void make_pointer(Ptr& _rptr, Args&&... _args)
+{
+    if constexpr (is_shared_ptr_v<Ptr>) {
+        _rptr = std::make_shared<T>(std::forward<Args>(_args)...);
+    } else if constexpr (is_unique_ptr_v<Ptr>) {
+        _rptr = std::make_unique<T>(std::forward<Args>(_args)...);
+    } else if constexpr (solid::is_intrusive_ptr_v<Ptr>) {
+        _rptr = solid::make_intrusive<T>(std::forward<Args>(_args)...);
+    } else if constexpr (solid::is_mutable_intrusive_ptr_v<Ptr>) {
+        _rptr = solid::make_mutable_intrusive<T>(std::forward<Args>(_args)...);
+    } else {
+        static_assert(solid::is_const_intrusive_ptr_v<Ptr>, "make_pointer: unsupported pointer type");
+        _rptr = Ptr(solid::make_mutable_intrusive<T>(std::forward<Args>(_args)...));
+    }
+}
 
 template <typename T, typename Enable = void>
 struct is_optional : std::false_type {};
@@ -249,7 +281,7 @@ constexpr TypeIdE to_type_id()
         return TypeIdE::KeyValueContainer;
     } else if constexpr (ContainerC<ValT>) {
         return TypeIdE::Container;
-    } else if constexpr (is_shared_ptr_v<ValT> or is_unique_ptr_v<ValT>) {
+    } else if constexpr (is_pointer_v<ValT>) {
         return TypeIdE::Pointer;
     } else if constexpr (is_optional_v<ValT>) {
         return TypeIdE::Optional;

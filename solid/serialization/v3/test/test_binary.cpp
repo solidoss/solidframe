@@ -86,14 +86,14 @@ class Test {
         a.a = 540554784UL;
         a.b = 2321664020290347053ULL;
         a.c = 1234567890123456789ULL;
-        serialization::binary::store(blob32, static_cast<uint32_t>(a.a));
+        serialization::v3::binary::store(blob32, static_cast<uint32_t>(a.a));
         {
             uint32_t v;
-            solid::serialization::binary::load(blob32, v);
+            solid::serialization::v3::binary::load(blob32, v);
             solid_assert(v == static_cast<uint32_t>(a.a));
         }
 
-        serialization::binary::store(blob64, a.b);
+        serialization::v3::binary::store(blob64, a.b);
         blob32_sz = sizeof(uint32_t);
         blob64_sz = sizeof(uint64_t);
 
@@ -199,12 +199,12 @@ public:
         solid_assert(memcmp(blob64, _rt.blob64, blob64_sz) == 0);
         {
             uint32_t v;
-            solid::serialization::binary::load(blob32, v);
+            solid::serialization::v3::binary::load(blob32, v);
             solid_assert(v == static_cast<uint32_t>(a.a));
         }
         {
             uint64_t v;
-            solid::serialization::binary::load(blob64, v);
+            solid::serialization::v3::binary::load(blob64, v);
             solid_assert(v == a.b);
         }
 #endif

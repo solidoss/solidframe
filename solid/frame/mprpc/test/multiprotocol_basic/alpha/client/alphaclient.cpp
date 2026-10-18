@@ -114,8 +114,7 @@ ErrorConditionT start(
     pctx = &_rctx;
 
     if (!mprpcclient_ptr) { // mprpc client initialization
-        auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, TypeIdT>(
-            reflection::v1::metadata::factory,
+        auto proto = frame::mprpc::serialization_v4::create_protocol<TypeIdT>(
             [](auto& _rmap) {
                 auto lambda = [&]<typename T>(const TypeIdT _id, const std::string_view _name, type_identity<T> const&) {
                     _rmap.template registerMessage<T>(_id, _name, complete_message<T>);

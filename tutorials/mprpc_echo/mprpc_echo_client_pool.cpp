@@ -87,8 +87,7 @@ int main(int argc, char* argv[])
         scheduler.start(1);
 
         {
-            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
-                reflection::v1::metadata::factory,
+            auto proto = frame::mprpc::serialization_v4::create_protocol<uint8_t>(
                 [&](auto& _rmap) {
                     auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const&) {
                         _rmap.template registerMessage<T>(_id, _name, rpc_echo_client::complete_message<T>);

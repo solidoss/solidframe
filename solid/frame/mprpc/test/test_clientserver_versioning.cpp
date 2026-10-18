@@ -4,7 +4,7 @@
 
 #include "solid/frame/mprpc/mprpccompression_snappy.hpp"
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v4.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
 #include "solid/frame/manager.hpp"
@@ -132,8 +132,7 @@ using InitResponsePointerT = solid::frame::mprpc::RecvMessagePointerT<InitRespon
 
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port)
 {
-    auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
-        reflection::v1::metadata::factory,
+    auto proto = frame::mprpc::serialization_v4::create_protocol<uint8_t>(
         [&](auto& _rmap) {
             auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, const type_identity<T>&) {
                 _rmap.template registerMessage<T>(_id, _name, complete_message<T>);
@@ -202,8 +201,7 @@ using InitResponsePointerT = solid::frame::mprpc::RecvMessagePointerT<InitRespon
 
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port)
 {
-    auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
-        reflection::v1::metadata::factory,
+    auto proto = frame::mprpc::serialization_v4::create_protocol<uint8_t>(
         [&](auto& _rmap) {
             auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const&) {
                 _rmap.template registerMessage<T>(_id, _name, complete_message<T>);
@@ -278,8 +276,7 @@ using InitResponsePointerT    = solid::frame::mprpc::RecvMessagePointerT<InitRes
 
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port)
 {
-    auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
-        reflection::v1::metadata::factory,
+    auto proto = frame::mprpc::serialization_v4::create_protocol<uint8_t>(
         [&](auto& _rmap) {
             auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const&) {
                 _rmap.template registerMessage<T>(_id, _name, complete_message<T>);
@@ -352,8 +349,7 @@ using Response2PointerT       = solid::frame::mprpc::RecvMessagePointerT<Respons
 
 void configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch, frame::aio::Resolver& _rrsv, const string& _server_port)
 {
-    auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
-        reflection::v1::metadata::factory,
+    auto proto = frame::mprpc::serialization_v4::create_protocol<uint8_t>(
         [&](auto& _rmap) {
             auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const&) {
                 _rmap.template registerMessage<T>(_id, _name, complete_message<T>);
@@ -491,8 +487,7 @@ void complete_message(
 
 string configure_service(frame::mprpc::ServiceT& _rsvc, AioSchedulerT& _rsch)
 {
-    auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
-        reflection::v1::metadata::factory,
+    auto proto = frame::mprpc::serialization_v4::create_protocol<uint8_t>(
         [&](auto& _rmap) {
             auto lambda = [&]<typename T>(const uint8_t _id, const std::string_view _name, type_identity<T> const&) {
                 _rmap.template registerMessage<T>(_id, _name, complete_message<T>);

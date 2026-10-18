@@ -21,7 +21,7 @@
 
 #include "solid/serialization/v4/binarybase.hpp"
 
-namespace solid::serialization::v4::binary {
+namespace solid::serialization::inline v4::binary {
 
 // —— Serializer ——
 // Binary serializer driven by reflection v2, wire compatible with
@@ -200,7 +200,7 @@ private:
         if constexpr (FieldT::type_id == TypeIdE::Callable) {
             addCallable(detail::take_callable(_rfield), _rctx);
         } else if constexpr (FieldT::type_id == TypeIdE::IStream || FieldT::type_id == TypeIdE::IOStream) {
-            addStream(_rfield.stream(), detail::progress_of(_rfield), _rctx);
+            addStream(_rfield.stream(), _rfield.size, detail::progress_of(_rfield), _rctx);
         } else if constexpr (FieldT::type_id == TypeIdE::OStream) {
             // output streams are only filled by the deserializer
         } else {
@@ -229,11 +229,11 @@ private:
     }
 
     template <class Progress>
-    void addStream(std::istream& _ris, Progress&& _progress, Context& _rctx)
+    void addStream(std::istream& _ris, const uint64_t _size, Progress&& _progress, Context& _rctx)
     {
         queue_.tryRun(
-            [pis = &_ris, progress = std::forward<Progress>(_progress), total = uint64_t{0}](ThisT& _rser, Context& _rctx) mutable {
-                return _rser.storeStreamChunk(*pis, total, progress, _rctx);
+            [pis = &_ris, progress = std::forward<Progress>(_progress), total = uint64_t{0}, _size](ThisT& _rser, Context& _rctx) mutable {
+                return _rser.storeStreamChunk(*pis, total, _size, progress, _rctx);
             },
             *this, _rctx);
     }
@@ -245,7 +245,11 @@ private:
         if (error_) {
             return;
         }
-        if (isRunEmpty()) {
+        constexpr KindE kind = detail::kind<T>();
+        // Composite values are walked right away, like v3 does: their own
+        // reflection may read the context (e.g. mprpc's message header),
+        // which must be seen as it is now. Their leaves schedule themselves.
+        if (isRunEmpty() || kind == KindE::Reflectable || kind == KindE::Pointer || kind == KindE::Optional || kind == KindE::Variant) {
             store(_rvalue, _limit, _rctx);
         } else if constexpr (detail::kind<T>() == KindE::Bool || detail::kind<T>() == KindE::Integer || detail::kind<T>() == KindE::Enum) {
             // by value: scalars are often temporaries computed in solidReflectV2
@@ -504,15 +508,16 @@ private:
 
     // One stream chunk: a 2 bytes length followed by that many bytes; a zero
     // length chunk ends the stream.
+    // At most _size bytes are read from the stream (the descriptor's with_size).
     template <class Progress>
-    ReturnE storeStreamChunk(std::istream& _ris, uint64_t& _rtotal, Progress& _rprogress, Context& _rctx)
+    ReturnE storeStreamChunk(std::istream& _ris, uint64_t& _rtotal, const uint64_t _size, Progress& _rprogress, Context& _rctx)
     {
         if (room() <= 2) {
             return ReturnE::Wait;
         }
-        const size_t to_read = std::min<size_t>(room() - 2, std::numeric_limits<uint16_t>::max());
+        const size_t to_read = static_cast<size_t>(std::min<uint64_t>({room() - 2, std::numeric_limits<uint16_t>::max(), _size - _rtotal}));
         size_t       len     = 0;
-        if (_ris) {
+        if (_ris && to_read != 0) {
             _ris.read(pcrt_ + 2, static_cast<std::streamsize>(to_read));
             len = static_cast<size_t>(_ris.gcount());
         }
@@ -524,4 +529,4 @@ private:
     }
 };
 
-} // namespace solid::serialization::v4::binary
+} // namespace solid::serialization::inline v4::binary

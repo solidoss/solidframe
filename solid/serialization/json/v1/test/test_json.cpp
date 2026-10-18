@@ -13,6 +13,7 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <span>
 #include <sstream>
@@ -200,15 +201,15 @@ public:
     {
         using namespace solid::reflection::v2;
         _rr(id<1>, make("b"sv, rthis.vb_), _rc);
-        _rr(id<2>, make("u32"sv, rthis.vu32_).set_max(1000).set_min(10), _rc);
-        _rr(id<3>, make("s"sv, rthis.vs_).set_max_size(1000), _rc);
+        _rr(id<2>, make("u32"sv, rthis.vu32_).with_max(1000).with_min(10), _rc);
+        _rr(id<3>, make("s"sv, rthis.vs_).with_max_size(1000), _rc);
         _rr(id<4>, make("sub"sv, rthis.sub_), _rc);
         _rr(id<5>, make("sub_dq"sv, rthis.sub_dq_), _rc);
         _rr(id<6>, make("sub_map"sv, rthis.sub_map_), _rc);
         _rr(id<7>, make("callback"sv, [](auto&&, Ctx&) { cout << "Callback called!" << endl; }), _rc);
         _rr(id<8>, make("ioss"sv, rthis.ioss_), _rc);
         _rr(id<9>, make("oss"sv, rthis.oss_), _rc);
-        _rr(id<9>, make("iss"sv, rthis.iss_).set_progress([](std::istream&, size_t, bool, Ctx&) { cout << "Progress called" << endl; }), _rc);
+        _rr(id<9>, make("iss"sv, rthis.iss_).with_progress([](std::istream&, size_t, bool, Ctx&) { cout << "Progress called" << endl; }), _rc);
         _rr(id<10>, make("bool_vec"sv, rthis.bool_vec_), _rc);
         _rr(id<11>, make("sub_arr"sv, rthis.sub_arr_), _rc);
         _rr(id<12>, make("tuple"sv, rthis.tuple_), _rc);
@@ -492,8 +493,8 @@ public:
         _rr(id<FieldE::secret_key>, SFR_V2_MAKEF(rthis, secret_key), _rc);
         _rr(id<FieldE::description>, SFR_V2_MAKEF(rthis, description), _rc);
         _rr(id<FieldE::max_depth>, SFR_V2_MAKEF(rthis, max_depth), _rc);
-        _rr(id<FieldE::buy>, SFR_V2_MAKEF(rthis, buy).set_max_size(rthis.max_depth()), _rc);
-        _rr(id<FieldE::sell>, SFR_V2_MAKEF(rthis, sell).set_max_size(rthis.max_depth()), _rc);
+        _rr(id<FieldE::buy>, SFR_V2_MAKEF(rthis, buy).with_max_size(rthis.max_depth()), _rc);
+        _rr(id<FieldE::sell>, SFR_V2_MAKEF(rthis, sell).with_max_size(rthis.max_depth()), _rc);
     }
 };
 
@@ -545,6 +546,16 @@ struct TestReflectionAnnotated {
     std::uint64_t                                                                                              plain_;
 
     bool operator==(TestReflectionAnnotated const&) const = default;
+};
+
+// members excluded from reflection through annotate::skip - their types need
+// not be reflectable
+struct TestReflectionSkip {
+    std::string                                               s_;
+    [[= solid::reflection::v2::annotate::skip]] std::mutex    mtx_;
+    [[= solid::reflection::v2::annotate::skip]] std::uint64_t cache_ = 0;
+    [[= solid::reflection::v2::annotate::skip]] Sub*          psub_  = nullptr;
+    std::uint32_t                                             u_     = 0;
 };
 #endif
 
@@ -626,6 +637,33 @@ int test_json(
         auto const                     res = from_json(str, ann_rt, ctx);
         solid_check(res, "from_json(TestReflectionAnnotated): " << res.error().message());
         solid_check(ann_rt == ann, "TestReflectionAnnotated round-trip mismatch");
+    }
+    {
+        // skipped members are neither written nor read
+        alpha::TestReflectionSkip skip;
+        skip.s_     = "kept";
+        skip.cache_ = 7;
+        skip.u_     = 42;
+
+        std::string str;
+        to_json_str(str, skip, ctx);
+        cout << str << endl;
+        solid_check(str == R"({"s_":"kept","u_":42})", "unexpected: " << str);
+
+        alpha::TestReflectionSkip skip_rt;
+        skip_rt.cache_ = 99;
+        auto const res = from_json(str, skip_rt, ctx);
+        solid_check(res, "from_json(TestReflectionSkip): " << res.error().message());
+        solid_check(skip_rt.s_ == skip.s_ && skip_rt.u_ == skip.u_ && skip_rt.cache_ == 99 && skip_rt.psub_ == nullptr, "TestReflectionSkip round-trip mismatch");
+
+        // the remaining members keep their declaration ids
+        std::vector<std::pair<size_t, std::string>> fields;
+        solid::reflection::v2::reflect(std::as_const(skip), [&fields](auto _id, auto&& _field, auto&) { fields.emplace_back(static_cast<size_t>(_id.value), std::string(_field.name)); }, ctx);
+        solid_check((fields == std::vector<std::pair<size_t, std::string>>{{1, "s_"}, {5, "u_"}}), "unexpected fields");
+
+        // a skipped member is unknown to the parser
+        alpha::TestReflectionSkip skip_bad;
+        solid_check(!from_json(R"({"s_":"kept","cache_":5,"u_":42})", skip_bad, ctx), "from_json accepted a skipped member");
     }
 #endif
     std::string json_str;

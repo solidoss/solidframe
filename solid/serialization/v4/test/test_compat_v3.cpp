@@ -303,11 +303,11 @@ struct Message {
         _rr(id<8>, make("i64"sv, rthis.i64_), _rc);
         _rr(id<9>, make("u64"sv, rthis.u64_), _rc);
         _rr(id<10>, make("c"sv, rthis.c_), _rc);
-        _rr(id<11>, make("s"sv, rthis.s_).set_max_size(10000), _rc);
+        _rr(id<11>, make("s"sv, rthis.s_).with_max_size(10000), _rc);
         _rr(id<12>, make("vc"sv, rthis.vc_), _rc);
         _rr(id<13>, make("vu8"sv, rthis.vu8_), _rc);
         _rr(id<14>, make("vu32"sv, rthis.vu32_), _rc);
-        _rr(id<15>, make("vsub"sv, rthis.vsub_).set_max_size(100), _rc);
+        _rr(id<15>, make("vsub"sv, rthis.vsub_).with_max_size(100), _rc);
         _rr(id<16>, make("dsub"sv, rthis.dsub_), _rc);
         _rr(id<17>, make("lsub"sv, rthis.lsub_), _rc);
         _rr(id<18>, make("msub"sv, rthis.msub_), _rc);
@@ -322,7 +322,7 @@ struct Message {
         _rr(id<27>, make("asub_cnt"sv, rthis.asub_cnt_), _rc);
         // the deserializer must see asub_cnt before limiting asub: defer
         _rr(id<28>, make("asub"sv, [&rthis](auto&& _rr, Ctx& _rc) -> void {
-            _rr(id<1>, make("items"sv, rthis.asub_).set_max_size(rthis.asub_cnt_), _rc);
+            _rr(id<1>, make("items"sv, rthis.asub_).with_max_size(rthis.asub_cnt_), _rc);
         }),
             _rc);
         _rr(id<29>, make("pair"sv, rthis.pair_), _rc);

@@ -4,7 +4,7 @@
 
 #include "solid/frame/mprpc/mprpccompression_snappy.hpp"
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v4.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
 #include "solid/frame/manager.hpp"
@@ -72,9 +72,11 @@ struct Request : frame::mprpc::Message {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.name_, _rctx, 1, "name");
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("name", _rthis.name_), _rctx);
     }
 };
 
@@ -98,25 +100,27 @@ struct Response : frame::mprpc::Message {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.error_, _rctx, 1, "error");
-        if constexpr (!Reflector::is_const_reflector) {
-            auto progress_lambda = [](Context& _rctx, std::ostream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("error", _rthis.error_), _rctx);
+        if constexpr (!std::is_const_v<std::remove_reference_t<decltype(_rthis)>>) {
+            auto progress_lambda = [](std::ostream& _ris, uint64_t _len, const bool _done, Context& _rctx) {
                 // NOTE: here you can use context.any()for actual implementation
                 if (_done) {
-                    solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
+                    solid_log(logger, Verbose, "Progress(stream): " << _len << " done = " << _done);
                 }
             };
-            _rr.add(_rthis.oss_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda); });
+            _rr(id<2>, make("stream", _rthis.oss_).with_progress(progress_lambda), _rctx);
         } else {
-            auto progress_lambda = [](Context& _rctx, std::istream& _ris, uint64_t _len, const bool _done, const size_t _index, const char* _name) {
+            auto progress_lambda = [](std::istream& _ris, uint64_t _len, const bool _done, Context& _rctx) {
                 // NOTE: here you can use context.any()for actual implementation
                 if (_done) {
-                    solid_log(logger, Verbose, "Progress(" << _name << "): " << _len << " done = " << _done);
+                    solid_log(logger, Verbose, "Progress(stream): " << _len << " done = " << _done);
                 }
             };
-            _rr.add(_rthis.ifs_, _rctx, 2, "stream", [&progress_lambda](auto& _rmeta) { _rmeta.progressFunction(progress_lambda).size(100 * 1024); });
+            _rr(id<2>, make("stream", _rthis.ifs_).with_progress(progress_lambda).with_size(100 * 1024), _rctx);
         }
     }
 };
@@ -247,8 +251,7 @@ int test_clientserver_download(int argc, char* argv[])
         std::string server_port;
 
         { // mprpc back_server initialization
-            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
-                reflection::v1::metadata::factory,
+            auto proto = frame::mprpc::serialization_v4::create_protocol<uint8_t>(
                 [&](auto& _rmap) {
                     _rmap.template registerMessage<Request>(1, "Request", on_server_receive_first_request);
                     _rmap.template registerMessage<Response>(2, "Response", on_server_response);
@@ -296,8 +299,7 @@ int test_clientserver_download(int argc, char* argv[])
         }
 
         { // mprpc front_client initialization
-            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
-                reflection::v1::metadata::factory,
+            auto proto = frame::mprpc::serialization_v4::create_protocol<uint8_t>(
                 [&](auto& _rmap) {
                     _rmap.template registerMessage<Request>(1, "Request", on_client_request);
                     _rmap.template registerMessage<Response>(2, "Response", on_client_response);

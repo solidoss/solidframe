@@ -3,7 +3,7 @@
 
 #include "solid/frame/mprpc/mprpccontext.hpp"
 #include "solid/frame/mprpc/mprpcmessage.hpp"
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v4.hpp"
 
 struct Register : solid::frame::mprpc::Message {
     uint32_t group_id_   = 0;
@@ -17,9 +17,11 @@ struct Register : solid::frame::mprpc::Message {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.group_id_, _rctx, 1, "group_id");
-        _rr.add(_rthis.replica_id_, _rctx, 2, "replica_id");
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("group_id", _rthis.group_id_), _rctx);
+        _rr(id<2>, make("replica_id", _rthis.replica_id_), _rctx);
     }
 };

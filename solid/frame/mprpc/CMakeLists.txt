@@ -20,6 +20,7 @@ set(Headers
     mprpcmessage.hpp
     mprpcprotocol.hpp
     mprpcprotocol_serialization_v3.hpp
+    mprpcprotocol_serialization_v4.hpp
     mprpcservice.hpp
     mprpcsocketstub.hpp
     mprpcsocketstub_openssl.hpp

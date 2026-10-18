@@ -13,7 +13,7 @@
 #include "solid/frame/aio/aiotimer.hpp"
 
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v4.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
 #include <condition_variable>
@@ -97,8 +97,7 @@ int test_multiprotocol_basic(int argc, char* argv[])
         std::string server_port;
 
         { // mprpc server initialization
-            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, TypeIdT>(
-                reflection::v1::metadata::factory,
+            auto proto = frame::mprpc::serialization_v4::create_protocol<TypeIdT>(
                 [](auto& _rmap) {
                     gamma_server::register_messages(_rmap);
                     beta_server::register_messages(_rmap);

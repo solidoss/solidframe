@@ -12,7 +12,7 @@
 
 #include "solid/serialization/v4/error.hpp"
 
-namespace solid::serialization::v4 {
+namespace solid::serialization::inline v4 {
 
 namespace {
 
@@ -92,4 +92,4 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_variant_index(Error_Variant_Index_E, category);
 /*extern*/ const ErrorConditionT error_reflector_type(Error_Reflector_Type_E, category);
 
-} // namespace solid::serialization::v4
+} // namespace solid::serialization::inline v4

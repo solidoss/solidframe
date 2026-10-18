@@ -5,7 +5,7 @@
 #include "solid/frame/scheduler.hpp"
 #include "solid/system/common.hpp"
 
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v4.hpp"
 
 typedef solid::frame::Scheduler<solid::frame::aio::Reactor<solid::frame::mprpc::EventT>> AioSchedulerT;
 

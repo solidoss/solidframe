@@ -408,10 +408,7 @@ bool parse_elem(std::string_view& s, T& out, Ctx& rc)
             return true;
         }
         using ElemT = typename ValT::element_type;
-        if constexpr (reflection::detail::is_shared_ptr_v<ValT>)
-            out = std::make_shared<ElemT>();
-        else
-            out = std::make_unique<ElemT>();
+        reflection::detail::make_pointer<ElemT>(out);
         return parse_elem(s, *out, rc);
     } else if constexpr (elem_typeid == TypeIdE::Variant) {
         if (!consume(s, '['))

@@ -6,6 +6,7 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <set>
 #include <sstream>
@@ -150,12 +151,12 @@ struct Full {
         _rr(id<7>, make("u64"sv, rthis.u64_), _rc);
         _rr(id<8>, make("c"sv, rthis.c_), _rc);
         _rr(id<9>, make("color"sv, rthis.color_), _rc);
-        _rr(id<10>, make("s"sv, rthis.s_).set_max_size(4096), _rc);
+        _rr(id<10>, make("s"sv, rthis.s_).with_max_size(4096), _rc);
         _rr(id<11>, make("empty_s"sv, rthis.empty_s_), _rc);
         _rr(id<12>, make("vu32"sv, rthis.vu32_), _rc);
         _rr(id<13>, make("vc"sv, rthis.vc_), _rc);
         _rr(id<14>, make("vi16"sv, rthis.vi16_), _rc);
-        _rr(id<15>, make("vsub"sv, rthis.vsub_).set_max_size(100), _rc);
+        _rr(id<15>, make("vsub"sv, rthis.vsub_).with_max_size(100), _rc);
         _rr(id<16>, make("dsub"sv, rthis.dsub_), _rc);
         _rr(id<17>, make("lst"sv, rthis.lst_), _rc);
         _rr(id<18>, make("msub"sv, rthis.msub_), _rc);
@@ -172,7 +173,7 @@ struct Full {
         _rr(id<29>, make("asub_cnt"sv, rthis.asub_cnt_), _rc);
         // the count is known only once asub_cnt is in: defer through a callable
         _rr(id<30>, make("asub"sv, [&rthis](auto&& _rr, Ctx& _rc) -> void {
-            _rr(id<1>, make("items"sv, rthis.asub_).set_max_size(rthis.asub_cnt_), _rc);
+            _rr(id<1>, make("items"sv, rthis.asub_).with_max_size(rthis.asub_cnt_), _rc);
         }),
             _rc);
         _rr(id<31>, make("pair"sv, rthis.pair_), _rc);
@@ -309,6 +310,33 @@ struct Streams {
     }
 };
 
+// Streams limited through the descriptors: at most size_ bytes are sent,
+// more than max_size_ received is an error.
+struct LimitedStreams {
+    uint64_t                   size_     = ~0ULL;
+    uint64_t                   max_size_ = ~0ULL;
+    mutable std::istringstream iss_;
+    std::ostringstream         oss_;
+    uint64_t                   progress_total_ = 0;
+    bool                       progress_done_  = false;
+
+    template <typename Reflector, typename Ctx>
+    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
+    {
+        using namespace solid::reflection::v2;
+        if constexpr (std::is_const_v<std::remove_reference_t<decltype(rthis)>>) {
+            _rr(id<1>, make("stream"sv, rthis.iss_).with_size(rthis.size_), _rc);
+        } else {
+            auto progress = [&rthis](std::ostream&, uint64_t _total, bool _done, Ctx&) {
+                rthis.progress_total_ = _total;
+                rthis.progress_done_  = _done;
+            };
+            // with_max_size after with_progress must keep the progress callback
+            _rr(id<1>, make("stream"sv, rthis.oss_).with_progress(progress).with_max_size(rthis.max_size_), _rc);
+        }
+    }
+};
+
 struct Limited {
     string      s_;
     vector<Sub> v_;
@@ -317,10 +345,22 @@ struct Limited {
     void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
     {
         using namespace solid::reflection::v2;
-        _rr(id<1>, make("s"sv, rthis.s_).set_max_size(8), _rc);
-        _rr(id<2>, make("v"sv, rthis.v_).set_max_size(2), _rc);
+        _rr(id<1>, make("s"sv, rthis.s_).with_max_size(8), _rc);
+        _rr(id<2>, make("v"sv, rthis.v_).with_max_size(2), _rc);
     }
 };
+
+#ifdef SOLID_USE_REFLECTION
+// Natively reflected (no solidReflectV2): the skipped members are not
+// reflected - not even instantiated, so their types need not be reflectable.
+struct NativeSkip {
+    uint32_t                                               before_ = 0;
+    [[= solid::reflection::v2::annotate::skip]] std::mutex mtx_;
+    [[= solid::reflection::v2::annotate::skip]] uint64_t   cache_ = 0;
+    [[= solid::reflection::v2::annotate::skip]] Sub*       praw_  = nullptr;
+    string                                                 after_;
+};
+#endif
 
 struct Unlimited {
     string      s_;
@@ -446,6 +486,58 @@ void test_streams()
     }
 }
 
+void test_limited_streams()
+{
+    Context      ctx;
+    const string text(50000, 'z');
+    {
+        LimitedStreams in;
+        in.size_ = 12345;
+        in.iss_.str(text);
+        const string   data = serialize(in, 1000, ctx);
+        LimitedStreams out;
+        solid_check(!deserialize(data, out, 333, ctx));
+        solid_check(out.oss_.str() == text.substr(0, 12345));
+        solid_check(out.progress_total_ == 12345 && out.progress_done_);
+    }
+    {
+        LimitedStreams in;
+        in.iss_.str(text);
+        const string   data = serialize(in, 1000, ctx);
+        LimitedStreams out;
+        out.max_size_ = 20000;
+        solid_check(deserialize(data, out, 333, ctx) == serialization::v4::error_limit_stream);
+        solid_check(out.oss_.str().size() <= 20000);
+    }
+}
+
+void test_native_skip()
+{
+#ifdef SOLID_USE_REFLECTION
+    Context    ctx;
+    NativeSkip in;
+    in.before_ = 0x01020304;
+    in.cache_  = 7;
+    in.after_  = "after";
+
+    // only before_ and after_ are on the wire
+    const string data = serialize(in, 3, ctx);
+    solid_check(data == string("\x04\x03\x02\x01\x05"
+                               "after",
+                    10));
+
+    NativeSkip out;
+    out.cache_ = 99;
+    solid_check(!deserialize(data, out, 1, ctx));
+    solid_check(out.before_ == in.before_ && out.after_ == in.after_ && out.cache_ == 99 && out.praw_ == nullptr);
+
+    // the remaining members keep their declaration ids
+    vector<pair<size_t, string>> fields;
+    solid::reflection::v2::reflect(in, [&fields](auto _id, auto&& _rfield, Context&) { fields.emplace_back(static_cast<size_t>(_id.value), string(_rfield.name)); }, ctx);
+    solid_check((fields == vector<pair<size_t, string>>{{1, "before_"}, {5, "after_"}}));
+#endif
+}
+
 void test_errors()
 {
     Context ctx;
@@ -534,6 +626,8 @@ int test_binary(int /*argc*/, char* /*argv*/[])
     test_scalars();
     test_full();
     test_streams();
+    test_limited_streams();
+    test_native_skip();
     test_errors();
     cout << "done" << endl;
     return 0;

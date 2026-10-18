@@ -13,7 +13,7 @@
 
 #include "solid/frame/mprpc/mprpccompression_snappy.hpp"
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v4.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
 #include "solid/frame/manager.hpp"
@@ -125,18 +125,19 @@ struct Request : frame::mprpc::Message {
     uint64_t         time_point_               = -1;
     mutable uint64_t serialization_time_point_ = 0;
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        using ReflectorT = decay_t<decltype(_rr)>;
+        using namespace solid::reflection::v2;
 
-        if constexpr (ReflectorT::is_const_reflector) {
+        if constexpr (std::is_const_v<std::remove_reference_t<decltype(_rthis)>>) {
             _rthis.serialization_time_point_ = microseconds_since_epoch();
         }
 
-        _rr.add(_rthis.topic_id_, _rctx, 1, "topic_id");
-        _rr.add(_rthis.iteration_, _rctx, 2, "iteration");
-        _rr.add(_rthis.time_point_, _rctx, 3, "time_point");
-        _rr.add(_rthis.serialization_time_point_, _rctx, 4, "serialization_time_point");
+        _rr(id<1>, make("topic_id", _rthis.topic_id_), _rctx);
+        _rr(id<2>, make("iteration", _rthis.iteration_), _rctx);
+        _rr(id<3>, make("time_point", _rthis.time_point_), _rctx);
+        _rr(id<4>, make("serialization_time_point", _rthis.serialization_time_point_), _rctx);
     }
 
     Request()
@@ -161,19 +162,20 @@ struct Response : frame::mprpc::Message {
     uint64_t         topic_context_            = 0;
     uint64_t         receive_time_point_       = 0;
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        using ReflectorT = decay_t<decltype(_rr)>;
+        using namespace solid::reflection::v2;
 
-        if constexpr (ReflectorT::is_const_reflector) {
+        if constexpr (std::is_const_v<std::remove_reference_t<decltype(_rthis)>>) {
             _rthis.serialization_time_point_ = microseconds_since_epoch();
         }
 
-        _rr.add(_rthis.time_point_, _rctx, 3, "time_point");
-        _rr.add(_rthis.serialization_time_point_, _rctx, 4, "serialization_time_point");
-        _rr.add(_rthis.topic_value_, _rctx, 6, "topic_value");
-        _rr.add(_rthis.topic_context_, _rctx, 7, "topic_context");
-        _rr.add(_rthis.receive_time_point_, _rctx, 5, "receive_time_point");
+        _rr(id<3>, make("time_point", _rthis.time_point_), _rctx);
+        _rr(id<4>, make("serialization_time_point", _rthis.serialization_time_point_), _rctx);
+        _rr(id<6>, make("topic_value", _rthis.topic_value_), _rctx);
+        _rr(id<7>, make("topic_context", _rthis.topic_context_), _rctx);
+        _rr(id<5>, make("receive_time_point", _rthis.receive_time_point_), _rctx);
     }
 
     Response()
@@ -362,8 +364,7 @@ int test_clientserver_topic(int argc, char* argv[])
         std::string server_port;
 
         { // mprpc server initialization
-            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
-                reflection::v1::metadata::factory,
+            auto proto = frame::mprpc::serialization_v4::create_protocol<uint8_t>(
                 [&](auto& _rmap) {
                     _rmap.template registerMessage<Request>(1, "Request", server_complete_request);
                     _rmap.template registerMessage<Response>(2, "Response", server_complete_response);
@@ -412,8 +413,7 @@ int test_clientserver_topic(int argc, char* argv[])
         }
 
         { // mprpc client initialization
-            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
-                reflection::v1::metadata::factory,
+            auto proto = frame::mprpc::serialization_v4::create_protocol<uint8_t>(
                 [&](auto& _rmap) {
                     _rmap.template registerMessage<Request>(1, "Request", client_complete_request);
                     _rmap.template registerMessage<Response>(2, "Response", client_complete_response);

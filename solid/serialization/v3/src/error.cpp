@@ -12,7 +12,7 @@
 
 #include "solid/serialization/v3/error.hpp"
 
-namespace solid::serialization::inline v3 {
+namespace solid::serialization::v3 {
 
 namespace {
 
@@ -85,4 +85,4 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_compacted_integer(Error_Compacted_Integer_E, category);
 /*extern*/ const ErrorConditionT error_unknown_type(Error_Unknown_Type_E, category);
 /*extern*/ const ErrorConditionT error_limit_array(Error_Limit_Blob_E, category);
-} // namespace solid::serialization::inline v3
+} // namespace solid::serialization::v3

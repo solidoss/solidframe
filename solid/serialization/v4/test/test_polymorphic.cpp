@@ -7,6 +7,7 @@
 
 #include "solid/serialization/v4/serialization.hpp"
 #include "solid/system/exception.hpp"
+#include "solid/utility/intrusiveptr.hpp"
 
 using namespace solid;
 using namespace std;
@@ -339,6 +340,82 @@ struct Fixture {
     }
 };
 
+// Intrusive pointers - as used by mprpc messages: sent through a
+// ConstIntrusivePtr, received into a MutableIntrusivePtr.
+struct Node : IntrusiveThreadSafeBase {
+    uint32_t node_id = 0;
+    virtual ~Node() {}
+};
+
+struct LeafNode : Node {
+    string text;
+
+    template <typename Reflector, typename Ctx>
+    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
+    {
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("id"sv, rthis.node_id), _rc);
+        _rr(id<2>, make("text"sv, rthis.text), _rc);
+    }
+};
+
+struct ParentNode : Node {
+    IntrusivePtr<Node> child;
+
+    template <typename Reflector, typename Ctx>
+    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
+    {
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("id"sv, rthis.node_id), _rc);
+        _rr(id<2>, make("child"sv, rthis.child), _rc);
+    }
+};
+
+void test_intrusive()
+{
+    using SerializerT   = serialization::v4::binary::Serializer<Context>;
+    using DeserializerT = serialization::v4::binary::Deserializer<Context>;
+    using TypeMapT      = reflection::v2::TypeMap<SerializerT, DeserializerT>;
+
+    const TypeMapT type_map{[](auto& _rmap) {
+        _rmap.template register_type<LeafNode, Node>(TypeId{1}, TypeName{"LeafNode"});
+        _rmap.template register_type<ParentNode, Node>(TypeId{2}, TypeName{"ParentNode"}, [](Context& _rctx, auto& _rptr) {
+            reflection::v2::detail::make_pointer<ParentNode>(_rptr);
+            ++_rctx.created;
+        });
+    }};
+
+    auto leaf       = make_intrusive<LeafNode>();
+    leaf->node_id   = 7;
+    leaf->text      = "leaf";
+    auto parent     = make_mutable_intrusive<ParentNode>();
+    parent->node_id = 3;
+    parent->child   = leaf;
+    ConstIntrusivePtr<Node> sent{std::move(parent)};
+
+    Context     ctx;
+    SerializerT ser{type_map};
+    string      data;
+    char        buf[5];
+    ser.add(sent, ctx);
+    for (ptrdiff_t rv = ser.run(buf, sizeof(buf), ctx); rv > 0; rv = ser.run(buf, sizeof(buf), ctx)) {
+        data.append(buf, static_cast<size_t>(rv));
+    }
+    solid_check(!ser.error() && ser.empty());
+
+    MutableIntrusivePtr<Node> received;
+    DeserializerT             des{type_map};
+    des.add(received, ctx);
+    for (size_t i = 0; i < data.size(); ++i) {
+        solid_check(des.run(data.data() + i, 1, ctx) == 1);
+    }
+    solid_check(des.empty());
+    auto const* pparent = dynamic_cast<ParentNode const*>(received.get());
+    solid_check(pparent != nullptr && pparent->node_id == 3 && ctx.created == 1);
+    auto const* pleaf = dynamic_cast<LeafNode const*>(pparent->child.get());
+    solid_check(pleaf != nullptr && pleaf->node_id == 7 && pleaf->text == "leaf");
+}
+
 struct Unregistered : Key {
     void print(ostream&) const override {}
     template <typename Reflector, typename Ctx>
@@ -399,5 +476,6 @@ int test_polymorphic(int /*argc*/, char* /*argv*/[])
     Fixture<uint16_t>::run("uint16_t");
     Fixture<std::pair<uint8_t, uint16_t>>::run("pair<uint8_t, uint16_t>");
     test_errors();
+    test_intrusive();
     return 0;
 }

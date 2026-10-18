@@ -35,9 +35,26 @@ namespace solid::reflection::v2 {
 //     };
 //
 // native_reflect forwards them to the member's descriptor
-// (set_max_size, set_min, set_max). Annotations of other
+// (with_max_size, with_min, with_max). Annotations of other
 // types are ignored, so members may carry user-defined ones as well.
+//
+// A member annotated with annotate::skip is not reflected at all - it may
+// even be of a type that cannot be reflected (a mutex, a raw pointer...):
+//
+//     struct Item {
+//         std::string                   name_;
+//         [[=annotate::skip]] std::mutex mtx_;
+//     };
+//
+// Skipping a member does not renumber the others: ids follow the
+// declaration order of all the members.
 namespace annotate {
+
+struct skip_t {
+    constexpr bool operator==(skip_t const&) const = default;
+};
+
+inline constexpr skip_t skip{};
 
 struct max_size_t {
     size_t value;
@@ -675,8 +692,8 @@ void apply_annotation(Field& _rfield)
 {
     using AnnT = decltype(Ann);
     if constexpr (std::is_same_v<AnnT, annotate::max_size_t>) {
-        if constexpr (requires { _rfield.set_max_size(Ann.value); }) {
-            _rfield.set_max_size(Ann.value);
+        if constexpr (requires { _rfield.with_max_size(Ann.value); }) {
+            _rfield.with_max_size(Ann.value);
         } else {
             static_assert(false, "annotate::max_size is not supported on this member kind");
         }
@@ -686,11 +703,21 @@ void apply_annotation(Field& _rfield)
         static_assert(std::in_range<ValueT>(Ann.value), "annotate::min/max value is out of the member's range");
         constexpr auto value = static_cast<ValueT>(Ann.value);
         if constexpr (is_annotate_min_v<AnnT>) {
-            _rfield.set_min(value);
+            _rfield.with_min(value);
         } else {
-            _rfield.set_max(value);
+            _rfield.with_max(value);
         }
     }
+}
+
+consteval bool is_skipped(std::meta::info _member)
+{
+    for (auto annotation : std::meta::annotations_of(_member)) {
+        if (std::meta::remove_cvref(std::meta::type_of(annotation)) == ^^annotate::skip_t) {
+            return true;
+        }
+    }
+    return false;
 }
 
 template <std::meta::info Member,
@@ -700,13 +727,15 @@ template <std::meta::info Member,
     typename Ctx>
 void native_reflect_member(T& _rv, R& _rr, Ctx& _rc)
 {
-    auto field = make(std::meta::identifier_of(Member), _rv.[:Member:]);
-    template for (constexpr auto annotation : std::define_static_array(std::meta::annotations_of(Member)))
-    {
-        using AnnT = std::remove_cvref_t<typename[:std::meta::type_of(annotation):]>;
-        apply_annotation<std::meta::extract<AnnT>(annotation)>(field);
+    if constexpr (!is_skipped(Member)) { // a skipped member's descriptor is never instantiated
+        auto field = make(std::meta::identifier_of(Member), _rv.[:Member:]);
+        template for (constexpr auto annotation : std::define_static_array(std::meta::annotations_of(Member)))
+        {
+            using AnnT = std::remove_cvref_t<typename[:std::meta::type_of(annotation):]>;
+            apply_annotation<std::meta::extract<AnnT>(annotation)>(field);
+        }
+        _rr(id<Id>, field, _rc);
     }
-    _rr(id<Id>, field, _rc);
 }
 } // namespace detail
 

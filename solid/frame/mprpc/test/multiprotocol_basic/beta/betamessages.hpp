@@ -18,9 +18,12 @@ struct ThirdMessage : solid::frame::mprpc::Message {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.str, _rctx, 1, "str").add(_rthis.v, _rctx, 2, "v");
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("str", _rthis.str), _rctx);
+        _rr(id<2>, make("v", _rthis.v), _rctx);
     }
 };
 
@@ -43,9 +46,12 @@ struct FirstMessage : solid::frame::mprpc::Message {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.str, _rctx, 1, "str").add(_rthis.v, _rctx, 2, "v");
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("str", _rthis.str), _rctx);
+        _rr(id<2>, make("v", _rthis.v), _rctx);
     }
 };
 
@@ -66,9 +72,12 @@ struct SecondMessage : solid::frame::mprpc::Message {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.str, _rctx, 1, "str").add(_rthis.v, _rctx, 2, "v");
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("str", _rthis.str), _rctx);
+        _rr(id<2>, make("v", _rthis.v), _rctx);
     }
 };
 

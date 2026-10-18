@@ -116,6 +116,14 @@ public:
         _r.add(_rthis.pool_id_, _rctx, 1, "pool_id");
         _r.add(_rthis.connection_id_, _rctx, 2, "connection_id");
     }
+
+    template <typename Reflector, typename Ctx>
+    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rctx)
+    {
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("pool_id", rthis.pool_id_), _rctx);
+        _rr(id<2>, make("connection_id", rthis.connection_id_), _rctx);
+    }
 };
 
 inline bool operator<(RecipientId const& _rec_id1, RecipientId const& _rec_id2)

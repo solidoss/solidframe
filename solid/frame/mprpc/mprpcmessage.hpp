@@ -22,6 +22,7 @@
 #include "solid/frame/mprpc/mprpcid.hpp"
 #include "solid/frame/mprpc/mprpcmessageflags.hpp"
 #include "solid/reflection/v1/reflection.hpp"
+#include "solid/reflection/v2/reflection.hpp"
 
 #include "solid/utility/intrusiveptr.hpp"
 #include "solid/utility/pool.hpp"
@@ -60,6 +61,20 @@ struct MessageRelayHeader {
         } else {
             _rs.add(_rthis.group_id_, _rctx, 1, "group_id");
             _rs.add(_rthis.replica_id_, _rctx, 2, "replica_id");
+        }
+    }
+
+    // On send, the relay header comes from the connection context.
+    template <typename Reflector, typename Ctx>
+    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rctx)
+    {
+        using namespace solid::reflection::v2;
+        if constexpr (std::is_const_v<std::remove_reference_t<decltype(rthis)>>) {
+            _rr(id<1>, make("group_id", _rctx.pmessage_relay_header_->group_id_), _rctx);
+            _rr(id<2>, make("replica_id", _rctx.pmessage_relay_header_->replica_id_), _rctx);
+        } else {
+            _rr(id<1>, make("group_id", rthis.group_id_), _rctx);
+            _rr(id<2>, make("replica_id", rthis.replica_id_), _rctx);
         }
     }
 };
@@ -143,6 +158,38 @@ struct MessageHeader {
                         _rr.add(_rthis.relay_, _rctx, 6, "relay");
                     }
                 },
+                _rctx);
+        }
+    }
+
+    // On send, flags and the sender request id come from the connection
+    // context; on receive the relay header is present only if the flags,
+    // read just before, say so - hence the callable.
+    template <typename Reflector, typename Ctx>
+    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rctx)
+    {
+        using namespace solid::reflection::v2;
+        if constexpr (std::is_const_v<std::remove_reference_t<decltype(rthis)>>) {
+            const MessageFlagsValueT flags = _rctx.message_flags_.toUnderlyingType();
+            _rr(id<1>, make("flags", flags), _rctx);
+            _rr(id<2>, make("sender_request_index", _rctx.request_id_.index), _rctx);
+            _rr(id<3>, make("sender_request_unique", _rctx.request_id_.unique), _rctx);
+            _rr(id<4>, make("recipient_request_index", rthis.sender_request_id_.index), _rctx);
+            _rr(id<5>, make("recipient_request_unique", rthis.sender_request_id_.unique), _rctx);
+            if (_rctx.message_flags_.has(MessageFlagsE::Relayed)) {
+                _rr(id<6>, make("relay", rthis.relay_), _rctx);
+            }
+        } else {
+            _rr(id<1>, make("flags", rthis.flags_), _rctx);
+            _rr(id<2>, make("sender_request_index", rthis.sender_request_id_.index), _rctx);
+            _rr(id<3>, make("sender_request_unique", rthis.sender_request_id_.unique), _rctx);
+            _rr(id<4>, make("recipient_request_index", rthis.recipient_request_id_.index), _rctx);
+            _rr(id<5>, make("recipient_request_unique", rthis.recipient_request_id_.unique), _rctx);
+            _rr(id<6>, make("relay", [&rthis](auto&& _rr, Ctx& _rctx) -> void {
+                if (MessageFlagsT(rthis.flags_).has(MessageFlagsE::Relayed)) {
+                    _rr(id<1>, make("relay", rthis.relay_), _rctx);
+                }
+            }),
                 _rctx);
         }
     }

@@ -3,9 +3,15 @@
 ## Version 14.0
  * solid/reflection/v2:
     * TypeMap - polymorphic type registry ported from reflection v1 (function pointer stubs, no cast lookups on serialization)
+    * solid::IntrusivePtr, MutableIntrusivePtr and ConstIntrusivePtr are reflected as pointers
+    * stream descriptors: with_size (IStream/IOStream) and with_max_size (OStream/IOStream)
  * solid/serialization/v4:
     * binary serialization on reflection v2, wire compatible with v3
-    
+    * breaking change - v4 is now the default (inline) serialization namespace; v3 must be named explicitly (solid::serialization::v3)
+ * solid/frame/mprpc:
+    * mprpcprotocol_serialization_v4.hpp - mprpc protocol on serialization v4 (messages reflected with solidReflectV2); interoperates with v3 peers
+    * tests and tutorials moved to serialization v4; test_clientserver_basic_v3 keeps covering v3 and mixed v3/v4 peers
+
 ## Version 13.0
  * solid/utility:
     * MutableIntrusivePtr, ConstIntrusivePtr

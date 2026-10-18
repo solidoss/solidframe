@@ -107,12 +107,12 @@ public:
         ref = value;
     }
 
-    auto& set_min(value_type _val)
+    auto& with_min(value_type _val)
     {
         min = _val;
         return *this;
     }
-    auto& set_max(value_type _val)
+    auto& with_max(value_type _val)
     {
         max = _val;
         return *this;
@@ -162,7 +162,7 @@ public:
         ref.append(_sv);
     }
 
-    auto& set_max_size(size_t _size)
+    auto& with_max_size(size_t _size)
     {
         max_size = _size;
         return *this;
@@ -212,7 +212,7 @@ public:
     {
     }
 
-    auto& set_max_size(size_t _size)
+    auto& with_max_size(size_t _size)
     {
         max_size = _size;
         return *this;
@@ -278,7 +278,7 @@ public:
     {
     }
 
-    auto& set_max_size(size_t _size)
+    auto& with_max_size(size_t _size)
     {
         max_size = _size;
         return *this;
@@ -329,7 +329,7 @@ public:
     {
     }
 
-    auto& set_max_size(size_t _size)
+    auto& with_max_size(size_t _size)
     {
         max_size = std::min(_size, ref.size());
         return *this;
@@ -370,7 +370,7 @@ public:
     {
     }
 
-    auto& set_max_size(size_t _size)
+    auto& with_max_size(size_t _size)
     {
         max_size = _size;
         return *this;
@@ -423,6 +423,16 @@ public:
     static constexpr TypeIdE type_id{TypeIdE::IStream};
 
     std::string_view const name;
+    // at most this many bytes are read from the stream (serialization)
+    uint64_t size{std::numeric_limits<uint64_t>::max()};
+
+    // deducing this: keeps the derived (with progress) descriptor type
+    template <typename Self>
+    auto& with_size(this Self&& _rthis, const uint64_t _size)
+    {
+        _rthis.size = _size;
+        return static_cast<std::remove_reference_t<Self>&>(_rthis);
+    }
 
     IStream(std::string_view _name, std::istream& _ref)
         : ref{_ref}
@@ -436,7 +446,7 @@ public:
     }
 
     template <typename ProgressF>
-    auto set_progress(ProgressF&& _fnc)
+    auto with_progress(ProgressF&& _fnc)
     {
         using ProgressT = std::decay_t<ProgressF>;
         return IStream<ProgressT>{*this, std::forward<ProgressF>(_fnc)};
@@ -460,6 +470,16 @@ public:
     static constexpr TypeIdE type_id{TypeIdE::OStream};
 
     std::string_view const name;
+    // receiving more than this many bytes is an error (deserialization)
+    uint64_t max_size{std::numeric_limits<uint64_t>::max()};
+
+    // deducing this: keeps the derived (with progress) descriptor type
+    template <typename Self>
+    auto& with_max_size(this Self&& _rthis, const uint64_t _max_size)
+    {
+        _rthis.max_size = _max_size;
+        return static_cast<std::remove_reference_t<Self>&>(_rthis);
+    }
 
     OStream(std::string_view _name, std::ostream& _ref)
         : ref{_ref}
@@ -473,7 +493,7 @@ public:
     }
 
     template <typename ProgressF>
-    auto set_progress(ProgressF&& _fnc)
+    auto with_progress(ProgressF&& _fnc)
     {
         using ProgressT = std::decay_t<ProgressF>;
         return OStream<ProgressT>{*this, std::forward<ProgressF>(_fnc)};
@@ -497,6 +517,26 @@ public:
     static constexpr TypeIdE type_id{TypeIdE::IOStream};
 
     std::string_view const name;
+    // at most this many bytes are read from the stream (serialization)
+    uint64_t size{std::numeric_limits<uint64_t>::max()};
+
+    // deducing this: keeps the derived (with progress) descriptor type
+    template <typename Self>
+    auto& with_size(this Self&& _rthis, const uint64_t _size)
+    {
+        _rthis.size = _size;
+        return static_cast<std::remove_reference_t<Self>&>(_rthis);
+    }
+    // receiving more than this many bytes is an error (deserialization)
+    uint64_t max_size{std::numeric_limits<uint64_t>::max()};
+
+    // deducing this: keeps the derived (with progress) descriptor type
+    template <typename Self>
+    auto& with_max_size(this Self&& _rthis, const uint64_t _max_size)
+    {
+        _rthis.max_size = _max_size;
+        return static_cast<std::remove_reference_t<Self>&>(_rthis);
+    }
 
     IOStream(std::string_view _name, std::iostream& _ref)
         : ref{_ref}
@@ -510,7 +550,7 @@ public:
     }
 
     template <typename ProgressF>
-    auto set_progress(ProgressF&& _fnc)
+    auto with_progress(ProgressF&& _fnc)
     {
         using ProgressT = std::decay_t<ProgressF>;
         return IOStream<ProgressT>{*this, std::forward<ProgressF>(_fnc)};
@@ -563,11 +603,7 @@ public:
         requires std::is_same_v<element_type, T> or std::is_base_of_v<element_type, T>
     void make(Args&&... args) const
     {
-        if constexpr (detail::is_shared_ptr_v<value_type>) {
-            ref = std::make_shared<T>(std::forward<Args>(args)...);
-        } else if constexpr (detail::is_unique_ptr_v<value_type>) {
-            ref = std::make_unique<T>(std::forward<Args>(args)...);
-        }
+        detail::make_pointer<T>(ref, std::forward<Args>(args)...);
     }
 };
 
@@ -739,12 +775,12 @@ public:
     {
     }
 
-    auto& set_min(value_type _val)
+    auto& with_min(value_type _val)
     {
         min = _val;
         return *this;
     }
-    auto& set_max(value_type _val)
+    auto& with_max(value_type _val)
     {
         max = _val;
         return *this;
@@ -776,7 +812,7 @@ public:
         set(get() + _sv);
     }
 
-    auto& set_max_size(size_t _size)
+    auto& with_max_size(size_t _size)
     {
         max_size = _size;
         return *this;
@@ -812,7 +848,7 @@ public:
 // running offset (fixed-capacity semantics, like the std::array Container).
 // for_each honors max_size, which enables repeating groups: a fixed wire-size
 // array of which only the first N (e.g. max_depth) entries are active —
-// .set_max_size(N) limits serialization to those.
+// .with_max_size(N) limits serialization to those.
 template <typename ContT, typename GetF, typename SetF>
 class ContainerF {
     ContT cont;
@@ -836,7 +872,7 @@ public:
     {
     }
 
-    auto& set_max_size(size_t _size)
+    auto& with_max_size(size_t _size)
     {
         max_size = _size;
         return *this;

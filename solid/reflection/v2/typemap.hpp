@@ -9,7 +9,9 @@
 //
 #pragma once
 
+#include <array>
 #include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <memory>
 #include <string>
@@ -54,6 +56,72 @@ namespace solid::reflection::v2 {
 namespace detail {
 template <class R>
 inline constexpr char reflector_tag = 0;
+
+// The smart pointers a TypeMap can create objects into (see is_pointer_v).
+enum struct PointerKindE : uint8_t {
+    Shared = 0,
+    Unique,
+    Intrusive,
+    MutableIntrusive,
+    ConstIntrusive,
+};
+
+inline constexpr size_t pointer_kind_count = 5;
+
+template <class Ptr>
+consteval PointerKindE pointer_kind()
+{
+    if constexpr (is_shared_ptr_v<Ptr>) {
+        return PointerKindE::Shared;
+    } else if constexpr (is_unique_ptr_v<Ptr>) {
+        static_assert(std::is_same_v<Ptr, std::unique_ptr<typename Ptr::element_type>>, "only std::unique_ptr with the default deleter is supported");
+        return PointerKindE::Unique;
+    } else if constexpr (solid::is_intrusive_ptr_v<Ptr>) {
+        return PointerKindE::Intrusive;
+    } else if constexpr (solid::is_mutable_intrusive_ptr_v<Ptr>) {
+        return PointerKindE::MutableIntrusive;
+    } else {
+        static_assert(solid::is_const_intrusive_ptr_v<Ptr>, "unsupported pointer type");
+        return PointerKindE::ConstIntrusive;
+    }
+}
+
+template <PointerKindE Kind, class T>
+struct pointer_type;
+template <class T>
+struct pointer_type<PointerKindE::Shared, T> {
+    using type = std::shared_ptr<T>;
+};
+template <class T>
+struct pointer_type<PointerKindE::Unique, T> {
+    using type = std::unique_ptr<T>;
+};
+template <class T>
+struct pointer_type<PointerKindE::Intrusive, T> {
+    using type = solid::IntrusivePtr<T>;
+};
+template <class T>
+struct pointer_type<PointerKindE::MutableIntrusive, T> {
+    using type = solid::MutableIntrusivePtr<T>;
+};
+template <class T>
+struct pointer_type<PointerKindE::ConstIntrusive, T> {
+    using type = solid::ConstIntrusivePtr<T>;
+};
+
+template <PointerKindE Kind, class T>
+using pointer_t = typename pointer_type<Kind, T>::type;
+
+// Intrusive pointers exist only for types with an intrusive policy.
+template <PointerKindE Kind, class T>
+consteval bool pointer_kind_supports()
+{
+    if constexpr (Kind == PointerKindE::Shared || Kind == PointerKindE::Unique) {
+        return true;
+    } else {
+        return requires { typename solid::intrusive_policy_dispatch_t<T>; };
+    }
+}
 } // namespace detail
 
 // Strong types for the (category, id, name) a type is registered with, so the
@@ -204,8 +272,8 @@ public:
     }
 
     // Creates the object registered as _rentry, stores it into _rptr (a
-    // shared_ptr or unique_ptr to the registered type or one of its
-    // registered bases) and walks it through _rreflector.reflect_object.
+    // shared_ptr, unique_ptr or solid intrusive pointer to the registered type
+    // or one of its registered bases) and walks it through _rreflector.reflect_object.
     // Returns false (leaving _rptr empty) if the pointer's element type is not
     // a registered base of the entry or the pointer kind cannot be created.
     template <class Reflector, class Ptr>
@@ -217,22 +285,13 @@ public:
         const auto& rrstub = rstub.reflector_vec_[reflectorSlot<Reflector>()];
         void*       pobj   = nullptr;
 
+        constexpr auto kind = static_cast<size_t>(detail::pointer_kind<Ptr>());
+
         _rptr.reset();
-        if (pcast == nullptr) {
+        if (pcast == nullptr || rrstub.create_fnc_[kind] == nullptr || pcast->cast_fnc_[kind] == nullptr) {
             return false;
         }
-        if constexpr (detail::is_shared_ptr_v<Ptr>) {
-            if (rrstub.create_shared_fnc_ == nullptr) {
-                return false;
-            }
-            pobj = rrstub.create_shared_fnc_(rstub.pcreate_.get(), &_rctx, &_rptr, pcast->shared_fnc_);
-        } else {
-            static_assert(std::is_same_v<Ptr, std::unique_ptr<ElementT>>, "only std::shared_ptr and std::unique_ptr with the default deleter are supported");
-            if (rrstub.create_unique_fnc_ == nullptr) {
-                return false;
-            }
-            pobj = rrstub.create_unique_fnc_(rstub.pcreate_.get(), &_rctx, &_rptr, pcast->unique_fnc_);
-        }
+        pobj = rrstub.create_fnc_[kind](rstub.pcreate_.get(), &_rctx, &_rptr, pcast->cast_fnc_[kind]);
         if (pobj == nullptr) {
             return false;
         }
@@ -247,14 +306,12 @@ protected:
 
     struct ReflectorStub {
         ReflectFunctionT reflect_fnc_       = nullptr;
-        CreateFunctionT  create_shared_fnc_ = nullptr;
-        CreateFunctionT  create_unique_fnc_ = nullptr;
+        std::array<CreateFunctionT, detail::pointer_kind_count> create_fnc_{}; // by PointerKindE
     };
 
     struct CastStub {
         std::type_info const* ptype_info_ = nullptr;
-        CastFunctionT         shared_fnc_ = nullptr;
-        CastFunctionT         unique_fnc_ = nullptr;
+        std::array<CastFunctionT, detail::pointer_kind_count> cast_fnc_{}; // by PointerKindE
     };
 
     struct TypeStub : TypeEntry {
@@ -366,19 +423,26 @@ template <class... Reflector>
 class TypeMap : public TypeMapBase {
     using ThisT = TypeMap<Reflector...>;
 
-    template <class T>
-    using unique_ptr_t = std::unique_ptr<T>;
-
-    template <class T, class B>
-    static void castShared(void* _pto, void* _pfrom)
+    template <detail::PointerKindE Kind, class T, class B>
+    static void castStub(void* _pto, void* _pfrom)
     {
-        *static_cast<std::shared_ptr<B>*>(_pto) = std::move(*static_cast<std::shared_ptr<T>*>(_pfrom));
+        *static_cast<detail::pointer_t<Kind, B>*>(_pto) = std::move(*static_cast<detail::pointer_t<Kind, T>*>(_pfrom));
     }
 
-    template <class T, class B>
-    static void castUnique(void* _pto, void* _pfrom)
+    template <detail::PointerKindE Kind, class T, class B>
+    static constexpr CastFunctionT castFunction()
     {
-        *static_cast<std::unique_ptr<B>*>(_pto) = std::move(*static_cast<std::unique_ptr<T>*>(_pfrom));
+        if constexpr (detail::pointer_kind_supports<Kind, T>() && detail::pointer_kind_supports<Kind, B>()) {
+            return &castStub<Kind, T, B>;
+        } else {
+            return nullptr;
+        }
+    }
+
+    template <class T, class B, size_t... K>
+    static constexpr std::array<CastFunctionT, detail::pointer_kind_count> castFunctions(std::index_sequence<K...>)
+    {
+        return {castFunction<static_cast<detail::PointerKindE>(K), T, B>()...};
     }
 
     template <class R, class T>
@@ -393,39 +457,43 @@ class TypeMap : public TypeMapBase {
         }
     }
 
-    template <class R, class T, class CreateF, template <class> class PtrT>
+    template <class R, class T, class CreateF, detail::PointerKindE Kind>
     static void* createStub(void const* _pcreate, void* _pctx, void* _pptr, CastFunctionT _cast_fnc)
     {
-        auto&   rctx = *static_cast<typename R::ContextT*>(_pctx);
-        PtrT<T> ptr;
+        auto&                      rctx = *static_cast<typename R::ContextT*>(_pctx);
+        detail::pointer_t<Kind, T> ptr;
         if constexpr (std::is_void_v<CreateF>) {
-            if constexpr (detail::is_shared_ptr_v<PtrT<T>>) {
-                ptr = std::make_shared<T>();
-            } else {
-                ptr = std::make_unique<T>();
-            }
+            detail::make_pointer<T>(ptr);
         } else {
             (*static_cast<CreateF const*>(_pcreate))(rctx, ptr);
         }
-        void* const pobject = ptr.get();
+        void* const pobject = const_cast<void*>(static_cast<void const*>(ptr.get()));
         _cast_fnc(_pptr, &ptr);
         return pobject;
     }
 
-    template <class R, class T, class CreateF, template <class> class PtrT>
+    template <class R, class T, class CreateF, detail::PointerKindE Kind>
     static constexpr CreateFunctionT createFunction()
     {
-        if constexpr (std::is_void_v<CreateF>) {
-            if constexpr (std::is_default_constructible_v<T>) {
-                return &createStub<R, T, CreateF, PtrT>;
+        if constexpr (!detail::pointer_kind_supports<Kind, T>()) {
+            return nullptr;
+        } else if constexpr (std::is_void_v<CreateF>) {
+            if constexpr (std::is_default_constructible_v<T> && !std::is_abstract_v<T>) {
+                return &createStub<R, T, CreateF, Kind>;
             } else {
                 return nullptr;
             }
-        } else if constexpr (std::is_invocable_v<CreateF const&, typename R::ContextT&, PtrT<T>&>) {
-            return &createStub<R, T, CreateF, PtrT>;
+        } else if constexpr (std::is_invocable_v<CreateF const&, typename R::ContextT&, detail::pointer_t<Kind, T>&>) {
+            return &createStub<R, T, CreateF, Kind>;
         } else {
             return nullptr;
         }
+    }
+
+    template <class R, class T, class CreateF, size_t... K>
+    static constexpr std::array<CreateFunctionT, detail::pointer_kind_count> createFunctions(std::index_sequence<K...>)
+    {
+        return {createFunction<R, T, CreateF, static_cast<detail::PointerKindE>(K)>()...};
     }
 
     template <class T, class CreateF>
@@ -434,8 +502,7 @@ class TypeMap : public TypeMapBase {
         size_t slot = 0;
         ((_rstub.reflector_vec_[slot++] = ReflectorStub{
               &reflectStub<Reflector, T>,
-              createFunction<Reflector, T, CreateF, std::shared_ptr>(),
-              createFunction<Reflector, T, CreateF, unique_ptr_t>()}),
+              createFunctions<Reflector, T, CreateF>(std::make_index_sequence<detail::pointer_kind_count>{})}),
             ...);
     }
 
@@ -448,7 +515,7 @@ class TypeMap : public TypeMapBase {
                 return;
             }
         }
-        _rstub.cast_vec_.push_back(CastStub{&typeid(B), &castShared<T, B>, &castUnique<T, B>});
+        _rstub.cast_vec_.push_back(CastStub{&typeid(B), castFunctions<T, B>(std::make_index_sequence<detail::pointer_kind_count>{})});
     }
 
     template <class T, class CreateF, class... Bases>

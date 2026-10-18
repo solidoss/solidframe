@@ -14,6 +14,7 @@
 #include <utility>
 
 #include "solid/reflection/reflection.hpp"
+#include "solid/reflection/v2/reflection.hpp"
 #include "solid/system/convertors.hpp"
 #include "solid/utility/common.hpp"
 
@@ -66,6 +67,14 @@ struct UniqueId {
     {
         _r.add(_rthis.index, _rctx, 1, "index");
         _r.add(_rthis.unique, _rctx, 2, "unique");
+    }
+
+    template <typename Reflector, typename Ctx>
+    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rctx)
+    {
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("index", rthis.index), _rctx);
+        _rr(id<2>, make("unique", rthis.unique), _rctx);
     }
 };
 

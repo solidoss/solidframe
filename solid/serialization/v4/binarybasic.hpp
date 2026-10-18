@@ -23,7 +23,7 @@
 //    values <= 127, otherwise a byte holding -N followed by the N
 //    significant bytes of the value, little endian;
 //  - bit sequences are packed LSB first.
-namespace solid::serialization::v4::binary {
+namespace solid::serialization::inline v4::binary {
 
 static_assert(std::endian::native == std::endian::little || std::endian::native == std::endian::big, "mixed endian is not supported");
 
@@ -146,4 +146,4 @@ inline bool load_bit_from(const uint8_t* _pbeg, const size_t _bit_idx) noexcept
     return ((_pbeg[_bit_idx >> 3] >> (_bit_idx & 7)) & 1) != 0;
 }
 
-} // namespace solid::serialization::v4::binary
+} // namespace solid::serialization::inline v4::binary

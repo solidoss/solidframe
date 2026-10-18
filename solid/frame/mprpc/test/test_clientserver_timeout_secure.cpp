@@ -4,7 +4,7 @@
 
 #include "solid/frame/mprpc/mprpccompression_snappy.hpp"
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
-#include "solid/frame/mprpc/mprpcprotocol_serialization_v3.hpp"
+#include "solid/frame/mprpc/mprpcprotocol_serialization_v4.hpp"
 #include "solid/frame/mprpc/mprpcservice.hpp"
 
 #include "solid/frame/manager.hpp"
@@ -75,13 +75,15 @@ struct Activate : frame::mprpc::Message {
         solid_assert(serialized || this->isBackOnSender());
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        using ReflectorT = decay_t<decltype(_rr)>;
+        using namespace solid::reflection::v2;
 
-        _rr.add(_rthis.idx, _rctx, 0, "idx").add(_rthis.str, _rctx, 1, "str");
+        _rr(id<0>, make("idx", _rthis.idx), _rctx);
+        _rr(id<1>, make("str", _rthis.str), _rctx);
 
-        if constexpr (ReflectorT::is_const_reflector) {
+        if constexpr (std::is_const_v<std::remove_reference_t<decltype(_rthis)>>) {
             _rthis.serialized = true;
         }
     }
@@ -221,8 +223,7 @@ int test_clientserver_timeout_secure(int argc, char* argv[])
         sch_server.start(1);
 
         { // mprpc server initialization
-            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
-                reflection::v1::metadata::factory,
+            auto proto = frame::mprpc::serialization_v4::create_protocol<uint8_t>(
                 [&](auto& _rmap) {
                     _rmap.template registerMessage<Activate>(1, "Activate", server_complete_message);
                 });

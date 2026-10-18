@@ -42,6 +42,7 @@ if(OPENSSL_FOUND)
         solid_frame_mprpc
         solid_frame_aio
         solid_frame
+        solid_serialization_v4
         solid_serialization_v3
         solid_utility
         solid_system
@@ -56,6 +57,7 @@ if(OPENSSL_FOUND)
 
     set( mprpcClientServerTestSuite
         test_clientserver_basic.cpp
+        test_clientserver_basic_v3.cpp
         test_clientserver_pool.cpp
         test_clientserver_versioning.cpp
         test_clientserver_sendrequest.cpp
@@ -89,6 +91,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
+        solid_serialization_v4
         solid_serialization_v3
         solid_utility
         solid_system
@@ -128,6 +131,11 @@ if(OPENSSL_FOUND)
     add_test(NAME TestClientServerBasic_4B               COMMAND  test_mprpc_clientserver test_clientserver_basic 4 b)
     add_test(NAME TestClientServerBasic_8B               COMMAND  test_mprpc_clientserver test_clientserver_basic 8 b)
     add_test(NAME TestClientServerBasic_8BC              COMMAND  test_mprpc_clientserver test_clientserver_basic 8 b c)
+
+    add_test(NAME TestClientServerBasicV3_1              COMMAND  test_mprpc_clientserver test_clientserver_basic_v3 1)
+    add_test(NAME TestClientServerBasicV3_8SC            COMMAND  test_mprpc_clientserver test_clientserver_basic_v3 8 s c)
+    add_test(NAME TestClientServerBasicV3_1_Mixed        COMMAND  test_mprpc_clientserver test_clientserver_basic_v3 1 _ _ m)
+    add_test(NAME TestClientServerBasicV3_8BC_Mixed      COMMAND  test_mprpc_clientserver test_clientserver_basic_v3 8 b c m)
 
     add_test(NAME TestClientServerPool_8                 COMMAND  test_mprpc_clientserver test_clientserver_pool 8)
 
@@ -246,6 +254,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
+        solid_serialization_v4
         solid_serialization_v3
         solid_utility
         solid_system
@@ -280,6 +289,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
+        solid_serialization_v4
         solid_serialization_v3
         solid_utility
         solid_system
@@ -311,6 +321,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
+        solid_serialization_v4
         solid_serialization_v3
         solid_utility
         solid_system
@@ -364,6 +375,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
+        solid_serialization_v4
         solid_serialization_v3
         solid_utility
         solid_system
@@ -395,6 +407,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
+        solid_serialization_v4
         solid_serialization_v3
         solid_utility
         solid_system
@@ -433,6 +446,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
+        solid_serialization_v4
         solid_serialization_v3
         solid_utility
         solid_system
@@ -478,6 +492,7 @@ if(OPENSSL_FOUND)
         solid_frame_mprpc
         solid_frame_aio
         solid_frame
+        solid_serialization_v4
         solid_serialization_v3
         solid_utility
         solid_system
@@ -508,6 +523,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
+        solid_serialization_v4
         solid_serialization_v3
         solid_utility
         solid_system

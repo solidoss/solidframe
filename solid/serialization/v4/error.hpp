@@ -12,7 +12,7 @@
 
 #include "solid/system/error.hpp"
 
-namespace solid::serialization::v4 {
+namespace solid::serialization::inline v4 {
 
 extern const ErrorConditionT error_limit_container;
 extern const ErrorConditionT error_limit_string;
@@ -23,4 +23,4 @@ extern const ErrorConditionT error_unknown_type;
 extern const ErrorConditionT error_variant_index;
 extern const ErrorConditionT error_reflector_type;
 
-} // namespace solid::serialization::v4
+} // namespace solid::serialization::inline v4

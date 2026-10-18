@@ -44,10 +44,12 @@ struct Message : solid::frame::mprpc::Message {
     {
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.group_id_, _rctx, 1, "group_id");
-        _rr.add(_rthis.data, _rctx, 2, "data");
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("group_id", _rthis.group_id_), _rctx);
+        _rr(id<2>, make("data", _rthis.data), _rctx);
     }
 };
 
@@ -120,8 +122,7 @@ int main(int argc, char* argv[])
                 cout << "Connection stopped" << endl;
             };
 
-            auto proto = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
-                reflection::v1::metadata::factory,
+            auto proto = frame::mprpc::serialization_v4::create_protocol<uint8_t>(
                 [&](auto& _rmap) {
                     _rmap.template registerMessage<Register>(1, "Register", con_register);
                     _rmap.template registerMessage<Message>(2, "Message", on_message);

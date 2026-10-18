@@ -8,7 +8,7 @@ if(cxx_fs)
         solid_frame_mprpc
         solid_frame_aio
         solid_frame
-        solid_serialization_v3
+        solid_serialization_v4
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}
@@ -20,7 +20,7 @@ if(cxx_fs)
         solid_frame_mprpc
         solid_frame_aio
         solid_frame
-        solid_serialization_v3
+        solid_serialization_v4
         solid_utility
         solid_system
         ${SYSTEM_BASIC_LIBRARIES}

@@ -24,7 +24,7 @@
 #include "solid/serialization/v4/error.hpp"
 #include "solid/system/common.hpp"
 
-namespace solid::serialization::v4::binary {
+namespace solid::serialization::inline v4::binary {
 
 enum struct ReturnE : uint8_t {
     Done = 0, // the task finished - it is removed (its children, if any, still run)
@@ -296,7 +296,7 @@ consteval KindE kind()
         } else {
             return KindE::Container;
         }
-    } else if constexpr (refl::detail::is_shared_ptr_v<ValueT> || refl::detail::is_unique_ptr_v<ValueT>) {
+    } else if constexpr (refl::detail::is_pointer_v<ValueT>) {
         return KindE::Pointer;
     } else if constexpr (refl::detail::is_optional_v<ValueT>) {
         return KindE::Optional;
@@ -370,4 +370,4 @@ auto progress_of(Field const& _rfield)
 }
 
 } // namespace detail
-} // namespace solid::serialization::v4::binary
+} // namespace solid::serialization::inline v4::binary

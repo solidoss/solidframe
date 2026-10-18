@@ -69,9 +69,12 @@ struct Message : frame::mprpc::Message {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << this);
     }
 
-    SOLID_REFLECT_V1(_rr, _rthis, _rctx)
+    template <typename Reflector, typename Context>
+    void solidReflectV2(this auto& _rthis, Reflector&& _rr, Context& _rctx)
     {
-        _rr.add(_rthis.idx, _rctx, 0, "idx").add(_rthis.str, _rctx, 1, "str");
+        using namespace solid::reflection::v2;
+        _rr(id<0>, make("idx", _rthis.idx), _rctx);
+        _rr(id<1>, make("str", _rthis.str), _rctx);
     }
 
     void init()
@@ -134,8 +137,7 @@ struct Context {
 } ctx;
 
 frame::mprpc::ConnectionContext& mprpcconctx(frame::mprpc::TestEntryway::createContext());
-auto                             mprpcprotocol = frame::mprpc::serialization_v3::create_protocol<reflection::v1::metadata::Variant, uint8_t>(
-    reflection::v1::metadata::factory,
+auto                             mprpcprotocol = frame::mprpc::serialization_v4::create_protocol<uint8_t>(
     [](auto& _rmap) {
         _rmap.template registerMessage<Message>(1, "Message", complete_message);
     });

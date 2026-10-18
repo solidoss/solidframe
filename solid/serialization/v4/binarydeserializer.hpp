@@ -20,7 +20,7 @@
 
 #include "solid/serialization/v4/binarybase.hpp"
 
-namespace solid::serialization::v4::binary {
+namespace solid::serialization::inline v4::binary {
 
 // —— Deserializer ——
 // Counterpart of Serializer: fills objects from a byte stream received in
@@ -200,7 +200,7 @@ private:
         if constexpr (FieldT::type_id == TypeIdE::Callable) {
             addCallable(detail::take_callable(_rfield), _rctx);
         } else if constexpr (FieldT::type_id == TypeIdE::OStream || FieldT::type_id == TypeIdE::IOStream) {
-            addStream(_rfield.stream(), detail::progress_of(_rfield), _rctx);
+            addStream(_rfield.stream(), _rfield.max_size, detail::progress_of(_rfield), _rctx);
         } else if constexpr (FieldT::type_id == TypeIdE::IStream) {
             // input streams are only read by the serializer
         } else {
@@ -229,10 +229,10 @@ private:
     }
 
     template <class Progress>
-    void addStream(std::ostream& _ros, Progress&& _progress, Context& _rctx)
+    void addStream(std::ostream& _ros, const uint64_t _max_size, Progress&& _progress, Context& _rctx)
     {
         queue_.tryRun(
-            [pos = &_ros, progress = std::forward<Progress>(_progress), total = uint64_t{0}, left = size_t{0}, len = BytesState<2>{}, in_chunk = false](ThisT& _rdes, Context& _rctx) mutable {
+            [pos = &_ros, progress = std::forward<Progress>(_progress), _max_size, total = uint64_t{0}, left = size_t{0}, len = BytesState<2>{}, in_chunk = false](ThisT& _rdes, Context& _rctx) mutable {
                 while (true) {
                     if (!in_chunk) {
                         len.size_ += static_cast<uint8_t>(_rdes.readSome(len.buf_.data() + len.size_, 2 - len.size_));
@@ -252,6 +252,10 @@ private:
                     const size_t sz = std::min(left, _rdes.avail());
                     if (sz == 0) {
                         return ReturnE::Wait;
+                    }
+                    if (total + sz > _max_size) {
+                        _rdes.baseError(error_limit_stream);
+                        return ReturnE::Done;
                     }
                     pos->write(_rdes.pcrt_, static_cast<std::streamsize>(sz));
                     _rdes.pcrt_ += sz;
@@ -445,11 +449,7 @@ private:
         } else if constexpr (!std::is_polymorphic_v<ElementT> && std::is_default_constructible_v<ElementT>) {
             loadInteger<uint8_t>([pptr = &_rptr](ThisT& _rdes, Context& _rctx, const uint8_t _v) {
                 if (_v == 0xFF) {
-                    if constexpr (reflection::v2::detail::is_shared_ptr_v<P>) {
-                        *pptr = std::make_shared<ElementT>();
-                    } else {
-                        *pptr = std::make_unique<ElementT>();
-                    }
+                    reflection::v2::detail::make_pointer<ElementT>(*pptr);
                     _rdes.addValue(**pptr, no_limit, _rctx);
                 } else {
                     pptr->reset();
@@ -712,4 +712,4 @@ private:
     }
 };
 
-} // namespace solid::serialization::v4::binary
+} // namespace solid::serialization::inline v4::binary
