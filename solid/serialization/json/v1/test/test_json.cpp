@@ -176,9 +176,10 @@ public:
         Sub&&                      _sub,
         std::initializer_list<Sub> _subs,
         std::initializer_list<std::pair<string,
-            Sub>>                  _subs_map,
+            Sub>>
+                      _subs_map,
         std::array<Sub,
-            3> const&              _sub_arr)
+            3> const& _sub_arr)
         : vb_{_b}
         , vu32_{_u32}
         , vs_{std::forward<decltype(_s)>(_s)}
@@ -491,8 +492,8 @@ public:
         _rr(id<FieldE::secret_key>, SFR_V2_MAKEF(rthis, secret_key), _rc);
         _rr(id<FieldE::description>, SFR_V2_MAKEF(rthis, description), _rc);
         _rr(id<FieldE::max_depth>, SFR_V2_MAKEF(rthis, max_depth), _rc);
-        _rr(id<FieldE::buy>, SFR_V2_MAKEF(rthis, buy).with_max_size(rthis.max_depth()), _rc);
-        _rr(id<FieldE::sell>, SFR_V2_MAKEF(rthis, sell).with_max_size(rthis.max_depth()), _rc);
+        _rr(id<FieldE::buy>, SFR_V2_MAKEF(rthis, buy).set_max_size(rthis.max_depth()), _rc);
+        _rr(id<FieldE::sell>, SFR_V2_MAKEF(rthis, sell).set_max_size(rthis.max_depth()), _rc);
     }
 };
 
@@ -538,10 +539,10 @@ struct TestReflectionMulti : TestReflectionInheritance, Sub {
 #ifdef SOLID_USE_REFLECTION
 // member limits given through C++26 annotations instead of descriptor setters
 struct TestReflectionAnnotated {
-    [[=solid::reflection::v2::annotate::max_size(16)]] std::string s_;
-    [[=solid::reflection::v2::annotate::min(1), =solid::reflection::v2::annotate::max(100)]] std::uint32_t u_;
-    [[=solid::reflection::v2::annotate::max_size(4)]] std::vector<int> v_;
-    std::uint64_t plain_;
+    [[= solid::reflection::v2::annotate::max_size(16)]] std::string                                            s_;
+    [[ = solid::reflection::v2::annotate::min(1), = solid::reflection::v2::annotate::max(100) ]] std::uint32_t u_;
+    [[= solid::reflection::v2::annotate::max_size(4)]] std::vector<int>                                        v_;
+    std::uint64_t                                                                                              plain_;
 
     bool operator==(TestReflectionAnnotated const&) const = default;
 };
@@ -549,8 +550,7 @@ struct TestReflectionAnnotated {
 
 } // namespace alpha
 
-int
-test_json(
+int test_json(
     int /*argc*/,
     char* /*argv*/[])
 {
@@ -614,9 +614,7 @@ test_json(
             } else if constexpr (FieldT::type_id == TypeIdE::Container) {
                 solid_check(_field.name == "v_" && _field.max_size == 4);
                 ++checked;
-            }
-        },
-            ctx);
+            } }, ctx);
         solid_check(checked == 4, "visited " << checked << " annotated fields");
 
         std::string str;

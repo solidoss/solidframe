@@ -1,5 +1,11 @@
 # SolidFrame Releases
 
+## Version 14.0
+ * solid/reflection/v2:
+    * TypeMap - polymorphic type registry ported from reflection v1 (function pointer stubs, no cast lookups on serialization)
+ * solid/serialization/v4:
+    * binary serialization on reflection v2, wire compatible with v3
+    
 ## Version 13.0
  * solid/utility:
     * MutableIntrusivePtr, ConstIntrusivePtr

@@ -34,8 +34,8 @@ namespace solid::reflection::v2 {
 //         [[=annotate::min(1), =annotate::max(100)]] uint32_t count_;
 //     };
 //
-// native_reflect forwards them to the member's descriptor (with_max_size /
-// set_max_size, with_min / set_min, with_max / set_max). Annotations of other
+// native_reflect forwards them to the member's descriptor
+// (set_max_size, set_min, set_max). Annotations of other
 // types are ignored, so members may carry user-defined ones as well.
 namespace annotate {
 
@@ -77,8 +77,7 @@ template <typename F,
     typename S,
     typename R,
     typename Ctx>
-void
-reflect(
+void reflect(
     std::pair<F,
         S>& _rv,
     R&&     _rr,
@@ -93,8 +92,7 @@ template <typename F,
     typename S,
     typename R,
     typename Ctx>
-void
-reflect(
+void reflect(
     std::pair<F,
         S> const& _rv,
     R&&           _rr,
@@ -110,8 +108,7 @@ template <class R,
     class Ctx,
     class Tup,
     size_t Index = 0>
-void
-reflect(
+void reflect(
     Tup const& _rt,
     R&         _rr,
     Ctx&       _rctx)
@@ -126,8 +123,7 @@ template <class R,
     class Ctx,
     class Tup,
     size_t Index = 0>
-void
-reflect(
+void reflect(
     Tup& _rt,
     R&   _rr,
     Ctx& _rctx)
@@ -143,8 +139,7 @@ reflect(
 template <class R,
     class Ctx,
     class... Args>
-void
-reflect(
+void reflect(
     std::tuple<Args...>& _rt,
     R&&                  _rr,
     Ctx&                 _rctx,
@@ -156,8 +151,7 @@ reflect(
 template <class R,
     class Ctx,
     class... Args>
-void
-reflect(
+void reflect(
     std::tuple<Args...> const& _rt,
     R&&                        _rr,
     Ctx&                       _rctx,
@@ -195,8 +189,7 @@ concept SelfReflectableC = IntrusiveReflectableC<T>;
 template <detail::SelfReflectableC T,
     typename R,
     typename Ctx>
-void
-reflect(
+void reflect(
     T&   _rv,
     R&&  _rr,
     Ctx& _rc,
@@ -208,8 +201,7 @@ reflect(
 template <detail::SelfReflectableC T,
     typename R,
     typename Ctx>
-void
-reflect(
+void reflect(
     T const& _rv,
     R&&      _rr,
     Ctx&     _rc,
@@ -232,8 +224,7 @@ concept NativeReflectableC = std::is_class_v<T> && !SelfReflectableC<T> && to_ty
 template <typename T,
     typename R,
     typename Ctx>
-void
-native_reflect(
+void native_reflect(
     T&   _rv,
     R&   _rr,
     Ctx& _rc);
@@ -242,8 +233,7 @@ native_reflect(
 template <detail::NativeReflectableC T,
     typename R,
     typename Ctx>
-void
-reflect(
+void reflect(
     T&   _rv,
     R&&  _rr,
     Ctx& _rc,
@@ -255,8 +245,7 @@ reflect(
 template <detail::NativeReflectableC T,
     typename R,
     typename Ctx>
-void
-reflect(
+void reflect(
     T const& _rv,
     R&&      _rr,
     Ctx&     _rc,
@@ -273,8 +262,7 @@ reflect(
 template <typename T,
     typename R,
     typename Ctx>
-void
-reflect(
+void reflect(
     T&               _rv,
     R&&              _rr,
     Ctx&             _rc,
@@ -292,8 +280,7 @@ reflect(
 template <typename T,
     typename R,
     typename Ctx>
-void
-reflect(
+void reflect(
     T const&         _rv,
     R&&              _rr,
     Ctx&             _rc,
@@ -316,8 +303,7 @@ concept ReflectableC = requires(T& t, std::nullopt_t& ctx) {
 
 template <typename Val,
     typename... Args>
-auto
-make(
+auto make(
     std::string_view _name,
     Val&             _ref,
     Args&&... _args)
@@ -386,8 +372,7 @@ make(
 
 template <typename Val>
     requires detail::CallableC<std::decay_t<Val>>
-auto
-make(
+auto make(
     std::string_view _name,
     Val&&            _ref)
 {
@@ -400,8 +385,7 @@ make(
 template <typename GetF,
     typename SetF,
     typename... ArgsF>
-auto
-makef(
+auto makef(
     std::string_view _name,
     GetF&&           _get,
     SetF&&           _set,
@@ -462,8 +446,7 @@ template <typename T,
     typename V,
     typename C,
     typename... Args>
-void
-Container<ValT>::emplace_back_with(
+void Container<ValT>::emplace_back_with(
     this T& rthis,
     V&&     _rv,
     C&      _rc,
@@ -481,8 +464,7 @@ template <detail::AnyContainerC ValT>
 template <typename T,
     typename V,
     typename C>
-void
-Container<ValT>::for_each(
+void Container<ValT>::for_each(
     this T& rthis,
     V&&     _rv,
     C&      _rc)
@@ -496,8 +478,7 @@ template <detail::StdArrayC ValT>
 template <typename T,
     typename V,
     typename C>
-void
-Container<ValT>::for_each(
+void Container<ValT>::for_each(
     this T& rthis,
     V&&     _rv,
     C&      _rc)
@@ -512,8 +493,7 @@ template <typename T,
     typename V,
     typename C,
     typename... Args>
-void
-Container<ValT>::emplace_back_with(
+void Container<ValT>::emplace_back_with(
     this T& rthis,
     V&&     _rv,
     C&      _rc,
@@ -530,8 +510,7 @@ template <detail::BitsetC ValT>
 template <typename T,
     typename V,
     typename C>
-void
-Container<ValT>::for_each(
+void Container<ValT>::for_each(
     this T& rthis,
     V&&     _rv,
     C&      _rc)
@@ -549,8 +528,7 @@ template <detail::BitVectorC ValT>
 template <typename T,
     typename V,
     typename C>
-void
-Container<ValT>::for_each(
+void Container<ValT>::for_each(
     this T& rthis,
     V&&     _rv,
     C&      _rc)
@@ -568,8 +546,7 @@ template <typename ValT>
 template <typename T,
     typename V,
     typename C>
-bool
-Pointer<ValT>::with_if(
+bool Pointer<ValT>::with_if(
     this T& rthis,
     V&&     _rv,
     C&      _rc)
@@ -585,8 +562,7 @@ template <typename ValT>
 template <typename T,
     typename V,
     typename C>
-bool
-Optional<ValT>::with_if(
+bool Optional<ValT>::with_if(
     this T& rthis,
     V&&     _rv,
     C&      _rc)
@@ -602,8 +578,7 @@ template <typename ValT>
 template <typename T,
     typename V,
     typename C>
-void
-Reflectable<ValT>::reflect(
+void Reflectable<ValT>::reflect(
     this T& rthis,
     V&&     _rv,
     C&      _rc)
@@ -617,8 +592,7 @@ template <detail::FieldIdC auto Id,
     typename T,
     typename R,
     typename Ctx>
-void
-reflect_at(
+void reflect_at(
     T&   rt,
     R&&  _rr,
     Ctx& _rc)
@@ -637,8 +611,7 @@ template <typename This,
     typename V,
     typename C,
     typename... Args>
-void
-Variant<ValT>::emplace_with(
+void Variant<ValT>::emplace_with(
     this This& rthis,
     V&&        _rv,
     C&         _rc,
@@ -654,8 +627,7 @@ template <typename This,
     typename V,
     typename C,
     typename... Args>
-void
-Variant<ValT>::emplace_with(
+void Variant<ValT>::emplace_with(
     this This& rthis,
     V&&        _rv,
     C&         _rc,
@@ -669,8 +641,7 @@ template <typename ValT>
 template <typename This,
     typename V,
     typename C>
-bool
-Variant<ValT>::with_if(
+bool Variant<ValT>::with_if(
     this This& rthis,
     V&&        _rv,
     C&         _rc)
@@ -704,9 +675,7 @@ void apply_annotation(Field& _rfield)
 {
     using AnnT = decltype(Ann);
     if constexpr (std::is_same_v<AnnT, annotate::max_size_t>) {
-        if constexpr (requires { _rfield.with_max_size(Ann.value); }) {
-            _rfield.with_max_size(Ann.value);
-        } else if constexpr (requires { _rfield.set_max_size(Ann.value); }) {
+        if constexpr (requires { _rfield.set_max_size(Ann.value); }) {
             _rfield.set_max_size(Ann.value);
         } else {
             static_assert(false, "annotate::max_size is not supported on this member kind");
@@ -717,30 +686,23 @@ void apply_annotation(Field& _rfield)
         static_assert(std::in_range<ValueT>(Ann.value), "annotate::min/max value is out of the member's range");
         constexpr auto value = static_cast<ValueT>(Ann.value);
         if constexpr (is_annotate_min_v<AnnT>) {
-            if constexpr (requires { _rfield.with_min(value); }) {
-                _rfield.with_min(value);
-            } else {
-                _rfield.set_min(value);
-            }
+            _rfield.set_min(value);
         } else {
-            if constexpr (requires { _rfield.with_max(value); }) {
-                _rfield.with_max(value);
-            } else {
-                _rfield.set_max(value);
-            }
+            _rfield.set_max(value);
         }
     }
 }
 
 template <std::meta::info Member,
-    size_t Id,
+    size_t                Id,
     typename T,
     typename R,
     typename Ctx>
 void native_reflect_member(T& _rv, R& _rr, Ctx& _rc)
 {
     auto field = make(std::meta::identifier_of(Member), _rv.[:Member:]);
-    template for (constexpr auto annotation : std::define_static_array(std::meta::annotations_of(Member))) {
+    template for (constexpr auto annotation : std::define_static_array(std::meta::annotations_of(Member)))
+    {
         using AnnT = std::remove_cvref_t<typename[:std::meta::type_of(annotation):]>;
         apply_annotation<std::meta::extract<AnnT>(annotation)>(field);
     }
@@ -751,18 +713,18 @@ void native_reflect_member(T& _rv, R& _rr, Ctx& _rc)
 template <typename T,
     typename R,
     typename Ctx>
-void
-detail::native_reflect(
+void detail::native_reflect(
     T&   _rv,
     R&   _rr,
     Ctx& _rc)
 {
-    using ValueT                    = std::remove_const_t<T>;
-    static constexpr auto ctx       = std::meta::access_context::current();
-    static constexpr auto bases     = std::define_static_array(std::meta::bases_of(^^ValueT, ctx));
-    static constexpr auto members   = std::define_static_array(std::meta::nonstatic_data_members_of(^^ValueT, ctx));
+    using ValueT                  = std::remove_const_t<T>;
+    static constexpr auto ctx     = std::meta::access_context::current();
+    static constexpr auto bases   = std::define_static_array(std::meta::bases_of(^^ValueT, ctx));
+    static constexpr auto members = std::define_static_array(std::meta::nonstatic_data_members_of(^^ValueT, ctx));
 
-    template for (constexpr auto base : bases) {
+    template for (constexpr auto base : bases)
+    {
         using BaseT = typename[:std::meta::type_of(base):];
         solid::reflection::v2::reflect(static_cast<std::conditional_t<std::is_const_v<T>, BaseT const, BaseT>&>(_rv), _rr, _rc);
     }

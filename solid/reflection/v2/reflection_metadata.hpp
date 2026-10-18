@@ -32,9 +32,28 @@ auto make(std::string_view _name, Val& _ref, Args&&... _args);
 template <typename GetF, typename SetF, typename... ArgsF>
 auto makef(std::string_view _name, GetF&& _get, SetF&& _set, ArgsF&&... _args);
 
+namespace detail {
+// Direct access to the field behind a reference-based descriptor (the ones
+// built by make). Reserved for serializers that, like the binary v4 one, must
+// keep working on a field after the walk that produced its descriptor has
+// returned (e.g. resuming on the next buffer). Function-based descriptors
+// (makef) hold no reference, so FieldAccessibleC is false for them.
+struct Access {
+    template <typename D>
+    static constexpr auto ref(D& _rd) noexcept -> decltype((_rd.ref))
+    {
+        return _rd.ref;
+    }
+};
+
+template <typename D>
+concept FieldAccessibleC = requires(D& _rd) { Access::ref(_rd); };
+} // namespace detail
+
 template <typename ValT>
 class Boolean {
     ValT& ref;
+    friend struct detail::Access;
 
 public:
     static constexpr TypeIdE type_id{TypeIdE::Boolean};
@@ -42,7 +61,7 @@ public:
 
     std::string_view const name;
 
-    bool get() const
+    [[nodiscard]] bool get() const
     {
         return ref;
     }
@@ -62,6 +81,7 @@ public:
 template <typename ValT>
 class Integral {
     ValT& ref;
+    friend struct detail::Access;
 
 public:
     static constexpr TypeIdE type_id{TypeIdE::Integral};
@@ -102,6 +122,7 @@ public:
 template <typename ValT>
 class String {
     ValT& ref;
+    friend struct detail::Access;
 
 public:
     static constexpr TypeIdE type_id{TypeIdE::String};
@@ -151,6 +172,7 @@ public:
 template <typename ValT>
 class Reflectable {
     ValT& ref;
+    friend struct detail::Access;
 
 public:
     static constexpr TypeIdE type_id{TypeIdE::Reflectable};
@@ -174,6 +196,7 @@ class Container;
 template <detail::AnyContainerC ValT>
 class Container<ValT> {
     ValT& ref;
+    friend struct detail::Access;
 
 public:
     using value_type   = std::decay_t<ValT>;
@@ -189,7 +212,7 @@ public:
     {
     }
 
-    auto& with_max_size(size_t _size)
+    auto& set_max_size(size_t _size)
     {
         max_size = _size;
         return *this;
@@ -238,6 +261,7 @@ public:
 template <detail::StdArrayC ValT>
 class Container<ValT> {
     ValT& ref;
+    friend struct detail::Access;
 
 public:
     using value_type   = std::decay_t<ValT>;
@@ -254,7 +278,7 @@ public:
     {
     }
 
-    auto& with_max_size(size_t _size)
+    auto& set_max_size(size_t _size)
     {
         max_size = _size;
         return *this;
@@ -286,6 +310,7 @@ public:
 template <detail::BitsetC ValT>
 class Container<ValT> {
     ValT& ref;
+    friend struct detail::Access;
 
 public:
     using value_type   = std::decay_t<ValT>;
@@ -304,7 +329,7 @@ public:
     {
     }
 
-    auto& with_max_size(size_t _size)
+    auto& set_max_size(size_t _size)
     {
         max_size = std::min(_size, ref.size());
         return *this;
@@ -327,6 +352,7 @@ public:
 template <detail::BitVectorC ValT>
 class Container<ValT> {
     ValT& ref;
+    friend struct detail::Access;
 
 public:
     using value_type   = std::decay_t<ValT>;
@@ -344,7 +370,7 @@ public:
     {
     }
 
-    auto& with_max_size(size_t _size)
+    auto& set_max_size(size_t _size)
     {
         max_size = _size;
         return *this;
@@ -367,6 +393,7 @@ public:
 template <typename ValT>
 class Callable {
     ValT&& ref;
+    friend struct detail::Access;
 
 public:
     static constexpr TypeIdE type_id{TypeIdE::Callable};
@@ -403,7 +430,7 @@ public:
     {
     }
 
-    std::istream& stream() const
+    [[nodiscard]] std::istream& stream() const
     {
         return ref;
     }
@@ -499,6 +526,7 @@ public:
 template <typename ValT>
 class Pointer {
     ValT& ref;
+    friend struct detail::Access;
 
 public:
     static constexpr TypeIdE type_id{TypeIdE::Pointer};
@@ -546,6 +574,7 @@ public:
 template <typename ValT>
 class Optional {
     ValT& ref;
+    friend struct detail::Access;
 
 public:
     static constexpr TypeIdE type_id{TypeIdE::Optional};
@@ -583,6 +612,7 @@ public:
 template <typename ValT>
 class Variant {
     ValT& ref;
+    friend struct detail::Access;
 
 public:
     static constexpr TypeIdE type_id{TypeIdE::Variant};
@@ -635,6 +665,7 @@ public:
 template <typename ValT, typename GetF, typename SetF>
 class Enum {
     ValT& ref;
+    friend struct detail::Access;
 
 public:
     static constexpr TypeIdE type_id{TypeIdE::Enum};
@@ -708,12 +739,12 @@ public:
     {
     }
 
-    auto& with_min(value_type _val)
+    auto& set_min(value_type _val)
     {
         min = _val;
         return *this;
     }
-    auto& with_max(value_type _val)
+    auto& set_max(value_type _val)
     {
         max = _val;
         return *this;
@@ -745,7 +776,7 @@ public:
         set(get() + _sv);
     }
 
-    auto& with_max_size(size_t _size)
+    auto& set_max_size(size_t _size)
     {
         max_size = _size;
         return *this;
@@ -781,7 +812,7 @@ public:
 // running offset (fixed-capacity semantics, like the std::array Container).
 // for_each honors max_size, which enables repeating groups: a fixed wire-size
 // array of which only the first N (e.g. max_depth) entries are active —
-// .with_max_size(N) limits serialization to those.
+// .set_max_size(N) limits serialization to those.
 template <typename ContT, typename GetF, typename SetF>
 class ContainerF {
     ContT cont;
@@ -805,7 +836,7 @@ public:
     {
     }
 
-    auto& with_max_size(size_t _size)
+    auto& set_max_size(size_t _size)
     {
         max_size = _size;
         return *this;
