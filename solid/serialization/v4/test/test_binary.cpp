@@ -9,6 +9,7 @@
 #include <mutex>
 #include <optional>
 #include <set>
+#include <span>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -241,7 +242,7 @@ struct Full {
             vi16_.push_back(static_cast<int16_t>(-static_cast<int>(i) * 100));
         }
         for (uint64_t i = 0; i < 20; ++i) {
-            Sub sub{i * 1000003, "sub " + std::to_string(i)};
+            Sub sub{.a_ = i * 1000003, .b_ = "sub " + std::to_string(i)};
             vsub_.push_back(sub);
             dsub_.push_front(sub);
             lst_.push_back(sub.b_ + "!");
@@ -266,24 +267,24 @@ struct Full {
         abool_ = {true, false, true, true, false};
         a32_   = {1, 0x10000, 0xFFFFFFFF};
         for (size_t i = 0; i < asub_.size(); ++i) {
-            asub_[i] = Sub{i, "asub " + std::to_string(i)};
+            asub_[i] = Sub{.a_ = i, .b_ = "asub " + std::to_string(i)};
         }
         asub_cnt_ = 4;
         pair_     = {-7, "pair"};
-        tuple_    = {42, "tuple", Sub{3, "tuple sub"}};
-        osub_     = Sub{11, "optional"};
+        tuple_    = {42, "tuple", Sub{.a_ = 3, .b_ = "tuple sub"}};
+        osub_     = Sub{.a_ = 11, .b_ = "optional"};
         ou16_     = 65000;
-        var_      = Sub{12, "variant"};
-        vvar_     = {std::monostate{}, 123u, "variant str"s, Sub{13, "in vector"}};
-        usub_     = std::make_unique<Sub>(Sub{14, "unique"});
-        ssub_     = std::make_shared<Sub>(Sub{15, "shared"});
+        var_      = Sub{.a_ = 12, .b_ = "variant"};
+        vvar_     = {std::monostate{}, 123u, "variant str"s, Sub{.a_ = 13, .b_ = "in vector"}};
+        usub_     = std::make_unique<Sub>(Sub{.a_ = 14, .b_ = "unique"});
+        ssub_     = std::make_shared<Sub>(Sub{.a_ = 15, .b_ = "shared"});
         vvu8_     = {{}, {1, 2, 3}, std::vector<uint8_t>(200, 0x5A)};
-        mvsub_[7] = {Sub{16, "m1"}, Sub{17, "m2"}};
+        mvsub_[7] = {Sub{.a_ = 16, .b_ = "m1"}, Sub{.a_ = 17, .b_ = "m2"}};
         mvsub_[9] = {};
         vempty_.resize(3);
         cond_ = _cond;
         if (_cond) {
-            cond_true_ = {Sub{18, "cond 1"}, Sub{19, "cond 2"}};
+            cond_true_ = {Sub{.a_ = 18, .b_ = "cond 1"}, Sub{.a_ = 19, .b_ = "cond 2"}};
         } else {
             cond_false_ = "condition is false";
         }
@@ -385,10 +386,10 @@ string serialize(T const& _rt, const size_t _chunk, Context& _rctx)
     vector<char> buf(_chunk);
     string       out;
 
-    ptrdiff_t rv = ser.run(buf.data(), buf.size(), [&_rt](SerializerT& _rs, Context& _rctx) { _rs.add(_rt, _rctx); }, _rctx);
+    ptrdiff_t rv = ser.run(as_writable_bytes(span{buf}), [&_rt](SerializerT& _rs, Context& _rctx) { _rs.add(_rt, _rctx); }, _rctx);
     while (rv > 0) {
-        out.append(buf.data(), static_cast<size_t>(rv));
-        rv = ser.run(buf.data(), buf.size(), _rctx);
+        out.append_range(span{buf}.first(static_cast<size_t>(rv)));
+        rv = ser.run(as_writable_bytes(span{buf}), _rctx);
     }
     solid_check(rv == 0, "serialization failed: " << ser.error().message());
     solid_check(ser.empty());
@@ -403,7 +404,7 @@ ErrorConditionT deserialize(string const& _data, T& _rt, const size_t _chunk, Co
     size_t        offset = 0;
     size_t        sz     = std::min(_chunk, _data.size());
 
-    ptrdiff_t rv = des.run(_data.data(), sz, [&_rt](DeserializerT& _rd, Context& _rctx) { _rd.add(_rt, _rctx); }, _rctx);
+    ptrdiff_t rv = des.run(as_bytes(span{_data}).first(sz), [&_rt](DeserializerT& _rd, Context& _rctx) { _rd.add(_rt, _rctx); }, _rctx);
     while (rv >= 0) {
         offset += static_cast<size_t>(rv);
         if (des.empty()) {
@@ -413,7 +414,7 @@ ErrorConditionT deserialize(string const& _data, T& _rt, const size_t _chunk, Co
         solid_check(static_cast<size_t>(rv) == sz, "partial consumption with pending work");
         solid_check(offset < _data.size(), "deserialization incomplete");
         sz = std::min(_chunk, _data.size() - offset);
-        rv = des.run(_data.data() + offset, sz, _rctx);
+        rv = des.run(as_bytes(span{_data}).subspan(offset, sz), _rctx);
     }
     return des.error();
 }
@@ -547,7 +548,7 @@ void test_errors()
         lim.s_ = "too long for the limit";
         SerializerT ser;
         char        buf[256];
-        solid_check(ser.run(buf, sizeof(buf), [&](SerializerT& _rs, Context& _rctx) { _rs.add(lim, _rctx); }, ctx) == -1);
+        solid_check(ser.run(as_writable_bytes(span{buf}), [&](SerializerT& _rs, Context& _rctx) { _rs.add(lim, _rctx); }, ctx) == -1);
         solid_check(ser.error() == serialization::v4::error_limit_string);
     }
     // limits on the deserializer side
@@ -582,12 +583,12 @@ void test_errors()
     {
         Limited lim;
         lim.s_ = "too long for the limit";
-        SerializerT ser;
-        char        buf[256];
-        solid_check(ser.run(buf, sizeof(buf), [&](SerializerT& _rs, Context& _rctx) { _rs.add(lim, _rctx); }, ctx) == -1);
+        SerializerT                ser;
+        std::array<std::byte, 256> buf;
+        solid_check(ser.run(buf, [&](SerializerT& _rs, Context& _rctx) { _rs.add(lim, _rctx); }, ctx) == -1);
         ser.clear();
         lim.s_ = "ok";
-        solid_check(ser.run(buf, sizeof(buf), [&](SerializerT& _rs, Context& _rctx) { _rs.add(lim, _rctx); }, ctx) > 0);
+        solid_check(ser.run(buf, [&](SerializerT& _rs, Context& _rctx) { _rs.add(lim, _rctx); }, ctx) > 0);
     }
 }
 

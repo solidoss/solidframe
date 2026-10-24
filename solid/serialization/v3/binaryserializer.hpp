@@ -538,7 +538,7 @@ public: // should be protected
 
         Runnable r{&_rc, &store_array<S, T, N, C>, _sz, 0, _name};
 
-        tryRun(std::move(r));
+        tryRun(std::move(r), &_rctx);
     }
 
 protected:

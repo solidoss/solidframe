@@ -1,5 +1,6 @@
 #include <iostream>
 #include <memory>
+#include <span>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -260,23 +261,23 @@ struct Fixture {
         return type_map;
     }
 
-    static string serialize(shared_ptr<Command> const& _cmd, const size_t _chunk)
+    static std::vector<std::byte> serialize(shared_ptr<Command> const& _cmd, const size_t _chunk)
     {
         Context      ctx;
         SerializerT  ser{typeMap()};
-        vector<char> buf(_chunk);
-        string       out;
+        vector<byte> buf(_chunk);
+        vector<byte> out;
 
         ser.add(_cmd, ctx); // added outside run: everything is scheduled
-        for (ptrdiff_t rv = ser.run(buf.data(), buf.size(), ctx); rv > 0; rv = ser.run(buf.data(), buf.size(), ctx)) {
-            out.append(buf.data(), static_cast<size_t>(rv));
+        for (ptrdiff_t rv = ser.run(buf, ctx); rv > 0; rv = ser.run(buf, ctx)) {
+            out.append_range(span{buf}.first(static_cast<size_t>(rv)));
         }
         solid_check(!ser.error(), ser.error().message());
         solid_check(ser.empty());
         return out;
     }
 
-    static shared_ptr<Command> deserialize(string const& _data, const size_t _chunk, Context& _rctx)
+    static shared_ptr<Command> deserialize(vector<byte> const& _data, const size_t _chunk, Context& _rctx)
     {
         DeserializerT       des{typeMap()};
         shared_ptr<Command> cmd;
@@ -285,7 +286,7 @@ struct Fixture {
         des.add(cmd, _rctx);
         while (offset < _data.size()) {
             const size_t    sz = std::min(_chunk, _data.size() - offset);
-            const ptrdiff_t rv = des.run(_data.data() + offset, sz, _rctx);
+            const ptrdiff_t rv = des.run(span{_data}.subspan(offset, sz), _rctx);
             solid_check(rv >= 0, des.error().message());
             offset += static_cast<size_t>(rv);
             if (des.empty()) {
@@ -323,7 +324,7 @@ struct Fixture {
         const string check_data = oss.str();
         cout << _name << ": " << check_data << endl;
 
-        const string reference = serialize(cmd, 4096);
+        const vector<byte> reference = serialize(cmd, 4096);
         for (size_t chunk = 1; chunk < 64; ++chunk) {
             solid_check(serialize(cmd, chunk) == reference);
         }
@@ -393,13 +394,13 @@ void test_intrusive()
     parent->child   = leaf;
     ConstIntrusivePtr<Node> sent{std::move(parent)};
 
-    Context     ctx;
-    SerializerT ser{type_map};
-    string      data;
-    char        buf[5];
+    Context        ctx;
+    SerializerT    ser{type_map};
+    vector<byte>   data;
+    array<byte, 5> buf;
     ser.add(sent, ctx);
-    for (ptrdiff_t rv = ser.run(buf, sizeof(buf), ctx); rv > 0; rv = ser.run(buf, sizeof(buf), ctx)) {
-        data.append(buf, static_cast<size_t>(rv));
+    for (ptrdiff_t rv = ser.run(buf, ctx); rv > 0; rv = ser.run(buf, ctx)) {
+        data.append_range(span{buf}.first(static_cast<size_t>(rv)));
     }
     solid_check(!ser.error() && ser.empty());
 
@@ -407,7 +408,7 @@ void test_intrusive()
     DeserializerT             des{type_map};
     des.add(received, ctx);
     for (size_t i = 0; i < data.size(); ++i) {
-        solid_check(des.run(data.data() + i, 1, ctx) == 1);
+        solid_check(des.run(span{data}.subspan(i, 1), ctx) == 1);
     }
     solid_check(des.empty());
     auto const* pparent = dynamic_cast<ParentNode const*>(received.get());
@@ -435,16 +436,17 @@ void test_errors()
         // unknown dynamic type on serialization
         shared_ptr<Key> key = std::make_shared<Unregistered>();
         SerializerT     ser{FixtureT::typeMap()};
-        char            buf[64];
-        solid_check(ser.run(buf, sizeof(buf), [&](SerializerT& _rs, Context& _rctx) { _rs.add(key, _rctx); }, ctx) == -1);
+        array<byte, 64> buf;
+        solid_check(ser.run(buf, [&](SerializerT& _rs, Context& _rctx) { _rs.add(key, _rctx); }, ctx) == -1);
         solid_check(ser.error() == serialization::v4::error_unknown_type);
     }
     {
         // unknown id on deserialization
-        const string    data("\x39\x30", 2); // 12345
+        // const string    data("\x39\x30", 2); // 12345
+        array<byte, 2>  data{byte{0x39}, byte{0x30}};
         shared_ptr<Key> key;
         DeserializerT   des{FixtureT::typeMap()};
-        solid_check(des.run(data.data(), data.size(), [&](DeserializerT& _rd, Context& _rctx) { _rd.add(key, _rctx); }, ctx) == -1);
+        solid_check(des.run(as_bytes(span{data}), [&](DeserializerT& _rd, Context& _rctx) { _rd.add(key, _rctx); }, ctx) == -1);
         solid_check(des.error() == serialization::v4::error_unknown_type);
     }
     {
@@ -452,7 +454,7 @@ void test_errors()
         const string      data("\x04\x00\x01\x00\x00\x00", 6);
         shared_ptr<Named> named;
         DeserializerT     des{FixtureT::typeMap()};
-        solid_check(des.run(data.data(), data.size(), [&](DeserializerT& _rd, Context& _rctx) { _rd.add(named, _rctx); }, ctx) == -1);
+        solid_check(des.run(as_bytes(span{data}), [&](DeserializerT& _rd, Context& _rctx) { _rd.add(named, _rctx); }, ctx) == -1);
         solid_check(des.error() == serialization::v4::error_reflector_type);
     }
     {

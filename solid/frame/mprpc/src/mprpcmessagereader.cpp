@@ -219,7 +219,8 @@ bool MessageReader::doConsumeMessageHeader(
         if (_message_size <= static_cast<size_t>(_pbufend - _pbufpos)) {
             _receiver.context().pmessage_header_ = &rmsgstub.message_header_;
 
-            const ptrdiff_t rv = rmsgstub.state_ == MessageStub::StateE::ReadHeadStart ? rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, _message_size, rmsgstub.message_header_) : rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, _message_size);
+            const auto      buf = std::as_bytes(std::span<const char>{_pbufpos, _message_size});
+            const ptrdiff_t rv  = rmsgstub.state_ == MessageStub::StateE::ReadHeadStart ? rmsgstub.deserializer_ptr_->run(_receiver.context(), buf, rmsgstub.message_header_) : rmsgstub.deserializer_ptr_->run(_receiver.context(), buf);
 
             rmsgstub.state_ = MessageStub::StateE::ReadHeadContinue;
             _pbufpos += _message_size;
@@ -293,7 +294,8 @@ bool MessageReader::doConsumeMessageBody(
 
                 _receiver.context().pmessage_header_ = &rmsgstub.message_header_;
 
-                const ptrdiff_t rv = rmsgstub.state_ == MessageStub::StateE::ReadBodyStart ? rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, _message_size, rmsgstub.message_ptr_) : rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, _message_size);
+                const auto      buf = std::as_bytes(std::span<const char>{_pbufpos, _message_size});
+            const ptrdiff_t rv  = rmsgstub.state_ == MessageStub::StateE::ReadBodyStart ? rmsgstub.deserializer_ptr_->run(_receiver.context(), buf, rmsgstub.message_ptr_) : rmsgstub.deserializer_ptr_->run(_receiver.context(), buf);
 
                 rmsgstub.state_ = MessageStub::StateE::ReadBodyContinue;
                 _pbufpos += _message_size;

@@ -10,7 +10,9 @@
 
 #pragma once
 
+#include <cstddef>
 #include <memory>
+#include <span>
 #include <string_view>
 #include <type_traits>
 
@@ -44,21 +46,21 @@ public:
     }
 
 private:
-    ptrdiff_t run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessageHeader const& _rmsghdr) override
+    ptrdiff_t run(ConnectionContext& _rctx, std::span<std::byte> _buf, MessageHeader const& _rmsghdr) override
     {
         return ser_.run(
-            _pdata, static_cast<unsigned>(_data_len), [&_rmsghdr](SerializerT& _rs, ConnectionContext& _rctx) { _rs.add(_rmsghdr, _rctx, 0, "header"); }, _rctx);
+            reinterpret_cast<char*>(_buf.data()), static_cast<unsigned>(_buf.size()), [&_rmsghdr](SerializerT& _rs, ConnectionContext& _rctx) { _rs.add(_rmsghdr, _rctx, 0, "header"); }, _rctx);
     }
 
-    ptrdiff_t run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, SendMessagePointerT<>& _rmsgptr, const size_t /*_msg_type_idx*/) override
+    ptrdiff_t run(ConnectionContext& _rctx, std::span<std::byte> _buf, SendMessagePointerT<>& _rmsgptr, const size_t /*_msg_type_idx*/) override
     {
         return ser_.run(
-            _pdata, static_cast<unsigned>(_data_len), [&_rmsgptr](SerializerT& _rs, ConnectionContext& _rctx) { _rs.add(_rmsgptr, _rctx, 0, "message"); }, _rctx);
+            reinterpret_cast<char*>(_buf.data()), static_cast<unsigned>(_buf.size()), [&_rmsgptr](SerializerT& _rs, ConnectionContext& _rctx) { _rs.add(_rmsgptr, _rctx, 0, "message"); }, _rctx);
     }
 
-    ptrdiff_t run(ConnectionContext& _rctx, char* _pdata, size_t _data_len) override
+    ptrdiff_t run(ConnectionContext& _rctx, std::span<std::byte> _buf) override
     {
-        return ser_.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
+        return ser_.run(reinterpret_cast<char*>(_buf.data()), static_cast<unsigned>(_buf.size()), _rctx);
     }
 
     [[nodiscard]] ErrorConditionT error() const override
@@ -89,20 +91,20 @@ public:
     }
 
 private:
-    ptrdiff_t run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, MessageHeader& _rmsghdr) override
+    ptrdiff_t run(ConnectionContext& _rctx, std::span<const std::byte> _buf, MessageHeader& _rmsghdr) override
     {
         return des_.run(
-            _pdata, static_cast<unsigned>(_data_len), [&_rmsghdr](DeserializerT& _rd, ConnectionContext& _rctx) mutable { _rd.add(_rmsghdr, _rctx, 0, "header"); }, _rctx);
+            reinterpret_cast<const char*>(_buf.data()), static_cast<unsigned>(_buf.size()), [&_rmsghdr](DeserializerT& _rd, ConnectionContext& _rctx) mutable { _rd.add(_rmsghdr, _rctx, 0, "header"); }, _rctx);
     }
 
-    ptrdiff_t run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, RecvMessagePointerT<>& _rmsgptr) override
+    ptrdiff_t run(ConnectionContext& _rctx, std::span<const std::byte> _buf, RecvMessagePointerT<>& _rmsgptr) override
     {
         return des_.run(
-            _pdata, static_cast<unsigned>(_data_len), [&_rmsgptr](DeserializerT& _rd, ConnectionContext& _rctx) { _rd.add(_rmsgptr, _rctx, 0, "message"); }, _rctx);
+            reinterpret_cast<const char*>(_buf.data()), static_cast<unsigned>(_buf.size()), [&_rmsgptr](DeserializerT& _rd, ConnectionContext& _rctx) { _rd.add(_rmsgptr, _rctx, 0, "message"); }, _rctx);
     }
-    ptrdiff_t run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len) override
+    ptrdiff_t run(ConnectionContext& _rctx, std::span<const std::byte> _buf) override
     {
-        return des_.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
+        return des_.run(reinterpret_cast<const char*>(_buf.data()), static_cast<unsigned>(_buf.size()), _rctx);
     }
 
     [[nodiscard]] ErrorConditionT error() const override

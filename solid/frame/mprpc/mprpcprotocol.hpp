@@ -15,7 +15,9 @@
 #include "solid/utility/cast.hpp"
 #include "solid/utility/function.hpp"
 
+#include <cstddef>
 #include <memory>
+#include <span>
 
 namespace solid::frame::mprpc {
 
@@ -97,12 +99,12 @@ public:
     using PointerT = std::unique_ptr<Deserializer>;
 
     virtual ~Deserializer();
-    virtual ptrdiff_t                     run(ConnectionContext&, const char* _pdata, size_t _data_len, MessageHeader& _rmsghdr)         = 0;
-    virtual ptrdiff_t                     run(ConnectionContext&, const char* _pdata, size_t _data_len, RecvMessagePointerT<>& _rmsgptr) = 0;
-    virtual ptrdiff_t                     run(ConnectionContext&, const char* _pdata, size_t _data_len)                                  = 0;
-    [[nodiscard]] virtual ErrorConditionT error() const                                                                                  = 0;
-    [[nodiscard]] virtual bool            empty() const                                                                                  = 0;
-    virtual void                          clear()                                                                                        = 0;
+    virtual ptrdiff_t                     run(ConnectionContext&, std::span<const std::byte>, MessageHeader& _rmsghdr)         = 0;
+    virtual ptrdiff_t                     run(ConnectionContext&, std::span<const std::byte>, RecvMessagePointerT<>& _rmsgptr) = 0;
+    virtual ptrdiff_t                     run(ConnectionContext&, std::span<const std::byte>)                                  = 0;
+    [[nodiscard]] virtual ErrorConditionT error() const                                                                        = 0;
+    [[nodiscard]] virtual bool            empty() const                                                                        = 0;
+    virtual void                          clear()                                                                              = 0;
 
     void link(PointerT& _ptr)
     {
@@ -127,12 +129,12 @@ public:
     using PointerT = std::unique_ptr<Serializer>;
 
     virtual ~Serializer();
-    virtual ptrdiff_t                     run(ConnectionContext&, char* _pdata, size_t _data_len, MessageHeader const& _rmsghdr)                                   = 0;
-    virtual ptrdiff_t                     run(ConnectionContext&, char* _pdata, size_t _data_len, SendMessagePointerT<>& _rmsgptr, const size_t _msg_type_idx = 0) = 0;
-    virtual ptrdiff_t                     run(ConnectionContext&, char* _pdata, size_t _data_len)                                                                  = 0;
-    [[nodiscard]] virtual ErrorConditionT error() const                                                                                                            = 0;
-    [[nodiscard]] virtual bool            empty() const                                                                                                            = 0;
-    virtual void                          clear()                                                                                                                  = 0;
+    virtual ptrdiff_t                     run(ConnectionContext&, std::span<std::byte>, MessageHeader const& _rmsghdr)                                   = 0;
+    virtual ptrdiff_t                     run(ConnectionContext&, std::span<std::byte>, SendMessagePointerT<>& _rmsgptr, const size_t _msg_type_idx = 0) = 0;
+    virtual ptrdiff_t                     run(ConnectionContext&, std::span<std::byte>)                                                                  = 0;
+    [[nodiscard]] virtual ErrorConditionT error() const                                                                                                  = 0;
+    [[nodiscard]] virtual bool            empty() const                                                                                                  = 0;
+    virtual void                          clear()                                                                                                        = 0;
 
     void link(PointerT& _ptr)
     {

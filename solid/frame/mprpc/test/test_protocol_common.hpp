@@ -1,15 +1,15 @@
 
 #pragma once
 
+#include <cstddef>
+
 #include "solid/frame/mprpc/mprpcconfiguration.hpp"
 #include "solid/frame/mprpc/mprpcprotocol_serialization_v4.hpp"
 
 #include "solid/frame/mprpc/src/mprpcmessagereader.hpp"
 #include "solid/frame/mprpc/src/mprpcmessagewriter.hpp"
 
-namespace solid {
-namespace frame {
-namespace mprpc {
+namespace solid::frame::mprpc {
 
 class TestEntryway {
 public:
@@ -21,20 +21,28 @@ public:
         static ConnectionContext    conctx(rctx, rsvc, rcon);
         return conctx;
     }
+
+private:
+    // The protocol tests never touch these objects, they only need valid
+    // addresses to bind the ConnectionContext references to.
+    template <class T>
+    static T* placeholder()
+    {
+        alignas(std::max_align_t) static std::byte storage[1024] = {};
+        return reinterpret_cast<T*>(storage);
+    }
     static Connection* createConnection()
     {
-        return nullptr;
+        return placeholder<Connection>();
     }
     static Service* createService()
     {
-        return nullptr;
+        return placeholder<Service>();
     }
     static frame::aio::ReactorContext* createReactorContex()
     {
-        return nullptr;
+        return placeholder<frame::aio::ReactorContext>();
     }
 };
 
-} /*namespace mprpc*/
-} /*namespace frame*/
-} /*namespace solid*/
+} // namespace solid::frame::mprpc

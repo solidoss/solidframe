@@ -38,8 +38,7 @@
 
 using namespace std;
 
-namespace solid {
-namespace frame {
+namespace solid::frame {
 
 namespace {
 
@@ -116,13 +115,16 @@ struct impl::Reactor::Data {
     ActorDequeT             actor_dq_;
     SizeStackT              completion_handler_index_stk_;
 
-    NanoTime computeWaitDuration(NanoTime const& _rcrt, const bool _exec_q_empty) const
+    [[nodiscard]] NanoTime computeWaitDuration(NanoTime const& _rcrt, const bool _exec_q_empty) const
     {
         if (!_exec_q_empty) {
             return NanoTime();
         } else if (!time_store_.empty()) {
 
-            if (_rcrt < time_store_.expiry()) {
+            if (time_store_.expiry().isMax()) {
+                // a timer that never expires: wait the maximum, without overflowing the time point cast
+                return std::chrono::minutes(10);
+            } else if (_rcrt < time_store_.expiry()) {
                 const auto crt_tp  = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
                 const auto next_tp = time_store_.expiry().timePointCast<std::chrono::steady_clock::time_point>();
                 const auto delta   = next_tp - crt_tp;
@@ -141,7 +143,7 @@ struct impl::Reactor::Data {
         }
     }
 
-    UniqueId dummyCompletionHandlerUid() const
+    [[nodiscard]] UniqueId dummyCompletionHandlerUid() const
     {
         const size_t idx = event_actor_ptr_->dummy_handler_.idxreactor;
         return UniqueId(idx, completion_handler_dq_[idx].unique_);
@@ -340,11 +342,11 @@ bool Reactor::doWaitEvent(NanoTime const& _rcrttime, const bool _exec_q_empty)
     unique_lock<std::mutex> lock(impl_->mutex_);
 
     if (pending_wake_count_.load() == 0u && !impl_->must_stop_) {
-        if (wait_duration) {
+        if (wait_duration == NanoTime::max()) {
+            impl_->cnd_var_.wait(lock);
+        } else if (wait_duration) {
             const auto nanosecs = wait_duration.durationCast<std::chrono::nanoseconds>();
             impl_->cnd_var_.wait_for(lock, nanosecs);
-        } else if (wait_duration == NanoTime::max()) {
-            impl_->cnd_var_.wait(lock);
         }
     }
 
@@ -589,5 +591,4 @@ void ReactorStatistic::clear()
     max_actor_count_   = 0;
 }
 
-} // namespace frame
-} // namespace solid
+} // namespace solid::frame

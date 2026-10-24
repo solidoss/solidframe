@@ -15,6 +15,7 @@
 #include <cstring>
 #include <istream>
 #include <ostream>
+#include <span>
 #include <string_view>
 #include <typeinfo>
 #include <variant>
@@ -93,18 +94,18 @@ public:
     // Prepares the buffer, lets _fnc(*this, _rctx) add the values and runs.
     // Returns the number of bytes written, -1 on error.
     template <class F>
-    ptrdiff_t run(char* _pbeg, const size_t _sz, F&& _fnc, Context& _rctx)
+    ptrdiff_t run(std::span<std::byte> _buf, F&& _fnc, Context& _rctx)
     {
-        prepare(_pbeg, _sz);
+        prepare(_buf);
         std::forward<F>(_fnc)(*this, _rctx);
         queue_.run(*this, _rctx);
         return complete();
     }
 
     // Continues the pending serialization into a new buffer.
-    ptrdiff_t run(char* _pbeg, const size_t _sz, Context& _rctx)
+    ptrdiff_t run(std::span<std::byte> _buf, Context& _rctx)
     {
-        prepare(_pbeg, _sz);
+        prepare(_buf);
         queue_.run(*this, _rctx);
         return complete();
     }
@@ -112,12 +113,12 @@ public:
     template <class F>
     std::ostream& run(std::ostream& _ros, F&& _fnc, Context& _rctx)
     {
-        constexpr size_t buf_cap = 8 * 1024;
-        char             buf[buf_cap];
+        std::array<char, 8 * 1024> buf;
+        const auto                 bytes = std::as_writable_bytes(std::span{buf});
 
         clear();
-        for (ptrdiff_t len = run(buf, buf_cap, std::forward<F>(_fnc), _rctx); len > 0; len = run(buf, buf_cap, _rctx)) {
-            _ros.write(buf, len);
+        for (ptrdiff_t len = run(bytes, std::forward<F>(_fnc), _rctx); len > 0; len = run(bytes, _rctx)) {
+            _ros.write(buf.data(), len);
         }
         return _ros;
     }
@@ -146,10 +147,10 @@ public:
     }
 
 private:
-    void prepare(char* _pbeg, const size_t _sz) noexcept
+    void prepare(std::span<std::byte> _buf) noexcept
     {
-        pbeg_ = pcrt_ = _pbeg;
-        pend_         = _pbeg + _sz;
+        pbeg_ = pcrt_ = reinterpret_cast<char*>(_buf.data());
+        pend_         = pbeg_ + _buf.size();
     }
 
     ptrdiff_t complete() noexcept
@@ -167,12 +168,12 @@ private:
         }
     }
 
-    bool isRunEmpty() const noexcept
+    [[nodiscard]] bool isRunEmpty() const noexcept
     {
         return queue_.isRunEmpty();
     }
 
-    size_t room() const noexcept
+    [[nodiscard]] size_t room() const noexcept
     {
         return static_cast<size_t>(pend_ - pcrt_);
     }

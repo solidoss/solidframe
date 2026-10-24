@@ -12,6 +12,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <span>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -38,6 +39,27 @@ using SerializerV3T   = serialization::v3::binary::Serializer<reflection::v1::me
 using DeserializerV3T = serialization::v3::binary::Deserializer<reflection::v1::metadata::Variant<Context>, decltype(reflection::v1::metadata::factory), Context, TypeIdT>;
 using SerializerV4T   = serialization::v4::binary::Serializer<Context, TypeIdT>;
 using DeserializerV4T = serialization::v4::binary::Deserializer<Context, TypeIdT>;
+
+// v3 runs on a pointer and a size, v4 on a byte span.
+template <class Ser, class... Args>
+ptrdiff_t run_ser(Ser& _rser, vector<char>& _rbuf, Args&&... _args)
+{
+    if constexpr (std::is_same_v<Ser, SerializerV3T>) {
+        return _rser.run(_rbuf.data(), static_cast<unsigned>(_rbuf.size()), std::forward<Args>(_args)...);
+    } else {
+        return _rser.run(as_writable_bytes(span{_rbuf}), std::forward<Args>(_args)...);
+    }
+}
+
+template <class Des, class... Args>
+ptrdiff_t run_des(Des& _rdes, string const& _data, const size_t _offset, const size_t _sz, Args&&... _args)
+{
+    if constexpr (std::is_same_v<Des, DeserializerV3T>) {
+        return _rdes.run(_data.data() + _offset, _sz, std::forward<Args>(_args)...);
+    } else {
+        return _rdes.run(as_bytes(span{_data}).subspan(_offset, _sz), std::forward<Args>(_args)...);
+    }
+}
 
 struct Sub {
     uint64_t a_ = 0;
@@ -387,11 +409,11 @@ string serialize(Ser& _rser, shared_ptr<Message> const& _msg, const size_t _chun
     _msg->iss_.seekg(0);
     // v3 packs bits into the bytes it finds in the buffer: hand it zeroes
     std::fill(buf.begin(), buf.end(), 0);
-    ptrdiff_t rv = _rser.run(buf.data(), static_cast<unsigned>(buf.size()), add, ctx);
+    ptrdiff_t rv = run_ser(_rser, buf, add, ctx);
     while (rv > 0) {
-        out.append(buf.data(), static_cast<size_t>(rv));
+        out.append_range(span{buf}.first(static_cast<size_t>(rv)));
         std::fill(buf.begin(), buf.end(), 0);
-        rv = _rser.run(buf.data(), static_cast<unsigned>(buf.size()), ctx);
+        rv = run_ser(_rser, buf, ctx);
     }
     solid_check(rv == 0, "serialization failed: " << _rser.error().message());
     solid_check(_rser.empty());
@@ -412,7 +434,7 @@ shared_ptr<Message> deserialize(Des& _rdes, string const& _data, const size_t _c
             _rd.add(msg, _rctx);
         }
     };
-    ptrdiff_t rv = _rdes.run(_data.data(), sz, add, ctx);
+    ptrdiff_t rv = run_des(_rdes, _data, 0, sz, add, ctx);
     while (true) {
         solid_check(rv >= 0, "deserialization failed: " << _rdes.error().message());
         offset += static_cast<size_t>(rv);
@@ -421,7 +443,7 @@ shared_ptr<Message> deserialize(Des& _rdes, string const& _data, const size_t _c
         }
         solid_check(offset < _data.size(), "deserialization incomplete");
         sz = std::min(_chunk, _data.size() - offset);
-        rv = _rdes.run(_data.data() + offset, sz, ctx);
+        rv = run_des(_rdes, _data, offset, sz, ctx);
     }
     solid_check(offset == _data.size(), "unconsumed bytes " << _data.size() - offset);
     solid_check(msg);

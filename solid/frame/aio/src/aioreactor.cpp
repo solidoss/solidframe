@@ -244,14 +244,17 @@ struct impl::Reactor::Data {
 #endif
 
 #if defined(SOLID_USE_EPOLL2) || defined(SOLID_USE_KQUEUE)
-    NanoTime computeWaitDuration(NanoTime const& _rcrt, const bool _can_wait) const
+    [[nodiscard]] NanoTime computeWaitDuration(NanoTime const& _rcrt, const bool _can_wait) const
     {
 
         if (!_can_wait) {
             return NanoTime();
         } else if (!time_store_.empty()) {
 
-            if (_rcrt < time_store_.expiry()) {
+            if (time_store_.expiry().isMax()) {
+                // a timer that never expires: wait the maximum, without overflowing the time point cast
+                return std::chrono::minutes(10);
+            } else if (_rcrt < time_store_.expiry()) {
                 const auto crt_tp  = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
                 const auto next_tp = time_store_.expiry().timePointCast<std::chrono::steady_clock::time_point>();
                 const auto delta   = next_tp - crt_tp;
@@ -282,10 +285,14 @@ struct impl::Reactor::Data {
             if (_rcrt < time_store_.expiry()) {
 
                 const int64_t maxwait = 1000 * 60 * 10; // ten minutes
-                int64_t       diff    = 0;
-                const auto    crt_tp  = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
-                const auto    next_tp = time_store_.expiry().timePointCast<std::chrono::steady_clock::time_point>();
-                diff                  = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
+                if (time_store_.expiry().isMax()) {
+                    // a timer that never expires: avoid overflowing the time point cast
+                    return maxwait;
+                }
+                int64_t    diff    = 0;
+                const auto crt_tp  = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
+                const auto next_tp = time_store_.expiry().timePointCast<std::chrono::steady_clock::time_point>();
+                diff               = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
 
                 if (diff > maxwait) {
                     return maxwait;
@@ -307,10 +314,14 @@ struct impl::Reactor::Data {
             if (_rcrt < time_store_.expiry()) {
 
                 constexpr int64_t maxwait = 1000 * 60 * 10; // ten minutes
-                int64_t           diff    = 0;
-                const auto        crt_tp  = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
-                const auto        next_tp = time_store_.expiry().timePointCast<std::chrono::steady_clock::time_point>();
-                diff                      = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
+                if (time_store_.expiry().isMax()) {
+                    // a timer that never expires: avoid overflowing the time point cast
+                    return connect_vec_.empty() ? maxwait : 1000;
+                }
+                int64_t    diff    = 0;
+                const auto crt_tp  = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
+                const auto next_tp = time_store_.expiry().timePointCast<std::chrono::steady_clock::time_point>();
+                diff               = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
 
                 if (diff > maxwait) {
                     return connect_vec_.empty() ? maxwait : 1000; // wait 1 sec when connect opperations are in place
@@ -328,7 +339,7 @@ struct impl::Reactor::Data {
     }
 #endif
 
-    UniqueId dummyCompletionHandlerUid() const
+    [[nodiscard]] UniqueId dummyCompletionHandlerUid() const
     {
         const size_t idx = event_actor_ptr_->dummy_handler_.idxreactor;
         return UniqueId(idx, completion_handler_dq_[idx].unique_);

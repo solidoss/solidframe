@@ -682,7 +682,8 @@ char* MessageWriter::doWriteMessageHead(
         _rsender.context().pmessage_relay_header_ = nullptr;
     }
 
-    const ptrdiff_t rv = rmsgstub.state_ == MessageStub::StateE::WriteHeadStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos, rmsgstub.msgbundle_.message_ptr->header_) : rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
+    const auto      buf = std::as_writable_bytes(std::span<char>{_pbufpos, _pbufend});
+    const ptrdiff_t rv  = rmsgstub.state_ == MessageStub::StateE::WriteHeadStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), buf, rmsgstub.msgbundle_.message_ptr->header_) : rmsgstub.serializer_ptr_->run(_rsender.context(), buf);
     rmsgstub.state_    = MessageStub::StateE::WriteHeadContinue;
 
     if (rv >= 0) {
@@ -734,7 +735,8 @@ char* MessageWriter::doWriteMessageBody(
         _rsender.context().pmessage_relay_header_ = nullptr;
     }
 
-    const ptrdiff_t rv = rmsgstub.state_ == MessageStub::StateE::WriteBodyStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos, rmsgstub.msgbundle_.message_ptr, rmsgstub.msgbundle_.message_type_id) : rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
+    const auto      buf = std::as_writable_bytes(std::span<char>{_pbufpos, _pbufend});
+    const ptrdiff_t rv  = rmsgstub.state_ == MessageStub::StateE::WriteBodyStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), buf, rmsgstub.msgbundle_.message_ptr, rmsgstub.msgbundle_.message_type_id) : rmsgstub.serializer_ptr_->run(_rsender.context(), buf);
     rmsgstub.state_    = MessageStub::StateE::WriteBodyContinue;
 
     if (rv >= 0) {
@@ -791,7 +793,8 @@ char* MessageWriter::doWriteRelayedHead(
     _rsender.context().message_flags_.set(MessageFlagsE::Relayed);
     _rsender.context().pmessage_relay_header_ = &rmsgstub.prelay_data_->pmessage_header_->relay_;
 
-    const ptrdiff_t rv = rmsgstub.state_ == MessageStub::StateE::RelayedHeadStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos, *rmsgstub.prelay_data_->pmessage_header_) : rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
+    const auto      buf = std::as_writable_bytes(std::span<char>{_pbufpos, _pbufend});
+    const ptrdiff_t rv  = rmsgstub.state_ == MessageStub::StateE::RelayedHeadStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), buf, *rmsgstub.prelay_data_->pmessage_header_) : rmsgstub.serializer_ptr_->run(_rsender.context(), buf);
     rmsgstub.state_    = MessageStub::StateE::RelayedHeadContinue;
 
     if (rv >= 0) {

@@ -8,6 +8,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -27,6 +28,27 @@ using SerializerV3T   = serialization::v3::binary::Serializer<reflection::v1::me
 using DeserializerV3T = serialization::v3::binary::Deserializer<reflection::v1::metadata::Variant<Context>, decltype(reflection::v1::metadata::factory), Context, uint8_t>;
 using SerializerV4T   = serialization::v4::binary::Serializer<Context, uint8_t>;
 using DeserializerV4T = serialization::v4::binary::Deserializer<Context, uint8_t>;
+
+// v3 runs on a pointer and a size, v4 on a byte span.
+template <class Ser, class... Args>
+ptrdiff_t run_ser(Ser& _rser, vector<char>& _rbuf, Args&&... _args)
+{
+    if constexpr (std::is_same_v<Ser, SerializerV3T>) {
+        return _rser.run(_rbuf.data(), static_cast<unsigned>(_rbuf.size()), std::forward<Args>(_args)...);
+    } else {
+        return _rser.run(as_writable_bytes(span{_rbuf}), std::forward<Args>(_args)...);
+    }
+}
+
+template <class Des, class... Args>
+ptrdiff_t run_des(Des& _rdes, string const& _data, const size_t _offset, const size_t _sz, Args&&... _args)
+{
+    if constexpr (std::is_same_v<Des, DeserializerV3T>) {
+        return _rdes.run(_data.data() + _offset, _sz, std::forward<Args>(_args)...);
+    } else {
+        return _rdes.run(as_bytes(span{_data}).subspan(_offset, _sz), std::forward<Args>(_args)...);
+    }
+}
 
 struct Item {
     uint64_t id_    = 0;
@@ -219,7 +241,7 @@ string serialize_v3(T const& _rt, vector<char>& _rbuf)
     SerializerV3T ser{reflection::v1::metadata::factory, type_map_v3()};
     string        out;
     for (ptrdiff_t rv = ser.run(_rbuf.data(), static_cast<unsigned>(_rbuf.size()), [&_rt](SerializerV3T& _rs, Context& _rctx) { _rs.add(_rt, _rctx, 0, "t"); }, ctx); rv > 0; rv = ser.run(_rbuf.data(), static_cast<unsigned>(_rbuf.size()), ctx)) {
-        out.append(_rbuf.data(), static_cast<size_t>(rv));
+        out.append_range(span{_rbuf}.first(static_cast<size_t>(rv)));
     }
     return out;
 }
@@ -230,8 +252,8 @@ string serialize_v4(T const& _rt, vector<char>& _rbuf)
     Context       ctx;
     SerializerV4T ser{type_map_v4()};
     string        out;
-    for (ptrdiff_t rv = ser.run(_rbuf.data(), _rbuf.size(), [&_rt](SerializerV4T& _rs, Context& _rctx) { _rs.add(_rt, _rctx); }, ctx); rv > 0; rv = ser.run(_rbuf.data(), _rbuf.size(), ctx)) {
-        out.append(_rbuf.data(), static_cast<size_t>(rv));
+    for (ptrdiff_t rv = ser.run(as_writable_bytes(span{_rbuf}), [&_rt](SerializerV4T& _rs, Context& _rctx) { _rs.add(_rt, _rctx); }, ctx); rv > 0; rv = ser.run(as_writable_bytes(span{_rbuf}), ctx)) {
+        out.append_range(span{_rbuf}.first(static_cast<size_t>(rv)));
     }
     return out;
 }
@@ -256,7 +278,7 @@ size_t run_serialize(T const& _rt, vector<char>& _rbuf)
             _rs.add(_rt, _rctx);
         }
     };
-    for (ptrdiff_t rv = ser.run(_rbuf.data(), static_cast<unsigned>(_rbuf.size()), add, ctx); rv > 0; rv = ser.run(_rbuf.data(), static_cast<unsigned>(_rbuf.size()), ctx)) {
+    for (ptrdiff_t rv = run_ser(ser, _rbuf, add, ctx); rv > 0; rv = run_ser(ser, _rbuf, ctx)) {
         total += static_cast<size_t>(rv);
     }
     return total;
@@ -281,13 +303,13 @@ size_t run_deserialize(string const& _data, const size_t _chunk, T& _rt)
         }
     };
     size_t    offset = 0;
-    ptrdiff_t rv     = des.run(_data.data(), std::min(_chunk, _data.size()), add, ctx);
+    ptrdiff_t rv     = run_des(des, _data, 0, std::min(_chunk, _data.size()), add, ctx);
     while (rv > 0) {
         offset += static_cast<size_t>(rv);
         if (offset == _data.size()) {
             break;
         }
-        rv = des.run(_data.data() + offset, std::min(_chunk, _data.size() - offset), ctx);
+        rv = run_des(des, _data, offset, std::min(_chunk, _data.size() - offset), ctx);
     }
     return offset;
 }

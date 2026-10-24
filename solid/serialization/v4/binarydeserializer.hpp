@@ -15,6 +15,7 @@
 #include <cstring>
 #include <istream>
 #include <ostream>
+#include <span>
 #include <utility>
 #include <variant>
 
@@ -53,12 +54,12 @@ class Deserializer : NonCopyable {
         uint8_t                size_ = 0;
     };
 
-    QueueT          queue_;
-    const char*     pbeg_ = nullptr;
-    const char*     pcrt_ = nullptr;
-    const char*     pend_ = nullptr;
-    ErrorConditionT error_;
-    TypeMapT const* ptype_map_ = nullptr;
+    QueueT                queue_;
+    const char*           pbeg_ = nullptr;
+    const char*           pcrt_ = nullptr;
+    const char*           pend_ = nullptr;
+    ErrorConditionT       error_;
+    TypeMapT const* const ptype_map_ = nullptr;
 
 public:
     using ContextT = Context;
@@ -82,18 +83,18 @@ public:
     // Prepares the buffer, lets _fnc(*this, _rctx) add the values and runs.
     // Returns the number of bytes consumed, -1 on error.
     template <class F>
-    ptrdiff_t run(const char* _pbeg, const size_t _sz, F&& _fnc, Context& _rctx)
+    ptrdiff_t run(std::span<const std::byte> _buf, F&& _fnc, Context& _rctx)
     {
-        prepare(_pbeg, _sz);
+        prepare(_buf);
         std::forward<F>(_fnc)(*this, _rctx);
         queue_.run(*this, _rctx);
         return complete();
     }
 
     // Continues the pending deserialization with a new buffer.
-    ptrdiff_t run(const char* _pbeg, const size_t _sz, Context& _rctx)
+    ptrdiff_t run(std::span<const std::byte> _buf, Context& _rctx)
     {
-        prepare(_pbeg, _sz);
+        prepare(_buf);
         queue_.run(*this, _rctx);
         return complete();
     }
@@ -101,23 +102,23 @@ public:
     template <class F>
     std::istream& run(std::istream& _ris, F&& _fnc, Context& _rctx)
     {
-        constexpr size_t buf_cap = 8 * 1024;
-        char             buf[buf_cap];
+        std::array<char, 8 * 1024> buf;
+        const auto                 bytes = std::as_bytes(std::span{buf});
 
         clear();
-        _ris.read(buf, buf_cap);
+        _ris.read(buf.data(), buf.size());
         auto read_sz = static_cast<ptrdiff_t>(_ris.gcount());
         if (read_sz == 0) {
             return _ris;
         }
-        ptrdiff_t rv = run(buf, static_cast<size_t>(read_sz), std::forward<F>(_fnc), _rctx);
+        ptrdiff_t rv = run(bytes.first(static_cast<size_t>(read_sz)), std::forward<F>(_fnc), _rctx);
         while (rv == read_sz && !empty()) {
-            _ris.read(buf, buf_cap);
+            _ris.read(buf.data(), buf.size());
             read_sz = static_cast<ptrdiff_t>(_ris.gcount());
             if (read_sz == 0) {
                 break;
             }
-            rv = run(buf, static_cast<size_t>(read_sz), _rctx);
+            rv = run(bytes.first(static_cast<size_t>(read_sz)), _rctx);
         }
         return _ris;
     }
@@ -146,10 +147,10 @@ public:
     }
 
 private:
-    void prepare(const char* _pbeg, const size_t _sz) noexcept
+    void prepare(std::span<const std::byte> _buf) noexcept
     {
-        pbeg_ = pcrt_ = _pbeg;
-        pend_         = _pbeg + _sz;
+        pbeg_ = pcrt_ = reinterpret_cast<const char*>(_buf.data());
+        pend_         = pbeg_ + _buf.size();
     }
 
     ptrdiff_t complete() noexcept
@@ -167,12 +168,12 @@ private:
         }
     }
 
-    bool isRunEmpty() const noexcept
+    [[nodiscard]] bool isRunEmpty() const noexcept
     {
         return queue_.isRunEmpty();
     }
 
-    size_t avail() const noexcept
+    [[nodiscard]] size_t avail() const noexcept
     {
         return static_cast<size_t>(pend_ - pcrt_);
     }
