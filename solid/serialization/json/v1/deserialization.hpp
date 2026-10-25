@@ -12,11 +12,13 @@
 
 #include "solid/reflection/v2/reflection.hpp"
 
+#include <charconv>
 #include <expected>
 #include <format>
 #include <istream>
 #include <string>
 #include <string_view>
+#include <system_error>
 
 namespace solid::serialization::json::inline v1 {
 
@@ -152,27 +154,15 @@ __attribute__((always_inline)) inline std::string_view parse_string_view(std::st
     return {};
 }
 
+// Fails on a value out of ValueT's range - "-1" for an unsigned included -
+// instead of wrapping it; out is left untouched on failure.
 __attribute__((always_inline)) inline bool parse_number(std::string_view& s, auto& out)
 {
-    using ValueT    = std::decay_t<decltype(out)>;
-    auto const* p   = s.data();
-    auto const* end = p + s.size();
-    bool        neg = false;
-    if (p < end && *p == '-') {
-        neg = true;
-        ++p;
-    }
-    if (p >= end || static_cast<unsigned char>(*p - '0') > 9u) {
-        return false;
-    }
+    using ValueT = std::decay_t<decltype(out)>;
     ValueT val{};
-    while (p < end && static_cast<unsigned char>(*p - '0') <= 9u) {
-        val = static_cast<ValueT>(val * 10 + (*p++ - '0'));
-    }
-    if constexpr (std::is_signed_v<ValueT>) {
-        if (neg) {
-            val = -val;
-        }
+    auto const [p, ec] = std::from_chars(s.data(), s.data() + s.size(), val);
+    if (ec != std::errc{}) {
+        return false;
     }
     out = val;
     s.remove_prefix(static_cast<size_t>(p - s.data()));

@@ -97,7 +97,7 @@ int test_binary_basic(int /*argc*/, char* /*argv*/[])
         solid_assert(false);
     }
 
-    if (!test(static_cast<uint8_t>(0xff), 2)) {
+    if (!test(static_cast<uint8_t>(0xff), 1)) { // all bits set: marker
         solid_assert(false);
     }
 
@@ -107,7 +107,7 @@ int test_binary_basic(int /*argc*/, char* /*argv*/[])
     if (!test(static_cast<uint16_t>(0xff), 2)) {
         solid_assert(false);
     }
-    if (!test(static_cast<uint16_t>(0xffff), 3)) {
+    if (!test(static_cast<uint16_t>(0xffff), 1)) { // all bits set: marker
         solid_assert(false);
     }
 
@@ -123,7 +123,7 @@ int test_binary_basic(int /*argc*/, char* /*argv*/[])
     if (!test(static_cast<uint32_t>(0xffffff), 4)) {
         solid_assert(false);
     }
-    if (!test(static_cast<uint32_t>(0xffffffff), 5)) {
+    if (!test(static_cast<uint32_t>(0xffffffff), 1)) { // all bits set: marker
         solid_assert(false);
     }
 
@@ -148,10 +148,29 @@ int test_binary_basic(int /*argc*/, char* /*argv*/[])
     if (!test(static_cast<uint64_t>(0xffffffffffffULL), 7)) {
         solid_assert(false);
     }
+    // UINT64_MAX marker
+    if (!test(std::numeric_limits<uint64_t>::max(), 1)) {
+        solid_assert(false);
+    }
+    if (!test(std::numeric_limits<uint64_t>::max() - 1, 9)) {
+        solid_assert(false);
+    }
+    {
+        char tmp[16] = {0};
+        solid_check(store_compact(tmp, sizeof(tmp), std::numeric_limits<uint64_t>::max()) == tmp + 1 && tmp[0] == '\x80');
+        // the marker loads as all bits set in the reader's type
+        uint32_t v32 = 0;
+        solid_check(load_compact(tmp, sizeof(tmp), v32) == tmp + 1 && v32 == std::numeric_limits<uint32_t>::max());
+        uint8_t v8 = 0;
+        solid_check(load_compact(tmp, sizeof(tmp), v8) == tmp + 1 && v8 == 0xff);
+        solid_check(store_compact(tmp, sizeof(tmp), std::numeric_limits<uint16_t>::max()) == tmp + 1 && tmp[0] == '\x80');
+        uint64_t v64 = 0;
+        solid_check(load_compact(tmp, sizeof(tmp), v64) == tmp + 1 && v64 == std::numeric_limits<uint64_t>::max());
+    }
     if (!test(static_cast<uint64_t>(0xffffffffffffffULL), 8)) {
         solid_assert(false);
     }
-    if (!test(static_cast<uint64_t>(0xffffffffffffffffULL), 9)) {
+    if (!test(static_cast<uint64_t>(0xffffffffffffffffULL), 1)) { // marker
         solid_assert(false);
     }
     return 0;

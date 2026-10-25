@@ -202,6 +202,8 @@ private:
             addCallable(detail::take_callable(_rfield), _rctx);
         } else if constexpr (FieldT::type_id == TypeIdE::OStream || FieldT::type_id == TypeIdE::IOStream) {
             addStream(_rfield.stream(), _rfield.max_size, detail::progress_of(_rfield), _rctx);
+        } else if constexpr (detail::is_compacted_v<FieldT>) {
+            addCompacted(reflection::v2::detail::Access::ref(_rfield), _rctx);
         } else if constexpr (FieldT::type_id == TypeIdE::IStream) {
             // input streams are only read by the serializer
         } else {
@@ -272,6 +274,32 @@ private:
     }
 
     // —— values ——
+    // Signed values are stored sign extended to 64 bits, as v3 does; all bits
+    // set (the marker) loads as all bits set in T.
+    template <std::integral T>
+    void addCompacted(T& _rvalue, Context& _rctx)
+    {
+        if (isRunEmpty()) {
+            loadCompactedInto(_rvalue, _rctx);
+        } else {
+            queue_.schedule([pvalue = &_rvalue](ThisT& _rdes, Context& _rctx) {
+                _rdes.loadCompactedInto(*pvalue, _rctx);
+                return ReturnE::Done;
+            });
+        }
+    }
+
+    template <std::integral T>
+    void loadCompactedInto(T& _rvalue, Context& _rctx)
+    {
+        loadCompacted([pvalue = &_rvalue](ThisT& _rdes, Context&, const uint64_t _v) {
+            if (!binary::from_compact(_v, *pvalue)) {
+                _rdes.baseError(error_compacted_integer);
+            }
+        },
+            _rctx);
+    }
+
     template <class T>
     void addValue(T& _rvalue, const size_t _limit, Context& _rctx)
     {
@@ -303,7 +331,7 @@ private:
         } else if constexpr (kind == KindE::String) {
             static_assert(requires(T& _rs, const char* _p) { _rs.clear(); _rs.append(_p, size_t{}); _rs.assign(_p, size_t{}); }, "binary v4 deserialization needs a std::string like string");
             loadCompacted([pstr = &_rvalue, _limit](ThisT& _rdes, Context&, const uint64_t _sz) {
-                if (_sz > _limit) {
+                if (detail::size_exceeds(_sz, _limit)) {
                     _rdes.baseError(error_limit_string);
                     return;
                 }
@@ -313,7 +341,7 @@ private:
         } else if constexpr (kind == KindE::IntegralRange && requires(T& _rc) { _rc.resize(size_t{}); _rc.data(); }) {
             using ElementT = typename T::value_type;
             loadCompacted([pcont = &_rvalue, _limit](ThisT& _rdes, Context& _rctx, const uint64_t _sz) {
-                if (_sz > _limit) {
+                if (detail::size_exceeds(_sz, _limit)) {
                     _rdes.baseError(error_limit_string);
                     return;
                 }
@@ -329,7 +357,7 @@ private:
         } else if constexpr (kind == KindE::IntegralArray) {
             using ElementT = typename T::value_type;
             loadCompacted([parr = &_rvalue, _limit](ThisT& _rdes, Context& _rctx, const uint64_t _sz) {
-                if (_sz > _limit || _sz > parr->size()) {
+                if (detail::size_exceeds(_sz, _limit) || _sz > parr->size()) {
                     _rdes.baseError(error_limit_string);
                     return;
                 }
@@ -342,7 +370,7 @@ private:
                 _rctx);
         } else if constexpr (kind == KindE::Array) {
             loadCompacted([parr = &_rvalue, _limit](ThisT& _rdes, Context& _rctx, const uint64_t _sz) {
-                if (_sz > _limit || _sz > parr->size()) {
+                if (detail::size_exceeds(_sz, _limit) || _sz > parr->size()) {
                     _rdes.baseError(error_limit_array);
                     return;
                 }
@@ -361,7 +389,7 @@ private:
                 _rctx);
         } else if constexpr (kind == KindE::BitVector) {
             loadCompacted([pbits = &_rvalue, _limit](ThisT& _rdes, Context&, const uint64_t _sz) {
-                if (_sz > _limit) {
+                if (detail::size_exceeds(_sz, _limit)) {
                     _rdes.baseError(error_limit_container);
                     return;
                 }
@@ -372,7 +400,7 @@ private:
         } else if constexpr (kind == KindE::Container || kind == KindE::IntegralRange) {
             static_assert(requires(T& _rc) { _rc.emplace_back(); _rc.back(); _rc.clear(); }, "binary v4 deserialization needs emplace_back()/back()/clear() on sequence containers");
             loadCompacted([pcont = &_rvalue, _limit](ThisT& _rdes, Context& _rctx, const uint64_t _sz) {
-                if (_sz > _limit) {
+                if (detail::size_exceeds(_sz, _limit)) {
                     _rdes.baseError(error_limit_container);
                     return;
                 }
@@ -385,7 +413,7 @@ private:
                 _rctx);
         } else if constexpr (kind == KindE::KeyContainer) {
             loadCompacted([pcont = &_rvalue, _limit](ThisT& _rdes, Context& _rctx, const uint64_t _sz) {
-                if (_sz > _limit) {
+                if (detail::size_exceeds(_sz, _limit)) {
                     _rdes.baseError(error_limit_container);
                     return;
                 }

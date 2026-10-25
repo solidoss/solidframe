@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cstdint>
 #include <deque>
+#include <format>
 #include <initializer_list>
 #include <iostream>
 #include <list>
@@ -559,6 +560,50 @@ struct TestReflectionSkip {
 };
 #endif
 
+// with_compacted() only changes the binary encoding: JSON must be the same as
+// for the plain twin, values written and read as they are (no all-bits-set
+// marker, no sign extension).
+template <bool Compacted>
+struct TestCompacted {
+    std::uint64_t u64_max_ = 0;
+    std::uint32_t u32_max_ = 0;
+    std::uint8_t  u8_      = 0;
+    std::int16_t  i16_m1_  = 0;
+    std::int32_t  i32_     = 0;
+    std::uint64_t u64_     = 0;
+
+    bool operator==(TestCompacted const&) const = default;
+
+    template <typename Reflector, typename Ctx>
+    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
+    {
+        using namespace solid::reflection::v2;
+        auto const field = [](auto&& _rf) {
+            if constexpr (Compacted) {
+                return _rf.with_compacted();
+            } else {
+                return _rf;
+            }
+        };
+        _rr(id<1>, field(make("u64_max"sv, rthis.u64_max_)), _rc);
+        _rr(id<2>, field(make("u32_max"sv, rthis.u32_max_)), _rc);
+        _rr(id<3>, field(make("u8"sv, rthis.u8_)), _rc);
+        _rr(id<4>, field(make("i16_m1"sv, rthis.i16_m1_)), _rc);
+        _rr(id<5>, field(make("i32"sv, rthis.i32_)), _rc);
+        _rr(id<6>, field(make("u64"sv, rthis.u64_).with_max(1000000)), _rc);
+    }
+};
+
+#ifdef SOLID_USE_REFLECTION
+struct TestCompactedAnnotated {
+    [[= solid::reflection::v2::annotate::compacted]] std::uint32_t u32_max_ = 0;
+    [[= solid::reflection::v2::annotate::compacted]] std::int64_t  i64_m1_  = 0;
+    std::uint16_t                                                  plain_   = 0;
+
+    bool operator==(TestCompactedAnnotated const&) const = default;
+};
+#endif
+
 } // namespace alpha
 
 int test_json(
@@ -664,6 +709,95 @@ int test_json(
         // a skipped member is unknown to the parser
         alpha::TestReflectionSkip skip_bad;
         solid_check(!from_json(R"({"s_":"kept","cache_":5,"u_":42})", skip_bad, ctx), "from_json accepted a skipped member");
+    }
+#endif
+    {
+        static_assert(decltype(solid::reflection::v2::make(""sv, std::declval<std::uint32_t&>()).with_compacted())::compacted);
+
+        constexpr auto expected = R"({"u64_max":18446744073709551615,"u32_max":4294967295,"u8":200,"i16_m1":-1,"i32":-300,"u64":123456})"sv;
+
+        alpha::TestCompacted<true> cmp;
+        cmp.u64_max_ = std::numeric_limits<std::uint64_t>::max();
+        cmp.u32_max_ = std::numeric_limits<std::uint32_t>::max();
+        cmp.u8_      = 200;
+        cmp.i16_m1_  = -1;
+        cmp.i32_     = -300;
+        cmp.u64_     = 123456;
+
+        alpha::TestCompacted<false> plain;
+        plain.u64_max_ = cmp.u64_max_;
+        plain.u32_max_ = cmp.u32_max_;
+        plain.u8_      = cmp.u8_;
+        plain.i16_m1_  = cmp.i16_m1_;
+        plain.i32_     = cmp.i32_;
+        plain.u64_     = cmp.u64_;
+
+        std::string cmp_str;
+        to_json_str(cmp_str, cmp, ctx);
+        cout << cmp_str << endl;
+        solid_check(cmp_str == expected, "unexpected: " << cmp_str);
+
+        std::string plain_str;
+        to_json_str(plain_str, plain, ctx);
+        solid_check(plain_str == cmp_str, "compacted and plain JSON differ: " << plain_str);
+
+        alpha::TestCompacted<true> cmp_rt;
+        auto                       res = from_json(cmp_str, cmp_rt, ctx);
+        solid_check(res, "from_json(TestCompacted<true>): " << res.error().message());
+        solid_check(cmp_rt == cmp, "TestCompacted<true> round-trip mismatch");
+
+        // the JSON of either reads into the other
+        alpha::TestCompacted<false> plain_rt;
+        res = from_json(cmp_str, plain_rt, ctx);
+        solid_check(res && plain_rt == plain, "TestCompacted<false> from compacted JSON mismatch");
+        cmp_rt = {};
+        res    = from_json(plain_str, cmp_rt, ctx);
+        solid_check(res && cmp_rt == cmp, "TestCompacted<true> from plain JSON mismatch");
+    }
+    {
+        // integers are range checked, not wrapped
+        auto const json_of = [](std::string_view _u64_max, std::string_view _u32_max, std::string_view _u8, std::string_view _i16, std::string_view _i32) {
+            return std::format(R"({{"u64_max":{},"u32_max":{},"u8":{},"i16_m1":{},"i32":{},"u64":1}})", _u64_max, _u32_max, _u8, _i16, _i32);
+        };
+
+        alpha::TestCompacted<false> lim;
+        auto const                  res = from_json(json_of("18446744073709551615", "4294967295", "255", "-32768", "2147483647"), lim, ctx);
+        solid_check(res, "from_json(limits): " << res.error().message());
+        solid_check(lim.u64_max_ == std::numeric_limits<std::uint64_t>::max() && lim.u32_max_ == std::numeric_limits<std::uint32_t>::max()
+                && lim.u8_ == 255 && lim.i16_m1_ == std::numeric_limits<std::int16_t>::min() && lim.i32_ == std::numeric_limits<std::int32_t>::max(),
+            "limits mismatch");
+
+        for (auto const& bad : {
+                 json_of("18446744073709551616", "0", "0", "0", "0"), // uint64_t overflow
+                 json_of("-1", "0", "0", "0", "0"), // negative unsigned
+                 json_of("0", "4294967296", "0", "0", "0"), // uint32_t overflow
+                 json_of("0", "-1", "0", "0", "0"),
+                 json_of("0", "0", "256", "0", "0"), // uint8_t overflow
+                 json_of("0", "0", "300", "0", "0"),
+                 json_of("0", "0", "-1", "0", "0"),
+                 json_of("0", "0", "0", "32768", "0"), // int16_t overflow
+                 json_of("0", "0", "0", "-32769", "0"),
+                 json_of("0", "0", "0", "0", "-2147483649"), // int32_t overflow
+                 json_of("0", "0", "0", "-", "0"), // not a number
+                 json_of("0", "0", "+1", "0", "0"), // JSON has no leading +
+             }) {
+            alpha::TestCompacted<false> out;
+            solid_check(!from_json(bad, out, ctx), "from_json accepted: " << bad);
+        }
+    }
+#ifdef SOLID_USE_REFLECTION
+    {
+        alpha::TestCompactedAnnotated ann{.u32_max_ = std::numeric_limits<std::uint32_t>::max(), .i64_m1_ = -1, .plain_ = 7};
+
+        std::string str;
+        to_json_str(str, ann, ctx);
+        cout << str << endl;
+        solid_check(str == R"({"u32_max_":4294967295,"i64_m1_":-1,"plain_":7})", "unexpected: " << str);
+
+        alpha::TestCompactedAnnotated ann_rt{};
+        auto const                    res = from_json(str, ann_rt, ctx);
+        solid_check(res, "from_json(TestCompactedAnnotated): " << res.error().message());
+        solid_check(ann_rt == ann, "TestCompactedAnnotated round-trip mismatch");
     }
 #endif
     std::string json_str;

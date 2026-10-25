@@ -363,6 +363,69 @@ struct NativeSkip {
 };
 #endif
 
+// Opt-in compacted integers: stored like sizes instead of on sizeof(T) bytes.
+struct Compacted {
+    uint8_t  u8_  = 0;
+    uint16_t u16_ = 0;
+    uint64_t u64_ = 0;
+    uint64_t max_ = 0;
+    int32_t  i32_ = 0;
+    uint32_t raw_ = 0; // not compacted
+
+    bool operator==(Compacted const&) const = default;
+
+    template <typename Reflector, typename Ctx>
+    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
+    {
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("u8"sv, rthis.u8_).with_compacted(), _rc);
+        _rr(id<2>, make("u16"sv, rthis.u16_).with_max(1000).with_compacted(), _rc);
+        _rr(id<3>, make("u64"sv, rthis.u64_).with_compacted(), _rc);
+        _rr(id<4>, make("max"sv, rthis.max_).with_compacted(), _rc);
+        _rr(id<5>, make("i32"sv, rthis.i32_).with_compacted(), _rc);
+        _rr(id<6>, make("raw"sv, rthis.raw_), _rc);
+    }
+};
+
+// The same compacted fields with other widths: all bits set crosses widths.
+template <class U, class S>
+struct CompactedWidth {
+    U u_ = 0;
+    S s_ = 0;
+
+    template <typename Reflector, typename Ctx>
+    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
+    {
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("u"sv, rthis.u_).with_compacted(), _rc);
+        _rr(id<2>, make("s"sv, rthis.s_).with_compacted(), _rc);
+    }
+};
+
+// Reads back what Compacted::u64_ was written with into an uint8_t.
+struct CompactedNarrow {
+    uint8_t  u8_  = 0;
+    uint16_t u16_ = 0;
+    uint8_t  u64_ = 0;
+
+    template <typename Reflector, typename Ctx>
+    void solidReflectV2(this auto& rthis, Reflector&& _rr, Ctx& _rc)
+    {
+        using namespace solid::reflection::v2;
+        _rr(id<1>, make("u8"sv, rthis.u8_).with_compacted(), _rc);
+        _rr(id<2>, make("u16"sv, rthis.u16_).with_compacted(), _rc);
+        _rr(id<3>, make("u64"sv, rthis.u64_).with_compacted(), _rc);
+    }
+};
+
+#ifdef SOLID_USE_REFLECTION
+struct NativeCompacted {
+    [[= solid::reflection::v2::annotate::compacted]] uint64_t                                                 id_    = 0;
+    [[ = solid::reflection::v2::annotate::compacted, = solid::reflection::v2::annotate::max(100u) ]] uint32_t count_ = 0;
+    uint16_t                                                                                                  raw_   = 0;
+};
+#endif
+
 struct Unlimited {
     string      s_;
     vector<Sub> v_;
@@ -539,6 +602,101 @@ void test_native_skip()
 #endif
 }
 
+void test_compacted()
+{
+    using solid::reflection::v2::make;
+    static_assert(!decltype(make(""sv, std::declval<uint64_t&>()))::compacted);
+    static_assert(decltype(make(""sv, std::declval<uint64_t&>()).with_compacted())::compacted);
+    {
+        uint16_t v = 0;
+        auto     f = make("v"sv, v).with_min(2).with_compacted();
+        solid_check(f.min == 2 && f.max == std::numeric_limits<uint16_t>::max());
+    }
+
+    Context   ctx;
+    Compacted in;
+    in.u8_  = 5;
+    in.u16_ = 300;
+    in.u64_ = 0x0102030405ULL;
+    in.max_ = std::numeric_limits<uint64_t>::max();
+    in.i32_ = -1;
+    in.raw_ = 7;
+
+    const string expected("\x05"
+                          "\xfe\x2c\x01"
+                          "\xfb\x05\x04\x03\x02\x01"
+                          "\x80" // UINT64_MAX marker
+                          "\x80" // -1, sign extended to UINT64_MAX
+                          "\x07\x00\x00\x00",
+        1 + 3 + 6 + 1 + 1 + 4);
+    for (const size_t chunk : {size_t{1}, size_t{2}, size_t{3}, size_t{5}, size_t{64}}) {
+        solid_check(serialize(in, chunk, ctx) == expected, "chunk " << chunk);
+        Compacted out;
+        solid_check(!deserialize(expected, out, chunk, ctx), "chunk " << chunk);
+        solid_check(out == in, "chunk " << chunk);
+    }
+
+    // a value that does not fit the field
+    for (const size_t chunk : {size_t{1}, size_t{64}}) {
+        CompactedNarrow out;
+        solid_check(deserialize(expected, out, chunk, ctx) == serialization::v4::error_compacted_integer);
+    }
+    // all bits set is read as all bits set in the reader's type
+    {
+        CompactedWidth<uint32_t, int16_t> win;
+        win.u_            = std::numeric_limits<uint32_t>::max();
+        win.s_            = -1;
+        const string data = serialize(win, 1, ctx);
+        solid_check(data == string("\x80\x80", 2));
+
+        CompactedWidth<uint64_t, int64_t> wide;
+        solid_check(!deserialize(data, wide, 1, ctx));
+        solid_check(wide.u_ == std::numeric_limits<uint64_t>::max() && wide.s_ == -1);
+
+        CompactedWidth<uint8_t, int8_t> narrow;
+        solid_check(!deserialize(data, narrow, 1, ctx));
+        solid_check(narrow.u_ == 0xFF && narrow.s_ == -1);
+
+        // anything else keeps its value, so it may not fit
+        win.u_ = std::numeric_limits<uint32_t>::max() - 1;
+        solid_check(deserialize(serialize(win, 1, ctx), narrow, 1, ctx) == serialization::v4::error_compacted_integer);
+        // a sign extended value fits any signed width it is in range of
+        win.u_ = 1;
+        win.s_ = -2;
+        solid_check(!deserialize(serialize(win, 1, ctx), narrow, 1, ctx) && narrow.u_ == 1 && narrow.s_ == -2);
+    }
+    // a multi-byte negative value
+    {
+        Compacted neg     = in;
+        neg.i32_          = -300;
+        const string data = serialize(neg, 1, ctx);
+        solid_check(data.size() == expected.size() + 8 && data.substr(11, 9) == string("\xf8\xd4\xfe\xff\xff\xff\xff\xff\xff", 9));
+        Compacted out;
+        solid_check(!deserialize(data, out, 1, ctx) && out == neg);
+    }
+
+#ifdef SOLID_USE_REFLECTION
+    NativeCompacted nin;
+    nin.id_            = 1000;
+    nin.count_         = 3;
+    nin.raw_           = 0x0102;
+    const string ndata = serialize(nin, 2, ctx);
+    solid_check(ndata == string("\xfe\xe8\x03\x03\x02\x01", 6));
+    NativeCompacted nout;
+    solid_check(!deserialize(ndata, nout, 1, ctx));
+    solid_check(nout.id_ == nin.id_ && nout.count_ == nin.count_ && nout.raw_ == nin.raw_);
+
+    // annotations other than compacted still reach the compacted descriptor
+    auto check_max = [](auto, auto&& _rfield, Context&) {
+        using FieldT = std::remove_cvref_t<decltype(_rfield)>;
+        if constexpr (FieldT::compacted && std::is_same_v<typename FieldT::value_type, uint32_t>) {
+            solid_check(_rfield.max == 100);
+        }
+    };
+    solid::reflection::v2::reflect(nin, check_max, ctx);
+#endif
+}
+
 void test_errors()
 {
     Context ctx;
@@ -568,7 +726,7 @@ void test_errors()
     }
     // corrupt compacted size
     {
-        const string data("\x80", 1);
+        const string data("\x81", 1); // -127: more than 8 value bytes
         string       s;
         solid_check(deserialize(data, s, 1, ctx) == serialization::v4::error_compacted_integer);
         solid_check(deserialize(data, s, 10, ctx) == serialization::v4::error_compacted_integer);
@@ -618,6 +776,14 @@ void test_scalars()
         solid_check(serialization::v4::binary::load_compact(buf, static_cast<size_t>(sz), loaded) == buf + sz && loaded == value);
         solid_check(serialization::v4::binary::load_compact(buf, static_cast<size_t>(sz) - 1, loaded) == nullptr);
     }
+    {
+        char buf[serialization::v4::binary::max_compacted_size];
+        solid_check(serialization::v4::binary::store_compact(buf, ~0ULL) == buf + 1 && buf[0] == '\x80');
+        // the marker loads as all bits set in the reader's type
+        uint32_t narrow = 0;
+        solid_check(serialization::v4::binary::load_compact(buf, 1, narrow) == buf + 1 && narrow == std::numeric_limits<uint32_t>::max());
+        solid_check(serialization::v4::binary::store_compact(buf, sizeof(buf), uint16_t{0xFFFF}) == buf + 1 && buf[0] == '\x80');
+    }
 }
 
 } // namespace
@@ -629,6 +795,7 @@ int test_binary(int /*argc*/, char* /*argv*/[])
     test_streams();
     test_limited_streams();
     test_native_skip();
+    test_compacted();
     test_errors();
     cout << "done" << endl;
     return 0;

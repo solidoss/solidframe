@@ -35,7 +35,7 @@ namespace solid::reflection::v2 {
 //     };
 //
 // native_reflect forwards them to the member's descriptor
-// (with_max_size, with_min, with_max). Annotations of other
+// (with_max_size, with_min, with_max, with_compacted). Annotations of other
 // types are ignored, so members may carry user-defined ones as well.
 //
 // A member annotated with annotate::skip is not reflected at all - it may
@@ -48,6 +48,13 @@ namespace solid::reflection::v2 {
 //
 // Skipping a member does not renumber the others: ids follow the
 // declaration order of all the members.
+//
+// annotate::compacted selects the compacted descriptor of an integral
+// member (with_compacted):
+//
+//     struct Item {
+//         [[=annotate::compacted]] uint64_t id_;
+//     };
 namespace annotate {
 
 struct skip_t {
@@ -55,6 +62,12 @@ struct skip_t {
 };
 
 inline constexpr skip_t skip{};
+
+struct compacted_t {
+    constexpr bool operator==(compacted_t const&) const = default;
+};
+
+inline constexpr compacted_t compacted{};
 
 struct max_size_t {
     size_t value;
@@ -710,14 +723,28 @@ void apply_annotation(Field& _rfield)
     }
 }
 
-consteval bool is_skipped(std::meta::info _member)
+consteval bool has_annotation(std::meta::info _member, std::meta::info _type)
 {
     for (auto annotation : std::meta::annotations_of(_member)) {
-        if (std::meta::remove_cvref(std::meta::type_of(annotation)) == ^^annotate::skip_t) {
+        if (std::meta::remove_cvref(std::meta::type_of(annotation)) == _type) {
             return true;
         }
     }
     return false;
+}
+
+// The compacted flag is part of the descriptor type, so it is chosen when the
+// descriptor is made rather than applied to it afterwards.
+template <std::meta::info Member, typename T>
+auto native_make_member(T& _rv)
+{
+    if constexpr (has_annotation(Member, ^^annotate::compacted_t)) {
+        using ValueT = std::remove_cvref_t<decltype(_rv.[:Member:])>;
+        static_assert(std::is_integral_v<ValueT> && !std::is_same_v<ValueT, bool>, "annotate::compacted needs a non-bool integral member");
+        return make(std::meta::identifier_of(Member), _rv.[:Member:]).with_compacted();
+    } else {
+        return make(std::meta::identifier_of(Member), _rv.[:Member:]);
+    }
 }
 
 template <std::meta::info Member,
@@ -727,8 +754,8 @@ template <std::meta::info Member,
     typename Ctx>
 void native_reflect_member(T& _rv, R& _rr, Ctx& _rc)
 {
-    if constexpr (!is_skipped(Member)) { // a skipped member's descriptor is never instantiated
-        auto field = make(std::meta::identifier_of(Member), _rv.[:Member:]);
+    if constexpr (!has_annotation(Member, ^^annotate::skip_t)) { // a skipped member's descriptor is never instantiated
+        auto field = native_make_member<Member>(_rv);
         template for (constexpr auto annotation : std::define_static_array(std::meta::annotations_of(Member)))
         {
             using AnnT = std::remove_cvref_t<typename[:std::meta::type_of(annotation):]>;

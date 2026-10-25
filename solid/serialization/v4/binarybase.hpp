@@ -36,6 +36,14 @@ inline constexpr size_t no_limit = std::numeric_limits<size_t>::max();
 
 namespace detail {
 
+// A size of UINT64_MAX (the 1 byte compact marker) exceeds any limit, even
+// no_limit: no string or container can hold it, so it must not reach
+// resize/reserve.
+constexpr bool size_exceeds(const uint64_t _sz, const size_t _limit) noexcept
+{
+    return _sz > _limit || _sz == std::numeric_limits<uint64_t>::max();
+}
+
 namespace refl = solid::reflection::v2;
 
 // —— TaskQueue ——
@@ -306,6 +314,11 @@ consteval KindE kind()
         return KindE::Reflectable;
     }
 }
+
+// An integral descriptor made with with_compacted(): stored like a size
+// (v3's reflection::compacted wire format) instead of on sizeof(T) bytes.
+template <class Field>
+constexpr bool is_compacted_v = requires { requires Field::compacted; };
 
 // The size limit a descriptor carries. String and (key)container
 // descriptors default their max_size to 0, meaning "no limit".

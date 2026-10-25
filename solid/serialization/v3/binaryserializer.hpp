@@ -260,7 +260,7 @@ public: // should be protected
     {
         static_assert(std::is_integral_v<T>, "only integral types are accepted");
         solid_log(logger, Info, _name << ' ' << _rb);
-        Runnable r{std::addressof(_rb), &store_compacted, sizeof(T), static_cast<uint64_t>(_rb), _name};
+        Runnable r{std::addressof(_rb), &store_compacted, sizeof(T), binary::to_compact(_rb), _name};
         if (isRunEmpty()) {
             if (doStoreCompacted(r) == ReturnE::Done) {
                 return;
@@ -722,6 +722,9 @@ private:
             if (_rr.data_ <= static_cast<uint64_t>(std::numeric_limits<int8_t>::max())) {
                 *pcrt = static_cast<int8_t>(_rr.data_);
                 return ReturnE::Done;
+            } else if (_rr.data_ == std::numeric_limits<uint64_t>::max()) {
+                *pcrt = binary::compact_max_marker;
+                return ReturnE::Done;
             } else {
                 const size_t sz = max_padded_byte_cout(_rr.data_);
                 *pcrt           = -(static_cast<int8_t>(sz));
@@ -736,25 +739,11 @@ private:
         return ReturnE::Wait;
     }
 
+    // The value bytes are written from data_, not from the field: a negative
+    // value is sign extended to 64 bits and so may be wider than the field.
     Base::ReturnE doStoreCompacted(Runnable& _rr)
     {
-        if (pcrt_ != pend_) {
-            int8_t* pcrt = reinterpret_cast<int8_t*>(pcrt_);
-            ++pcrt_;
-
-            if (_rr.data_ <= static_cast<uint64_t>(std::numeric_limits<int8_t>::max())) {
-                *pcrt = static_cast<int8_t>(_rr.data_);
-                return ReturnE::Done;
-            } else {
-                const size_t sz = max_padded_byte_cout(_rr.data_);
-                *pcrt           = -(static_cast<int8_t>(sz));
-                solid_log(logger, Info, "sz = " << sz << " c = " << (int)*pcrt_ << " data = " << _rr.data_);
-                _rr.size_ = sz;
-                _rr.call_ = store_binary;
-                return doStoreBinary(_rr);
-            }
-        }
-        return ReturnE::Wait;
+        return doStoreCompactedInline(_rr);
     }
 
     Base::ReturnE doStoreInteger(Runnable& _rr)

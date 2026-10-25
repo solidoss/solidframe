@@ -185,6 +185,14 @@ struct Message {
     mutable istringstream    iss_; // serialized from
     ostringstream            oss_; // deserialized into
     uint64_t                 tail_ = 0;
+    // compacted: v3 reflection::compacted{} vs v4 with_compacted()
+    uint8_t  cu8_  = 0;
+    uint16_t cu16_ = 0;
+    uint32_t cu32_ = 0;
+    uint64_t cu64_ = 0;
+    int64_t  ci64_ = 0;
+    int32_t  ci32_ = 0;
+    int8_t   ci8_  = 0;
 
     void populate(const size_t _seed, const size_t _stream_size)
     {
@@ -207,7 +215,7 @@ struct Message {
             vu32_.push_back(static_cast<uint32_t>(i * 0x01020304u));
         }
         for (size_t i = 0; i < 12 + _seed; ++i) {
-            Sub sub{i * 1000003ULL + _seed, "sub_" + std::to_string(i), -static_cast<int32_t>(i)};
+            Sub sub{.a_ = i * 1000003ULL + _seed, .b_ = "sub_" + std::to_string(i), .c_ = -static_cast<int32_t>(i)};
             vsub_.push_back(sub);
             dsub_.push_front(sub);
             lsub_.push_back(sub);
@@ -259,6 +267,13 @@ struct Message {
         }
         iss_.str(stream_data);
         tail_ = 0x0102030405060708ULL;
+        cu8_  = static_cast<uint8_t>(200 + _seed);
+        cu16_ = _seed == 0 ? uint16_t{0xFFFF} : static_cast<uint16_t>(5 + _seed); // all bits set: the marker
+        cu32_ = _seed == 1 ? 0xFFFFFFFFu : 4000000000u + static_cast<uint32_t>(_seed);
+        cu64_ = std::numeric_limits<uint64_t>::max() - _seed;
+        ci64_ = -1 - static_cast<int64_t>(_seed); // seed 0: the UINT64_MAX marker
+        ci32_ = -2 - static_cast<int32_t>(_seed); // sign extended: wider than the field
+        ci8_  = static_cast<int8_t>(-1 + 100 * _seed); // -1, 99, -57
     }
 
     bool operator==(Message const& _o) const
@@ -277,7 +292,9 @@ struct Message {
             && vb_ == _o.vb_ && db_ == _o.db_ && bs20_ == _o.bs20_ && bs100_ == _o.bs100_ && a8_ == _o.a8_ && abool_ == _o.abool_
             && asub_eq && pair_ == _o.pair_ && tuple_ == _o.tuple_ && sub_ == _o.sub_ && base_equal(sbase_, _o.sbase_)
             && ((!ubase_ && !_o.ubase_) || (ubase_ && _o.ubase_ && ubase_->equals(*_o.ubase_))) && !_o.null_ && vbase_eq
-            && iss_.str() == _o.oss_.str() && tail_ == _o.tail_;
+            && iss_.str() == _o.oss_.str() && tail_ == _o.tail_
+            && cu8_ == _o.cu8_ && cu16_ == _o.cu16_ && cu32_ == _o.cu32_ && cu64_ == _o.cu64_ && ci64_ == _o.ci64_
+            && ci32_ == _o.ci32_ && ci8_ == _o.ci8_;
     }
 
     SOLID_REFLECT_V1(_rr, _rthis, _rctx)
@@ -309,6 +326,10 @@ struct Message {
             });
         }
         _rr.add(_rthis.tail_, _rctx, 37, "tail");
+        _rr.add(reflection::v1::compacted{_rthis.cu8_}, _rctx, 38, "cu8").add(reflection::v1::compacted{_rthis.cu16_}, _rctx, 39, "cu16");
+        _rr.add(reflection::v1::compacted{_rthis.cu32_}, _rctx, 40, "cu32").add(reflection::v1::compacted{_rthis.cu64_}, _rctx, 41, "cu64");
+        _rr.add(reflection::v1::compacted{_rthis.ci64_}, _rctx, 42, "ci64").add(reflection::v1::compacted{_rthis.ci32_}, _rctx, 43, "ci32");
+        _rr.add(reflection::v1::compacted{_rthis.ci8_}, _rctx, 44, "ci8");
     }
 
     template <typename Reflector, typename Ctx>
@@ -360,6 +381,13 @@ struct Message {
             _rr(id<36>, make("stream"sv, rthis.oss_), _rc);
         }
         _rr(id<37>, make("tail"sv, rthis.tail_), _rc);
+        _rr(id<38>, make("cu8"sv, rthis.cu8_).with_compacted(), _rc);
+        _rr(id<39>, make("cu16"sv, rthis.cu16_).with_compacted(), _rc);
+        _rr(id<40>, make("cu32"sv, rthis.cu32_).with_compacted(), _rc);
+        _rr(id<41>, make("cu64"sv, rthis.cu64_).with_compacted(), _rc);
+        _rr(id<42>, make("ci64"sv, rthis.ci64_).with_compacted(), _rc);
+        _rr(id<43>, make("ci32"sv, rthis.ci32_).with_compacted(), _rc);
+        _rr(id<44>, make("ci8"sv, rthis.ci8_).with_compacted(), _rc);
     }
 };
 
@@ -484,10 +512,53 @@ void check_compatibility(const size_t _seed, const size_t _stream_size)
     cout << "seed " << _seed << " stream " << _stream_size << ": " << count << " buffer sizes checked" << endl;
 }
 
+// A lone 0x80 decodes as a UINT64_MAX size: both versions must reject it
+// instead of trying to allocate it, even when the field has no limit.
+template <class Des, class T>
+ErrorConditionT deserialize_max_size(Des& _rdes, T& _rvalue)
+{
+    Context      ctx;
+    const string data("\x80", 1);
+    auto         add = [&_rvalue](Des& _rd, Context& _rctx) {
+        if constexpr (std::is_same_v<Des, DeserializerV3T>) {
+            _rd.add(_rvalue, _rctx, 0, "value");
+        } else {
+            _rd.add(_rvalue, _rctx);
+        }
+    };
+    solid_check(run_des(_rdes, data, 0, data.size(), add, ctx) == -1);
+    return _rdes.error();
+}
+
+template <class Des, class... Args>
+void check_max_size(Args const&... _args)
+{
+    constexpr bool is_v3                 = std::is_same_v<Des, DeserializerV3T>;
+    auto const&    error_limit_string    = is_v3 ? serialization::v3::error_limit_string : serialization::v4::error_limit_string;
+    auto const&    error_limit_container = is_v3 ? serialization::v3::error_limit_container : serialization::v4::error_limit_container;
+    {
+        Des    des{_args...};
+        string value;
+        solid_check(deserialize_max_size(des, value) == error_limit_string);
+    }
+    {
+        Des             des{_args...};
+        vector<uint8_t> value;
+        solid_check(deserialize_max_size(des, value) == error_limit_string);
+    }
+    {
+        Des            des{_args...};
+        vector<string> value;
+        solid_check(deserialize_max_size(des, value) == error_limit_container);
+    }
+}
+
 } // namespace
 
 int test_compat_v3(int /*argc*/, char* /*argv*/[])
 {
+    check_max_size<DeserializerV4T>(type_map_v4());
+    check_max_size<DeserializerV3T>(reflection::v1::metadata::factory, type_map_v3());
     check_compatibility(0, 0);
     check_compatibility(1, 100);
     check_compatibility(2, 100000);

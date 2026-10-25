@@ -78,13 +78,17 @@ public:
     }
 };
 
-template <typename ValT>
+// Compacted is part of the type, so serializers select the encoding at
+// compile time (if constexpr); with_compacted() returns the compacted
+// descriptor.
+template <typename ValT, bool Compacted = false>
 class Integral {
     ValT& ref;
     friend struct detail::Access;
 
 public:
     static constexpr TypeIdE type_id{TypeIdE::Integral};
+    static constexpr bool    compacted{Compacted};
     using value_type = std::decay_t<ValT>;
 
     std::string_view const name;
@@ -116,6 +120,14 @@ public:
     {
         max = _val;
         return *this;
+    }
+
+    auto with_compacted() const
+    {
+        Integral<ValT, true> rv{name, ref};
+        rv.min = min;
+        rv.max = max;
+        return rv;
     }
 };
 

@@ -360,7 +360,7 @@ public:
                 if (!is_run_empty) {
                     return ReturnE::Wait;
                 }
-                if (_rr.size_ > _rr.limit_) {
+                if (size_exceeds(_rr.size_, _rr.limit_)) {
                     _rd.baseError(error_limit_container);
                     return ReturnE::Done;
                 }
@@ -372,7 +372,7 @@ public:
             if (parsing_value) {
                 rcontainer.insert(rcontainer.end(), std::move(value));
                 parsing_value = false;
-            } else if (_rr.size_ > _rr.limit_) {
+            } else if (size_exceeds(_rr.size_, _rr.limit_)) {
                 _rd.baseError(error_limit_container);
                 return ReturnE::Done;
             }
@@ -479,6 +479,13 @@ public:
     }
 
 protected:
+    // A size of UINT64_MAX (the 1 byte compact marker) exceeds any limit: no
+    // string or container can hold it, so it must not reach resize/reserve.
+    static constexpr bool size_exceeds(const uint64_t _sz, const uint64_t _limit) noexcept
+    {
+        return _sz > _limit || _sz == std::numeric_limits<uint64_t>::max();
+    }
+
     void doPrepareRun(const char* _pbeg, size_t _sz)
     {
         pbeg_ = _pbeg;
@@ -571,7 +578,7 @@ private:
             _rr.size_ = _rd.data_.u64_;
             solid_log(logger, Info, "size = " << _rr.size_ << ' ' << _rr.limit_);
 
-            if (_rr.size_ > _rr.limit_) {
+            if (size_exceeds(_rr.size_, _rr.limit_)) {
                 _rd.baseError(error_limit_container);
                 return ReturnE::Done;
             }
@@ -672,7 +679,7 @@ private:
             _rr.size_ = _rd.data_.u64_;
             solid_log(logger, Info, "size = " << _rr.size_);
 
-            if (_rr.size_ > _rr.limit_) {
+            if (size_exceeds(_rr.size_, _rr.limit_)) {
                 _rd.baseError(error_limit_string);
                 return ReturnE::Done;
             }
@@ -697,7 +704,7 @@ private:
             _rr.size_ = _rd.data_.u64_;
             solid_log(logger, Info, "size = " << _rr.size_);
 
-            if (_rr.size_ > _rr.limit_ || _rr.size_ > Sz) {
+            if (size_exceeds(_rr.size_, _rr.limit_) || _rr.size_ > Sz) {
                 _rd.baseError(error_limit_string);
                 return ReturnE::Done;
             }
@@ -722,7 +729,7 @@ private:
             _rr.size_ = _rd.data_.u64_;
             solid_log(logger, Info, "size = " << _rr.size_);
 
-            if (_rr.size_ > _rr.limit_ || _rr.size_ > Sz) {
+            if (size_exceeds(_rr.size_, _rr.limit_) || _rr.size_ > Sz) {
                 _rd.baseError(error_limit_string);
                 return ReturnE::Done;
             }
@@ -738,7 +745,7 @@ private:
     template <class D, class T, size_t N, class C>
     static ReturnE load_array_start(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
     {
-        if (_rr.limit_ != 0 && _rd.data_.u64_ > _rr.limit_) {
+        if (size_exceeds(_rd.data_.u64_, _rr.limit_ != 0 ? _rr.limit_ : std::numeric_limits<uint64_t>::max())) {
             _rd.baseError(error_limit_array);
             return ReturnE::Done;
         }
@@ -829,7 +836,7 @@ private:
         if (data_.u64_ != 0) {
             _rr.size_ = data_.u64_;
 
-            if (_rr.size_ > _rr.limit_) {
+            if (size_exceeds(_rr.size_, _rr.limit_)) {
                 baseError(error_limit_string);
                 return ReturnE::Done;
             }
@@ -847,7 +854,6 @@ private:
     template <typename T>
     ReturnE doLoadCompactedData(Runnable& _rr)
     {
-        // TODO: this is called only on BIG_ENDIAN - optimize
         if (pcrt_ != pend_) {
             size_t toread = pend_ - pcrt_;
             if (toread > _rr.size_) {
@@ -861,15 +867,8 @@ private:
             pcrt_ += toread;
 
             if (_rr.size_ == 0) {
-                const uint64_t v  = data_.u64_;
-                const T        vt = static_cast<T>(v);
-                solid_log(logger, Info, "vt = " << vt);
-
-                if (static_cast<uint64_t>(vt) == v) {
-                    *reinterpret_cast<T*>(_rr.ptr_) = vt;
-                } else {
-                    baseError(error_compacted_integer);
-                }
+                solid_log(logger, Info, "v = " << data_.u64_);
+                storeCompactedValue<T>(_rr, data_.u64_);
                 return ReturnE::Done;
             }
         }
@@ -886,7 +885,11 @@ private:
             ++pcrt_;
 
             if (*pcrt >= 0) {
-                *reinterpret_cast<T*>(_rr.ptr_) = *pcrt;
+                *reinterpret_cast<T*>(_rr.ptr_) = static_cast<T>(*pcrt);
+                return ReturnE::Done;
+            }
+            if (*pcrt == binary::compact_max_marker) {
+                storeCompactedValue<T>(_rr, std::numeric_limits<uint64_t>::max());
                 return ReturnE::Done;
             }
 
@@ -897,12 +900,22 @@ private:
                 return ReturnE::Done;
             }
 
-            *reinterpret_cast<T*>(_rr.ptr_) = 0;
-
-            _rr.call_ = load_binary;
-            return doLoadBinary(_rr);
+            // the value bytes go to data_: they may be more than sizeof(T)
+            // (sign extended or out of range values)
+            data_.u64_ = 0;
+            _rr.data_  = 0;
+            _rr.call_  = load_compacted_data<T>;
+            return doLoadCompactedData<T>(_rr);
         }
         return ReturnE::Wait;
+    }
+
+    template <typename T>
+    void storeCompactedValue(Runnable& _rr, const uint64_t _v)
+    {
+        if (!binary::from_compact(_v, *reinterpret_cast<T*>(_rr.ptr_))) {
+            baseError(error_compacted_integer);
+        }
     }
 
     template <typename T>

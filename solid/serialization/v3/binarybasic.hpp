@@ -14,7 +14,10 @@
 #include "solid/system/convertors.hpp"
 #include "solid/utility/algorithm.hpp"
 #include <array>
+#include <concepts>
 #include <cstring>
+#include <limits>
+#include <type_traits>
 
 namespace solid::serialization::v3::binary {
 
@@ -203,9 +206,50 @@ inline const char* load(const char* _ps, std::array<uint8_t, S>& _val)
     return _ps + S;
 }
 
+// First byte (and the whole encoding) of a compacted UINT64_MAX. A compacted
+// integer with all bits set in its type (unsigned max, signed -1) is stored
+// as UINT64_MAX and loaded as all bits set in the reader's type, whatever its
+// width.
+inline constexpr int8_t compact_max_marker = std::numeric_limits<int8_t>::min();
+
+template <std::integral T>
+inline constexpr T all_bits_set = static_cast<T>(~T{});
+
+// The value a compacted integer is encoded as: all bits set in T becomes
+// UINT64_MAX (the marker), the rest is widened (signed: sign extended).
+template <std::integral T>
+constexpr uint64_t to_compact(const T _v) noexcept
+{
+    return _v == all_bits_set<T> ? std::numeric_limits<uint64_t>::max() : static_cast<uint64_t>(_v);
+}
+
+// Narrows a decoded compacted value to T: UINT64_MAX becomes all bits set in
+// T; false if the value does not fit T.
+template <std::integral T>
+constexpr bool from_compact(const uint64_t _v, T& _rv) noexcept
+{
+    if (_v == std::numeric_limits<uint64_t>::max()) {
+        _rv = all_bits_set<T>;
+        return true;
+    }
+    const auto v = static_cast<T>(_v);
+    if (static_cast<uint64_t>(v) != _v) {
+        return false;
+    }
+    _rv = v;
+    return true;
+}
+
 inline char* store_compact(char* _pd, const size_t _sz, uint8_t _v)
 {
     int8_t* pd = reinterpret_cast<int8_t*>(_pd);
+    if (_v == all_bits_set<uint8_t>) {
+        if (_sz >= 1) {
+            *pd = compact_max_marker;
+            return _pd + 1;
+        }
+        return nullptr;
+    }
     if (_v <= static_cast<uint8_t>(std::numeric_limits<int8_t>::max())) {
         if (_sz >= 1) {
             *pd = static_cast<int8_t>(_v);
@@ -225,6 +269,13 @@ inline char* store_compact(char* _pd, const size_t _sz, uint16_t _v)
 {
     static_assert(EndianessE::Native == EndianessE::Little, "Only little endian is supported");
     int8_t* pd = reinterpret_cast<int8_t*>(_pd);
+    if (_v == all_bits_set<uint16_t>) {
+        if (_sz >= 1) {
+            *pd = compact_max_marker;
+            return _pd + 1;
+        }
+        return nullptr;
+    }
     if (_v <= static_cast<uint16_t>(std::numeric_limits<int8_t>::max())) {
         if (_sz >= 1) {
             *pd = static_cast<int8_t>(_v);
@@ -259,6 +310,13 @@ inline char* store_compact(char* _pd, const size_t _sz, uint32_t _v)
 {
     static_assert(EndianessE::Native == EndianessE::Little, "Only little endian is supported");
     int8_t* pd = reinterpret_cast<int8_t*>(_pd);
+    if (_v == all_bits_set<uint32_t>) {
+        if (_sz >= 1) {
+            *pd = compact_max_marker;
+            return _pd + 1;
+        }
+        return nullptr;
+    }
     if (_v <= static_cast<uint32_t>(std::numeric_limits<int8_t>::max())) {
         if (_sz >= 1) {
             *pd = static_cast<int8_t>(_v);
@@ -307,6 +365,11 @@ inline char* store_compact(char* _pd, const size_t _sz, uint64_t _v)
     if (_v <= static_cast<uint64_t>(std::numeric_limits<int8_t>::max())) {
         if (_sz >= 1) {
             *pd = static_cast<int8_t>(_v);
+            return _pd + 1;
+        }
+    } else if (_v == std::numeric_limits<uint64_t>::max()) {
+        if (_sz >= 1) {
+            *pd = compact_max_marker;
             return _pd + 1;
         }
     } else {
@@ -384,6 +447,11 @@ inline const char* load_compact(const char* _pb, const size_t _sz, uint8_t& _val
     if (_sz != 0) {
         const int8_t* pb = reinterpret_cast<const int8_t*>(_pb);
 
+        if (*pb == compact_max_marker) {
+            _val = all_bits_set<std::remove_reference_t<decltype(_val)>>;
+            return _pb + 1;
+        }
+
         if (*pb >= 0) {
             _val = *pb;
             return _pb + 1;
@@ -400,6 +468,11 @@ inline const char* load_compact(const char* _pb, const size_t _sz, uint16_t& _va
     static_assert(EndianessE::Native == EndianessE::Little, "Only little endian is supported");
     if (_sz != 0) {
         const int8_t* pb = reinterpret_cast<const int8_t*>(_pb);
+
+        if (*pb == compact_max_marker) {
+            _val = all_bits_set<std::remove_reference_t<decltype(_val)>>;
+            return _pb + 1;
+        }
 
         if (*pb >= 0) {
             _val = *pb;
@@ -434,6 +507,11 @@ inline const char* load_compact(const char* _pb, const size_t _sz, uint32_t& _va
     static_assert(EndianessE::Native == EndianessE::Little, "Only little endian is supported");
     if (_sz != 0) {
         const int8_t* pb = reinterpret_cast<const int8_t*>(_pb);
+
+        if (*pb == compact_max_marker) {
+            _val = all_bits_set<std::remove_reference_t<decltype(_val)>>;
+            return _pb + 1;
+        }
 
         if (*pb >= 0) {
             _val = *pb;
@@ -480,6 +558,11 @@ inline const char* load_compact(const char* _pb, const size_t _sz, uint64_t& _va
     static_assert(EndianessE::Native == EndianessE::Little, "Only little endian is supported");
     if (_sz != 0) {
         const int8_t* pb = reinterpret_cast<const int8_t*>(_pb);
+
+        if (*pb == compact_max_marker) {
+            _val = std::numeric_limits<uint64_t>::max();
+            return _pb + 1;
+        }
 
         if (*pb >= 0) {
             _val = *pb;
@@ -560,6 +643,8 @@ inline size_t compact_size(const T& _v)
 {
     if (_v <= static_cast<uint64_t>(std::numeric_limits<int8_t>::max())) {
         return 1;
+    } else if (to_compact(_v) == std::numeric_limits<uint64_t>::max()) {
+        return 1;
     } else {
         return max_padded_byte_cout(_v) + 1;
     }
@@ -569,6 +654,9 @@ inline size_t compact_size(const char* _pb, const size_t _sz)
 {
     if (_sz > 0) {
         const int8_t* pb = reinterpret_cast<const int8_t*>(_pb);
+        if (*pb == compact_max_marker) {
+            return 1;
+        }
         if (*pb < 0) {
             return (-*pb + 1);
         }

@@ -202,6 +202,8 @@ private:
             addCallable(detail::take_callable(_rfield), _rctx);
         } else if constexpr (FieldT::type_id == TypeIdE::IStream || FieldT::type_id == TypeIdE::IOStream) {
             addStream(_rfield.stream(), _rfield.size, detail::progress_of(_rfield), _rctx);
+        } else if constexpr (detail::is_compacted_v<FieldT>) {
+            addCompacted(reflection::v2::detail::Access::ref(_rfield));
         } else if constexpr (FieldT::type_id == TypeIdE::OStream) {
             // output streams are only filled by the deserializer
         } else {
@@ -240,6 +242,20 @@ private:
     }
 
     // —— values ——
+    template <std::integral T>
+    void addCompacted(const T _value)
+    {
+        const uint64_t value = binary::to_compact(_value);
+        if (isRunEmpty()) {
+            storeCompacted(value);
+        } else {
+            queue_.schedule([value](ThisT& _rser, Context&) {
+                _rser.storeCompacted(value);
+                return ReturnE::Done;
+            });
+        }
+    }
+
     template <class T>
     void addValue(T const& _rvalue, const size_t _limit, Context& _rctx)
     {
